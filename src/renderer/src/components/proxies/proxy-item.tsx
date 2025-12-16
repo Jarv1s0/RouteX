@@ -71,7 +71,7 @@ const ProxyItem: React.FC<Props> = (props) => {
                   </div>
                 </div>
                 <div className="text-[12px] text-foreground-500 leading-none mt-0.5">
-                  <span>{proxy.type}</span>
+                  <span>{proxy.type === 'Compatible' ? 'Direct' : proxy.type}</span>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-0.5 shrink-0">
@@ -107,11 +107,11 @@ const ProxyItem: React.FC<Props> = (props) => {
             <>
               <div className="text-ellipsis overflow-hidden whitespace-nowrap">
                 <div className="flag-emoji inline" title={proxy.name}>
-                  {proxy.name}
+                  {proxy.name === 'COMPATIBLE' ? 'DIRECT' : proxy.name}
                 </div>
                 {proxyDisplayLayout === 'single' && (
                   <div className="inline ml-2 text-foreground-500" title={proxy.type}>
-                    {proxy.type}
+                    {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
                   </div>
                 )}
               </div>

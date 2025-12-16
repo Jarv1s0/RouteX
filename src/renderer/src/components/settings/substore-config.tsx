@@ -11,8 +11,9 @@ import {
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import debounce from '@renderer/utils/debounce'
 import { isValidCron } from 'cron-validator'
+import { secondaryInputClassNames } from './advanced-settings'
 
-const SubStoreConfig: React.FC = () => {
+const SubStoreConfig: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     useSubStore = true,
@@ -55,9 +56,9 @@ const SubStoreConfig: React.FC = () => {
     setSubStoreBackendUploadCronValue(subStoreBackendUploadCron ?? '')
   }, [subStoreBackendUploadCron])
 
-  return (
-    <SettingCard title="Sub-Store 设置">
-      <SettingItem title="启用 Sub-Store" divider={useSubStore}>
+  const content = (
+    <>
+      <SettingItem title="启用 Sub-Store" divider>
         <Switch
           size="sm"
           isSelected={useSubStore}
@@ -78,8 +79,9 @@ const SubStoreConfig: React.FC = () => {
         />
       </SettingItem>
       {useSubStore && (
-        <>
-          <SettingItem title="允许局域网连接" divider>
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+          <div className="ml-4">
+            <SettingItem title="允许局域网连接" divider>
             <Switch
               size="sm"
               isSelected={subStoreHost === '0.0.0.0'}
@@ -121,6 +123,7 @@ const SubStoreConfig: React.FC = () => {
               <Input
                 size="sm"
                 className="w-[60%]"
+                classNames={secondaryInputClassNames}
                 value={customSubStoreUrlValue}
                 placeholder="必须包含协议头"
                 onValueChange={(v: string) => {
@@ -170,6 +173,7 @@ const SubStoreConfig: React.FC = () => {
                   )}
                   <Input
                     size="sm"
+                    classNames={secondaryInputClassNames}
                     value={subStoreBackendSyncCronValue}
                     placeholder="Cron 表达式"
                     onValueChange={(v: string) => {
@@ -203,6 +207,7 @@ const SubStoreConfig: React.FC = () => {
                   )}
                   <Input
                     size="sm"
+                    classNames={secondaryInputClassNames}
                     value={subStoreBackendDownloadCronValue}
                     placeholder="Cron 表达式"
                     onValueChange={(v: string) => {
@@ -236,6 +241,7 @@ const SubStoreConfig: React.FC = () => {
                   )}
                   <Input
                     size="sm"
+                    classNames={secondaryInputClassNames}
                     value={subStoreBackendUploadCronValue}
                     placeholder="Cron 表达式"
                     onValueChange={(v: string) => {
@@ -246,8 +252,19 @@ const SubStoreConfig: React.FC = () => {
               </SettingItem>
             </>
           )}
-        </>
+          </div>
+        </div>
       )}
+    </>
+  )
+
+  if (embedded) {
+    return content
+  }
+
+  return (
+    <SettingCard title="Sub-Store 设置" collapsible>
+      {content}
     </SettingCard>
   )
 }

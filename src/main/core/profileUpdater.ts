@@ -19,93 +19,61 @@ function calculateUpdateDelay(item: ProfileItem): number {
   return intervalMs - timeSinceLastUpdate
 }
 
-export async function initProfileUpdater(): Promise<void> {
-  const { items, current } = await getProfileConfig()
-  const currentItem = await getCurrentProfileItem()
-  for (const item of items.filter((i) => i.id !== current)) {
-    if (item.type === 'remote' && item.interval && item.autoUpdate !== false) {
-      const delay = calculateUpdateDelay(item)
+async function scheduleProfileUpdate(item: ProfileItem, isCurrent: boolean = false): Promise<void> {
+  if (item.type !== 'remote' || !item.interval || item.autoUpdate === false) {
+    return
+  }
 
-      if (delay === -1) {
-        continue
-      }
+  if (intervalPool[item.id]) {
+    clearTimeout(intervalPool[item.id])
+  }
 
-      if (delay === 0) {
-        try {
-          await addProfileItem(item)
-        } catch (e) {
-          // ignore
-        }
-      }
+  const delay = calculateUpdateDelay(item)
+  if (delay === -1) {
+    return
+  }
 
-      intervalPool[item.id] = setTimeout(
-        async () => {
-          try {
-            await addProfileItem(item)
-          } catch (e) {
-            // ignore
-          }
-        },
-        delay === 0 ? item.interval * 60 * 1000 : delay
-      )
+  const intervalMs = item.interval * 60 * 1000
+  const actualDelay = delay === 0 ? intervalMs : delay
+  const finalDelay = isCurrent ? actualDelay + 10000 : actualDelay
+
+  // 如果需要立即更新
+  if (delay === 0) {
+    try {
+      await addProfileItem(item)
+    } catch (e) {
+      // ignore
     }
   }
 
-  if (currentItem?.type === 'remote' && currentItem.interval && currentItem.autoUpdate !== false) {
-    const delay = calculateUpdateDelay(currentItem)
-
-    if (delay === 0) {
-      try {
-        await addProfileItem(currentItem)
-      } catch (e) {
-        // ignore
-      }
+  // 设置下一次更新的定时器
+  intervalPool[item.id] = setTimeout(async () => {
+    try {
+      await addProfileItem(item)
+    } catch (e) {
+      // ignore
     }
+    // 更新完成后重新调度下一次更新
+    const updatedItem = { ...item, updated: Date.now() }
+    await scheduleProfileUpdate(updatedItem, isCurrent)
+  }, finalDelay)
+}
 
-    intervalPool[currentItem.id] = setTimeout(
-      async () => {
-        try {
-          await addProfileItem(currentItem)
-        } catch (e) {
-          // ignore
-        }
-      },
-      (delay === 0 ? currentItem.interval * 60 * 1000 : delay) + 10000 // +10s
-    )
+export async function initProfileUpdater(): Promise<void> {
+  const { items, current } = await getProfileConfig()
+  const currentItem = await getCurrentProfileItem()
+
+  for (const item of items.filter((i) => i.id !== current)) {
+    await scheduleProfileUpdate(item, false)
+  }
+
+  if (currentItem) {
+    await scheduleProfileUpdate(currentItem, true)
   }
 }
 
 export async function addProfileUpdater(item: ProfileItem): Promise<void> {
-  if (item.type === 'remote' && item.interval && item.autoUpdate !== false) {
-    if (intervalPool[item.id]) {
-      clearTimeout(intervalPool[item.id])
-    }
-
-    const delay = calculateUpdateDelay(item)
-
-    if (delay === -1) {
-      return
-    }
-
-    if (delay === 0) {
-      try {
-        await addProfileItem(item)
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    intervalPool[item.id] = setTimeout(
-      async () => {
-        try {
-          await addProfileItem(item)
-        } catch (e) {
-          // ignore
-        }
-      },
-      delay === 0 ? item.interval * 60 * 1000 : delay
-    )
-  }
+  await scheduleProfileUpdate(item, false)
 }
 
 export async function delProfileUpdater(id: string): Promise<void> {

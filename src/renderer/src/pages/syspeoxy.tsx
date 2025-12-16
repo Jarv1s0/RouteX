@@ -223,37 +223,16 @@ const Sysproxy: React.FC = () => {
           </SettingItem>
         )}
         {values.mode === 'manual' && (
-          <>
-            <SettingItem title="添加默认代理绕过" divider>
-              <Button
-                size="sm"
-                onPress={() => {
-                  setValues({
-                    ...values,
-                    bypass: Array.from(new Set([...defaultBypass, ...values.bypass]))
-                  })
-                }}
-              >
-                添加默认代理绕过
-              </Button>
-            </SettingItem>
-            <SettingItem title="代理绕过列表">
-              <Button
-                size="sm"
-                onPress={async () => {
-                  setOpenEditor(true)
-                }}
-              >
-                编辑
-              </Button>
-            </SettingItem>
-            <EditableList
-              items={values.bypass}
-              onChange={(list) => setValues({ ...values, bypass: list as string[] })}
-              placeholder="例：*.baidu.com"
-              divider={false}
-            />
-          </>
+          <SettingItem title="代理绕过列表">
+            <Button
+              size="sm"
+              onPress={async () => {
+                setOpenEditor(true)
+              }}
+            >
+              编辑
+            </Button>
+          </SettingItem>
         )}
       </SettingCard>
     </BasePage>

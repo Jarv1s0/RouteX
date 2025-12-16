@@ -50,7 +50,7 @@ const GeneralConfig: React.FC = () => {
           }}
         />
       )}
-      <SettingCard>
+      <SettingCard title="系统设置">
         <SettingItem title="开机自启" divider>
           <Switch
             size="sm"

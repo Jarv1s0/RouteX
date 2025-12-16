@@ -249,7 +249,7 @@ const Proxies: React.FC = () => {
                             {groups[index].type}
                           </div>
                           <div className="inline flag-emoji ml-2 text-sm text-foreground-500">
-                            {groups[index].now}
+                            {groups[index].now} ({groups[index].type})
                           </div>
                         </>
                       )}
@@ -257,7 +257,9 @@ const Proxies: React.FC = () => {
                     {groupDisplayLayout === 'double' && (
                       <div className="text-ellipsis whitespace-nowrap text-[10px] text-foreground-500 leading-tight flex-3 flex items-center">
                         <span>{groups[index].type}</span>
-                        <span className="flag-emoji ml-1 inline-block">{groups[index].now}</span>
+                        <span className="flag-emoji ml-1 inline-block">
+                          {groups[index].now}
+                        </span>
                       </div>
                     )}
                   </div>

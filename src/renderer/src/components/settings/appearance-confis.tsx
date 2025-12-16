@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, KeyboardEvent } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Select, SelectItem, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
+import { Button, Select, SelectItem, Switch, Tab, Tabs, Tooltip, RadioGroup, Radio, Input } from '@heroui/react'
 import { BiSolidFileImport } from 'react-icons/bi'
 import {
   applyTheme,
@@ -16,7 +16,8 @@ import {
   showFloatingWindow,
   showTrayIcon,
   startMonitor,
-  writeTheme
+  writeTheme,
+  registerShortcut
 } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
@@ -24,6 +25,356 @@ import { useTheme } from 'next-themes'
 import { IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
 import { MdEditDocument } from 'react-icons/md'
 import CSSEditorModal from './css-editor-modal'
+import { secondaryInputClassNames } from './advanced-settings'
+
+const keyMap = {
+  Backquote: '`',
+  Backslash: '\\',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Comma: ',',
+  Equal: '=',
+  Minus: '-',
+  Plus: 'PLUS',
+  Period: '.',
+  Quote: "'",
+  Semicolon: ';',
+  Slash: '/',
+  Backspace: 'Backspace',
+  CapsLock: 'Capslock',
+  ContextMenu: 'Contextmenu',
+  Space: 'Space',
+  Tab: 'Tab',
+  Convert: 'Convert',
+  Delete: 'Delete',
+  End: 'End',
+  Help: 'Help',
+  Home: 'Home',
+  PageDown: 'Pagedown',
+  PageUp: 'Pageup',
+  Escape: 'Esc',
+  PrintScreen: 'Printscreen',
+  ScrollLock: 'Scrolllock',
+  Pause: 'Pause',
+  Insert: 'Insert',
+  Suspend: 'Suspend'
+}
+
+const titleMap = {
+  sysproxyCardStatus: '系统代理',
+  tunCardStatus: '虚拟网卡',
+  profileCardStatus: '订阅管理',
+  proxyCardStatus: '代理组',
+  ruleCardStatus: '规则',
+  resourceCardStatus: '外部资源',
+  overrideCardStatus: '覆写',
+  connectionCardStatus: '连接',
+  mihomoCoreCardStatus: '内核',
+  dnsCardStatus: 'DNS',
+  sniffCardStatus: '域名嗅探',
+  logCardStatus: '日志',
+  substoreCardStatus: 'Sub-Store'
+}
+
+const SiderConfigContent: React.FC = () => {
+  const { appConfig, patchAppConfig } = useAppConfig()
+  const {
+    enableSiderConfig = true,
+    sysproxyCardStatus = 'col-span-1',
+    tunCardStatus = 'col-span-1',
+    profileCardStatus = 'col-span-2',
+    proxyCardStatus = 'col-span-2',
+    ruleCardStatus = 'col-span-1',
+    resourceCardStatus = 'col-span-1',
+    overrideCardStatus = 'col-span-1',
+    connectionCardStatus = 'col-span-2',
+    mihomoCoreCardStatus = 'col-span-2',
+    dnsCardStatus = 'col-span-1',
+    sniffCardStatus = 'col-span-1',
+    logCardStatus = 'col-span-1',
+    substoreCardStatus = 'col-span-1'
+  } = appConfig || {}
+
+  const cardStatus = {
+    sysproxyCardStatus,
+    tunCardStatus,
+    profileCardStatus,
+    proxyCardStatus,
+    ruleCardStatus,
+    resourceCardStatus,
+    overrideCardStatus,
+    connectionCardStatus,
+    mihomoCoreCardStatus,
+    dnsCardStatus,
+    sniffCardStatus,
+    logCardStatus,
+    substoreCardStatus
+  }
+
+  return (
+    <>
+      <SettingItem title="启用侧边栏设置" divider>
+        <Switch
+          size="sm"
+          isSelected={enableSiderConfig}
+          onValueChange={async (v) => {
+            await patchAppConfig({ enableSiderConfig: v })
+          }}
+        />
+      </SettingItem>
+      {enableSiderConfig && (
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+          <div className="ml-4">
+            {Object.keys(cardStatus).map((key, index, array) => {
+              return (
+                <div key={key}>
+                  <SettingItem title={titleMap[key]}>
+                    <RadioGroup
+                      orientation="horizontal"
+                      value={cardStatus[key]}
+                      onValueChange={(v) => {
+                        patchAppConfig({ [key]: v as CardStatus })
+                      }}
+                    >
+                      <Radio value="col-span-2">大</Radio>
+                      <Radio value="col-span-1">小</Radio>
+                      <Radio value="hidden">隐藏</Radio>
+                    </RadioGroup>
+                  </SettingItem>
+                  {index !== array.length - 1 && <div className="border-b border-divider my-2" />}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+const ShortcutInput: React.FC<{
+  value: string
+  action: string
+  patchAppConfig: (value: Partial<AppConfig>) => Promise<void>
+}> = (props) => {
+  const { value, action, patchAppConfig } = props
+  const [inputValue, setInputValue] = useState(value)
+
+  useEffect(() => {
+    setInputValue(value)
+  }, [value])
+
+  const parseShortcut = (
+    event: KeyboardEvent,
+    setKey: { (value: React.SetStateAction<string>): void; (arg0: string): void }
+  ): void => {
+    event.preventDefault()
+    let code = event.code
+    const key = event.key
+    if (code === 'Backspace') {
+      setKey('')
+    } else {
+      let newValue = ''
+      if (event.ctrlKey) {
+        newValue = 'Ctrl'
+      }
+      if (event.shiftKey) {
+        newValue = `${newValue}${newValue.length > 0 ? '+' : ''}Shift`
+      }
+      if (event.metaKey) {
+        newValue = `${newValue}${newValue.length > 0 ? '+' : ''}${platform === 'darwin' ? 'Command' : 'Super'}`
+      }
+      if (event.altKey) {
+        newValue = `${newValue}${newValue.length > 0 ? '+' : ''}Alt`
+      }
+      if (code.startsWith('Key')) {
+        code = code.substring(3)
+      } else if (code.startsWith('Digit')) {
+        code = code.substring(5)
+      } else if (code.startsWith('Arrow')) {
+        code = code.substring(5)
+      } else if (key.startsWith('Arrow')) {
+        code = key.substring(5)
+      } else if (code.startsWith('Intl')) {
+        code = code.substring(4)
+      } else if (code.startsWith('Numpad')) {
+        if (key.length === 1) {
+          code = 'Num' + code.substring(6)
+        } else {
+          code = key
+        }
+      } else if (/F\d+/.test(code)) {
+        // f1-f12
+      } else if (keyMap[code] !== undefined) {
+        code = keyMap[code]
+      } else {
+        code = ''
+      }
+      setKey(`${newValue}${newValue.length > 0 && code.length > 0 ? '+' : ''}${code}`)
+    }
+  }
+  return (
+    <>
+      {inputValue !== value && (
+        <Button
+          color="primary"
+          className="mr-2"
+          size="sm"
+          onPress={async () => {
+            try {
+              if (await registerShortcut(value, inputValue, action)) {
+                await patchAppConfig({ [action]: inputValue })
+                window.electron.ipcRenderer.send('updateTrayMenu')
+              } else {
+                alert('快捷键注册失败')
+              }
+            } catch (e) {
+              alert(`快捷键注册失败：${e}`)
+            }
+          }}
+        >
+          确认
+        </Button>
+      )}
+      <Input
+        placeholder="点击输入快捷键"
+        onKeyDown={(e: KeyboardEvent): void => {
+          parseShortcut(e, setInputValue)
+        }}
+        size="sm"
+        onClear={() => setInputValue('')}
+        value={inputValue}
+        className="w-[calc(100%-72px)] pr-0"
+        classNames={secondaryInputClassNames}
+      />
+    </>
+  )
+}
+
+const ShortcutConfigContent: React.FC = () => {
+  const { appConfig, patchAppConfig } = useAppConfig()
+  const {
+    enableShortcutConfig = true,
+    showWindowShortcut = '',
+    showFloatingWindowShortcut = '',
+    triggerSysProxyShortcut = '',
+    triggerTunShortcut = '',
+    ruleModeShortcut = '',
+    globalModeShortcut = '',
+    directModeShortcut = '',
+    quitWithoutCoreShortcut = '',
+    restartAppShortcut = ''
+  } = appConfig || {}
+
+  return (
+    <>
+      <SettingItem title="启用快捷键设置" divider>
+        <Switch
+          size="sm"
+          isSelected={enableShortcutConfig}
+          onValueChange={async (v) => {
+            await patchAppConfig({ enableShortcutConfig: v })
+          }}
+        />
+      </SettingItem>
+      {enableShortcutConfig && (
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+          <div className="ml-4">
+            <SettingItem title="打开/关闭窗口">
+              <div className="flex justify-end w-[60%]">
+                <ShortcutInput
+                  value={showWindowShortcut}
+                  patchAppConfig={patchAppConfig}
+                  action="showWindowShortcut"
+                />
+              </div>
+            </SettingItem>
+            <div className="border-b border-divider my-2" />
+            <SettingItem title="打开/关闭悬浮窗">
+              <div className="flex justify-end w-[60%]">
+                <ShortcutInput
+                  value={showFloatingWindowShortcut}
+                  patchAppConfig={patchAppConfig}
+                  action="showFloatingWindowShortcut"
+                />
+              </div>
+            </SettingItem>
+            <div className="border-b border-divider my-2" />
+            <SettingItem title="打开/关闭系统代理">
+              <div className="flex justify-end w-[60%]">
+                <ShortcutInput
+                  value={triggerSysProxyShortcut}
+                  patchAppConfig={patchAppConfig}
+                  action="triggerSysProxyShortcut"
+                />
+              </div>
+            </SettingItem>
+            <div className="border-b border-divider my-2" />
+            <SettingItem title="打开/关闭虚拟网卡">
+              <div className="flex justify-end w-[60%]">
+                <ShortcutInput
+                  value={triggerTunShortcut}
+                  patchAppConfig={patchAppConfig}
+                  action="triggerTunShortcut"
+                />
+              </div>
+            </SettingItem>
+            <div className="border-b border-divider my-2" />
+            <SettingItem title="切换规则模式">
+              <div className="flex justify-end w-[60%]">
+                <ShortcutInput
+                  value={ruleModeShortcut}
+                  patchAppConfig={patchAppConfig}
+                  action="ruleModeShortcut"
+                />
+              </div>
+            </SettingItem>
+            <div className="border-b border-divider my-2" />
+            <SettingItem title="切换全局模式">
+              <div className="flex justify-end w-[60%]">
+                <ShortcutInput
+                  value={globalModeShortcut}
+                  patchAppConfig={patchAppConfig}
+                  action="globalModeShortcut"
+                />
+              </div>
+            </SettingItem>
+            <div className="border-b border-divider my-2" />
+            <SettingItem title="切换直连模式">
+              <div className="flex justify-end w-[60%]">
+                <ShortcutInput
+                  value={directModeShortcut}
+                  patchAppConfig={patchAppConfig}
+                  action="directModeShortcut"
+                />
+              </div>
+            </SettingItem>
+            <div className="border-b border-divider my-2" />
+            <SettingItem title="保留内核退出">
+              <div className="flex justify-end w-[60%]">
+                <ShortcutInput
+                  value={quitWithoutCoreShortcut}
+                  patchAppConfig={patchAppConfig}
+                  action="quitWithoutCoreShortcut"
+                />
+              </div>
+            </SettingItem>
+            <div className="border-b border-divider my-2" />
+            <SettingItem title="重启应用">
+              <div className="flex justify-end w-[60%]">
+                <ShortcutInput
+                  value={restartAppShortcut}
+                  patchAppConfig={patchAppConfig}
+                  action="restartAppShortcut"
+                />
+              </div>
+            </SettingItem>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
 
 const AppearanceConfig: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -110,8 +461,9 @@ const AppearanceConfig: React.FC = () => {
           />
         </SettingItem>
         {localShowFloating && (
-          <>
-            <SettingItem title="根据网速旋转悬浮窗图标" divider>
+          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+            <div className="ml-4">
+              <SettingItem title="根据网速旋转悬浮窗图标" divider>
               <Switch
                 size="sm"
                 isSelected={spinFloatingIcon}
@@ -135,7 +487,8 @@ const AppearanceConfig: React.FC = () => {
                 }}
               />
             </SettingItem>
-          </>
+            </div>
+          </div>
         )}
         {platform !== 'linux' && (
           <>
@@ -164,8 +517,9 @@ const AppearanceConfig: React.FC = () => {
           </>
         )}
         {platform === 'darwin' && (
-          <>
-            <SettingItem title="显示 Dock 图标" divider>
+          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+            <div className="ml-4">
+              <SettingItem title="显示 Dock 图标" divider>
               <Switch
                 size="sm"
                 isSelected={useDockIcon}
@@ -175,7 +529,8 @@ const AppearanceConfig: React.FC = () => {
                 }}
               />
             </SettingItem>
-          </>
+            </div>
+          </div>
         )}
         <SettingItem title="使用系统标题栏" divider>
           <Switch
@@ -187,6 +542,8 @@ const AppearanceConfig: React.FC = () => {
             }}
           />
         </SettingItem>
+        <SiderConfigContent />
+        <ShortcutConfigContent />
         <SettingItem title="背景色" divider>
           <Tabs
             size="sm"

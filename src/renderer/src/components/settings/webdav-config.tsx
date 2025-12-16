@@ -48,7 +48,7 @@ const WebdavConfig: React.FC = () => {
       {restoreOpen && (
         <WebdavRestoreModal filenames={filenames} onClose={() => setRestoreOpen(false)} />
       )}
-      <SettingCard title="WebDAV 备份">
+      <SettingCard title="WebDAV 备份" collapsible>
         <SettingItem title="WebDAV 地址" divider>
           <Input
             size="sm"

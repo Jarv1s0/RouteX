@@ -33,7 +33,7 @@ const AdvancedSetting: React.FC = () => {
   }
 
   return (
-    <SettingCard title="高级设置">
+    <SettingCard title="高级设置" collapsible>
       <SettingItem title="查找进程" divider>
         <Tabs
           size="sm"

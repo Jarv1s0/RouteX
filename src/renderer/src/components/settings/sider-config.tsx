@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { RadioGroup, Radio } from '@heroui/react'
+import { RadioGroup, Radio, Switch } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 const titleMap = {
   sysproxyCardStatus: '系统代理',
@@ -21,6 +21,7 @@ const titleMap = {
 const SiderConfig: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
+    enableSiderConfig = true,
     sysproxyCardStatus = 'col-span-1',
     tunCardStatus = 'col-span-1',
     profileCardStatus = 'col-span-2',
@@ -53,24 +54,39 @@ const SiderConfig: React.FC = () => {
   }
 
   return (
-    <SettingCard title="侧边栏设置">
-      {Object.keys(cardStatus).map((key, index, array) => {
-        return (
-          <SettingItem title={titleMap[key]} key={key} divider={index !== array.length - 1}>
-            <RadioGroup
-              orientation="horizontal"
-              value={cardStatus[key]}
-              onValueChange={(v) => {
-                patchAppConfig({ [key]: v as CardStatus })
-              }}
-            >
-              <Radio value="col-span-2">大</Radio>
-              <Radio value="col-span-1">小</Radio>
-              <Radio value="hidden">隐藏</Radio>
-            </RadioGroup>
-          </SettingItem>
-        )
-      })}
+    <SettingCard title="侧边栏设置" collapsible>
+      <SettingItem title="启用侧边栏设置" divider={enableSiderConfig}>
+        <Switch
+          size="sm"
+          isSelected={enableSiderConfig}
+          onValueChange={async (v) => {
+            await patchAppConfig({ enableSiderConfig: v })
+          }}
+        />
+      </SettingItem>
+      {enableSiderConfig && (
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2">
+          <div className="ml-4">
+            {Object.keys(cardStatus).map((key, index, array) => {
+              return (
+                <SettingItem title={titleMap[key]} key={key} divider={index !== array.length - 1}>
+                  <RadioGroup
+                    orientation="horizontal"
+                    value={cardStatus[key]}
+                    onValueChange={(v) => {
+                      patchAppConfig({ [key]: v as CardStatus })
+                    }}
+                  >
+                    <Radio value="col-span-2">大</Radio>
+                    <Radio value="col-span-1">小</Radio>
+                    <Radio value="hidden">隐藏</Radio>
+                  </RadioGroup>
+                </SettingItem>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </SettingCard>
   )
 }

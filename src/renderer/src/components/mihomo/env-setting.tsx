@@ -29,7 +29,7 @@ const EnvSetting: React.FC = () => {
   const [safePathsInput, setSafePathsInput] = useState(safePaths)
 
   return (
-    <SettingCard title="环境变量">
+    <SettingCard title="环境变量" collapsible>
       <SettingItem title="禁用系统 CA" divider>
         <Switch
           size="sm"

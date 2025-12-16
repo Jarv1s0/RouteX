@@ -112,7 +112,7 @@ const EditableList: React.FC<EditableListProps> = ({
 
   return (
     <>
-      <div className={`flex flex-col space-y-2 ${!title ? 'mt-2' : ''}`}>
+      <div className={`flex flex-col space-y-2 ${!title ? 'mt-2' : ''} px-2`}>
         {title && <h4 className="text-base font-medium">{title}</h4>}
         {displayed.map((entry, idx) => {
           const disabled = disableFirst && idx === 0

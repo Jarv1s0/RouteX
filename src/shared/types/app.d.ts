@@ -113,6 +113,9 @@ interface AppConfig {
   displayAppName?: boolean
   disableGPU: boolean
   disableAnimation?: boolean
+  enableSiderConfig?: boolean
+  enableShortcutConfig?: boolean
+  enableWebdavConfig?: boolean
 }
 
 interface ProfileConfig {

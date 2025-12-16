@@ -83,7 +83,7 @@ const Actions: React.FC = () => {
           onConfirm={resetAppConfig}
         />
       )}
-      <SettingCard>
+      <SettingCard title="更多设置">
         <SettingItem title="打开引导页面" divider>
           <Button size="sm" onPress={() => startTour(navigate)}>
             打开引导页面
