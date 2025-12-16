@@ -1,0 +1,176 @@
+name: UI Redesign Release
+permissions: write-all
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tag version to release (e.g., v1.0.0-ui)'
+        required: true
+        default: 'v1.0.0-ui'
+  push:
+    branches:
+      - ui-redesign
+    tags:
+      - v*-ui*
+    paths-ignore:
+      - 'README.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/workflows/issues.yml'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            arch: x64
+            format: 7z
+          - os: windows-latest
+            arch: x64
+            format: nsis
+          - os: ubuntu-latest
+            arch: x64
+            format: deb
+          - os: ubuntu-latest
+            arch: x64
+            format: rpm
+          - os: macos-latest
+            arch: x64
+          - os: macos-latest
+            arch: arm64
+
+    name: Build UI-Redesign ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: npm install -g pnpm
+
+      - name: Determine and Update Version
+        shell: bash
+        run: |
+          GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
+          VERSION=$(jq -r '.version' package.json)
+
+          if [ "${{ github.event.inputs.version }}" == "" ]; then
+            BASE_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
+            RELEASE_VERSION="${BASE_VERSION}-ui-${GIT_COMMIT_HASH}"
+          else
+            INPUT_VERSION="${{ github.event.inputs.version }}"
+            CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
+            RELEASE_VERSION="$CLEAN_VERSION"
+          fi
+
+          jq --arg version "$RELEASE_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+
+      - name: Keep product name lowercase on Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sed -i "s/productName: Sparkle/productName: sparkle-ui/" electron-builder.yml
+
+      - name: Install Dependencies and Prepare
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          SKIP_PREPARE=1 pnpm install
+          pnpm prepare --${{ matrix.arch }}
+
+      - name: Build
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            pnpm build:win ${{ matrix.format }} --${{ matrix.arch }}
+          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            pnpm build:linux ${{ matrix.format }} --${{ matrix.arch }}
+          else
+            pnpm build:mac --${{ matrix.arch }}
+          fi
+
+      - name: Add Portable Flag
+        if: matrix.os == 'windows-latest' && matrix.format == '7z'
+        shell: pwsh
+        run: |
+          New-Item -Path "PORTABLE" -ItemType File
+          Get-ChildItem dist/*portable.7z | ForEach-Object {
+            7z a $_.FullName PORTABLE
+          }
+
+      - name: Create Changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "# UI重设计版本 ${{ env.RELEASE_VERSION }}" > changelog.md
+          echo "" >> changelog.md
+          echo "## 主要特性" >> changelog.md
+          echo "- 🎨 全新的双栏设置页面布局" >> changelog.md
+          echo "- 📱 响应式设计，更好的用户体验" >> changelog.md
+          echo "- 🔧 重新组织的设置层次结构" >> changelog.md
+          echo "- 🎯 主开关+二级菜单的直观操作模式" >> changelog.md
+          echo "- 💫 优化的视觉样式和交互效果" >> changelog.md
+          echo "- 🔍 改进的输入框可见性" >> changelog.md
+          echo "- 🏷️ 规则页面颜色编码" >> changelog.md
+          echo "- 🐛 修复订阅自动更新问题" >> changelog.md
+          echo "" >> changelog.md
+          echo "## 详细更改" >> changelog.md
+          git log --oneline -10 >> changelog.md
+
+      - name: Generate latest.yml
+        shell: bash
+        run: SKIP_CHANGELOG=1 pnpm updater
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-redesign-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
+          path: |
+            dist/sparkle*
+            !dist/sparkle.app.plist
+            !dist/sparkle*blockmap*
+            latest.yml
+            changelog.md
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bin/
+          merge-multiple: true
+
+      - name: Get Version
+        id: version
+        run: |
+          if [ "${{ github.event.inputs.version }}" != "" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
+            VERSION=$(jq -r '.version' package.json)
+            BASE_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
+            echo "version=v${BASE_VERSION}-ui-${GIT_COMMIT_HASH}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: "Sparkle UI重设计版 ${{ steps.version.outputs.version }}"
+          body_path: bin/changelog.md
+          files: |
+            bin/latest.yml
+            bin/dist/*
+          prerelease: true
+          make_latest: false
