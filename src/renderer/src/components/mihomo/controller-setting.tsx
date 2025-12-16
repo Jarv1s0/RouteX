@@ -9,6 +9,7 @@ import { IoMdCloudDownload, IoMdRefresh } from 'react-icons/io'
 import { HiExternalLink } from 'react-icons/hi'
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai'
 import { isValidListenAddress } from '@renderer/utils/validate'
+import { secondaryInputClassNames } from '../settings/advanced-settings'
 
 const ControllerSetting: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -64,7 +65,9 @@ const ControllerSetting: React.FC = () => {
 
   return (
     <SettingCard title="外部控制器" collapsible>
-      <SettingItem title="监听地址" divider={externalController !== ''}>
+      <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-2">
+        <div className="ml-4">
+          <SettingItem title="监听地址" divider={externalController !== ''}>
         <div className="flex">
           {externalControllerInput != externalController && !externalControllerError && (
             <Button
@@ -92,6 +95,7 @@ const ControllerSetting: React.FC = () => {
             <Input
               size="sm"
               className={`w-[200px] ${externalControllerError ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''}`}
+              classNames={externalControllerError ? undefined : secondaryInputClassNames}
               value={externalControllerInput}
               onValueChange={(v) => {
                 setExternalControllerInput(v)
@@ -103,212 +107,217 @@ const ControllerSetting: React.FC = () => {
         </div>
       </SettingItem>
       {externalController && externalController !== '' && (
-        <>
-          <SettingItem
-            title="访问密钥"
-            actions={
-              <Button
-                size="sm"
-                isIconOnly
-                title="生成密钥"
-                variant="light"
-                onPress={() => setSecretInput(generateRandomString(32))}
-              >
-                <IoMdRefresh className="text-lg" />
-              </Button>
-            }
-            divider
-          >
-            <div className="flex">
-              {secretInput != secret && (
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+          <div className="ml-4 text-sm">
+            <SettingItem
+              title="访问密钥"
+              actions={
                 <Button
                   size="sm"
-                  color="primary"
-                  className="mr-2"
-                  onPress={() => {
-                    onChangeNeedRestart({ secret: secretInput })
-                  }}
+                  isIconOnly
+                  title="生成密钥"
+                  variant="light"
+                  onPress={() => setSecretInput(generateRandomString(32))}
                 >
-                  确认
+                  <IoMdRefresh className="text-lg" />
                 </Button>
-              )}
-              <Input
-                size="sm"
-                type={showPassword ? 'text' : 'password'}
-                className="w-[200px]"
-                value={secretInput}
-                onValueChange={setSecretInput}
-                startContent={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    {showPassword ? (
-                      <AiOutlineEyeInvisible className="w-4 h-4" />
-                    ) : (
-                      <AiOutlineEye className="w-4 h-4" />
-                    )}
-                  </button>
-                }
-              />
-            </div>
-          </SettingItem>
-          <SettingItem title="启用控制器面板" divider>
-            <Switch
-              size="sm"
-              isSelected={enableExternalUi}
-              onValueChange={(v) => {
-                setEnableExternalUi(v)
-                onChangeNeedRestart({
-                  'external-ui': v ? 'ui' : undefined
-                })
-              }}
-            />
-          </SettingItem>
-          {enableExternalUi && (
-            <SettingItem
-              title="控制器面板"
-              actions={
-                <>
-                  <Button
-                    size="sm"
-                    isIconOnly
-                    title="更新面板"
-                    variant="light"
-                    isLoading={upgrading}
-                    onPress={upgradeUI}
-                  >
-                    <IoMdCloudDownload className="text-lg" />
-                  </Button>
-                  <Button
-                    title="在浏览器中打开"
-                    isIconOnly
-                    size="sm"
-                    className="app-nodrag"
-                    variant="light"
-                    onPress={() => {
-                      const controller = externalController.startsWith(':')
-                        ? `127.0.0.1${externalController}`
-                        : externalController
-                      const host = controller.split(':')[0]
-                      const port = controller.split(':')[1]
-                      if (
-                        ['zashboard', 'metacubexd'].find((keyword) =>
-                          externalUiUrl.includes(keyword)
-                        )
-                      ) {
-                        open(
-                          `http://${controller}/ui/#/setup?hostname=${host}&port=${port}&secret=${secret}`
-                        )
-                      } else if (externalUiUrl.includes('Razord')) {
-                        open(
-                          `http://${controller}/ui/#/proxies?host=${host}&port=${port}&secret=${secret}`
-                        )
-                      } else {
-                        if (secret && secret.length > 0) {
-                          open(
-                            `http://${controller}/ui/?hostname=${host}&port=${port}&secret=${secret}`
-                          )
-                        } else {
-                          open(`http://${controller}/ui/?hostname=${host}&port=${port}`)
-                        }
-                      }
-                    }}
-                  >
-                    <HiExternalLink className="text-lg" />
-                  </Button>
-                </>
               }
-              divider
             >
               <div className="flex">
-                {externalUiUrlInput != externalUiUrl && (
+                {secretInput != secret && (
                   <Button
                     size="sm"
                     color="primary"
                     className="mr-2"
                     onPress={() => {
-                      onChangeNeedRestart({
-                        'external-ui-url': externalUiUrlInput
-                      })
+                      onChangeNeedRestart({ secret: secretInput })
                     }}
                   >
                     确认
                   </Button>
                 )}
-                <Select
-                  classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-                  className="w-[150px]"
+                <Input
                   size="sm"
-                  selectedKeys={new Set([externalUiUrlInput])}
-                  disallowEmptySelection={true}
-                  onSelectionChange={(v) => {
-                    setExternalUiUrlInput(v.currentKey as string)
-                  }}
-                >
-                  <SelectItem key="https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip">
-                    zashboard
-                  </SelectItem>
-                  <SelectItem key="https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip">
-                    metacubexd
-                  </SelectItem>
-                  <SelectItem key="https://github.com/MetaCubeX/Yacd-meta/archive/refs/heads/gh-pages.zip">
-                    yacd-meta
-                  </SelectItem>
-                  <SelectItem key="https://github.com/haishanh/yacd/archive/refs/heads/gh-pages.zip">
-                    yacd
-                  </SelectItem>
-                  <SelectItem key="https://github.com/MetaCubeX/Razord-meta/archive/refs/heads/gh-pages.zip">
-                    razord-meta
-                  </SelectItem>
-                </Select>
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-[200px]"
+                  classNames={secondaryInputClassNames}
+                  value={secretInput}
+                  onValueChange={setSecretInput}
+                  startContent={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? (
+                        <AiOutlineEyeInvisible className="w-4 h-4" />
+                      ) : (
+                        <AiOutlineEye className="w-4 h-4" />
+                      )}
+                    </button>
+                  }
+                />
               </div>
             </SettingItem>
-          )}
-          <SettingItem title="CORS 配置"></SettingItem>
-          <div className="flex flex-col space-y-2 mt-2"></div>
-          <SettingItem title="允许私有网络访问">
-            <Switch
-              size="sm"
-              isSelected={allowPrivateNetwork}
-              onValueChange={(v) => {
-                onChangeNeedRestart({
-                  'external-controller-cors': {
-                    ...externalControllerCors,
-                    'allow-private-network': v
-                  }
-                })
-              }}
-            />
-          </SettingItem>
-          <div className="mt-1"></div>
-          <SettingItem title="允许的来源">
-            {allowOriginsInput.join(',') != initialAllowOrigins.join(',') && (
-              <Button
+            <SettingItem title="启用控制器面板">
+              <Switch
                 size="sm"
-                color="primary"
-                onPress={() => {
-                  const finalOrigins = allowOriginsInput.length == 0 ? ['*'] : allowOriginsInput
+                isSelected={enableExternalUi}
+                onValueChange={(v) => {
+                  setEnableExternalUi(v)
+                  onChangeNeedRestart({
+                    'external-ui': v ? 'ui' : undefined
+                  })
+                }}
+              />
+            </SettingItem>
+            {enableExternalUi && (
+              <SettingItem
+                title="控制器面板"
+                actions={
+                  <>
+                    <Button
+                      size="sm"
+                      isIconOnly
+                      title="更新面板"
+                      variant="light"
+                      isLoading={upgrading}
+                      onPress={upgradeUI}
+                    >
+                      <IoMdCloudDownload className="text-lg" />
+                    </Button>
+                    <Button
+                      title="在浏览器中打开"
+                      isIconOnly
+                      size="sm"
+                      className="app-nodrag"
+                      variant="light"
+                      onPress={() => {
+                        const controller = externalController.startsWith(':')
+                          ? `127.0.0.1${externalController}`
+                          : externalController
+                        const host = controller.split(':')[0]
+                        const port = controller.split(':')[1]
+                        if (
+                          ['zashboard', 'metacubexd'].find((keyword) =>
+                            externalUiUrl.includes(keyword)
+                          )
+                        ) {
+                          open(
+                            `http://${controller}/ui/#/setup?hostname=${host}&port=${port}&secret=${secret}`
+                          )
+                        } else if (externalUiUrl.includes('Razord')) {
+                          open(
+                            `http://${controller}/ui/#/proxies?host=${host}&port=${port}&secret=${secret}`
+                          )
+                        } else {
+                          if (secret && secret.length > 0) {
+                            open(
+                              `http://${controller}/ui/?hostname=${host}&port=${port}&secret=${secret}`
+                            )
+                          } else {
+                            open(`http://${controller}/ui/?hostname=${host}&port=${port}`)
+                          }
+                        }
+                      }}
+                    >
+                      <HiExternalLink className="text-lg" />
+                    </Button>
+                  </>
+                }
+              >
+                <div className="flex">
+                  {externalUiUrlInput != externalUiUrl && (
+                    <Button
+                      size="sm"
+                      color="primary"
+                      className="mr-2"
+                      onPress={() => {
+                        onChangeNeedRestart({
+                          'external-ui-url': externalUiUrlInput
+                        })
+                      }}
+                    >
+                      确认
+                    </Button>
+                  )}
+                  <Select
+                    classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+                    className="w-[150px]"
+                    size="sm"
+                    selectedKeys={new Set([externalUiUrlInput])}
+                    disallowEmptySelection={true}
+                    onSelectionChange={(v) => {
+                      setExternalUiUrlInput(v.currentKey as string)
+                    }}
+                  >
+                    <SelectItem key="https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip">
+                      zashboard
+                    </SelectItem>
+                    <SelectItem key="https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip">
+                      metacubexd
+                    </SelectItem>
+                    <SelectItem key="https://github.com/MetaCubeX/Yacd-meta/archive/refs/heads/gh-pages.zip">
+                      yacd-meta
+                    </SelectItem>
+                    <SelectItem key="https://github.com/haishanh/yacd/archive/refs/heads/gh-pages.zip">
+                      yacd
+                    </SelectItem>
+                    <SelectItem key="https://github.com/MetaCubeX/Razord-meta/archive/refs/heads/gh-pages.zip">
+                      razord-meta
+                    </SelectItem>
+                  </Select>
+                </div>
+              </SettingItem>
+            )}
+            <SettingItem title="CORS 配置" />
+            <SettingItem title="允许私有网络访问">
+              <Switch
+                size="sm"
+                isSelected={allowPrivateNetwork}
+                onValueChange={(v) => {
                   onChangeNeedRestart({
                     'external-controller-cors': {
                       ...externalControllerCors,
-                      'allow-origins': finalOrigins
+                      'allow-private-network': v
                     }
                   })
                 }}
-              >
-                确认
-              </Button>
-            )}
-          </SettingItem>
-          <EditableList
-            items={allowOriginsInput}
-            onChange={(items) => setAllowOriginsInput(items as string[])}
-            divider={false}
-          />
-        </>
+              />
+            </SettingItem>
+            <SettingItem title="允许的来源">
+              {allowOriginsInput.join(',') != initialAllowOrigins.join(',') && (
+                <Button
+                  size="sm"
+                  color="primary"
+                  onPress={() => {
+                    const finalOrigins = allowOriginsInput.length == 0 ? ['*'] : allowOriginsInput
+                    onChangeNeedRestart({
+                      'external-controller-cors': {
+                        ...externalControllerCors,
+                        'allow-origins': finalOrigins
+                      }
+                    })
+                  }}
+                >
+                  确认
+                </Button>
+              )}
+            </SettingItem>
+            <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1">
+              <div className="ml-6">
+                <EditableList
+                  items={allowOriginsInput}
+                  onChange={(items) => setAllowOriginsInput(items as string[])}
+                  divider={false}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
+        </div>
+      </div>
     </SettingCard>
   )
 }

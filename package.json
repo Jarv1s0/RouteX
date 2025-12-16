@@ -1,10 +1,10 @@
 {
-  "name": "sparkle",
-  "version": "1.0.2-ui",
-  "description": "Sparkle",
+  "name": "routex",
+  "version": "1.0.0",
+  "description": "RouteX",
   "main": "./out/main/index.js",
-  "author": "xishang0128",
-  "homepage": "https://github.com/xishang0128/sparkle",
+  "author": "Jarv1s0",
+  "homepage": "https://github.com/Jarv1s0/RouteX",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",

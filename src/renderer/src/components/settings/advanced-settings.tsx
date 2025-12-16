@@ -47,7 +47,7 @@ const AdvancedSettings: React.FC = () => {
     webdavUrl,
     webdavUsername,
     webdavPassword,
-    webdavDir = 'sparkle'
+    webdavDir = 'routex'
   } = appConfig || {}
 
   const pauseSSIDArray = pauseSSID ?? emptyArray
@@ -120,7 +120,7 @@ const AdvancedSettings: React.FC = () => {
       </SettingItem>
       {autoLightweight && (
         <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4">
+          <div className="ml-4 text-sm">
             <SettingItem title="轻量模式行为" divider>
             <Tabs
               size="sm"
@@ -287,7 +287,7 @@ const AdvancedSettings: React.FC = () => {
       </SettingItem>
       {networkDetection && (
         <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4">
+          <div className="ml-4 text-sm">
             <SettingItem title="断网检测间隔" divider>
             <div className="flex">
               {interval !== networkDetectionInterval && (
@@ -331,7 +331,11 @@ const AdvancedSettings: React.FC = () => {
               </Button>
             )}
           </SettingItem>
-          <EditableList items={bypass} onChange={(list) => setBypass(list as string[])} />
+          <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1">
+            <div className="ml-6">
+              <EditableList items={bypass} onChange={(list) => setBypass(list as string[])} />
+            </div>
+          </div>
           </div>
         </div>
       )}
@@ -372,7 +376,7 @@ const AdvancedSettings: React.FC = () => {
       </SettingItem>
       {enableWebdavConfig && (
         <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4">
+          <div className="ml-4 text-sm">
             <SettingItem title="WebDAV 地址" divider>
               <Input
                 size="sm"

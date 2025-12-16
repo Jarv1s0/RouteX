@@ -74,10 +74,10 @@ const UpdaterModal: React.FC<Props> = (props) => {
               className="flex app-nodrag"
               onPress={() => {
                 if (version.includes('beta')) {
-                  open('https://github.com/xishang0128/sparkle/releases/tag/pre-release')
+                  open('https://github.com/Jarv1s0/RouteX/releases/tag/pre-release')
                   return
                 }
-                open(`https://github.com/xishang0128/sparkle/releases/tag/${version}`)
+                open(`https://github.com/Jarv1s0/RouteX/releases/tag/${version}`)
               }}
             >
               前往下载

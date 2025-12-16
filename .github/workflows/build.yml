@@ -102,7 +102,7 @@ jobs:
       - name: Keep product name lowercase on Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sed -i "s/productName: Sparkle/productName: sparkle/" electron-builder.yml
+          sed -i "s/productName: RouteX/productName: routex/" electron-builder.yml
 
       - name: Install Build Tools
         if: matrix.os == 'ubuntu-latest' && matrix.format == 'pacman'
@@ -167,9 +167,9 @@ jobs:
           set -e
           VERSION=$(jq -r '.version' package.json)
           mkdir workdir
-          fakeroot dpkg-deb -R dist/sparkle-linux-${VERSION}-loong64.deb workdir
+          fakeroot dpkg-deb -R dist/routex-linux-${VERSION}-loong64.deb workdir
           fakeroot sed -i 's/^Architecture: .*/Architecture: loongarch64/' workdir/DEBIAN/control
-          fakeroot dpkg-deb -b workdir dist/sparkle-linux-${VERSION}-loongarch64.deb
+          fakeroot dpkg-deb -b workdir dist/routex-linux-${VERSION}-loongarch64.deb
           rm -rf workdir
 
       - name: Create Changelog
@@ -187,9 +187,9 @@ jobs:
         with:
           name: ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
           path: |
-            dist/sparkle*
-            !dist/sparkle.app.plist
-            !dist/sparkle*blockmap*
+            dist/routex*
+            !dist/routex.app.plist
+            !dist/routex*blockmap*
             latest.yml
             changelog.md
 
@@ -243,36 +243,29 @@ jobs:
           fetch-tags: 'true'
 
       - name: Generate Changelog
-        env:
-          API_URL: ${{ secrets.API_URL }}
-          API_KEY: ${{ secrets.API_KEY }}
         run: |
-          TEXT=$(git log $(jq -r .version package.json)..HEAD --pretty=format:%s | grep -v '[0-9]\+\.[0-9]\+\.[0-9]\+$' | sed ':a;N;$!ba;s/\n/\\n/g')
-          QUESTION="Translate into Chinese:\n"""\n$TEXT\n""""
-          PAYLOAD=$(cat <<EOF
-          {
-            "stream": false,
-            "model": "gpt-5-mini",
-            "messages": [
-              {
-                "role": "system",
-                "content": "You are a professional translation engine, please translate the text into a colloquial, professional, elegant and fluent content, without the style of machine translation. You must only translate the text content, never interpret it."
-              },
-              {
-                "role": "user",
-                "content": "$QUESTION"
-              }
-            ]
-          }
-          EOF
-          )
-          RESPONSE=$(curl -s -X POST "$API_URL/v1/chat/completions" \
-            -H "Authorization: Bearer $API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            --max-time 30)
-          echo '# 更新日志' > changelog.md
-          echo $RESPONSE | jq .choices[0].message.content -r | sed 's/\\n/\n/g' | sed 's/^/ - /g' >> changelog.md
+          # 使用模板生成发布说明
+          cp .github/release-template.md changelog.md
+          
+          # 获取版本号
+          VERSION=$(jq -r '.version' package.json)
+          
+          # 替换版本号
+          sed -i "s/{VERSION}/$VERSION/g" changelog.md
+          
+          # 生成提交历史
+          if git describe --tags --abbrev=0 HEAD^ >/dev/null 2>&1; then
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^)
+            COMMIT_HISTORY=$(git log --pretty=format:"- %s" $PREV_TAG..HEAD)
+          else
+            COMMIT_HISTORY=$(git log --pretty=format:"- %s" --max-count=10)
+          fi
+          
+          # 替换提交历史占位符
+          echo "$COMMIT_HISTORY" > commits.tmp
+          sed -i "/{COMMIT_HISTORY}/r commits.tmp" changelog.md
+          sed -i "/{COMMIT_HISTORY}/d" changelog.md
+          rm commits.tmp
 
       - name: Update Version
         run: |

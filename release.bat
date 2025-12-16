@@ -1,6 +1,5 @@
 @echo off
-chcp 65001 >nul
-echo Sparkle UI Redesign Auto Release Script
+echo RouteX UI Redesign Auto Release Script
 echo.
 
 REM Check parameters
@@ -73,6 +72,6 @@ echo.
 echo Release completed!
 echo Version: %NEW_VERSION%
 echo Tag: v%NEW_VERSION%
-echo GitHub Actions is building, check: https://github.com/Jarv1s0/sparkle/actions
+echo GitHub Actions is building, check: https://github.com/Jarv1s0/RouteX/actions
 echo.
 pause

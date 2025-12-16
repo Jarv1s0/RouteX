@@ -70,7 +70,7 @@ jobs:
       - name: Keep product name lowercase on Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sed -i "s/productName: Sparkle/productName: sparkle-ui/" electron-builder.yml
+          sed -i "s/productName: RouteX/productName: routex-ui/" electron-builder.yml
 
       - name: Install Dependencies and Prepare
         env:
@@ -105,23 +105,21 @@ jobs:
           }
 
       - name: Create Changelog
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "# UI重设计版本 ${{ env.RELEASE_VERSION }}" > changelog.md
-          echo "" >> changelog.md
-          echo "## 主要特性" >> changelog.md
-          echo "- 🎨 全新的双栏设置页面布局" >> changelog.md
-          echo "- 📱 响应式设计，更好的用户体验" >> changelog.md
-          echo "- 🔧 重新组织的设置层次结构" >> changelog.md
-          echo "- 🎯 主开关+二级菜单的直观操作模式" >> changelog.md
-          echo "- 💫 优化的视觉样式和交互效果" >> changelog.md
-          echo "- 🔍 改进的输入框可见性" >> changelog.md
-          echo "- 🏷️ 规则页面颜色编码" >> changelog.md
-          echo "- 🐛 修复订阅自动更新问题" >> changelog.md
-          echo "" >> changelog.md
-          echo "## 详细更改" >> changelog.md
-          git log --oneline -10 >> changelog.md
+          # 使用模板生成发布说明
+          cp .github/release-template.md changelog.md
+          
+          # 替换版本号
+          sed -i "s/{VERSION}/${{ env.RELEASE_VERSION }}/g" changelog.md
+          
+          # 生成提交历史
+          COMMIT_HISTORY=$(git log --pretty=format:"- %s" --max-count=10)
+          
+          # 替换提交历史占位符
+          echo "$COMMIT_HISTORY" > commits.tmp
+          sed -i "/{COMMIT_HISTORY}/r commits.tmp" changelog.md
+          sed -i "/{COMMIT_HISTORY}/d" changelog.md
+          rm commits.tmp
 
       - name: Generate latest.yml
         shell: bash
@@ -132,9 +130,9 @@ jobs:
         with:
           name: ui-redesign-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
           path: |
-            dist/sparkle*
-            !dist/sparkle.app.plist
-            !dist/sparkle*blockmap*
+            dist/routex*
+            !dist/routex.app.plist
+            !dist/routex*blockmap*
             latest.yml
             changelog.md
 
@@ -167,7 +165,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          name: "Sparkle UI重设计版 ${{ steps.version.outputs.version }}"
+          name: "RouteX UI重设计版 ${{ steps.version.outputs.version }}"
           body_path: bin/changelog.md
           files: |
             bin/latest.yml

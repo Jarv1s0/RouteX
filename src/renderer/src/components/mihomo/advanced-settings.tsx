@@ -6,6 +6,7 @@ import { restartCore } from '@renderer/utils/ipc'
 import { Button, Input, Select, SelectItem, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
 import { useState } from 'react'
 import { IoIosHelpCircle } from 'react-icons/io'
+import { secondaryInputClassNames } from '../settings/advanced-settings'
 
 const AdvancedSetting: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -34,7 +35,9 @@ const AdvancedSetting: React.FC = () => {
 
   return (
     <SettingCard title="高级设置" collapsible>
-      <SettingItem title="查找进程" divider>
+      <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-2">
+        <div className="ml-4">
+          <SettingItem title="查找进程" divider>
         <Tabs
           size="sm"
           color="primary"
@@ -104,67 +107,75 @@ const AdvancedSetting: React.FC = () => {
           }}
         />
       </SettingItem>
-      <SettingItem title="禁用 TCP Keep Alive" divider>
+      <SettingItem title="TCP Keep Alive 设置" divider>
         <Switch
           size="sm"
-          isSelected={disableKeepAlive}
+          isSelected={!disableKeepAlive}
           onValueChange={(v) => {
-            onChangeNeedRestart({ 'disable-keep-alive': v })
+            onChangeNeedRestart({ 'disable-keep-alive': !v })
           }}
         />
       </SettingItem>
-      <SettingItem title="TCP Keep Alive 间隔" divider>
-        <div className="flex">
-          {intervalInput !== interval && (
-            <Button
-              size="sm"
-              color="primary"
-              className="mr-2"
-              onPress={async () => {
-                await onChangeNeedRestart({ 'keep-alive-interval': intervalInput })
-              }}
-            >
-              确认
-            </Button>
-          )}
-          <Input
-            size="sm"
-            type="number"
-            className="w-[100px]"
-            value={intervalInput.toString()}
-            min={0}
-            onValueChange={(v) => {
-              setIntervalInput(parseInt(v) || 0)
-            }}
-          />
+      {!disableKeepAlive && (
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+          <div className="ml-4 text-sm">
+            <SettingItem title="TCP Keep Alive 间隔">
+              <div className="flex">
+                {intervalInput !== interval && (
+                  <Button
+                    size="sm"
+                    color="primary"
+                    className="mr-2"
+                    onPress={async () => {
+                      await onChangeNeedRestart({ 'keep-alive-interval': intervalInput })
+                    }}
+                  >
+                    确认
+                  </Button>
+                )}
+                <Input
+                  size="sm"
+                  type="number"
+                  className="w-[100px]"
+                  classNames={secondaryInputClassNames}
+                  value={intervalInput.toString()}
+                  min={0}
+                  onValueChange={(v) => {
+                    setIntervalInput(parseInt(v) || 0)
+                  }}
+                />
+              </div>
+            </SettingItem>
+            <SettingItem title="TCP Keep Alive 空闲">
+              <div className="flex">
+                {idleInput !== idle && (
+                  <Button
+                    size="sm"
+                    color="primary"
+                    className="mr-2"
+                    onPress={async () => {
+                      await onChangeNeedRestart({ 'keep-alive-idle': idleInput })
+                    }}
+                  >
+                    确认
+                  </Button>
+                )}
+                <Input
+                  size="sm"
+                  type="number"
+                  className="w-[100px]"
+                  classNames={secondaryInputClassNames}
+                  value={idleInput.toString()}
+                  min={0}
+                  onValueChange={(v) => {
+                    setIdleInput(parseInt(v) || 0)
+                  }}
+                />
+              </div>
+            </SettingItem>
+          </div>
         </div>
-      </SettingItem>
-      <SettingItem title="TCP Keep Alive 空闲" divider>
-        <div className="flex">
-          {idleInput !== idle && (
-            <Button
-              size="sm"
-              color="primary"
-              className="mr-2"
-              onPress={async () => {
-                await onChangeNeedRestart({ 'keep-alive-idle': idleInput })
-              }}
-            >
-              确认
-            </Button>
-          )}
-          <Input
-            size="sm"
-            type="number"
-            className="w-[100px]"
-            value={idleInput.toString()}
-            min={0}
-            onValueChange={(v) => {
-              setIdleInput(parseInt(v) || 0)
-            }}
-          />
-        </div>
-      </SettingItem>
+      )}
       <SettingItem title="uTLS 指纹" divider>
         <Select
           size="sm"
@@ -194,6 +205,8 @@ const AdvancedSetting: React.FC = () => {
           onChange={(iface) => onChangeNeedRestart({ 'interface-name': iface })}
         />
       </SettingItem>
+        </div>
+      </div>
     </SettingCard>
   )
 }

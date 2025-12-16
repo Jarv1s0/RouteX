@@ -1,5 +1,5 @@
-appId: sparkle.app
-productName: Sparkle
+appId: routex.app
+productName: RouteX
 directories:
   buildResources: build
 files:
@@ -19,11 +19,11 @@ extraResources:
   - from: './extra/'
     to: ''
 protocols:
-  name: 'Sparkle URI Scheme'
+  name: 'RouteX URI Scheme'
   schemes:
     - 'clash'
     - 'mihomo'
-    - 'sparkle'
+    - 'routex'
 win:
   target:
     - nsis
@@ -56,13 +56,13 @@ pkg:
 linux:
   desktop:
     entry:
-      Name: Sparkle
-      MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/sparkle'
+      Name: RouteX
+      MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/routex'
   target:
     - deb
     - rpm
     - pacman
-  maintainer: xishang0128
+  maintainer: Jarv1s0
   category: Utility
   artifactName: ${name}-linux-${version}-${arch}.${ext}
 deb:

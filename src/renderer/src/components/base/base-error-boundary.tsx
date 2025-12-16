@@ -13,19 +13,11 @@ const ErrorFallback = ({ error }: FallbackProps): JSX.Element => {
         size="sm"
         color="primary"
         variant="flat"
-        onPress={() => open('https://github.com/xishang0128/sparkle/issues/new/choose')}
+        onPress={() => open('https://github.com/Jarv1s0/RouteX/issues/new/choose')}
       >
         GitHub
       </Button> */}
-      <Button
-        size="sm"
-        color="primary"
-        variant="flat"
-        className="ml-2"
-        onPress={() => open('https://t.me/+y7rcYjEKIiI1NzZl')}
-      >
-        Telegram
-      </Button>
+
 
       <Button
         size="sm"

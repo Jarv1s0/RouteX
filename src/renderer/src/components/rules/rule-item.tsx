@@ -14,13 +14,37 @@ const RuleItem: React.FC<ControllerRulesDetail & { index: number }> = (props) =>
   return (
     <div className={`w-full px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
       <Card>
-        <CardBody className="w-full">
-          <div title={payload} className="text-ellipsis whitespace-nowrap overflow-hidden text-black dark:text-white">
-            {payload}
-          </div>
-          <div className="flex justify-start text-foreground-500">
-            <div>{type}</div>
-            <div className={`ml-2 ${getProxyColor(proxy)}`}>{proxy}</div>
+        <CardBody className="w-full py-3">
+          <div className="flex justify-between items-start">
+            {/* 左侧：序号 + 规则信息 */}
+            <div className="flex items-start min-w-0 flex-1">
+              {/* 序号 */}
+              <div className="text-foreground-400 text-sm mr-4 mt-0.5 flex-shrink-0 w-8">
+                {index + 1}
+              </div>
+              
+              {/* 规则信息 */}
+              <div className="min-w-0 flex-1">
+                {/* 规则名称 */}
+                <div 
+                  title={payload} 
+                  className="text-ellipsis whitespace-nowrap overflow-hidden text-black dark:text-white font-medium"
+                >
+                  {payload}
+                </div>
+                {/* 规则类型 */}
+                <div className="text-foreground-500 text-sm mt-1">
+                  {type}
+                </div>
+              </div>
+            </div>
+            
+            {/* 右侧：代理组 */}
+            <div className="flex-shrink-0 ml-4">
+              <div className={`font-medium ${getProxyColor(proxy)}`}>
+                {proxy}
+              </div>
+            </div>
           </div>
         </CardBody>
       </Card>

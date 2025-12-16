@@ -30,7 +30,9 @@ const EnvSetting: React.FC = () => {
 
   return (
     <SettingCard title="环境变量" collapsible>
-      <SettingItem title="禁用系统 CA" divider>
+      <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-2">
+        <div className="ml-4">
+          <SettingItem title="禁用系统 CA" divider>
         <Switch
           size="sm"
           isSelected={disableSystemCA}
@@ -69,23 +71,47 @@ const EnvSetting: React.FC = () => {
         </SettingItem>
       )}
       <SettingItem title="可信路径">
-        {safePathsInput.join('') != safePaths.join('') && (
-          <Button
-            size="sm"
-            color="primary"
-            onPress={() => {
-              handleConfigChangeWithRestart('safePaths', safePathsInput)
-            }}
-          >
-            确认
-          </Button>
-        )}
+        <Switch
+          size="sm"
+          isSelected={safePathsInput.length > 0}
+          onValueChange={(v) => {
+            if (!v) {
+              setSafePathsInput([])
+              handleConfigChangeWithRestart('safePaths', [])
+            }
+          }}
+        />
       </SettingItem>
-      <EditableList
-        items={safePathsInput}
-        onChange={(items) => setSafePathsInput(items as string[])}
-        divider={false}
-      />{' '}
+      {safePathsInput.length > 0 && (
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+          <div className="ml-4 text-sm">
+            <SettingItem title="可信路径列表">
+              {safePathsInput.join('') != safePaths.join('') && (
+                <Button
+                  size="sm"
+                  color="primary"
+                  onPress={() => {
+                    handleConfigChangeWithRestart('safePaths', safePathsInput)
+                  }}
+                >
+                  确认
+                </Button>
+              )}
+            </SettingItem>
+            <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1">
+              <div className="ml-6">
+                <EditableList
+                  items={safePathsInput}
+                  onChange={(items) => setSafePathsInput(items as string[])}
+                  divider={false}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+        </div>
+      </div>
     </SettingCard>
   )
 }

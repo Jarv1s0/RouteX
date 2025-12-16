@@ -269,7 +269,7 @@ const App: React.FC = () => {
     >
       {showQuitConfirm && (
         <ConfirmModal
-          title="确定要退出 Sparkle 吗？"
+          title="确定要退出 RouteX 吗？"
           description={
             <div>
               <p></p>
@@ -383,7 +383,7 @@ const App: React.FC = () => {
               className={`flex justify-between p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
             >
               <div className="flex ml-1">
-                <h3 className="text-lg font-bold leading-[32px]">Sparkle</h3>
+                <h3 className="text-lg font-bold leading-[32px]">RouteX</h3>
               </div>
               {latest && latest.version && <UpdaterButton latest={latest} />}
               <Button

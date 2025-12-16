@@ -3,12 +3,10 @@
 <h3 align="center">Another <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a> GUI</h3>
 
 <p align="center">
-  <a href="https://github.com/xishang0128/sparkle/releases">
-    <img src="https://img.shields.io/github/release/xishang0128/sparkle/all.svg">
+  <a href="https://github.com/Jarv1s0/RouteX/releases">
+    <img src="https://img.shields.io/github/release/Jarv1s0/RouteX/all.svg">
   </a>
-  <a href="https://t.me/+y7rcYjEKIiI1NzZl">
-    <img src="https://img.shields.io/badge/Telegram-Group-blue?logo=telegram">
-  </a>
+
 </p>
 
 ## 特性
@@ -54,8 +52,8 @@ Sparkle 基于 Electron + React + TypeScript 构建
 1. **克隆项目**
 
 ```bash
-git clone https://github.com/xishang0128/sparkle.git
-cd sparkle
+git clone https://github.com/Jarv1s0/RouteX.git
+cd RouteX
 ```
 
 2. **安装依赖**
@@ -240,10 +238,10 @@ node --version
 
 ## Star History
 
-<a href="https://www.star-history.com/#xishang0128/sparkle&Date">
+<a href="https://www.star-history.com/#Jarv1s0/RouteX&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=xishang0128/sparkle&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=xishang0128/sparkle&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=xishang0128/sparkle&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Jarv1s0/RouteX&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Jarv1s0/RouteX&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Jarv1s0/RouteX&type=Date" />
  </picture>
 </a>

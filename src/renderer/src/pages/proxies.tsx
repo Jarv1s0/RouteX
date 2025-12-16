@@ -22,7 +22,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 const Proxies: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { mode = 'rule' } = controledMihomoConfig || {}
-  const { groups = [], mutate } = useGroups()
+  const { groups: allGroups = [], mutate } = useGroups()
   const { appConfig } = useAppConfig()
   const {
     proxyDisplayLayout = 'double',
@@ -32,6 +32,16 @@ const Proxies: React.FC = () => {
     proxyCols = 'auto',
     delayTestConcurrency = 50
   } = appConfig || {}
+
+  // 根据模式过滤显示的组
+  const groups = useMemo(() => {
+    if (mode === 'global') {
+      // 全局模式下只显示 GLOBAL 组
+      return allGroups.filter(group => group.name === 'GLOBAL')
+    }
+    // 规则模式下显示所有组
+    return allGroups
+  }, [allGroups, mode])
   const [cols, setCols] = useState(1)
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(false))
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))

@@ -22,22 +22,43 @@ function updateVersion(newVersion) {
 }
 
 function calculateNewVersion(current, type) {
-  const parts = current.split('.').map(Number);
+  // 处理 UI 版本号格式 (如 ui-1.0.0)
+  let versionPart = current;
+  let prefix = '';
   
+  if (current.startsWith('ui-')) {
+    prefix = 'ui-';
+    versionPart = current.substring(3);
+  }
+  
+  const parts = versionPart.split('.').map(Number);
+  
+  // 验证版本号格式
+  if (parts.length !== 3 || parts.some(isNaN)) {
+    throw new Error(`Invalid current version format: ${current}`);
+  }
+  
+  let newVersionPart;
   switch (type) {
     case 'major':
-      return `${parts[0] + 1}.0.0`;
+      newVersionPart = `${parts[0] + 1}.0.0`;
+      break;
     case 'minor':
-      return `${parts[0]}.${parts[1] + 1}.0`;
+      newVersionPart = `${parts[0]}.${parts[1] + 1}.0`;
+      break;
     case 'patch':
-      return `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
+      newVersionPart = `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
+      break;
     default:
       // 如果是具体版本号
       if (/^\d+\.\d+\.\d+/.test(type)) {
-        return type;
+        newVersionPart = type;
+      } else {
+        throw new Error(`Invalid version type: ${type}`);
       }
-      throw new Error(`Invalid version type: ${type}`);
   }
+  
+  return prefix + newVersionPart;
 }
 
 function run(command, options = {}) {
@@ -49,21 +70,21 @@ function run(command, options = {}) {
 
 function main() {
   try {
-    console.log('🚀 开始发布流程...\n');
+    console.log('🚀 Starting release process...\n');
 
-    // 检查工作目录是否干净
+    // Check if working directory is clean
     try {
       execSync('git diff-index --quiet HEAD --', { stdio: 'pipe' });
     } catch (error) {
-      console.error('❌ 工作目录不干净，请先提交或暂存更改');
+      console.error('❌ Working directory is not clean, please commit or stash changes');
       process.exit(1);
     }
 
-    // 获取当前版本
+    // Get current version
     const currentVersion = getCurrentVersion();
-    console.log(`📦 当前版本: ${currentVersion}`);
+    console.log(`📦 Current version: ${currentVersion}`);
 
-    // 计算新版本
+    // Calculate new version
     let newVersion = calculateNewVersion(currentVersion, versionType);
     
     if (isPrerelease) {
@@ -72,40 +93,40 @@ function main() {
       newVersion += `-${branch}.${timestamp}`;
     }
 
-    console.log(`🎯 新版本: ${newVersion}`);
+    console.log(`🎯 New version: ${newVersion}`);
 
     if (isDryRun) {
-      console.log('\n🔍 这是一次试运行，不会执行实际操作');
+      console.log('\n🔍 This is a dry run, no actual operations will be performed');
     }
 
-    // 更新版本号
-    console.log('\n📝 更新 package.json...');
+    // Update version
+    console.log('\n📝 Updating package.json...');
     if (!isDryRun) {
       updateVersion(newVersion);
     }
 
-    // 提交版本更改
-    console.log('📤 提交版本更改...');
+    // Commit version changes
+    console.log('📤 Committing version changes...');
     run(`git add package.json`);
     run(`git commit -m "chore: bump version to ${newVersion}"`);
 
-    // 创建标签
+    // Create tag
     const tagName = `v${newVersion}`;
-    console.log(`🏷️  创建标签: ${tagName}`);
+    console.log(`🏷️  Creating tag: ${tagName}`);
     run(`git tag -a ${tagName} -m "Release ${tagName}"`);
 
-    // 推送到远程
-    console.log('🚀 推送到远程仓库...');
+    // Push to remote
+    console.log('🚀 Pushing to remote repository...');
     run('git push');
     run(`git push origin ${tagName}`);
 
-    console.log(`\n✅ 发布完成！`);
-    console.log(`📋 版本: ${newVersion}`);
-    console.log(`🏷️  标签: ${tagName}`);
-    console.log(`🔗 GitHub Actions 将自动构建和发布: https://github.com/${getRepoInfo()}/actions`);
+    console.log(`\n✅ Release completed!`);
+    console.log(`📋 Version: ${newVersion}`);
+    console.log(`🏷️  Tag: ${tagName}`);
+    console.log(`🔗 GitHub Actions will build and release: https://github.com/${getRepoInfo()}/actions`);
 
   } catch (error) {
-    console.error('❌ 发布失败:', error.message);
+    console.error('❌ Release failed:', error.message);
     process.exit(1);
   }
 }
@@ -122,27 +143,27 @@ function getRepoInfo() {
 
 function showHelp() {
   console.log(`
-🚀 自动发布脚本
+🚀 Auto Release Script
 
-用法:
+Usage:
   node scripts/release.js [version-type] [options]
 
-版本类型:
-  patch     补丁版本 (默认) - 1.0.0 -> 1.0.1
-  minor     次要版本 - 1.0.0 -> 1.1.0  
-  major     主要版本 - 1.0.0 -> 2.0.0
-  x.y.z     指定版本号
+Version Types:
+  patch     Patch version (default) - 1.0.0 -> 1.0.1
+  minor     Minor version - 1.0.0 -> 1.1.0  
+  major     Major version - 1.0.0 -> 2.0.0
+  x.y.z     Specific version number
 
-选项:
-  --pre, --prerelease    创建预发布版本
-  --dry-run             试运行，不执行实际操作
-  --help, -h            显示帮助
+Options:
+  --pre, --prerelease    Create prerelease version
+  --dry-run             Dry run, no actual operations
+  --help, -h            Show help
 
-示例:
-  node scripts/release.js patch              # 发布补丁版本
-  node scripts/release.js minor --pre        # 发布预发布次要版本
-  node scripts/release.js 2.0.0             # 发布指定版本
-  node scripts/release.js --dry-run          # 试运行
+Examples:
+  node scripts/release.js patch              # Release patch version
+  node scripts/release.js minor --pre        # Release prerelease minor version
+  node scripts/release.js 2.0.0             # Release specific version
+  node scripts/release.js --dry-run          # Dry run
 `);
 }
 
