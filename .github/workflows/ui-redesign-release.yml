@@ -49,28 +49,31 @@ jobs:
       - name: Setup pnpm
         run: npm install -g pnpm
 
-      - name: Determine and Update Version
+      - name: Determine Version and Metadata
         shell: bash
         run: |
-          GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
-          VERSION=$(jq -r '.version' package.json)
-
+          # 1. 提取短 Hash 供构建文件名使用
+          SHORT_HASH=$(git rev-parse --short HEAD)
+          echo "SHORT_COMMIT=$SHORT_HASH" >> $GITHUB_ENV
+          
+          # 2. 获取 package.json 里的原始版本 (1.0.0)
+          RAW_VERSION=$(jq -r '.version' package.json)
+          
+          # 3. 计算 Release 用的 Tag 名称 (仅存为变量，不修改 package.json 文件)
           if [ "${{ github.event.inputs.version }}" == "" ]; then
-            BASE_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
-            RELEASE_VERSION="${BASE_VERSION}-ui-${GIT_COMMIT_HASH}"
+            FINAL_TAG="v${RAW_VERSION}-ui-${SHORT_HASH}"
           else
-            INPUT_VERSION="${{ github.event.inputs.version }}"
-            CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
-            RELEASE_VERSION="$CLEAN_VERSION"
+            FINAL_TAG="${{ github.event.inputs.version }}"
           fi
-
-          jq --arg version "$RELEASE_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
-          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=$FINAL_TAG" >> $GITHUB_ENV
 
       - name: Keep product name lowercase on Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sed -i "s/productName: RouteX/productName: routex-ui/" electron-builder.yml
+          # 仅在存在独立配置文件时修改，若没有则跳过
+          if [ -f electron-builder.yml ]; then
+            sed -i "s/productName: RouteX/productName: routex-ui/" electron-builder.yml
+          fi
 
       - name: Install Dependencies and Prepare
         env:
@@ -83,6 +86,8 @@ jobs:
 
       - name: Build
         env:
+          # 注入环境变量，供 package.json 中的 artifactName 读取
+          SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
         shell: bash
@@ -100,26 +105,26 @@ jobs:
         shell: pwsh
         run: |
           New-Item -Path "PORTABLE" -ItemType File
-          Get-ChildItem dist/*portable.7z | ForEach-Object {
+          # 匹配新的命名规则
+          Get-ChildItem dist/RouteX*portable.7z | ForEach-Object {
             7z a $_.FullName PORTABLE
           }
 
       - name: Create Changelog
         run: |
-          # 使用模板生成发布说明
-          cp .github/release-template.md changelog.md
-          
-          # 替换版本号
-          sed -i "s/{VERSION}/${{ env.RELEASE_VERSION }}/g" changelog.md
-          
-          # 生成提交历史
-          COMMIT_HISTORY=$(git log --pretty=format:"- %s" --max-count=10)
-          
-          # 替换提交历史占位符
-          echo "$COMMIT_HISTORY" > commits.tmp
-          sed -i "/{COMMIT_HISTORY}/r commits.tmp" changelog.md
-          sed -i "/{COMMIT_HISTORY}/d" changelog.md
-          rm commits.tmp
+          # 容错处理：如果模板不存在则生成简单版本
+          if [ -f .github/release-template.md ]; then
+            cp .github/release-template.md changelog.md
+            sed -i "s/{VERSION}/${{ env.RELEASE_VERSION }}/g" changelog.md
+            COMMIT_HISTORY=$(git log --pretty=format:"- %s" --max-count=10)
+            echo "$COMMIT_HISTORY" > commits.tmp
+            sed -i "/{COMMIT_HISTORY}/r commits.tmp" changelog.md
+            sed -i "/{COMMIT_HISTORY}/d" changelog.md
+            rm commits.tmp
+          else
+            echo "Release version: ${{ env.RELEASE_VERSION }}" > changelog.md
+            git log --pretty=format:"- %s" --max-count=10 >> changelog.md
+          fi
 
       - name: Generate latest.yml
         shell: bash
@@ -130,9 +135,9 @@ jobs:
         with:
           name: ui-redesign-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
           path: |
-            dist/routex*
-            !dist/routex.app.plist
-            !dist/routex*blockmap*
+            dist/RouteX*
+            !dist/*.plist
+            !dist/*blockmap*
             latest.yml
             changelog.md
 
@@ -149,23 +154,23 @@ jobs:
           path: bin/
           merge-multiple: true
 
-      - name: Get Version
-        id: version
+      - name: Get Release Tag
+        id: release_tag
         run: |
+          # 重新计算一次 Tag 以确保 release 任务能拿到
+          RAW_VER=$(jq -r '.version' package.json)
+          HASH=$(git rev-parse --short HEAD)
           if [ "${{ github.event.inputs.version }}" != "" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
           else
-            GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
-            VERSION=$(jq -r '.version' package.json)
-            BASE_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
-            echo "version=v${BASE_VERSION}-ui-${GIT_COMMIT_HASH}" >> $GITHUB_OUTPUT
+            echo "tag=v${RAW_VER}-ui-${HASH}" >> $GITHUB_OUTPUT
           fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: "RouteX UI重设计版 ${{ steps.version.outputs.version }}"
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: "RouteX UI重设计版 ${{ steps.release_tag.outputs.tag }}"
           body_path: bin/changelog.md
           files: |
             bin/latest.yml
