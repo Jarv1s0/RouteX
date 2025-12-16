@@ -13,10 +13,103 @@ on:
         type: string
 
 jobs:
-  create-release:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            arch: x64
+            format: nsis
+          - os: windows-latest
+            arch: x64
+            format: 7z
+          - os: ubuntu-latest
+            arch: x64
+            format: deb
+          - os: ubuntu-latest
+            arch: x64
+            format: rpm
+          - os: macos-latest
+            arch: x64
+          - os: macos-latest
+            arch: arm64
+
+    name: Build ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: npm install -g pnpm
+
+      - name: Get tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Version
+        shell: bash
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          VERSION=$(echo "$TAG" | sed 's/^v//')
+          jq --arg version "$VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
+
+      - name: Keep product name lowercase on Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sed -i "s/productName: Sparkle/productName: sparkle/" electron-builder.yml
+
+      - name: Install Dependencies and Prepare
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          SKIP_PREPARE=1 pnpm install
+          pnpm prepare --${{ matrix.arch }}
+
+      - name: Build
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            pnpm build:win ${{ matrix.format }} --${{ matrix.arch }}
+          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            pnpm build:linux ${{ matrix.format }} --${{ matrix.arch }}
+          else
+            pnpm build:mac --${{ matrix.arch }}
+          fi
+
+      - name: Add Portable Flag
+        if: matrix.os == 'windows-latest' && matrix.format == '7z'
+        shell: pwsh
+        run: |
+          New-Item -Path "PORTABLE" -ItemType File
+          Get-ChildItem dist/*portable.7z | ForEach-Object {
+            7z a $_.FullName PORTABLE
+          }
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
+          path: |
+            dist/sparkle*
+            !dist/sparkle.app.plist
+            !dist/sparkle*blockmap*
+
+  release:
+    needs: [build]
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,12 +126,10 @@ jobs:
           fi
 
       - name: Generate changelog
-        id: changelog
         run: |
           echo "# 更新日志" > CHANGELOG.md
           echo "" >> CHANGELOG.md
           
-          # 获取最近的提交信息
           if git describe --tags --abbrev=0 HEAD^ >/dev/null 2>&1; then
             PREV_TAG=$(git describe --tags --abbrev=0 HEAD^)
             echo "## 从 $PREV_TAG 到 ${{ steps.tag.outputs.tag }} 的更改" >> CHANGELOG.md
@@ -48,70 +139,19 @@ jobs:
             git log --pretty=format:"- %s" --max-count=10 >> CHANGELOG.md
           fi
 
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bin/
+          merge-multiple: true
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: Release ${{ steps.tag.outputs.tag }}
           body_path: CHANGELOG.md
-          draft: false
-          prerelease: ${{ contains(steps.tag.outputs.tag, 'beta') || contains(steps.tag.outputs.tag, 'alpha') || contains(steps.tag.outputs.tag, 'rc') }}
-
-  build-and-upload:
-    needs: create-release
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            platform: win32
-            arch: x64
-          - os: ubuntu-latest
-            platform: linux
-            arch: x64
-          - os: macos-latest
-            platform: darwin
-            arch: x64
-          - os: macos-latest
-            platform: darwin
-            arch: arm64
-
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Setup pnpm
-        run: npm install -g pnpm
-
-      - name: Install dependencies
-        run: |
-          SKIP_PREPARE=1 pnpm install
-          pnpm prepare --${{ matrix.arch }}
-
-      - name: Build application
-        env:
-          npm_config_arch: ${{ matrix.arch }}
-          npm_config_target_arch: ${{ matrix.arch }}
-        run: |
-          if [ "${{ matrix.platform }}" = "win32" ]; then
-            pnpm build:win --${{ matrix.arch }}
-          elif [ "${{ matrix.platform }}" = "linux" ]; then
-            pnpm build:linux --${{ matrix.arch }}
-          else
-            pnpm build:mac --${{ matrix.arch }}
-          fi
-        shell: bash
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.create-release.outputs.tag }}
           files: |
-            dist/*
-            !dist/*.blockmap
-            !dist/*.app.plist
+            bin/dist/*
+          draft: false
+          prerelease: ${{ contains(steps.tag.outputs.tag, 'beta') || contains(steps.tag.outputs.tag, 'alpha') || contains(steps.tag.outputs.tag, 'rc') || contains(steps.tag.outputs.tag, 'ui') }}

@@ -1,26 +1,27 @@
 @echo off
-echo 🚀 Sparkle UI重设计版自动发布脚本
+chcp 65001 >nul
+echo Sparkle UI Redesign Auto Release Script
 echo.
 
-REM 检查参数
+REM Check parameters
 if "%1"=="" (
     set VERSION_TYPE=patch
 ) else (
     set VERSION_TYPE=%1
 )
 
-echo 📦 准备发布 %VERSION_TYPE% 版本...
+echo Preparing to release %VERSION_TYPE% version...
 echo.
 
-REM 检查git状态
-git status --porcelain > nul
+REM Check git status
+git status --porcelain > nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    echo ❌ Git仓库状态异常
+    echo Error: Git repository status abnormal
     pause
     exit /b 1
 )
 
-REM 获取当前版本
+REM Get current version
 for /f "tokens=2 delims=:" %%i in ('findstr "version" package.json') do (
     set CURRENT_VERSION=%%i
 )
@@ -28,50 +29,50 @@ set CURRENT_VERSION=%CURRENT_VERSION: =%
 set CURRENT_VERSION=%CURRENT_VERSION:"=%
 set CURRENT_VERSION=%CURRENT_VERSION:,=%
 
-echo 📋 当前版本: %CURRENT_VERSION%
+echo Current version: %CURRENT_VERSION%
 
-REM 提示用户输入新版本
-set /p NEW_VERSION="🎯 请输入新版本号 (例如: 1.0.0-ui): "
+REM Prompt user for new version
+set /p NEW_VERSION="Enter new version (e.g., 1.0.0-ui): "
 
 if "%NEW_VERSION%"=="" (
-    echo ❌ 版本号不能为空
+    echo Error: Version cannot be empty
     pause
     exit /b 1
 )
 
 echo.
-echo 📝 更新版本到: %NEW_VERSION%
-echo 🏷️  将创建标签: v%NEW_VERSION%
+echo Update version to: %NEW_VERSION%
+echo Will create tag: v%NEW_VERSION%
 echo.
-set /p CONFIRM="确认发布? (y/N): "
+set /p CONFIRM="Confirm release? (y/N): "
 
 if /i not "%CONFIRM%"=="y" (
-    echo ❌ 发布已取消
+    echo Release cancelled
     pause
     exit /b 0
 )
 
 echo.
-echo 🔄 开始发布流程...
+echo Starting release process...
 
-REM 更新package.json版本
+REM Update package.json version
 powershell -Command "(Get-Content package.json) -replace '\"version\": \".*\"', '\"version\": \"%NEW_VERSION%\"' | Set-Content package.json"
 
-REM 提交更改
+REM Commit changes
 git add package.json
 git commit -m "chore: bump version to %NEW_VERSION%"
 
-REM 创建标签
+REM Create tag
 git tag -a v%NEW_VERSION% -m "Release v%NEW_VERSION%"
 
-REM 推送
+REM Push
 git push
 git push origin v%NEW_VERSION%
 
 echo.
-echo ✅ 发布完成！
-echo 📋 版本: %NEW_VERSION%
-echo 🏷️  标签: v%NEW_VERSION%
-echo 🔗 GitHub Actions 正在构建，请查看: https://github.com/Jarv1s0/sparkle/actions
+echo Release completed!
+echo Version: %NEW_VERSION%
+echo Tag: v%NEW_VERSION%
+echo GitHub Actions is building, check: https://github.com/Jarv1s0/sparkle/actions
 echo.
 pause
