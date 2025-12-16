@@ -3,24 +3,22 @@
   "version": "1.0.0",
   "description": "RouteX",
   "main": "./out/main/index.js",
-  "author": "Jarv1s0",
-  "homepage": "https://github.com/Jarv1s0/RouteX",
-  "scripts": {
-    "format": "prettier --write .",
-    "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
-    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
-    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-    "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "prepare": "node scripts/prepare.mjs",
-    "updater": "node scripts/updater.mjs",
-    "checksum": "node scripts/checksum.mjs",
-    "telegram": "node scripts/telegram.mjs",
-    "artifact": "node scripts/artifact.mjs",
-    "dev": "electron-vite dev",
-    "postinstall": "electron-builder install-app-deps",
-    "build:win": "electron-vite build && electron-builder --publish never --win",
-    "build:mac": "electron-vite build && electron-builder --publish never --mac",
-    "build:linux": "electron-vite build && electron-builder --publish never --linux"
+  "build": {
+    "appId": "com.routex.app",
+    "productName": "RouteX",
+    "directories": {
+      "output": "dist"
+    },
+    "artifactName": "RouteX-${version}-ui-${env.SHORT_COMMIT}-${os}-${arch}.${ext}",
+    "win": {
+      "target": ["nsis", "7z"]
+    },
+    "linux": {
+      "target": ["deb", "rpm"]
+    },
+    "mac": {
+      "target": ["dmg", "zip"]
+    }
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
