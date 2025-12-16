@@ -1,0 +1,117 @@
+name: Auto Release
+permissions: write-all
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "# 更新日志" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          
+          # 获取最近的提交信息
+          if git describe --tags --abbrev=0 HEAD^ >/dev/null 2>&1; then
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^)
+            echo "## 从 $PREV_TAG 到 ${{ steps.tag.outputs.tag }} 的更改" >> CHANGELOG.md
+            git log --pretty=format:"- %s" $PREV_TAG..HEAD >> CHANGELOG.md
+          else
+            echo "## 初始版本" >> CHANGELOG.md
+            git log --pretty=format:"- %s" --max-count=10 >> CHANGELOG.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Release ${{ steps.tag.outputs.tag }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ contains(steps.tag.outputs.tag, 'beta') || contains(steps.tag.outputs.tag, 'alpha') || contains(steps.tag.outputs.tag, 'rc') }}
+
+  build-and-upload:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+            arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: |
+          SKIP_PREPARE=1 pnpm install
+          pnpm prepare --${{ matrix.arch }}
+
+      - name: Build application
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        run: |
+          if [ "${{ matrix.platform }}" = "win32" ]; then
+            pnpm build:win --${{ matrix.arch }}
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            pnpm build:linux --${{ matrix.arch }}
+          else
+            pnpm build:mac --${{ matrix.arch }}
+          fi
+        shell: bash
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.create-release.outputs.tag }}
+          files: |
+            dist/*
+            !dist/*.blockmap
+            !dist/*.app.plist
