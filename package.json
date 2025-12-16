@@ -1,6 +1,6 @@
 {
   "name": "sparkle",
-  "version": "ui-1.0.0",
+  "version": "1.0.1_ui",
   "description": "Sparkle",
   "main": "./out/main/index.js",
   "author": "xishang0128",
