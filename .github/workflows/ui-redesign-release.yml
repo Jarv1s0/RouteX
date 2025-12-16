@@ -52,16 +52,16 @@ jobs:
       - name: Determine Version and Metadata
         shell: bash
         run: |
-          # 1. 提取短 Hash 供构建文件名使用
+          # 1. 强制重置 package.json 为标准 SemVer 格式，解决 Invalid version 报错
+          jq '.version = "1.0.0"' package.json > tmp.json && mv tmp.json package.json
+          
+          # 2. 提取短 Hash 供构建文件名使用
           SHORT_HASH=$(git rev-parse --short HEAD)
           echo "SHORT_COMMIT=$SHORT_HASH" >> $GITHUB_ENV
           
-          # 2. 获取 package.json 里的原始版本 (1.0.0)
-          RAW_VERSION=$(jq -r '.version' package.json)
-          
-          # 3. 计算 Release 用的 Tag 名称 (仅存为变量，不修改 package.json 文件)
+          # 3. 计算 Release 用的 Tag 名称 (仅供 GitHub Release 使用)
           if [ "${{ github.event.inputs.version }}" == "" ]; then
-            FINAL_TAG="v${RAW_VERSION}-ui-${SHORT_HASH}"
+            FINAL_TAG="v1.0.0-ui-${SHORT_HASH}"
           else
             FINAL_TAG="${{ github.event.inputs.version }}"
           fi
@@ -70,7 +70,6 @@ jobs:
       - name: Keep product name lowercase on Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          # 仅在存在独立配置文件时修改，若没有则跳过
           if [ -f electron-builder.yml ]; then
             sed -i "s/productName: RouteX/productName: routex-ui/" electron-builder.yml
           fi
@@ -86,7 +85,7 @@ jobs:
 
       - name: Build
         env:
-          # 注入环境变量，供 package.json 中的 artifactName 读取
+          # 注入变量，使 electron-builder.yml 中的 ${env.SHORT_COMMIT} 生效
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
@@ -105,14 +104,13 @@ jobs:
         shell: pwsh
         run: |
           New-Item -Path "PORTABLE" -ItemType File
-          # 匹配新的命名规则
+          # 匹配新的文件名规则
           Get-ChildItem dist/RouteX*portable.7z | ForEach-Object {
             7z a $_.FullName PORTABLE
           }
 
       - name: Create Changelog
         run: |
-          # 容错处理：如果模板不存在则生成简单版本
           if [ -f .github/release-template.md ]; then
             cp .github/release-template.md changelog.md
             sed -i "s/{VERSION}/${{ env.RELEASE_VERSION }}/g" changelog.md
@@ -122,8 +120,7 @@ jobs:
             sed -i "/{COMMIT_HISTORY}/d" changelog.md
             rm commits.tmp
           else
-            echo "Release version: ${{ env.RELEASE_VERSION }}" > changelog.md
-            git log --pretty=format:"- %s" --max-count=10 >> changelog.md
+            echo "Release: ${{ env.RELEASE_VERSION }}" > changelog.md
           fi
 
       - name: Generate latest.yml
@@ -136,8 +133,8 @@ jobs:
           name: ui-redesign-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
           path: |
             dist/RouteX*
-            !dist/*.plist
-            !dist/*blockmap*
+            !dist/RouteX.app.plist
+            !dist/RouteX*blockmap*
             latest.yml
             changelog.md
 
@@ -157,7 +154,7 @@ jobs:
       - name: Get Release Tag
         id: release_tag
         run: |
-          # 重新计算一次 Tag 以确保 release 任务能拿到
+          # 重新计算一次 Tag 供 Release 使用
           RAW_VER=$(jq -r '.version' package.json)
           HASH=$(git rev-parse --short HEAD)
           if [ "${{ github.event.inputs.version }}" != "" ]; then
