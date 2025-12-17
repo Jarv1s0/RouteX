@@ -22,43 +22,29 @@ function updateVersion(newVersion) {
 }
 
 function calculateNewVersion(current, type) {
-  // 处理 UI 版本号格式 (如 ui-1.0.0)
-  let versionPart = current;
-  let prefix = '';
-  
-  if (current.startsWith('ui-')) {
-    prefix = 'ui-';
-    versionPart = current.substring(3);
-  }
-  
-  const parts = versionPart.split('.').map(Number);
+  // 确保版本号是纯数字格式
+  const parts = current.split('.').map(Number);
   
   // 验证版本号格式
   if (parts.length !== 3 || parts.some(isNaN)) {
     throw new Error(`Invalid current version format: ${current}`);
   }
   
-  let newVersionPart;
   switch (type) {
     case 'major':
-      newVersionPart = `${parts[0] + 1}.0.0`;
-      break;
+      return `${parts[0] + 1}.0.0`;
     case 'minor':
-      newVersionPart = `${parts[0]}.${parts[1] + 1}.0`;
-      break;
+      return `${parts[0]}.${parts[1] + 1}.0`;
     case 'patch':
-      newVersionPart = `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
-      break;
+      return `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
     default:
       // 如果是具体版本号
       if (/^\d+\.\d+\.\d+/.test(type)) {
-        newVersionPart = type;
+        return type;
       } else {
         throw new Error(`Invalid version type: ${type}`);
       }
   }
-  
-  return prefix + newVersionPart;
 }
 
 function run(command, options = {}) {
