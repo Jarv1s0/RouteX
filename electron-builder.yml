@@ -24,13 +24,18 @@ protocols:
     - 'clash'
     - 'mihomo'
     - 'routex'
+
+# 全局默认命名规则
+artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-${os}-${arch}.${ext}
+
 win:
   target:
     - nsis
     - 7z
-  artifactName: ${name}-windows-${version}-${arch}-portable.${ext}
+  # Windows 专属命名
+  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-windows-${arch}-portable.${ext}
 nsis:
-  artifactName: ${name}-windows-${version}-${arch}-setup.${ext}
+  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-windows-${arch}-setup.${ext}
   uninstallDisplayName: ${productName}
   allowToChangeInstallationDirectory: true
   oneClick: false
@@ -46,13 +51,10 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
-  artifactName: ${name}-macos-${version}-${arch}.${ext}
+  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-macos-${arch}.${ext}
 pkg:
   allowAnywhere: false
   allowCurrentUserHome: false
-  # background:
-  #   alignment: bottomleft
-  #   file: build/background.png
 linux:
   desktop:
     entry:
@@ -64,13 +66,14 @@ linux:
     - pacman
   maintainer: Jarv1s0
   category: Utility
-  artifactName: ${name}-linux-${version}-${arch}.${ext}
+  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-linux-${arch}.${ext}
 deb:
   afterInstall: 'build/linux/postinst'
 rpm:
   afterInstall: 'build/linux/postinst'
 pacman:
   afterInstall: 'build/linux/postinst'
-  artifactName: ${name}-linux-${version}-${arch}.pkg.tar.xz
+  # pacman 后缀特殊处理
+  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-linux-${arch}.pkg.tar.xz
 npmRebuild: true
 publish: []
