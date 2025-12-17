@@ -39,8 +39,8 @@ const Proxies: React.FC = () => {
       // 全局模式下只显示 GLOBAL 组
       return allGroups.filter(group => group.name === 'GLOBAL')
     }
-    // 规则模式下显示所有组
-    return allGroups
+    // 规则模式下过滤掉 GLOBAL 组
+    return allGroups.filter(group => group.name !== 'GLOBAL')
   }, [allGroups, mode])
   const [cols, setCols] = useState(1)
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(false))
@@ -233,7 +233,7 @@ const Proxies: React.FC = () => {
                 <div className="flex text-ellipsis overflow-hidden whitespace-nowrap h-full">
                   {groups[index].icon ? (
                     <Avatar
-                      className="bg-transparent mr-2 w-8 h-8"
+                      className="bg-transparent mr-2 w-[30px] h-[30px]"
                       size="sm"
                       radius="sm"
                       src={
@@ -254,7 +254,7 @@ const Proxies: React.FC = () => {
                         <>
                           <div
                             title={groups[index].type}
-                            className="inline ml-2 text-sm text-foreground-500"
+                            className="inline ml-2 text-sm text-blue-400"
                           >
                             {groups[index].type}
                           </div>
@@ -266,7 +266,7 @@ const Proxies: React.FC = () => {
                     </div>
                     {groupDisplayLayout === 'double' && (
                       <div className="text-ellipsis whitespace-nowrap text-[10px] text-foreground-500 leading-tight flex-3 flex items-center">
-                        <span>{groups[index].type}</span>
+                        <span className="text-blue-400">{groups[index].type}</span>
                         <span className="flag-emoji ml-1 inline-block">
                           {groups[index].now}
                         </span>

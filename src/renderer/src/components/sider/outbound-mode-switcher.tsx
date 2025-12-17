@@ -44,19 +44,21 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
       </Tabs>
     )
   }
+  const cursorColor = mode === 'rule' ? 'bg-purple-200' : mode === 'global' ? 'bg-orange-200' : 'bg-blue-200'
+  
   return (
     <Tabs
       fullWidth
-      color="primary"
       selectedKey={mode}
       classNames={{
-        tabList: 'bg-content1 shadow-medium outbound-mode-card'
+        tabList: 'bg-content1 shadow-medium outbound-mode-card',
+        cursor: cursorColor
       }}
       onSelectionChange={(key: Key) => onChangeMode(key as OutboundMode)}
     >
-      <Tab className={`${mode === 'rule' ? 'font-bold' : ''}`} key="rule" title="规则" />
-      <Tab className={`${mode === 'global' ? 'font-bold' : ''}`} key="global" title="全局" />
-      <Tab className={`${mode === 'direct' ? 'font-bold' : ''}`} key="direct" title="直连" />
+      <Tab className={`text-[15px] ${mode === 'rule' ? 'font-bold' : ''}`} key="rule" title={<span style={{ color: '#9333ea' }}>规则</span>} />
+      <Tab className={`text-[15px] ${mode === 'global' ? 'font-bold' : ''}`} key="global" title={<span style={{ color: '#f97316' }}>全局</span>} />
+      <Tab className={`text-[15px] ${mode === 'direct' ? 'font-bold' : ''}`} key="direct" title={<span style={{ color: '#3b82f6' }}>直连</span>} />
     </Tabs>
   )
 }

@@ -67,7 +67,7 @@ const ProxyCard: React.FC<Props> = (props) => {
         {...listeners}
         className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
       >
-        <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
+        <CardBody className="pb-1 pt-1 px-0 overflow-y-visible">
           <div className="flex justify-between">
             <Button
               isIconOnly
@@ -76,7 +76,7 @@ const ProxyCard: React.FC<Props> = (props) => {
               color="default"
             >
               <LuGroup
-                className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] font-bold`}
+                className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
               />
             </Button>
             <Chip
@@ -93,7 +93,7 @@ const ProxyCard: React.FC<Props> = (props) => {
               }
               size="sm"
               variant="bordered"
-              className="mr-2 mt-2"
+              className="mr-2 mt-4"
             >
               {groups.length}
             </Chip>

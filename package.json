@@ -100,9 +100,6 @@
     ],
     "patchedDependencies": {
       "vite-plugin-monaco-editor@1.1.0": "patches/vite-plugin-monaco-editor@1.1.0.patch"
-    },
-    "overrides": {
-      "vite": "npm:rolldown-vite@latest"
     }
   },
   "packageManager": "pnpm@10.15.0"

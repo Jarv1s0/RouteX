@@ -160,7 +160,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
               >
                 <LuCpu
                   color="default"
-                  className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] font-bold`}
+                  className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
                 />
               </Button>
             </div>

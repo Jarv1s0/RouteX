@@ -164,7 +164,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               size="sm"
               className="w-[100px]"
               value={delayTestTimeout?.toString()}
-              placeholder="默认 5000"
+              placeholder="默认 10000"
               onValueChange={(v) => {
                 patchAppConfig({ delayTestTimeout: parseInt(v) })
               }}

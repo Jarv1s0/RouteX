@@ -65,7 +65,7 @@ const ProxyItem: React.FC<Props> = (props) => {
           {proxyDisplayLayout === 'double' ? (
             <>
               <div className="flex flex-col gap-0 flex-1 min-w-0">
-                <div className="text-ellipsis overflow-hidden whitespace-nowrap">
+                <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm">
                   <div className="flag-emoji inline" title={proxy.name}>
                     {proxy.name}
                   </div>
@@ -105,7 +105,7 @@ const ProxyItem: React.FC<Props> = (props) => {
             </>
           ) : (
             <>
-              <div className="text-ellipsis overflow-hidden whitespace-nowrap">
+              <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm">
                 <div className="flag-emoji inline" title={proxy.name}>
                   {proxy.name === 'COMPATIBLE' ? 'DIRECT' : proxy.name}
                 </div>

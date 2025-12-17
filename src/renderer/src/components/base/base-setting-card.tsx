@@ -19,7 +19,7 @@ const SettingCard: React.FC<Props> = (props) => {
       <CardBody className="p-0">
         {props.title && (
           <div
-            className={`px-4 py-2 text-md font-normal text-foreground flex justify-between items-center ${collapsible ? 'cursor-pointer hover:bg-default-100' : ''}`}
+            className={`px-4 py-2 text-md font-bold text-foreground flex justify-between items-center ${collapsible ? 'cursor-pointer hover:bg-default-100' : ''}`}
             onClick={() => collapsible && setCollapsed(!collapsed)}
           >
             <span>{props.title}</span>

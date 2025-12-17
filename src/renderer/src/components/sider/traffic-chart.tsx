@@ -24,7 +24,7 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
   }, [data])
 
   const chartColor = useMemo(() => {
-    return isActive ? 'hsl(var(--heroui-primary-foreground))' : 'hsl(var(--heroui-foreground))'
+    return isActive ? '#ffffff' : '#10b981' // 选中时白色，未选中时绿色
   }, [isActive])
 
   return (
@@ -38,15 +38,18 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
       <AreaChart data={validData} margin={{ top: 50, right: 0, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={chartColor} stopOpacity={0.8} />
-            <stop offset="100%" stopColor={chartColor} stopOpacity={0} />
+            <stop offset="0%" stopColor={chartColor} stopOpacity={0.6} />
+            <stop offset="50%" stopColor={chartColor} stopOpacity={0.3} />
+            <stop offset="100%" stopColor={chartColor} stopOpacity={0.1} />
           </linearGradient>
         </defs>
         <Area
           isAnimationActive={false}
           type="monotone"
           dataKey="traffic"
-          stroke="none"
+          stroke={chartColor}
+          strokeWidth={1.5}
+          strokeOpacity={0.8}
           fill={`url(#${gradientId})`}
         />
       </AreaChart>

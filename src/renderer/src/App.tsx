@@ -69,6 +69,7 @@ const App: React.FC = () => {
   const siderOrderArray = siderOrder ?? defaultSiderOrder
   const narrowWidth = platform === 'darwin' ? 70 : 60
   const [order, setOrder] = useState(siderOrderArray)
+  // 初始值固定为 250，避免闪烁
   const [siderWidthValue, setSiderWidthValue] = useState(siderWidth)
   const siderWidthValueRef = useRef(siderWidthValue)
   const [resizing, setResizing] = useState(false)
