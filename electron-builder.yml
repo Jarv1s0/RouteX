@@ -2,6 +2,11 @@ appId: routex.app
 productName: RouteX
 directories:
   buildResources: build
+asar: true
+asarUnpack:
+  - "**/*.node"
+  - "**/extra/**"
+compression: maximum
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -15,6 +20,14 @@ files:
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!**/*.map'
+  - '!**/*.md'
+  - '!**/LICENSE*'
+  - '!**/*.d.ts'
+  - '!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
+  - '!node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
+  - '!node_modules/*.d.ts'
+  - '!node_modules/.bin'
 extraResources:
   - from: './extra/'
     to: ''
@@ -26,16 +39,16 @@ protocols:
     - 'routex'
 
 # 全局默认命名规则
-artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-${os}-${arch}.${ext}
+artifactName: RouteX-${version}-${os}-${arch}.${ext}
 
 win:
   target:
     - nsis
     - 7z
   # Windows 专属命名
-  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-windows-${arch}-portable.${ext}
+  artifactName: RouteX-${version}-windows-${arch}-portable.${ext}
 nsis:
-  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-windows-${arch}-setup.${ext}
+  artifactName: RouteX-${version}-windows-${arch}-setup.${ext}
   uninstallDisplayName: ${productName}
   allowToChangeInstallationDirectory: true
   oneClick: false
@@ -51,7 +64,7 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
-  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-macos-${arch}.${ext}
+  artifactName: RouteX-${version}-macos-${arch}.${ext}
 pkg:
   allowAnywhere: false
   allowCurrentUserHome: false
@@ -65,7 +78,7 @@ linux:
     - rpm
   maintainer: Jarv1s0
   category: Utility
-  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-linux-${arch}.${ext}
+  artifactName: RouteX-${version}-linux-${arch}.${ext}
 deb:
   afterInstall: 'build/linux/postinst'
 rpm:
