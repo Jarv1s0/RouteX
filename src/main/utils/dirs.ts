@@ -108,7 +108,7 @@ function systemCorePath(): string {
 
 export function servicePath(): string {
   const isWin = process.platform === 'win32'
-  return path.join(resourcesFilesDir(), `routex-service${isWin ? '.exe' : ''}`)
+  return path.join(resourcesFilesDir(), `sparkle-service${isWin ? '.exe' : ''}`)
 }
 
 export function appConfigPath(): string {

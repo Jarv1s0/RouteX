@@ -43,7 +43,7 @@ const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"${path.join(taskDir(), `routex-run.exe`)}"</Command>
+      <Command>"${path.join(taskDir(), `sparkle-run.exe`)}"</Command>
       <Arguments>"${exePath()}"</Arguments>
     </Exec>
   </Actions>

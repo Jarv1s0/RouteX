@@ -98,7 +98,7 @@ const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"${path.join(taskDir(), `routex-run.exe`)}"</Command>
+      <Command>"${path.join(taskDir(), `sparkle-run.exe`)}"</Command>
       <Arguments>"${exePath()}"</Arguments>
     </Exec>
   </Actions>
@@ -106,20 +106,20 @@ const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
 `
 
 export function createElevateTaskSync(): void {
-  const taskFilePath = path.join(taskDir(), `routex-run.xml`)
+  const taskFilePath = path.join(taskDir(), `sparkle-run.xml`)
   writeFileSync(taskFilePath, Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le'))
   copyFileSync(
-    path.join(resourcesFilesDir(), 'routex-run.exe'),
-    path.join(taskDir(), 'routex-run.exe')
+    path.join(resourcesFilesDir(), 'sparkle-run.exe'),
+    path.join(taskDir(), 'sparkle-run.exe')
   )
   execSync(
-    `%SystemRoot%\\System32\\schtasks.exe /create /tn "routex-run" /xml "${taskFilePath}" /f`
+    `%SystemRoot%\\System32\\schtasks.exe /create /tn "sparkle-run" /xml "${taskFilePath}" /f`
   )
 }
 
 export async function deleteElevateTask(): Promise<void> {
   try {
-    execSync(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "routex-run" /f`)
+    execSync(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "sparkle-run" /f`)
   } catch {
     // ignore
   }
@@ -127,7 +127,7 @@ export async function deleteElevateTask(): Promise<void> {
 
 export async function checkElevateTask(): Promise<boolean> {
   try {
-    execSync(`%SystemRoot%\\System32\\schtasks.exe /query /tn "routex-run"`, { stdio: 'pipe' })
+    execSync(`%SystemRoot%\\System32\\schtasks.exe /query /tn "sparkle-run"`, { stdio: 'pipe' })
     return true
   } catch {
     return false

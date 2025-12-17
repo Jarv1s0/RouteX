@@ -82,7 +82,7 @@ if (
     // 检查计划任务是否已存在
     let taskExists = false
     try {
-      execSync('%SystemRoot%\\System32\\schtasks.exe /query /tn routex-run', { stdio: 'pipe' })
+      execSync('%SystemRoot%\\System32\\schtasks.exe /query /tn sparkle-run', { stdio: 'pipe' })
       taskExists = true
     } catch {
       // 计划任务不存在
@@ -96,15 +96,15 @@ if (
         } else {
           writeFileSync(path.join(taskDir(), 'param.txt'), 'empty')
         }
-        // 确保 routex-run.exe 存在
-        const routexRunDest = path.join(taskDir(), 'routex-run.exe')
-        if (!existsSync(routexRunDest)) {
-          const routexRunSrc = path.join(resourcesFilesDir(), 'routex-run.exe')
-          if (existsSync(routexRunSrc)) {
-            copyFileSync(routexRunSrc, routexRunDest)
+        // 确保 sparkle-run.exe 存在
+        const sparkleRunDest = path.join(taskDir(), 'sparkle-run.exe')
+        if (!existsSync(sparkleRunDest)) {
+          const sparkleRunSrc = path.join(resourcesFilesDir(), 'sparkle-run.exe')
+          if (existsSync(sparkleRunSrc)) {
+            copyFileSync(sparkleRunSrc, sparkleRunDest)
           }
         }
-        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn routex-run')
+        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn sparkle-run')
       } catch (e) {
         let createErrorStr = `${createError}`
         let eStr = `${e}`

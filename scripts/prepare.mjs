@@ -296,14 +296,14 @@ const resolveSparkleService = () => {
   const ext = platform == 'win32' ? '.exe' : ''
 
   return resolveResource({
-    file: `routex-service${ext}`,
+    file: `sparkle-service${ext}`,
     downloadURL: `https://github.com/xishang0128/sparkle-service/releases/download/pre-release/${base}${ext}`,
     needExecutable: true
   })
 }
 const resolveRunner = () =>
   resolveResource({
-    file: 'routex-run.exe',
+    file: 'sparkle-run.exe',
     downloadURL: `https://github.com/xishang0128/sparkle-run/releases/download/${arch}/sparkle-run.exe`
   })
 
