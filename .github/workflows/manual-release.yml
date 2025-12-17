@@ -1,6 +1,11 @@
 name: Manual Release
 
 on:
+  push:
+    branches:
+      - ui-redesign
+    paths:
+      - '.github/workflows/manual-release.yml'
   workflow_dispatch:
     inputs:
       version:
