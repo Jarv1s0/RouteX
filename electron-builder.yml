@@ -47,6 +47,12 @@ win:
     - 7z
   # Windows 专属命名
   artifactName: RouteX-${version}-windows-${arch}-portable.${ext}
+  # 请求管理员权限
+  requestedExecutionLevel: requireAdministrator
+  # 使用应用程序清单
+  extraFiles:
+    - from: build/app.manifest
+      to: app.manifest
 nsis:
   artifactName: RouteX-${version}-windows-${arch}-setup.${ext}
   uninstallDisplayName: ${productName}
@@ -56,7 +62,8 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: ${productName}
-  # 创建管理员权限的快捷方式
+  # 默认以管理员权限运行
+  requestExecutionLevel: requireAdministrator
   include: build/installer.nsh
 mac:
   target:
