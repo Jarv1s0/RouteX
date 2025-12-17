@@ -86,18 +86,21 @@ jobs:
         run: pnpm build:win
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Linux
         if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
         run: pnpm build:linux
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build macOS
         if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
         run: pnpm build:mac
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Windows artifacts
         if: matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')
@@ -168,7 +171,7 @@ jobs:
             
             ### 下载说明
             - **Windows**: 下载 `RouteX-*-windows-*-setup.exe` (安装版) 或 `RouteX-*-windows-*-portable.7z` (便携版)
-            - **Linux**: 下载对应发行版的包文件 (`.deb`, `.rpm`, 或 `.pkg.tar.xz`)
+            - **Linux**: 下载对应发行版的包文件 (`.deb` 或 `.rpm`)
             - **macOS**: 下载 `RouteX-*-macos-*.pkg` 文件
             
             ### 系统要求
