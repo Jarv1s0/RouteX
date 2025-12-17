@@ -3,8 +3,8 @@ name: Review Issues
 on:
   # issues:
   #   types: [opened]
-  workflow_dispatch:
-  # disable issue event
+  # workflow_dispatch:
+  # disable issue event - completely disabled
 
 jobs:
   review:
