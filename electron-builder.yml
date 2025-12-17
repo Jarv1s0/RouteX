@@ -56,7 +56,6 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: ${productName}
-  include: build/installer.nsh
 mac:
   target:
     - pkg

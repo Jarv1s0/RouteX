@@ -82,7 +82,7 @@ if (
     // 检查计划任务是否已存在
     let taskExists = false
     try {
-      execSync('%SystemRoot%\\System32\\schtasks.exe /query /tn sparkle-run', { stdio: 'pipe' })
+      execSync('%SystemRoot%\\System32\\schtasks.exe /query /tn "sparkle-run"', { stdio: 'pipe' })
       taskExists = true
     } catch {
       // 计划任务不存在
@@ -104,7 +104,8 @@ if (
             copyFileSync(sparkleRunSrc, sparkleRunDest)
           }
         }
-        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn sparkle-run')
+        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn "sparkle-run"')
+        app.exit()
       } catch (e) {
         let createErrorStr = `${createError}`
         let eStr = `${e}`
