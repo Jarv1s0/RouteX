@@ -63,7 +63,6 @@ linux:
   target:
     - deb
     - rpm
-    - pacman
   maintainer: Jarv1s0
   category: Utility
   artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-linux-${arch}.${ext}
@@ -71,9 +70,5 @@ deb:
   afterInstall: 'build/linux/postinst'
 rpm:
   afterInstall: 'build/linux/postinst'
-pacman:
-  afterInstall: 'build/linux/postinst'
-  # pacman 后缀特殊处理
-  artifactName: RouteX-${version}-ui-${env.SHORT_COMMIT}-linux-${arch}.pkg.tar.xz
 npmRebuild: true
 publish: []
