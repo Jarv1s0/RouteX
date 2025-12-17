@@ -35,14 +35,35 @@ const TunSwitcher: React.FC<Props> = (props) => {
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const onChange = async (enable: boolean): Promise<void> => {
-    if (enable) {
-      await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
-    } else {
-      await patchControledMihomoConfig({ tun: { enable } })
+    try {
+      if (enable) {
+        await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
+      } else {
+        await patchControledMihomoConfig({ tun: { enable } })
+      }
+      await restartCore()
+      window.electron.ipcRenderer.send('updateFloatingWindow')
+      window.electron.ipcRenderer.send('updateTrayMenu')
+    } catch (error) {
+      // 显示友好的错误提示
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      
+      if (enable && (errorMessage.includes('permission') || errorMessage.includes('权限') || errorMessage.includes('access'))) {
+        new window.Notification('TUN模式启动失败', {
+          body: '请以管理员身份运行RouteX以使用TUN模式'
+        })
+      } else if (enable) {
+        new window.Notification('TUN模式启动失败', {
+          body: 'TUN模式需要管理员权限，请重新以管理员身份启动应用'
+        })
+      } else {
+        new window.Notification('TUN模式关闭失败', {
+          body: errorMessage
+        })
+      }
+      
+      console.error('TUN切换失败:', error)
     }
-    await restartCore()
-    window.electron.ipcRenderer.send('updateFloatingWindow')
-    window.electron.ipcRenderer.send('updateTrayMenu')
   }
 
   if (iconOnly) {

@@ -54,6 +54,10 @@ nsis:
   oneClick: false
   perMachine: true
   createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ${productName}
+  # 创建管理员权限的快捷方式
+  include: build/installer.nsh
 mac:
   target:
     - pkg
