@@ -23,8 +23,8 @@ import { initShortcut } from './resolve/shortcut'
 import { execSync, spawn } from 'child_process'
 import { createElevateTaskSync } from './sys/misc'
 import { initProfileUpdater } from './core/profileUpdater'
-import { existsSync, writeFileSync } from 'fs'
-import { exePath, taskDir } from './utils/dirs'
+import { copyFileSync, existsSync, writeFileSync } from 'fs'
+import { exePath, resourcesFilesDir, taskDir } from './utils/dirs'
 import path from 'path'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
@@ -79,31 +79,60 @@ if (
   try {
     createElevateTaskSync()
   } catch (createError) {
+    // 检查计划任务是否已存在
+    let taskExists = false
     try {
-      if (process.argv.slice(1).length > 0) {
-        writeFileSync(path.join(taskDir(), 'param.txt'), process.argv.slice(1).join(' '))
-      } else {
-        writeFileSync(path.join(taskDir(), 'param.txt'), 'empty')
-      }
-      if (!existsSync(path.join(taskDir(), 'routex-run.exe'))) {
-        throw new Error('routex-run.exe not found')
-      } else {
-        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn routex-run')
-      }
-    } catch (e) {
-      let createErrorStr = `${createError}`
-      let eStr = `${e}`
+      execSync('%SystemRoot%\\System32\\schtasks.exe /query /tn routex-run', { stdio: 'pipe' })
+      taskExists = true
+    } catch {
+      // 计划任务不存在
+    }
+
+    if (taskExists) {
+      // 计划任务已存在，尝试运行
       try {
-        createErrorStr = iconv.decode((createError as { stderr: Buffer }).stderr, 'gbk')
-        eStr = iconv.decode((e as { stderr: Buffer }).stderr, 'gbk')
-      } catch {
-        // ignore
+        if (process.argv.slice(1).length > 0) {
+          writeFileSync(path.join(taskDir(), 'param.txt'), process.argv.slice(1).join(' '))
+        } else {
+          writeFileSync(path.join(taskDir(), 'param.txt'), 'empty')
+        }
+        // 确保 routex-run.exe 存在
+        const routexRunDest = path.join(taskDir(), 'routex-run.exe')
+        if (!existsSync(routexRunDest)) {
+          const routexRunSrc = path.join(resourcesFilesDir(), 'routex-run.exe')
+          if (existsSync(routexRunSrc)) {
+            copyFileSync(routexRunSrc, routexRunDest)
+          }
+        }
+        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn routex-run')
+      } catch (e) {
+        let createErrorStr = `${createError}`
+        let eStr = `${e}`
+        try {
+          createErrorStr = iconv.decode((createError as { stderr: Buffer }).stderr, 'gbk')
+          eStr = iconv.decode((e as { stderr: Buffer }).stderr, 'gbk')
+        } catch {
+          // ignore
+        }
+        dialog.showErrorBox(
+          '启动失败',
+          `无法启动应用\n${createErrorStr}\n${eStr}`
+        )
+        app.exit()
       }
-      dialog.showErrorBox(
-        '首次启动请以管理员权限运行',
-        `首次启动请以管理员权限运行\n${createErrorStr}\n${eStr}`
-      )
-    } finally {
+    } else {
+      // 首次启动，计划任务不存在，必须使用管理员权限
+      let errorMsg = '首次启动需要管理员权限来创建系统任务。\n\n请右键点击应用图标，选择"以管理员身份运行"。'
+      try {
+        const stderr = (createError as { stderr: Buffer }).stderr
+        if (stderr) {
+          const decodedError = iconv.decode(stderr, 'gbk')
+          errorMsg += `\n\n错误详情：\n${decodedError}`
+        }
+      } catch {
+        errorMsg += `\n\n错误详情：\n${createError}`
+      }
+      dialog.showErrorBox('需要管理员权限', errorMsg)
       app.exit()
     }
   }
