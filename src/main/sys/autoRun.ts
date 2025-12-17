@@ -6,7 +6,7 @@ import { existsSync } from 'fs'
 import { promisify } from 'util'
 import path from 'path'
 
-const appName = 'sparkle'
+const appName = 'routex'
 
 const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
@@ -43,7 +43,7 @@ const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"${path.join(taskDir(), `sparkle-run.exe`)}"</Command>
+      <Command>"${path.join(taskDir(), `routex-run.exe`)}"</Command>
       <Arguments>"${exePath()}"</Arguments>
     </Exec>
   </Actions>
@@ -99,13 +99,13 @@ export async function enableAutoRun(): Promise<void> {
   if (process.platform === 'linux') {
     let desktop = `
 [Desktop Entry]
-Name=sparkle
+Name=RouteX
 Exec=${exePath()} %U
 Terminal=false
 Type=Application
-Icon=sparkle
-StartupWMClass=sparkle
-Comment=Sparkle
+Icon=routex
+StartupWMClass=routex
+Comment=RouteX
 Categories=Utility;
 `
 

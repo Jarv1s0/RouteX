@@ -62,23 +62,23 @@ export function themesDir(): string {
 
 export function mihomoIpcPath(): string {
   if (process.platform === 'win32') {
-    return '\\\\.\\pipe\\Sparkle\\mihomo'
+    return '\\\\.\\pipe\\RouteX\\mihomo'
   }
   const { core = 'mihomo' } = getAppConfigSync()
   if (core === 'system') {
-    return '/tmp/sparkle-mihomo-external.sock'
+    return '/tmp/routex-mihomo-external.sock'
   }
   if (!checkCorePermissionSync(core as 'mihomo' | 'mihomo-alpha')) {
-    return '/tmp/sparkle-mihomo-api-noperm.sock'
+    return '/tmp/routex-mihomo-api-noperm.sock'
   }
-  return '/tmp/sparkle-mihomo-api.sock'
+  return '/tmp/routex-mihomo-api.sock'
 }
 
 export function serviceIpcPath(): string {
   if (process.platform === 'win32') {
-    return '\\\\.\\pipe\\sparkle\\service'
+    return '\\\\.\\pipe\\routex\\service'
   }
-  return '/tmp/sparkle-service.sock'
+  return '/tmp/routex-service.sock'
 }
 
 export function mihomoCoreDir(): string {
@@ -108,7 +108,7 @@ function systemCorePath(): string {
 
 export function servicePath(): string {
   const isWin = process.platform === 'win32'
-  return path.join(resourcesFilesDir(), `sparkle-service${isWin ? '.exe' : ''}`)
+  return path.join(resourcesFilesDir(), `routex-service${isWin ? '.exe' : ''}`)
 }
 
 export function appConfigPath(): string {

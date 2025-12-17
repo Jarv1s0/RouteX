@@ -49,10 +49,10 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
   }
   const baseUrl = `https://github.com/Jarv1s0/RouteX/releases/download/${releaseTag}/`
   const fileMap = {
-    'win32-x64': `routex-windows-${version}-x64-setup.exe`,
-    'win32-arm64': `sparkle-windows-${version}-arm64-setup.exe`,
-    'darwin-x64': `sparkle-macos-${version}-x64.pkg`,
-    'darwin-arm64': `sparkle-macos-${version}-arm64.pkg`
+    'win32-x64': `RouteX-${version}-windows-x64-setup.exe`,
+    'win32-arm64': `RouteX-${version}-windows-arm64-setup.exe`,
+    'darwin-x64': `RouteX-${version}-macos-x64.pkg`,
+    'darwin-arm64': `RouteX-${version}-macos-arm64.pkg`
   }
   let file = fileMap[`${process.platform}-${process.arch}`]
   if (isPortable()) {

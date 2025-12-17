@@ -191,12 +191,12 @@ function initDeeplink(): void {
     if (process.argv.length >= 2) {
       app.setAsDefaultProtocolClient('clash', process.execPath, [path.resolve(process.argv[1])])
       app.setAsDefaultProtocolClient('mihomo', process.execPath, [path.resolve(process.argv[1])])
-      app.setAsDefaultProtocolClient('sparkle', process.execPath, [path.resolve(process.argv[1])])
+      app.setAsDefaultProtocolClient('routex', process.execPath, [path.resolve(process.argv[1])])
     }
   } else {
     app.setAsDefaultProtocolClient('clash')
     app.setAsDefaultProtocolClient('mihomo')
-    app.setAsDefaultProtocolClient('sparkle')
+    app.setAsDefaultProtocolClient('routex')
   }
 }
 

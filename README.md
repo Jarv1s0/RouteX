@@ -1,4 +1,4 @@
-# Sparkle
+# RouteX
 
 <h3 align="center">Another <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a> GUI</h3>
 
@@ -31,7 +31,7 @@
 
 ### 技术架构
 
-Sparkle 基于 Electron + React + TypeScript 构建
+RouteX 基于 Electron + React + TypeScript 构建
 
 #### 前端技术栈
 
@@ -84,7 +84,7 @@ windows 开发时可能会出现页面白屏，关闭 tun（虚拟网卡）即�
 ### 项目结构
 
 ```
-sparkle/
+routex/
 ├── src/
 │   ├── main/               # Electron 主进程
 │   │   ├── core/           # 内核管理

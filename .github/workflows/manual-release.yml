@@ -161,23 +161,7 @@ jobs:
         with:
           tag_name: v${{ github.event.inputs.version }}
           name: RouteX v${{ github.event.inputs.version }}
-          body: |
-            ## RouteX v${{ github.event.inputs.version }}
-            
-            ### 更新内容
-            - 优化内核设置菜单层次结构和样式显示
-            - 修复构建过程中的版本号生成逻辑
-            - 界面优化和用户体验改进
-            
-            ### 下载说明
-            - **Windows**: 下载 `RouteX-*-windows-*-setup.exe` (安装版) 或 `RouteX-*-windows-*-portable.7z` (便携版)
-            - **Linux**: 下载对应发行版的包文件 (`.deb` 或 `.rpm`)
-            - **macOS**: 下载 `RouteX-*-macos-*.pkg` 文件
-            
-            ### 系统要求
-            - Windows 10/11 (x64)
-            - Linux (x64, arm64)
-            - macOS 10.15+ (x64, arm64)
+          body_path: changelog.md
           files: |
             ./artifacts/**/*
           draft: false
