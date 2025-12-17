@@ -3,22 +3,20 @@
   "version": "1.0.4",
   "description": "RouteX",
   "main": "./out/main/index.js",
-  "build": {
-    "appId": "com.routex.app",
-    "productName": "RouteX",
-    "directories": {
-      "output": "dist"
-    },
-    "artifactName": "RouteX-${version}-ui-${env.SHORT_COMMIT}-${os}-${arch}.${ext}",
-    "win": {
-      "target": ["nsis", "7z"]
-    },
-    "linux": {
-      "target": ["deb", "rpm"]
-    },
-    "mac": {
-      "target": ["dmg", "zip"]
-    }
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "start": "electron-vite preview",
+    "dev": "electron-vite dev",
+    "build": "npm run typecheck && electron-vite build",
+    "postinstall": "electron-builder install-app-deps",
+    "build:unpack": "npm run build && electron-builder --dir",
+    "build:win": "npm run build && electron-builder --win",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { RadioGroup, Radio, Switch } from '@heroui/react'
