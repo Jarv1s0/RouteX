@@ -1,6 +1,6 @@
 #!/bin/sh
 
-OLD_SYSPROXY="/Library/PrivilegedHelperTools/sparkle.helper"
+OLD_SYSPROXY="/Library/PrivilegedHelperTools/routex.helper"
 
 UNINSTALL=false
 
@@ -9,15 +9,15 @@ if [ ! -f "$OLD_SYSPROXY" ]; then
 fi
 
 if [ "$UNINSTALL" = true ]; then
-    if launchctl list | grep -q "sparkle.helper"; then
-        launchctl stop sparkle.helper 2>/dev/null || true
-        launchctl unload /Library/LaunchDaemons/sparkle.helper.plist 2>/dev/null || true
+    if launchctl list | grep -q "routex.helper"; then
+        launchctl stop routex.helper 2>/dev/null || true
+        launchctl unload /Library/LaunchDaemons/routex.helper.plist 2>/dev/null || true
     fi
 
-    for file in "/Library/LaunchDaemons/sparkle.helper.plist" \
-               "/Library/PrivilegedHelperTools/sparkle.helper" \
-               "/tmp/sparkle.helper" \
-               "/tmp/sparkle-helper.sock"; do
+    for file in "/Library/LaunchDaemons/routex.helper.plist" \
+               "/Library/PrivilegedHelperTools/routex.helper" \
+               "/tmp/routex.helper" \
+               "/tmp/routex-helper.sock"; do
         if [ -e "$file" ]; then
             rm -f "$file"
         fi
