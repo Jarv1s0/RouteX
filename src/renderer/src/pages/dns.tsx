@@ -151,6 +151,7 @@ const DNS: React.FC = () => {
         )
       }
     >
+      <div className="p-2">
       <SettingCard>
         <SettingItem title="IPv6" divider>
           <Switch
@@ -305,6 +306,7 @@ const DNS: React.FC = () => {
         onHostsChange={(hostArr) => setValues({ ...values, hosts: hostArr })}
         onErrorChange={setAdvancedDnsError}
       />
+      </div>
     </BasePage>
   )
 }

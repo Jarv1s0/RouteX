@@ -17,6 +17,7 @@ import { cropAndPadTransparent } from '@renderer/utils/image'
 import { platform } from '@renderer/utils/init'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { MdTune } from 'react-icons/md'
+import { IoLink } from 'react-icons/io5'
 
 let cachedConnections: ControllerConnectionDetail[] = []
 
@@ -509,45 +510,14 @@ const Connections: React.FC = () => {
         <ConnectionSettingModal onClose={() => setIsSettingModalOpen(false)} />
       )}
       <div className="overflow-x-auto sticky top-0 z-40">
-        <div className="flex p-2 gap-2">
+        <div className="flex p-2 gap-2 items-center">
           <Tabs
-            size="sm"
-            color={tab === 'active' ? 'primary' : 'danger'}
+            size="md"
             selectedKey={tab}
-            variant="underlined"
-            className="w-fit h-[32px]"
             onSelectionChange={handleTabChange}
           >
-            <Tab
-              key="active"
-              title={
-                <Badge
-                  color={tab === 'active' ? 'primary' : 'default'}
-                  size="sm"
-                  shape="circle"
-                  variant="flat"
-                  content={activeConnections.length}
-                  showOutline={false}
-                >
-                  <span className="p-1">活动中</span>
-                </Badge>
-              }
-            />
-            <Tab
-              key="closed"
-              title={
-                <Badge
-                  color={tab === 'closed' ? 'danger' : 'default'}
-                  size="sm"
-                  shape="circle"
-                  variant="flat"
-                  content={closedConnections.length}
-                  showOutline={false}
-                >
-                  <span className="p-1">已关闭</span>
-                </Badge>
-              }
-            />
+            <Tab key="active" title={`活动中 (${activeConnections.length})`} />
+            <Tab key="closed" title={`已关闭 (${closedConnections.length})`} />
           </Tabs>
           <Input
             variant="flat"
@@ -584,7 +554,19 @@ const Connections: React.FC = () => {
         <Divider />
       </div>
       <div className="h-[calc(100vh-100px)] mt-px">
-        <Virtuoso data={filteredConnections} itemContent={renderConnectionItem} />
+        {filteredConnections.length === 0 ? (
+          <div className="h-full w-full flex justify-center items-center">
+            <div className="flex flex-col items-center text-foreground-400">
+              <IoLink className="text-[64px] mb-4 opacity-50" />
+              <h3 className="text-lg font-medium mb-1">
+                {tab === 'active' ? '暂无活动连接' : '暂无已关闭连接'}
+              </h3>
+              <p className="text-sm opacity-70">连接信息将在这里显示</p>
+            </div>
+          </div>
+        ) : (
+          <Virtuoso data={filteredConnections} itemContent={renderConnectionItem} />
+        )}
       </div>
     </BasePage>
   )

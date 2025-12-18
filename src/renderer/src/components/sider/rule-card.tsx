@@ -1,9 +1,8 @@
-import { Button, Card, CardBody, CardFooter, Chip, Tooltip } from '@heroui/react'
+import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { MdOutlineAltRoute } from 'react-icons/md'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useRules } from '@renderer/hooks/use-rules'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import React from 'react'
 
@@ -18,7 +17,6 @@ const RuleCard: React.FC<Props> = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/rules')
-  const { rules } = useRules()
   const {
     attributes,
     listeners,
@@ -65,7 +63,7 @@ const RuleCard: React.FC<Props> = (props) => {
         ref={setNodeRef}
         {...attributes}
         {...listeners}
-        className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+        className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
       >
         <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
           <div className="flex justify-between">
@@ -80,24 +78,7 @@ const RuleCard: React.FC<Props> = (props) => {
                 className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
               />
             </Button>
-            <Chip
-              classNames={
-                match
-                  ? {
-                      base: 'border-primary-foreground',
-                      content: 'text-primary-foreground'
-                    }
-                  : {
-                      base: 'border-primary',
-                      content: 'text-primary'
-                    }
-              }
-              size="sm"
-              variant="bordered"
-              className="mr-2 mt-2"
-            >
-              {rules?.rules?.length ?? 0}
-            </Chip>
+
           </div>
         </CardBody>
         <CardFooter className="pt-1">

@@ -30,8 +30,8 @@ const EnvSetting: React.FC = () => {
 
   return (
     <SettingCard title="环境变量" collapsible>
-      <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-2">
-        <div className="ml-4">
+      <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2">
+        <div className="ml-2">
           <SettingItem title="禁用系统 CA" divider>
         <Switch
           size="sm"
@@ -83,8 +83,8 @@ const EnvSetting: React.FC = () => {
         />
       </SettingItem>
       {safePathsInput.length > 0 && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4 text-sm">
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+          <div className="ml-2 text-sm">
             <SettingItem title="可信路径列表">
               {safePathsInput.join('') != safePaths.join('') && (
                 <Button

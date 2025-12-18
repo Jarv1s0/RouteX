@@ -15,7 +15,13 @@ import { CgLoadbarDoc } from 'react-icons/cg'
 import { MdEditDocument } from 'react-icons/md'
 import dayjs from 'dayjs'
 
-const RuleProvider: React.FC = () => {
+interface Props {
+  compact?: boolean
+  hideUpdateAll?: boolean
+  onUpdateAllRef?: React.MutableRefObject<(() => void) | null>
+}
+
+const RuleProvider: React.FC<Props> = ({ compact = false, hideUpdateAll = false, onUpdateAllRef }) => {
   const [showDetails, setShowDetails] = useState({
     show: false,
     path: '',
@@ -68,6 +74,18 @@ const RuleProvider: React.FC = () => {
   }, [data])
   const [updating, setUpdating] = useState(Array(providers.length).fill(false))
 
+  const updateAll = (): void => {
+    providers.forEach((provider, index) => {
+      onUpdate(provider.name, index)
+    })
+  }
+
+  useEffect(() => {
+    if (onUpdateAllRef) {
+      onUpdateAllRef.current = updateAll
+    }
+  }, [providers, onUpdateAllRef])
+
   const onUpdate = async (name: string, index: number): Promise<void> => {
     setUpdating((prev) => {
       prev[index] = true
@@ -91,7 +109,8 @@ const RuleProvider: React.FC = () => {
   }
 
   return (
-    <SettingCard>
+    <SettingCard className={compact ? 'mb-0' : ''}>
+      <div className={compact ? 'text-sm' : ''}>
       {showDetails.show && (
         <Viewer
           path={showDetails.path}
@@ -111,78 +130,132 @@ const RuleProvider: React.FC = () => {
           }
         />
       )}
-      <SettingItem title="规则集合" divider>
-        <Button
-          size="sm"
-          color="primary"
-          onPress={() => {
-            providers.forEach((provider, index) => {
-              onUpdate(provider.name, index)
-            })
-          }}
-        >
-          更新全部
-        </Button>
-      </SettingItem>
+      {!hideUpdateAll && (
+        <SettingItem title="" divider>
+          <Button
+            size="sm"
+            color="primary"
+            onPress={updateAll}
+          >
+            更新全部
+          </Button>
+        </SettingItem>
+      )}
       {providers.map((provider, index) => (
         <Fragment key={provider.name}>
-          <SettingItem
-            title={provider.name}
-            actions={
-              <Chip className="ml-2" size="sm">
-                {provider.ruleCount}
-              </Chip>
-            }
-          >
-            <div className="flex h-[32px] leading-[32px] text-foreground-500">
-              <div>{dayjs(provider.updatedAt).fromNow()}</div>
-              {provider.format !== 'MrsRule' && provider.vehicleType !== 'Inline' && (
+          {compact ? (
+            <SettingItem
+              title={
+                <span className="text-sm flex items-center gap-2">
+                  {provider.name}
+                  <Chip size="sm">{provider.ruleCount}</Chip>
+                  <span className="text-foreground-400">{provider.format || 'InlineRule'}</span>
+                </span>
+              }
+              divider={index !== providers.length - 1}
+            >
+              <div className="flex h-[32px] leading-[32px] text-foreground-500 text-sm items-center">
+                <span className="text-foreground-400 mr-2">{provider.vehicleType}::{provider.behavior}</span>
+                <div>{dayjs(provider.updatedAt).fromNow()}</div>
+                {provider.format !== 'MrsRule' && provider.vehicleType !== 'Inline' && (
+                  <Button
+                    isIconOnly
+                    title={provider.vehicleType == 'File' ? '编辑' : '查看'}
+                    className="ml-2"
+                    size="sm"
+                    onPress={() => {
+                      setShowDetails({
+                        show: false,
+                        privderType: 'rule-providers',
+                        path: provider.name,
+                        type: provider.vehicleType,
+                        title: provider.name,
+                        format: provider.format
+                      })
+                    }}
+                  >
+                    {provider.vehicleType == 'File' ? (
+                      <MdEditDocument className="text-lg" />
+                    ) : (
+                      <CgLoadbarDoc className="text-lg" />
+                    )}
+                  </Button>
+                )}
                 <Button
                   isIconOnly
-                  title={provider.vehicleType == 'File' ? '编辑' : '查看'}
+                  title="更新"
                   className="ml-2"
                   size="sm"
                   onPress={() => {
-                    setShowDetails({
-                      show: false,
-                      privderType: 'rule-providers',
-                      path: provider.name,
-                      type: provider.vehicleType,
-                      title: provider.name,
-                      format: provider.format
-                    })
+                    onUpdate(provider.name, index)
                   }}
                 >
-                  {provider.vehicleType == 'File' ? (
-                    <MdEditDocument className={`text-lg`} />
-                  ) : (
-                    <CgLoadbarDoc className={`text-lg`} />
-                  )}
+                  <IoMdRefresh className={`text-lg ${updating[index] ? 'animate-spin' : ''}`} />
                 </Button>
-              )}
-              <Button
-                isIconOnly
-                title="更新"
-                className="ml-2"
-                size="sm"
-                onPress={() => {
-                  onUpdate(provider.name, index)
-                }}
+              </div>
+            </SettingItem>
+          ) : (
+            <>
+              <SettingItem
+                title={<span className="text-sm">{provider.name}</span>}
+                actions={
+                  <Chip className="ml-2" size="sm">
+                    {provider.ruleCount}
+                  </Chip>
+                }
               >
-                <IoMdRefresh className={`text-lg ${updating[index] ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </SettingItem>
-          <SettingItem
-            title={<div className="text-foreground-500">{provider.format || 'InlineRule'}</div>}
-            divider={index !== providers.length - 1}
-          >
-            <div className="h-[32px] leading-[32px] text-foreground-500">
-              {provider.vehicleType}::{provider.behavior}
-            </div>
-          </SettingItem>
+                <div className="flex h-[32px] leading-[32px] text-foreground-500 text-sm">
+                  <div>{dayjs(provider.updatedAt).fromNow()}</div>
+                  {provider.format !== 'MrsRule' && provider.vehicleType !== 'Inline' && (
+                    <Button
+                      isIconOnly
+                      title={provider.vehicleType == 'File' ? '编辑' : '查看'}
+                      className="ml-2"
+                      size="sm"
+                      onPress={() => {
+                        setShowDetails({
+                          show: false,
+                          privderType: 'rule-providers',
+                          path: provider.name,
+                          type: provider.vehicleType,
+                          title: provider.name,
+                          format: provider.format
+                        })
+                      }}
+                    >
+                      {provider.vehicleType == 'File' ? (
+                        <MdEditDocument className={`text-lg`} />
+                      ) : (
+                        <CgLoadbarDoc className={`text-lg`} />
+                      )}
+                    </Button>
+                  )}
+                  <Button
+                    isIconOnly
+                    title="更新"
+                    className="ml-2"
+                    size="sm"
+                    onPress={() => {
+                      onUpdate(provider.name, index)
+                    }}
+                  >
+                    <IoMdRefresh className={`text-lg ${updating[index] ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </SettingItem>
+              <SettingItem
+                title={<div className="text-foreground-500 text-sm">{provider.format || 'InlineRule'}</div>}
+                divider={index !== providers.length - 1}
+              >
+                <div className="h-[32px] leading-[32px] text-foreground-500 text-sm">
+                  {provider.vehicleType}::{provider.behavior}
+                </div>
+              </SettingItem>
+            </>
+          )}
         </Fragment>
       ))}
+      </div>
     </SettingCard>
   )
 }

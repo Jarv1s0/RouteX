@@ -86,7 +86,12 @@ const ConnectionItemComponent: React.FC<Props> = ({
 
   return (
     <div className={`px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`} style={{ minHeight: 80 }}>
-      <Card as="div" isPressable className="w-full" onPress={handleCardPress}>
+      <Card
+        as="div"
+        isPressable
+        className="w-full hover:bg-primary/30 transition-all duration-200"
+        onPress={handleCardPress}
+      >
         <div className="w-full flex justify-between items-center">
           {displayIcon && (
             <div>

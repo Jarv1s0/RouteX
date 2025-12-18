@@ -3,7 +3,7 @@ import LogItem from '@renderer/components/logs/log-item'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Divider, Input } from '@heroui/react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
-import { IoLocationSharp } from 'react-icons/io5'
+import { IoLocationSharp, IoJournalOutline } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
@@ -72,6 +72,7 @@ const Logs: React.FC = () => {
       <div className="sticky top-0 z-40">
         <div className="w-full flex p-2">
           <Input
+            variant="flat"
             size="sm"
             value={filter}
             placeholder="筛选过滤"
@@ -95,7 +96,7 @@ const Logs: React.FC = () => {
             isIconOnly
             title="清空日志"
             className="ml-2"
-            variant="light"
+            variant="flat"
             color="danger"
             onPress={() => {
               cachedLogs.clean()
@@ -107,23 +108,33 @@ const Logs: React.FC = () => {
         <Divider />
       </div>
       <div className="h-[calc(100vh-100px)] mt-px">
-        <Virtuoso
-          ref={virtuosoRef}
-          data={filteredLogs}
-          initialTopMostItemIndex={filteredLogs.length - 1}
-          followOutput={trace}
-          itemContent={(i, log) => {
-            return (
-              <LogItem
-                index={i}
-                key={log.payload + i}
-                time={log.time}
-                type={log.type}
-                payload={log.payload}
-              />
-            )
-          }}
-        />
+        {filteredLogs.length === 0 ? (
+          <div className="h-full w-full flex justify-center items-center">
+            <div className="flex flex-col items-center text-foreground-400">
+              <IoJournalOutline className="text-[64px] mb-4 opacity-50" />
+              <h3 className="text-lg font-medium mb-1">暂无日志</h3>
+              <p className="text-sm opacity-70">日志信息将在这里显示</p>
+            </div>
+          </div>
+        ) : (
+          <Virtuoso
+            ref={virtuosoRef}
+            data={filteredLogs}
+            initialTopMostItemIndex={filteredLogs.length - 1}
+            followOutput={trace}
+            itemContent={(i, log) => {
+              return (
+                <LogItem
+                  index={i}
+                  key={log.payload + i}
+                  time={log.time}
+                  type={log.type}
+                  payload={log.payload}
+                />
+              )
+            }}
+          />
+        )}
       </div>
     </BasePage>
   )

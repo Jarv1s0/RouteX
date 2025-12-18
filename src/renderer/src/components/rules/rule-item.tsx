@@ -12,34 +12,29 @@ const RuleItem: React.FC<ControllerRulesDetail & { index: number }> = (props) =>
   }
 
   return (
-    <div className={`w-full px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
+    <div className={`w-full px-2 pb-1 ${index === 0 ? 'pt-2' : ''}`}>
       <Card>
-        <CardBody className="w-full py-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4 min-w-0 flex-1">
-              {/* 序号 */}
-              <div className="text-foreground-400 text-sm mt-0.5 flex-shrink-0 w-8">
-                {index + 1}
-              </div>
-              
-              {/* 规则信息 */}
-              <div className="min-w-0 flex-1">
-                {/* 规则名称 */}
-                <div 
-                  title={payload} 
-                  className="text-ellipsis whitespace-nowrap overflow-hidden text-black dark:text-white font-medium"
-                >
-                  {payload}
-                </div>
-                {/* 规则类型 */}
-                <div className="text-foreground-500 text-sm mt-1">{type}</div>
-              </div>
-            </div>
-            
-            {/* 代理组 - 最右边左对齐 */}
-            <div className="flex-shrink-0 w-36 ml-4">
-              <span className={`${getProxyColor(proxy)}`}>{proxy}</span>
-            </div>
+        <CardBody className="w-full py-2">
+          <div className="flex items-center gap-2">
+            {/* 序号 */}
+            <span className="text-foreground-400 text-sm w-5 flex-shrink-0">
+              {index + 1}
+            </span>
+            {/* 规则名称 */}
+            <span
+              title={payload}
+              className="text-ellipsis whitespace-nowrap overflow-hidden"
+            >
+              {payload}
+            </span>
+            {/* 类型 */}
+            <span className="text-foreground-400 text-sm flex-shrink-0">
+              {type}
+            </span>
+            {/* 代理组 - 固定位置左对齐 */}
+            <span className={`ml-auto w-35 flex-shrink-0 ${getProxyColor(proxy)}`}>
+              {proxy}
+            </span>
           </div>
         </CardBody>
       </Card>

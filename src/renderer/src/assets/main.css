@@ -110,40 +110,86 @@ html {
   display: none;
 }
 
+/* 隐藏滚动条 */
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  display: none;
 }
 
-*::-webkit-scrollbar-corner {
-  background-color: transparent;
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Light mode */
-@media (prefers-color-scheme: light) {
-  *::-webkit-scrollbar-thumb {
-    background: #c0c1c58f;
-    border-radius: 5px;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background: #c0c1c550;
-  }
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  *::-webkit-scrollbar-thumb {
-    background: #c0c1c550;
-    border-radius: 5px;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background: #c0c1c58f;
-  }
+/* Tooltip 统一样式 */
+[data-slot="content"][role="tooltip"] {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* 设置分组标题加粗 */
 [data-slot="base"]>[data-slot="body"]>div:first-child span {
   font-weight: 700 !important;
+}
+
+/* 输入框聚焦效果 */
+[data-slot="input-wrapper"] {
+  transition: all 0.2s ease;
+}
+
+[data-slot="input-wrapper"]:focus-within {
+  border-color: hsl(var(--heroui-primary)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--heroui-primary) / 0.2);
+}
+
+/* 输入框 hover 效果 */
+[data-slot="input-wrapper"]:hover:not(:focus-within) {
+  background: hsl(var(--heroui-default-200));
+}
+
+/* Chip/Badge 统一样式 */
+[data-slot="base"].chip {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 进度条美化 */
+[data-slot="track"] {
+  height: 4px;
+  border-radius: 2px;
+}
+
+[data-slot="indicator"] {
+  border-radius: 2px;
+}
+
+/* 深色模式优化 */
+.dark {
+  /* 提高文字对比度 */
+  --heroui-foreground: 0 0% 95%;
+  /* 卡片背景稍微亮一点 */
+  --heroui-content1: 240 6% 15%;
+  --heroui-content2: 240 5% 18%;
+}
+
+/* 深色模式下的空状态文字 */
+.dark .text-foreground-400 {
+  color: hsl(0 0% 60%);
+}
+
+/* 深色模式下的分隔线 */
+.dark [data-slot="divider"] {
+  background: hsl(240 5% 22%);
+}
+
+/* Switch 开关动画优化 */
+[data-slot="wrapper"] {
+  transition: background 0.15s ease !important;
+}
+
+[data-slot="thumb"] {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.1s ease,
+    margin 0.1s ease !important;
 }

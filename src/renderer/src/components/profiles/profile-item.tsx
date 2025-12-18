@@ -8,9 +8,10 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-  Progress,
+  Spinner,
   Tooltip
 } from '@heroui/react'
+import TrafficProgress from '@renderer/components/base/traffic-progress'
 import { calcPercent, calcTraffic } from '@renderer/utils/calc'
 import { IoMdMore, IoMdRefresh } from 'react-icons/io'
 import dayjs from 'dayjs'
@@ -204,8 +205,13 @@ const ProfileItem: React.FC<Props> = (props) => {
             setSelecting(false)
           })
         }}
-        className={`${isCurrent ? 'bg-primary' : ''} ${selecting ? 'blur-sm' : ''}`}
+        className={`${isCurrent ? 'bg-primary' : 'hover:bg-primary/30'} transition-all duration-200 relative`}
       >
+        {selecting && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 rounded-xl">
+            <Spinner size="sm" />
+          </div>
+        )}
         <div ref={setNodeRef} {...attributes} {...listeners} className="w-full h-full">
           <CardBody className="pb-1">
             <div className="flex justify-between h-[32px]">
@@ -322,12 +328,9 @@ const ProfileItem: React.FC<Props> = (props) => {
               </div>
             )}
             {extra && (
-              <Progress
-                className="w-full"
-                classNames={{
-                  indicator: isCurrent ? 'bg-primary-foreground' : 'bg-foreground'
-                }}
+              <TrafficProgress
                 value={calcPercent(extra?.upload, extra?.download, extra?.total)}
+                isActive={isCurrent}
               />
             )}
           </CardFooter>

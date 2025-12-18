@@ -1,4 +1,5 @@
-import { Button, Card, CardBody, CardFooter, Chip, Progress, Tooltip } from '@heroui/react'
+import { Button, Card, CardBody, CardFooter, Chip, Tooltip } from '@heroui/react'
+import TrafficProgress from '@renderer/components/base/traffic-progress'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { calcTraffic, calcPercent } from '@renderer/utils/calc'
@@ -94,7 +95,7 @@ const ProfileCard: React.FC<Props> = (props) => {
           ref={setNodeRef}
           {...attributes}
           {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+          className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
         >
           <CardBody className="pb-1">
             <div
@@ -125,7 +126,7 @@ const ProfileCard: React.FC<Props> = (props) => {
                   />
                 </Button>
                 {info.type === 'remote' && (
-                  <Tooltip delay={1000} placement="left" content={dayjs(info.updated).fromNow()}>
+                  <Tooltip delay={300} placement="left" content={dayjs(info.updated).fromNow()}>
                     <Button
                       isIconOnly
                       size="sm"
@@ -206,10 +207,9 @@ const ProfileCard: React.FC<Props> = (props) => {
               </div>
             )}
             {extra && (
-              <Progress
-                className="w-full"
-                classNames={{ indicator: match ? 'bg-primary-foreground' : 'bg-foreground' }}
+              <TrafficProgress
                 value={calcPercent(extra?.upload, extra?.download, extra?.total)}
+                isActive={match}
               />
             )}
           </CardFooter>
@@ -220,7 +220,7 @@ const ProfileCard: React.FC<Props> = (props) => {
           ref={setNodeRef}
           {...attributes}
           {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+          className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
         >
           <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
             <div className="flex justify-between">

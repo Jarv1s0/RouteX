@@ -1,6 +1,7 @@
 import React from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { motion } from 'framer-motion'
 
 export interface ConfirmButton {
   key: string
@@ -88,11 +89,19 @@ const ConfirmModal: React.FC<Props> = (props) => {
       }}
     >
       <ModalContent className={['w-[400px]', className].filter(Boolean).join(' ')}>
-        <ModalHeader>{title}</ModalHeader>
-        <ModalBody>
-          <div className="leading-relaxed">{description}</div>
-        </ModalBody>
-        <ModalFooter className="space-x-2">{renderButtons()}</ModalFooter>
+        {() => (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+          >
+            <ModalHeader>{title}</ModalHeader>
+            <ModalBody>
+              <div className="leading-relaxed">{description}</div>
+            </ModalBody>
+            <ModalFooter className="space-x-2">{renderButtons()}</ModalFooter>
+          </motion.div>
+        )}
       </ModalContent>
     </Modal>
   )

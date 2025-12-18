@@ -123,8 +123,8 @@ const SiderConfigContent: React.FC = () => {
         />
       </SettingItem>
       {enableSiderConfig && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4">
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+          <div className="ml-2">
             {Object.keys(cardStatus).map((key, index, array) => {
               return (
                 <div key={key}>
@@ -278,8 +278,8 @@ const ShortcutConfigContent: React.FC = () => {
         />
       </SettingItem>
       {enableShortcutConfig && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4">
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+          <div className="ml-2">
             <SettingItem title="打开/关闭窗口">
               <div className="flex justify-end w-[60%]">
                 <ShortcutInput
@@ -461,8 +461,8 @@ const AppearanceConfig: React.FC = () => {
           />
         </SettingItem>
         {localShowFloating && (
-          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-            <div className="ml-4">
+          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+            <div className="ml-2">
               <SettingItem title="根据网速旋转悬浮窗图标" divider>
               <Switch
                 size="sm"
@@ -517,8 +517,8 @@ const AppearanceConfig: React.FC = () => {
           </>
         )}
         {platform === 'darwin' && (
-          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-            <div className="ml-4">
+          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+            <div className="ml-2">
               <SettingItem title="显示 Dock 图标" divider>
               <Switch
                 size="sm"

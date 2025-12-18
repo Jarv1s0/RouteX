@@ -176,6 +176,7 @@ const OverrideItem: React.FC<Props> = (props) => {
         as="div"
         fullWidth
         isPressable
+        className="hover:bg-primary/30 transition-all duration-200"
         onPress={() => {
           if (disableOpen) return
           setOpenFileEditor(true)

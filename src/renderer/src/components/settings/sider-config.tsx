@@ -65,8 +65,8 @@ const SiderConfig: React.FC = () => {
         />
       </SettingItem>
       {enableSiderConfig && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2">
-          <div className="ml-4">
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg py-1 pl-1 pr-2 mt-2">
+          <div className="ml-2">
             {Object.keys(cardStatus).map((key, index, array) => {
               return (
                 <SettingItem title={titleMap[key]} key={key} divider={index !== array.length - 1}>

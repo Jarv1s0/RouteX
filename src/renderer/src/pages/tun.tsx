@@ -83,6 +83,7 @@ const Tun: React.FC = () => {
           )
         }
       >
+        <div className="p-2">
         <SettingCard className="tun-settings">
           {platform === 'win32' && (
             <SettingItem title="重设防火墙" divider>
@@ -226,6 +227,7 @@ const Tun: React.FC = () => {
             divider={false}
           />
         </SettingCard>
+        </div>
       </BasePage>
     </>
   )

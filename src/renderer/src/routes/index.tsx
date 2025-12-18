@@ -9,7 +9,7 @@ import Connections from '@renderer/pages/connections'
 import Mihomo from '@renderer/pages/mihomo'
 import Sysproxy from '@renderer/pages/syspeoxy'
 import Tun from '@renderer/pages/tun'
-import Resources from '@renderer/pages/resources'
+
 import DNS from '@renderer/pages/dns'
 import Sniffer from '@renderer/pages/sniffer'
 import SubStore from '@renderer/pages/substore'
@@ -34,10 +34,7 @@ const routes = [
     path: '/rules',
     element: <Rules />
   },
-  {
-    path: '/resources',
-    element: <Resources />
-  },
+
   {
     path: '/dns',
     element: <DNS />

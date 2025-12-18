@@ -65,8 +65,8 @@ const PortSetting: React.FC = () => {
     <>
       {lanOpen && <InterfaceModal onClose={() => setLanOpen(false)} />}
       <SettingCard title="端口设置" collapsible>
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-2">
-          <div className="ml-4">
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2">
+          <div className="ml-2">
             <SettingItem title="混合端口" divider>
           <div className="flex">
             {mixedPortInput !== mixedPort && (

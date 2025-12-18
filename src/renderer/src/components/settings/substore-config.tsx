@@ -79,8 +79,8 @@ const SubStoreConfig: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
         />
       </SettingItem>
       {useSubStore && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4">
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+          <div className="ml-2">
             <SettingItem title="允许局域网连接" divider>
             <Switch
               size="sm"

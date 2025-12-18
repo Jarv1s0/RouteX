@@ -7,14 +7,20 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-  Input
+  Input,
+  Tab,
+  Tabs
 } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import ProfileItem from '@renderer/components/profiles/profile-item'
+import ProxyProviderItem from '@renderer/components/profiles/proxy-provider-item'
+import Viewer from '@renderer/components/resources/viewer'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getFilePath, readTextFile, subStoreCollections, subStoreSubs } from '@renderer/utils/ipc'
+import { getFilePath, readTextFile, subStoreCollections, subStoreSubs, mihomoProxyProviders, mihomoUpdateProxyProviders, getRuntimeConfig } from '@renderer/utils/ipc'
+import { getHash } from '@renderer/utils/hash'
+import { Virtuoso } from 'react-virtuoso'
 import type { KeyboardEvent } from 'react'
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MdContentPaste } from 'react-icons/md'
@@ -52,7 +58,84 @@ const Profiles: React.FC = () => {
   const { current, items } = profileConfig || {}
   const itemsArray = items ?? emptyItems
   const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState('profiles')
   const [sortedItems, setSortedItems] = useState(itemsArray)
+  
+  // ProxyProvider 相关状态
+  const [providerUpdating, setProviderUpdating] = useState<boolean[]>([])
+  const [showProviderDetails, setShowProviderDetails] = useState({
+    show: false,
+    path: '',
+    type: '',
+    title: '',
+    privderType: ''
+  })
+  
+  const { data: providersData, mutate: mutateProviders } = useSWR('mihomoProxyProviders', mihomoProxyProviders, {
+    errorRetryInterval: 200,
+    errorRetryCount: 10
+  })
+  
+  const proxyProviders = useMemo(() => {
+    if (!providersData) return []
+    return Object.values(providersData.providers)
+      .filter((provider) => provider.vehicleType !== 'Compatible')
+      .sort((a, b) => {
+        const order = { File: 1, Inline: 2, HTTP: 3 }
+        return (order[a.vehicleType] || 4) - (order[b.vehicleType] || 4)
+      })
+  }, [providersData])
+  
+  useEffect(() => {
+    setProviderUpdating(Array(proxyProviders.length).fill(false))
+  }, [proxyProviders.length])
+  
+  useEffect(() => {
+    if (showProviderDetails.title) {
+      const fetchProviderPath = async (name: string): Promise<void> => {
+        try {
+          const config = await getRuntimeConfig()
+          const provider = config?.['proxy-providers']?.[name] as ProxyProviderConfig
+          if (provider) {
+            setShowProviderDetails((prev) => ({
+              ...prev,
+              show: true,
+              path: provider.path || `proxies/${getHash(provider.url || '')}`
+            }))
+          }
+        } catch {
+          setShowProviderDetails((prev) => ({ ...prev, path: '' }))
+        }
+      }
+      fetchProviderPath(showProviderDetails.title)
+    }
+  }, [showProviderDetails.title])
+  
+  const onProviderUpdate = async (name: string, index: number): Promise<void> => {
+    setProviderUpdating((prev) => {
+      const next = [...prev]
+      next[index] = true
+      return next
+    })
+    try {
+      await mihomoUpdateProxyProviders(name)
+      mutateProviders()
+    } catch (e) {
+      new Notification(`${name} 更新失败\n${e}`)
+    } finally {
+      setProviderUpdating((prev) => {
+        const next = [...prev]
+        next[index] = false
+        return next
+      })
+    }
+  }
+  
+  const updateAllProviders = (): void => {
+    proxyProviders.forEach((provider, index) => {
+      onProviderUpdate(provider.name, index)
+    })
+  }
   const [useProxy, setUseProxy] = useState(false)
   const [subStoreImporting, setSubStoreImporting] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -274,37 +357,48 @@ const Profiles: React.FC = () => {
         />
       )}
       <div className="sticky profiles-sticky top-0 z-40 bg-background">
-        <div className="flex p-2">
-          <Input
-            size="sm"
-            value={url}
-            onValueChange={setUrl}
-            onKeyUp={handleInputKeyUp}
-            endContent={
-              <>
-                <Button
-                  size="sm"
-                  isIconOnly
-                  variant="light"
-                  className="z-10"
-                  onPress={() => {
-                    navigator.clipboard.readText().then((text) => {
-                      setUrl(text)
-                    })
-                  }}
-                >
-                  <MdContentPaste className="text-lg" />
-                </Button>
-                <Checkbox
-                  className="whitespace-nowrap"
-                  checked={useProxy}
-                  onValueChange={setUseProxy}
-                >
-                  代理
-                </Checkbox>
-              </>
-            }
-          />
+        <div className="flex items-center gap-2 p-2">
+          <Tabs
+            size="md"
+            selectedKey={activeTab}
+            onSelectionChange={(key) => setActiveTab(key as string)}
+          >
+            <Tab key="profiles" title="订阅" />
+            <Tab key="providers" title="代理集合" />
+          </Tabs>
+          {activeTab === 'profiles' && (
+            <>
+              <Input
+                size="sm"
+                className="flex-1"
+                value={url}
+                onValueChange={setUrl}
+                onKeyUp={handleInputKeyUp}
+                endContent={
+                  <>
+                    <Button
+                      size="sm"
+                      isIconOnly
+                      variant="light"
+                      className="z-10"
+                      onPress={() => {
+                        navigator.clipboard.readText().then((text) => {
+                          setUrl(text)
+                        })
+                      }}
+                    >
+                      <MdContentPaste className="text-lg" />
+                    </Button>
+                    <Checkbox
+                      className="whitespace-nowrap"
+                      checked={useProxy}
+                      onValueChange={setUseProxy}
+                    >
+                      代理
+                    </Checkbox>
+                  </>
+                }
+              />
 
           <Button
             size="sm"
@@ -445,9 +539,22 @@ const Profiles: React.FC = () => {
               <DropdownItem key="import">导入远程配置</DropdownItem>
             </DropdownMenu>
           </Dropdown>
+            </>
+          )}
+          {activeTab === 'providers' && (
+            <Button
+              size="sm"
+              color="primary"
+              className="ml-auto"
+              onPress={updateAllProviders}
+            >
+              更新全部
+            </Button>
+          )}
         </div>
         <Divider />
       </div>
+      {activeTab === 'profiles' ? (
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div
           className={`${fileOver ? 'blur-sm' : ''} grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 m-2`}
@@ -478,6 +585,47 @@ const Profiles: React.FC = () => {
           </SortableContext>
         </div>
       </DndContext>
+      ) : (
+        <div className="h-[calc(100vh-100px)] mt-px">
+          {showProviderDetails.show && (
+            <Viewer
+              path={showProviderDetails.path}
+              type={showProviderDetails.type}
+              title={showProviderDetails.title}
+              privderType={showProviderDetails.privderType}
+              onClose={() =>
+                setShowProviderDetails({
+                  show: false,
+                  path: '',
+                  type: '',
+                  title: '',
+                  privderType: ''
+                })
+              }
+            />
+          )}
+          <Virtuoso
+            data={proxyProviders}
+            itemContent={(i, provider) => (
+              <ProxyProviderItem
+                provider={provider}
+                index={i}
+                updating={providerUpdating[i] || false}
+                onUpdate={() => onProviderUpdate(provider.name, i)}
+                onView={() => {
+                  setShowProviderDetails({
+                    show: false,
+                    privderType: 'proxy-providers',
+                    path: provider.name,
+                    type: provider.vehicleType,
+                    title: provider.name
+                  })
+                }}
+              />
+            )}
+          />
+        </div>
+      )}
     </BasePage>
   )
 }

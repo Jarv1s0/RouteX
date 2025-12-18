@@ -119,8 +119,8 @@ const AdvancedSettings: React.FC = () => {
         />
       </SettingItem>
       {autoLightweight && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4 text-sm">
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+          <div className="ml-2 text-sm">
             <SettingItem title="轻量模式行为" divider>
             <Tabs
               size="sm"
@@ -286,8 +286,8 @@ const AdvancedSettings: React.FC = () => {
         />
       </SettingItem>
       {networkDetection && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4 text-sm">
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+          <div className="ml-2 text-sm">
             <SettingItem title="断网检测间隔" divider>
             <div className="flex">
               {interval !== networkDetectionInterval && (
@@ -375,8 +375,8 @@ const AdvancedSettings: React.FC = () => {
         />
       </SettingItem>
       {enableWebdavConfig && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-          <div className="ml-4 text-sm">
+        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+          <div className="ml-2 text-sm">
             <SettingItem title="WebDAV 地址" divider>
               <Input
                 size="sm"

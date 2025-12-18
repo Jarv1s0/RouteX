@@ -49,7 +49,7 @@ const ConnCard: React.FC<Props> = (props) => {
   const [trafficData, setTrafficData] = useState(() =>
     Array(10)
       .fill(0)
-      .map((v, i) => ({ traffic: v, index: i }))
+      .map((_, i) => ({ upload: 0, download: 0, index: i }))
   )
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -68,7 +68,7 @@ const ConnCard: React.FC<Props> = (props) => {
         setTrafficData((prev) => {
           const newData = [...prev]
           newData.shift()
-          newData.push({ traffic: info.up + info.down, index: Date.now() })
+          newData.push({ upload: info.up, download: info.down, index: Date.now() })
           return newData
         })
         updateTimeoutRef.current = null
@@ -139,7 +139,7 @@ const ConnCard: React.FC<Props> = (props) => {
             ref={setNodeRef}
             {...attributes}
             {...listeners}
-            className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''} relative overflow-hidden`}
+            className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''} relative overflow-hidden`}
           >
             <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
               <div className="flex justify-between">
@@ -154,16 +154,26 @@ const ConnCard: React.FC<Props> = (props) => {
                     className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
                   />
                 </Button>
-                <div
-                  className={`p-2 w-full ${match ? 'text-primary-foreground' : 'text-foreground'} `}
-                >
+                <div className="p-2 w-full">
                   <div className="flex justify-between">
-                    <div className="w-full text-right mr-2">{calcTraffic(upload)}/s</div>
-                    <FaCircleArrowUp className="h-[24px] leading-[24px]" />
+                    <div
+                      className={`w-full text-right mr-2 ${match ? 'text-primary-foreground' : 'text-[#CD853F]'}`}
+                    >
+                      {calcTraffic(upload)}/s
+                    </div>
+                    <FaCircleArrowUp
+                      className={`h-[24px] leading-[24px] ${match ? 'text-primary-foreground' : 'text-[#CD853F]'}`}
+                    />
                   </div>
                   <div className="flex justify-between">
-                    <div className="w-full text-right mr-2">{calcTraffic(download)}/s</div>
-                    <FaCircleArrowDown className="h-[24px] leading-[24px]" />
+                    <div
+                      className={`w-full text-right mr-2 ${match ? 'text-primary-foreground' : 'text-[#1C86EE]'}`}
+                    >
+                      {calcTraffic(download)}/s
+                    </div>
+                    <FaCircleArrowDown
+                      className={`h-[24px] leading-[24px] ${match ? 'text-primary-foreground' : 'text-[#1C86EE]'}`}
+                    />
                   </div>
                 </div>
               </div>
@@ -184,7 +194,7 @@ const ConnCard: React.FC<Props> = (props) => {
           ref={setNodeRef}
           {...attributes}
           {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+          className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
         >
           <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
             <div className="flex justify-between">

@@ -136,6 +136,7 @@ const Sysproxy: React.FC = () => {
           }}
         />
       )}
+      <div className="p-2">
       <SettingCard className="sysproxy-settings">
         <SettingItem title="代理主机" divider>
           <Input
@@ -234,6 +235,7 @@ const Sysproxy: React.FC = () => {
           </SettingItem>
         )}
       </SettingCard>
+      </div>
     </BasePage>
   )
 }

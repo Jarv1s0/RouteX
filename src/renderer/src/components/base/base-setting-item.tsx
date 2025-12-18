@@ -14,14 +14,16 @@ const SettingItem: React.FC<Props> = (props) => {
 
   return (
     <>
-      <div className="select-text h-[32px] w-full flex justify-between">
-        <div className="h-full flex items-center">
-          <h4 className="h-full text-md leading-[32px] whitespace-nowrap">{title}</h4>
-          <div>{actions}</div>
+      <div className="select-text w-full">
+        <div className="min-h-[30px] flex justify-between items-center pr-2">
+          <div className="flex items-center">
+            <h4 className="text-md leading-[32px] whitespace-nowrap">{title}</h4>
+            <div>{actions}</div>
+          </div>
+          {children}
         </div>
-        {children}
+        {divider && <Divider className="my-2" />}
       </div>
-      {divider && <Divider className="my-2" />}
     </>
   )
 }

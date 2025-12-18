@@ -179,6 +179,7 @@ const Override: React.FC = () => {
       <div className="sticky top-0 z-40 bg-background">
         <div className="flex p-2">
           <Input
+            variant="flat"
             size="sm"
             value={url}
             onValueChange={setUrl}

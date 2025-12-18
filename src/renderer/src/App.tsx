@@ -1,6 +1,8 @@
 import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
 import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+import PageTransition from '@renderer/components/base/page-transition'
 import OutboundModeSwitcher from '@renderer/components/sider/outbound-mode-switcher'
 import SysproxySwitcher from '@renderer/components/sider/sysproxy-switcher'
 import TunSwitcher from '@renderer/components/sider/tun-switcher'
@@ -25,7 +27,7 @@ import OverrideCard from '@renderer/components/sider/override-card'
 import ConnCard from '@renderer/components/sider/conn-card'
 import LogCard from '@renderer/components/sider/log-card'
 import MihomoCoreCard from '@renderer/components/sider/mihomo-core-card'
-import ResourceCard from '@renderer/components/sider/resource-card'
+import appIcon from '../../../resources/icon.png'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { applyTheme, checkUpdate, setNativeTheme, setTitleBarOverlay } from '@renderer/utils/ipc'
@@ -48,7 +50,6 @@ const defaultSiderOrder = [
   'profile',
   'mihomo',
   'rule',
-  'resource',
   'override',
   'log',
   'substore'
@@ -171,7 +172,6 @@ const App: React.FC = () => {
     sniff: 'sniffer',
     log: 'logs',
     rule: 'rules',
-    resource: 'resources',
     override: 'override',
     substore: 'substore'
   }
@@ -187,7 +187,6 @@ const App: React.FC = () => {
     sniff: SniffCard,
     log: LogCard,
     rule: RuleCard,
-    resource: ResourceCard,
     override: OverrideCard,
     substore: SubStoreCard
   }
@@ -340,16 +339,14 @@ const App: React.FC = () => {
         />
       )}
       {siderWidthValue === narrowWidth ? (
-        <div style={{ width: `${narrowWidth}px` }} className="side h-full">
-          <div className="app-drag flex justify-center items-center z-40 bg-transparent h-[45px]">
+        <div style={{ width: `${narrowWidth}px` }} className="side h-full flex flex-col">
+          <div className="app-drag flex justify-center items-center z-40 bg-transparent h-[49px] shrink-0">
             {platform !== 'darwin' && (
-              <MihomoIcon className="h-[32px] leading-[32px] text-lg mx-px" />
+              <MihomoIcon className="h-[32px] leading-[32px] text-lg" />
             )}
           </div>
-          <div
-            className={`${latest ? 'h-[calc(100%-275px)]' : 'h-[calc(100%-227px)]'} overflow-y-auto no-scrollbar`}
-          >
-            <div className="h-full w-full flex flex-col gap-2">
+          <div className="flex-1 overflow-y-auto no-scrollbar px-1">
+            <div className="flex flex-col gap-2 py-1">
               {order.map((key: string) => {
                 const Component = componentMap[key]
                 if (!Component) return null
@@ -357,7 +354,7 @@ const App: React.FC = () => {
               })}
             </div>
           </div>
-          <div className="p-2 flex flex-col items-center space-y-2">
+          <div className="p-2 flex flex-col items-center gap-2 shrink-0 border-t border-divider">
             {latest && latest.version && <UpdaterButton iconOnly={true} latest={latest} />}
             <OutboundModeSwitcher iconOnly />
             <Button
@@ -381,23 +378,23 @@ const App: React.FC = () => {
             className={`app-drag sticky top-0 z-40 ${disableAnimation ? 'bg-background/95 backdrop-blur-sm' : 'bg-transparent backdrop-blur'} h-[49px]`}
           >
             <div
-              className={`flex justify-between p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
+              className={`flex justify-between items-center p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
             >
-              <div className="flex ml-1">
-                <h3 className="text-lg font-bold leading-[32px]">RouteX</h3>
+              <div className="flex ml-1 items-center gap-2">
+                <img src={appIcon} alt="RouteX" className="w-6 h-6" />
+                <h3 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-600 bg-clip-text text-transparent">RouteX</h3>
               </div>
               {latest && latest.version && <UpdaterButton latest={latest} />}
               <Button
                 size="sm"
-                className="app-nodrag"
+                className="app-nodrag group"
                 isIconOnly
-                color={location.pathname.includes('/settings') ? 'primary' : 'default'}
-                variant={location.pathname.includes('/settings') ? 'solid' : 'light'}
+                variant="light"
                 onPress={() => {
                   navigate('/settings')
                 }}
               >
-                <IoSettings className="text-[20px]" />
+                <IoSettings className={`text-[20px] transition-all duration-300 group-hover:rotate-90 group-hover:text-primary group-hover:drop-shadow-[0_0_4px_rgba(0,112,243,0.4)] ${location.pathname.includes('/settings') ? 'text-primary' : 'text-slate-500'}`} />
               </Button>
             </div>
           </div>
@@ -439,7 +436,9 @@ const App: React.FC = () => {
         style={{ width: `calc(100% - ${siderWidthValue + 1}px)` }}
         className="main grow h-full overflow-y-auto"
       >
-        {page}
+        <AnimatePresence mode="wait">
+          <PageTransition key={location.pathname}>{page}</PageTransition>
+        </AnimatePresence>
       </div>
     </div>
   )

@@ -1,10 +1,11 @@
-import { Button, Card, CardBody, CardFooter, Chip, Tooltip } from '@heroui/react'
+import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { LuGroup } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { addFlag, removeFlag } from '@renderer/utils/flags'
 import React from 'react'
 
 interface Props {
@@ -65,46 +66,57 @@ const ProxyCard: React.FC<Props> = (props) => {
         ref={setNodeRef}
         {...attributes}
         {...listeners}
-        className={`${match ? 'bg-primary' : 'hover:bg-primary/30'} ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+        className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
       >
-        <CardBody className="pb-1 pt-1 px-0 overflow-y-visible">
-          <div className="flex justify-between">
+        <CardBody>
+          <div className="flex justify-between h-[32px]">
+            <h3
+              className={`text-md font-bold leading-[32px] flag-emoji ${match ? 'text-primary-foreground' : 'text-foreground'} truncate`}
+            >
+              {(() => {
+                const firstGroup = groups.find(g => g.name !== 'GLOBAL')
+                const groupName = firstGroup?.now
+                return groupName ? addFlag(groupName) : '代理组'
+              })()}
+            </h3>
             <Button
               isIconOnly
-              className="bg-transparent pointer-events-none"
-              variant="flat"
+              size="sm"
+              variant="light"
+              className="pointer-events-none"
               color="default"
             >
               <LuGroup
-                className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
+                className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
               />
             </Button>
-            <Chip
-              classNames={
-                match
-                  ? {
-                      base: 'border-primary-foreground',
-                      content: 'text-primary-foreground'
-                    }
-                  : {
-                      base: 'border-primary',
-                      content: 'text-primary'
-                    }
-              }
-              size="sm"
-              variant="bordered"
-              className="mr-2 mt-4"
-            >
-              {groups.length}
-            </Chip>
           </div>
         </CardBody>
         <CardFooter className="pt-1">
-          <h3
-            className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+          <div
+            className={`flex justify-between w-full text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >
-            代理组
-          </h3>
+            <h4 className={`text-xs ${match ? 'text-primary-foreground/70' : 'text-foreground-500'} truncate`}>
+              {(() => {
+                // 递归查找最终节点
+                const findFinalNode = (nodeName: string | undefined): string | undefined => {
+                  if (!nodeName) return undefined
+                  const subGroup = groups.find(g => g.name === nodeName)
+                  if (subGroup?.now) {
+                    return findFinalNode(subGroup.now)
+                  }
+                  return nodeName
+                }
+                const firstGroup = groups.find(g => g.name !== 'GLOBAL')
+                const groupName = firstGroup?.now
+                const finalNode = findFinalNode(groupName)
+                if (groupName && finalNode && groupName !== finalNode) {
+                  return removeFlag(finalNode)
+                }
+                return ''
+              })()}
+            </h4>
+          </div>
         </CardFooter>
       </Card>
     </div>

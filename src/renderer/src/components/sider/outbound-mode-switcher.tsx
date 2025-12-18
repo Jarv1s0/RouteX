@@ -5,6 +5,8 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { useGroups } from '@renderer/hooks/use-groups'
 import { mihomoCloseAllConnections, patchMihomoConfig } from '@renderer/utils/ipc'
 import { Key } from 'react'
+import { MdOutlineAltRoute } from 'react-icons/md'
+import { TbWorld, TbBolt } from 'react-icons/tb'
 
 interface Props {
   iconOnly?: boolean
@@ -56,9 +58,9 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
       }}
       onSelectionChange={(key: Key) => onChangeMode(key as OutboundMode)}
     >
-      <Tab className={`text-[15px] ${mode === 'rule' ? 'font-bold' : ''}`} key="rule" title={<span style={{ color: '#9333ea' }}>规则</span>} />
-      <Tab className={`text-[15px] ${mode === 'global' ? 'font-bold' : ''}`} key="global" title={<span style={{ color: '#f97316' }}>全局</span>} />
-      <Tab className={`text-[15px] ${mode === 'direct' ? 'font-bold' : ''}`} key="direct" title={<span style={{ color: '#3b82f6' }}>直连</span>} />
+      <Tab className={`text-[15px] ${mode === 'rule' ? 'font-bold' : ''}`} key="rule" title={<span className="flex items-center gap-1" style={{ color: '#9333ea' }}><MdOutlineAltRoute className="text-[16px]" />规则</span>} />
+      <Tab className={`text-[15px] ${mode === 'global' ? 'font-bold' : ''}`} key="global" title={<span className="flex items-center gap-1" style={{ color: '#f97316' }}><TbWorld className="text-[16px]" />全局</span>} />
+      <Tab className={`text-[15px] ${mode === 'direct' ? 'font-bold' : ''}`} key="direct" title={<span className="flex items-center gap-1" style={{ color: '#3b82f6' }}><TbBolt className="text-[16px]" />直连</span>} />
     </Tabs>
   )
 }

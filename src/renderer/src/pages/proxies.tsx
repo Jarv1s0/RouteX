@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { GroupedVirtuoso, GroupedVirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
-import { IoIosArrowBack } from 'react-icons/io'
+import { IoChevronForward } from 'react-icons/io5'
 import { MdDoubleArrow, MdOutlineSpeed, MdTune } from 'react-icons/md'
 import { useGroups } from '@renderer/hooks/use-groups'
 import CollapseInput from '@renderer/components/base/collapse-input'
@@ -227,7 +227,13 @@ const Proxies: React.FC = () => {
         <div
           className={`w-full pt-2 ${index === groupCounts.length - 1 && !isOpen[index] ? 'pb-2' : ''} px-2`}
         >
-          <Card as="div" isPressable fullWidth onPress={() => toggleOpen(index)}>
+          <Card
+            as="div"
+            isPressable
+            fullWidth
+            onPress={() => toggleOpen(index)}
+            className={`transition-all duration-200 hover:bg-primary/30 ${isOpen[index] ? 'shadow-md' : 'hover:shadow-md'}`}
+          >
             <CardBody className="w-full h-14">
               <div className="flex justify-between h-full">
                 <div className="flex text-ellipsis overflow-hidden whitespace-nowrap h-full">
@@ -304,8 +310,8 @@ const Proxies: React.FC = () => {
                       <MdOutlineSpeed className="text-lg text-foreground-500" />
                     </Button>
                   </div>
-                  <IoIosArrowBack
-                    className={`transition duration-200 ml-2 h-[32px] text-lg text-foreground-500 flex items-center ${isOpen[index] ? '-rotate-90' : ''}`}
+                  <IoChevronForward
+                    className={`transition-transform duration-300 ease-out ml-2 h-[32px] text-lg text-foreground-500 flex items-center ${isOpen[index] ? 'rotate-90' : ''}`}
                   />
                 </div>
               </div>
@@ -360,6 +366,7 @@ const Proxies: React.FC = () => {
                 selected={
                   allProxies[groupIndex][innerIndex * cols + i]?.name === groups[groupIndex].now
                 }
+                index={innerIndex * cols + i}
               />
             )
           })}

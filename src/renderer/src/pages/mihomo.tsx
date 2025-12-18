@@ -272,6 +272,7 @@ const Mihomo: React.FC = () => {
           }}
         />
       )}
+      <div className="p-2">
       <SettingCard>
         <SettingItem
           title="内核版本"
@@ -396,6 +397,7 @@ const Mihomo: React.FC = () => {
       <ControllerSetting />
       <EnvSetting />
       <AdvancedSetting />
+      </div>
     </BasePage>
   )
 }

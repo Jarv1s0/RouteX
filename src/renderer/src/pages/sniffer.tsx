@@ -103,6 +103,7 @@ const Sniffer: React.FC = () => {
         )
       }
     >
+      <div className="p-2">
       <SettingCard>
         <SettingItem title="覆盖连接地址" divider>
           <Switch
@@ -195,6 +196,7 @@ const Sniffer: React.FC = () => {
           divider={false}
         />
       </SettingCard>
+      </div>
     </BasePage>
   )
 }

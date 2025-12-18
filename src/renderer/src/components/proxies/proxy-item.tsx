@@ -2,6 +2,7 @@ import { Button, Card, CardBody } from '@heroui/react'
 import { mihomoUnfixedProxy } from '@renderer/utils/ipc'
 import React, { useMemo, useState } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
+import { motion } from 'framer-motion'
 
 interface Props {
   mutateProxies: () => void
@@ -11,11 +12,22 @@ interface Props {
   group: ControllerMixedGroup
   onSelect: (group: string, proxy: string) => void
   selected: boolean
+  index?: number
 }
 
+const MotionCard = motion.create(Card)
+
 const ProxyItem: React.FC<Props> = (props) => {
-  const { mutateProxies, proxyDisplayLayout, group, proxy, selected, onSelect, onProxyDelay } =
-    props
+  const {
+    mutateProxies,
+    proxyDisplayLayout,
+    group,
+    proxy,
+    selected,
+    onSelect,
+    onProxyDelay,
+    index = 0
+  } = props
 
   const delay = useMemo(() => {
     if (proxy.history.length > 0) {
@@ -49,14 +61,22 @@ const ProxyItem: React.FC<Props> = (props) => {
   const fixed = group.fixed && group.fixed === proxy.name
 
   return (
-    <Card
+    <MotionCard
       as="div"
       onPress={() => onSelect(group.name, proxy.name)}
       isPressable
       fullWidth
       shadow="sm"
-      className={`${fixed ? 'bg-secondary/30' : selected ? 'bg-primary/30' : 'bg-content2'}`}
+      className={`${fixed ? 'bg-secondary/30' : selected ? 'bg-primary/30' : 'bg-content2'} ${loading ? 'animate-pulse' : ''}`}
       radius="sm"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{
+        opacity: 1,
+        scale: selected ? 1.02 : 1,
+        transition: { duration: 0.15, delay: Math.min(index * 0.02, 0.3) }
+      }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
     >
       <CardBody className="py-1.5 px-2">
         <div
@@ -151,7 +171,7 @@ const ProxyItem: React.FC<Props> = (props) => {
           )}
         </div>
       </CardBody>
-    </Card>
+    </MotionCard>
   )
 }
 
