@@ -86,4 +86,7 @@ deb:
 rpm:
   afterInstall: 'build/linux/postinst'
 npmRebuild: true
-publish: []
+publish:
+  provider: github
+  owner: Jarv1s0
+  repo: RouteX
