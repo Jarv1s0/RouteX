@@ -105,7 +105,12 @@ const Actions: React.FC = () => {
                   new window.Notification('当前已是最新版本', { body: '无需更新' })
                 }
               } catch (e) {
-                alert(e)
+                const errorMsg = String(e)
+                if (errorMsg.includes('404')) {
+                  new window.Notification('检查更新失败', { body: '暂无可用更新' })
+                } else {
+                  alert(e)
+                }
               } finally {
                 setCheckingUpdate(false)
               }
