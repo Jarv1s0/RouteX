@@ -1,11 +1,11 @@
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import React from 'react'
 
 interface Props {
   children: React.ReactNode
 }
 
-const pageVariants = {
+const pageVariants: Variants = {
   initial: {
     opacity: 0
   },
@@ -13,14 +13,14 @@ const pageVariants = {
     opacity: 1,
     transition: {
       duration: 0.15,
-      ease: 'easeOut'
+      ease: [0.4, 0, 0.2, 1]
     }
   },
   exit: {
     opacity: 0,
     transition: {
       duration: 0.1,
-      ease: 'easeIn'
+      ease: [0.4, 0, 1, 1]
     }
   }
 }
