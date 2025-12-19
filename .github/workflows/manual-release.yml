@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 1.0.5)'
+        description: 'Release version'
         required: true
         type: string
       create_release:
@@ -117,7 +117,7 @@ jobs:
       - name: Update Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.inputs.version }}
+          tag_name: v${{ github.event.inputs.version }}
           name: RouteX v${{ github.event.inputs.version }}
           body_path: changelog.md
           draft: false
