@@ -4,8 +4,9 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { mihomoRuleProviders } from '@renderer/utils/ipc'
+import useSWR from 'swr'
 
 interface Props {
   iconOnly?: boolean
@@ -18,7 +19,31 @@ const RuleCard: React.FC<Props> = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/rules')
-  const [ruleCount, setRuleCount] = useState(0)
+  
+  const { data, mutate } = useSWR('mihomoRuleProviders', mihomoRuleProviders, {
+    errorRetryInterval: 200,
+    errorRetryCount: 10,
+    refreshInterval: 30000
+  })
+  
+  const ruleCount = useMemo(() => {
+    if (!data?.providers) return 0
+    return Object.values(data.providers).reduce((total, provider) => total + (provider.ruleCount || 0), 0)
+  }, [data])
+  
+  useEffect(() => {
+    const handleRefresh = (): void => {
+      mutate()
+    }
+    window.electron.ipcRenderer.on('core-started', handleRefresh)
+    window.electron.ipcRenderer.on('rulesUpdated', handleRefresh)
+    
+    return (): void => {
+      window.electron.ipcRenderer.removeAllListeners('core-started')
+      window.electron.ipcRenderer.removeAllListeners('rulesUpdated')
+    }
+  }, [mutate])
+  
   const {
     attributes,
     listeners,
@@ -30,31 +55,6 @@ const RuleCard: React.FC<Props> = (props) => {
     id: 'rule'
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
-
-  useEffect(() => {
-    const fetchRules = async (): Promise<void> => {
-      try {
-        const data = await mihomoRuleProviders()
-        let total = 0
-        Object.values(data.providers || {}).forEach((provider) => {
-          total += provider.ruleCount || 0
-        })
-        setRuleCount(total)
-      } catch {
-        // ignore
-      }
-    }
-    fetchRules()
-    
-    const handleRulesUpdate = (): void => {
-      fetchRules()
-    }
-    window.electron.ipcRenderer.on('rulesUpdated', handleRulesUpdate)
-    
-    return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('rulesUpdated')
-    }
-  }, [])
 
   if (iconOnly) {
     return (

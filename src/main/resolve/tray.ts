@@ -448,7 +448,9 @@ export async function createTray(): Promise<void> {
     tray = new Tray(icon)
   }
   if (process.platform === 'win32') {
-    tray = new Tray(icoIcon)
+    // 使用 nativeImage 加载 ico，确保高 DPI 显示清晰
+    const icon = nativeImage.createFromPath(icoIcon)
+    tray = new Tray(icon)
   }
   tray?.setToolTip('RouteX')
   tray?.setIgnoreDoubleClickEvents(true)
