@@ -96,10 +96,10 @@ const ConnectionItemComponent: React.FC<Props> = ({
           {displayIcon && (
             <div>
               <Avatar
-                size="lg"
+                size="md"
                 radius="sm"
                 src={iconUrl}
-                className="bg-transparent ml-2 w-14 h-14"
+                className="bg-transparent ml-2 w-12 h-12"
               />
             </div>
           )}

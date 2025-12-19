@@ -7,11 +7,6 @@ on:
         description: 'Release version (e.g., 1.0.5)'
         required: true
         type: string
-      create_release:
-        description: 'Create GitHub Release'
-        required: true
-        default: true
-        type: boolean
       platforms:
         description: 'Platforms to build'
         required: true
@@ -71,7 +66,6 @@ jobs:
         if: github.event.inputs.version != ''
         shell: bash
         run: |
-          # 更新 package.json 中的版本号
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -84,90 +78,23 @@ jobs:
         run: |
           echo "SHORT_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      - name: Build Windows
+      - name: Build and Publish Windows
         if: matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')
         run: pnpm build:win
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Linux
+      - name: Build and Publish Linux
         if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
         run: pnpm build:linux
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build macOS
+      - name: Build and Publish macOS
         if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
         run: pnpm build:mac
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Windows artifacts
-        if: matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: |
-            dist/*.exe
-            dist/*.7z
-          retention-days: 7
-
-      - name: Upload Linux artifacts
-        if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-build
-          path: |
-            dist/*.deb
-            dist/*.rpm
-          retention-days: 7
-
-      - name: Upload macOS artifacts
-        if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build
-          path: |
-            dist/*.pkg
-          retention-days: 7
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event.inputs.create_release == 'true'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set SHORT_COMMIT for release
-        shell: bash
-        run: |
-          echo "SHORT_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-
-      - name: Display structure of downloaded files
-        run: |
-          echo "Artifacts structure:"
-          find ./artifacts -type f -name "*" | head -20
-
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: RouteX v${{ github.event.inputs.version }}
-          body_path: changelog.md
-          files: |
-            ./artifacts/**/*
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

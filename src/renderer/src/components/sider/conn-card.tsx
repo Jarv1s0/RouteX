@@ -157,22 +157,22 @@ const ConnCard: React.FC<Props> = (props) => {
                 <div className="p-2 w-full">
                   <div className="flex justify-between">
                     <div
-                      className={`w-full text-right mr-2 ${match ? 'text-primary-foreground' : 'text-[#CD853F]'}`}
+                      className={`w-full text-right mr-2 ${match ? 'text-primary-foreground' : 'text-warning'}`}
                     >
                       {calcTraffic(upload)}/s
                     </div>
                     <FaCircleArrowUp
-                      className={`h-[24px] leading-[24px] ${match ? 'text-primary-foreground' : 'text-[#CD853F]'}`}
+                      className={`h-[24px] leading-[24px] ${match ? 'text-primary-foreground' : 'text-warning'}`}
                     />
                   </div>
                   <div className="flex justify-between">
                     <div
-                      className={`w-full text-right mr-2 ${match ? 'text-primary-foreground' : 'text-[#1C86EE]'}`}
+                      className={`w-full text-right mr-2 ${match ? 'text-primary-foreground' : 'text-primary'}`}
                     >
                       {calcTraffic(download)}/s
                     </div>
                     <FaCircleArrowDown
-                      className={`h-[24px] leading-[24px] ${match ? 'text-primary-foreground' : 'text-[#1C86EE]'}`}
+                      className={`h-[24px] leading-[24px] ${match ? 'text-primary-foreground' : 'text-primary'}`}
                     />
                   </div>
                 </div>

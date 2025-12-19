@@ -1,10 +1,11 @@
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import { MdOutlineAltRoute } from 'react-icons/md'
+import { Button, Card, CardBody, CardFooter, Chip, Tooltip } from '@heroui/react'
+import { TbStack2 } from 'react-icons/tb'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { mihomoRuleProviders } from '@renderer/utils/ipc'
 
 interface Props {
   iconOnly?: boolean
@@ -17,6 +18,7 @@ const RuleCard: React.FC<Props> = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/rules')
+  const [ruleCount, setRuleCount] = useState(0)
   const {
     attributes,
     listeners,
@@ -28,6 +30,31 @@ const RuleCard: React.FC<Props> = (props) => {
     id: 'rule'
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
+
+  useEffect(() => {
+    const fetchRules = async (): Promise<void> => {
+      try {
+        const data = await mihomoRuleProviders()
+        let total = 0
+        Object.values(data.providers || {}).forEach((provider) => {
+          total += provider.ruleCount || 0
+        })
+        setRuleCount(total)
+      } catch {
+        // ignore
+      }
+    }
+    fetchRules()
+    
+    const handleRulesUpdate = (): void => {
+      fetchRules()
+    }
+    window.electron.ipcRenderer.on('rulesUpdated', handleRulesUpdate)
+    
+    return (): void => {
+      window.electron.ipcRenderer.removeAllListeners('rulesUpdated')
+    }
+  }, [])
 
   if (iconOnly) {
     return (
@@ -42,7 +69,7 @@ const RuleCard: React.FC<Props> = (props) => {
               navigate('/rules')
             }}
           >
-            <MdOutlineAltRoute className="text-[20px]" />
+            <TbStack2 className="text-[20px]" />
           </Button>
         </Tooltip>
       </div>
@@ -65,7 +92,7 @@ const RuleCard: React.FC<Props> = (props) => {
         {...listeners}
         className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
       >
-        <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
+        <CardBody className="pb-1 pt-0 px-0">
           <div className="flex justify-between">
             <Button
               isIconOnly
@@ -73,20 +100,20 @@ const RuleCard: React.FC<Props> = (props) => {
               variant="flat"
               color="default"
             >
-              <MdOutlineAltRoute
+              <TbStack2
                 color="default"
                 className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
               />
             </Button>
-
           </div>
         </CardBody>
         <CardFooter className="pt-1">
-          <h3
-            className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+          <div
+            className={`flex justify-between w-full text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >
-            规则
-          </h3>
+            <h3>规则</h3>
+            {ruleCount > 0 && <h3>{ruleCount}</h3>}
+          </div>
         </CardFooter>
       </Card>
     </div>

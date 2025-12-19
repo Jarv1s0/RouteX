@@ -304,40 +304,16 @@ const Profiles: React.FC = () => {
       ref={pageRef}
       title="订阅管理"
       header={
-        <>
-          <Button
-            size="sm"
-            title="更新全部订阅"
-            className="app-nodrag"
-            variant="light"
-            isIconOnly
-            onPress={async () => {
-              setUpdating(true)
-              for (const item of itemsArray) {
-                if (item.id === current) continue
-                if (item.type !== 'remote') continue
-                await addProfileItem(item)
-              }
-              const currentItem = itemsArray.find((item) => item.id === current)
-              if (currentItem && currentItem.type === 'remote') {
-                await addProfileItem(currentItem)
-              }
-              setUpdating(false)
-            }}
-          >
-            <IoMdRefresh className={`text-lg ${updating ? 'animate-spin' : ''}`} />
-          </Button>
-          <Button
-            size="sm"
-            title="订阅设置"
-            className="app-nodrag"
-            variant="light"
-            isIconOnly
-            onPress={() => setIsSettingModalOpen(true)}
-          >
-            <MdTune className="text-lg" />
-          </Button>
-        </>
+        <Button
+          size="sm"
+          title="订阅设置"
+          className="app-nodrag"
+          variant="light"
+          isIconOnly
+          onPress={() => setIsSettingModalOpen(true)}
+        >
+          <MdTune className="text-lg" />
+        </Button>
       }
     >
       {isSettingModalOpen && <ProfileSettingModal onClose={() => setIsSettingModalOpen(false)} />}
@@ -541,14 +517,39 @@ const Profiles: React.FC = () => {
           </Dropdown>
             </>
           )}
+          {activeTab === 'profiles' && (
+            <Button
+              size="sm"
+              isIconOnly
+              color="primary"
+              isLoading={updating}
+              title="更新全部订阅"
+              onPress={async () => {
+                setUpdating(true)
+                for (const item of itemsArray) {
+                  if (item.id === current) continue
+                  if (item.type !== 'remote') continue
+                  await addProfileItem(item)
+                }
+                const currentItem = itemsArray.find((item) => item.id === current)
+                if (currentItem && currentItem.type === 'remote') {
+                  await addProfileItem(currentItem)
+                }
+                setUpdating(false)
+              }}
+            >
+              <IoMdRefresh className="text-lg" />
+            </Button>
+          )}
           {activeTab === 'providers' && (
             <Button
               size="sm"
+              isIconOnly
               color="primary"
-              className="ml-auto"
+              title="更新全部代理集合"
               onPress={updateAllProviders}
             >
-              更新全部
+              <IoMdRefresh className="text-lg" />
             </Button>
           )}
         </div>

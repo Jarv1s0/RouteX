@@ -1,7 +1,7 @@
 import BasePage from '@renderer/components/base/base-page'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
 import React, { Key, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Badge, Button, Divider, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react'
+import { Button, Divider, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
 import { Virtuoso } from 'react-virtuoso'
@@ -452,43 +452,14 @@ const Connections: React.FC = () => {
         <>
           <div className="flex">
             <div className="flex items-center">
-              <span className="mx-1 text-gray-400">
+              <span className="mx-1 text-warning">
                 ↑ {calcTraffic(connectionsInfo?.uploadTotal ?? 0)}{' '}
               </span>
-              <span className="mx-1 text-gray-400">
+              <span className="mx-1 text-primary">
                 ↓ {calcTraffic(connectionsInfo?.downloadTotal ?? 0)}{' '}
               </span>
             </div>
-            <Badge
-              className="mt-2"
-              color="primary"
-              variant="flat"
-              showOutline={false}
-              content={filteredConnections.length}
-            >
-              <Button
-                className="app-nodrag ml-1"
-                title={tab === 'active' ? '关闭全部连接' : '清空已关闭连接'}
-                isIconOnly
-                size="sm"
-                variant="light"
-                onPress={() => {
-                  if (filter === '') {
-                    closeAllConnections()
-                  } else {
-                    filteredConnections.forEach((conn) => {
-                      closeConnection(conn.id)
-                    })
-                  }
-                }}
-              >
-                {tab === 'active' ? (
-                  <CgClose className="text-lg" />
-                ) : (
-                  <CgTrash className="text-lg" />
-                )}
-              </Button>
-            </Badge>
+  
           </div>
           <Button
             size="sm"
@@ -549,6 +520,22 @@ const Connections: React.FC = () => {
             ) : (
               <HiSortDescending className="text-lg" />
             )}
+          </Button>
+          <Button
+            size="sm"
+            className="bg-content2"
+            startContent={tab === 'active' ? <CgClose className="text-lg" /> : <CgTrash className="text-lg" />}
+            onPress={() => {
+              if (filter === '') {
+                closeAllConnections()
+              } else {
+                filteredConnections.forEach((conn) => {
+                  closeConnection(conn.id)
+                })
+              }
+            }}
+          >
+            {tab === 'active' ? '关闭全部' : '清空记录'}
           </Button>
         </div>
         <Divider />

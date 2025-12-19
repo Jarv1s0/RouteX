@@ -193,3 +193,13 @@ html {
     width 0.1s ease,
     margin 0.1s ease !important;
 }
+
+/* 修复 Tabs cursor 溢出问题 */
+.outbound-mode-card {
+  overflow: hidden !important;
+  border-radius: 14px !important;
+}
+
+.outbound-mode-card [data-slot="cursor"] {
+  margin-right: 1px !important;
+}
