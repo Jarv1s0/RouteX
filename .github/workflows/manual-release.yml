@@ -115,12 +115,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Update Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: RouteX v${{ github.event.inputs.version }}
-          body_path: changelog.md
-          draft: false
-          prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit v${{ github.event.inputs.version }} \
+            --title "RouteX v${{ github.event.inputs.version }}" \
+            --notes-file changelog.md \
+            --draft=false
