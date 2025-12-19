@@ -1,6 +1,6 @@
 interface AppVersion {
   version: string
-  changelog: string
+  releaseNotes: string
 }
 
 interface ISysProxyConfig {

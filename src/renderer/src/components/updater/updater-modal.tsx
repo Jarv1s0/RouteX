@@ -16,7 +16,7 @@ import { FiX, FiDownload } from 'react-icons/fi'
 
 interface Props {
   version: string
-  changelog: string
+  releaseNotes: string
   updateStatus?: {
     downloading: boolean
     progress: number
@@ -27,7 +27,7 @@ interface Props {
 }
 
 const UpdaterModal: React.FC<Props> = (props) => {
-  const { version, changelog, updateStatus, onCancel, onClose } = props
+  const { version, releaseNotes, updateStatus, onCancel, onClose } = props
   const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
   const [downloading, setDownloading] = useState(false)
   const onUpdate = async (): Promise<void> => {
@@ -112,7 +112,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
                   li: ({ children }) => <li className="list-disc list-inside">{children}</li>
                 }}
               >
-                {changelog}
+                {releaseNotes}
               </ReactMarkdown>
             </div>
           )}

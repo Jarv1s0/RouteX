@@ -20,7 +20,7 @@ import ConfirmModal from '../base/base-confirm'
 const Actions: React.FC = () => {
   const navigate = useNavigate()
   const [newVersion, setNewVersion] = useState('')
-  const [changelog, setChangelog] = useState('')
+  const [releaseNotes, setReleaseNotes] = useState('')
   const [openUpdate, setOpenUpdate] = useState(false)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -63,7 +63,7 @@ const Actions: React.FC = () => {
         <UpdaterModal
           onClose={() => setOpenUpdate(false)}
           version={newVersion}
-          changelog={changelog}
+          releaseNotes={releaseNotes}
           updateStatus={updateStatus}
           onCancel={handleCancelUpdate}
         />
@@ -99,7 +99,7 @@ const Actions: React.FC = () => {
                 const version = await checkUpdate()
                 if (version) {
                   setNewVersion(version.version)
-                  setChangelog(version.changelog)
+                  setReleaseNotes(version.releaseNotes)
                   setOpenUpdate(true)
                 } else {
                   new window.Notification('当前已是最新版本', { body: '无需更新' })
