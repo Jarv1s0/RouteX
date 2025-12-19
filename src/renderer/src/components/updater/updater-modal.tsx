@@ -77,7 +77,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
                   open('https://github.com/Jarv1s0/RouteX/releases/tag/pre-release')
                   return
                 }
-                open(`https://github.com/Jarv1s0/RouteX/releases/tag/${version}`)
+                open(`https://github.com/Jarv1s0/RouteX/releases/tag/v${version}`)
               }}
             >
               前往下载

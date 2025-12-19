@@ -59,7 +59,7 @@ export async function checkUpdate(): Promise<AppVersion | undefined> {
 
 export async function downloadAndInstallUpdate(version: string): Promise<void> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-  let releaseTag = version
+  let releaseTag = `v${version}`
   if (version.includes('beta')) {
     releaseTag = 'pre-release'
   }
