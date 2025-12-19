@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { addFlag, removeFlag } from '@renderer/utils/flags'
-import React from 'react'
+import React, { useMemo } from 'react'
 
 interface Props {
   iconOnly?: boolean
@@ -31,6 +31,33 @@ const ProxyCard: React.FC<Props> = (props) => {
     id: 'proxy'
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
+
+  // 缓存第一个非GLOBAL组
+  const firstGroup = useMemo(() => groups.find(g => g.name !== 'GLOBAL'), [groups])
+  
+  // 缓存当前选中的代理组名（带国旗）
+  const currentGroupName = useMemo(() => {
+    const groupName = firstGroup?.now
+    return groupName ? addFlag(groupName) : '代理组'
+  }, [firstGroup])
+
+  // 缓存最终节点名（递归查找）
+  const finalNodeName = useMemo(() => {
+    const findFinalNode = (nodeName: string | undefined): string | undefined => {
+      if (!nodeName) return undefined
+      const subGroup = groups.find(g => g.name === nodeName)
+      if (subGroup?.now) {
+        return findFinalNode(subGroup.now)
+      }
+      return nodeName
+    }
+    const groupName = firstGroup?.now
+    const finalNode = findFinalNode(groupName)
+    if (groupName && finalNode && groupName !== finalNode) {
+      return removeFlag(finalNode)
+    }
+    return ''
+  }, [groups, firstGroup])
 
   if (iconOnly) {
     return (
@@ -73,11 +100,7 @@ const ProxyCard: React.FC<Props> = (props) => {
             <h3
               className={`text-md font-bold leading-[32px] flag-emoji ${match ? 'text-primary-foreground' : 'text-foreground'} truncate`}
             >
-              {(() => {
-                const firstGroup = groups.find(g => g.name !== 'GLOBAL')
-                const groupName = firstGroup?.now
-                return groupName ? addFlag(groupName) : '代理组'
-              })()}
+              {currentGroupName}
             </h3>
             <Button
               isIconOnly
@@ -97,24 +120,7 @@ const ProxyCard: React.FC<Props> = (props) => {
             className={`flex justify-between w-full text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >
             <h4 className={`text-xs ${match ? 'text-primary-foreground/70' : 'text-foreground-500'} truncate`}>
-              {(() => {
-                // 递归查找最终节点
-                const findFinalNode = (nodeName: string | undefined): string | undefined => {
-                  if (!nodeName) return undefined
-                  const subGroup = groups.find(g => g.name === nodeName)
-                  if (subGroup?.now) {
-                    return findFinalNode(subGroup.now)
-                  }
-                  return nodeName
-                }
-                const firstGroup = groups.find(g => g.name !== 'GLOBAL')
-                const groupName = firstGroup?.now
-                const finalNode = findFinalNode(groupName)
-                if (groupName && finalNode && groupName !== finalNode) {
-                  return removeFlag(finalNode)
-                }
-                return ''
-              })()}
+              {finalNodeName}
             </h4>
           </div>
         </CardFooter>

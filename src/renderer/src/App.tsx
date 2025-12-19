@@ -381,7 +381,6 @@ const App: React.FC = () => {
               className={`flex justify-between items-center p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
             >
               <div className="flex ml-1 items-center gap-2">
-                <img src={appIcon} alt="RouteX" className="w-5 h-5" />
                 <h3 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-600 bg-clip-text text-transparent">RouteX</h3>
               </div>
               {latest && latest.version && <UpdaterButton latest={latest} />}

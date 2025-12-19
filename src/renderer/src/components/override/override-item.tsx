@@ -58,6 +58,13 @@ const OverrideItem: React.FC<Props> = (props) => {
   const menuItems: MenuItem[] = useMemo(() => {
     const list = [
       {
+        key: 'toggle-global',
+        label: info.global ? '取消全局覆写' : '设为全局覆写',
+        showDivider: true,
+        color: 'default',
+        className: ''
+      } as MenuItem,
+      {
         key: 'edit-info',
         label: '编辑信息',
         showDivider: false,
@@ -94,12 +101,22 @@ const OverrideItem: React.FC<Props> = (props) => {
       } as MenuItem
     ]
     if (info.ext === 'yaml') {
-      list.splice(3, 1)
+      list.splice(4, 1)
     }
     return list
   }, [info])
-  const onMenuAction = (key: Key): void => {
+  const onMenuAction = async (key: Key): Promise<void> => {
     switch (key) {
+      case 'toggle-global': {
+        try {
+          await updateOverrideItem({ ...info, global: !info.global })
+          await restartCore()
+          mutateOverrideConfig()
+        } catch (e) {
+          alert(e)
+        }
+        break
+      }
       case 'edit-info': {
         setOpenInfoEditor(true)
         break
@@ -212,8 +229,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                     }}
                   >
                     <IoMdRefresh
-                      color="default"
-                      className={`text-[24px] ${updating ? 'animate-spin' : ''}`}
+                      className={`text-[20px] text-foreground-500 ${updating ? 'animate-spin' : ''}`}
                     />
                   </Button>
                 )}
@@ -221,7 +237,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                 <Dropdown>
                   <DropdownTrigger>
                     <Button isIconOnly size="sm" variant="light" color="default">
-                      <IoMdMore color="default" className={`text-[24px]`} />
+                      <IoMdMore className="text-[20px] text-foreground-500" />
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu onAction={onMenuAction}>
