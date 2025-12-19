@@ -13,7 +13,8 @@ import { GroupedVirtuoso, GroupedVirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
 import { IoChevronForward } from 'react-icons/io5'
-import { MdDoubleArrow, MdOutlineSpeed, MdTune } from 'react-icons/md'
+import { MdOutlineSpeed, MdTune } from 'react-icons/md'
+import { TbBolt } from 'react-icons/tb'
 import { useGroups } from '@renderer/hooks/use-groups'
 import CollapseInput from '@renderer/components/base/collapse-input'
 import { includesIgnoreCase } from '@renderer/utils/includes'
@@ -406,11 +407,16 @@ const Proxies: React.FC = () => {
     >
       {isSettingModalOpen && <ProxySettingModal onClose={() => setIsSettingModalOpen(false)} />}
       {mode === 'direct' ? (
-        <div className="h-full w-full flex justify-center items-center">
-          <div className="flex flex-col items-center">
-            <MdDoubleArrow className="text-foreground-500 text-[100px]" />
-            <h2 className="text-foreground-500 text-[20px]">直连模式</h2>
-          </div>
+        <div className="h-full w-full flex justify-center items-center p-4">
+          <Card className="px-12 py-8">
+            <CardBody className="flex flex-col items-center gap-2">
+              <div className="w-20 h-20 rounded-full bg-teal-500/20 flex items-center justify-center">
+                <TbBolt className="text-teal-500 text-[48px]" />
+              </div>
+              <h2 className="text-foreground text-xl font-semibold mt-2">直连模式</h2>
+              <p className="text-foreground-500 text-sm">所有流量将直接连接，不经过代理</p>
+            </CardBody>
+          </Card>
         </div>
       ) : (
         <div className="h-[calc(100vh-50px)]">

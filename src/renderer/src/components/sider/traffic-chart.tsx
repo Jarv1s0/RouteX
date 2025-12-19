@@ -18,9 +18,9 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
     return data.slice()
   }, [data])
 
-  // 上传金色，下载蓝色
-  const uploadColor = isActive ? '#ffffff' : '#CD853F'
-  const downloadColor = isActive ? '#ffffffcc' : '#1C86EE'
+  // 上传橙色(warning)，下载蓝色(primary) - 与conn-card保持一致
+  const uploadColor = isActive ? '#ffffff' : '#f5a524'  // warning color
+  const downloadColor = isActive ? '#ffffffcc' : '#006FEE'  // primary color
 
   const uploadGradientId = `upload-gradient-${isActive ? 'active' : 'inactive'}`
   const downloadGradientId = `download-gradient-${isActive ? 'active' : 'inactive'}`

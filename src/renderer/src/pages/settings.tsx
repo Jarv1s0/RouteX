@@ -5,7 +5,7 @@ import GeneralConfig from '@renderer/components/settings/general-config'
 import AdvancedSettings from '@renderer/components/settings/advanced-settings'
 import Actions from '@renderer/components/settings/actions'
 
-import AppearanceConfig from '@renderer/components/settings/appearance-confis'
+import AppearanceConfig from '@renderer/components/settings/appearance-config'
 
 const Settings: React.FC = () => {
   return (
