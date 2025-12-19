@@ -46,7 +46,7 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
       </Tabs>
     )
   }
-  const cursorColor = mode === 'rule' ? 'bg-sky-500/30' : mode === 'global' ? 'bg-pink-400/30' : 'bg-teal-500/30'
+  const cursorColor = mode === 'rule' ? 'bg-sky-500/30' : mode === 'global' ? 'bg-pink-300/30' : 'bg-teal-500/30'
 
   return (
     <Tabs
@@ -59,7 +59,7 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
       onSelectionChange={(key: Key) => onChangeMode(key as OutboundMode)}
     >
       <Tab className={`text-[15px] ${mode === 'rule' ? 'font-bold' : ''}`} key="rule" title={<span className="flex items-center justify-center gap-1 text-sky-500"><MdOutlineAltRoute className="text-[16px]" />规则</span>} />
-      <Tab className={`text-[15px] ${mode === 'global' ? 'font-bold' : ''}`} key="global" title={<span className="flex items-center justify-center gap-1 text-pink-400"><TbWorld className="text-[16px]" />全局</span>} />
+      <Tab className={`text-[15px] ${mode === 'global' ? 'font-bold' : ''}`} key="global" title={<span className="flex items-center justify-center gap-1 text-pink-300"><TbWorld className="text-[16px]" />全局</span>} />
       <Tab className={`text-[15px] ${mode === 'direct' ? 'font-bold' : ''}`} key="direct" title={<span className="flex items-center justify-center gap-1 text-teal-500"><TbBolt className="text-[16px]" />直连</span>} />
     </Tabs>
   )
