@@ -33,7 +33,9 @@ export const defaultConfig: AppConfig = {
     'resource',
     'override',
     'log',
-    'substore'
+    'substore',
+    'stats',
+    'tools'
   ],
   siderWidth: 250,
   sysProxy: { enable: false, mode: 'manual' },

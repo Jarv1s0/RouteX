@@ -1,7 +1,7 @@
 import BasePage from '@renderer/components/base/base-page'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
 import React, { Key, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Divider, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react'
+import { Button, Divider, Input, Select, SelectItem, Tab, Tabs, Chip, Card, CardHeader, CardFooter, Avatar } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
 import { Virtuoso } from 'react-virtuoso'
@@ -13,6 +13,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { getIconDataURL, getAppName } from '@renderer/utils/ipc'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
+import { IoApps, IoList } from 'react-icons/io5'
 import { cropAndPadTransparent } from '@renderer/utils/image'
 import { platform } from '@renderer/utils/init'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -32,7 +33,6 @@ const Connections: React.FC = () => {
     displayIcon = true,
     displayAppName = true
   } = appConfig || {}
-  const [connectionsInfo, setConnectionsInfo] = useState<ControllerConnections>()
   const [allConnections, setAllConnections] =
     useState<ControllerConnectionDetail[]>(cachedConnections)
   const [activeConnections, setActiveConnections] = useState<ControllerConnectionDetail[]>([])
@@ -46,6 +46,8 @@ const Connections: React.FC = () => {
   const [firstItemRefreshTrigger, setFirstItemRefreshTrigger] = useState(0)
 
   const [tab, setTab] = useState('active')
+  const [viewMode, setViewMode] = useState<'list' | 'group'>('list')
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
 
   const iconRequestQueue = useRef(new Set<string>())
@@ -117,6 +119,46 @@ const Connections: React.FC = () => {
     return filtered
   }, [activeConnections, closedConnections, filter, connectionDirection, connectionOrderBy, tab])
 
+  // 按进程分组
+  const groupedConnections = useMemo(() => {
+    const groups = new Map<string, {
+      process: string
+      processPath: string
+      connections: ControllerConnectionDetail[]
+      totalUpload: number
+      totalDownload: number
+      uploadSpeed: number
+      downloadSpeed: number
+    }>()
+
+    filteredConnections.forEach(conn => {
+      const process = conn.metadata.process || '未知进程'
+      const processPath = conn.metadata.processPath || ''
+      
+      if (!groups.has(process)) {
+        groups.set(process, {
+          process,
+          processPath,
+          connections: [],
+          totalUpload: 0,
+          totalDownload: 0,
+          uploadSpeed: 0,
+          downloadSpeed: 0
+        })
+      }
+      
+      const group = groups.get(process)!
+      group.connections.push(conn)
+      group.totalUpload += conn.upload
+      group.totalDownload += conn.download
+      group.uploadSpeed += conn.uploadSpeed || 0
+      group.downloadSpeed += conn.downloadSpeed || 0
+    })
+
+    // 按连接数排序
+    return Array.from(groups.values()).sort((a, b) => b.connections.length - a.connections.length)
+  }, [filteredConnections])
+
   const trashAllClosedConnection = useCallback((): void => {
     if (closedConnections.length === 0) return
 
@@ -153,8 +195,6 @@ const Connections: React.FC = () => {
 
   useEffect(() => {
     const handleConnections = (_e: unknown, info: ControllerConnections): void => {
-      setConnectionsInfo(info)
-
       if (!info.connections) return
 
       const prevActiveMap = new Map(activeConnections.map((conn) => [conn.id, conn]))
@@ -408,6 +448,18 @@ const Connections: React.FC = () => {
     })
   }, [connectionDirection, patchAppConfig])
 
+  const toggleGroup = useCallback((process: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(process)) {
+        next.delete(process)
+      } else {
+        next.add(process)
+      }
+      return next
+    })
+  }, [])
+
   const renderConnectionItem = useCallback(
     (i: number, connection: ControllerConnectionDetail) => {
       const path = connection.metadata.processPath || ''
@@ -449,29 +501,16 @@ const Connections: React.FC = () => {
     <BasePage
       title="连接"
       header={
-        <>
-          <div className="flex">
-            <div className="flex items-center">
-              <span className="mx-1 text-warning">
-                ↑ {calcTraffic(connectionsInfo?.uploadTotal ?? 0)}{' '}
-              </span>
-              <span className="mx-1 text-primary">
-                ↓ {calcTraffic(connectionsInfo?.downloadTotal ?? 0)}{' '}
-              </span>
-            </div>
-  
-          </div>
-          <Button
-            size="sm"
-            isIconOnly
-            className="app-nodrag"
-            variant="light"
-            title="连接设置"
-            onPress={() => setIsSettingModalOpen(true)}
-          >
-            <MdTune className="text-lg" />
-          </Button>
-        </>
+        <Button
+          size="sm"
+          isIconOnly
+          className="app-nodrag"
+          variant="light"
+          title="连接设置"
+          onPress={() => setIsSettingModalOpen(true)}
+        >
+          <MdTune className="text-lg" />
+        </Button>
       }
     >
       {isDetailModalOpen && selected && (
@@ -521,6 +560,15 @@ const Connections: React.FC = () => {
               <HiSortDescending className="text-lg" />
             )}
           </Button>
+          <Button 
+            size="sm" 
+            isIconOnly 
+            className="bg-content2" 
+            onPress={() => setViewMode(viewMode === 'list' ? 'group' : 'list')}
+            title={viewMode === 'list' ? '按进程分组' : '列表视图'}
+          >
+            {viewMode === 'list' ? <IoApps className="text-lg" /> : <IoList className="text-lg" />}
+          </Button>
           <Button
             size="sm"
             className="bg-content2"
@@ -540,7 +588,7 @@ const Connections: React.FC = () => {
         </div>
         <Divider />
       </div>
-      <div className="h-[calc(100vh-100px)] mt-px">
+      <div className="h-[calc(100vh-100px)] mt-px overflow-y-auto">
         {filteredConnections.length === 0 ? (
           <div className="h-full w-full flex justify-center items-center">
             <div className="flex flex-col items-center text-foreground-400">
@@ -551,8 +599,103 @@ const Connections: React.FC = () => {
               <p className="text-sm opacity-70">连接信息将在这里显示</p>
             </div>
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <Virtuoso data={filteredConnections} itemContent={renderConnectionItem} />
+        ) : (
+          <div className="p-2 space-y-3">
+            {groupedConnections.map(group => {
+              const isExpanded = expandedGroups.has(group.process)
+              const iconUrl = (displayIcon && findProcessMode !== 'off' && iconMap[group.processPath]) || ''
+              const displayName = displayAppName && group.processPath ? appNameCache[group.processPath] : undefined
+              const processName = displayName || group.process.replace(/\.exe$/, '')
+              
+              return (
+                <div key={group.process}>
+                  {/* 分组头部卡片 */}
+                  <Card
+                    isPressable
+                    className="w-full hover:bg-primary/30 transition-all duration-200"
+                    onPress={() => toggleGroup(group.process)}
+                  >
+                    <div className="w-full flex justify-between items-center">
+                      {displayIcon && (
+                        <div>
+                          <Avatar
+                            size="md"
+                            radius="sm"
+                            src={iconUrl}
+                            className="bg-transparent ml-2 w-12 h-12"
+                            fallback={<IoApps className="text-default-400" />}
+                          />
+                        </div>
+                      )}
+                      <div className={`w-full flex flex-col justify-start truncate relative ${displayIcon ? '-ml-2' : ''}`}>
+                        <CardHeader className="pb-0 gap-1 flex items-center pr-4">
+                          <div className="ml-2 flex-1 text-ellipsis whitespace-nowrap overflow-hidden text-left font-medium">
+                            {processName}
+                          </div>
+                          <Chip size="sm" variant="flat" color="primary" className="mr-2">
+                            {group.connections.length} 连接
+                          </Chip>
+                          <span className="text-foreground-400 text-sm">
+                            {isExpanded ? '▼' : '▶'}
+                          </span>
+                        </CardHeader>
+                        <CardFooter className="pt-2">
+                          <div className="flex gap-1 overflow-x-auto no-scrollbar">
+                            <Chip
+                              color="primary"
+                              size="sm"
+                              radius="sm"
+                              variant="dot"
+                            >
+                              {tab === 'active' ? '活动中' : '已关闭'}
+                            </Chip>
+                            <Chip size="sm" radius="sm" variant="bordered">
+                              ↑ {calcTraffic(group.totalUpload)} ↓ {calcTraffic(group.totalDownload)}
+                            </Chip>
+                            {(group.uploadSpeed > 0 || group.downloadSpeed > 0) && (
+                              <Chip color="primary" size="sm" radius="sm" variant="bordered">
+                                ↑ {calcTraffic(group.uploadSpeed)}/s ↓ {calcTraffic(group.downloadSpeed)}/s
+                              </Chip>
+                            )}
+                          </div>
+                        </CardFooter>
+                      </div>
+                    </div>
+                  </Card>
+                  
+                  {/* 展开的连接列表 */}
+                  {isExpanded && (
+                    <div className="ml-6 mt-1 border-l-2 border-primary/30 pl-2">
+                      {group.connections.map((conn, i) => {
+                        const path = conn.metadata.processPath || ''
+                        const connIconUrl = (displayIcon && findProcessMode !== 'off' && iconMap[path]) || ''
+                        const connDisplayName = displayAppName && conn.metadata.processPath 
+                          ? appNameCache[conn.metadata.processPath] 
+                          : undefined
+                        
+                        return (
+                          <ConnectionItem
+                            key={conn.id}
+                            setSelected={setSelected}
+                            setIsDetailModalOpen={setIsDetailModalOpen}
+                            selected={selected}
+                            iconUrl={connIconUrl}
+                            displayIcon={false}
+                            displayName={connDisplayName}
+                            close={closeConnection}
+                            index={i}
+                            info={conn}
+                          />
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </BasePage>

@@ -80,6 +80,10 @@ export async function mihomoUpgradeUI(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUpgradeUI'))
 }
 
+export async function mihomoDnsQuery(name: string, type: string): Promise<{ Answer?: { data: string }[] }> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoDnsQuery', name, type))
+}
+
 export async function mihomoUpgrade(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUpgrade'))
 }
@@ -504,6 +508,63 @@ export async function getAppName(appPath: string): Promise<string> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAppName', appPath))
 }
 
+export async function getTrafficStats(): Promise<{
+  hourly: { hour: string; upload: number; download: number }[]
+  daily: { date: string; upload: number; download: number }[]
+  lastUpdate: number
+  sessionUpload: number
+  sessionDownload: number
+}> {
+  return await window.electron.ipcRenderer.invoke('getTrafficStats')
+}
+
+export async function clearTrafficStats(): Promise<void> {
+  return await window.electron.ipcRenderer.invoke('clearTrafficStats')
+}
+
+export async function getProviderStats(): Promise<{
+  snapshots: { date: string; provider: string; used: number }[]
+  lastUpdate: number
+}> {
+  return await window.electron.ipcRenderer.invoke('getProviderStats')
+}
+
+export async function clearProviderStats(): Promise<void> {
+  return await window.electron.ipcRenderer.invoke('clearProviderStats')
+}
+
+export async function fetchIpInfo(): Promise<{
+  status: string
+  message?: string
+  query?: string
+  country?: string
+  countryCode?: string
+  region?: string
+  regionName?: string
+  city?: string
+  zip?: string
+  lat?: number
+  lon?: number
+  timezone?: string
+  isp?: string
+  org?: string
+  as?: string
+}> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchIpInfo'))
+}
+
+export async function testRuleMatch(domain: string): Promise<{ rule: string; rulePayload: string; proxy: string } | null> {
+  const result = await window.electron.ipcRenderer.invoke('testRuleMatch', domain)
+  if (result && typeof result === 'object' && 'invokeError' in result) {
+    throw result.invokeError
+  }
+  return result
+}
+
+export async function testConnectivity(url: string, timeout?: number): Promise<{ success: boolean; latency: number; status?: number; error?: string }> {
+  return await window.electron.ipcRenderer.invoke('testConnectivity', url, timeout)
+}
+
 export async function getImageDataURL(url: string): Promise<string> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getImageDataURL', url))
 }
@@ -578,3 +639,12 @@ async function alert<T>(msg: T): Promise<void> {
 }
 
 window.alert = alert
+
+
+export async function checkStreamingUnlock(service: string): Promise<{
+  status: 'unlocked' | 'locked' | 'error'
+  region?: string
+  error?: string
+}> {
+  return await window.electron.ipcRenderer.invoke('checkStreamingUnlock', service)
+}

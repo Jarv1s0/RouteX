@@ -66,14 +66,15 @@ const titleMap = {
   profileCardStatus: '订阅管理',
   proxyCardStatus: '代理组',
   ruleCardStatus: '规则',
-  resourceCardStatus: '外部资源',
   overrideCardStatus: '覆写',
   connectionCardStatus: '连接',
   mihomoCoreCardStatus: '内核',
   dnsCardStatus: 'DNS',
   sniffCardStatus: '域名嗅探',
   logCardStatus: '日志',
-  substoreCardStatus: 'Sub-Store'
+  substoreCardStatus: 'Sub-Store',
+  statsCardStatus: '统计',
+  toolsCardStatus: '工具'
 }
 
 const SiderConfigContent: React.FC = () => {
@@ -85,14 +86,15 @@ const SiderConfigContent: React.FC = () => {
     profileCardStatus = 'col-span-2',
     proxyCardStatus = 'col-span-2',
     ruleCardStatus = 'col-span-1',
-    resourceCardStatus = 'col-span-1',
     overrideCardStatus = 'col-span-1',
     connectionCardStatus = 'col-span-2',
     mihomoCoreCardStatus = 'col-span-2',
     dnsCardStatus = 'col-span-1',
     sniffCardStatus = 'col-span-1',
     logCardStatus = 'col-span-1',
-    substoreCardStatus = 'col-span-1'
+    substoreCardStatus = 'col-span-1',
+    statsCardStatus = 'col-span-1',
+    toolsCardStatus = 'col-span-1'
   } = appConfig || {}
 
   const cardStatus = {
@@ -101,14 +103,15 @@ const SiderConfigContent: React.FC = () => {
     profileCardStatus,
     proxyCardStatus,
     ruleCardStatus,
-    resourceCardStatus,
     overrideCardStatus,
     connectionCardStatus,
     mihomoCoreCardStatus,
     dnsCardStatus,
     sniffCardStatus,
     logCardStatus,
-    substoreCardStatus
+    substoreCardStatus,
+    statsCardStatus,
+    toolsCardStatus
   }
 
   return (

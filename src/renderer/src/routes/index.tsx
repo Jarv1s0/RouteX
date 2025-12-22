@@ -13,6 +13,8 @@ import Tun from '@renderer/pages/tun'
 import DNS from '@renderer/pages/dns'
 import Sniffer from '@renderer/pages/sniffer'
 import SubStore from '@renderer/pages/substore'
+import Stats from '@renderer/pages/stats'
+import Tools from '@renderer/pages/tools'
 const routes = [
   {
     path: '/mihomo',
@@ -66,6 +68,14 @@ const routes = [
   {
     path: '/substore',
     element: <SubStore />
+  },
+  {
+    path: '/stats',
+    element: <Stats />
+  },
+  {
+    path: '/tools',
+    element: <Tools />
   },
   {
     path: '/',

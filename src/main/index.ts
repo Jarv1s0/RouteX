@@ -31,6 +31,8 @@ import { showFloatingWindow } from './resolve/floatingWindow'
 import iconv from 'iconv-lite'
 import { getAppConfigSync } from './config/app'
 import { getUserAgent } from './utils/userAgent'
+import { loadTrafficStats } from './resolve/trafficStats'
+import { loadProviderStats, startMapUpdateTimer } from './resolve/providerStats'
 
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
@@ -307,6 +309,13 @@ app.whenReady().then(async () => {
     dialog.showErrorBox('应用初始化失败', `${e}`)
     app.quit()
   }
+
+  // 加载流量统计数据
+  loadTrafficStats()
+  
+  // 加载订阅统计数据
+  loadProviderStats()
+  startMapUpdateTimer()
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

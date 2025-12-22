@@ -1,5 +1,5 @@
 import { useTheme } from 'next-themes'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import PageTransition from '@renderer/components/base/page-transition'
@@ -33,6 +33,8 @@ import { applyTheme, checkUpdate, setNativeTheme, setTitleBarOverlay } from '@re
 import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
 import SubStoreCard from '@renderer/components/sider/substore-card'
+import StatsCard from '@renderer/components/sider/stats-card'
+import ToolsCard from '@renderer/components/sider/tools-card'
 import MihomoIcon from './components/base/mihomo-icon'
 import useSWR from 'swr'
 import ConfirmModal from '@renderer/components/base/base-confirm'
@@ -51,7 +53,9 @@ const defaultSiderOrder = [
   'rule',
   'override',
   'log',
-  'substore'
+  'substore',
+  'stats',
+  'tools'
 ]
 
 const App: React.FC = () => {
@@ -67,8 +71,19 @@ const App: React.FC = () => {
     disableAnimation = false
   } = appConfig || {}
   const siderOrderArray = siderOrder ?? defaultSiderOrder
+  // 确保新增的卡片被添加到已有配置中
+  const mergedSiderOrder = useMemo(() => {
+    let result = siderOrderArray
+    if (!result.includes('stats')) {
+      result = [...result, 'stats']
+    }
+    if (!result.includes('tools')) {
+      result = [...result, 'tools']
+    }
+    return result
+  }, [siderOrderArray])
   const narrowWidth = platform === 'darwin' ? 70 : 60
-  const [order, setOrder] = useState(siderOrderArray)
+  const [order, setOrder] = useState(mergedSiderOrder)
   // 初始值固定为 250，避免闪烁
   const [siderWidthValue, setSiderWidthValue] = useState(siderWidth)
   const siderWidthValueRef = useRef(siderWidthValue)
@@ -100,9 +115,9 @@ const App: React.FC = () => {
   )
 
   useEffect(() => {
-    setOrder(siderOrderArray)
+    setOrder(mergedSiderOrder)
     setSiderWidthValue(siderWidth)
-  }, [siderOrderArray, siderWidth])
+  }, [mergedSiderOrder, siderWidth])
 
   useEffect(() => {
     siderWidthValueRef.current = siderWidthValue
@@ -172,7 +187,9 @@ const App: React.FC = () => {
     log: 'logs',
     rule: 'rules',
     override: 'override',
-    substore: 'substore'
+    substore: 'substore',
+    stats: 'stats',
+    tools: 'tools'
   }
 
   const componentMap = {
@@ -187,7 +204,9 @@ const App: React.FC = () => {
     log: LogCard,
     rule: RuleCard,
     override: OverrideCard,
-    substore: SubStoreCard
+    substore: SubStoreCard,
+    stats: StatsCard,
+    tools: ToolsCard
   }
 
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)

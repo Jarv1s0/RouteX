@@ -16,7 +16,6 @@ import {
   mihomoUpgrade,
   restartCore,
   revokeCorePermission,
-  findSystemMihomo,
   deleteElevateTask,
   checkElevateTask,
   relaunchApp,
@@ -28,33 +27,10 @@ import {
   initService,
   restartService
 } from '@renderer/utils/ipc'
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
-
-let systemCorePathsCache: string[] | null = null
-let cachePromise: Promise<string[]> | null = null
-
-const getSystemCorePaths = async (): Promise<string[]> => {
-  if (systemCorePathsCache !== null) return systemCorePathsCache
-  if (cachePromise !== null) return cachePromise
-
-  cachePromise = findSystemMihomo()
-    .then((paths) => {
-      systemCorePathsCache = paths
-      cachePromise = null
-      return paths
-    })
-    .catch(() => {
-      cachePromise = null
-      return []
-    })
-
-  return cachePromise
-}
-
-getSystemCorePaths().catch(() => {})
 
 const Mihomo: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -68,17 +44,6 @@ const Mihomo: React.FC = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
   const [pendingPermissionMode, setPendingPermissionMode] = useState<string>('')
-  const [systemCorePaths, setSystemCorePaths] = useState<string[]>(systemCorePathsCache || [])
-  const [loadingPaths, setLoadingPaths] = useState(systemCorePathsCache === null)
-
-  useEffect(() => {
-    if (systemCorePathsCache !== null) return
-
-    getSystemCorePaths()
-      .then(setSystemCorePaths)
-      .catch(() => {})
-      .finally(() => setLoadingPaths(false))
-  }, [])
 
   const onChangeNeedRestart = async (patch: Partial<MihomoConfig>): Promise<void> => {
     await patchControledMihomoConfig(patch)
@@ -111,21 +76,7 @@ const Mihomo: React.FC = () => {
     }
   }
 
-  const handleCoreChange = async (newCore: 'mihomo' | 'mihomo-alpha' | 'system'): Promise<void> => {
-    if (newCore === 'system') {
-      const paths = await getSystemCorePaths()
-
-      if (paths.length === 0) {
-        new Notification('未找到系统内核', {
-          body: '系统中未找到可用的 mihomo 或 clash 内核，已自动切换回内置内核'
-        })
-        return
-      }
-
-      if (!appConfig?.systemCorePath || !paths.includes(appConfig.systemCorePath)) {
-        await patchAppConfig({ systemCorePath: paths[0] })
-      }
-    }
+  const handleCoreChange = async (newCore: 'mihomo' | 'mihomo-alpha'): Promise<void> => {
     handleConfigChangeWithRestart('core', newCore)
   }
 
@@ -299,43 +250,13 @@ const Mihomo: React.FC = () => {
             selectedKeys={new Set([core])}
             disallowEmptySelection={true}
             onSelectionChange={(v) =>
-              handleCoreChange(v.currentKey as 'mihomo' | 'mihomo-alpha' | 'system')
+              handleCoreChange(v.currentKey as 'mihomo' | 'mihomo-alpha')
             }
           >
-            <SelectItem key="mihomo">内置稳定版</SelectItem>
-            <SelectItem key="mihomo-alpha">内置预览版</SelectItem>
-            <SelectItem key="system">使用系统内核</SelectItem>
+            <SelectItem key="mihomo">Mihomo</SelectItem>
+            <SelectItem key="mihomo-alpha">Mihomo Alpha</SelectItem>
           </Select>
         </SettingItem>
-        {core === 'system' && (
-          <SettingItem title="系统内核路径选择" divider>
-            <Select
-              classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-              className="w-[350px]"
-              size="sm"
-              selectedKeys={new Set([appConfig?.systemCorePath || ''])}
-              disallowEmptySelection={systemCorePaths.length > 0}
-              isDisabled={loadingPaths}
-              onSelectionChange={(v) => {
-                const selectedPath = v.currentKey as string
-                if (selectedPath) handleConfigChangeWithRestart('systemCorePath', selectedPath)
-              }}
-            >
-              {loadingPaths ? (
-                <SelectItem key="">正在查找系统内核...</SelectItem>
-              ) : systemCorePaths.length > 0 ? (
-                systemCorePaths.map((path) => <SelectItem key={path}>{path}</SelectItem>)
-              ) : (
-                <SelectItem key="">未找到系统内核</SelectItem>
-              )}
-            </Select>
-            {!loadingPaths && systemCorePaths.length === 0 && (
-              <div className="mt-2 text-sm text-warning">
-                未在系统中找到 mihomo 或 clash 内核，请安装后重试
-              </div>
-            )}
-          </SettingItem>
-        )}
         <SettingItem title="运行模式" divider>
           <Tabs
             size="sm"

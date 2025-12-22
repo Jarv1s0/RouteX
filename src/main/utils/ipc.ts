@@ -15,6 +15,7 @@ import {
   mihomoUpdateRuleProviders,
   mihomoUpgrade,
   mihomoUpgradeUI,
+  mihomoDnsQuery,
   mihomoUpgradeGeo,
   mihomoVersion,
   mihomoConfig,
@@ -126,6 +127,263 @@ import { startMonitor } from '../resolve/trafficMonitor'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
 import { getAppName } from './appName'
 import { getUserAgent } from './userAgent'
+import { getTrafficStats, clearTrafficStats } from '../resolve/trafficStats'
+import { getProviderStats, clearProviderStats } from '../resolve/providerStats'
+import { net } from 'electron'
+import { mihomoGetConnections } from '../core/mihomoApi'
+
+// 流媒体解锁检测
+interface StreamingResult {
+  status: 'unlocked' | 'locked' | 'error'
+  region?: string
+  error?: string
+}
+
+async function checkStreamingService(service: string): Promise<StreamingResult> {
+  const timeout = 15000
+  
+  try {
+    switch (service) {
+      case 'netflix':
+        return await checkNetflix(timeout)
+      case 'disney':
+        return await checkDisney(timeout)
+      case 'youtube':
+        return await checkYouTube(timeout)
+      case 'spotify':
+        return await checkSpotify(timeout)
+      case 'chatgpt':
+        return await checkChatGPT(timeout)
+      case 'gemini':
+        return await checkGemini(timeout)
+      case 'tiktok':
+        return await checkTikTok(timeout)
+      default:
+        return { status: 'error', error: '未知服务' }
+    }
+  } catch (e) {
+    return { status: 'error', error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function httpGet(url: string, timeout: number): Promise<{ status: number; data: string; headers: Record<string, string> }> {
+  return new Promise((resolve, reject) => {
+    try {
+      const request = net.request({ url, method: 'GET', redirect: 'follow' })
+      let data = ''
+      let resolved = false
+      
+      const timer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          try { request.abort() } catch {}
+          reject(new Error('请求超时'))
+        }
+      }, timeout)
+      
+      request.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+      request.setHeader('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
+      request.setHeader('Accept-Language', 'en-US,en;q=0.5')
+      
+      request.on('response', (response) => {
+        const headers: Record<string, string> = {}
+        Object.entries(response.headers).forEach(([key, value]) => {
+          headers[key.toLowerCase()] = Array.isArray(value) ? value[0] : value || ''
+        })
+        
+        response.on('data', (chunk) => {
+          data += chunk.toString()
+          // 限制数据大小，避免内存问题
+          if (data.length > 100000) {
+            data = data.substring(0, 100000)
+          }
+        })
+        response.on('end', () => {
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve({ status: response.statusCode, data, headers })
+          }
+        })
+        response.on('error', (error) => {
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timer)
+            reject(error)
+          }
+        })
+      })
+      
+      request.on('error', (error) => {
+        if (!resolved) {
+          resolved = true
+          clearTimeout(timer)
+          reject(error)
+        }
+      })
+      
+      request.end()
+    } catch (e) {
+      reject(e)
+    }
+  })
+}
+
+async function checkNetflix(timeout: number): Promise<StreamingResult> {
+  try {
+    // 检测 Netflix 非自制剧（80018499 是地区限制内容）
+    const res = await httpGet('https://www.netflix.com/title/80018499', timeout)
+    if (res.status === 200) {
+      // 尝试从响应中提取地区
+      const regionMatch = res.data.match(/"countryCode":"([A-Z]{2})"/)
+      return { status: 'unlocked', region: regionMatch ? regionMatch[1] : 'Unknown' }
+    } else if (res.status === 404) {
+      // 404 可能是自制剧解锁
+      const res2 = await httpGet('https://www.netflix.com/title/70143836', timeout)
+      if (res2.status === 200) {
+        return { status: 'unlocked', region: '仅自制剧' }
+      }
+      return { status: 'locked' }
+    }
+    return { status: 'locked' }
+  } catch (e) {
+    return { status: 'error', error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function checkDisney(timeout: number): Promise<StreamingResult> {
+  try {
+    const res = await httpGet('https://www.disneyplus.com/', timeout)
+    if (res.status === 200) {
+      // 检查是否被重定向到不支持的地区页面
+      if (res.data.includes('unavailable') || res.data.includes('not-available')) {
+        return { status: 'locked' }
+      }
+      // 尝试提取地区
+      const regionMatch = res.data.match(/"region":"([A-Z]{2})"/) || res.data.match(/data-location="([A-Z]{2})"/)
+      return { status: 'unlocked', region: regionMatch ? regionMatch[1] : 'Unknown' }
+    }
+    return { status: 'locked' }
+  } catch (e) {
+    return { status: 'error', error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function checkYouTube(timeout: number): Promise<StreamingResult> {
+  try {
+    const res = await httpGet('https://www.youtube.com/premium', timeout)
+    if (res.status === 200) {
+      // 从页面提取地区代码
+      const regionMatch = res.data.match(/"GL":"([A-Z]{2})"/) || res.data.match(/"INNERTUBE_CONTEXT_GL":"([A-Z]{2})"/)
+      return { status: 'unlocked', region: regionMatch ? regionMatch[1] : 'Unknown' }
+    }
+    return { status: 'locked' }
+  } catch (e) {
+    return { status: 'error', error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function checkSpotify(timeout: number): Promise<StreamingResult> {
+  try {
+    const res = await httpGet('https://open.spotify.com/', timeout)
+    if (res.status === 200) {
+      return { status: 'unlocked', region: 'Available' }
+    }
+    return { status: 'locked' }
+  } catch (e) {
+    return { status: 'error', error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function checkChatGPT(timeout: number): Promise<StreamingResult> {
+  try {
+    // 使用 iOS 客户端 API 检测，更准确
+    const res = await httpGet('https://ios.chat.openai.com/', timeout)
+    if (res.status === 200 || res.status === 302 || res.status === 301) {
+      return { status: 'unlocked', region: 'Available' }
+    } else if (res.status === 403) {
+      // 检查是否是地区限制
+      if (res.data.includes('blocked') || res.data.includes('unavailable') || res.data.includes('VPN')) {
+        return { status: 'locked' }
+      }
+    }
+    // 备用检测
+    const res2 = await httpGet('https://api.openai.com/v1/models', timeout)
+    if (res2.status === 401) {
+      // 401 表示需要认证，说明可以访问
+      return { status: 'unlocked', region: 'Available' }
+    } else if (res2.status === 403) {
+      return { status: 'locked' }
+    }
+    return { status: 'unlocked', region: 'Available' }
+  } catch (e) {
+    return { status: 'error', error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function checkTikTok(timeout: number): Promise<StreamingResult> {
+  try {
+    const res = await httpGet('https://www.tiktok.com/', timeout)
+    if (res.status === 200) {
+      // 检查是否被重定向或阻止
+      if (res.data.includes('not available') || res.data.includes('unavailable')) {
+        return { status: 'locked' }
+      }
+      return { status: 'unlocked', region: 'Available' }
+    }
+    return { status: 'locked' }
+  } catch (e) {
+    return { status: 'error', error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+async function checkGemini(timeout: number): Promise<StreamingResult> {
+  try {
+    const res = await httpGet('https://gemini.google.com/', timeout)
+    if (res.status === 200) {
+      // 检查是否被阻止
+      if (res.data.includes('not available') || res.data.includes('unavailable') || res.data.includes('not supported')) {
+        return { status: 'locked' }
+      }
+      return { status: 'unlocked', region: 'Available' }
+    } else if (res.status === 403) {
+      return { status: 'locked' }
+    }
+    return { status: 'unlocked', region: 'Available' }
+  } catch (e) {
+    return { status: 'error', error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+// 辅助函数：根据域名查找连接记录
+async function findConnectionByHost(domain: string): Promise<{ rule: string; rulePayload: string; proxy: string } | null> {
+  try {
+    const connections = await mihomoGetConnections()
+    if (!connections?.connections) return null
+    
+    const conn = connections.connections.find(c => 
+      c.metadata?.host?.toLowerCase() === domain.toLowerCase() ||
+      c.metadata?.host?.toLowerCase().endsWith('.' + domain.toLowerCase())
+    )
+    
+    if (conn) {
+      // 关闭这个测试连接
+      try {
+        await mihomoCloseConnection(conn.id)
+      } catch {
+        // ignore
+      }
+      return {
+        rule: conn.rule || '',
+        rulePayload: conn.rulePayload || '',
+        proxy: conn.chains?.[0] || ''
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
 function ipcErrorWrapper<T>( // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: (...args: any[]) => Promise<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -173,6 +431,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('mihomoUnfixedProxy', (_e, group) => ipcErrorWrapper(mihomoUnfixedProxy)(group))
   ipcMain.handle('mihomoUpgradeGeo', ipcErrorWrapper(mihomoUpgradeGeo))
   ipcMain.handle('mihomoUpgradeUI', ipcErrorWrapper(mihomoUpgradeUI))
+  ipcMain.handle('mihomoDnsQuery', (_e, name, type) => ipcErrorWrapper(mihomoDnsQuery)(name, type))
   ipcMain.handle('mihomoUpgrade', ipcErrorWrapper(mihomoUpgrade))
   ipcMain.handle('mihomoProxyDelay', (_e, proxy, url) =>
     ipcErrorWrapper(mihomoProxyDelay)(proxy, url)
@@ -309,6 +568,109 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('getAppName', (_e, appPath) => ipcErrorWrapper(getAppName)(appPath))
   ipcMain.handle('getImageDataURL', (_e, url) => ipcErrorWrapper(getImageDataURL)(url))
   ipcMain.handle('getIconDataURL', (_e, appPath) => ipcErrorWrapper(getIconDataURL)(appPath))
+  ipcMain.handle('getTrafficStats', () => getTrafficStats())
+  ipcMain.handle('clearTrafficStats', () => clearTrafficStats())
+  ipcMain.handle('getProviderStats', () => getProviderStats())
+  ipcMain.handle('clearProviderStats', () => clearProviderStats())
+  ipcMain.handle('fetchIpInfo', ipcErrorWrapper(async () => {
+    return new Promise((resolve, reject) => {
+      const request = net.request('http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query')
+      let data = ''
+      request.on('response', (response) => {
+        response.on('data', (chunk) => {
+          data += chunk.toString()
+        })
+        response.on('end', () => {
+          try {
+            const json = JSON.parse(data)
+            resolve(json)
+          } catch {
+            reject(new Error('解析失败'))
+          }
+        })
+      })
+      request.on('error', (error) => {
+        reject(error)
+      })
+      request.end()
+    })
+  }))
+  ipcMain.handle('testRuleMatch', async (_e, domain: string) => {
+    try {
+      // 发起一个请求来触发规则匹配
+      return await new Promise(async (resolve) => {
+        const url = `http://${domain}/`
+        const request = net.request({ url, method: 'HEAD' })
+        
+        // 设置超时
+        const timeout = setTimeout(async () => {
+          request.abort()
+          // 查找连接记录
+          const result = await findConnectionByHost(domain)
+          resolve(result)
+        }, 3000)
+        
+        request.on('response', async () => {
+          clearTimeout(timeout)
+          request.abort()
+          // 等待一下让连接记录更新
+          await new Promise(r => setTimeout(r, 500))
+          const result = await findConnectionByHost(domain)
+          resolve(result)
+        })
+        
+        request.on('error', async () => {
+          clearTimeout(timeout)
+          // 即使请求失败，也可能有连接记录
+          await new Promise(r => setTimeout(r, 500))
+          const result = await findConnectionByHost(domain)
+          resolve(result)
+        })
+        
+        request.end()
+      })
+    } catch (e) {
+      return { invokeError: e instanceof Error ? e.message : String(e) }
+    }
+  })
+  ipcMain.handle('testConnectivity', async (_e, url: string, timeout: number = 5000) => {
+    try {
+      return await new Promise((resolve) => {
+        const startTime = Date.now()
+        const request = net.request({ url, method: 'GET' })
+        
+        const timer = setTimeout(() => {
+          request.abort()
+          resolve({ success: false, latency: -1, error: '超时' })
+        }, timeout)
+        
+        request.on('response', (response) => {
+          clearTimeout(timer)
+          const latency = Date.now() - startTime
+          // 收到响应就立即中止，不需要读取内容
+          request.abort()
+          resolve({ success: response.statusCode < 400, latency, status: response.statusCode })
+        })
+        
+        request.on('error', (error) => {
+          clearTimeout(timer)
+          resolve({ success: false, latency: -1, error: error.message })
+        })
+        
+        request.end()
+      })
+    } catch (e) {
+      return { success: false, latency: -1, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+  // 流媒体解锁检测
+  ipcMain.handle('checkStreamingUnlock', async (_e, service: string) => {
+    try {
+      return await checkStreamingService(service)
+    } catch (e) {
+      return { status: 'error', region: '', error: e instanceof Error ? e.message : String(e) }
+    }
+  })
   ipcMain.handle('resolveThemes', () => ipcErrorWrapper(resolveThemes)())
   ipcMain.handle('fetchThemes', () => ipcErrorWrapper(fetchThemes)())
   ipcMain.handle('importThemes', (_e, file) => ipcErrorWrapper(importThemes)(file))

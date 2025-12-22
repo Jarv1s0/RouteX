@@ -7,12 +7,15 @@ import { calcTraffic } from '../utils/calc'
 import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
 import { mihomoIpcPath } from '../utils/dirs'
+import { updateTrafficStats } from '../resolve/trafficStats'
 
 let axiosIns: AxiosInstance = null!
 let mihomoTrafficWs: WebSocket | null = null
 let trafficRetry = 10
 let mihomoMemoryWs: WebSocket | null = null
 let memoryRetry = 10
+let totalUpload = 0
+let totalDownload = 0
 let mihomoLogsWs: WebSocket | null = null
 let logsRetry = 10
 let mihomoConnectionsWs: WebSocket | null = null
@@ -209,6 +212,11 @@ export const mihomoUpgradeUI = async (): Promise<void> => {
   return await instance.post('/upgrade/ui')
 }
 
+export const mihomoDnsQuery = async (name: string, type: string): Promise<{ Answer?: { data: string }[] }> => {
+  const instance = await getAxios()
+  return await instance.get('/dns/query', { params: { name, type } })
+}
+
 export const startMihomoTraffic = async (): Promise<void> => {
   await mihomoTraffic()
 }
@@ -230,6 +238,12 @@ const mihomoTraffic = async (): Promise<void> => {
     const data = e.data as string
     const json = JSON.parse(data) as ControllerTraffic
     trafficRetry = 10
+    
+    // 累计流量并更新统计
+    totalUpload += json.up
+    totalDownload += json.down
+    updateTrafficStats(totalUpload, totalDownload)
+    
     try {
       mainWindow?.webContents.send('mihomoTraffic', json)
       if (process.platform !== 'linux') {
@@ -376,7 +390,8 @@ const mihomoConnections = async (): Promise<void> => {
     const data = e.data as string
     connectionsRetry = 10
     try {
-      mainWindow?.webContents.send('mihomoConnections', JSON.parse(data) as ControllerConnections)
+      const connectionsData = JSON.parse(data) as ControllerConnections
+      mainWindow?.webContents.send('mihomoConnections', connectionsData)
     } catch {
       // ignore
     }

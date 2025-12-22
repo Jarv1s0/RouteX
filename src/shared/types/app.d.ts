@@ -51,7 +51,9 @@ interface AppConfig {
   resourceCardStatus?: CardStatus
   ruleCardStatus?: CardStatus
   sniffCardStatus?: CardStatus
+  statsCardStatus?: CardStatus
   substoreCardStatus?: CardStatus
+  toolsCardStatus?: CardStatus
   sysproxyCardStatus?: CardStatus
   tunCardStatus?: CardStatus
   githubToken?: string

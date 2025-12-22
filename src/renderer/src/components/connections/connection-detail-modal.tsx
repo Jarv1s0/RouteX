@@ -69,11 +69,11 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                 </div>
                 <div>
                   <div className="text-foreground-500">↑ 总量</div>
-                  <div>{calcTraffic(connection.upload)}</div>
+                  <div className="text-warning">{calcTraffic(connection.upload)}</div>
                 </div>
                 <div>
                   <div className="text-foreground-500">↓ 总量</div>
-                  <div>{calcTraffic(connection.download)}</div>
+                  <div className="text-primary">{calcTraffic(connection.download)}</div>
                 </div>
               </div>
             </CardBody>
