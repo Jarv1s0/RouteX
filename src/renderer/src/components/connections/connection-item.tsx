@@ -1,8 +1,9 @@
-import { Avatar, Button, Card, CardFooter, CardHeader, Chip } from '@heroui/react'
+import { Avatar, Button, Card, Chip } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import dayjs from 'dayjs'
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { CgClose, CgTrash } from 'react-icons/cg'
+import { IoEyeOff, IoEye } from 'react-icons/io5'
 
 interface Props {
   index: number
@@ -14,6 +15,9 @@ interface Props {
   setSelected: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
   setIsDetailModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   close: (id: string) => void
+  hide?: (id: string) => void
+  unhide?: (id: string) => void
+  isHidden?: boolean
 }
 
 const ConnectionItemComponent: React.FC<Props> = ({
@@ -23,6 +27,9 @@ const ConnectionItemComponent: React.FC<Props> = ({
   iconUrl,
   displayName,
   close,
+  hide,
+  unhide,
+  isHidden,
   setSelected,
   setIsDetailModalOpen
 }) => {
@@ -84,74 +91,110 @@ const ConnectionItemComponent: React.FC<Props> = ({
     close(info.id)
   }, [close, info.id])
 
+  const handleHide = useCallback(() => {
+    if (isHidden && unhide) {
+      unhide(info.id)
+    } else if (!isHidden && hide) {
+      hide(info.id)
+    }
+  }, [hide, unhide, isHidden, info.id])
+
   return (
-    <div className={`px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`} style={{ minHeight: 80 }}>
+    <div className={`px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
       <Card
         as="div"
         isPressable
-        className="w-full hover:bg-primary/30 transition-all duration-200"
+        shadow="sm"
+        className="w-full hover:shadow-md hover:scale-[1.01] transition-all duration-200 border-1 border-divider"
         onPress={handleCardPress}
       >
-        <div className="w-full flex justify-between items-center">
+        <div className="w-full flex items-center p-3 gap-3">
           {displayIcon && (
-            <div>
-              <Avatar
-                size="md"
-                radius="sm"
-                src={iconUrl}
-                className="bg-transparent ml-2 w-12 h-12"
-              />
-            </div>
+            <Avatar
+              size="md"
+              radius="md"
+              src={iconUrl}
+              className="flex-shrink-0"
+            />
           )}
-          <div
-            className={`w-full flex flex-col justify-start truncate relative ${displayIcon ? '-ml-2' : ''}`}
-          >
-            <CardHeader className="pb-0 gap-1 flex items-center pr-12 relative">
-              <div className="ml-2 flex-1 text-ellipsis whitespace-nowrap overflow-hidden text-left">
-                <span style={{ textAlign: 'left' }}>
-                  {processName} → {destination}
-                </span>
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <div className="flex items-center gap-2 pr-20 relative">
+              <div className="flex-1 min-w-0 text-sm truncate">
+                <span className="font-medium">{processName}</span>
+                <span className="text-foreground-400"> → </span>
+                <span>{destination}</span>
               </div>
-              <small className="ml-2 whitespace-nowrap text-foreground-500">{timeAgo}</small>
+              <small className="text-xs text-foreground-400 whitespace-nowrap">{timeAgo}</small>
+              {(hide || unhide) && (
+                <Button
+                  color="default"
+                  variant="light"
+                  isIconOnly
+                  size="sm"
+                  className="absolute right-10"
+                  onPress={handleHide}
+                  title={isHidden ? '取消隐藏' : '隐藏连接'}
+                >
+                  {isHidden ? <IoEye className="text-base" /> : <IoEyeOff className="text-base" />}
+                </Button>
+              )}
               <Button
                 color={info.isActive ? 'warning' : 'danger'}
                 variant="light"
                 isIconOnly
                 size="sm"
-                className="absolute right-2 transform"
+                className="absolute right-2"
                 onPress={handleClose}
               >
-                {info.isActive ? <CgClose className="text-lg" /> : <CgTrash className="text-lg" />}
+                {info.isActive ? <CgClose className="text-base" /> : <CgTrash className="text-base" />}
               </Button>
-            </CardHeader>
-            <CardFooter className="pt-2">
-              <div className="flex gap-1 overflow-x-auto no-scrollbar">
-                <Chip
-                  color={info.isActive ? 'primary' : 'danger'}
-                  size="sm"
-                  radius="sm"
-                  variant="dot"
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              <Chip
+                color={
+                  !info.isActive ? 'danger' :
+                  info.metadata.type === 'Inner' ? 'warning' :
+                  'default'
+                }
+                size="sm"
+                radius="md"
+                variant="flat"
+                classNames={{ content: "text-xs" }}
+              >
+                {info.metadata.type}·{info.metadata.network.toUpperCase()}
+              </Chip>
+              <Chip
+                className="flag-emoji"
+                size="sm"
+                radius="md"
+                variant="flat"
+                classNames={{ content: "text-xs" }}
+                style={{ backgroundColor: 'rgba(5, 150, 105, 0.15)', color: 'rgb(5, 150, 105)' }}
+              >
+                {info.chains[0]}
+              </Chip>
+              <Chip 
+                size="sm" 
+                radius="md" 
+                variant="flat"
+              >
+                <span className="text-xs" style={{ color: 'rgb(34, 211, 238)' }}>↑ {uploadTraffic}</span>
+                <span className="text-xs"> </span>
+                <span className="text-xs" style={{ color: 'rgb(192, 132, 252)' }}>↓ {downloadTraffic}</span>
+              </Chip>
+              {hasSpeed && (
+                <Chip 
+                  color="success" 
+                  size="sm" 
+                  radius="md" 
+                  variant="flat"
                 >
-                  {info.metadata.type}({info.metadata.network.toUpperCase()})
+                  <span className="text-xs font-medium" style={{ color: 'rgb(34, 211, 238)' }}>↑ {uploadSpeed || '0 B'}/s</span>
+                  <span className="text-xs font-medium"> </span>
+                  <span className="text-xs font-medium" style={{ color: 'rgb(192, 132, 252)' }}>↓ {downloadSpeed || '0 B'}/s</span>
                 </Chip>
-                <Chip
-                  className="flag-emoji whitespace-nowrap overflow-hidden"
-                  size="sm"
-                  radius="sm"
-                  variant="bordered"
-                >
-                  {info.chains[0]}
-                </Chip>
-                <Chip size="sm" radius="sm" variant="bordered">
-                  ↑ {uploadTraffic} ↓ {downloadTraffic}
-                </Chip>
-                {hasSpeed && (
-                  <Chip color="primary" size="sm" radius="sm" variant="bordered">
-                    ↑ {uploadSpeed || '0 B'}/s ↓ {downloadSpeed || '0 B'}/s
-                  </Chip>
-                )}
-              </div>
-            </CardFooter>
+              )}
+            </div>
           </div>
         </div>
       </Card>
@@ -170,7 +213,8 @@ const ConnectionItem = memo(ConnectionItemComponent, (prevProps, nextProps) => {
     prevProps.iconUrl === nextProps.iconUrl &&
     prevProps.displayIcon === nextProps.displayIcon &&
     prevProps.displayName === nextProps.displayName &&
-    prevProps.selected?.id === nextProps.selected?.id
+    prevProps.selected?.id === nextProps.selected?.id &&
+    prevProps.isHidden === nextProps.isHidden
   )
 })
 

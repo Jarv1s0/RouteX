@@ -1,4 +1,4 @@
-import { Avatar, Button, Card, CardBody, Chip } from '@heroui/react'
+import { Avatar, Button, Card, CardBody } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
@@ -7,12 +7,10 @@ import {
   mihomoCloseAllConnections,
   mihomoProxyDelay
 } from '@renderer/utils/ipc'
-import { FaLocationCrosshairs } from 'react-icons/fa6'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { GroupedVirtuoso, GroupedVirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
-import { IoChevronForward } from 'react-icons/io5'
 import { MdOutlineSpeed, MdTune } from 'react-icons/md'
 import { TbBolt } from 'react-icons/tb'
 import { useGroups } from '@renderer/hooks/use-groups'
@@ -27,7 +25,6 @@ const Proxies: React.FC = () => {
   const { appConfig } = useAppConfig()
   const {
     proxyDisplayLayout = 'double',
-    groupDisplayLayout = 'double',
     proxyDisplayOrder = 'default',
     autoCloseConnection = true,
     proxyCols = 'auto',
@@ -172,30 +169,6 @@ const Proxies: React.FC = () => {
     })
   }, [])
 
-  const scrollToCurrentProxy = useCallback(
-    (index: number) => {
-      if (!isOpen[index]) {
-        setIsOpen((prev) => {
-          const newOpen = [...prev]
-          newOpen[index] = true
-          return newOpen
-        })
-      }
-      let i = 0
-      for (let j = 0; j < index; j++) {
-        i += groupCounts[j]
-      }
-      i += Math.floor(
-        allProxies[index].findIndex((proxy) => proxy.name === groups[index].now) / cols
-      )
-      virtuosoRef.current?.scrollToIndex({
-        index: Math.floor(i),
-        align: 'start'
-      })
-    },
-    [isOpen, groupCounts, allProxies, groups, cols]
-  )
-
   useEffect(() => {
     if (proxyCols !== 'auto') {
       setCols(parseInt(proxyCols))
@@ -211,6 +184,23 @@ const Proxies: React.FC = () => {
     }
   }, [proxyCols, calcCols])
 
+  // 获取节点延迟颜色
+  const getDelayColor = useCallback((proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {
+    if (!proxy.history || proxy.history.length === 0) return 'bg-zinc-400' // 未测试 - 灰色
+    const delay = proxy.history[proxy.history.length - 1].delay
+    if (delay === 0) return 'bg-red-500' // 超时 - 红色
+    if (delay < 200) return 'bg-emerald-500' // 低延迟 - 翠绿色
+    if (delay < 500) return 'bg-amber-400' // 中延迟 - 琥珀色
+    return 'bg-red-500' // 高延迟 - 红色
+  }, [])
+
+  // 获取当前节点延迟
+  const getCurrentDelay = useCallback((group: ControllerMixedGroup): number => {
+    const current = group.all?.find((p) => p.name === group.now)
+    if (!current?.history?.length) return -1
+    return current.history[current.history.length - 1].delay
+  }, [])
+
   const groupContent = useCallback(
     (index: number) => {
       if (
@@ -224,7 +214,12 @@ const Proxies: React.FC = () => {
           mutate()
         })
       }
-      return groups[index] ? (
+      
+      const group = groups[index]
+      const currentDelay = getCurrentDelay(group)
+      const delayColor = currentDelay === -1 ? 'text-default-400' : currentDelay === 0 ? 'text-danger' : currentDelay < 200 ? 'text-success' : currentDelay < 500 ? 'text-warning' : 'text-danger'
+      
+      return group ? (
         <div
           className={`w-full pt-2 ${index === groupCounts.length - 1 && !isOpen[index] ? 'pb-2' : ''} px-2`}
         >
@@ -233,89 +228,81 @@ const Proxies: React.FC = () => {
             isPressable
             fullWidth
             onPress={() => toggleOpen(index)}
-            className={`transition-all duration-200 hover:bg-primary/30 ${isOpen[index] ? 'shadow-md' : 'hover:shadow-md'}`}
+            className={`transition-all duration-200 ${isOpen[index] ? 'shadow-md bg-content2' : 'hover:shadow-md'}`}
           >
-            <CardBody className="w-full h-14">
-              <div className="flex justify-between h-full">
-                <div className="flex text-ellipsis overflow-hidden whitespace-nowrap h-full">
-                  {groups[index].icon ? (
-                    <Avatar
-                      className="bg-transparent mr-2 w-[30px] h-[30px]"
-                      size="sm"
-                      radius="sm"
+            <CardBody className="w-full p-3">
+              {/* 第一行：组名、类型、节点数、延迟 */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  {group.icon && (
+                    <img
+                      className="w-5 h-5 object-contain"
                       src={
-                        groups[index].icon.startsWith('<svg')
-                          ? `data:image/svg+xml;utf8,${groups[index].icon}`
-                          : localStorage.getItem(groups[index].icon) || groups[index].icon
+                        group.icon.startsWith('<svg')
+                          ? `data:image/svg+xml;utf8,${group.icon}`
+                          : localStorage.getItem(group.icon) || group.icon
                       }
+                      alt=""
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
                     />
-                  ) : null}
-                  <div
-                    className={`flex flex-col h-full ${groupDisplayLayout === 'double' ? '' : 'justify-center'}`}
-                  >
-                    <div
-                      className={`text-ellipsis overflow-hidden whitespace-nowrap leading-tight ${groupDisplayLayout === 'double' ? 'text-md flex-5 flex items-center' : 'text-lg'}`}
-                    >
-                      <span className="flag-emoji inline-block">{groups[index].name}</span>
-                      {groupDisplayLayout === 'single' && (
-                        <>
-                          <div
-                            title={groups[index].type}
-                            className="inline ml-2 text-sm text-blue-400"
-                          >
-                            {groups[index].type}
-                          </div>
-                          <div className="inline flag-emoji ml-2 text-sm text-foreground-500">
-                            {groups[index].now} ({groups[index].type})
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    {groupDisplayLayout === 'double' && (
-                      <div className="text-ellipsis whitespace-nowrap text-[10px] text-foreground-500 leading-tight flex-3 flex items-center">
-                        <span className="text-blue-400">{groups[index].type}</span>
-                        <span className="flag-emoji ml-1 inline-block">
-                          {groups[index].now}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  )}
+                  <span className="font-medium">{group.name}</span>
+                  <span className="text-xs text-foreground-400">: {group.type}</span>
+                  <span className="text-xs text-foreground-400">({group.all.filter(p => {
+                    if (!p.history || p.history.length === 0) return false
+                    return p.history[p.history.length - 1].delay > 0
+                  }).length}/{group.all.length})</span>
                 </div>
-                <div className="flex items-center">
-                  <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                    <Chip size="sm" className="my-1 mr-2">
-                      {groups[index].all.length}
-                    </Chip>
-                    <CollapseInput
-                      title="搜索节点"
-                      value={searchValue[index]}
-                      onValueChange={(v) => updateSearchValue(index, v)}
-                    />
-                    <Button
-                      title="定位到当前节点"
-                      variant="light"
-                      size="sm"
-                      isIconOnly
-                      onPress={() => scrollToCurrentProxy(index)}
-                    >
-                      <FaLocationCrosshairs className="text-lg text-foreground-500" />
-                    </Button>
-                    <Button
-                      title="延迟测试"
-                      variant="light"
-                      isLoading={delaying[index]}
-                      size="sm"
-                      isIconOnly
-                      onPress={() => onGroupDelay(index)}
-                    >
-                      <MdOutlineSpeed className="text-lg text-foreground-500" />
-                    </Button>
-                  </div>
-                  <IoChevronForward
-                    className={`transition-transform duration-300 ease-out ml-2 h-[32px] text-lg text-foreground-500 flex items-center ${isOpen[index] ? 'rotate-90' : ''}`}
-                  />
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-medium ${delayColor}`}>
+                    {currentDelay === -1 ? '--' : currentDelay === 0 ? '超时' : currentDelay}
+                  </span>
+                  {isOpen[index] && (
+                    <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                      <CollapseInput
+                        title="搜索节点"
+                        value={searchValue[index]}
+                        onValueChange={(v) => updateSearchValue(index, v)}
+                      />
+                      <Button
+                        title="延迟测试"
+                        variant="light"
+                        isLoading={delaying[index]}
+                        size="sm"
+                        isIconOnly
+                        onPress={() => onGroupDelay(index)}
+                      >
+                        <MdOutlineSpeed className="text-lg text-foreground-500" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
+              
+              {/* 第二行：当前节点 */}
+              <div className="flex justify-between items-center mt-1">
+                <div className="flex items-center gap-1 text-sm text-foreground-500">
+                  <span className="flag-emoji">{group.now}</span>
+                </div>
+              </div>
+              
+              {/* 第三行：节点状态圆点（收起时显示） */}
+              {!isOpen[index] && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {group.all.slice(0, 20).map((proxy, i) => (
+                    <div
+                      key={i}
+                      className={`w-3 h-3 rounded-full ${getDelayColor(proxy)} ${proxy.name === group.now ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+                      title={`${proxy.name}: ${proxy.history?.length ? (proxy.history[proxy.history.length - 1].delay || '超时') + 'ms' : '未测试'}`}
+                    />
+                  ))}
+                  {group.all.length > 20 && (
+                    <span className="text-xs text-foreground-400 ml-1">+{group.all.length - 20}</span>
+                  )}
+                </div>
+              )}
             </CardBody>
           </Card>
         </div>
@@ -327,14 +314,14 @@ const Proxies: React.FC = () => {
       groups,
       groupCounts,
       isOpen,
-      groupDisplayLayout,
       searchValue,
       delaying,
       toggleOpen,
       updateSearchValue,
-      scrollToCurrentProxy,
       onGroupDelay,
-      mutate
+      mutate,
+      getDelayColor,
+      getCurrentDelay
     ]
   )
 

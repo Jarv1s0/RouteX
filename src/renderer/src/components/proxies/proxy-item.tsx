@@ -85,10 +85,20 @@ const ProxyItem: React.FC<Props> = (props) => {
           {proxyDisplayLayout === 'double' ? (
             <>
               <div className="flex flex-col gap-0 flex-1 min-w-0">
-                <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm">
-                  <div className="flag-emoji inline" title={proxy.name}>
+                <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
+                  {(proxy as ControllerGroupDetail).icon && (
+                    <img
+                      className="w-4 h-4 object-contain"
+                      src={(proxy as ControllerGroupDetail).icon}
+                      alt=""
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  )}
+                  <span className="flag-emoji" title={proxy.name}>
                     {proxy.name}
-                  </div>
+                  </span>
                 </div>
                 <div className="text-[12px] text-foreground-500 leading-none mt-0.5">
                   <span>{proxy.type === 'Compatible' ? 'Direct' : proxy.type}</span>
@@ -125,14 +135,24 @@ const ProxyItem: React.FC<Props> = (props) => {
             </>
           ) : (
             <>
-              <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm">
-                <div className="flag-emoji inline" title={proxy.name}>
+              <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
+                {(proxy as ControllerGroupDetail).icon && (
+                  <img
+                    className="w-4 h-4 object-contain"
+                    src={(proxy as ControllerGroupDetail).icon}
+                    alt=""
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                )}
+                <span className="flag-emoji" title={proxy.name}>
                   {proxy.name === 'COMPATIBLE' ? 'DIRECT' : proxy.name}
-                </div>
+                </span>
                 {proxyDisplayLayout === 'single' && (
-                  <div className="inline ml-2 text-foreground-500" title={proxy.type}>
+                  <span className="ml-2 text-foreground-500" title={proxy.type}>
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
-                  </div>
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-0.5 shrink-0">

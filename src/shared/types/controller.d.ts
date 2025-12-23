@@ -145,6 +145,7 @@ interface ControllerProxiesDetail {
   'routing-mark': number
   smux: boolean
   uot: boolean
+  icon?: string
 }
 
 interface ControllerGroupDetail {

@@ -88,6 +88,10 @@ export async function mihomoUpgrade(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUpgrade'))
 }
 
+export async function checkMihomoLatestVersion(isAlpha: boolean): Promise<string | null> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkMihomoLatestVersion', isAlpha))
+}
+
 export async function mihomoProxyDelay(
   proxy: string,
   url?: string
@@ -297,6 +301,10 @@ export async function findSystemMihomo(): Promise<string[]> {
 
 export async function getFilePath(ext: string[]): Promise<string[] | undefined> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getFilePath', ext))
+}
+
+export async function saveFile(content: string, defaultName: string, ext: string): Promise<boolean> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('saveFile', content, defaultName, ext))
 }
 
 export async function readTextFile(filePath: string): Promise<string> {
@@ -531,6 +539,13 @@ export async function getProviderStats(): Promise<{
 
 export async function clearProviderStats(): Promise<void> {
   return await window.electron.ipcRenderer.invoke('clearProviderStats')
+}
+
+export async function triggerProviderSnapshot(): Promise<{
+  snapshots: { date: string; provider: string; used: number }[]
+  lastUpdate: number
+}> {
+  return await window.electron.ipcRenderer.invoke('triggerProviderSnapshot')
 }
 
 export async function fetchIpInfo(): Promise<{

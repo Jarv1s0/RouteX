@@ -23,6 +23,19 @@ export function getFilePath(ext: string[]): string[] | undefined {
   })
 }
 
+export function saveFile(content: string, defaultName: string, ext: string): boolean {
+  const result = dialog.showSaveDialogSync({
+    title: '保存文件',
+    defaultPath: defaultName,
+    filters: [{ name: `${ext.toUpperCase()} 文件`, extensions: [ext] }]
+  })
+  if (result) {
+    writeFileSync(result, content, 'utf8')
+    return true
+  }
+  return false
+}
+
 export async function readTextFile(filePath: string): Promise<string> {
   return await readFile(filePath, 'utf8')
 }

@@ -20,7 +20,8 @@ import {
   mihomoVersion,
   mihomoConfig,
   patchMihomoConfig,
-  restartMihomoConnections
+  restartMihomoConnections,
+  checkMihomoLatestVersion
 } from '../core/mihomoApi'
 import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
 import {
@@ -73,6 +74,7 @@ import {
   checkElevateTask,
   deleteElevateTask,
   getFilePath,
+  saveFile,
   openFile,
   openUWPTool,
   readTextFile,
@@ -128,9 +130,10 @@ import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../res
 import { getAppName } from './appName'
 import { getUserAgent } from './userAgent'
 import { getTrafficStats, clearTrafficStats } from '../resolve/trafficStats'
-import { getProviderStats, clearProviderStats } from '../resolve/providerStats'
+import { getProviderStats, clearProviderStats, triggerSnapshot } from '../resolve/providerStats'
 import { net } from 'electron'
 import { mihomoGetConnections } from '../core/mihomoApi'
+import { startNetworkHealthMonitor, stopNetworkHealthMonitor, getNetworkHealthStats } from '../resolve/networkHealth'
 
 // 流媒体解锁检测
 interface StreamingResult {
@@ -433,6 +436,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('mihomoUpgradeUI', ipcErrorWrapper(mihomoUpgradeUI))
   ipcMain.handle('mihomoDnsQuery', (_e, name, type) => ipcErrorWrapper(mihomoDnsQuery)(name, type))
   ipcMain.handle('mihomoUpgrade', ipcErrorWrapper(mihomoUpgrade))
+  ipcMain.handle('checkMihomoLatestVersion', (_e, isAlpha) => ipcErrorWrapper(checkMihomoLatestVersion)(isAlpha))
   ipcMain.handle('mihomoProxyDelay', (_e, proxy, url) =>
     ipcErrorWrapper(mihomoProxyDelay)(proxy, url)
   )
@@ -496,6 +500,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('stopService', () => ipcErrorWrapper(stopService)())
   ipcMain.handle('findSystemMihomo', () => findSystemMihomo())
   ipcMain.handle('getFilePath', (_e, ext) => getFilePath(ext))
+  ipcMain.handle('saveFile', (_e, content, defaultName, ext) => saveFile(content, defaultName, ext))
   ipcMain.handle('readTextFile', (_e, filePath) => ipcErrorWrapper(readTextFile)(filePath))
   ipcMain.handle('getRuntimeConfigStr', ipcErrorWrapper(getRuntimeConfigStr))
   ipcMain.handle('getRawProfileStr', ipcErrorWrapper(getRawProfileStr))
@@ -572,6 +577,10 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('clearTrafficStats', () => clearTrafficStats())
   ipcMain.handle('getProviderStats', () => getProviderStats())
   ipcMain.handle('clearProviderStats', () => clearProviderStats())
+  ipcMain.handle('triggerProviderSnapshot', async () => {
+    await triggerSnapshot()
+    return getProviderStats()
+  })
   ipcMain.handle('fetchIpInfo', ipcErrorWrapper(async () => {
     return new Promise((resolve, reject) => {
       const request = net.request('http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query')
@@ -694,5 +703,15 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('notDialogQuit', () => {
     setNotQuitDialog()
     app.quit()
+  })
+  // 网络健康监控
+  ipcMain.handle('startNetworkHealthMonitor', () => {
+    startNetworkHealthMonitor()
+  })
+  ipcMain.handle('stopNetworkHealthMonitor', () => {
+    stopNetworkHealthMonitor()
+  })
+  ipcMain.handle('getNetworkHealthStats', () => {
+    return getNetworkHealthStats()
   })
 }

@@ -1,9 +1,10 @@
 import BasePage from '@renderer/components/base/base-page'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
 import React, { Key, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Divider, Input, Select, SelectItem, Tab, Tabs, Chip, Card, CardHeader, CardFooter, Avatar } from '@heroui/react'
+import { Button, Divider, Input, Select, SelectItem, Tab, Tabs, Chip, Card, CardHeader, CardFooter, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
+import ConnectionTable from '@renderer/components/connections/connection-table'
 import { Virtuoso } from 'react-virtuoso'
 import dayjs from 'dayjs'
 import ConnectionDetailModal from '@renderer/components/connections/connection-detail-modal'
@@ -13,7 +14,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { getIconDataURL, getAppName } from '@renderer/utils/ipc'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
-import { IoApps, IoList } from 'react-icons/io5'
+import { IoApps, IoList, IoGrid, IoEye, IoEyeOff, IoPause, IoPlay } from 'react-icons/io5'
 import { cropAndPadTransparent } from '@renderer/utils/image'
 import { platform } from '@renderer/utils/init'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -46,9 +47,21 @@ const Connections: React.FC = () => {
   const [firstItemRefreshTrigger, setFirstItemRefreshTrigger] = useState(0)
 
   const [tab, setTab] = useState('active')
-  const [viewMode, setViewMode] = useState<'list' | 'group'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'group' | 'table'>('list')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
+  
+  // 从 localStorage 加载隐藏规则
+  const [hiddenRules, setHiddenRules] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('hiddenConnectionRules')
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch {
+      return new Set()
+    }
+  })
+  const [showHidden, setShowHidden] = useState(false) // 是否显示隐藏的连接
+  const [isPaused, setIsPaused] = useState(false) // 是否暂停刷新
 
   const iconRequestQueue = useRef(new Set<string>())
   const processingIcons = useRef(new Set<string>())
@@ -62,8 +75,17 @@ const Connections: React.FC = () => {
     const connections = tab === 'active' ? activeConnections : closedConnections
 
     let filtered = connections
+    
+    // 过滤隐藏的连接（除非用户选择显示隐藏的连接）
+    if (!showHidden && hiddenRules.size > 0) {
+      filtered = filtered.filter(conn => {
+        const rule = `${conn.metadata.process || 'unknown'}:${conn.metadata.host || conn.metadata.destinationIP || 'unknown'}`
+        return !hiddenRules.has(rule)
+      })
+    }
+    
     if (filter !== '') {
-      filtered = connections.filter((connection) => {
+      filtered = filtered.filter((connection) => {
         const searchableFields = [
           connection.metadata.process,
           connection.metadata.host,
@@ -96,6 +118,10 @@ const Connections: React.FC = () => {
               return (a.downloadSpeed || 0) - (b.downloadSpeed || 0)
             case 'process':
               return (a.metadata.process || '').localeCompare(b.metadata.process || '')
+            case 'type':
+              return `${a.metadata.type}|${a.metadata.network}`.localeCompare(`${b.metadata.type}|${b.metadata.network}`)
+            case 'rule':
+              return (a.rule || '').localeCompare(b.rule || '')
           }
         } else {
           switch (connectionOrderBy) {
@@ -111,13 +137,17 @@ const Connections: React.FC = () => {
               return (b.downloadSpeed || 0) - (a.downloadSpeed || 0)
             case 'process':
               return (b.metadata.process || '').localeCompare(a.metadata.process || '')
+            case 'type':
+              return `${b.metadata.type}|${b.metadata.network}`.localeCompare(`${a.metadata.type}|${a.metadata.network}`)
+            case 'rule':
+              return (b.rule || '').localeCompare(a.rule || '')
           }
         }
       })
     }
 
     return filtered
-  }, [activeConnections, closedConnections, filter, connectionDirection, connectionOrderBy, tab])
+  }, [activeConnections, closedConnections, filter, connectionDirection, connectionOrderBy, tab, hiddenRules, showHidden])
 
   // 按进程分组
   const groupedConnections = useMemo(() => {
@@ -193,9 +223,40 @@ const Connections: React.FC = () => {
     [tab, trashClosedConnection]
   )
 
+  const hideConnection = useCallback((id: string) => {
+    const conn = [...activeConnections, ...closedConnections].find(c => c.id === id)
+    if (!conn) return
+    
+    const rule = `${conn.metadata.process || 'unknown'}:${conn.metadata.host || conn.metadata.destinationIP || 'unknown'}`
+    setHiddenRules((prev) => {
+      const newSet = new Set([...prev, rule])
+      localStorage.setItem('hiddenConnectionRules', JSON.stringify(Array.from(newSet)))
+      return newSet
+    })
+  }, [activeConnections, closedConnections])
+
+  const unhideConnection = useCallback((id: string) => {
+    const conn = [...activeConnections, ...closedConnections].find(c => c.id === id)
+    if (!conn) return
+    
+    const rule = `${conn.metadata.process || 'unknown'}:${conn.metadata.host || conn.metadata.destinationIP || 'unknown'}`
+    setHiddenRules((prev) => {
+      const newSet = new Set(prev)
+      newSet.delete(rule)
+      localStorage.setItem('hiddenConnectionRules', JSON.stringify(Array.from(newSet)))
+      return newSet
+    })
+  }, [activeConnections, closedConnections])
+
+  const clearAllHidden = useCallback((): void => {
+    setHiddenRules(new Set())
+    localStorage.removeItem('hiddenConnectionRules')
+  }, [])
+
   useEffect(() => {
     const handleConnections = (_e: unknown, info: ControllerConnections): void => {
       if (!info.connections) return
+      if (isPaused) return // 暂停时不更新连接列表
 
       const prevActiveMap = new Map(activeConnections.map((conn) => [conn.id, conn]))
       const existingConnectionIds = new Set(allConnections.map((conn) => conn.id))
@@ -259,7 +320,7 @@ const Connections: React.FC = () => {
     return (): void => {
       window.electron.ipcRenderer.removeAllListeners('mihomoConnections')
     }
-  }, [allConnections, activeConnections, closedConnections, deletedIds])
+  }, [allConnections, activeConnections, closedConnections, deletedIds, isPaused])
 
   const processAppNameQueue = useCallback(async () => {
     if (processingAppNames.current.size >= 3 || appNameRequestQueue.current.size === 0) return
@@ -437,6 +498,8 @@ const Connections: React.FC = () => {
           | 'uploadSpeed'
           | 'downloadSpeed'
           | 'process'
+          | 'type'
+          | 'rule'
       })
     },
     [patchAppConfig]
@@ -479,6 +542,9 @@ const Connections: React.FC = () => {
           displayIcon={displayIcon && findProcessMode !== 'off'}
           displayName={displayName}
           close={closeConnection}
+          hide={hideConnection}
+          unhide={unhideConnection}
+          isHidden={hiddenRules.has(`${connection.metadata.process || 'unknown'}:${connection.metadata.host || connection.metadata.destinationIP || 'unknown'}`)}
           index={i}
           key={itemKey}
           info={connection}
@@ -491,6 +557,9 @@ const Connections: React.FC = () => {
       firstItemRefreshTrigger,
       selected,
       closeConnection,
+      hideConnection,
+      unhideConnection,
+      hiddenRules,
       appNameCache,
       findProcessMode,
       displayAppName
@@ -518,6 +587,12 @@ const Connections: React.FC = () => {
       )}
       {isSettingModalOpen && (
         <ConnectionSettingModal onClose={() => setIsSettingModalOpen(false)} />
+      )}
+      {isPaused && (
+        <div className="sticky top-0 z-50 bg-warning/10 border-b border-warning/30 px-4 py-2 flex items-center justify-center gap-2">
+          <IoPause className="text-warning text-sm" />
+          <span className="text-xs text-warning font-medium">连接列表已暂停刷新</span>
+        </div>
       )}
       <div className="overflow-x-auto sticky top-0 z-40">
         <div className="flex p-2 gap-2 items-center">
@@ -552,6 +627,8 @@ const Connections: React.FC = () => {
             <SelectItem key="downloadSpeed">下载速度</SelectItem>
             <SelectItem key="time">时间</SelectItem>
             <SelectItem key="process">进程名称</SelectItem>
+            <SelectItem key="type">类型</SelectItem>
+            <SelectItem key="rule">规则</SelectItem>
           </Select>
           <Button size="sm" isIconOnly className="bg-content2" onPress={handleDirectionToggle}>
             {connectionDirection === 'asc' ? (
@@ -560,19 +637,38 @@ const Connections: React.FC = () => {
               <HiSortDescending className="text-lg" />
             )}
           </Button>
-          <Button 
-            size="sm" 
-            isIconOnly 
-            className="bg-content2" 
-            onPress={() => setViewMode(viewMode === 'list' ? 'group' : 'list')}
-            title={viewMode === 'list' ? '按进程分组' : '列表视图'}
-          >
-            {viewMode === 'list' ? <IoApps className="text-lg" /> : <IoList className="text-lg" />}
-          </Button>
+          <Dropdown>
+            <DropdownTrigger>
+              <Button 
+                size="sm" 
+                isIconOnly 
+                className="bg-content2"
+              >
+                {viewMode === 'table' ? <IoGrid className="text-lg" /> : 
+                 viewMode === 'list' ? <IoList className="text-lg" /> : 
+                 <IoApps className="text-lg" />}
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu 
+              aria-label="视图切换"
+              selectionMode="single"
+              selectedKeys={new Set([viewMode])}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as 'table' | 'list' | 'group'
+                if (selected) setViewMode(selected)
+              }}
+            >
+              <DropdownItem key="list" startContent={<IoList />}>卡片视图</DropdownItem>
+              <DropdownItem key="table" startContent={<IoGrid />}>表格视图</DropdownItem>
+              <DropdownItem key="group" startContent={<IoApps />}>分组视图</DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
           <Button
             size="sm"
-            className="bg-content2"
-            startContent={tab === 'active' ? <CgClose className="text-lg" /> : <CgTrash className="text-lg" />}
+            isIconOnly
+            variant="flat"
+            color="danger"
+            title={tab === 'active' ? '关闭全部' : '清空记录'}
             onPress={() => {
               if (filter === '') {
                 closeAllConnections()
@@ -583,8 +679,42 @@ const Connections: React.FC = () => {
               }
             }}
           >
-            {tab === 'active' ? '关闭全部' : '清空记录'}
+            {tab === 'active' ? <CgClose className="text-lg" /> : <CgTrash className="text-lg" />}
           </Button>
+          <Button
+            size="sm"
+            isIconOnly
+            variant="flat"
+            color={isPaused ? 'success' : 'warning'}
+            title={isPaused ? '继续刷新' : '暂停刷新'}
+            onPress={() => setIsPaused(!isPaused)}
+          >
+            {isPaused ? <IoPlay className="text-lg" /> : <IoPause className="text-lg" />}
+          </Button>
+          {hiddenRules.size > 0 && (
+            <>
+              <Button
+                size="sm"
+                isIconOnly
+                variant="flat"
+                color={showHidden ? 'primary' : 'default'}
+                title={showHidden ? `隐藏已隐藏的连接 (${hiddenRules.size} 规则)` : `显示已隐藏的连接 (${hiddenRules.size} 规则)`}
+                onPress={() => setShowHidden(!showHidden)}
+              >
+                {showHidden ? <IoEye className="text-lg" /> : <IoEyeOff className="text-lg" />}
+              </Button>
+              <Button
+                size="sm"
+                isIconOnly
+                variant="flat"
+                color="warning"
+                title="清除所有隐藏"
+                onPress={clearAllHidden}
+              >
+                <CgTrash className="text-lg" />
+              </Button>
+            </>
+          )}
         </div>
         <Divider />
       </div>
@@ -599,6 +729,47 @@ const Connections: React.FC = () => {
               <p className="text-sm opacity-70">连接信息将在这里显示</p>
             </div>
           </div>
+        ) : viewMode === 'table' ? (
+          <ConnectionTable
+            connections={filteredConnections}
+            selected={selected}
+            setSelected={setSelected}
+            setIsDetailModalOpen={setIsDetailModalOpen}
+            close={closeConnection}
+            iconMap={iconMap}
+            appNameCache={appNameCache}
+            displayIcon={displayIcon && findProcessMode !== 'off'}
+            displayAppName={displayAppName}
+            sortBy={connectionOrderBy === 'time' ? 'time' : 
+                    connectionOrderBy === 'upload' ? 'upload' :
+                    connectionOrderBy === 'download' ? 'download' :
+                    connectionOrderBy === 'uploadSpeed' ? 'uploadSpeed' :
+                    connectionOrderBy === 'downloadSpeed' ? 'downloadSpeed' :
+                    connectionOrderBy === 'process' ? 'process' :
+                    connectionOrderBy === 'type' ? 'type' :
+                    connectionOrderBy === 'rule' ? 'rule' : undefined}
+            sortDirection={connectionDirection}
+            onSort={(col) => {
+              const columnToOrderBy: Record<string, string> = {
+                time: 'time',
+                upload: 'upload',
+                download: 'download',
+                uploadSpeed: 'uploadSpeed',
+                downloadSpeed: 'downloadSpeed',
+                process: 'process',
+                type: 'type',
+                rule: 'rule'
+              }
+              const orderBy = columnToOrderBy[col]
+              if (orderBy) {
+                if (connectionOrderBy === orderBy) {
+                  patchAppConfig({ connectionDirection: connectionDirection === 'asc' ? 'desc' : 'asc' })
+                } else {
+                  patchAppConfig({ connectionOrderBy: orderBy as 'time' | 'upload' | 'download' | 'uploadSpeed' | 'downloadSpeed' | 'process' | 'type' | 'rule' })
+                }
+              }
+            }}
+          />
         ) : viewMode === 'list' ? (
           <Virtuoso data={filteredConnections} itemContent={renderConnectionItem} />
         ) : (
@@ -652,11 +823,15 @@ const Connections: React.FC = () => {
                               {tab === 'active' ? '活动中' : '已关闭'}
                             </Chip>
                             <Chip size="sm" radius="sm" variant="bordered">
-                              ↑ {calcTraffic(group.totalUpload)} ↓ {calcTraffic(group.totalDownload)}
+                              <span style={{ color: '#22d3ee' }}>↑ {calcTraffic(group.totalUpload)}</span>
+                              {' '}
+                              <span style={{ color: '#c084fc' }}>↓ {calcTraffic(group.totalDownload)}</span>
                             </Chip>
                             {(group.uploadSpeed > 0 || group.downloadSpeed > 0) && (
                               <Chip color="primary" size="sm" radius="sm" variant="bordered">
-                                ↑ {calcTraffic(group.uploadSpeed)}/s ↓ {calcTraffic(group.downloadSpeed)}/s
+                                <span style={{ color: '#22d3ee' }}>↑ {calcTraffic(group.uploadSpeed)}/s</span>
+                                {' '}
+                                <span style={{ color: '#c084fc' }}>↓ {calcTraffic(group.downloadSpeed)}/s</span>
                               </Chip>
                             )}
                           </div>
@@ -685,6 +860,9 @@ const Connections: React.FC = () => {
                             displayIcon={false}
                             displayName={connDisplayName}
                             close={closeConnection}
+                            hide={hideConnection}
+                            unhide={unhideConnection}
+                            isHidden={hiddenRules.has(`${conn.metadata.process || 'unknown'}:${conn.metadata.host || conn.metadata.destinationIP || 'unknown'}`)}
                             index={i}
                             info={conn}
                           />

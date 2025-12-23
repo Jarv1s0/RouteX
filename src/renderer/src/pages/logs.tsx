@@ -5,6 +5,8 @@ import { Button, Divider, Input } from '@heroui/react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { IoLocationSharp, IoJournalOutline } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
+import { HiOutlineDownload } from 'react-icons/hi'
+import { saveFile } from '@renderer/utils/ipc'
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
 
@@ -46,6 +48,17 @@ const Logs: React.FC = () => {
       return includesIgnoreCase(log.payload, filter) || includesIgnoreCase(log.type, filter)
     })
   }, [logs, filter])
+
+  const handleExportLogs = async () => {
+    if (filteredLogs.length === 0) {
+      return
+    }
+    const content = filteredLogs
+      .map((log) => `[${log.time}] [${log.type.toUpperCase()}] ${log.payload}`)
+      .join('\n')
+    const defaultName = `routex-logs-${new Date().toISOString().slice(0, 10)}.txt`
+    await saveFile(content, defaultName, 'txt')
+  }
 
   useEffect(() => {
     if (!trace) return
@@ -103,6 +116,18 @@ const Logs: React.FC = () => {
             }}
           >
             <CgTrash className="text-lg" />
+          </Button>
+          <Button
+            size="sm"
+            isIconOnly
+            title="导出日志"
+            className="ml-2"
+            variant="flat"
+            color="primary"
+            isDisabled={filteredLogs.length === 0}
+            onPress={handleExportLogs}
+          >
+            <HiOutlineDownload className="text-lg" />
           </Button>
         </div>
         <Divider />

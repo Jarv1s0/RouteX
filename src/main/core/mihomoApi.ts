@@ -110,19 +110,42 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
   const proxies = await mihomoProxies()
   const runtime = await getRuntimeConfig()
   const groups: ControllerMixedGroup[] = []
-  runtime?.['proxy-groups']?.forEach((group: { name: string; url?: string }) => {
-    const { name, url } = group
+  
+  // 创建一个 icon 映射表
+  const iconMap: Record<string, string> = {}
+  runtime?.['proxy-groups']?.forEach((group: { name: string; icon?: string }) => {
+    if (group.icon) {
+      iconMap[group.name] = group.icon
+    }
+  })
+  
+  runtime?.['proxy-groups']?.forEach((group: { name: string; url?: string; icon?: string }) => {
+    const { name, url, icon } = group
     if (proxies.proxies[name] && 'all' in proxies.proxies[name] && !proxies.proxies[name].hidden) {
-      const newGroup = proxies.proxies[name]
+      const newGroup = { ...proxies.proxies[name] }
       newGroup.testUrl = url
-      const newAll = newGroup.all.map((name) => proxies.proxies[name])
-      groups.push({ ...newGroup, all: newAll })
+      if (icon) newGroup.icon = icon
+      // 为 all 数组中的每个代理/组也添加 icon
+      const newAll = newGroup.all.map((proxyName: string) => {
+        const proxy = { ...proxies.proxies[proxyName] }
+        if (iconMap[proxyName]) {
+          proxy.icon = iconMap[proxyName]
+        }
+        return proxy
+      })
+      groups.push({ ...newGroup, all: newAll } as ControllerMixedGroup)
     }
   })
   if (!groups.find((group) => group.name === 'GLOBAL')) {
     const newGlobal = proxies.proxies['GLOBAL'] as ControllerGroupDetail
     if (!newGlobal.hidden) {
-      const newAll = newGlobal.all.map((name) => proxies.proxies[name])
+      const newAll = newGlobal.all.map((name) => {
+        const proxy = { ...proxies.proxies[name] }
+        if (iconMap[name]) {
+          proxy.icon = iconMap[name]
+        }
+        return proxy
+      })
       groups.push({ ...newGlobal, all: newAll })
     }
   }
@@ -210,6 +233,28 @@ export const mihomoUpgradeGeo = async (): Promise<void> => {
 export const mihomoUpgradeUI = async (): Promise<void> => {
   const instance = await getAxios()
   return await instance.post('/upgrade/ui')
+}
+
+export const checkMihomoLatestVersion = async (isAlpha: boolean): Promise<string | null> => {
+  try {
+    const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
+    const versionUrl = isAlpha
+      ? 'https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt'
+      : 'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
+    
+    const res = await axios.get(versionUrl, {
+      proxy: {
+        protocol: 'http',
+        host: '127.0.0.1',
+        port: mixedPort
+      },
+      timeout: 10000,
+      responseType: 'text'
+    })
+    return res.data.trim()
+  } catch {
+    return null
+  }
 }
 
 export const mihomoDnsQuery = async (name: string, type: string): Promise<{ Answer?: { data: string }[] }> => {

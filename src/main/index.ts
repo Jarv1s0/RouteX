@@ -32,7 +32,8 @@ import iconv from 'iconv-lite'
 import { getAppConfigSync } from './config/app'
 import { getUserAgent } from './utils/userAgent'
 import { loadTrafficStats } from './resolve/trafficStats'
-import { loadProviderStats, startMapUpdateTimer } from './resolve/providerStats'
+import { loadProviderStats, startMapUpdateTimer, onCoreStarted } from './resolve/providerStats'
+import { startNetworkHealthMonitor } from './resolve/networkHealth'
 
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
@@ -316,6 +317,9 @@ app.whenReady().then(async () => {
   // 加载订阅统计数据
   loadProviderStats()
   startMapUpdateTimer()
+  
+  // 启动网络健康监控
+  startNetworkHealthMonitor()
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -368,6 +372,8 @@ app.whenReady().then(async () => {
 
   if (coreStarted) {
     mainWindow?.webContents.send('core-started')
+    // 内核启动完成，开始记录订阅统计
+    onCoreStarted()
   }
 
   app.on('activate', function () {

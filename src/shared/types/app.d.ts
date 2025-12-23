@@ -35,7 +35,7 @@ interface AppConfig {
   envType?: ('bash' | 'cmd' | 'powershell' | 'nushell')[]
   proxyCols: 'auto' | '1' | '2' | '3' | '4'
   connectionDirection: 'asc' | 'desc'
-  connectionOrderBy: 'time' | 'upload' | 'download' | 'uploadSpeed' | 'downloadSpeed' | 'process'
+  connectionOrderBy: 'time' | 'upload' | 'download' | 'uploadSpeed' | 'downloadSpeed' | 'process' | 'type' | 'rule'
   connectionInterval?: number
   spinFloatingIcon?: boolean
   disableTray?: boolean
@@ -113,6 +113,8 @@ interface AppConfig {
   networkDetectionInterval?: number
   displayIcon?: boolean
   displayAppName?: boolean
+  connectionTableColumns?: string[]
+  connectionTableColumnWidths?: Record<string, number>
   disableGPU: boolean
   disableAnimation?: boolean
   enableSiderConfig?: boolean

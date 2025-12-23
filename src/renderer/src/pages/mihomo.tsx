@@ -1,4 +1,4 @@
-import { Button, Input, Select, SelectItem, Switch, Tab, Tabs } from '@heroui/react'
+import { Button, Input, Select, SelectItem, Switch, Tab, Tabs, Chip } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -14,6 +14,7 @@ import PubSub from 'pubsub-js'
 import {
   manualGrantCorePermition,
   mihomoUpgrade,
+  mihomoVersion,
   restartCore,
   revokeCorePermission,
   deleteElevateTask,
@@ -25,12 +26,14 @@ import {
   startService,
   stopService,
   initService,
-  restartService
+  restartService,
+  checkMihomoLatestVersion
 } from '@renderer/utils/ipc'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
+import useSWR from 'swr'
 
 const Mihomo: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -38,12 +41,32 @@ const Mihomo: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { ipv6, 'log-level': logLevel = 'info' } = controledMihomoConfig || {}
 
+  const { data: version } = useSWR('mihomoVersion', mihomoVersion)
+  const [latestVersion, setLatestVersion] = useState<string | null>(null)
   const [upgrading, setUpgrading] = useState(false)
   const [showGrantConfirm, setShowGrantConfirm] = useState(false)
   const [showUnGrantConfirm, setShowUnGrantConfirm] = useState(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
   const [pendingPermissionMode, setPendingPermissionMode] = useState<string>('')
+
+  // 检查最新版本
+  useEffect(() => {
+    const checkLatest = async () => {
+      const isAlpha = core === 'mihomo-alpha'
+      const latest = await checkMihomoLatestVersion(isAlpha)
+      setLatestVersion(latest)
+    }
+    checkLatest()
+  }, [core])
+
+  // 比较版本号，判断是否有新版本
+  const hasNewVersion = (): boolean => {
+    if (!version?.version || !latestVersion) return false
+    const current = version.version.replace(/^v/, '')
+    const latest = latestVersion.replace(/^v/, '')
+    return current !== latest && latest > current
+  }
 
   const onChangeNeedRestart = async (patch: Partial<MihomoConfig>): Promise<void> => {
     await patchControledMihomoConfig(patch)
@@ -226,7 +249,16 @@ const Mihomo: React.FC = () => {
       <div className="p-2">
       <SettingCard>
         <SettingItem
-          title="内核版本"
+          title={
+            <div className="flex items-center gap-2">
+              <span>内核版本</span>
+              {hasNewVersion() && (
+                <Chip size="sm" color="success" variant="flat">
+                  新版本 {latestVersion}
+                </Chip>
+              )}
+            </div>
+          }
           actions={
             core === 'mihomo' || core === 'mihomo-alpha' ? (
               <Button
