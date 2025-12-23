@@ -16,34 +16,40 @@ interface Props {
 const RuleProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate, onView }) => {
   return (
     <div className={`w-full px-2 pb-1 ${index === 0 ? 'pt-2' : ''}`}>
-      <Card className="hover:bg-primary/30 transition-all duration-200">
-        <CardBody className="w-full py-2">
+      <Card 
+        shadow="sm"
+        className="border-1 border-divider hover:shadow-md hover:bg-primary/10 transition-all duration-200"
+      >
+        <CardBody className="w-full py-2 px-3">
           <div className="flex items-center gap-2">
             {/* 序号 */}
-            <span className="text-foreground-400 text-sm w-5 flex-shrink-0">
-              {index + 1}
+            <span className="text-foreground-400 text-xs w-6 flex-shrink-0 -mr-1">
+              {index + 1}.
             </span>
+            {/* 格式 */}
+            <Chip size="sm" variant="flat" color="default" classNames={{ content: "text-xs" }}>
+              {provider.format || 'InlineRule'}
+            </Chip>
             {/* 名称 */}
-            <span className="text-ellipsis whitespace-nowrap overflow-hidden">
+            <span className="text-sm font-medium text-ellipsis whitespace-nowrap overflow-hidden">
               {provider.name}
             </span>
             {/* 规则数量 */}
-            <Chip size="sm">{provider.ruleCount}</Chip>
-            {/* 格式 */}
-            <span className="text-foreground-400 text-sm flex-shrink-0">
-              {provider.format || 'InlineRule'}
-            </span>
+            <Chip size="sm" variant="flat" color="default" classNames={{ content: "text-xs" }}>
+              {provider.ruleCount}
+            </Chip>
             {/* 右侧信息 */}
             <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-              <span className="text-foreground-400 text-sm">
+              <span className="text-foreground-400 text-xs">
                 {provider.vehicleType}::{provider.behavior}
               </span>
-              <span className="text-foreground-400 text-sm">
+              <span className="text-foreground-400 text-xs">
                 {dayjs(provider.updatedAt).fromNow()}
               </span>
               {provider.format !== 'MrsRule' && provider.vehicleType !== 'Inline' && (
                 <Button
                   isIconOnly
+                  variant="light"
                   title={provider.vehicleType === 'File' ? '编辑' : '查看'}
                   size="sm"
                   onPress={onView}
@@ -57,6 +63,7 @@ const RuleProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate
               )}
               <Button
                 isIconOnly
+                variant="light"
                 title="更新"
                 size="sm"
                 onPress={onUpdate}
