@@ -45,14 +45,14 @@ const Stats: React.FC = () => {
   
   // 网络健康度监控
   const [currentLatency, setCurrentLatency] = useState<number>(-1)
-  const [currentConnections, setCurrentConnections] = useState<number>(0)
-  const [avgLatency, setAvgLatency] = useState<number>(0)
-  const [maxLatency, setMaxLatency] = useState<number>(0)
-  const [minLatency, setMinLatency] = useState<number>(0)
+  const [, setCurrentConnections] = useState<number>(0)
+  const [, setAvgLatency] = useState<number>(0)
+  const [, setMaxLatency] = useState<number>(0)
+  const [, setMinLatency] = useState<number>(0)
   const [jitter, setJitter] = useState<number>(0)
-  const [packetLoss, setPacketLoss] = useState<number>(0)
-  const [latencyTestCount, setLatencyTestCount] = useState<number>(0)
-  const [latencyFailCount, setLatencyFailCount] = useState<number>(0)
+  const [, setPacketLoss] = useState<number>(0)
+  const [, setLatencyTestCount] = useState<number>(0)
+  const [, setLatencyFailCount] = useState<number>(0)
   const [uptime, setUptime] = useState<number>(100)
   const [latencyHistory, setLatencyHistory] = useState<{ time: string; latency: number; jitter: number; color: string; jitterColor: string; success: boolean }[]>([])
   
@@ -1119,7 +1119,7 @@ const Stats: React.FC = () => {
           }}
         >
           <ModalContent>
-            {(onClose) => (
+            {() => (
               <>
                 <ModalHeader className="flex flex-col gap-1">
                   <span>规则命中详情</span>

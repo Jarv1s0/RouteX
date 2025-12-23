@@ -1,4 +1,4 @@
-import { Avatar, Button, Card, CardBody } from '@heroui/react'
+import { Button, Card, CardBody } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {

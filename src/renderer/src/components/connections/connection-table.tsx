@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useState, useRef } from 'react'
+import React, { memo, useCallback, useMemo, useState, useRef, useEffect } from 'react'
 import { Avatar, Button } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import dayjs from 'dayjs'
@@ -83,6 +83,9 @@ const COLUMN_LABELS: Record<string, string> = {
 // 右对齐的列
 const RIGHT_ALIGN_COLUMNS = ['downloadSpeed', 'uploadSpeed', 'download', 'upload', 'time']
 
+// 可以自动扩展的列（优先填充剩余空间）
+const FLEX_COLUMNS = ['host', 'chains', 'rule', 'process']
+
 // 列宽调整手柄
 const ResizeHandle: React.FC<{
   onResize: (delta: number) => void
@@ -142,6 +145,26 @@ const ConnectionTableComponent: React.FC<Props> = ({
     connectionTableColumnWidths = {}
   } = appConfig || {}
 
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState(0)
+
+  // 监听容器宽度变化
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width)
+      }
+    })
+
+    observer.observe(container)
+    setContainerWidth(container.clientWidth)
+
+    return () => observer.disconnect()
+  }, [])
+
   // 合并默认宽度和用户自定义宽度
   const columnWidths = useMemo(() => ({
     ...DEFAULT_COLUMN_WIDTHS,
@@ -156,9 +179,46 @@ const ConnectionTableComponent: React.FC<Props> = ({
   localWidthsRef.current = localWidths
 
   // 同步配置变化
-  React.useEffect(() => {
+  useEffect(() => {
     setLocalWidths({ ...DEFAULT_COLUMN_WIDTHS, ...connectionTableColumnWidths })
   }, [connectionTableColumnWidths])
+
+  // 过滤有效的列
+  const visibleColumns = useMemo(() => {
+    return connectionTableColumns.filter(col => COLUMN_LABELS[col])
+  }, [connectionTableColumns])
+
+  // 计算实际列宽（包含自动扩展和收缩）
+  const computedWidths = useMemo(() => {
+    if (containerWidth === 0) return localWidths
+
+    // 计算所有列的基础宽度总和
+    const totalBaseWidth = visibleColumns.reduce((sum, col) => {
+      return sum + (localWidths[col] || DEFAULT_COLUMN_WIDTHS[col])
+    }, 0)
+
+    // 找到可以调整的列
+    const flexCols = visibleColumns.filter(col => FLEX_COLUMNS.includes(col))
+    if (flexCols.length === 0) return localWidths
+
+    // 计算需要调整的空间差
+    const spaceDiff = containerWidth - totalBaseWidth
+    
+    // 如果差异很小，不需要调整
+    if (Math.abs(spaceDiff) < 10) return localWidths
+
+    // 平均分配空间差给可调整的列
+    const adjustPerCol = spaceDiff / flexCols.length
+
+    const newWidths = { ...localWidths }
+    flexCols.forEach(col => {
+      const baseWidth = localWidths[col] || DEFAULT_COLUMN_WIDTHS[col]
+      // 设置最小宽度为60，防止列太窄
+      newWidths[col] = Math.max(60, baseWidth + adjustPerCol)
+    })
+
+    return newWidths
+  }, [localWidths, visibleColumns, containerWidth])
 
   const handleRowClick = useCallback((conn: ControllerConnectionDetail) => {
     setSelected(conn)
@@ -197,13 +257,8 @@ const ConnectionTableComponent: React.FC<Props> = ({
     patchAppConfig({ connectionTableColumnWidths: changedWidths })
   }, [connectionTableColumnWidths, patchAppConfig])
 
-  // 过滤有效的列
-  const visibleColumns = useMemo(() => {
-    return connectionTableColumns.filter(col => COLUMN_LABELS[col])
-  }, [connectionTableColumns])
-
   return (
-    <div className="w-full overflow-x-auto">
+    <div ref={containerRef} className="w-full overflow-x-auto">
       {/* 表头 */}
       <div className="sticky top-0 bg-content1 z-10 border-b border-divider">
         <div className="flex">
@@ -211,7 +266,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
             <div
               key={col}
               className={`relative flex-shrink-0 px-2 py-2 text-sm text-foreground-500 font-medium hover:bg-default-100 transition-colors cursor-pointer select-none ${RIGHT_ALIGN_COLUMNS.includes(col) ? 'text-right' : ''}`}
-              style={{ width: localWidths[col] || DEFAULT_COLUMN_WIDTHS[col] }}
+              style={{ width: computedWidths[col] || DEFAULT_COLUMN_WIDTHS[col] }}
               onClick={() => onSort?.(col)}
             >
               <div className={`flex items-center gap-1 ${RIGHT_ALIGN_COLUMNS.includes(col) ? 'justify-end' : ''}`}>
@@ -243,7 +298,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
             onRowClick={handleRowClick}
             onClose={handleClose}
             visibleColumns={visibleColumns}
-            columnWidths={localWidths}
+            columnWidths={computedWidths}
             iconMap={iconMap}
             appNameCache={appNameCache}
             displayIcon={displayIcon}
