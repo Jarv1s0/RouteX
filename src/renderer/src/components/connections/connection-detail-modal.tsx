@@ -15,24 +15,24 @@ const JsonHighlight: React.FC<{ data: object }> = ({ data }) => {
     const indentStr = '  '.repeat(indent)
     
     if (value === null) {
-      return <span className="text-orange-400">null</span>
+      return <span className="text-orange-400 select-text">null</span>
     }
     if (typeof value === 'boolean') {
-      return <span className="text-orange-400">{value.toString()}</span>
+      return <span className="text-orange-400 select-text">{value.toString()}</span>
     }
     if (typeof value === 'number') {
-      return <span className="text-cyan-400">{value}</span>
+      return <span className="text-cyan-400 select-text">{value}</span>
     }
     if (typeof value === 'string') {
-      return <span className="text-teal-600 dark:text-teal-400">&quot;{value}&quot;</span>
+      return <span className="text-teal-600 dark:text-teal-400 select-text">&quot;{value}&quot;</span>
     }
     if (Array.isArray(value)) {
-      if (value.length === 0) return <span>[]</span>
+      if (value.length === 0) return <span className="select-text">[]</span>
       return (
         <>
           {'[\n'}
           {value.map((item, i) => (
-            <span key={i}>
+            <span key={i} className="select-text">
               {indentStr}  {renderValue(item, indent + 1)}
               {i < value.length - 1 ? ',' : ''}
               {'\n'}
@@ -44,13 +44,13 @@ const JsonHighlight: React.FC<{ data: object }> = ({ data }) => {
     }
     if (typeof value === 'object') {
       const entries = Object.entries(value)
-      if (entries.length === 0) return <span>{'{}'}</span>
+      if (entries.length === 0) return <span className="select-text">{'{}'}</span>
       return (
         <>
           {'{\n'}
           {entries.map(([key, val], i) => (
-            <span key={key}>
-              {indentStr}  <span className="text-foreground-500">&quot;{key}&quot;</span>: {renderValue(val, indent + 1)}
+            <span key={key} className="select-text">
+              {indentStr}  <span className="text-foreground-500 select-text">&quot;{key}&quot;</span>: {renderValue(val, indent + 1)}
               {i < entries.length - 1 ? ',' : ''}
               {'\n'}
             </span>
@@ -63,8 +63,11 @@ const JsonHighlight: React.FC<{ data: object }> = ({ data }) => {
   }
 
   return (
-    <pre className="text-sm font-mono whitespace-pre overflow-x-auto">
-      {renderValue(data)}
+    <pre 
+      className="text-sm font-mono whitespace-pre overflow-x-auto"
+      style={{ userSelect: 'text', cursor: 'text' }}
+    >
+      <span style={{ userSelect: 'text' }}>{renderValue(data)}</span>
     </pre>
   )
 }
@@ -162,7 +165,10 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
         <ModalBody className="p-4">
           <div className="flex gap-4 h-[500px]">
             {/* 左侧：JSON 数据 */}
-            <div className="flex-1 overflow-auto bg-content2 rounded-lg p-3">
+            <div 
+              className="flex-1 overflow-auto bg-content2 rounded-lg p-3 app-nodrag"
+              style={{ userSelect: 'text' }}
+            >
               <JsonHighlight data={jsonData} />
             </div>
             
