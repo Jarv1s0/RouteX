@@ -6,9 +6,11 @@ import {
   ModalBody,
   Input,
   Chip,
-  Divider
+  Divider,
+  Button
 } from '@heroui/react'
 import React from 'react'
+import { IoClose } from 'react-icons/io5'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { restartMihomoConnections } from '@renderer/utils/ipc'
@@ -167,9 +169,20 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
       isOpen={true}
       onOpenChange={onClose}
       scrollBehavior="inside"
+      hideCloseButton
     >
       <ModalContent className="flag-emoji">
-        <ModalHeader className="flex text-lg font-semibold px-6 py-4">连接设置</ModalHeader>
+        <ModalHeader className="flex justify-between items-center px-6 py-4 pr-4">
+          <span className="text-lg font-semibold">连接设置</span>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            onPress={onClose}
+          >
+            <IoClose className="text-lg" />
+          </Button>
+        </ModalHeader>
         <ModalBody className="px-6 py-4 gap-4 pb-6">
           <div className="space-y-3">
             <SettingItem title="显示应用图标">

@@ -1,8 +1,9 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { relaunchApp, webdavDelete, webdavRestore } from '@renderer/utils/ipc'
 import React, { useState } from 'react'
 import { MdDeleteForever } from 'react-icons/md'
+import { IoClose } from 'react-icons/io5'
 interface Props {
   filenames: string[]
   onClose: () => void
@@ -24,8 +25,19 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent>
-        <ModalHeader className="flex app-drag">恢复备份</ModalHeader>
-        <ModalBody>
+        <ModalHeader className="flex justify-between items-center app-drag pr-4">
+          <span>恢复备份</span>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            className="app-nodrag"
+            onPress={onClose}
+          >
+            <IoClose className="text-lg" />
+          </Button>
+        </ModalHeader>
+        <ModalBody className="pb-6">
           {filenames.length === 0 ? (
             <div className="flex justify-center">还没有备份</div>
           ) : (
@@ -70,11 +82,6 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
             ))
           )}
         </ModalBody>
-        <ModalFooter>
-          <Button size="sm" variant="light" onPress={onClose}>
-            关闭
-          </Button>
-        </ModalFooter>
       </ModalContent>
     </Modal>
   )

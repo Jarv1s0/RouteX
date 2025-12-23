@@ -3,7 +3,6 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   Button,
   Switch,
   Input,
@@ -13,6 +12,7 @@ import {
   Tabs
 } from '@heroui/react'
 import React, { useState, useEffect } from 'react'
+import { IoClose } from 'react-icons/io5'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import debounce from '@renderer/utils/debounce'
@@ -57,8 +57,18 @@ const ProxySettingModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent className="flag-emoji">
-        <ModalHeader className="flex pb-0">代理组设置</ModalHeader>
-        <ModalBody className="py-2 gap-1">
+        <ModalHeader className="flex justify-between items-center pr-4">
+          <span>代理组设置</span>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            onPress={onClose}
+          >
+            <IoClose className="text-lg" />
+          </Button>
+        </ModalHeader>
+        <ModalBody className="py-2 pb-6 gap-1">
           <SettingItem title="代理节点展示列数" divider>
             <Select
               classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
@@ -171,11 +181,6 @@ const ProxySettingModal: React.FC<Props> = (props) => {
             />
           </SettingItem>
         </ModalBody>
-        <ModalFooter>
-          <Button size="sm" variant="light" onPress={onClose}>
-            关闭
-          </Button>
-        </ModalFooter>
       </ModalContent>
     </Modal>
   )

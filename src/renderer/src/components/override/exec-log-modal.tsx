@@ -3,11 +3,11 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   Button,
   Divider
 } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
+import { IoClose } from 'react-icons/io5'
 import { getOverride } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 
@@ -40,8 +40,19 @@ const ExecLogModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent>
-        <ModalHeader className="flex app-drag">执行日志</ModalHeader>
-        <ModalBody>
+        <ModalHeader className="flex justify-between items-center app-drag pr-4">
+          <span>执行日志</span>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            className="app-nodrag"
+            onPress={onClose}
+          >
+            <IoClose className="text-lg" />
+          </Button>
+        </ModalHeader>
+        <ModalBody className="pb-6">
           {logs.map((log) => {
             return (
               <>
@@ -51,11 +62,6 @@ const ExecLogModal: React.FC<Props> = (props) => {
             )
           })}
         </ModalBody>
-        <ModalFooter>
-          <Button size="sm" variant="light" onPress={onClose}>
-            关闭
-          </Button>
-        </ModalFooter>
       </ModalContent>
     </Modal>
   )

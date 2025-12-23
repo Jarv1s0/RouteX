@@ -3,7 +3,6 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   Button,
   Switch,
   Input,
@@ -12,6 +11,7 @@ import {
   Tooltip
 } from '@heroui/react'
 import React, { useState, useEffect, useRef } from 'react'
+import { IoClose } from 'react-icons/io5'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getGistUrl, getUserAgent } from '@renderer/utils/ipc'
@@ -66,8 +66,18 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent className="flag-emoji">
-        <ModalHeader className="flex pb-0">订阅设置</ModalHeader>
-        <ModalBody className="py-2 gap-1">
+        <ModalHeader className="flex justify-between items-center pr-4">
+          <span>订阅设置</span>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            onPress={onClose}
+          >
+            <IoClose className="text-lg" />
+          </Button>
+        </ModalHeader>
+        <ModalBody className="py-2 pb-6 gap-1">
           <SettingItem title="显示日期" divider>
             <Tabs
               size="sm"
@@ -149,11 +159,6 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
             />
           </SettingItem>
         </ModalBody>
-        <ModalFooter>
-          <Button size="sm" variant="light" onPress={onClose}>
-            关闭
-          </Button>
-        </ModalFooter>
       </ModalContent>
     </Modal>
   )

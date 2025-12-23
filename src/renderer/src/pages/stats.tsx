@@ -4,7 +4,7 @@ import { Card, CardBody, Tabs, Tab, Button, Modal, ModalContent, ModalHeader, Mo
 import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid, Line, LineChart } from 'recharts'
 import { calcTraffic } from '@renderer/utils/calc'
 import { getTrafficStats, clearTrafficStats, getProviderStats, clearProviderStats, triggerProviderSnapshot, getProfileConfig } from '@renderer/utils/ipc'
-import { IoArrowUp, IoArrowDown, IoTrendingUp, IoCalendar, IoRefresh } from 'react-icons/io5'
+import { IoArrowUp, IoArrowDown, IoTrendingUp, IoCalendar, IoRefresh, IoClose } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import ConfirmModal from '@renderer/components/base/base-confirm'
 
@@ -1114,6 +1114,7 @@ const Stats: React.FC = () => {
           onClose={() => setSelectedRule(null)} 
           size="2xl" 
           backdrop="blur"
+          hideCloseButton
           classNames={{
             backdrop: "top-[48px]"
           }}
@@ -1121,9 +1122,19 @@ const Stats: React.FC = () => {
           <ModalContent>
             {() => (
               <>
-                <ModalHeader className="flex flex-col gap-1">
-                  <span>规则命中详情</span>
-                  <span className="text-xs font-normal text-foreground-400">{selectedRule}</span>
+                <ModalHeader className="flex justify-between items-start pr-4">
+                  <div className="flex flex-col gap-1">
+                    <span>规则命中详情</span>
+                    <span className="text-xs font-normal text-foreground-400">{selectedRule}</span>
+                  </div>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    onPress={() => setSelectedRule(null)}
+                  >
+                    <IoClose className="text-lg" />
+                  </Button>
                 </ModalHeader>
                 <ModalBody className="pb-6">
                   {selectedRule && (

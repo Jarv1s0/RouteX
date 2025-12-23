@@ -1,8 +1,9 @@
-import { Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@heroui/react'
 import React, { useMemo } from 'react'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useGroups } from '@renderer/hooks/use-groups'
+import { IoClose } from 'react-icons/io5'
 
 interface Props {
   connection: ControllerConnectionDetail
@@ -153,14 +154,17 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent className="flag-emoji">
-        <ModalHeader className="flex justify-between items-center app-drag">
+        <ModalHeader className="flex justify-between items-center app-drag pr-4">
           <span>连接详情</span>
-          <span 
-            className="text-sm text-foreground-500 cursor-pointer hover:text-foreground app-nodrag"
-            onClick={onClose}
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            className="app-nodrag"
+            onPress={onClose}
           >
-            ✕
-          </span>
+            <IoClose className="text-lg" />
+          </Button>
         </ModalHeader>
         <ModalBody className="p-4">
           <div className="flex gap-4 h-[500px]">
