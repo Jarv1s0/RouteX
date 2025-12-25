@@ -3,13 +3,20 @@ import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Tabs, Tab, Button, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
 import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid, Line, LineChart } from 'recharts'
 import { calcTraffic } from '@renderer/utils/calc'
-import { getTrafficStats, clearTrafficStats, getProviderStats, clearProviderStats, triggerProviderSnapshot, getProfileConfig } from '@renderer/utils/ipc'
+import { getTrafficStats, clearTrafficStats, getProviderStats, clearProviderStats, triggerProviderSnapshot, getProfileConfig, getProcessTrafficRanking } from '@renderer/utils/ipc'
 import { IoArrowUp, IoArrowDown, IoTrendingUp, IoCalendar, IoRefresh, IoClose } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import ConfirmModal from '@renderer/components/base/base-confirm'
 
 interface TrafficDataPoint {
   time: string
+  upload: number
+  download: number
+}
+
+interface ProcessTrafficItem {
+  process: string
+  host: string
   upload: number
   download: number
 }
@@ -75,6 +82,14 @@ const Stats: React.FC = () => {
   }>>>(new Map())
   const [selectedRule, setSelectedRule] = useState<string | null>(null)
 
+  // 进程流量排行弹窗
+  const [processTrafficModal, setProcessTrafficModal] = useState<{
+    type: 'session' | 'today'
+    sortBy: 'upload' | 'download'
+    title: string
+  } | null>(null)
+  const [processTrafficData, setProcessTrafficData] = useState<ProcessTrafficItem[]>([])
+
   // 清除统计数据
   const handleClearStats = useCallback(async () => {
     setClearingStats(true)
@@ -87,6 +102,23 @@ const Stats: React.FC = () => {
     } finally {
       setClearingStats(false)
       setShowClearConfirm(false)
+    }
+  }, [])
+
+  // 打开进程流量排行弹窗
+  const handleOpenProcessTraffic = useCallback(async (type: 'session' | 'today', sortBy: 'upload' | 'download') => {
+    const titles: Record<string, string> = {
+      'session-upload': '本次上传 Top10',
+      'session-download': '本次下载 Top10',
+      'today-upload': '今日上传 Top10',
+      'today-download': '今日下载 Top10'
+    }
+    setProcessTrafficModal({ type, sortBy, title: titles[`${type}-${sortBy}`] })
+    try {
+      const data = await getProcessTrafficRanking(type, sortBy)
+      setProcessTrafficData(data)
+    } catch {
+      setProcessTrafficData([])
     }
   }, [])
 
@@ -518,7 +550,7 @@ const Stats: React.FC = () => {
 
         {/* 流量统计 */}
         <div className="grid grid-cols-4 gap-3">
-          <Card>
+          <Card isPressable onPress={() => handleOpenProcessTraffic('session', 'upload')} className="cursor-pointer hover:bg-default-100 transition-colors">
             <CardBody className="p-3">
               <div className="flex items-center gap-2 mb-1">
                 <IoTrendingUp className="text-cyan-500 text-sm" />
@@ -527,7 +559,7 @@ const Stats: React.FC = () => {
               <div className="text-cyan-500 font-semibold">{calcTraffic(sessionStats.upload)}</div>
             </CardBody>
           </Card>
-          <Card>
+          <Card isPressable onPress={() => handleOpenProcessTraffic('session', 'download')} className="cursor-pointer hover:bg-default-100 transition-colors">
             <CardBody className="p-3">
               <div className="flex items-center gap-2 mb-1">
                 <IoTrendingUp className="text-purple-500 text-sm" />
@@ -536,7 +568,7 @@ const Stats: React.FC = () => {
               <div className="text-purple-500 font-semibold">{calcTraffic(sessionStats.download)}</div>
             </CardBody>
           </Card>
-          <Card>
+          <Card isPressable onPress={() => handleOpenProcessTraffic('today', 'upload')} className="cursor-pointer hover:bg-default-100 transition-colors">
             <CardBody className="p-3">
               <div className="flex items-center gap-2 mb-1">
                 <IoCalendar className="text-cyan-500 text-sm" />
@@ -545,7 +577,7 @@ const Stats: React.FC = () => {
               <div className="text-cyan-500 font-semibold">{calcTraffic(todayStats.upload)}</div>
             </CardBody>
           </Card>
-          <Card>
+          <Card isPressable onPress={() => handleOpenProcessTraffic('today', 'download')} className="cursor-pointer hover:bg-default-100 transition-colors">
             <CardBody className="p-3">
               <div className="flex items-center gap-2 mb-1">
                 <IoCalendar className="text-purple-500 text-sm" />
@@ -1165,6 +1197,76 @@ const Stats: React.FC = () => {
                       )}
                     </div>
                   )}
+                </ModalBody>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
+
+        {/* 进程流量排行弹窗 */}
+        <Modal 
+          isOpen={!!processTrafficModal} 
+          onClose={() => setProcessTrafficModal(null)} 
+          size="2xl" 
+          backdrop="blur"
+          hideCloseButton
+          classNames={{
+            backdrop: "top-[48px]"
+          }}
+        >
+          <ModalContent>
+            {() => (
+              <>
+                <ModalHeader className="flex justify-between items-start pr-4">
+                  <div className="flex flex-col gap-1">
+                    <span>{processTrafficModal?.title}</span>
+                    <span className="text-xs font-normal text-foreground-400">按{processTrafficModal?.sortBy === 'upload' ? '上传' : '下载'}流量排序</span>
+                  </div>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    onPress={() => setProcessTrafficModal(null)}
+                  >
+                    <IoClose className="text-lg" />
+                  </Button>
+                </ModalHeader>
+                <ModalBody className="pb-6">
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {processTrafficData.length === 0 ? (
+                      <div className="text-center text-foreground-400 py-8">
+                        暂无进程流量数据
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-6 gap-2 text-xs text-foreground-500 font-medium pb-2 border-b border-divider">
+                          <span>排名</span>
+                          <span>进程</span>
+                          <span className="col-span-3">目标域名</span>
+                          <span className="text-right">流量</span>
+                        </div>
+                        {processTrafficData.map((item, index) => (
+                          <div key={item.process} className="grid grid-cols-6 gap-2 text-xs py-1.5 border-b border-divider/50">
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold ${
+                              index === 0 ? 'bg-warning text-warning-foreground' :
+                              index === 1 ? 'bg-default-300 text-default-foreground' :
+                              index === 2 ? 'bg-warning-200 text-warning-800' :
+                              'bg-default-100 text-default-500'
+                            }`}>
+                              {index + 1}
+                            </span>
+                            <span className="truncate" title={item.process}>{item.process}</span>
+                            <span className="col-span-3 truncate text-foreground-400" title={item.host}>{item.host || '-'}</span>
+                            <span className="text-right">
+                              <span className={processTrafficModal?.sortBy === 'upload' ? 'text-cyan-500' : 'text-purple-500'}>
+                                {calcTraffic(processTrafficModal?.sortBy === 'upload' ? item.upload : item.download)}
+                              </span>
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
                 </ModalBody>
               </>
             )}

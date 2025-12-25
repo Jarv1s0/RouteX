@@ -129,7 +129,7 @@ import { startMonitor } from '../resolve/trafficMonitor'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
 import { getAppName } from './appName'
 import { getUserAgent } from './userAgent'
-import { getTrafficStats, clearTrafficStats } from '../resolve/trafficStats'
+import { getTrafficStats, clearTrafficStats, getProcessTrafficRanking } from '../resolve/trafficStats'
 import { getProviderStats, clearProviderStats, triggerSnapshot } from '../resolve/providerStats'
 import { net } from 'electron'
 import { mihomoGetConnections } from '../core/mihomoApi'
@@ -575,6 +575,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('getIconDataURL', (_e, appPath) => ipcErrorWrapper(getIconDataURL)(appPath))
   ipcMain.handle('getTrafficStats', () => getTrafficStats())
   ipcMain.handle('clearTrafficStats', () => clearTrafficStats())
+  ipcMain.handle('getProcessTrafficRanking', (_e, type: 'session' | 'today', sortBy: 'upload' | 'download') => getProcessTrafficRanking(type, sortBy))
   ipcMain.handle('getProviderStats', () => getProviderStats())
   ipcMain.handle('clearProviderStats', () => clearProviderStats())
   ipcMain.handle('triggerProviderSnapshot', async () => {

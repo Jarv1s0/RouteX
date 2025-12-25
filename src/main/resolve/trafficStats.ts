@@ -14,12 +14,26 @@ interface DailyStats {
   download: number
 }
 
+interface ProcessStats {
+  process: string
+  host: string  // 目标主机/域名
+  upload: number
+  download: number
+}
+
 interface TrafficStatsData {
   hourly: HourlyStats[] // 保留最近7天的小时数据
   daily: DailyStats[] // 保留最近30天的日数据
   lastUpdate: number
   sessionUpload: number
   sessionDownload: number
+}
+
+// 进程流量统计（内存中，不持久化）
+interface ProcessTrafficData {
+  sessionProcessStats: Map<string, ProcessStats> // 本次会话进程流量
+  todayProcessStats: Map<string, ProcessStats> // 今日进程流量
+  todayDate: string // 今日日期，用于判断是否需要重置
 }
 
 const STATS_FILE = 'traffic-stats.json'
@@ -33,6 +47,16 @@ let statsData: TrafficStatsData = {
   sessionUpload: 0,
   sessionDownload: 0
 }
+
+// 进程流量统计数据
+let processTrafficData: ProcessTrafficData = {
+  sessionProcessStats: new Map(),
+  todayProcessStats: new Map(),
+  todayDate: new Date().toISOString().split('T')[0]
+}
+
+// 连接流量追踪（用于计算增量）
+const connectionTraffic: Map<string, { upload: number; download: number; process: string; host: string }> = new Map()
 
 let lastUpload = 0
 let lastDownload = 0
@@ -149,5 +173,98 @@ export function clearTrafficStats(): void {
   }
   lastUpload = 0
   lastDownload = 0
+  // 同时清除进程流量统计
+  processTrafficData = {
+    sessionProcessStats: new Map(),
+    todayProcessStats: new Map(),
+    todayDate: new Date().toISOString().split('T')[0]
+  }
+  connectionTraffic.clear()
   saveTrafficStats()
+}
+
+// 更新进程流量统计（从连接数据）
+export function updateProcessTraffic(connections: Array<{
+  id: string
+  upload: number
+  download: number
+  metadata: {
+    process?: string
+    host?: string
+    destinationIP?: string
+  }
+}>): void {
+  const today = new Date().toISOString().split('T')[0]
+  
+  // 检查是否跨天，需要重置今日统计
+  if (today !== processTrafficData.todayDate) {
+    processTrafficData.todayProcessStats.clear()
+    processTrafficData.todayDate = today
+  }
+
+  for (const conn of connections) {
+    const process = conn.metadata?.process || '未知进程'
+    const host = conn.metadata?.host || conn.metadata?.destinationIP || ''
+    if (!process || process === '-') continue
+
+    const prevTraffic = connectionTraffic.get(conn.id)
+    const currentUpload = conn.upload
+    const currentDownload = conn.download
+
+    let uploadDelta = 0
+    let downloadDelta = 0
+
+    if (prevTraffic) {
+      // 计算增量
+      uploadDelta = Math.max(0, currentUpload - prevTraffic.upload)
+      downloadDelta = Math.max(0, currentDownload - prevTraffic.download)
+    } else {
+      // 新连接，记录当前值作为基准（不计入增量，避免重复计算）
+      uploadDelta = 0
+      downloadDelta = 0
+    }
+
+    // 更新连接追踪
+    connectionTraffic.set(conn.id, { upload: currentUpload, download: currentDownload, process, host })
+
+    if (uploadDelta > 0 || downloadDelta > 0) {
+      // 更新本次会话进程统计
+      const sessionStats = processTrafficData.sessionProcessStats.get(process) || { process, host, upload: 0, download: 0 }
+      sessionStats.upload += uploadDelta
+      sessionStats.download += downloadDelta
+      // 保留最新的 host（或者可以保留流量最大的 host）
+      if (host) sessionStats.host = host
+      processTrafficData.sessionProcessStats.set(process, sessionStats)
+
+      // 更新今日进程统计
+      const todayStats = processTrafficData.todayProcessStats.get(process) || { process, host, upload: 0, download: 0 }
+      todayStats.upload += uploadDelta
+      todayStats.download += downloadDelta
+      if (host) todayStats.host = host
+      processTrafficData.todayProcessStats.set(process, todayStats)
+    }
+  }
+
+  // 清理已关闭的连接（可选，防止内存泄漏）
+  const activeIds = new Set(connections.map(c => c.id))
+  for (const id of connectionTraffic.keys()) {
+    if (!activeIds.has(id)) {
+      connectionTraffic.delete(id)
+    }
+  }
+}
+
+// 获取进程流量排行
+export function getProcessTrafficRanking(type: 'session' | 'today', sortBy: 'upload' | 'download'): ProcessStats[] {
+  const statsMap = type === 'session' 
+    ? processTrafficData.sessionProcessStats 
+    : processTrafficData.todayProcessStats
+
+  const stats = Array.from(statsMap.values())
+  
+  // 按指定字段排序
+  stats.sort((a, b) => b[sortBy] - a[sortBy])
+  
+  // 返回前10
+  return stats.slice(0, 10)
 }

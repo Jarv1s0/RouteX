@@ -7,7 +7,7 @@ import { calcTraffic } from '../utils/calc'
 import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
 import { mihomoIpcPath } from '../utils/dirs'
-import { updateTrafficStats } from '../resolve/trafficStats'
+import { updateTrafficStats, updateProcessTraffic } from '../resolve/trafficStats'
 
 let axiosIns: AxiosInstance = null!
 let mihomoTrafficWs: WebSocket | null = null
@@ -437,6 +437,10 @@ const mihomoConnections = async (): Promise<void> => {
     try {
       const connectionsData = JSON.parse(data) as ControllerConnections
       mainWindow?.webContents.send('mihomoConnections', connectionsData)
+      // 更新进程流量统计
+      if (connectionsData.connections) {
+        updateProcessTraffic(connectionsData.connections)
+      }
     } catch {
       // ignore
     }

@@ -530,6 +530,15 @@ export async function clearTrafficStats(): Promise<void> {
   return await window.electron.ipcRenderer.invoke('clearTrafficStats')
 }
 
+export async function getProcessTrafficRanking(type: 'session' | 'today', sortBy: 'upload' | 'download'): Promise<{
+  process: string
+  host: string
+  upload: number
+  download: number
+}[]> {
+  return await window.electron.ipcRenderer.invoke('getProcessTrafficRanking', type, sortBy)
+}
+
 export async function getProviderStats(): Promise<{
   snapshots: { date: string; provider: string; used: number }[]
   lastUpdate: number
