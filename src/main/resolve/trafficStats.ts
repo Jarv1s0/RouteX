@@ -103,8 +103,8 @@ function getCurrentDateKey(): string {
 
 export function updateTrafficStats(upload: number, download: number): void {
   // 计算增量
-  const uploadDelta = upload > lastUpload ? upload - lastUpload : upload
-  const downloadDelta = download > lastDownload ? download - lastDownload : download
+  const uploadDelta = upload >= lastUpload ? upload - lastUpload : 0
+  const downloadDelta = download >= lastDownload ? download - lastDownload : 0
   
   lastUpload = upload
   lastDownload = download
