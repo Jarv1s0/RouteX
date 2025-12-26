@@ -6,7 +6,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { addFlag, removeFlag } from '@renderer/utils/flags'
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect, useState } from 'react'
+import { mihomoProxies } from '@renderer/utils/ipc'
 
 interface Props {
   iconOnly?: boolean
@@ -20,6 +21,8 @@ const ProxyCard: React.FC<Props> = (props) => {
   const navigate = useNavigate()
   const match = location.pathname.includes('/proxies')
   const { groups = [] } = useGroups()
+  const [allProxies, setAllProxies] = useState<Record<string, any>>({})
+  
   const {
     attributes,
     listeners,
@@ -32,6 +35,15 @@ const ProxyCard: React.FC<Props> = (props) => {
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
 
+  // 获取所有代理信息（包括隐藏的组）
+  useEffect(() => {
+    mihomoProxies().then(data => {
+      setAllProxies(data.proxies)
+    }).catch(() => {
+      // ignore
+    })
+  }, [groups])
+
   // 缓存第一个非GLOBAL组
   const firstGroup = useMemo(() => groups.find(g => g.name !== 'GLOBAL'), [groups])
   
@@ -41,12 +53,12 @@ const ProxyCard: React.FC<Props> = (props) => {
     return groupName ? addFlag(groupName) : '代理组'
   }, [firstGroup])
 
-  // 缓存最终节点名（递归查找）
+  // 缓存最终节点名（递归查找，使用 allProxies）
   const finalNodeName = useMemo(() => {
     const findFinalNode = (nodeName: string | undefined): string | undefined => {
       if (!nodeName) return undefined
-      const subGroup = groups.find(g => g.name === nodeName)
-      if (subGroup?.now) {
+      const subGroup = allProxies[nodeName]
+      if (subGroup && 'now' in subGroup && subGroup.now) {
         return findFinalNode(subGroup.now)
       }
       return nodeName
@@ -57,7 +69,7 @@ const ProxyCard: React.FC<Props> = (props) => {
       return removeFlag(finalNode)
     }
     return ''
-  }, [groups, firstGroup])
+  }, [allProxies, firstGroup])
 
   if (iconOnly) {
     return (
