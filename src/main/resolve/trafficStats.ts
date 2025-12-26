@@ -72,9 +72,11 @@ export function loadTrafficStats(): TrafficStatsData {
     if (fs.existsSync(filePath)) {
       const data = fs.readFileSync(filePath, 'utf-8')
       statsData = JSON.parse(data)
-      // 重置会话数据
+      // 重置会话数据和增量基准
       statsData.sessionUpload = 0
       statsData.sessionDownload = 0
+      lastUpload = 0
+      lastDownload = 0
     }
   } catch (e) {
     console.error('Failed to load traffic stats:', e)
