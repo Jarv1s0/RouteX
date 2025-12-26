@@ -7,7 +7,7 @@ import { calcTraffic } from '../utils/calc'
 import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
 import { mihomoIpcPath } from '../utils/dirs'
-import { updateTrafficStats, updateProcessTraffic } from '../resolve/trafficStats'
+import { updateTrafficStats, updateProcessTraffic, resetTrafficDelta } from '../resolve/trafficStats'
 
 let axiosIns: AxiosInstance = null!
 let mihomoTrafficWs: WebSocket | null = null
@@ -274,6 +274,10 @@ export const stopMihomoTraffic = (): void => {
     }
     mihomoTrafficWs = null
   }
+  // 重置累计流量和增量基准，避免核心重启后统计错误
+  totalUpload = 0
+  totalDownload = 0
+  resetTrafficDelta()
 }
 
 const mihomoTraffic = async (): Promise<void> => {

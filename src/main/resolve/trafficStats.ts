@@ -156,6 +156,11 @@ export function getTrafficStats(): TrafficStatsData {
   return statsData
 }
 
+export function resetTrafficDelta(): void {
+  lastUpload = 0
+  lastDownload = 0
+}
+
 export function resetSessionStats(): void {
   statsData.sessionUpload = 0
   statsData.sessionDownload = 0

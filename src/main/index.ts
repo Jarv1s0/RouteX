@@ -589,6 +589,27 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       mainWindow?.webContents.reload()
     })
 
+    // 处理渲染进程崩溃
+    mainWindow.webContents.on('render-process-gone', (event, details) => {
+      console.error('Renderer process crashed:', details)
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.reload()
+      }
+    })
+
+    // 处理渲染进程无响应
+    mainWindow.on('unresponsive', () => {
+      console.warn('Main window became unresponsive')
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.reload()
+      }
+    })
+
+    // 处理渲染进程恢复响应
+    mainWindow.on('responsive', () => {
+      console.log('Main window became responsive again')
+    })
+
     mainWindow.on('close', async (event) => {
       event.preventDefault()
       mainWindow?.hide()
