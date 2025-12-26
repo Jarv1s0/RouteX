@@ -31,7 +31,7 @@ import { showFloatingWindow } from './resolve/floatingWindow'
 import iconv from 'iconv-lite'
 import { getAppConfigSync } from './config/app'
 import { getUserAgent } from './utils/userAgent'
-import { loadTrafficStats } from './resolve/trafficStats'
+import { loadTrafficStats, saveTrafficStats } from './resolve/trafficStats'
 import { loadProviderStats, startMapUpdateTimer, onCoreStarted } from './resolve/providerStats'
 import { startNetworkHealthMonitor } from './resolve/networkHealth'
 
@@ -257,6 +257,7 @@ app.on('before-quit', async (e) => {
         clearTimeout(quitTimeout)
         quitTimeout = null
       }
+      saveTrafficStats() // 退出前保存流量统计
       triggerSysProxy(false, false)
       await stopCore()
       app.exit()
@@ -272,6 +273,7 @@ app.on('before-quit', async (e) => {
         clearTimeout(quitTimeout)
         quitTimeout = null
       }
+      saveTrafficStats() // 退出前保存流量统计
       triggerSysProxy(false, false)
       await stopCore()
       app.exit()
@@ -282,6 +284,7 @@ app.on('before-quit', async (e) => {
       clearTimeout(quitTimeout)
       quitTimeout = null
     }
+    saveTrafficStats() // 退出前保存流量统计
     triggerSysProxy(false, false)
     await stopCore()
     app.exit()

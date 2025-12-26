@@ -328,7 +328,9 @@ const Stats: React.FC = () => {
   const peakUploadSpeed = trafficHistory.length > 0 ? Math.max(...trafficHistory.map(d => d.upload)) : 0
   const peakDownloadSpeed = trafficHistory.length > 0 ? Math.max(...trafficHistory.map(d => d.download)) : 0
 
-  const today = new Date().toISOString().split('T')[0]
+  // 使用本地时间生成日期 key，与后端保持一致
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const todayStats = dailyData.find(d => d.date === today) || { upload: 0, download: 0 }
 
   const formatHourLabel = (hour: string): string => {

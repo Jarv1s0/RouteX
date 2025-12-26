@@ -48,11 +48,17 @@ let statsData: TrafficStatsData = {
   sessionDownload: 0
 }
 
+// 获取本地日期字符串
+function getLocalDateString(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
 // 进程流量统计数据
 let processTrafficData: ProcessTrafficData = {
   sessionProcessStats: new Map(),
   todayProcessStats: new Map(),
-  todayDate: new Date().toISOString().split('T')[0]
+  todayDate: getLocalDateString()
 }
 
 // 连接流量追踪（用于计算增量）
@@ -71,10 +77,16 @@ export function loadTrafficStats(): TrafficStatsData {
     const filePath = getStatsFilePath()
     if (fs.existsSync(filePath)) {
       const data = fs.readFileSync(filePath, 'utf-8')
-      statsData = JSON.parse(data)
-      // 重置会话数据和增量基准
-      statsData.sessionUpload = 0
-      statsData.sessionDownload = 0
+      const loaded = JSON.parse(data)
+      // 确保数据结构完整
+      statsData = {
+        hourly: Array.isArray(loaded.hourly) ? loaded.hourly : [],
+        daily: Array.isArray(loaded.daily) ? loaded.daily : [],
+        lastUpdate: loaded.lastUpdate || Date.now(),
+        sessionUpload: 0,  // 会话数据始终重置
+        sessionDownload: 0
+      }
+      // 重置增量基准
       lastUpload = 0
       lastDownload = 0
     }
@@ -85,6 +97,11 @@ export function loadTrafficStats(): TrafficStatsData {
 }
 
 export function saveTrafficStats(): void {
+  // 清除待执行的保存定时器
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
   try {
     const filePath = getStatsFilePath()
     fs.writeFileSync(filePath, JSON.stringify(statsData, null, 2))
@@ -184,7 +201,7 @@ export function clearTrafficStats(): void {
   processTrafficData = {
     sessionProcessStats: new Map(),
     todayProcessStats: new Map(),
-    todayDate: new Date().toISOString().split('T')[0]
+    todayDate: getLocalDateString()
   }
   connectionTraffic.clear()
   saveTrafficStats()
@@ -201,7 +218,7 @@ export function updateProcessTraffic(connections: Array<{
     destinationIP?: string
   }
 }>): void {
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
   
   // 检查是否跨天，需要重置今日统计
   if (today !== processTrafficData.todayDate) {
