@@ -590,7 +590,7 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
     })
 
     // 处理渲染进程崩溃
-    mainWindow.webContents.on('render-process-gone', (event, details) => {
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
       console.error('Renderer process crashed:', details)
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.reload()
