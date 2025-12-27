@@ -215,6 +215,25 @@ function showWindow(): number {
     mainWindow.setAlwaysOnTop(true, 'pop-up-menu')
     mainWindow.focus()
     mainWindow.setAlwaysOnTop(false)
+    
+    // 检查渲染进程是否正常，如果崩溃则重新加载
+    if (mainWindow.webContents.isCrashed()) {
+      mainWindow.webContents.reload()
+    } else {
+      // 检查页面是否正常加载（防止白屏）
+      mainWindow.webContents.executeJavaScript('document.body ? document.body.innerHTML.length : 0')
+        .then((length) => {
+          if (length === 0 && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.reload()
+          }
+        })
+        .catch(() => {
+          // 执行失败，可能渲染进程有问题，尝试重新加载
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.reload()
+          }
+        })
+    }
 
     if (!mainWindow.isMinimized()) {
       return 100
@@ -685,6 +704,10 @@ export async function showMainWindow(): Promise<void> {
     windowShown = true
     mainWindow.show()
     mainWindow.focusOnWebView()
+    // 检查渲染进程是否正常，如果崩溃则重新加载
+    if (mainWindow.webContents.isCrashed()) {
+      mainWindow.webContents.reload()
+    }
   } else {
     await createWindow()
     if (mainWindow !== null) {
