@@ -67,6 +67,7 @@ const connectionTraffic: Map<string, { upload: number; download: number; process
 let lastUpload = 0
 let lastDownload = 0
 let saveTimer: NodeJS.Timeout | null = null
+let periodicSaveTimer: NodeJS.Timeout | null = null
 
 function getStatsFilePath(): string {
   return path.join(dataDir(), STATS_FILE)
@@ -93,6 +94,15 @@ export function loadTrafficStats(): TrafficStatsData {
   } catch (e) {
     console.error('Failed to load traffic stats:', e)
   }
+  
+  // 启动定期保存（每60秒强制保存一次，防止关机时数据丢失）
+  if (periodicSaveTimer) {
+    clearInterval(periodicSaveTimer)
+  }
+  periodicSaveTimer = setInterval(() => {
+    saveTrafficStats()
+  }, 60000)
+  
   return statsData
 }
 
@@ -162,7 +172,7 @@ export function updateTrafficStats(upload: number, download: number): void {
 
   statsData.lastUpdate = Date.now()
 
-  // 延迟保存，避免频繁写入
+  // 延迟保存，避免频繁写入（每30秒至少保存一次）
   if (saveTimer) {
     clearTimeout(saveTimer)
   }
