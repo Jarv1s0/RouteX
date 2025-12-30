@@ -93,6 +93,7 @@ interface AppConfig {
     fair: number // 良好延迟阈值，默认 500ms
   }
   autoDelayTestOnShow?: boolean // 窗口显示时自动测速
+  autoDelayTestOnClick?: boolean // 点击代理组卡片时自动测速
   encryptedPassword?: number[]
   controlDns?: boolean
   controlSniff?: boolean
