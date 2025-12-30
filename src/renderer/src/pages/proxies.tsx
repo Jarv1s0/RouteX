@@ -168,10 +168,15 @@ const Proxies: React.FC = () => {
   const toggleOpen = useCallback((index: number) => {
     setIsOpen((prev) => {
       const newOpen = [...prev]
-      newOpen[index] = !prev[index]
+      const wasOpen = prev[index]
+      newOpen[index] = !wasOpen
+      // 如果是展开操作，自动触发测速
+      if (!wasOpen) {
+        setTimeout(() => onGroupDelay(index), 100)
+      }
       return newOpen
     })
-  }, [])
+  }, [onGroupDelay])
 
   const updateSearchValue = useCallback((index: number, value: string) => {
     setSearchValue((prev) => {
