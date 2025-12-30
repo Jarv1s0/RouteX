@@ -5,7 +5,7 @@ import {
 } from '@renderer/utils/ipc'
 import { getHash } from '@renderer/utils/hash'
 import Viewer from './viewer'
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { Button, Card, CardBody, Chip } from '@heroui/react'
 import { IoMdRefresh } from 'react-icons/io'
@@ -14,12 +14,11 @@ import { MdEditDocument } from 'react-icons/md'
 import dayjs from 'dayjs'
 
 interface Props {
-  compact?: boolean
   hideUpdateAll?: boolean
   onUpdateAllRef?: React.MutableRefObject<(() => void) | null>
 }
 
-const RuleProvider: React.FC<Props> = ({ compact = false, hideUpdateAll = false, onUpdateAllRef }) => {
+const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }) => {
   const [showDetails, setShowDetails] = useState({
     show: false,
     path: '',
