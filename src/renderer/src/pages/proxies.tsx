@@ -5,7 +5,8 @@ import {
   getImageDataURL,
   mihomoChangeProxy,
   mihomoCloseAllConnections,
-  mihomoProxyDelay
+  mihomoProxyDelay,
+  mihomoGroupDelay
 } from '@renderer/utils/ipc'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { GroupedVirtuoso, GroupedVirtuosoHandle } from 'react-virtuoso'
@@ -28,18 +29,29 @@ const Proxies: React.FC = () => {
     proxyDisplayOrder = 'default',
     autoCloseConnection = true,
     proxyCols = 'auto',
-    delayTestConcurrency = 50
+    delayTestConcurrency = 50,
+    groupOrder = [],
+    autoDelayTestOnShow = false
   } = appConfig || {}
 
   // 根据模式过滤显示的组
-  const groups = useMemo(() => {
+  const filteredGroups = useMemo(() => {
     if (mode === 'global') {
-      // 全局模式下只显示 GLOBAL 组
       return allGroups.filter(group => group.name === 'GLOBAL')
     }
-    // 规则模式下过滤掉 GLOBAL 组
     return allGroups.filter(group => group.name !== 'GLOBAL')
   }, [allGroups, mode])
+
+  // 根据 groupOrder 排序
+  const groups = useMemo(() => {
+    if (groupOrder.length === 0) return filteredGroups
+    const orderMap = new Map(groupOrder.map((name, index) => [name, index]))
+    return [...filteredGroups].sort((a, b) => {
+      const aIndex = orderMap.get(a.name) ?? Infinity
+      const bIndex = orderMap.get(b.name) ?? Infinity
+      return aIndex - bIndex
+    })
+  }, [filteredGroups, groupOrder])
   const [cols, setCols] = useState(1)
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(false))
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
@@ -184,15 +196,49 @@ const Proxies: React.FC = () => {
     }
   }, [proxyCols, calcCols])
 
+  // 窗口显示时自动测速
+  const autoDelayTestRef = useRef(false)
+  useEffect(() => {
+    if (!autoDelayTestOnShow) return
+    
+    const handleVisibilityChange = async (): Promise<void> => {
+      if (document.visibilityState === 'visible' && !autoDelayTestRef.current) {
+        autoDelayTestRef.current = true
+        try {
+          // 对所有组进行测速
+          for (const group of groups) {
+            try {
+              await mihomoGroupDelay(group.name, group.testUrl)
+            } catch {
+              // ignore
+            }
+          }
+          mutate()
+        } finally {
+          // 延迟重置标志，避免频繁触发
+          setTimeout(() => {
+            autoDelayTestRef.current = false
+          }, 5000)
+        }
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return (): void => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [autoDelayTestOnShow, groups, mutate])
+
   // 获取节点延迟颜色
   const getDelayColor = useCallback((proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {
     if (!proxy.history || proxy.history.length === 0) return 'bg-zinc-400' // 未测试 - 灰色
     const delay = proxy.history[proxy.history.length - 1].delay
     if (delay === 0) return 'bg-red-500' // 超时 - 红色
-    if (delay < 200) return 'bg-emerald-500' // 低延迟 - 翠绿色
-    if (delay < 500) return 'bg-amber-400' // 中延迟 - 琥珀色
+    const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
+    if (delay < delayThresholds.good) return 'bg-emerald-500' // 低延迟 - 翠绿色
+    if (delay < delayThresholds.fair) return 'bg-amber-400' // 中延迟 - 琥珀色
     return 'bg-red-500' // 高延迟 - 红色
-  }, [])
+  }, [appConfig])
 
   // 获取当前节点延迟
   const getCurrentDelay = useCallback((group: ControllerMixedGroup): number => {
@@ -217,7 +263,8 @@ const Proxies: React.FC = () => {
       
       const group = groups[index]
       const currentDelay = getCurrentDelay(group)
-      const delayColor = currentDelay === -1 ? 'text-default-400' : currentDelay === 0 ? 'text-danger' : currentDelay < 200 ? 'text-success' : currentDelay < 500 ? 'text-warning' : 'text-danger'
+      const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
+      const delayColor = currentDelay === -1 ? 'text-default-400' : currentDelay === 0 ? 'text-danger' : currentDelay < delayThresholds.good ? 'text-success' : currentDelay < delayThresholds.fair ? 'text-warning' : 'text-danger'
       
       return group ? (
         <div
@@ -228,7 +275,7 @@ const Proxies: React.FC = () => {
             isPressable
             fullWidth
             onPress={() => toggleOpen(index)}
-            className={`transition-all duration-200 ${isOpen[index] ? 'shadow-md bg-content2' : 'hover:shadow-md'}`}
+            className={`transition-all duration-200 ${isOpen[index] ? 'shadow-md bg-content3' : 'hover:shadow-md'}`}
           >
             <CardBody className="w-full p-3">
               {/* 第一行：组名、类型、节点数、延迟 */}

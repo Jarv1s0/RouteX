@@ -18,6 +18,7 @@ interface Props {
   hide?: (id: string) => void
   unhide?: (id: string) => void
   isHidden?: boolean
+  timeRefreshTrigger?: number // 统一时间刷新触发器
 }
 
 const ConnectionItemComponent: React.FC<Props> = ({
@@ -31,7 +32,8 @@ const ConnectionItemComponent: React.FC<Props> = ({
   unhide,
   isHidden,
   setSelected,
-  setIsDetailModalOpen
+  setIsDetailModalOpen,
+  timeRefreshTrigger
 }) => {
   const fallbackProcessName = useMemo(
     () => info.metadata.process?.replace(/\.exe$/, '') || info.metadata.sourceIP,
@@ -55,13 +57,10 @@ const ConnectionItemComponent: React.FC<Props> = ({
 
   const [timeAgo, setTimeAgo] = useState(() => dayjs(info.start).fromNow())
 
+  // 使用父组件的统一触发器更新时间，避免每个卡片独立定时器
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeAgo(dayjs(info.start).fromNow())
-    }, 60000)
-
-    return () => clearInterval(timer)
-  }, [info.start])
+    setTimeAgo(dayjs(info.start).fromNow())
+  }, [info.start, timeRefreshTrigger])
 
   const uploadTraffic = useMemo(() => calcTraffic(info.upload), [info.upload])
 
@@ -105,7 +104,8 @@ const ConnectionItemComponent: React.FC<Props> = ({
         as="div"
         isPressable
         shadow="sm"
-        className="w-full hover:shadow-md hover:scale-[1.01] transition-all duration-200 border-1 border-divider"
+        className="w-full bg-content2 hover:bg-primary/10 transition-colors"
+        radius="sm"
         onPress={handleCardPress}
       >
         <div className="w-full flex items-center p-3 gap-3">
@@ -154,6 +154,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
                 color={
                   !info.isActive ? 'danger' :
                   info.metadata.type === 'Inner' ? 'warning' :
+                  info.metadata.type === 'Tun' ? 'primary' :
                   'default'
                 }
                 size="sm"
@@ -214,7 +215,8 @@ const ConnectionItem = memo(ConnectionItemComponent, (prevProps, nextProps) => {
     prevProps.displayIcon === nextProps.displayIcon &&
     prevProps.displayName === nextProps.displayName &&
     prevProps.selected?.id === nextProps.selected?.id &&
-    prevProps.isHidden === nextProps.isHidden
+    prevProps.isHidden === nextProps.isHidden &&
+    prevProps.timeRefreshTrigger === nextProps.timeRefreshTrigger
   )
 })
 

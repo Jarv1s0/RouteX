@@ -6,6 +6,7 @@ import { CgClose, CgTrash } from 'react-icons/cg'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { DEFAULT_COLUMNS } from './connection-setting-modal'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
+import { Virtuoso } from 'react-virtuoso'
 
 interface Props {
   connections: ControllerConnectionDetail[]
@@ -257,10 +258,27 @@ const ConnectionTableComponent: React.FC<Props> = ({
     patchAppConfig({ connectionTableColumnWidths: changedWidths })
   }, [connectionTableColumnWidths, patchAppConfig])
 
+  // 渲染单行的回调
+  const renderRow = useCallback((_index: number, conn: ControllerConnectionDetail) => (
+    <ConnectionRow
+      key={conn.id}
+      conn={conn}
+      isSelected={selected?.id === conn.id}
+      onRowClick={handleRowClick}
+      onClose={handleClose}
+      visibleColumns={visibleColumns}
+      columnWidths={computedWidths}
+      iconMap={iconMap}
+      appNameCache={appNameCache}
+      displayIcon={displayIcon}
+      displayAppName={displayAppName}
+    />
+  ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName])
+
   return (
-    <div ref={containerRef} className="w-full overflow-x-auto">
+    <div ref={containerRef} className="w-full h-full flex flex-col">
       {/* 表头 */}
-      <div className="sticky top-0 bg-content1 z-10 border-b border-divider">
+      <div className="sticky top-0 bg-content1 z-10 border-b border-divider flex-shrink-0">
         <div className="flex">
           {visibleColumns.map((col, index) => (
             <div
@@ -288,23 +306,13 @@ const ConnectionTableComponent: React.FC<Props> = ({
         </div>
       </div>
       
-      {/* 表体 */}
-      <div className="divide-y divide-divider/50">
-        {connections.map((conn) => (
-          <ConnectionRow
-            key={conn.id}
-            conn={conn}
-            isSelected={selected?.id === conn.id}
-            onRowClick={handleRowClick}
-            onClose={handleClose}
-            visibleColumns={visibleColumns}
-            columnWidths={computedWidths}
-            iconMap={iconMap}
-            appNameCache={appNameCache}
-            displayIcon={displayIcon}
-            displayAppName={displayAppName}
-          />
-        ))}
+      {/* 表体 - 使用虚拟滚动 */}
+      <div className="flex-1">
+        <Virtuoso
+          data={connections}
+          itemContent={renderRow}
+          overscan={10}
+        />
       </div>
     </div>
   )
@@ -436,7 +444,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
   return (
     <div
-      className={`flex cursor-pointer hover:bg-primary/10 transition-colors ${isSelected ? 'bg-primary/20' : ''}`}
+      className={`flex cursor-pointer hover:bg-primary/10 transition-colors border-b border-divider/50 ${isSelected ? 'bg-primary/20' : ''}`}
       onClick={() => onRowClick(conn)}
     >
       {visibleColumns.map(col => (

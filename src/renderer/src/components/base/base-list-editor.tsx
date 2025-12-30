@@ -20,6 +20,10 @@ interface EditableListProps {
   validate?: (part1: string, part2?: string) => boolean | ValidationResult
   validatePart1?: (part1: string) => boolean | ValidationResult
   validatePart2?: (part2: string) => boolean | ValidationResult
+  inputClassNames?: {
+    input?: string
+    inputWrapper?: string
+  }
 }
 
 const EditableList: React.FC<EditableListProps> = ({
@@ -35,7 +39,8 @@ const EditableList: React.FC<EditableListProps> = ({
   objectMode,
   validate,
   validatePart1,
-  validatePart2
+  validatePart2,
+  inputClassNames
 }) => {
   const isDual = !!parse && !!format
 
@@ -176,6 +181,7 @@ const EditableList: React.FC<EditableListProps> = ({
                         className={
                           part1Valid ? '' : 'border-red-500 ring-1 ring-red-500 rounded-lg'
                         }
+                        classNames={inputClassNames}
                         disabled={disabled}
                         placeholder={placeholder}
                         value={entry.part1}
@@ -199,6 +205,7 @@ const EditableList: React.FC<EditableListProps> = ({
                         className={
                           part2Valid ? '' : 'border-red-500 ring-1 ring-red-500 rounded-lg'
                         }
+                        classNames={inputClassNames}
                         disabled={disabled}
                         placeholder={part2Placeholder}
                         value={entry.part2 || ''}
@@ -220,6 +227,7 @@ const EditableList: React.FC<EditableListProps> = ({
                     size="sm"
                     fullWidth
                     className={part1Valid ? '' : 'border-red-500 ring-1 ring-red-500 rounded-lg'}
+                    classNames={inputClassNames}
                     disabled={disabled}
                     placeholder={placeholder}
                     value={entry.part1}

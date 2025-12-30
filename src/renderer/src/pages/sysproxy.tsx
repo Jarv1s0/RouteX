@@ -9,6 +9,7 @@ import { openUWPTool, triggerSysProxy } from '@renderer/utils/ipc'
 import React, { Key, useEffect, useState } from 'react'
 import ByPassEditorModal from '@renderer/components/sysproxy/bypass-editor-modal'
 import { IoIosHelpCircle } from 'react-icons/io'
+import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
 
 const defaultPacScript = `
 function FindProxyForURL(url, host) {
@@ -142,6 +143,7 @@ const Sysproxy: React.FC = () => {
           <Input
             size="sm"
             className="w-[50%]"
+            classNames={primaryInputClassNames}
             value={values.host}
             placeholder="默认 127.0.0.1 若无特殊需求请勿修改"
             onValueChange={(v) => {
