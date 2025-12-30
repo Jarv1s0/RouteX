@@ -6,6 +6,7 @@ import EditableList from '@renderer/components/base/base-list-editor'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { restartCore } from '@renderer/utils/ipc'
 import React, { useState } from 'react'
+import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
 
 const Sniffer: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -147,6 +148,7 @@ const Sniffer: React.FC = () => {
           <Input
             size="sm"
             className="w-[50%]"
+            classNames={primaryInputClassNames}
             placeholder="端口号，使用逗号分割多个值"
             value={values.sniff.HTTP?.ports.join(',')}
             onValueChange={(v) => handleSniffPortChange('HTTP', v)}
@@ -156,6 +158,7 @@ const Sniffer: React.FC = () => {
           <Input
             size="sm"
             className="w-[50%]"
+            classNames={primaryInputClassNames}
             placeholder="端口号，使用逗号分割多个值"
             value={values.sniff.TLS?.ports.join(',')}
             onValueChange={(v) => handleSniffPortChange('TLS', v)}
@@ -165,6 +168,7 @@ const Sniffer: React.FC = () => {
           <Input
             size="sm"
             className="w-[50%]"
+            classNames={primaryInputClassNames}
             placeholder="端口号，使用逗号分割多个值"
             value={values.sniff.QUIC?.ports.join(',')}
             onValueChange={(v) => handleSniffPortChange('QUIC', v)}
@@ -175,18 +179,21 @@ const Sniffer: React.FC = () => {
           items={values.skipDomain}
           onChange={(list) => setValues({ ...values, skipDomain: list as string[] })}
           placeholder="例：+.push.apple.com"
+          inputClassNames={primaryInputClassNames}
         />
         <EditableList
           title="强制域名嗅探"
           items={values.forceDomain}
           onChange={(list) => setValues({ ...values, forceDomain: list as string[] })}
           placeholder="例：v2ex.com"
+          inputClassNames={primaryInputClassNames}
         />
         <EditableList
           title="跳过目标地址嗅探"
           items={values.skipDstAddress}
           onChange={(list) => setValues({ ...values, skipDstAddress: list as string[] })}
           placeholder="例：1.1.1.1/32"
+          inputClassNames={primaryInputClassNames}
         />
         <EditableList
           title="跳过来源地址嗅探"
@@ -194,6 +201,7 @@ const Sniffer: React.FC = () => {
           onChange={(list) => setValues({ ...values, skipSrcAddress: list as string[] })}
           placeholder="例：192.168.1.1/24"
           divider={false}
+          inputClassNames={primaryInputClassNames}
         />
       </SettingCard>
       </div>

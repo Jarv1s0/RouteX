@@ -31,6 +31,7 @@ interface AppConfig {
   proxyDisplayOrder: 'default' | 'delay' | 'name'
   proxyDisplayLayout: 'hidden' | 'single' | 'double'
   groupDisplayLayout: 'hidden' | 'single' | 'double'
+  groupOrder?: string[]
   profileDisplayDate?: 'expire' | 'update'
   envType?: ('bash' | 'cmd' | 'powershell' | 'nushell')[]
   proxyCols: 'auto' | '1' | '2' | '3' | '4'
@@ -87,6 +88,11 @@ interface AppConfig {
   delayTestConcurrency?: number
   delayTestUrl?: string
   delayTestTimeout?: number
+  delayThresholds?: {
+    good: number // 优秀延迟阈值，默认 200ms
+    fair: number // 良好延迟阈值，默认 500ms
+  }
+  autoDelayTestOnShow?: boolean // 窗口显示时自动测速
   encryptedPassword?: number[]
   controlDns?: boolean
   controlSniff?: boolean

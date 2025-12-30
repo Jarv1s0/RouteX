@@ -3,6 +3,7 @@ import { mihomoUnfixedProxy } from '@renderer/utils/ipc'
 import React, { useMemo, useState } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
 import { motion } from 'framer-motion'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 
 interface Props {
   mutateProxies: () => void
@@ -29,6 +30,9 @@ const ProxyItem: React.FC<Props> = (props) => {
     index = 0
   } = props
 
+  const { appConfig } = useAppConfig()
+  const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
+
   const delay = useMemo(() => {
     if (proxy.history.length > 0) {
       return proxy.history[proxy.history.length - 1].delay
@@ -40,7 +44,7 @@ const ProxyItem: React.FC<Props> = (props) => {
   function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
     if (delay === -1) return 'primary'
     if (delay === 0) return 'danger'
-    if (delay < 500) return 'success'
+    if (delay < delayThresholds.fair) return 'success'
     return 'warning'
   }
 
@@ -67,7 +71,7 @@ const ProxyItem: React.FC<Props> = (props) => {
       isPressable
       fullWidth
       shadow="sm"
-      className={`${fixed ? 'bg-secondary/30' : selected ? 'bg-primary/30' : 'bg-content2'} ${loading ? 'animate-pulse' : ''}`}
+      className={`${fixed ? 'bg-secondary/30' : selected ? 'bg-primary/30' : 'bg-content2 hover:bg-primary/10'} ${loading ? 'animate-pulse' : ''} transition-colors`}
       radius="sm"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{

@@ -73,20 +73,20 @@ const JsonHighlight: React.FC<{ data: object }> = ({ data }) => {
   )
 }
 
-// 获取节点延迟颜色
-const getDelayColor = (proxy: ControllerProxiesDetail | ControllerGroupDetail | undefined): string => {
-  if (!proxy?.history || proxy.history.length === 0) return 'bg-zinc-400'
-  const delay = proxy.history[proxy.history.length - 1].delay
-  if (delay === 0) return 'bg-red-500'
-  if (delay < 200) return 'bg-emerald-500'
-  if (delay < 500) return 'bg-amber-400'
-  return 'bg-red-500'
-}
-
 const ConnectionDetailModal: React.FC<Props> = (props) => {
   const { connection, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, delayThresholds = { good: 200, fair: 500 } } = {} } = useAppConfig()
   const { groups = [] } = useGroups()
+
+  // 获取节点延迟颜色
+  const getDelayColor = (proxy: ControllerProxiesDetail | ControllerGroupDetail | undefined): string => {
+    if (!proxy?.history || proxy.history.length === 0) return 'bg-zinc-400'
+    const delay = proxy.history[proxy.history.length - 1].delay
+    if (delay === 0) return 'bg-red-500'
+    if (delay < delayThresholds.good) return 'bg-emerald-500'
+    if (delay < delayThresholds.fair) return 'bg-amber-400'
+    return 'bg-red-500'
+  }
 
   // 构建显示的 JSON 数据（中文键名）
   const jsonData = useMemo(() => ({
@@ -185,7 +185,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                 }
 
                 const currentDelay = getCurrentDelay(group)
-                const delayColor = currentDelay === -1 ? 'text-default-400' : currentDelay === 0 ? 'text-danger' : currentDelay < 200 ? 'text-success' : currentDelay < 500 ? 'text-warning' : 'text-danger'
+                const delayColor = currentDelay === -1 ? 'text-default-400' : currentDelay === 0 ? 'text-danger' : currentDelay < delayThresholds.good ? 'text-success' : currentDelay < delayThresholds.fair ? 'text-warning' : 'text-danger'
                 const availableCount = group.all.filter(p => {
                   if (!p.history || p.history.length === 0) return false
                   return p.history[p.history.length - 1].delay > 0

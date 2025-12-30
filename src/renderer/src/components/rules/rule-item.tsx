@@ -33,10 +33,11 @@ const RuleItem: React.FC<ControllerRulesDetail & { index: number }> = (props) =>
   }
 
   return (
-    <div className={`w-full px-2 pb-1 ${index === 0 ? 'pt-2' : ''}`}>
+    <div className={`w-full px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
       <Card
         shadow="sm"
-        className="border-1 border-divider hover:shadow-md hover:bg-primary/10 transition-all duration-200"
+        radius="sm"
+        className="bg-content2 hover:bg-primary/10 transition-colors"
       >
         <CardBody className="w-full py-2 px-3">
           <div className="flex items-center gap-2">

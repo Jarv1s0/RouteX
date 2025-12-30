@@ -8,15 +8,12 @@ import {
   openUWPTool,
   patchControledMihomoConfig,
   restartCore,
-  startNetworkDetection,
-  stopNetworkDetection,
   listWebdavBackups,
   webdavBackup
 } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { BiCopy } from 'react-icons/bi'
-import EditableList from '../base/base-list-editor'
 import SubStoreConfig from './substore-config'
 import WebdavRestoreModal from './webdav-restore-modal'
 import debounce from '@renderer/utils/debounce'
@@ -25,8 +22,37 @@ const emptyArray: string[] = []
 
 // 通用输入框样式，用于二级菜单中的输入框
 export const secondaryInputClassNames = {
-  input: "bg-background",
-  inputWrapper: "border-2 border-default-200 bg-background hover:border-default-300 focus-within:border-primary"
+  input: "bg-transparent",
+  inputWrapper: "border border-default-200 bg-default-50 hover:bg-default-100 data-[focus=true]:bg-default-50"
+}
+
+// 数字输入框样式，隐藏上下箭头
+export const numberInputClassNames = {
+  input: "bg-transparent [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]",
+  inputWrapper: "border border-default-200 bg-default-50 hover:bg-default-100 data-[focus=true]:bg-default-50"
+}
+
+// 一级页面输入框样式
+export const primaryInputClassNames = {
+  input: "bg-transparent",
+  inputWrapper: "border border-default-200 bg-default-100 hover:bg-default-200 data-[focus=true]:bg-default-100"
+}
+
+// 一级页面数字输入框样式
+export const primaryNumberInputClassNames = {
+  input: "bg-transparent [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]",
+  inputWrapper: "border border-default-200 bg-default-100 hover:bg-default-200 data-[focus=true]:bg-default-100"
+}
+
+// 卡片内输入框样式（用于工具页面等卡片内的输入框）
+export const cardInputClassNames = {
+  input: "bg-transparent",
+  inputWrapper: "border border-default-200 bg-default-100 hover:bg-default-200 data-[focus=true]:bg-default-100"
+}
+
+// Select 下拉框样式
+export const selectClassNames = {
+  trigger: "border border-default-200 bg-default-100 data-[hover=true]:bg-default-200"
 }
 
 const AdvancedSettings: React.FC = () => {
@@ -40,9 +66,6 @@ const AdvancedSettings: React.FC = () => {
     autoLightweightDelay = 60,
     autoLightweightMode = 'core',
     envType = [platform === 'win32' ? 'powershell' : 'bash'],
-    networkDetection = false,
-    networkDetectionBypass = ['VMware', 'vEthernet'],
-    networkDetectionInterval = 10,
     enableWebdavConfig = true,
     webdavUrl,
     webdavUsername,
@@ -53,9 +76,6 @@ const AdvancedSettings: React.FC = () => {
   const pauseSSIDArray = pauseSSID ?? emptyArray
 
   const [pauseSSIDInput, setPauseSSIDInput] = useState(pauseSSIDArray)
-
-  const [bypass, setBypass] = useState(networkDetectionBypass)
-  const [interval, setInterval] = useState(networkDetectionInterval)
 
   // WebDAV 相关状态
   const [backuping, setBackuping] = useState(false)
@@ -261,84 +281,6 @@ const AdvancedSettings: React.FC = () => {
           }}
         />
       </SettingItem>
-      <SettingItem
-        title="断网时停止内核"
-        actions={
-          <Tooltip content="开启后，应用会在检测到网络断开时自动停止内核，并在网络恢复后自动重启内核">
-            <Button isIconOnly size="sm" variant="light">
-              <IoIosHelpCircle className="text-lg" />
-            </Button>
-          </Tooltip>
-        }
-        divider
-      >
-        <Switch
-          size="sm"
-          isSelected={networkDetection}
-          onValueChange={(v) => {
-            patchAppConfig({ networkDetection: v })
-            if (v) {
-              startNetworkDetection()
-            } else {
-              stopNetworkDetection()
-            }
-          }}
-        />
-      </SettingItem>
-      {networkDetection && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
-          <div className="ml-2 text-sm">
-            <SettingItem title="断网检测间隔" divider>
-            <div className="flex">
-              {interval !== networkDetectionInterval && (
-                <Button
-                  size="sm"
-                  color="primary"
-                  className="mr-2"
-                  onPress={async () => {
-                    await patchAppConfig({ networkDetectionInterval: interval })
-                    await startNetworkDetection()
-                  }}
-                >
-                  确认
-                </Button>
-              )}
-              <Input
-                size="sm"
-                type="number"
-                className="w-[100px]"
-                classNames={secondaryInputClassNames}
-                endContent="秒"
-                value={interval.toString()}
-                min={1}
-                onValueChange={(v) => {
-                  setInterval(parseInt(v))
-                }}
-              />
-            </div>
-          </SettingItem>
-          <SettingItem title="绕过检测的接口">
-            {bypass.length != networkDetectionBypass.length && (
-              <Button
-                size="sm"
-                color="primary"
-                onPress={async () => {
-                  await patchAppConfig({ networkDetectionBypass: bypass })
-                  await startNetworkDetection()
-                }}
-              >
-                确认
-              </Button>
-            )}
-          </SettingItem>
-          <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1">
-            <div className="ml-6">
-              <EditableList items={bypass} onChange={(list) => setBypass(list as string[])} />
-            </div>
-          </div>
-          </div>
-        </div>
-      )}
       <SettingItem title="在特定的 WiFi SSID 下直连" divider>
         <div className="flex items-center gap-2">
           {pauseSSIDInput.join('') !== pauseSSIDArray.join('') && (

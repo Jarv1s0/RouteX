@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react'
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Tabs, Tab, Button, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
 import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid, Line, LineChart } from 'recharts'
@@ -145,7 +145,18 @@ const Stats: React.FC = () => {
   }, [])
 
   useEffect(() => {
+    // 窗口可见性状态
+    const isWindowFocusedRef = { current: !document.hidden }
+    
+    const handleVisibilityChange = (): void => {
+      isWindowFocusedRef.current = !document.hidden
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
     const loadStats = async (): Promise<void> => {
+      // 窗口不可见时跳过轮询
+      if (!isWindowFocusedRef.current) return
+      
       try {
         const stats = await getTrafficStats()
         setHourlyData((stats.hourly || []).slice(-24))
@@ -168,7 +179,10 @@ const Stats: React.FC = () => {
     }
     loadStats()
     const interval = setInterval(loadStats, 5000)
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   // 网络健康度监控 - 监听主进程发送的数据

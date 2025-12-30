@@ -8,6 +8,7 @@ import { restartCore, setupFirewall } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import React, { Key, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { primaryInputClassNames, primaryNumberInputClassNames } from '@renderer/components/settings/advanced-settings'
 
 const Tun: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -142,6 +143,7 @@ const Tun: React.FC = () => {
                 <Input
                   size="sm"
                   className="w-[100px]"
+                  classNames={primaryInputClassNames}
                   value={values.device}
                   onValueChange={(v) => {
                     setValues({ ...values, device: v })
@@ -202,6 +204,7 @@ const Tun: React.FC = () => {
               size="sm"
               type="number"
               className="w-[100px]"
+              classNames={primaryNumberInputClassNames}
               value={values.mtu.toString()}
               onValueChange={(v) => {
                 setValues({ ...values, mtu: parseInt(v) })
@@ -212,6 +215,7 @@ const Tun: React.FC = () => {
             <Input
               size="sm"
               className="w-[50%]"
+              classNames={primaryInputClassNames}
               value={values.dnsHijack.join(',')}
               onValueChange={(v) => {
                 const arr = v !== '' ? v.split(',') : []
@@ -225,6 +229,7 @@ const Tun: React.FC = () => {
             placeholder="例: 172.20.0.0/16"
             onChange={(list) => setValues({ ...values, routeExcludeAddress: list as string[] })}
             divider={false}
+            inputClassNames={primaryInputClassNames}
           />
         </SettingCard>
         </div>

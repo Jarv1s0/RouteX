@@ -7,9 +7,7 @@ import { getHash } from '@renderer/utils/hash'
 import Viewer from './viewer'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
-import SettingCard from '../base/base-setting-card'
-import SettingItem from '../base/base-setting-item'
-import { Button, Chip } from '@heroui/react'
+import { Button, Card, CardBody, Chip } from '@heroui/react'
 import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
 import { MdEditDocument } from 'react-icons/md'
@@ -109,8 +107,7 @@ const RuleProvider: React.FC<Props> = ({ compact = false, hideUpdateAll = false,
   }
 
   return (
-    <SettingCard className={compact ? 'mb-0' : ''}>
-      <div className={compact ? 'text-sm' : ''}>
+    <div className="space-y-2">
       {showDetails.show && (
         <Viewer
           path={showDetails.path}
@@ -131,7 +128,7 @@ const RuleProvider: React.FC<Props> = ({ compact = false, hideUpdateAll = false,
         />
       )}
       {!hideUpdateAll && (
-        <SettingItem title="" divider>
+        <div className="flex justify-end px-2">
           <Button
             size="sm"
             color="primary"
@@ -139,79 +136,34 @@ const RuleProvider: React.FC<Props> = ({ compact = false, hideUpdateAll = false,
           >
             更新全部
           </Button>
-        </SettingItem>
+        </div>
       )}
-      {providers.map((provider, index) => (
-        <Fragment key={provider.name}>
-          {compact ? (
-            <SettingItem
-              title={
-                <span className="text-sm flex items-center gap-2">
-                  {provider.name}
-                  <Chip size="sm">{provider.ruleCount}</Chip>
-                  <span className="text-foreground-400">{provider.format || 'InlineRule'}</span>
-                </span>
-              }
-              divider={index !== providers.length - 1}
-            >
-              <div className="flex h-[32px] leading-[32px] text-foreground-500 text-sm items-center">
-                <span className="text-foreground-400 mr-2">{provider.vehicleType}::{provider.behavior}</span>
-                <div>{dayjs(provider.updatedAt).fromNow()}</div>
-                {provider.format !== 'MrsRule' && provider.vehicleType !== 'Inline' && (
-                  <Button
-                    isIconOnly
-                    title={provider.vehicleType == 'File' ? '编辑' : '查看'}
-                    className="ml-2"
-                    size="sm"
-                    onPress={() => {
-                      setShowDetails({
-                        show: false,
-                        privderType: 'rule-providers',
-                        path: provider.name,
-                        type: provider.vehicleType,
-                        title: provider.name,
-                        format: provider.format
-                      })
-                    }}
-                  >
-                    {provider.vehicleType == 'File' ? (
-                      <MdEditDocument className="text-lg" />
-                    ) : (
-                      <CgLoadbarDoc className="text-lg" />
-                    )}
-                  </Button>
-                )}
-                <Button
-                  isIconOnly
-                  title="更新"
-                  className="ml-2"
-                  size="sm"
-                  onPress={() => {
-                    onUpdate(provider.name, index)
-                  }}
-                >
-                  <IoMdRefresh className={`text-lg ${updating[index] ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </SettingItem>
-          ) : (
-            <>
-              <SettingItem
-                title={<span className="text-sm">{provider.name}</span>}
-                actions={
-                  <Chip className="ml-2" size="sm">
+      <div className="px-2 space-y-1">
+        {providers.map((provider, index) => (
+          <Card
+            key={provider.name}
+            shadow="sm"
+            radius="sm"
+            className="bg-content2 hover:bg-primary/10 transition-colors"
+          >
+            <CardBody className="py-2 px-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-sm font-medium truncate">{provider.name}</span>
+                  <Chip size="sm" variant="flat" classNames={{ content: "text-xs" }}>
                     {provider.ruleCount}
                   </Chip>
-                }
-              >
-                <div className="flex h-[32px] leading-[32px] text-foreground-500 text-sm">
-                  <div>{dayjs(provider.updatedAt).fromNow()}</div>
+                  <span className="text-foreground-400 text-xs">{provider.format || 'InlineRule'}</span>
+                  <span className="text-foreground-400 text-xs">{provider.vehicleType}::{provider.behavior}</span>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <span className="text-foreground-500 text-xs">{dayjs(provider.updatedAt).fromNow()}</span>
                   {provider.format !== 'MrsRule' && provider.vehicleType !== 'Inline' && (
                     <Button
                       isIconOnly
                       title={provider.vehicleType == 'File' ? '编辑' : '查看'}
-                      className="ml-2"
                       size="sm"
+                      variant="light"
                       onPress={() => {
                         setShowDetails({
                           show: false,
@@ -224,17 +176,17 @@ const RuleProvider: React.FC<Props> = ({ compact = false, hideUpdateAll = false,
                       }}
                     >
                       {provider.vehicleType == 'File' ? (
-                        <MdEditDocument className={`text-lg`} />
+                        <MdEditDocument className="text-lg" />
                       ) : (
-                        <CgLoadbarDoc className={`text-lg`} />
+                        <CgLoadbarDoc className="text-lg" />
                       )}
                     </Button>
                   )}
                   <Button
                     isIconOnly
                     title="更新"
-                    className="ml-2"
                     size="sm"
+                    variant="light"
                     onPress={() => {
                       onUpdate(provider.name, index)
                     }}
@@ -242,21 +194,12 @@ const RuleProvider: React.FC<Props> = ({ compact = false, hideUpdateAll = false,
                     <IoMdRefresh className={`text-lg ${updating[index] ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
-              </SettingItem>
-              <SettingItem
-                title={<div className="text-foreground-500 text-sm">{provider.format || 'InlineRule'}</div>}
-                divider={index !== providers.length - 1}
-              >
-                <div className="h-[32px] leading-[32px] text-foreground-500 text-sm">
-                  {provider.vehicleType}::{provider.behavior}
-                </div>
-              </SettingItem>
-            </>
-          )}
-        </Fragment>
-      ))}
+              </div>
+            </CardBody>
+          </Card>
+        ))}
       </div>
-    </SettingCard>
+    </div>
   )
 }
 

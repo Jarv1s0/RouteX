@@ -1,5 +1,7 @@
 import BasePage from '@renderer/components/base/base-page'
 import LogItem from '@renderer/components/logs/log-item'
+import LogDetailModal from '@renderer/components/logs/log-detail-modal'
+import EmptyState from '@renderer/components/base/empty-state'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Divider, Input } from '@heroui/react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
@@ -40,6 +42,7 @@ const Logs: React.FC = () => {
   const [logs, setLogs] = useState<ControllerLog[]>(cachedLogs.log)
   const [filter, setFilter] = useState('')
   const [trace, setTrace] = useState(true)
+  const [selectedLog, setSelectedLog] = useState<(ControllerLog & { time?: string }) | null>(null)
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const filteredLogs = useMemo(() => {
@@ -82,6 +85,12 @@ const Logs: React.FC = () => {
 
   return (
     <BasePage title="实时日志">
+      {selectedLog && (
+        <LogDetailModal
+          log={selectedLog}
+          onClose={() => setSelectedLog(null)}
+        />
+      )}
       <div className="sticky top-0 z-40">
         <div className="w-full flex p-2">
           <Input
@@ -134,13 +143,11 @@ const Logs: React.FC = () => {
       </div>
       <div className="h-[calc(100vh-100px)] mt-px">
         {filteredLogs.length === 0 ? (
-          <div className="h-full w-full flex justify-center items-center">
-            <div className="flex flex-col items-center text-foreground-400">
-              <IoJournalOutline className="text-[64px] mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-1">暂无日志</h3>
-              <p className="text-sm opacity-70">日志信息将在这里显示</p>
-            </div>
-          </div>
+          <EmptyState
+            icon={<IoJournalOutline />}
+            title="暂无日志"
+            description="日志信息将在这里显示"
+          />
         ) : (
           <Virtuoso
             ref={virtuosoRef}
@@ -155,6 +162,7 @@ const Logs: React.FC = () => {
                   time={log.time}
                   type={log.type}
                   payload={log.payload}
+                  onPress={setSelectedLog}
                 />
               )
             }}

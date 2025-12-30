@@ -51,28 +51,35 @@ const ConnCard: React.FC<Props> = (props) => {
       .fill(0)
       .map((_, i) => ({ upload: 0, download: 0, index: i }))
   )
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isWindowFocusedRef = useRef(!document.hidden)
 
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
+
+  // 监听窗口焦点状态
+  useEffect(() => {
+    const handleVisibilityChange = (): void => {
+      isWindowFocusedRef.current = !document.hidden
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return (): void => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   useEffect(() => {
     const handleTraffic = async (_e: unknown, info: ControllerTraffic): Promise<void> => {
       setUpload(info.up)
       setDownload(info.down)
 
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current)
-      }
-
-      updateTimeoutRef.current = setTimeout(() => {
+      // 只有窗口可见时才更新图表（性能优化）
+      if (isWindowFocusedRef.current) {
         setTrafficData((prev) => {
           const newData = [...prev]
           newData.shift()
           newData.push({ upload: info.up, download: info.down, index: Date.now() })
           return newData
         })
-        updateTimeoutRef.current = null
-      }, 100)
+      }
 
       if (platform === 'darwin' && showTrafficRef.current) {
         if (drawing) return
@@ -96,9 +103,6 @@ const ConnCard: React.FC<Props> = (props) => {
 
     return (): void => {
       window.electron.ipcRenderer.removeAllListeners('mihomoTraffic')
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current)
-      }
     }
   }, [])
 

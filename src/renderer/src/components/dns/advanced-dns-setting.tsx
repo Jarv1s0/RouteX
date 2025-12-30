@@ -4,6 +4,7 @@ import SettingItem from '../base/base-setting-item'
 import EditableList from '../base/base-list-editor'
 import { Switch } from '@heroui/react'
 import { isValidDnsServer, isValidDomainWildcard } from '@renderer/utils/validate'
+import { primaryInputClassNames } from '../settings/advanced-settings'
 
 interface AdvancedDnsSettingProps {
   respectRules: boolean
@@ -81,6 +82,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
           )
         }}
         placeholder="例：tls://dns.alidns.com"
+        inputClassNames={primaryInputClassNames}
       />
       <EditableList
         title="代理节点解析服务器"
@@ -95,6 +97,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
           )
         }}
         placeholder="例：tls://dns.alidns.com"
+        inputClassNames={primaryInputClassNames}
       />
 
       <EditableList
@@ -153,6 +156,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
         placeholder="域名"
         part2Placeholder="DNS 服务器，用逗号分隔"
         objectMode="record"
+        inputClassNames={primaryInputClassNames}
       />
       <SettingItem title="使用系统 Hosts" divider>
         <Switch size="sm" isSelected={useSystemHosts} onValueChange={onUseSystemHostsChange} />
@@ -184,6 +188,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
           part2Placeholder="域名或 IP，用逗号分隔多个值"
           objectMode="record"
           divider={false}
+          inputClassNames={primaryInputClassNames}
         />
       )}
     </SettingCard>

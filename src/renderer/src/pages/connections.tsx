@@ -1,4 +1,5 @@
 import BasePage from '@renderer/components/base/base-page'
+import EmptyState from '@renderer/components/base/empty-state'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
 import React, { Key, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Divider, Input, Select, SelectItem, Tab, Tabs, Chip, Card, CardHeader, CardFooter, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
@@ -62,6 +63,7 @@ const Connections: React.FC = () => {
   })
   const [showHidden, setShowHidden] = useState(false) // 是否显示隐藏的连接
   const [isPaused, setIsPaused] = useState(false) // 是否暂停刷新
+  const [timeRefreshTrigger, setTimeRefreshTrigger] = useState(0) // 统一时间刷新触发器
 
   const iconRequestQueue = useRef(new Set<string>())
   const processingIcons = useRef(new Set<string>())
@@ -484,6 +486,14 @@ const Connections: React.FC = () => {
     displayAppName
   ])
 
+  // 统一时间刷新定时器（每60秒触发一次，替代每个卡片的独立定时器）
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeRefreshTrigger(prev => prev + 1)
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [])
+
   const handleTabChange = useCallback((key: Key) => {
     setTab(key as string)
   }, [])
@@ -548,6 +558,7 @@ const Connections: React.FC = () => {
           index={i}
           key={itemKey}
           info={connection}
+          timeRefreshTrigger={timeRefreshTrigger}
         />
       )
     },
@@ -562,7 +573,8 @@ const Connections: React.FC = () => {
       hiddenRules,
       appNameCache,
       findProcessMode,
-      displayAppName
+      displayAppName,
+      timeRefreshTrigger
     ]
   )
 
@@ -607,6 +619,7 @@ const Connections: React.FC = () => {
           <Input
             variant="flat"
             size="sm"
+            className="min-w-[120px] flex-1"
             value={filter}
             placeholder="筛选过滤"
             isClearable
@@ -616,7 +629,7 @@ const Connections: React.FC = () => {
           <Select
             classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
             size="sm"
-            className="w-[180px] min-w-[120px]"
+            className="w-[110px] min-w-[110px]"
             selectedKeys={new Set([connectionOrderBy])}
             disallowEmptySelection={true}
             onSelectionChange={handleOrderByChange}
@@ -720,15 +733,11 @@ const Connections: React.FC = () => {
       </div>
       <div className="h-[calc(100vh-100px)] mt-px overflow-y-auto">
         {filteredConnections.length === 0 ? (
-          <div className="h-full w-full flex justify-center items-center">
-            <div className="flex flex-col items-center text-foreground-400">
-              <IoLink className="text-[64px] mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-1">
-                {tab === 'active' ? '暂无活动连接' : '暂无已关闭连接'}
-              </h3>
-              <p className="text-sm opacity-70">连接信息将在这里显示</p>
-            </div>
-          </div>
+          <EmptyState
+            icon={<IoLink />}
+            title={tab === 'active' ? '暂无活动连接' : '暂无已关闭连接'}
+            description="连接信息将在这里显示"
+          />
         ) : viewMode === 'table' ? (
           <ConnectionTable
             connections={filteredConnections}

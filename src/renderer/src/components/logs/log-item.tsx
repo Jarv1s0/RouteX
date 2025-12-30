@@ -1,5 +1,5 @@
 import { Card, CardBody, Chip } from '@heroui/react'
-import React, { useState, useEffect, useRef } from 'react'
+import React from 'react'
 
 const colorMap: Record<string, 'danger' | 'warning' | 'primary' | 'default'> = {
   error: 'danger',
@@ -8,40 +8,29 @@ const colorMap: Record<string, 'danger' | 'warning' | 'primary' | 'default'> = {
   debug: 'default'
 }
 
-const LogItem: React.FC<ControllerLog & { index: number }> = (props) => {
-  const { type, payload, time, index } = props
-  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
+interface Props extends ControllerLog {
+  index: number
+  onPress?: (log: ControllerLog & { time?: string }) => void
+}
 
-  const handleCopy = () => {
-    const fullLog = `[${time}] [${type.toUpperCase()}] ${payload}`
-    navigator.clipboard.writeText(fullLog)
-    setMenuPos(null)
-  }
+const LogItem: React.FC<Props> = (props) => {
+  const { type, payload, time, index, onPress } = props
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault()
-    setMenuPos({ x: e.clientX, y: e.clientY })
-  }
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuPos(null)
-      }
+  const handlePress = () => {
+    if (onPress) {
+      onPress({ type, payload, time })
     }
-    if (menuPos) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [menuPos])
+  }
 
   return (
-    <div className={`px-2 pb-1 ${index === 0 ? 'pt-2' : ''}`}>
+    <div className={`px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
       <Card 
+        as="div"
+        isPressable
         shadow="sm"
-        className="border-1 border-divider hover:shadow-md hover:bg-primary/10 transition-all duration-200"
-        onContextMenu={handleContextMenu}
+        radius="sm"
+        className="bg-content2 hover:bg-primary/10 transition-colors"
+        onPress={handlePress}
       >
         <CardBody className="py-2 px-3">
           <div className="flex items-center gap-2">
@@ -57,26 +46,11 @@ const LogItem: React.FC<ControllerLog & { index: number }> = (props) => {
               {time}
             </span>
           </div>
-          <div className="select-text text-sm mt-1 break-all">
+          <div className="select-text text-sm mt-1 break-all line-clamp-2">
             {payload}
           </div>
         </CardBody>
       </Card>
-      
-      {menuPos && (
-        <div
-          ref={menuRef}
-          className="fixed z-50 min-w-[100px] p-1 bg-default-100 rounded-lg shadow-md"
-          style={{ left: menuPos.x, top: menuPos.y }}
-        >
-          <button
-            className="w-full px-3 py-1.5 text-sm font-medium text-left rounded-md hover:bg-primary/20 transition-colors"
-            onClick={handleCopy}
-          >
-            复制完整日志
-          </button>
-        </div>
-      )}
     </div>
   )
 }

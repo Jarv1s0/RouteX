@@ -3,6 +3,7 @@ import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Input, Button, Tabs, Tab, Chip, Skeleton } from '@heroui/react'
 import { IoSearch, IoGlobe, IoShield, IoWifi, IoCheckmarkCircle, IoCloseCircle, IoRefresh, IoLocation, IoEye, IoEyeOff, IoCopy, IoPlay } from 'react-icons/io5'
 import { mihomoDnsQuery, testRuleMatch, testConnectivity, fetchIpInfo as fetchIpInfoIpc, checkStreamingUnlock } from '@renderer/utils/ipc'
+import { cardInputClassNames } from '@renderer/components/settings/advanced-settings'
 
 interface ConnectivityResult {
   name: string
@@ -315,7 +316,7 @@ ASN: ${ipInfo.as}`
               <span className="text-foreground-400 text-xs">（A: IPv4, AAAA: IPv6, CNAME: 别名）</span>
             </div>
             
-            <div className="flex gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3">
               <Input
                 size="sm"
                 placeholder="输入域名，如 google.com"
@@ -323,6 +324,7 @@ ASN: ${ipInfo.as}`
                 onValueChange={setDnsQuery}
                 onKeyDown={(e) => e.key === 'Enter' && handleDnsQuery()}
                 className="flex-1"
+                classNames={cardInputClassNames}
               />
               <Tabs 
                 size="sm" 
@@ -372,7 +374,7 @@ ASN: ${ipInfo.as}`
               <span className="text-foreground-400 text-xs">（发起请求测试实际匹配规则）</span>
             </div>
             
-            <div className="flex gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3">
               <Input
                 size="sm"
                 placeholder="输入域名，如 google.com"
@@ -380,6 +382,7 @@ ASN: ${ipInfo.as}`
                 onValueChange={setRuleQuery}
                 onKeyDown={(e) => e.key === 'Enter' && handleRuleTest()}
                 className="flex-1"
+                classNames={cardInputClassNames}
               />
               <Button
                 size="sm"
@@ -439,7 +442,7 @@ ASN: ${ipInfo.as}`
                   key={result.name}
                   isPressable
                   onPress={() => !result.testing && testSingleConnectivity(index)}
-                  className={`transition-all duration-300 ${result.testing ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+                  className={`transition-all duration-200 ${result.testing ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
                 >
                   <CardBody className="p-3 text-center">
                     <img 
@@ -454,12 +457,12 @@ ASN: ${ipInfo.as}`
                     {result.testing ? (
                       <div className="text-primary text-xs animate-pulse">测试中...</div>
                     ) : result.latency >= 0 ? (
-                      <div className="animate-in fade-in duration-300">
+                      <div className="animate-in fade-in duration-200">
                         <div className="flex justify-center mb-1">
                           {result.success ? (
-                            <IoCheckmarkCircle className="text-success text-xl animate-in zoom-in duration-300" />
+                            <IoCheckmarkCircle className="text-success text-xl animate-in zoom-in duration-200" />
                           ) : (
-                            <IoCloseCircle className="text-danger text-xl animate-in zoom-in duration-300" />
+                            <IoCloseCircle className="text-danger text-xl animate-in zoom-in duration-200" />
                           )}
                         </div>
                         <div className={`text-xs ${result.success ? 'text-success' : 'text-danger'}`}>
@@ -504,7 +507,7 @@ ASN: ${ipInfo.as}`
                   key={service.key}
                   isPressable
                   onPress={() => service.status !== 'testing' && testSingleStreaming(index)}
-                  className={`transition-all duration-300 ${service.status === 'testing' ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+                  className={`transition-all duration-200 ${service.status === 'testing' ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
                 >
                   <CardBody className="p-3 text-center">
                     <img 
@@ -519,23 +522,23 @@ ASN: ${ipInfo.as}`
                     {service.status === 'testing' ? (
                       <div className="text-secondary text-xs animate-pulse">检测中...</div>
                     ) : service.status === 'unlocked' ? (
-                      <div className="animate-in fade-in duration-300">
+                      <div className="animate-in fade-in duration-200">
                         <div className="flex justify-center mb-1">
-                          <IoCheckmarkCircle className="text-success text-xl animate-in zoom-in duration-300" />
+                          <IoCheckmarkCircle className="text-success text-xl animate-in zoom-in duration-200" />
                         </div>
                         <div className="text-success text-xs">{service.region || '已解锁'}</div>
                       </div>
                     ) : service.status === 'locked' ? (
-                      <div className="animate-in fade-in duration-300">
+                      <div className="animate-in fade-in duration-200">
                         <div className="flex justify-center mb-1">
-                          <IoCloseCircle className="text-danger text-xl animate-in zoom-in duration-300" />
+                          <IoCloseCircle className="text-danger text-xl animate-in zoom-in duration-200" />
                         </div>
                         <div className="text-danger text-xs">未解锁</div>
                       </div>
                     ) : service.status === 'error' ? (
-                      <div className="animate-in fade-in duration-300">
+                      <div className="animate-in fade-in duration-200">
                         <div className="flex justify-center mb-1">
-                          <IoCloseCircle className="text-warning text-xl animate-in zoom-in duration-300" />
+                          <IoCloseCircle className="text-warning text-xl animate-in zoom-in duration-200" />
                         </div>
                         <div className="text-warning text-xs" title={service.error}>检测失败</div>
                       </div>

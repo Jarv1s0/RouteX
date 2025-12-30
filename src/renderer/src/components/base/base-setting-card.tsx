@@ -33,7 +33,7 @@ const SettingCard: React.FC<Props> = (props) => {
             )}
           </div>
         )}
-        {!collapsed && <div className="px-2 pb-2">{props.children}</div>}
+        {!collapsed && <div className={`px-2 pb-2 ${props.title ? '' : 'pt-2'}`}>{props.children}</div>}
       </CardBody>
     </Card>
   )

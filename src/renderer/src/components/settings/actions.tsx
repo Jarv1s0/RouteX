@@ -13,12 +13,9 @@ import { useState, useEffect } from 'react'
 import UpdaterModal from '../updater/updater-modal'
 import { version } from '@renderer/utils/init'
 import { IoIosHelpCircle } from 'react-icons/io'
-import { startTour } from '@renderer/utils/driver'
-import { useNavigate } from 'react-router-dom'
 import ConfirmModal from '../base/base-confirm'
 
 const Actions: React.FC = () => {
-  const navigate = useNavigate()
   const [newVersion, setNewVersion] = useState('')
   const [releaseNotes, setReleaseNotes] = useState('')
   const [openUpdate, setOpenUpdate] = useState(false)
@@ -84,11 +81,6 @@ const Actions: React.FC = () => {
         />
       )}
       <SettingCard title="更多设置">
-        <SettingItem title="打开引导页面" divider>
-          <Button size="sm" onPress={() => startTour(navigate)}>
-            打开引导页面
-          </Button>
-        </SettingItem>
         <SettingItem title="检查更新" divider>
           <Button
             size="sm"

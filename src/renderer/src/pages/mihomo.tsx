@@ -8,6 +8,7 @@ import ServiceModal from '@renderer/components/mihomo/service-modal'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import PortSetting from '@renderer/components/mihomo/port-setting'
+import { primaryNumberInputClassNames } from '@renderer/components/settings/advanced-settings'
 import { platform } from '@renderer/utils/init'
 import { IoMdCloudDownload } from 'react-icons/io'
 import PubSub from 'pubsub-js'
@@ -323,6 +324,7 @@ const Mihomo: React.FC = () => {
             size="sm"
             type="number"
             className="w-[100px]"
+            classNames={primaryNumberInputClassNames}
             value={maxLogDays.toString()}
             onValueChange={(v) => patchAppConfig({ maxLogDays: parseInt(v) })}
           />

@@ -14,6 +14,7 @@ import {
   isValidDomainWildcard,
   isValidDnsServer
 } from '@renderer/utils/validate'
+import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
 
 const DNS: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -191,6 +192,7 @@ const DNS: React.FC = () => {
                     `w-[40%] ` +
                     (fakeIPRangeError ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : '')
                   }
+                  classNames={fakeIPRangeError ? undefined : primaryInputClassNames}
                   placeholder="例：198.18.0.1/16"
                   value={values.fakeIPRange}
                   onValueChange={(v) => {
@@ -217,6 +219,7 @@ const DNS: React.FC = () => {
                       `w-[40%] ` +
                       (fakeIPRange6Error ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : '')
                     }
+                    classNames={fakeIPRange6Error ? undefined : primaryInputClassNames}
                     placeholder="例：fc00::/18"
                     value={values.fakeIPRange6}
                     onValueChange={(v) => {
@@ -241,6 +244,7 @@ const DNS: React.FC = () => {
                 )
               }}
               placeholder="例：+.lan"
+              inputClassNames={primaryInputClassNames}
             />
           </>
         )}
@@ -257,6 +261,7 @@ const DNS: React.FC = () => {
             )
           }}
           placeholder="例：223.5.5.5"
+          inputClassNames={primaryInputClassNames}
         />
         <EditableList
           title="默认解析服务器"
@@ -272,6 +277,7 @@ const DNS: React.FC = () => {
           }}
           placeholder="例：tls://dns.alidns.com"
           divider={false}
+          inputClassNames={primaryInputClassNames}
         />
       </SettingCard>
       <AdvancedDnsSetting
