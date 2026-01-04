@@ -16,6 +16,11 @@ interface Props {
   index?: number
 }
 
+// 检查是否是子组（有 all 属性且是数组）
+const isSubGroup = (proxy: ControllerProxiesDetail | ControllerGroupDetail): proxy is ControllerGroupDetail => {
+  return 'all' in proxy && Array.isArray((proxy as ControllerGroupDetail).all) && (proxy as ControllerGroupDetail).all.length > 0
+}
+
 const MotionCard = motion.create(Card)
 
 const ProxyItem: React.FC<Props> = (props) => {
@@ -34,11 +39,37 @@ const ProxyItem: React.FC<Props> = (props) => {
   const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
 
   const delay = useMemo(() => {
-    if (proxy.history.length > 0) {
+    if (proxy.history && proxy.history.length > 0) {
       return proxy.history[proxy.history.length - 1].delay
     }
     return -1
   }, [proxy])
+
+  // 如果是子组，获取当前选中节点的信息和延迟
+  const subGroupInfo = useMemo(() => {
+    if (!isSubGroup(proxy)) return null
+    const subGroup = proxy as ControllerGroupDetail
+    // 从 group.all 中找到当前选中的节点
+    const currentNode = group.all.find(p => p.name === subGroup.now)
+    // 获取当前节点的延迟
+    const currentNodeDelay = currentNode?.history?.length 
+      ? currentNode.history[currentNode.history.length - 1].delay 
+      : -1
+    return {
+      now: subGroup.now,
+      currentNode,
+      nodeCount: subGroup.all.length,
+      currentNodeDelay
+    }
+  }, [proxy, group.all])
+
+  // 显示的延迟：如果是子组，显示当前选中节点的延迟
+  const displayDelay = useMemo(() => {
+    if (subGroupInfo) {
+      return subGroupInfo.currentNodeDelay
+    }
+    return delay
+  }, [subGroupInfo, delay])
 
   const [loading, setLoading] = useState(false)
   function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
@@ -90,10 +121,10 @@ const ProxyItem: React.FC<Props> = (props) => {
             <>
               <div className="flex flex-col gap-0 flex-1 min-w-0">
                 <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
-                  {(proxy as ControllerGroupDetail).icon && (
+                  {proxy.icon && (
                     <img
                       className="w-4 h-4 object-contain"
-                      src={(proxy as ControllerGroupDetail).icon}
+                      src={proxy.icon}
                       alt=""
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none'
@@ -104,8 +135,14 @@ const ProxyItem: React.FC<Props> = (props) => {
                     {proxy.name}
                   </span>
                 </div>
-                <div className="text-[12px] text-foreground-500 leading-none mt-0.5">
+                <div className="text-[12px] text-foreground-500 leading-none mt-0.5 flex items-center gap-2">
                   <span>{proxy.type === 'Compatible' ? 'Direct' : proxy.type}</span>
+                  {subGroupInfo && (
+                    <>
+                      <span className="text-foreground-400">|</span>
+                      <span className="flag-emoji truncate text-foreground-600" title={subGroupInfo.now}>{subGroupInfo.now}</span>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-center gap-0.5 shrink-0">
@@ -128,22 +165,22 @@ const ProxyItem: React.FC<Props> = (props) => {
                   isIconOnly
                   title={proxy.type}
                   isLoading={loading}
-                  color={delayColor(delay)}
+                  color={delayColor(displayDelay)}
                   onPress={onDelay}
                   variant="light"
                   className="h-[32px] w-[32px] min-w-[32px] p-0 text-xs"
                 >
-                  {delayText(delay)}
+                  {delayText(displayDelay)}
                 </Button>
               </div>
             </>
           ) : (
             <>
               <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
-                {(proxy as ControllerGroupDetail).icon && (
+                {proxy.icon && (
                   <img
                     className="w-4 h-4 object-contain"
-                    src={(proxy as ControllerGroupDetail).icon}
+                    src={proxy.icon}
                     alt=""
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none'
@@ -157,6 +194,14 @@ const ProxyItem: React.FC<Props> = (props) => {
                   <span className="ml-2 text-foreground-500" title={proxy.type}>
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
                   </span>
+                )}
+                {subGroupInfo && (
+                  <>
+                    <span className="text-foreground-400 ml-1">|</span>
+                    <span className="ml-1 text-foreground-600 flag-emoji" title={subGroupInfo.now}>
+                      {subGroupInfo.now}
+                    </span>
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-0.5 shrink-0">
@@ -182,12 +227,12 @@ const ProxyItem: React.FC<Props> = (props) => {
                     isIconOnly
                     title={proxy.type}
                     isLoading={loading}
-                    color={delayColor(delay)}
+                    color={delayColor(displayDelay)}
                     onPress={onDelay}
                     variant="light"
                     className="h-full w-[32px] min-w-[32px] p-0 text-sm"
                   >
-                    {delayText(delay)}
+                    {delayText(displayDelay)}
                   </Button>
                 </div>
               </div>

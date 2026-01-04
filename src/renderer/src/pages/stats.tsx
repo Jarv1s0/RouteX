@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Tabs, Tab, Button, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
-import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid, Line, LineChart } from 'recharts'
+import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid } from 'recharts'
 import { calcTraffic } from '@renderer/utils/calc'
 import { getTrafficStats, clearTrafficStats, getProviderStats, clearProviderStats, triggerProviderSnapshot, getProfileConfig, getProcessTrafficRanking } from '@renderer/utils/ipc'
 import { IoArrowUp, IoArrowDown, IoTrendingUp, IoCalendar, IoRefresh, IoClose } from 'react-icons/io5'
@@ -48,20 +48,9 @@ const Stats: React.FC = () => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
-  const [selectedProvider, setSelectedProvider] = useState<string>('all')
-  
-  // 网络健康度监控
-  const [currentLatency, setCurrentLatency] = useState<number>(-1)
-  const [, setCurrentConnections] = useState<number>(0)
-  const [, setAvgLatency] = useState<number>(0)
-  const [, setMaxLatency] = useState<number>(0)
-  const [, setMinLatency] = useState<number>(0)
-  const [jitter, setJitter] = useState<number>(0)
-  const [, setPacketLoss] = useState<number>(0)
-  const [, setLatencyTestCount] = useState<number>(0)
-  const [, setLatencyFailCount] = useState<number>(0)
-  const [uptime, setUptime] = useState<number>(100)
-  const [latencyHistory, setLatencyHistory] = useState<{ time: string; latency: number; jitter: number; color: string; jitterColor: string; success: boolean }[]>([])
+  const [selectedProvider, setSelectedProvider] = useState<string>(() => {
+    return localStorage.getItem('stats-selected-provider') || 'all'
+  })
   
   // 清除统计数据状态
   const [clearingStats, setClearingStats] = useState(false)
@@ -185,82 +174,6 @@ const Stats: React.FC = () => {
     }
   }, [])
 
-  // 网络健康度监控 - 监听主进程发送的数据
-  useEffect(() => {
-    // 获取初始数据
-    window.electron.ipcRenderer.invoke('getNetworkHealthStats').then((stats: {
-      currentLatency: number
-      avgLatency: number
-      maxLatency: number
-      minLatency: number
-      jitter: number
-      packetLoss: number
-      uptime: number
-      testCount: number
-      failCount: number
-    }) => {
-      if (stats) {
-        setCurrentLatency(stats.currentLatency)
-        setAvgLatency(stats.avgLatency)
-        setMaxLatency(stats.maxLatency)
-        setMinLatency(stats.minLatency)
-        setJitter(stats.jitter)
-        setPacketLoss(stats.packetLoss)
-        setUptime(stats.uptime)
-        setLatencyTestCount(stats.testCount)
-        setLatencyFailCount(stats.failCount)
-      }
-    }).catch(() => {
-      // ignore
-    })
-    
-    // 监听主进程发送的网络健康数据
-    const handleNetworkHealth = (_e: unknown, stats: {
-      currentLatency: number
-      avgLatency: number
-      maxLatency: number
-      minLatency: number
-      jitter: number
-      packetLoss: number
-      uptime: number
-      testCount: number
-      failCount: number
-    }): void => {
-      setCurrentLatency(stats.currentLatency)
-      setAvgLatency(stats.avgLatency)
-      setMaxLatency(stats.maxLatency)
-      setMinLatency(stats.minLatency)
-      setJitter(stats.jitter)
-      setPacketLoss(stats.packetLoss)
-      setUptime(stats.uptime)
-      setLatencyTestCount(stats.testCount)
-      setLatencyFailCount(stats.failCount)
-      
-      // 记录延迟历史
-      const now = new Date()
-      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
-      const latencyValue = stats.currentLatency > 0 ? stats.currentLatency : 0
-      const isSuccess = stats.currentLatency > 0
-      setLatencyHistory(prev => {
-        const newPoint = {
-          time: timeStr,
-          latency: latencyValue,
-          jitter: stats.jitter,
-          color: latencyValue <= 0 ? '#f31260' : latencyValue <= 100 ? '#17c964' : latencyValue <= 200 ? '#f5a524' : '#f31260',
-          jitterColor: stats.jitter <= 10 ? '#17c964' : stats.jitter <= 30 ? '#f5a524' : '#f31260',
-          success: isSuccess
-        }
-        const updated = [...prev, newPoint]
-        return updated.slice(-30) // 保留最近30个点
-      })
-    }
-
-    window.electron.ipcRenderer.on('networkHealth', handleNetworkHealth)
-    return () => {
-      window.electron.ipcRenderer.removeListener('networkHealth', handleNetworkHealth)
-    }
-  }, [])
-
   // 监听连接数和规则统计
   useEffect(() => {
     const handleConnections = (_e: unknown, data: { connections?: Array<{
@@ -276,8 +189,6 @@ const Stats: React.FC = () => {
       }
     }> }): void => {
       const connections = data.connections || []
-      const count = connections.length
-      setCurrentConnections(count)
       
       // 统计规则命中
       setRuleStats(prev => {
@@ -339,8 +250,6 @@ const Stats: React.FC = () => {
 
   const currentUploadSpeed = trafficHistory.length > 0 ? trafficHistory[trafficHistory.length - 1].upload : 0
   const currentDownloadSpeed = trafficHistory.length > 0 ? trafficHistory[trafficHistory.length - 1].download : 0
-  const peakUploadSpeed = trafficHistory.length > 0 ? Math.max(...trafficHistory.map(d => d.upload)) : 0
-  const peakDownloadSpeed = trafficHistory.length > 0 ? Math.max(...trafficHistory.map(d => d.download)) : 0
 
   // 使用本地时间生成日期 key，与后端保持一致
   const now = new Date()
@@ -526,44 +435,6 @@ const Stats: React.FC = () => {
         />
       )}
       <div className="p-2 space-y-2">
-        {/* 实时速度 */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5">
-            <CardBody className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-cyan-500/20">
-                  <IoArrowUp className="text-cyan-500 text-xl" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-foreground-500 text-xs">上传速度</div>
-                  <div className="text-cyan-500 text-xl font-bold">{calcTraffic(currentUploadSpeed)}/s</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-foreground-400 text-xs">峰值</div>
-                  <div className="text-cyan-500/70 text-sm">{calcTraffic(peakUploadSpeed)}/s</div>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5">
-            <CardBody className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/20">
-                  <IoArrowDown className="text-purple-500 text-xl" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-foreground-500 text-xs">下载速度</div>
-                  <div className="text-purple-500 text-xl font-bold">{calcTraffic(currentDownloadSpeed)}/s</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-foreground-400 text-xs">峰值</div>
-                  <div className="text-purple-500/70 text-sm">{calcTraffic(peakDownloadSpeed)}/s</div>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-
         {/* 流量统计 */}
         <div className="grid grid-cols-4 gap-3">
           <Card isPressable onPress={() => handleOpenProcessTraffic('session', 'upload')} className="cursor-pointer hover:bg-default-100 transition-colors">
@@ -608,16 +479,38 @@ const Stats: React.FC = () => {
         <Card>
           <CardBody className="p-4">
             <div className="flex justify-between items-center mb-4">
-              <Tabs 
-                size="sm" 
-                selectedKey={historyTab} 
-                onSelectionChange={(key) => setHistoryTab(key as 'realtime' | 'hourly' | 'daily' | 'monthly')}
-              >
-                <Tab key="realtime" title="实时" />
-                <Tab key="hourly" title="24小时" />
-                <Tab key="daily" title="7天" />
-                <Tab key="monthly" title="30天" />
-              </Tabs>
+              <div className="flex items-center gap-4">
+                <Tabs 
+                  size="sm" 
+                  selectedKey={historyTab} 
+                  onSelectionChange={(key) => setHistoryTab(key as 'realtime' | 'hourly' | 'daily' | 'monthly')}
+                >
+                  <Tab key="realtime" title="实时" />
+                  <Tab key="hourly" title="24小时" />
+                  <Tab key="daily" title="7天" />
+                  <Tab key="monthly" title="30天" />
+                </Tabs>
+              </div>
+              {historyTab === 'realtime' && (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
+                    <span className="text-xs text-foreground-500">上传</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                    <span className="text-xs text-foreground-500">下载</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <IoArrowUp className="text-cyan-500 text-sm" />
+                    <span className="text-cyan-500 font-bold">{calcTraffic(currentUploadSpeed)}/s</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <IoArrowDown className="text-purple-500 text-sm" />
+                    <span className="text-purple-500 font-bold">{calcTraffic(currentDownloadSpeed)}/s</span>
+                  </div>
+                </div>
+              )}
               {historyTab === 'daily' && (
                 <div className="text-xs text-foreground-400">
                   总计: <span className="text-cyan-500">↑{calcTraffic(totalUpload7d)}</span>
@@ -634,7 +527,7 @@ const Stats: React.FC = () => {
               )}
             </div>
 
-            <div className="h-[300px]">
+            <div className="h-[200px]">
               {historyTab === 'realtime' ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={trafficHistory} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
@@ -685,27 +578,23 @@ const Stats: React.FC = () => {
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                       }}
                     />
-                    <Legend 
-                      verticalAlign="bottom" 
-                      height={30}
-                      iconType="circle"
-                      formatter={(value) => <span style={{ fontSize: '12px', color: '#666' }}>{value === '上传' ? '上传速度' : '下载速度'}</span>}
-                    />
                     <Area 
-                      type="monotone" 
+                      type="basis" 
                       dataKey="upload" 
                       name="上传" 
                       stroke="#22d3ee" 
                       strokeWidth={1.5} 
-                      fill="url(#uploadGradient)" 
+                      fill="url(#uploadGradient)"
+                      isAnimationActive={false}
                     />
                     <Area 
-                      type="monotone" 
+                      type="basis" 
                       dataKey="download" 
                       name="下载" 
                       stroke="#c084fc" 
                       strokeWidth={1.5} 
-                      fill="url(#downloadGradient)" 
+                      fill="url(#downloadGradient)"
+                      isAnimationActive={false}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -824,167 +713,6 @@ const Stats: React.FC = () => {
           </CardBody>
         </Card>
 
-        {/* 网络质量趋势 */}
-        <Card>
-          <CardBody className="p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-foreground-500">网络质量</span>
-                <span className={`text-sm font-bold ${currentLatency < 0 ? 'text-danger' : currentLatency > 200 ? 'text-danger' : currentLatency > 100 ? 'text-warning' : 'text-success'}`}>
-                  {currentLatency >= 0 ? `${currentLatency}ms` : '超时'}
-                </span>
-                <span className="text-xs text-foreground-400">
-                  抖动 <span className={jitter > 50 ? 'text-danger' : jitter > 20 ? 'text-warning' : 'text-success'}>{jitter}ms</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-0.5 bg-success"></span>
-                  <span className="text-foreground-400">&lt;100ms</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-0.5 bg-warning"></span>
-                  <span className="text-foreground-400">100-200ms</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-0.5 bg-danger"></span>
-                  <span className="text-foreground-400">&gt;200ms</span>
-                </span>
-                <span className="text-foreground-300">|</span>
-                <span className="text-foreground-400">抖动:</span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-0.5 bg-success"></span>
-                  <span className="text-foreground-400">&lt;10ms</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-0.5 bg-warning"></span>
-                  <span className="text-foreground-400">10-30ms</span>
-                </span>
-              </div>
-            </div>
-            <div className="h-[100px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={latencyHistory} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#17c964" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#17c964" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis 
-                    dataKey="time" 
-                    tick={{ fontSize: 9, fill: '#888', dy: 8 }} 
-                    axisLine={false}
-                    tickLine={false}
-                    interval={4}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 9, fill: '#888' }} 
-                    axisLine={false}
-                    tickLine={false}
-                    width={45}
-                    tickFormatter={(v) => `${v}`}
-                  />
-                  <Tooltip 
-                    formatter={(value: number | undefined, name?: string) => {
-                      if (value === undefined) return ['', '']
-                      const label = name === 'latency' ? '延迟' : '抖动'
-                      return [`${value}ms`, label]
-                    }}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--heroui-content1))', 
-                      border: '1px solid hsl(var(--heroui-default-200))', 
-                      borderRadius: '6px', 
-                      fontSize: '11px'
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="latency" 
-                    stroke="#17c964"
-                    strokeWidth={2} 
-                    dot={(props) => {
-                      const { cx, cy, payload } = props
-                      if (!cx || !cy) return null
-                      return (
-                        <circle 
-                          cx={cx} 
-                          cy={cy} 
-                          r={2} 
-                          fill={payload.color || '#17c964'} 
-                          stroke="none"
-                        />
-                      )
-                    }}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="jitter" 
-                    stroke="#7828c8"
-                    strokeWidth={2} 
-                    dot={(props) => {
-                      const { cx, cy, payload } = props
-                      if (!cx || !cy) return null
-                      return (
-                        <circle 
-                          cx={cx} 
-                          cy={cy} 
-                          r={2} 
-                          fill={payload.jitterColor || '#7828c8'} 
-                          stroke="none"
-                        />
-                      )
-                    }}
-                    activeDot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            {/* 在线状态条 - 紧凑版 */}
-            <div className="mt-2 pt-2 border-t border-default-100">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-1.5 h-1.5 rounded-full ${uptime >= 99 ? 'bg-success' : uptime >= 95 ? 'bg-warning' : 'bg-danger'} animate-pulse`}></div>
-                  <span className="text-xs">
-                    {uptime >= 99 ? '运行正常' : uptime >= 95 ? '部分异常' : '服务中断'}
-                  </span>
-                  <span className={`text-xs font-medium ${uptime >= 99 ? 'text-success' : uptime >= 95 ? 'text-warning' : 'text-danger'}`}>
-                    {uptime}%
-                  </span>
-                </div>
-                <span className="text-xs text-foreground-400">
-                  最近 {latencyHistory.length} 次 · 每 15s
-                </span>
-              </div>
-              <div className="flex h-2 rounded overflow-hidden bg-default-100 gap-px">
-                {latencyHistory.length === 0 ? (
-                  <div className="flex-1 bg-default-200 animate-pulse"></div>
-                ) : (
-                  latencyHistory.map((point, index) => (
-                    <div
-                      key={index}
-                      className="flex-1 transition-all duration-300 hover:opacity-80 cursor-pointer relative group"
-                      style={{ 
-                        backgroundColor: point.success 
-                          ? point.latency <= 100 ? '#17c964' 
-                          : point.latency <= 200 ? '#f5a524' 
-                          : '#f31260'
-                          : '#f31260'
-                      }}
-                      title={`${point.time} - ${point.success ? `${point.latency}ms` : '超时'}`}
-                    >
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-content1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg border border-default-200 z-10">
-                        {point.time} · {point.success ? `${point.latency}ms` : '超时'}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
         {/* 订阅统计 */}
         <Card>
           <CardBody className="p-4">
@@ -994,7 +722,10 @@ const Stats: React.FC = () => {
                 <select 
                   className="text-xs bg-default-100 rounded px-2 py-1"
                   value={selectedProvider}
-                  onChange={(e) => setSelectedProvider(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedProvider(e.target.value)
+                    localStorage.setItem('stats-selected-provider', e.target.value)
+                  }}
                 >
                   <option value="all">全部订阅</option>
                   {providerList.map(p => (
