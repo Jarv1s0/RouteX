@@ -201,50 +201,27 @@ const Proxies: React.FC = () => {
     }
   }, [proxyCols, calcCols])
 
-  // 窗口显示时自动测速
-  const autoDelayTestRef = useRef(false)
+  // 首次进入页面时自动测速
   const hasInitialTestRef = useRef(false)
   useEffect(() => {
     if (!autoDelayTestOnShow) return
+    if (groups.length === 0) return
+    if (hasInitialTestRef.current) return
     
-    // 首次进入页面时自动测速
+    hasInitialTestRef.current = true
+    
     const doAutoDelayTest = async (): Promise<void> => {
-      if (autoDelayTestRef.current) return
-      autoDelayTestRef.current = true
-      try {
-        // 对所有组进行测速
-        for (const group of groups) {
-          try {
-            await mihomoGroupDelay(group.name, group.testUrl)
-          } catch {
-            // ignore
-          }
+      for (const group of groups) {
+        try {
+          await mihomoGroupDelay(group.name, group.testUrl)
+        } catch {
+          // ignore
         }
-        mutate()
-      } finally {
-        // 延迟重置标志，避免频繁触发
-        setTimeout(() => {
-          autoDelayTestRef.current = false
-        }, 5000)
       }
+      mutate()
     }
     
-    // 首次加载时测速（只执行一次）
-    if (groups.length > 0 && !hasInitialTestRef.current) {
-      hasInitialTestRef.current = true
-      doAutoDelayTest()
-    }
-    
-    const handleVisibilityChange = async (): Promise<void> => {
-      if (document.visibilityState === 'visible') {
-        doAutoDelayTest()
-      }
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return (): void => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
+    doAutoDelayTest()
   }, [autoDelayTestOnShow, groups, mutate])
 
   // 获取节点延迟颜色
