@@ -7,7 +7,7 @@ import { useGroups } from '@renderer/hooks/use-groups'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { addFlag, removeFlag } from '@renderer/utils/flags'
 import React, { useMemo, useEffect, useState } from 'react'
-import { mihomoProxies, mihomoGroupDelay } from '@renderer/utils/ipc'
+import { mihomoProxies } from '@renderer/utils/ipc'
 
 interface Props {
   iconOnly?: boolean
@@ -16,11 +16,11 @@ interface Props {
 const ProxyCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { proxyCardStatus = 'col-span-2', disableAnimation = false, autoDelayTestOnClick = false } = appConfig || {}
+  const { proxyCardStatus = 'col-span-2', disableAnimation = false } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/proxies')
-  const { groups = [], mutate } = useGroups()
+  const { groups = [] } = useGroups()
   const [allProxies, setAllProxies] = useState<Record<string, any>>({})
   
   const {
@@ -35,22 +35,9 @@ const ProxyCard: React.FC<Props> = (props) => {
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
 
-  // 点击卡片时触发测速
-  const handleCardClick = async (): Promise<void> => {
+  // 点击卡片时导航到代理组页面
+  const handleCardClick = (): void => {
     navigate('/proxies')
-    if (autoDelayTestOnClick) {
-      // 对所有非 GLOBAL 组进行测速
-      for (const group of groups) {
-        if (group.name !== 'GLOBAL') {
-          try {
-            await mihomoGroupDelay(group.name, group.testUrl)
-          } catch {
-            // ignore
-          }
-        }
-      }
-      mutate()
-    }
   }
 
   // 获取所有代理信息（包括隐藏的组）

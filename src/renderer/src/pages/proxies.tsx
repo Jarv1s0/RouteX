@@ -71,8 +71,8 @@ const Proxies: React.FC = () => {
         groupCounts.push(groupProxies.length % cols === 0 ? count : count + 1)
         if (proxyDisplayOrder === 'delay') {
           groupProxies = groupProxies.sort((a, b) => {
-            if (a.history.length === 0) return -1
-            if (b.history.length === 0) return 1
+            if (!a.history || a.history.length === 0) return -1
+            if (!b.history || b.history.length === 0) return 1
             if (a.history[a.history.length - 1].delay === 0) return 1
             if (b.history[b.history.length - 1].delay === 0) return -1
             return a.history[a.history.length - 1].delay - b.history[b.history.length - 1].delay
@@ -203,28 +203,41 @@ const Proxies: React.FC = () => {
 
   // 窗口显示时自动测速
   const autoDelayTestRef = useRef(false)
+  const hasInitialTestRef = useRef(false)
   useEffect(() => {
     if (!autoDelayTestOnShow) return
     
-    const handleVisibilityChange = async (): Promise<void> => {
-      if (document.visibilityState === 'visible' && !autoDelayTestRef.current) {
-        autoDelayTestRef.current = true
-        try {
-          // 对所有组进行测速
-          for (const group of groups) {
-            try {
-              await mihomoGroupDelay(group.name, group.testUrl)
-            } catch {
-              // ignore
-            }
+    // 首次进入页面时自动测速
+    const doAutoDelayTest = async (): Promise<void> => {
+      if (autoDelayTestRef.current) return
+      autoDelayTestRef.current = true
+      try {
+        // 对所有组进行测速
+        for (const group of groups) {
+          try {
+            await mihomoGroupDelay(group.name, group.testUrl)
+          } catch {
+            // ignore
           }
-          mutate()
-        } finally {
-          // 延迟重置标志，避免频繁触发
-          setTimeout(() => {
-            autoDelayTestRef.current = false
-          }, 5000)
         }
+        mutate()
+      } finally {
+        // 延迟重置标志，避免频繁触发
+        setTimeout(() => {
+          autoDelayTestRef.current = false
+        }, 5000)
+      }
+    }
+    
+    // 首次加载时测速（只执行一次）
+    if (groups.length > 0 && !hasInitialTestRef.current) {
+      hasInitialTestRef.current = true
+      doAutoDelayTest()
+    }
+    
+    const handleVisibilityChange = async (): Promise<void> => {
+      if (document.visibilityState === 'visible') {
+        doAutoDelayTest()
       }
     }
     

@@ -61,8 +61,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
     delayTestTimeout,
     delayThresholds = { good: 200, fair: 500 },
     groupOrder = [],
-    autoDelayTestOnShow = false,
-    autoDelayTestOnClick = false
+    autoDelayTestOnShow = false
   } = appConfig || {}
 
   // 过滤掉 GLOBAL 组
@@ -185,21 +184,12 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="窗口显示时自动测速" divider>
+            <SettingItem title="进入页面时自动测速" divider>
               <Switch
                 size="sm"
                 isSelected={autoDelayTestOnShow}
                 onValueChange={(v) => {
                   patchAppConfig({ autoDelayTestOnShow: v })
-                }}
-              />
-            </SettingItem>
-            <SettingItem title="点击卡片时自动测速" divider>
-              <Switch
-                size="sm"
-                isSelected={autoDelayTestOnClick}
-                onValueChange={(v) => {
-                  patchAppConfig({ autoDelayTestOnClick: v })
                 }}
               />
             </SettingItem>
