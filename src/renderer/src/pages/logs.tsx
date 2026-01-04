@@ -3,12 +3,15 @@ import LogItem from '@renderer/components/logs/log-item'
 import LogDetailModal from '@renderer/components/logs/log-detail-modal'
 import EmptyState from '@renderer/components/base/empty-state'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Divider, Input } from '@heroui/react'
+import { Button, Divider, Input, Select, SelectItem } from '@heroui/react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { IoLocationSharp, IoJournalOutline } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import { HiOutlineDownload } from 'react-icons/hi'
-import { saveFile } from '@renderer/utils/ipc'
+import { saveFile, restartCore } from '@renderer/utils/ipc'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
+import { primaryNumberInputClassNames } from '@renderer/components/settings/advanced-settings'
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
 
@@ -43,6 +46,12 @@ const Logs: React.FC = () => {
   const [filter, setFilter] = useState('')
   const [trace, setTrace] = useState(true)
   const [selectedLog, setSelectedLog] = useState<(ControllerLog & { time?: string }) | null>(null)
+  
+  const { appConfig, patchAppConfig } = useAppConfig()
+  const { maxLogDays = 7 } = appConfig || {}
+  const [logDaysInput, setLogDaysInput] = useState(maxLogDays.toString())
+  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { 'log-level': logLevel = 'info' } = controledMihomoConfig || {}
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   const filteredLogs = useMemo(() => {
@@ -92,7 +101,40 @@ const Logs: React.FC = () => {
         />
       )}
       <div className="sticky top-0 z-40">
-        <div className="w-full flex p-2">
+        <div className="w-full flex p-2 items-center">
+          <Select
+            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+            className="w-[90px]"
+            size="sm"
+            aria-label="日志等级"
+            selectedKeys={new Set([logLevel])}
+            disallowEmptySelection={true}
+            onSelectionChange={async (v) => {
+              await patchControledMihomoConfig({ 'log-level': v.currentKey as LogLevel })
+              await restartCore()
+            }}
+          >
+            <SelectItem key="silent">静默</SelectItem>
+            <SelectItem key="error">错误</SelectItem>
+            <SelectItem key="warning">警告</SelectItem>
+            <SelectItem key="info">信息</SelectItem>
+            <SelectItem key="debug">调试</SelectItem>
+          </Select>
+          <Input
+            size="sm"
+            type="number"
+            className="w-[60px] ml-2"
+            classNames={primaryNumberInputClassNames}
+            aria-label="保留天数"
+            value={logDaysInput}
+            onValueChange={setLogDaysInput}
+            onBlur={() => {
+              const val = parseInt(logDaysInput) || 7
+              setLogDaysInput(val.toString())
+              patchAppConfig({ maxLogDays: val })
+            }}
+            endContent={<span className="text-xs text-foreground-400">天</span>}
+          />
           <Input
             variant="flat"
             size="sm"
@@ -100,6 +142,7 @@ const Logs: React.FC = () => {
             placeholder="筛选过滤"
             isClearable
             onValueChange={setFilter}
+            className="flex-1 ml-2"
           />
           <Button
             size="sm"
