@@ -49,19 +49,16 @@ const ProxyItem: React.FC<Props> = (props) => {
   const subGroupInfo = useMemo(() => {
     if (!isSubGroup(proxy)) return null
     const subGroup = proxy as ControllerGroupDetail
-    // 从 group.all 中找到当前选中的节点
-    const currentNode = group.all.find(p => p.name === subGroup.now)
-    // 获取当前节点的延迟
-    const currentNodeDelay = currentNode?.history?.length 
-      ? currentNode.history[currentNode.history.length - 1].delay 
+    // 子组自身的延迟（从子组的 history 获取）
+    const subGroupDelay = subGroup.history?.length 
+      ? subGroup.history[subGroup.history.length - 1].delay 
       : -1
     return {
       now: subGroup.now,
-      currentNode,
       nodeCount: subGroup.all.length,
-      currentNodeDelay
+      currentNodeDelay: subGroupDelay
     }
-  }, [proxy, group.all])
+  }, [proxy])
 
   // 显示的延迟：如果是子组，显示当前选中节点的延迟
   const displayDelay = useMemo(() => {
