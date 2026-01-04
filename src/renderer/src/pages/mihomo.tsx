@@ -38,9 +38,9 @@ import useSWR from 'swr'
 
 const Mihomo: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { core = 'mihomo', maxLogDays = 7, corePermissionMode = 'elevated' } = appConfig || {}
+  const { core = 'mihomo', corePermissionMode = 'elevated' } = appConfig || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
-  const { ipv6, 'log-level': logLevel = 'info' } = controledMihomoConfig || {}
+  const { ipv6 } = controledMihomoConfig || {}
 
   const { data: version } = useSWR('mihomoVersion', mihomoVersion)
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
@@ -312,40 +312,12 @@ const Mihomo: React.FC = () => {
             管理
           </Button>
         </SettingItem>
-        <SettingItem title="IPv6" divider>
+        <SettingItem title="IPv6">
           <Switch
             size="sm"
             isSelected={ipv6}
             onValueChange={(v) => onChangeNeedRestart({ ipv6: v })}
           />
-        </SettingItem>
-        <SettingItem title="日志保留天数" divider>
-          <Input
-            size="sm"
-            type="number"
-            className="w-[100px]"
-            classNames={primaryNumberInputClassNames}
-            value={maxLogDays.toString()}
-            onValueChange={(v) => patchAppConfig({ maxLogDays: parseInt(v) })}
-          />
-        </SettingItem>
-        <SettingItem title="日志等级">
-          <Select
-            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-            className="w-[100px]"
-            size="sm"
-            selectedKeys={new Set([logLevel])}
-            disallowEmptySelection={true}
-            onSelectionChange={(v) =>
-              onChangeNeedRestart({ 'log-level': v.currentKey as LogLevel })
-            }
-          >
-            <SelectItem key="silent">静默</SelectItem>
-            <SelectItem key="error">错误</SelectItem>
-            <SelectItem key="warning">警告</SelectItem>
-            <SelectItem key="info">信息</SelectItem>
-            <SelectItem key="debug">调试</SelectItem>
-          </Select>
         </SettingItem>
       </SettingCard>
       <PortSetting />
