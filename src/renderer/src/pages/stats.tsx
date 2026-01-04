@@ -316,13 +316,14 @@ const Stats: React.FC = () => {
       const dayData: Record<string, string | number> = { date: date.split('-')[2] + '日' }
       
       providersToShow.forEach(provider => {
-        // 获取当天和前一天的快照
+        // 获取当天的快照
         const todaySnapshot = providerData.find(d => d.date === date && d.provider === provider)
         
-        // 找前一天
-        const prevDate = new Date(date)
-        prevDate.setDate(prevDate.getDate() - 1)
-        const prevDateStr = prevDate.toISOString().split('T')[0]
+        // 找前一天 - 使用本地时间计算
+        const [y, m, d] = date.split('-').map(Number)
+        const prevDateObj = new Date(y, m - 1, d - 1) // 月份是0-indexed
+        const prevDateStr = `${prevDateObj.getFullYear()}-${String(prevDateObj.getMonth() + 1).padStart(2, '0')}-${String(prevDateObj.getDate()).padStart(2, '0')}`
+        // 跨月时也能正确找到上个月的数据（providerData 包含所有月份的数据）
         const prevSnapshot = providerData.find(d => d.date === prevDateStr && d.provider === provider)
         
         // 计算增量
@@ -330,10 +331,8 @@ const Stats: React.FC = () => {
         if (todaySnapshot && prevSnapshot) {
           // 有昨日数据，计算增量
           daily = Math.max(0, todaySnapshot.used - prevSnapshot.used)
-        } else if (todaySnapshot && !prevSnapshot) {
-          // 首日数据：没有昨日数据时，显示当天的累计值
-          daily = todaySnapshot.used
         }
+        // 如果没有昨日数据，增量为0（而不是显示累计值）
         
         dayData[provider] = daily
       })
@@ -494,18 +493,10 @@ const Stats: React.FC = () => {
               {historyTab === 'realtime' && (
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-cyan-500"></div>
-                    <span className="text-xs text-foreground-500">上传</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                    <span className="text-xs text-foreground-500">下载</span>
-                  </div>
-                  <div className="flex items-center gap-2">
                     <IoArrowUp className="text-cyan-500 text-sm" />
                     <span className="text-cyan-500 font-bold">{calcTraffic(currentUploadSpeed)}/s</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <IoArrowDown className="text-purple-500 text-sm" />
                     <span className="text-purple-500 font-bold">{calcTraffic(currentDownloadSpeed)}/s</span>
                   </div>
