@@ -72,6 +72,7 @@ const ProxyItem: React.FC<Props> = (props) => {
   }, [subGroupInfo, delay])
 
   const [loading, setLoading] = useState(false)
+
   function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
     if (delay === -1) return 'primary'
     if (delay === 0) return 'danger'
