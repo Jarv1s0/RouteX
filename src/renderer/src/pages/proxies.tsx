@@ -9,7 +9,7 @@ import {
   mihomoGroupDelay
 } from '@renderer/utils/ipc'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
-import { GroupedVirtuoso, GroupedVirtuosoHandle } from 'react-virtuoso'
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
 import { MdOutlineSpeed, MdTune } from 'react-icons/md'
@@ -57,18 +57,27 @@ const Proxies: React.FC = () => {
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
-  const virtuosoRef = useRef<GroupedVirtuosoHandle>(null)
-  const { groupCounts, allProxies } = useMemo(() => {
-    const groupCounts: number[] = []
-    const allProxies: (ControllerProxiesDetail | ControllerGroupDetail)[][] = []
+  const virtuosoRef = useRef<VirtuosoHandle>(null)
+  // 扁平化数据结构
+  type FlatItem =
+    | { type: 'header'; groupIndex: number }
+    | { type: 'proxies'; groupIndex: number; proxies: (ControllerProxiesDetail | ControllerGroupDetail)[] }
+
+  const flatItems = useMemo(() => {
+    const items: FlatItem[] = []
     if (groups.length !== searchValue.length) setSearchValue(Array(groups.length).fill(''))
+    
     groups.forEach((group, index) => {
+      // 添加组头
+      items.push({ type: 'header', groupIndex: index })
+      
+      // 如果展开，添加代理行
       if (isOpen[index]) {
         let groupProxies = group.all.filter(
           (proxy) => proxy && includesIgnoreCase(proxy.name, searchValue[index])
         )
-        const count = Math.floor(groupProxies.length / cols)
-        groupCounts.push(groupProxies.length % cols === 0 ? count : count + 1)
+
+        // 排序逻辑
         if (proxyDisplayOrder === 'delay') {
           groupProxies = groupProxies.sort((a, b) => {
             if (!a.history || a.history.length === 0) return -1
@@ -81,13 +90,18 @@ const Proxies: React.FC = () => {
         if (proxyDisplayOrder === 'name') {
           groupProxies = groupProxies.sort((a, b) => a.name.localeCompare(b.name))
         }
-        allProxies.push(groupProxies)
-      } else {
-        groupCounts.push(0)
-        allProxies.push([])
+
+        // 分组为行
+        for (let i = 0; i < groupProxies.length; i += cols) {
+          items.push({
+            type: 'proxies',
+            groupIndex: index,
+            proxies: groupProxies.slice(i, i + cols)
+          })
+        }
       }
     })
-    return { groupCounts, allProxies }
+    return items
   }, [groups, isOpen, proxyDisplayOrder, cols, searchValue])
 
   const onChangeProxy = useCallback(
@@ -110,24 +124,34 @@ const Proxies: React.FC = () => {
 
   const onGroupDelay = useCallback(
     async (index: number): Promise<void> => {
-      if (allProxies[index].length === 0) {
-        setIsOpen((prev) => {
-          const newOpen = [...prev]
-          newOpen[index] = true
-          return newOpen
-        })
-      }
+      // Logic adapted for flat list or simplified since we pass index
+      // But wait, the original logic used `allProxies[index]`.
+      // I need to adapt onGroupDelay to work with the new data structure or just keep `allProxies` calculation if needed?
+      // Actually, I can re-derive the proxies for the group or use the `flatItems`?
+      // Re-deriving is safer.
+      
       setDelaying((prev) => {
         const newDelaying = [...prev]
         newDelaying[index] = true
         return newDelaying
       })
+      
+      const group = groups[index]
+      let groupProxies = group.all.filter(
+         (proxy) => proxy && includesIgnoreCase(proxy.name, searchValue[index])
+      )
+      // Note: original logic had sorting dependent on display order for the delay test list?
+      // Actually original `onGroupDelay` used `allProxies[index]` which was sorted.
+      // Let's just test all filtered proxies for simplicity or respect sort?
+      // Respecting sort doesn't matter much for execution, just the list matters.
+      
       const result: Promise<void>[] = []
       const runningList: Promise<void>[] = []
-      for (const proxy of allProxies[index]) {
+      
+      for (const proxy of groupProxies) {
         const promise = Promise.resolve().then(async () => {
           try {
-            await mihomoProxyDelay(proxy.name, groups[index].testUrl)
+            await mihomoProxyDelay(proxy.name, group.testUrl)
           } catch {
             // ignore
           } finally {
@@ -150,7 +174,7 @@ const Proxies: React.FC = () => {
         return newDelaying
       })
     },
-    [allProxies, groups, delayTestConcurrency, mutate]
+    [groups, delayTestConcurrency, mutate, searchValue]
   )
 
   const calcCols = useCallback((): number => {
@@ -211,13 +235,15 @@ const Proxies: React.FC = () => {
     hasInitialTestRef.current = true
     
     const doAutoDelayTest = async (): Promise<void> => {
-      for (const group of groups) {
-        try {
-          await mihomoGroupDelay(group.name, group.testUrl)
-        } catch {
-          // ignore
-        }
-      }
+      // 并行执行所有组的测速
+      const promises = groups.map((group) =>
+        mihomoGroupDelay(group.name, group.testUrl)
+          .then(() => mutate()) // 每个组完成后立即更新 UI
+          .catch(() => {})
+      )
+      
+      await Promise.allSettled(promises)
+      // 最后再统一更新一次以防万一
       mutate()
     }
     
@@ -242,119 +268,154 @@ const Proxies: React.FC = () => {
     return current.history[current.history.length - 1].delay
   }, [])
 
-  const groupContent = useCallback(
-    (index: number) => {
-      if (
-        groups[index] &&
-        groups[index].icon &&
-        groups[index].icon.startsWith('http') &&
-        !localStorage.getItem(groups[index].icon)
-      ) {
-        getImageDataURL(groups[index].icon).then((dataURL) => {
-          localStorage.setItem(groups[index].icon, dataURL)
-          mutate()
-        })
-      }
-      
-      const group = groups[index]
-      const currentDelay = getCurrentDelay(group)
-      const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
-      const delayColor = currentDelay === -1 ? 'text-default-400' : currentDelay === 0 ? 'text-danger' : currentDelay < delayThresholds.good ? 'text-success' : currentDelay < delayThresholds.fair ? 'text-warning' : 'text-danger'
-      
-      return group ? (
-        <div
-          className={`w-full pt-2 ${index === groupCounts.length - 1 && !isOpen[index] ? 'pb-2' : ''} px-2`}
-        >
-          <Card
-            as="div"
-            isPressable
-            fullWidth
-            onPress={() => toggleOpen(index)}
-            className={`transition-all duration-200 ${isOpen[index] ? 'shadow-md bg-content3' : 'hover:shadow-md'}`}
+  const renderItem = useCallback(
+    (_index: number, item: FlatItem) => {
+      const { groupIndex } = item
+
+      if (item.type === 'header') {
+        if (
+          groups[groupIndex] &&
+          groups[groupIndex].icon &&
+          groups[groupIndex].icon.startsWith('http') &&
+          !localStorage.getItem(groups[groupIndex].icon)
+        ) {
+          getImageDataURL(groups[groupIndex].icon).then((dataURL) => {
+            localStorage.setItem(groups[groupIndex].icon, dataURL)
+            mutate()
+          })
+        }
+        
+        const group = groups[groupIndex]
+        const currentDelay = getCurrentDelay(group)
+        const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
+        const delayColor = currentDelay === -1 ? 'text-default-400' : currentDelay === 0 ? 'text-danger' : currentDelay < delayThresholds.good ? 'text-success' : currentDelay < delayThresholds.fair ? 'text-warning' : 'text-danger'
+        
+        return group ? (
+          <div
+            className={`w-full pt-2 px-2`}
           >
-            <CardBody className="w-full p-3">
-              {/* 第一行：组名、类型、节点数、延迟 */}
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  {group.icon && (
-                    <img
-                      className="w-5 h-5 object-contain"
-                      src={
-                        group.icon.startsWith('<svg')
-                          ? `data:image/svg+xml;utf8,${group.icon}`
-                          : localStorage.getItem(group.icon) || group.icon
-                      }
-                      alt=""
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none'
-                      }}
-                    />
-                  )}
-                  <span className="font-medium">{group.name}</span>
-                  <span className="text-xs text-foreground-400">: {group.type}</span>
-                  <span className="text-xs text-foreground-400">({group.all.filter(p => {
-                    if (!p.history || p.history.length === 0) return false
-                    return p.history[p.history.length - 1].delay > 0
-                  }).length}/{group.all.length})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm font-medium ${delayColor}`}>
-                    {currentDelay === -1 ? '--' : currentDelay === 0 ? '超时' : currentDelay}
-                  </span>
-                  {isOpen[index] && (
-                    <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                      <CollapseInput
-                        title="搜索节点"
-                        value={searchValue[index]}
-                        onValueChange={(v) => updateSearchValue(index, v)}
+            <Card
+              as="div"
+              isPressable
+              fullWidth
+              onPress={() => toggleOpen(groupIndex)}
+              className={`transition-all duration-200 ${isOpen[groupIndex] ? 'shadow-md bg-content3' : 'hover:shadow-md'}`}
+            >
+              <CardBody className="w-full p-3">
+                {/* 第一行：组名、类型、节点数、延迟 */}
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    {group.icon && (
+                      <img
+                        className="w-5 h-5 object-contain"
+                        src={
+                          group.icon.startsWith('<svg')
+                            ? `data:image/svg+xml;utf8,${group.icon}`
+                            : localStorage.getItem(group.icon) || group.icon
+                        }
+                        alt=""
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none'
+                        }}
                       />
-                      <Button
-                        title="延迟测试"
-                        variant="light"
-                        isLoading={delaying[index]}
-                        size="sm"
-                        isIconOnly
-                        onPress={() => onGroupDelay(index)}
-                      >
-                        <MdOutlineSpeed className="text-lg text-foreground-500" />
-                      </Button>
-                    </div>
-                  )}
+                    )}
+                    <span className="font-medium">{group.name}</span>
+                    <span className="text-xs text-foreground-400">: {group.type}</span>
+                    <span className="text-xs text-foreground-400">({group.all.filter(p => {
+                      if (!p.history || p.history.length === 0) return false
+                      return p.history[p.history.length - 1].delay > 0
+                    }).length}/{group.all.length})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium ${delayColor}`}>
+                      {currentDelay === -1 ? '--' : currentDelay === 0 ? '超时' : currentDelay}
+                    </span>
+                    {isOpen[groupIndex] && (
+                      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                        <CollapseInput
+                          title="搜索节点"
+                          value={searchValue[groupIndex]}
+                          onValueChange={(v) => updateSearchValue(groupIndex, v)}
+                        />
+                        <Button
+                          title="延迟测试"
+                          variant="light"
+                          isLoading={delaying[groupIndex]}
+                          size="sm"
+                          isIconOnly
+                          onPress={() => onGroupDelay(groupIndex)}
+                        >
+                          <MdOutlineSpeed className="text-lg text-foreground-500" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-              
-              {/* 第二行：当前节点 */}
-              <div className="flex justify-between items-center mt-1">
-                <div className="flex items-center gap-1 text-sm text-foreground-500">
-                  <span className="flag-emoji">{group.now}</span>
+                
+                {/* 第二行：当前节点 */}
+                <div className="flex justify-between items-center mt-1">
+                  <div className="flex items-center gap-1 text-sm text-foreground-500">
+                    <span className="flag-emoji">{group.now}</span>
+                  </div>
                 </div>
-              </div>
-              
-              {/* 第三行：节点状态圆点（收起时显示） */}
-              {!isOpen[index] && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {group.all.slice(0, 20).map((proxy, i) => (
-                    <div
-                      key={i}
-                      className={`w-3 h-3 rounded-full ${getDelayColor(proxy)} ${proxy.name === group.now ? 'ring-2 ring-primary ring-offset-1' : ''}`}
-                      title={`${proxy.name}: ${proxy.history?.length ? (proxy.history[proxy.history.length - 1].delay || '超时') + 'ms' : '未测试'}`}
-                    />
-                  ))}
-                  {group.all.length > 20 && (
-                    <span className="text-xs text-foreground-400 ml-1">+{group.all.length - 20}</span>
-                  )}
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        </div>
-      ) : (
-        <div>Never See This</div>
-      )
+                
+                {/* 第三行：节点状态圆点（收起时显示） */}
+                {!isOpen[groupIndex] && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {group.all.slice(0, 20).map((proxy, i) => (
+                      <div
+                        key={i}
+                        className={`w-3 h-3 rounded-full ${getDelayColor(proxy)} ${proxy.name === group.now ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+                        title={`${proxy.name}: ${proxy.history?.length ? (proxy.history[proxy.history.length - 1].delay || '超时') + 'ms' : '未测试'}`}
+                      />
+                    ))}
+                    {group.all.length > 20 && (
+                      <span className="text-xs text-foreground-400 ml-1">+{group.all.length - 20}</span>
+                    )}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          </div>
+        ) : (
+           <div>Never See This</div>
+        )
+      } else {
+        // Render Proxies Row
+        const { proxies } = item
+        return (
+          <div
+            style={
+              proxyCols !== 'auto'
+                ? { gridTemplateColumns: `repeat(${proxyCols}, minmax(0, 1fr))` }
+                : {}
+            }
+            className={`grid ${proxyCols === 'auto' ? 'sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5' : ''} gap-2 px-2 pt-2`}
+          >
+            {Array.from({ length: cols }).map((_, i) => {
+              if (!proxies[i]) return null
+              return (
+                <ProxyItem
+                  key={proxies[i].name}
+                  mutateProxies={mutate}
+                  onProxyDelay={onProxyDelay}
+                  onSelect={onChangeProxy}
+                  proxy={proxies[i]}
+                  group={groups[groupIndex]}
+                  proxyDisplayLayout={proxyDisplayLayout}
+                  selected={
+                    proxies[i]?.name === groups[groupIndex].now
+                  }
+                  index={i} // simple index, real tracking might need more if needed
+                />
+              )
+            })}
+          </div>
+        )
+      }
     },
     [
       groups,
-      groupCounts,
       isOpen,
       searchValue,
       delaying,
@@ -363,58 +424,13 @@ const Proxies: React.FC = () => {
       onGroupDelay,
       mutate,
       getDelayColor,
-      getCurrentDelay
-    ]
-  )
-
-  const itemContent = useCallback(
-    (index: number, groupIndex: number) => {
-      let innerIndex = index
-      groupCounts.slice(0, groupIndex).forEach((count) => {
-        innerIndex -= count
-      })
-      return allProxies[groupIndex] ? (
-        <div
-          style={
-            proxyCols !== 'auto'
-              ? { gridTemplateColumns: `repeat(${proxyCols}, minmax(0, 1fr))` }
-              : {}
-          }
-          className={`grid ${proxyCols === 'auto' ? 'sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5' : ''} ${groupIndex === groupCounts.length - 1 && innerIndex === groupCounts[groupIndex] - 1 ? 'pb-2' : ''} gap-2 pt-2 mx-2`}
-        >
-          {Array.from({ length: cols }).map((_, i) => {
-            if (!allProxies[groupIndex][innerIndex * cols + i]) return null
-            return (
-              <ProxyItem
-                key={allProxies[groupIndex][innerIndex * cols + i].name}
-                mutateProxies={mutate}
-                onProxyDelay={onProxyDelay}
-                onSelect={onChangeProxy}
-                proxy={allProxies[groupIndex][innerIndex * cols + i]}
-                group={groups[groupIndex]}
-                proxyDisplayLayout={proxyDisplayLayout}
-                selected={
-                  allProxies[groupIndex][innerIndex * cols + i]?.name === groups[groupIndex].now
-                }
-                index={innerIndex * cols + i}
-              />
-            )
-          })}
-        </div>
-      ) : (
-        <div>Never See This</div>
-      )
-    },
-    [
-      groupCounts,
-      allProxies,
+      getCurrentDelay,
       proxyCols,
       cols,
-      mutate,
+      proxyDisplayLayout,
       onProxyDelay,
       onChangeProxy,
-      groups,
-      proxyDisplayLayout
+      appConfig
     ]
   )
 
@@ -449,11 +465,10 @@ const Proxies: React.FC = () => {
         </div>
       ) : (
         <div className="h-[calc(100vh-50px)]">
-          <GroupedVirtuoso
+          <Virtuoso
             ref={virtuosoRef}
-            groupCounts={groupCounts}
-            groupContent={groupContent}
-            itemContent={itemContent}
+            data={flatItems}
+            itemContent={renderItem}
           />
         </div>
       )}
