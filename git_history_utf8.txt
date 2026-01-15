@@ -1,0 +1,47 @@
+﻿f6316d8 build(deps): fix dependabot vulnerabilities (@tootallnate/once & tar)
+acac6c8 fix(traffic): 淇璁㈤槄娴侀噺缁熻寮傚父骞舵敮鎸佽嚜瀹氫箟缁撶畻鏃?aebcbd9 chore: cleanup audit temporary files
+ba5f6bc fix(security): resolve dependabot vulnerabilities via pnpm overrides and update changelog
+3c52187 chore(release): v2.2.1 - fix memory leaks and render performance
+aa3bd3c fix: 淇鎵樼洏鍥炬爣鍦?2K 灞忓箷涓婃ā绯婄殑闂
+f35b58f chore: update version to 2.2.0
+ec683a4 feat: UI/鎬ц兘浼樺寲 - 杩炴帴璇︽儏鍗＄墖閲嶆瀯銆佹煴鐘跺浘娓愬彉銆侀棴鍖呬慨澶嶃€丼ub-Store鍚敤寮€鍏?68aebf9 perf: optimization runtime performance and vite build chunks
+73ba01a fix: MRS鏍煎紡IPCIDR瑙勫垯闆嗛瑙? style: 浼樺寲浠ｇ悊缁凩ive鎸囩ず鍣ㄦ牱寮?2840a6b refactor: IPC妯″潡鍖?+ removeAllListeners绯荤粺鎬т慨澶?+ 浠ｇ爜璐ㄩ噺浼樺寲
+3cbfbee feat/opt(tools): refactor IP probe panel & refine topology anim, code cleanups
+01ec231 perf: optimize topology map performance and enhance pulse animation
+9d0e4db 瑙ｅ喅鍥惧潡鍐呭瓨闄愬埗瓒呮爣
+ea9130e chore: remove PixPin.mp4
+595a2b9 feat(ui): 浼樺寲缃戠粶鎷撴墤鍥惧睍绀轰笌浜や簰
+73613fb perf: optimization for high frequency updates and refine UI
+7d18bf7 style: optimize proxy group grid layout and unify setting modals UI
+d383a2f ui: update proxy item hover style
+36cefea feat(ui): 淇hover鏂囧瓧妯＄硦銆侀噸鍋氳鍒欒鎯呭崱鐗囥€佹柊澧炵洰鏍囧湴鍧€澶嶅埗鎸夐挳
+bc9e317 fix: resolve minimatch ReDoS vulnerability (CVE-2026-26996)
+03f5989 fix: resolve minimatch ReDoS vulnerability (CVE-2026-26996)
+1cc00dc chore: remove unused files
+444929e chore: release v2.1.7
+7b7988b build: simplify release notes and changelog
+803451d fix: resolve unused variable warnings in settings components
+2b858f9 fix: upgrade axios to 1.13.5 to resolve DoS vulnerability
+89af412 feat(ui): remove card background from traffic overview side panels
+dfeed1e fix: 淇瑙勫垯鍒楄〃鍜岃鍐欏垪琛ㄥ埛鏂板欢杩燂紝浼樺寲鏂板缓瑙勫垯寮圭獥 UI
+9a614f7 perf(ui): optimize context menu and create rule button style
+680a098 fix: checkout sha instead of tag to avoid sync issues
+116306f chore(release): 2.1.6
+beaf459 fix: use commit sha as release target
+1791b59 chore: add autobuild suffix to artifacts
+3f8a5b0 chore: optimize autobuild workflow and revert ui changes
+d222dbd feat: optimize UI components and release workflow
+b3bc326 feat: add kernel update notification and UI improvements
+830b09f docs: update changelog for v2.1.5
+b8afba0 chore: remove RouteX.code-workspace from repository
+a22ded4 feat: add topology map and fix external controller settings
+6b5afe8 fix: duplicate identifier in ipc.ts
+4e76f8a feat: implement MRS rule preview support
+d0b58ac fix(ci): use correct yaml comment syntax in auto-build workflow
+7f0ee66 fix(core): implement global proxy chain isolation to prevent regex loops
+b67db1d chore: fix dependabot vulnerability for brace-expansion
+42aaa9d fix: handle pipe access denied error and include chains in webdav backup
+8540f96 fix: resolve proxy chain validation issues and improve loop detection
+f6e12dc feat: optimize connection detail page layout and features
+1b99daf feat(main): remove taskbar overlay icon
+2eec994 fix: resolve syntax error in menu configuration

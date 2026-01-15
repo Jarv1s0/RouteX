@@ -1,0 +1,139 @@
+﻿698ac2c build(deps): fix dependabot vulnerabilities (@tootallnate/once & tar)
+653ab29 fix(traffic): resolve subscription traffic calculation and support custom reset day
+46c77fe chore: cleanup audit temporary files
+9e028be fix(security): resolve dependabot vulnerabilities via pnpm overrides and update changelog
+5760f7c chore(release): v2.2.1 - fix memory leaks and render performance
+b8b6728 fix(tray): resolve blurry tray icon on high DPI screens
+151aa19 chore: update version to 2.2.0
+022222a feat(ui): refactor connection card, add traffic chart gradients and sub-store switch
+e424614 perf(core): optimize runtime performance and build chunks
+7dfe7b1 fix: MRS鏍煎紡IPCIDR瑙勫垯闆嗛瑙? style: 浼樺寲浠ｇ悊缁凩ive鎸囩ず鍣ㄦ牱寮?02e034a refactor(ipc): modularize IPC events, fix listeners cleanup, and optimize code quality
+90f17fc refactor(tools): refactor IP probe panel, refine topology animation
+f2d8e85 perf: optimize topology map performance and enhance pulse animation
+26441d5 fix(perf): resolve map tile memory limit exceeded
+3945621 chore: remove PixPin.mp4
+d8af6c1 feat(ui): enhance network topology map display and interactions
+d343581 perf: optimization for high frequency updates and refine UI
+d62687f style: optimize proxy group grid layout and unify setting modals UI
+c6e079f ui: update proxy item hover style
+c8e8bf1 feat(ui): 淇hover鏂囧瓧妯＄硦銆侀噸鍋氳鍒欒鎯呭崱鐗囥€佹柊澧炵洰鏍囧湴鍧€澶嶅埗鎸夐挳
+65dbd8f fix: resolve minimatch ReDoS vulnerability (CVE-2026-26996)
+8ecce93 fix: resolve minimatch ReDoS vulnerability (CVE-2026-26996)
+b2df20c chore: remove unused files
+d899329 chore: release v2.1.7
+4a730e7 build: simplify release notes and changelog
+7b4affa fix: resolve unused variable warnings in settings components
+d730d8e fix: upgrade axios to 1.13.5 to resolve DoS vulnerability
+56ba504 feat(ui): remove card background from traffic overview side panels
+870e0d2 fix(ui): resolve rule list refresh delay and optimize rule modal
+3e77b42 perf(ui): optimize context menu and rule button style
+680a098 fix: checkout sha instead of tag to avoid sync issues
+116306f chore(release): 2.1.6
+beaf459 fix: use commit sha as release target
+1791b59 chore: add autobuild suffix to artifacts
+3f8a5b0 chore: optimize autobuild workflow and revert ui changes
+d222dbd feat: optimize UI components and release workflow
+b3bc326 feat: add kernel update notification and UI improvements
+830b09f docs: update changelog for v2.1.5
+b8afba0 chore: remove RouteX.code-workspace from repository
+a22ded4 feat: add topology map and fix external controller settings
+6b5afe8 fix: duplicate identifier in ipc.ts
+4e76f8a feat: implement MRS rule preview support
+d0b58ac fix(ci): use correct yaml comment syntax in auto-build workflow
+7f0ee66 fix(core): implement global proxy chain isolation to prevent regex loops
+b67db1d chore: fix dependabot vulnerability for brace-expansion
+42aaa9d fix: handle pipe access denied error and include chains in webdav backup
+8540f96 fix: resolve proxy chain validation issues and improve loop detection
+f6e12dc feat: optimize connection detail page layout and features
+1b99daf feat(main): remove taskbar overlay icon
+2eec994 fix: resolve syntax error in menu configuration
+20b1b0c feat: 鍏ㄥ眬寮圭獥鏍峰紡缇庡寲锛屾浛鎹㈠師鐢?dialog
+4d16815 fix(main): cleanup debug logs and optimize overlay update
+7fbac57 fix(main): add icon debug logging and overlay resize fix
+c3e402c chore(release): bump version to 2.1.4
+4846da9 chore: optimize release workflow with auto version and notes extraction
+92d1eb7 chore: remove unused workflow
+e352adc feat: add auto build workflow
+4d073f8 chore: release v2.1.3
+aa41813 chore: release v2.1.2 - fix memory leak and icon sync
+f67993f chore: clean up project clutter (remove .shared, logs, backups)
+5f58d10 chore: remove debug logs from factory.ts
+bf8afab chore: release v2.1.1 - UI/UX improvements & readme update
+caa9656 fix: 淇TS缂栬瘧閿欒(鏈娇鐢ㄥ彉閲?
+c6c594e chore: 绉婚櫎AI缂撳瓨鏂囦欢骞舵洿鏂癵itignore
+6f4b93a fix: 淇瀹夊叏婕忔礊鍜岄摼璺瑙圲I浼樺寲
+d6ad4a9 chore: remove .agent from version control
+c42e8d0 chore(release): v2.0.0 w/ system optimizations & icon sync fix
+bf2d2ef fix: remove unused variable in proxies.tsx
+f3b7021 fix: rollback proxy card, optimize connection settings & detail UI
+219610e fix: revert group delay logic to manual concurrent testing to avoid timeout
+e2bd39e fix: 鍥炴粴浠ｇ悊缁勭粍浠惰嚦 v1.8.2
+e3a841a fix: tray and taskbar icon sync in production
+9fd5359 v1.8.4
+8b166eb fix: 鏇存敼榛樿娴嬮€熷湴鍧€涓?cp.cloudflare.com 浠ヨВ鍐崇洿杩炶秴鏃堕棶棰?ef9e900 fix: resolve syntax errors and imports in main process
+1ddce4c fix(prod): fix app icon sync issue by bundling icons to extraResources
+356805d refactor: optimize connections page performance and simplify stats UI
+ce9e03a fix(ui): 淇浠ｇ悊缁勫悕绉颁腑宸叉湁鍥芥棗鏃舵棤娉曟纭樉绀?Emoji 鐨勯棶棰?(浣跨敤 font-family 寮哄埗娓叉煋)
+8ac650e style: 浼樺寲鍥芥棗 Emoji 瀛椾綋浼樺厛绾э紝淇 Windows 涓嬫樉绀轰负瀛楁瘝鐨勯棶棰?a7d56c2 fix(ui): 浠ｇ悊缁勯€変腑鐨勮妭鐐圭幇鍦ㄤ細鏄剧ず鍥芥棗 (font-family optimized)
+85a4711 fix: 淇 MSR 瑙勫垯鏃犳煡鐪嬫寜閽?& 浼樺寲 Windows 浠诲姟鏍忓浘鏍囦竴鑷存€?8584693 fix(renderer): 淇缁熻椤甸潰閲嶆瀯瀵艰嚧鐨勬湭浣跨敤鍙橀噺鎶ラ敊 (TS6133)
+9bc4964 chore(release): v1.8.3 - 鎬ц兘浼樺寲涓嶶I鏀硅繘 (鍖呭惈瀹屾暣 1.8.2 鏇存柊鍐呭)
+a4a85c8 fix: 浼樺寲 UI 浜や簰涓庣粺璁￠〉闈㈡€ц兘  - 绉婚櫎宸ュ叿椤甸潰 IP 绾噣搴︽娴嬪崱鐗?- 浼樺寲渚ц竟鏍忓崱鐗囬紶鏍囦氦浜掓牱寮?- 淇缁熻椤甸潰楂樺苟鍙戣繛鎺ヤ笅鐨勫崱姝讳笌鍐呭瓨娉勬紡闂 - 浼樺寲缁熻璇︽儏寮圭獥鍔ㄧ敾
+8ce104b feat: enhance ip check modal, simplify changelog and fix build errors
+8b6be6d feat: enhance ip check modal and simplify changelog
+075dc44 feat: enhance ip check modal and simplify changelog
+abfdeb0 fix: refactor state initialization to lifecycle, remove side effects
+a014444 feat: release v1.8.2 with performance optimizations (logs, ipc) and ux improvements (skeleton, error-boundary)
+b6c013e update
+21cf6f1 Merge remote changes, keeping local versions for conflicts
+a0d29fe fix: resolve white screen crashes and infinite loop in connections page, update changelog
+12635ef fix-unused-imports
+000a412 feat: 宸ュ叿椤甸潰甯冨眬浼樺寲 & 绮剧畝 changelog
+c02d265 fix: 淇浠ｇ悊鑺傜偣寤惰繜棰滆壊涓嶄竴鑷撮棶棰?& UI 浼樺寲
+6199be3 chore: remove .ai_memory from git tracking
+befda25 docs: content update for V1.8.0
+2104f90 fix: sync pnpm-lock.yaml
+d65d9cc chore: release v1.7.5 with build optimizations
+3ca37fb chore: release v1.7.6
+f5ffd84 docs: update changelog for security fix
+e89fcb1 chore: bump version to 1.7.4 and update react-router-dom to fix security vulnerabilities
+1c5a7ac update
+f449d7c docs: update changelog with recent bug fixes
+295d833 fix: tray icon status not updating on startup
+aa047b0 fix: prevent tray menu from popping up on config updates
+685b2ea fix: remove unused imports in advanced settings
+38ba52a chore: remove deprecated global-client-fingerprint from controller types
+e4789c9 fix: remove deprecated global-client-fingerprint from default template
+9f27e66 docs: update changelog for mihomo v1.19.19 adaptation
+22731e2 feat: adapt to mihomo v1.19.19 (remove deprecated fields, add fake-ip-filter-mode)
+a2bb69d update changelog
+4109b3a docs: update changelog for tray icon features
+83dad2c feat: implement dynamic tray icons for system proxy and tun modes
+a007113 fix: 浼樺寲浠ｇ悊椤甸潰鑷姩娴嬮€熼€昏緫鍙婃坊鍔?workspace 閰嶇疆
+0a385c6 revert: 鎾ゅ洖 Dashboard 鏀归€狅紝鎭㈠缁熻椤甸潰鍘熸湁甯冨眬
+063c70e fix: 淇璁㈤槄鑷姩鏇存柊闂骞跺彂甯?v1.7.2
+5ffe759 chore: 淇 mihomo 椤甸潰鏈娇鐢ㄧ殑瀵煎叆 TypeScript 閿欒
+7175e91 chore: update changelog and refactor proxy list
+68cfde2 fix: 鍗囩骇 qs 淇瀹夊叏婕忔礊
+d2fe77a chore: 鍒犻櫎鏇村鍨冨溇鏂囦欢
+71c0b73 chore: 娓呯悊鍨冨溇鏂囦欢
+f79f86a feat: v1.7.1 - 鏃ュ織璁剧疆绉昏嚦鏃ュ織椤甸潰锛屼紭鍖栬嚜鍔ㄦ祴閫?68e94ba perf: 浼樺寲鑷姩娴嬮€熼€昏緫锛屽彧鍦ㄩ娆¤繘鍏ラ〉闈㈡椂娴嬮€?3963bea fix: 淇璁㈤槄缁熻璺ㄦ湀璁＄畻闂锛岀畝鍖栧疄鏃舵祦閲忓浘UI
+4eecf4a feat: v1.7.0 - 浼樺寲娴侀噺鍥惧拰浠ｇ悊缁勮嚜鍔ㄦ祴閫?98934dd feat: 鏂板鐐瑰嚮浠ｇ悊缁勫崱鐗囨椂鑷姩娴嬮€熼€夐」
+97ecd4c docs: 鍚堝苟 v1.6.17 鍒?v1.6.18
+9c4b7d4 fix: 绉婚櫎鏈娇鐢ㄧ殑瀵煎叆
+dba8130 style: 缁熶竴UI鏍峰紡浼樺寲
+5cf01f3 fix: 澧炲己鐧藉睆妫€娴嬶紝绐楀彛鏄剧ず鏃惰嚜鍔ㄦ娴嬪苟鎭㈠
+71536b5 fix: 澧炲姞娴侀噺缁熻瀹氭湡淇濆瓨锛岄槻姝㈠叧鏈烘椂鏁版嵁涓㈠け
+5323ac1 fix: 淇澶氫釜鏄剧ず鍜岀粺璁￠棶棰?ff776a3 fix: 淇搴旂敤閲嶅惎鍚庝粖鏃ユ祦閲忕粺璁℃竻闆剁殑闂
+025aa5e fix: 淇搴旂敤閲嶅惎鍚庝粖鏃ユ祦閲忕粺璁￠敊璇?3876c75 fix: 淇鏈娇鐢ㄧ殑 event 鍙傛暟缂栬瘧閿欒
+e770c6f chore: 鏇存柊 changelog 鐗堟湰鍙蜂负 v1.6.8
+5006c64 fix: 淇闀挎椂闂磋繍琛屽悗鐧藉睆闂
+30fe7f5 fix: 淇娴侀噺缁熻澧為噺璁＄畻閿欒
+686bed2 feat: 缁熻椤甸潰鏂板杩涚▼娴侀噺鎺掕鍔熻兘
+9cda591 缁熶竴寮圭獥鍏抽棴鎸夐挳鏍峰紡
+4666047 杩炴帴璇︽儏鏀寔閫夋嫨澶嶅埗
+e913331 浼樺寲瑙勫垯椤甸潰鍜屾棩蹇楅〉闈㈡牱寮?b10c7c2 鏇存柊 README
+fd29e49 淇 TypeScript 缂栬瘧閿欒锛氱Щ闄ゆ湭浣跨敤鐨勫彉閲?d96ff52 浼樺寲杩炴帴鍜岃鍒欓〉闈㈢殑棰滆壊鏂规
+42cfb7b feat: add stats and tools page
+4ef743b merge: 鍚屾涓婃父鏇存柊 v1.6.16
+d9541cc Merge remote-tracking branch 'upstream/master'
+610a59c update version to 1.6.16

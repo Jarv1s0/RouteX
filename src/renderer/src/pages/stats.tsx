@@ -37,6 +37,9 @@ const calcTrafficInt = (byte: number): string => {
 }
 
 const Stats: React.FC = () => {
+  // Hook 注入
+
+
   const [trafficHistory, setTrafficHistory] = useState<TrafficDataPoint[]>([])
   const [historyTab, setHistoryTab] = useState<'realtime' | 'hourly' | 'daily' | 'monthly'>('realtime')
   const [hourlyData, setHourlyData] = useState<{ hour: string; upload: number; download: number }[]>([])
@@ -48,6 +51,10 @@ const Stats: React.FC = () => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
+
+
+
+
   const [selectedProvider, setSelectedProvider] = useState<string>(() => {
     return localStorage.getItem('stats-selected-provider') || 'all'
   })
@@ -66,6 +73,7 @@ const Stats: React.FC = () => {
     time: string
     host: string
     process: string
+    proxy: string
     upload: number
     download: number
   }>>>(new Map())
@@ -182,6 +190,7 @@ const Stats: React.FC = () => {
       rulePayload?: string
       upload: number
       download: number
+      chains: string[]
       metadata: {
         host?: string
         process?: string
@@ -221,6 +230,7 @@ const Stats: React.FC = () => {
                 time: timeStr,
                 host: conn.metadata?.host || conn.metadata?.destinationIP || '-',
                 process: conn.metadata?.process || '-',
+                proxy: conn.chains?.length ? conn.chains[conn.chains.length - 1] : 'DIRECT',
                 upload: conn.upload,
                 download: conn.download
               })
@@ -434,6 +444,8 @@ const Stats: React.FC = () => {
         />
       )}
       <div className="p-2 space-y-2">
+
+
         {/* 流量统计 */}
         <div className="grid grid-cols-4 gap-3">
           <Card isPressable onPress={() => handleOpenProcessTraffic('session', 'upload')} className="cursor-pointer hover:bg-default-100 transition-colors">
@@ -915,17 +927,19 @@ const Stats: React.FC = () => {
                         </div>
                       ) : (
                         <>
-                          <div className="grid grid-cols-5 gap-2 text-xs text-foreground-500 font-medium pb-2 border-b border-divider">
+                          <div className="grid grid-cols-6 gap-2 text-xs text-foreground-500 font-medium pb-2 border-b border-divider">
                             <span>时间</span>
                             <span className="col-span-2">主机</span>
                             <span>进程</span>
+                            <span>代理</span>
                             <span className="text-right">流量</span>
                           </div>
                           {(ruleHitDetails.get(selectedRule) || []).map((detail, index) => (
-                            <div key={detail.id + index} className="grid grid-cols-5 gap-2 text-xs py-1.5 border-b border-divider/50">
+                            <div key={detail.id + index} className="grid grid-cols-6 gap-2 text-xs py-1.5 border-b border-divider/50">
                               <span className="text-foreground-400">{detail.time}</span>
                               <span className="col-span-2 truncate" title={detail.host}>{detail.host}</span>
                               <span className="truncate text-foreground-500" title={detail.process}>{detail.process}</span>
+                              <span className="truncate text-foreground-500" title={detail.proxy}>{detail.proxy}</span>
                               <span className="text-right text-foreground-400">
                                 {calcTraffic(detail.upload + detail.download)}
                               </span>
