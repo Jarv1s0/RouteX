@@ -680,6 +680,16 @@ const Connections: React.FC = () => {
             size="sm"
             isIconOnly
             variant="flat"
+            color={isPaused ? 'success' : 'warning'}
+            title={isPaused ? '继续刷新' : '暂停刷新'}
+            onPress={() => setIsPaused(!isPaused)}
+          >
+            {isPaused ? <IoPlay className="text-lg" /> : <IoPause className="text-lg" />}
+          </Button>
+          <Button
+            size="sm"
+            isIconOnly
+            variant="flat"
             color="danger"
             title={tab === 'active' ? '关闭全部' : '清空记录'}
             onPress={() => {
@@ -693,16 +703,6 @@ const Connections: React.FC = () => {
             }}
           >
             {tab === 'active' ? <CgClose className="text-lg" /> : <CgTrash className="text-lg" />}
-          </Button>
-          <Button
-            size="sm"
-            isIconOnly
-            variant="flat"
-            color={isPaused ? 'success' : 'warning'}
-            title={isPaused ? '继续刷新' : '暂停刷新'}
-            onPress={() => setIsPaused(!isPaused)}
-          >
-            {isPaused ? <IoPlay className="text-lg" /> : <IoPause className="text-lg" />}
           </Button>
           {hiddenRules.size > 0 && (
             <>
