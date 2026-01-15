@@ -30,8 +30,7 @@ const Proxies: React.FC = () => {
     autoCloseConnection = true,
     proxyCols = 'auto',
     delayTestConcurrency = 50,
-    groupOrder = [],
-    autoDelayTestOnShow = false
+    groupOrder = []
   } = appConfig || {}
 
   // 根据模式过滤显示的组
@@ -137,7 +136,7 @@ const Proxies: React.FC = () => {
       })
       
       const group = groups[index]
-      let groupProxies = group.all.filter(
+      const groupProxies = group.all.filter(
          (proxy) => proxy && includesIgnoreCase(proxy.name, searchValue[index])
       )
       // Note: original logic had sorting dependent on display order for the delay test list?
@@ -194,13 +193,9 @@ const Proxies: React.FC = () => {
       const newOpen = [...prev]
       const wasOpen = prev[index]
       newOpen[index] = !wasOpen
-      // 如果是展开操作，自动触发测速
-      if (!wasOpen) {
-        setTimeout(() => onGroupDelay(index), 100)
-      }
       return newOpen
     })
-  }, [onGroupDelay])
+  }, [])
 
   const updateSearchValue = useCallback((index: number, value: string) => {
     setSearchValue((prev) => {
@@ -228,27 +223,29 @@ const Proxies: React.FC = () => {
   // 首次进入页面时自动测速
   const hasInitialTestRef = useRef(false)
   useEffect(() => {
-    if (!autoDelayTestOnShow) return
+    // 强制执行或根据配置，但为了满足"点击左侧代理组卡片自动测速一次"的需求，这里默认执行
     if (groups.length === 0) return
     if (hasInitialTestRef.current) return
     
     hasInitialTestRef.current = true
     
     const doAutoDelayTest = async (): Promise<void> => {
-      // 并行执行所有组的测速
-      const promises = groups.map((group) =>
-        mihomoGroupDelay(group.name, group.testUrl)
+      // 并行执行所有组的测速，但排除 Proxy 组
+      const promises = groups.map((group) => {
+        if (includesIgnoreCase(group.name, 'proxy') || includesIgnoreCase(group.name, 'compatible')) {
+          return Promise.resolve()
+        }
+        return mihomoGroupDelay(group.name, group.testUrl)
           .then(() => mutate()) // 每个组完成后立即更新 UI
           .catch(() => {})
-      )
+      })
       
       await Promise.allSettled(promises)
-      // 最后再统一更新一次以防万一
       mutate()
     }
     
     doAutoDelayTest()
-  }, [autoDelayTestOnShow, groups, mutate])
+  }, [groups, mutate])
 
   // 获取节点延迟颜色
   const getDelayColor = useCallback((proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {
