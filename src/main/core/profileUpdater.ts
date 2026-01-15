@@ -41,6 +41,7 @@ async function scheduleProfileUpdate(item: ProfileItem, isCurrent: boolean = fal
   if (delay === 0) {
     try {
       await addProfileItem(item)
+      return
     } catch (e) {
       // ignore
     }
@@ -52,10 +53,10 @@ async function scheduleProfileUpdate(item: ProfileItem, isCurrent: boolean = fal
       await addProfileItem(item)
     } catch (e) {
       // ignore
+      // 更新失败后重新调度下一次更新，避免死循环或任务丢失
+      const updatedItem = { ...item, updated: Date.now() }
+      await scheduleProfileUpdate(updatedItem, isCurrent)
     }
-    // 更新完成后重新调度下一次更新
-    const updatedItem = { ...item, updated: Date.now() }
-    await scheduleProfileUpdate(updatedItem, isCurrent)
   }, finalDelay)
 }
 
