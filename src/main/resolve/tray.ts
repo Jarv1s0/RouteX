@@ -128,6 +128,7 @@ async function handleTrayClick(): Promise<void> {
     await showCustomTray()
   } else {
     await updateTrayMenu()
+    tray?.popUpContextMenu()
   }
 }
 
@@ -514,10 +515,7 @@ async function updateTrayIcon(): Promise<void> {
 
 async function updateTrayMenu(): Promise<void> {
   const menu = await buildContextMenu()
-  tray?.popUpContextMenu(menu) // 弹出菜单
-  if (process.platform === 'linux') {
-    tray?.setContextMenu(menu)
-  }
+  tray?.setContextMenu(menu)
   await updateTrayIcon()
 }
 
