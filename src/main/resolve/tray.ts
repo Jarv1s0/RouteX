@@ -7,6 +7,8 @@ import {
   patchControledMihomoConfig
 } from '../config'
 import icoIcon from '../../../resources/icon.ico?asset'
+import iconProxy from '../../../resources/icon_proxy.ico?asset'
+import iconTun from '../../../resources/icon_tun.ico?asset'
 import pngIcon from '../../../resources/icon.png?asset'
 import templateIcon from '../../../resources/iconTemplate.png?asset'
 import {
@@ -482,9 +484,31 @@ export async function createTray(): Promise<void> {
     tray?.addListener('click', async () => {
       await triggerMainWindow()
     })
-    ipcMain.on('updateTrayMenu', async () => {
-      await updateTrayMenu()
-    })
+  }
+
+  ipcMain.on('updateTrayMenu', async () => {
+    await updateTrayMenu()
+  })
+
+  // await updateTrayIcon()
+}
+
+async function updateTrayIcon(): Promise<void> {
+  try {
+    if (process.platform !== 'win32' || !tray) return
+    const { sysProxy } = await getAppConfig()
+    const { tun } = await getControledMihomoConfig()
+
+    let icon = icoIcon
+    if (sysProxy.enable) {
+      icon = iconProxy
+    } else if (tun?.enable) {
+      icon = iconTun
+    }
+    const nativeIcon = nativeImage.createFromPath(icon)
+    tray.setImage(nativeIcon)
+  } catch (e) {
+    console.error('Failed to update tray icon:', e)
   }
 }
 
@@ -494,6 +518,7 @@ async function updateTrayMenu(): Promise<void> {
   if (process.platform === 'linux') {
     tray?.setContextMenu(menu)
   }
+  await updateTrayIcon()
 }
 
 ipcMain.on('customTray:close', () => {
