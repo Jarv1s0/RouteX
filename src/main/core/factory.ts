@@ -131,7 +131,7 @@ function cleanStringConfigs(profile: MihomoConfig): void {
 
   if (profile.mode === 'rule') delete partialProfile.mode
 
-  const emptyStringConfigs = ['interface-name', 'secret', 'global-client-fingerprint']
+  const emptyStringConfigs = ['interface-name', 'secret']
   emptyStringConfigs.forEach((key) => {
     if (profile[key] === '') delete partialProfile[key]
   })

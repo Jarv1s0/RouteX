@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import EditableList from '../base/base-list-editor'
-import { Switch } from '@heroui/react'
+import { Switch, Tabs, Tab } from '@heroui/react'
 import { isValidDnsServer, isValidDomainWildcard } from '@renderer/utils/validate'
 import { primaryInputClassNames } from '../settings/advanced-settings'
 
@@ -11,6 +11,7 @@ interface AdvancedDnsSettingProps {
   directNameserver: string[]
   proxyServerNameserver: string[]
   nameserverPolicy: Record<string, string | string[]>
+  fakeIpFilterMode: FilterMode
   hosts?: IHost[]
   useHosts: boolean
   useSystemHosts: boolean
@@ -18,6 +19,7 @@ interface AdvancedDnsSettingProps {
   onDirectNameserverChange: (list: string[]) => void
   onProxyNameserverChange: (list: string[]) => void
   onNameserverPolicyChange: (policy: Record<string, string | string[]>) => void
+  onFakeIpFilterModeChange: (mode: FilterMode) => void
   onUseSystemHostsChange: (v: boolean) => void
   onUseHostsChange: (v: boolean) => void
   onHostsChange: (hosts: IHost[]) => void
@@ -29,6 +31,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
   directNameserver,
   proxyServerNameserver,
   nameserverPolicy,
+  fakeIpFilterMode,
   hosts,
   useHosts,
   useSystemHosts,
@@ -36,6 +39,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
   onDirectNameserverChange,
   onProxyNameserverChange,
   onNameserverPolicyChange,
+  onFakeIpFilterModeChange,
   onUseSystemHostsChange,
   onUseHostsChange,
   onHostsChange,
@@ -61,6 +65,18 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
 
   return (
     <SettingCard title="更多设置">
+      <SettingItem title="FakeIP 过滤列表模式" divider>
+        <Tabs
+          size="sm"
+          color="primary"
+          selectedKey={fakeIpFilterMode}
+          onSelectionChange={(key) => onFakeIpFilterModeChange(key as FilterMode)}
+        >
+          <Tab key="blacklist" title="黑名单" />
+          <Tab key="whitelist" title="白名单" />
+          <Tab key="rule" title="规则模式" />
+        </Tabs>
+      </SettingItem>
       <SettingItem title="连接遵守规则" divider>
         <Switch
           size="sm"
