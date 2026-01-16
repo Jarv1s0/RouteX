@@ -16,7 +16,6 @@ interface MihomoConfig {
   'unified-delay': boolean
   'tcp-concurrent': boolean
   'interface-name': string
-  'global-client-fingerprint': Fingerprints
   'log-level': LogLevel
   'find-process-mode': FindProcessMode
   'socks-port'?: number

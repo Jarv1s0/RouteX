@@ -33,6 +33,7 @@ const DNS: React.FC = () => {
       'ntp.*.com',
       '+.market.xiaomi.com'
     ],
+    'fake-ip-filter-mode': fakeIPFilterMode = 'blacklist',
     'enhanced-mode': enhancedMode = 'fake-ip',
     'use-hosts': useHosts = false,
     'use-system-hosts': useSystemHosts = false,
@@ -51,6 +52,7 @@ const DNS: React.FC = () => {
     fakeIPRange,
     fakeIPRange6,
     fakeIPFilter,
+    fakeIPFilterMode,
     useSystemHosts,
     respectRules,
     defaultNameserver,
@@ -131,6 +133,7 @@ const DNS: React.FC = () => {
                 'fake-ip-range': values.fakeIPRange,
                 'fake-ip-range6': values.fakeIPRange6,
                 'fake-ip-filter': values.fakeIPFilter,
+                'fake-ip-filter-mode': values.fakeIPFilterMode,
                 'enhanced-mode': values.enhancedMode,
                 'use-hosts': values.useHosts,
                 'use-system-hosts': values.useSystemHosts,
@@ -285,6 +288,7 @@ const DNS: React.FC = () => {
         directNameserver={values.directNameserver}
         proxyServerNameserver={values.proxyServerNameserver}
         nameserverPolicy={values.nameserverPolicy}
+        fakeIpFilterMode={values.fakeIPFilterMode}
         hosts={values.hosts}
         useHosts={values.useHosts}
         useSystemHosts={values.useSystemHosts}
@@ -307,6 +311,7 @@ const DNS: React.FC = () => {
         onNameserverPolicyChange={(newValue) => {
           setValues({ ...values, nameserverPolicy: newValue })
         }}
+        onFakeIpFilterModeChange={(mode) => setValues({ ...values, fakeIPFilterMode: mode })}
         onUseSystemHostsChange={(v) => setValues({ ...values, useSystemHosts: v })}
         onUseHostsChange={(v) => setValues({ ...values, useHosts: v })}
         onHostsChange={(hostArr) => setValues({ ...values, hosts: hostArr })}
