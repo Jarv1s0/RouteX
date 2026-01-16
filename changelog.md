@@ -1,4 +1,4 @@
-## v1.7.3
+## v1.7.4
 
 ### 新增
 - 支持根据 System Proxy 和 TUN 模式动态切换 Windows 托盘图标
