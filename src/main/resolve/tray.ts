@@ -491,7 +491,7 @@ export async function createTray(): Promise<void> {
     await updateTrayMenu()
   })
 
-  // await updateTrayIcon()
+  await updateTrayIcon()
 }
 
 async function updateTrayIcon(): Promise<void> {
