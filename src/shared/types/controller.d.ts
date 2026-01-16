@@ -34,7 +34,7 @@ interface ControllerConfigs {
   'tcp-concurrent': boolean
   'find-process-mode': string
   sniffing: true
-  'global-client-fingerprint': string
+
   'global-ua': string
   'etag-support': boolean
   'keep-alive-idle': number
