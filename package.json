@@ -1,6 +1,6 @@
 {
   "name": "routex",
-  "version": "1.7.2",
+  "version": "1.7.4",
   "description": "RouteX",
   "main": "./out/main/index.js",
   "scripts": {
@@ -82,7 +82,7 @@
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-monaco-editor": "^0.59.0",
-    "react-router-dom": "^7.10.1",
+    "react-router-dom": "^7.12.0",
     "react-virtuoso": "^4.17.0",
     "recharts": "^3.5.1",
     "swr": "^2.3.7",
