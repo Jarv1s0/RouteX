@@ -42,7 +42,7 @@ export default defineConfig({
       react(),
       tailwindcss(),
       monacoEditorPlugin({
-        languageWorkers: ['editorWorkerService', 'typescript', 'css'],
+        languageWorkers: ['editorWorkerService'],
         customDistPath: (_, out) => `${out}/monacoeditorwork`,
         customWorkers: [
           {

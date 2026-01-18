@@ -1,4 +1,5 @@
 import { app, dialog, ipcMain } from 'electron'
+import { upgradeMihomo } from '../core/updater'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -13,7 +14,7 @@ import {
   mihomoUnfixedProxy,
   mihomoUpdateProxyProviders,
   mihomoUpdateRuleProviders,
-  mihomoUpgrade,
+
   mihomoUpgradeUI,
   mihomoDnsQuery,
   mihomoUpgradeGeo,
@@ -435,7 +436,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('mihomoUpgradeGeo', ipcErrorWrapper(mihomoUpgradeGeo))
   ipcMain.handle('mihomoUpgradeUI', ipcErrorWrapper(mihomoUpgradeUI))
   ipcMain.handle('mihomoDnsQuery', (_e, name, type) => ipcErrorWrapper(mihomoDnsQuery)(name, type))
-  ipcMain.handle('mihomoUpgrade', ipcErrorWrapper(mihomoUpgrade))
+  ipcMain.handle('mihomoUpgrade', ipcErrorWrapper(upgradeMihomo))
   ipcMain.handle('checkMihomoLatestVersion', (_e, isAlpha) => ipcErrorWrapper(checkMihomoLatestVersion)(isAlpha))
   ipcMain.handle('mihomoProxyDelay', (_e, proxy, url) =>
     ipcErrorWrapper(mihomoProxyDelay)(proxy, url)
