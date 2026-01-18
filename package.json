@@ -1,6 +1,6 @@
 {
   "name": "routex",
-  "version": "1.7.6",
+  "version": "1.7.5",
   "description": "RouteX",
   "main": "./out/main/index.js",
   "scripts": {
@@ -22,8 +22,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@heroui/react": "2.8.5",
-    "@tailwindcss/postcss": "^4.1.17",
-    "@tailwindcss/vite": "^4.1.17",
+
     "@types/crypto-js": "^4.2.2",
     "adm-zip": "^0.5.16",
     "axios": "^1.13.2",
@@ -86,6 +85,8 @@
     "react-virtuoso": "^4.17.0",
     "recharts": "^3.5.1",
     "swr": "^2.3.7",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@tailwindcss/vite": "^4.1.17",
     "tailwindcss": "^4.1.17",
     "tar": "^7.5.2",
     "tsx": "^4.21.0",

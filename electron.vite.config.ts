@@ -43,6 +43,8 @@ export default defineConfig({
       tailwindcss(),
       monacoEditorPlugin({
         languageWorkers: ['editorWorkerService'],
+        // @ts-ignore
+        languages: ['yaml', 'json'], // 只保留 yaml 和 json
         customDistPath: (_, out) => `${out}/monacoeditorwork`,
         customWorkers: [
           {
