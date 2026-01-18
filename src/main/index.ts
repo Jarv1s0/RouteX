@@ -171,10 +171,16 @@ if (process.platform === 'linux') {
 }
 
 if (process.platform === 'win32' && !exePath().startsWith('C')) {
-  // https://github.com/electron/electron/issues/43278
   // https://github.com/electron/electron/issues/36698
   app.commandLine.appendSwitch('in-process-gpu')
 }
+
+// 内存优化：限制 V8 堆内存大小，减少主进程内存占用 (默认通常过大)
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256')
+
+// 禁用站点隔离，减少渲染进程数量 (以此节省内存，作为本地应用通常安全)
+app.commandLine.appendSwitch('disable-site-isolation-trials')
+
 
 const initPromise = init()
 
