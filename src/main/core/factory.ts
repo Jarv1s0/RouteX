@@ -16,7 +16,7 @@ import {
   overridePath
 } from '../utils/dirs'
 import { parseYaml, stringifyYaml } from '../utils/yaml'
-import { copyFile, mkdir, writeFile } from 'fs/promises'
+import { copyFile, mkdir, writeFile, rm, stat } from 'fs/promises'
 import { deepMerge } from '../utils/merge'
 import vm from 'vm'
 import { existsSync, writeFileSync } from 'fs'
@@ -287,8 +287,33 @@ async function prepareProfileWorkDir(current: string | undefined): Promise<void>
   const copy = async (file: string): Promise<void> => {
     const targetPath = path.join(mihomoProfileWorkDir(current), file)
     const sourcePath = path.join(mihomoWorkDir(), file)
-    if (!existsSync(targetPath) && existsSync(sourcePath)) {
-      await copyFile(sourcePath, targetPath)
+    
+    let shouldCopy = !existsSync(targetPath)
+    if (!shouldCopy) {
+      try {
+        const stats = await stat(targetPath)
+        if (stats.size === 0) {
+          shouldCopy = true
+          await rm(targetPath, { force: true }).catch(() => {})
+        }
+      } catch {
+        shouldCopy = true
+      }
+    }
+
+    if (shouldCopy && existsSync(sourcePath)) {
+      try {
+        await copyFile(sourcePath, targetPath)
+      } catch (e) {
+        // Copy failed, ensure target is removed to avoid corrupted file preventing future copies
+        // and allow retry on next launch
+        if (existsSync(targetPath)) {
+          await rm(targetPath, { force: true }).catch(() => {})
+        }
+        console.error(`[Factory] Failed to copy resource ${file}:`, e)
+        // We rethrow to stop startup if critical resources fail
+        throw e
+      }
     }
   }
   await Promise.all([

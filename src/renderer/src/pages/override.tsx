@@ -1,6 +1,5 @@
 import {
   Button,
-  Divider,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -181,6 +180,9 @@ const Override: React.FC = () => {
           <Input
             variant="flat"
             size="sm"
+            classNames={{
+              inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
+            }}
             value={url}
             onValueChange={setUrl}
             endContent={
@@ -267,11 +269,10 @@ const Override: React.FC = () => {
             </DropdownMenu>
           </Dropdown>
         </div>
-        <Divider />
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div
-          className={`${fileOver ? 'blur-sm' : ''} grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 m-2`}
+          className={`${fileOver ? 'blur-sm' : ''} grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 px-2`}
         >
           <SortableContext
             items={sortedItems.map((item) => {

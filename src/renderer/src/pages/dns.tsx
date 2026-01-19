@@ -15,6 +15,7 @@ import {
   isValidDnsServer
 } from '@renderer/utils/validate'
 import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
+import { toast } from 'sonner'
 
 const DNS: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -102,7 +103,7 @@ const DNS: React.FC = () => {
       await patchControledMihomoConfig(patch)
       await restartCore()
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     }
   }
 
@@ -170,6 +171,8 @@ const DNS: React.FC = () => {
           <Tabs
             size="sm"
             color="primary"
+            variant="solid"
+            radius="lg"
             selectedKey={values.enhancedMode}
             onSelectionChange={(key: Key) => setValues({ ...values, enhancedMode: key as DnsMode })}
           >

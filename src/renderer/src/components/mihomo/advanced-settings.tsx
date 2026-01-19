@@ -52,6 +52,8 @@ const AdvancedSetting: React.FC = () => {
         <Tabs
           size="sm"
           color="primary"
+          variant="solid"
+          radius="lg"
           selectedKey={findProcessMode}
           onSelectionChange={(key) => {
             onChangeNeedRestart({ 'find-process-mode': key as FindProcessMode })

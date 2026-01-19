@@ -16,7 +16,7 @@ interface Props {
 
 const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate, onView }) => {
   return (
-    <div className={`w-full px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
+    <div className="w-full px-2 pb-2">
       <Card className="hover:bg-primary/30 transition-all duration-200">
         <CardBody className="w-full py-2">
           <div className="flex items-center gap-2">

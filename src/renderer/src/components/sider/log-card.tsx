@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
 
 interface Props {
@@ -63,9 +64,19 @@ const LogCard: React.FC<Props> = (props) => {
         ref={setNodeRef}
         {...attributes}
         {...listeners}
-        className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+        className={`
+          ${CARD_STYLES.BASE}
+          ${
+            match
+              ? CARD_STYLES.ACTIVE
+              : CARD_STYLES.INACTIVE
+          }
+          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+        `}
+        radius="lg"
+        shadow="none"
       >
-        <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
+        <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
             <Button
               isIconOnly
@@ -80,7 +91,7 @@ const LogCard: React.FC<Props> = (props) => {
             </Button>
           </div>
         </CardBody>
-        <CardFooter className="pt-1">
+        <CardFooter className="pt-1 relative z-10">
           <h3
             className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >

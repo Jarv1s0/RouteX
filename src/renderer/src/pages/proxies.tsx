@@ -387,7 +387,7 @@ const Proxies: React.FC = () => {
                 ? { gridTemplateColumns: `repeat(${proxyCols}, minmax(0, 1fr))` }
                 : {}
             }
-            className={`grid ${proxyCols === 'auto' ? 'sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5' : ''} gap-2 px-2 pt-2`}
+            className={`w-full grid ${proxyCols === 'auto' ? 'sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5' : ''} gap-2 px-2 pt-2`}
           >
             {Array.from({ length: cols }).map((_, i) => {
               if (!proxies[i]) return null
@@ -450,7 +450,7 @@ const Proxies: React.FC = () => {
       {isSettingModalOpen && <ProxySettingModal onClose={() => setIsSettingModalOpen(false)} />}
       {mode === 'direct' ? (
         <div className="h-full w-full flex justify-center items-center p-4">
-          <Card className="px-12 py-8">
+          <Card className="bg-default-100/50 border-none shadow-sm px-12 py-8">
             <CardBody className="flex flex-col items-center gap-2">
               <div className="w-20 h-20 rounded-full bg-teal-500/20 flex items-center justify-center">
                 <TbBolt className="text-teal-500 text-[48px]" />

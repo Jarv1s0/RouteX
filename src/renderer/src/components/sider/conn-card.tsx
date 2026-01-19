@@ -2,6 +2,7 @@ import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { FaCircleArrowDown, FaCircleArrowUp } from 'react-icons/fa6'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useEffect, useState, useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -143,10 +144,20 @@ const ConnCard: React.FC<Props> = (props) => {
             ref={setNodeRef}
             {...attributes}
             {...listeners}
-            className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''} relative overflow-hidden`}
+            className={`
+              ${CARD_STYLES.BASE}
+              ${
+                match
+                  ? CARD_STYLES.ACTIVE
+                  : CARD_STYLES.INACTIVE
+              }
+              ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+            `}
+            radius="lg"
+            shadow="none"
           >
-            <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
-              <div className="flex justify-between">
+            <CardBody className="pb-1 pt-0 px-0 overflow-y-visible relative z-10">
+              <div className="flex justify-between items-center">
                 <Button
                   isIconOnly
                   className="bg-transparent pointer-events-none"
@@ -155,33 +166,42 @@ const ConnCard: React.FC<Props> = (props) => {
                 >
                   <IoLink
                     color="default"
-                    className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
+                    className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[28px] drop-shadow-sm`}
                   />
                 </Button>
-                <div className="p-2 w-full">
-                  <div className="flex justify-between">
-                    <div
-                      className={`w-full text-right mr-2`}
-                      style={{ color: match ? 'rgb(255, 255, 255)' : 'rgb(34, 211, 238)' }}
-                    >
-                      {calcTraffic(upload)}/s
+                <div className="p-1 w-full pl-4 space-y-2">
+                  {/* Upload Row */}
+                  <div className="flex justify-end items-center gap-2">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className={`text-lg font-black tracking-tight ${match ? 'text-white' : 'text-cyan-500'}`}>
+                        {calcTraffic(upload).replace(/[A-Za-z]/g, '')}
+                      </span>
+                      <span className={`text-[10px] font-bold uppercase ${match ? 'text-white/80' : 'text-cyan-600/60'}`}>
+                        {calcTraffic(upload).replace(/[^A-Za-z]/g, '')}/s
+                      </span>
                     </div>
-                    <FaCircleArrowUp
-                      style={{ color: match ? 'rgb(255, 255, 255)' : 'rgb(34, 211, 238)' }}
-                      className={`h-[24px] leading-[24px]`}
-                    />
+                    <div className={`p-1 rounded-full ${match ? 'bg-white/20' : 'bg-cyan-500/10'}`}>
+                      <FaCircleArrowUp
+                        className={`text-xs ${match ? 'text-white' : 'text-cyan-500'}`}
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <div
-                      className={`w-full text-right mr-2`}
-                      style={{ color: match ? 'rgb(255, 255, 255)' : 'rgb(192, 132, 252)' }}
-                    >
-                      {calcTraffic(download)}/s
+
+                  {/* Download Row */}
+                  <div className="flex justify-end items-center gap-2">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className={`text-lg font-black tracking-tight ${match ? 'text-white' : 'text-purple-500'}`}>
+                        {calcTraffic(download).replace(/[A-Za-z]/g, '')}
+                      </span>
+                      <span className={`text-[10px] font-bold uppercase ${match ? 'text-white/80' : 'text-purple-600/60'}`}>
+                        {calcTraffic(download).replace(/[^A-Za-z]/g, '')}/s
+                      </span>
                     </div>
-                    <FaCircleArrowDown
-                      style={{ color: match ? 'rgb(255, 255, 255)' : 'rgb(192, 132, 252)' }}
-                      className={`h-[24px] leading-[24px]`}
-                    />
+                    <div className={`p-1 rounded-full ${match ? 'bg-white/20' : 'bg-purple-500/10'}`}>
+                      <FaCircleArrowDown
+                        className={`text-xs ${match ? 'text-white' : 'text-purple-500'}`}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -193,7 +213,9 @@ const ConnCard: React.FC<Props> = (props) => {
                 <h3>连接</h3>
               </div>
             </CardFooter>
-            <TrafficChart data={trafficData} isActive={match} />
+            <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+                <TrafficChart data={trafficData} isActive={match} />
+            </div>
           </Card>
         </>
       ) : (
@@ -202,7 +224,17 @@ const ConnCard: React.FC<Props> = (props) => {
           ref={setNodeRef}
           {...attributes}
           {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+          className={`
+            ${CARD_STYLES.BASE} h-full
+            ${
+              match
+                ? CARD_STYLES.ACTIVE
+                : CARD_STYLES.INACTIVE
+            }
+            ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}
+          `}
+          radius="lg"
+          shadow="none"
         >
           <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
             <div className="flex justify-between">

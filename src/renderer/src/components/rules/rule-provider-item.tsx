@@ -15,11 +15,11 @@ interface Props {
 
 const RuleProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate, onView }) => {
   return (
-    <div className={`w-full px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
+    <div className="w-full px-2 pb-2">
       <Card 
         shadow="sm"
-        radius="sm"
-        className="bg-content2 hover:bg-primary/10 transition-colors"
+        radius="lg"
+        className="bg-content2 hover:bg-primary/10 transition-colors border border-default-200/60 dark:border-white/10"
       >
         <CardBody className="w-full py-2 px-3">
           <div className="flex items-center gap-2">

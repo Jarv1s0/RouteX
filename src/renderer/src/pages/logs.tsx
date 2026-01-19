@@ -3,7 +3,7 @@ import LogItem from '@renderer/components/logs/log-item'
 import LogDetailModal from '@renderer/components/logs/log-detail-modal'
 import EmptyState from '@renderer/components/base/empty-state'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Divider, Input, Select, SelectItem } from '@heroui/react'
+import { Button, Input, Select, SelectItem } from '@heroui/react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { IoLocationSharp, IoJournalOutline } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
@@ -103,7 +103,7 @@ const Logs: React.FC = () => {
       <div className="sticky top-0 z-40">
         <div className="w-full flex p-2 items-center">
           <Select
-            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+            classNames={{ trigger: 'bg-default-100/50 shadow-sm data-[hover=true]:bg-default-200/50' }}
             className="w-[90px]"
             size="sm"
             aria-label="日志等级"
@@ -143,6 +143,9 @@ const Logs: React.FC = () => {
             isClearable
             onValueChange={setFilter}
             className="flex-1 ml-2"
+            classNames={{
+              inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
+            }}
           />
           <Button
             size="sm"
@@ -182,9 +185,8 @@ const Logs: React.FC = () => {
             <HiOutlineDownload className="text-lg" />
           </Button>
         </div>
-        <Divider />
       </div>
-      <div className="h-[calc(100vh-100px)] mt-px">
+      <div className="h-[calc(100vh-100px)]">
         {filteredLogs.length === 0 ? (
           <EmptyState
             icon={<IoJournalOutline />}

@@ -10,6 +10,7 @@ import React, { Key, useEffect, useState } from 'react'
 import ByPassEditorModal from '@renderer/components/sysproxy/bypass-editor-modal'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
+import { toast } from 'sonner'
 
 const defaultPacScript = `
 function FindProxyForURL(url, host) {
@@ -97,7 +98,7 @@ const Sysproxy: React.FC = () => {
       try {
         await triggerSysProxy(values.enable, onlyActiveDevice)
       } catch (e) {
-        alert(e)
+        toast.error(String(e))
         await patchAppConfig({ sysProxy: { enable: false } })
       }
     }
@@ -155,6 +156,8 @@ const Sysproxy: React.FC = () => {
           <Tabs
             size="sm"
             color="primary"
+            variant="solid"
+            radius="lg"
             selectedKey={values.mode}
             onSelectionChange={(key: Key) => setValues({ ...values, mode: key as SysProxyMode })}
           >
@@ -180,6 +183,8 @@ const Sysproxy: React.FC = () => {
               <Tabs
                 size="sm"
                 color="primary"
+                variant="solid"
+                radius="lg"
                 selectedKey={values.settingMode}
                 onSelectionChange={(key) => {
                   setValues({ ...values, settingMode: key as 'exec' | 'service' })

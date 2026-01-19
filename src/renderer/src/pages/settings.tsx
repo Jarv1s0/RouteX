@@ -1,6 +1,6 @@
-import { Button } from '@heroui/react'
+import { Button, Tab, Tabs } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
-import { IoLogoGithub } from 'react-icons/io5'
+import { IoLogoGithub, IoSettingsOutline, IoColorPaletteOutline, IoBuildOutline } from 'react-icons/io5'
 import GeneralConfig from '@renderer/components/settings/general-config'
 import AdvancedSettings from '@renderer/components/settings/advanced-settings'
 import Actions from '@renderer/components/settings/actions'
@@ -29,17 +29,61 @@ const Settings: React.FC = () => {
         </>
       }
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 p-2">
-        {/* 左栏 */}
-        <div className="flex flex-col">
-          <GeneralConfig />
-          <AdvancedSettings />
-        </div>
-        {/* 右栏 */}
-        <div className="flex flex-col">
-          <AppearanceConfig />
-          <Actions />
-        </div>
+      <div className="p-2 h-full">
+        <Tabs
+          aria-label="Settings Options"
+          color="primary"
+          variant="solid"
+          radius="lg"
+          classNames={{
+            tabList: 'bg-default-100/50 shadow-sm mb-2',
+            cursor: 'bg-background shadow-sm',
+            tab: 'h-8 px-4',
+            tabContent: 'group-data-[selected=true]:text-primary font-medium',
+            panel: 'p-0'
+          }}
+        >
+          <Tab
+            key="general"
+            title={
+              <div className="flex items-center gap-2">
+                <IoSettingsOutline className="text-lg" />
+                <span>通用</span>
+              </div>
+            }
+          >
+            <div className="flex flex-col">
+              <GeneralConfig />
+              <Actions />
+            </div>
+          </Tab>
+          <Tab
+            key="appearance"
+            title={
+              <div className="flex items-center gap-2">
+                <IoColorPaletteOutline className="text-lg" />
+                <span>外观</span>
+              </div>
+            }
+          >
+            <div className="flex flex-col">
+              <AppearanceConfig />
+            </div>
+          </Tab>
+          <Tab
+            key="advanced"
+            title={
+              <div className="flex items-center gap-2">
+                <IoBuildOutline className="text-lg" />
+                <span>高级</span>
+              </div>
+            }
+          >
+            <div className="flex flex-col">
+              <AdvancedSettings />
+            </div>
+          </Tab>
+        </Tabs>
       </div>
     </BasePage>
   )

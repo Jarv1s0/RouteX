@@ -99,13 +99,13 @@ const ConnectionItemComponent: React.FC<Props> = ({
   }, [hide, unhide, isHidden, info.id])
 
   return (
-    <div className={`px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
+    <div className="px-2 pb-2">
       <Card
         as="div"
         isPressable
         shadow="sm"
-        className="w-full bg-content2 hover:bg-primary/10 transition-colors"
-        radius="sm"
+        className="w-full bg-content2 hover:bg-primary/10 transition-colors border border-default-200/60 dark:border-white/10"
+        radius="lg"
         onPress={handleCardPress}
       >
         <div className="w-full flex items-center p-3 gap-3">

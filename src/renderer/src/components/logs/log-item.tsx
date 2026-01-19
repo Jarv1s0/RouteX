@@ -14,7 +14,7 @@ interface Props extends ControllerLog {
 }
 
 const LogItem: React.FC<Props> = (props) => {
-  const { type, payload, time, index, onPress } = props
+  const { type, payload, time, onPress } = props
 
   const handlePress = () => {
     if (onPress) {
@@ -23,13 +23,13 @@ const LogItem: React.FC<Props> = (props) => {
   }
 
   return (
-    <div className={`px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
+    <div className="px-2 pb-2">
       <Card 
         as="div"
         isPressable
         shadow="sm"
-        radius="sm"
-        className="bg-content2 hover:bg-primary/10 transition-colors"
+        radius="lg"
+        className="w-full bg-content2 hover:bg-primary/10 transition-colors border border-default-200/60 dark:border-white/10"
         onPress={handlePress}
       >
         <CardBody className="py-2 px-3">

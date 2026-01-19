@@ -1,6 +1,8 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
-import { mihomoVersion, restartCore, checkMihomoLatestVersion } from '@renderer/utils/ipc'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { mihomoVersion, restartCore } from '@renderer/utils/ipc'
+import { toast } from 'sonner'
 import React, { useEffect, useState } from 'react'
 import { IoMdRefresh } from 'react-icons/io'
 import { useSortable } from '@dnd-kit/sortable'
@@ -18,12 +20,12 @@ interface Props {
 const MihomoCoreCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { mihomoCoreCardStatus = 'col-span-2', disableAnimation = false, core = 'mihomo' } = appConfig || {}
+  const { mihomoCoreCardStatus = 'col-span-2', disableAnimation = false } = appConfig || {}
   const { data: version, mutate } = useSWR('mihomoVersion', mihomoVersion, {
     errorRetryInterval: 200,
     errorRetryCount: 10
   })
-  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/mihomo')
@@ -40,24 +42,6 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const [mem, setMem] = useState(0)
   const [restarting, setRestarting] = useState(false)
-
-  // 检查最新版本
-  useEffect(() => {
-    const checkLatest = async () => {
-      const isAlpha = core === 'mihomo-alpha'
-      const latest = await checkMihomoLatestVersion(isAlpha)
-      setLatestVersion(latest)
-    }
-    checkLatest()
-  }, [core])
-
-  // 比较版本号，判断是否有新版本
-  const hasNewVersion = (): boolean => {
-    if (!version?.version || !latestVersion) return false
-    const current = version.version.replace(/^v/, '')
-    const latest = latestVersion.replace(/^v/, '')
-    return current !== latest && latest > current
-  }
 
   useEffect(() => {
     const token = PubSub.subscribe('mihomo-core-changed', () => {
@@ -84,7 +68,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
             size="sm"
             isIconOnly
             color={match ? 'primary' : 'default'}
-            variant={match ? 'solid' : 'light'}
+            variant="flat"
             onPress={() => {
               navigate('/mihomo')
             }}
@@ -106,19 +90,24 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
       }}
       className={`${mihomoCoreCardStatus} mihomo-core-card`}
     >
-      {mihomoCoreCardStatus === 'col-span-2' ? (
-        <Card
-          fullWidth
-          ref={setNodeRef}
-          {...attributes}
-          {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
-        >
-          <CardBody>
+        {mihomoCoreCardStatus === 'col-span-2' ? (
+          <Card
+            fullWidth
+            ref={setNodeRef}
+            {...attributes}
+            {...listeners}
+            className={`
+              ${CARD_STYLES.BASE}
+              ${
+                match
+                  ? CARD_STYLES.ACTIVE
+                  : CARD_STYLES.INACTIVE
+              }
+              ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+            `}
+          >
+            <CardBody>
             <div
-              ref={setNodeRef}
-              {...attributes}
-              {...listeners}
               className="flex justify-between h-[32px]"
             >
               <h3
@@ -126,9 +115,6 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
               >
                 <span className="relative">
                   {version?.version ?? '-'}
-                  {hasNewVersion() && (
-                    <span className="absolute -top-1 -right-3 w-2.5 h-2.5 bg-pink-500 rounded-full" />
-                  )}
                 </span>
               </h3>
 
@@ -145,7 +131,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
                     await new Promise((resolve) => setTimeout(resolve, 2000))
                     setRestarting(false)
                   } catch (e) {
-                    alert(e)
+                    toast.error(String(e))
                   } finally {
                     mutate()
                   }
@@ -165,40 +151,46 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
               <h4>{calcTraffic(mem)}</h4>
             </div>
           </CardFooter>
-        </Card>
-      ) : (
-        <Card
-          fullWidth
-          ref={setNodeRef}
-          {...attributes}
-          {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
-        >
-          <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
-            <div className="flex justify-between">
-              <Button
-                isIconOnly
-                className="bg-transparent pointer-events-none"
-                variant="flat"
-                color="default"
-              >
-                <LuCpu
-                  color="default"
-                  className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
-                />
-              </Button>
-            </div>
-          </CardBody>
-          <CardFooter className="pt-1">
-            <h3
-              className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-            >
-              内核设置
-            </h3>
-          </CardFooter>
-        </Card>
-      )}
-    </div>
+          </Card>
+        ) : (
+          <Card
+            fullWidth
+            ref={setNodeRef}
+            {...attributes}
+            {...listeners}
+            className={`
+              ${CARD_STYLES.BASE}
+              ${
+                match
+                  ? CARD_STYLES.ACTIVE
+                  : CARD_STYLES.INACTIVE
+              }
+              ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+            `}
+          >
+            <CardBody className="overflow-visible flex flex-col justify-between h-full">
+              <div className="flex justify-between">
+                 <Button
+                   isIconOnly
+                   size="sm"
+                   className="bg-transparent pointer-events-none"
+                   variant="light"
+                   color="default"
+                 >
+                   <LuCpu
+                     className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+                   />
+                 </Button>
+              </div>
+            </CardBody>
+            <CardFooter className="pt-1">
+                <h3 className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}>
+                  内核设置
+                </h3>
+            </CardFooter>
+          </Card>
+        )}
+      </div>
   )
 }
 

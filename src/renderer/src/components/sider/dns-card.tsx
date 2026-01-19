@@ -7,6 +7,7 @@ import { patchMihomoConfig } from '@renderer/utils/ipc'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
 
 interface Props {
@@ -24,7 +25,7 @@ const DNSCard: React.FC<Props> = (props) => {
   const navigate = useNavigate()
   const match = location.pathname.includes('/dns')
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
-  const { dns, tun } = controledMihomoConfig || {}
+  const { dns } = controledMihomoConfig || {}
   const { enable = true } = dns || {}
   const {
     attributes,
@@ -77,29 +78,38 @@ const DNSCard: React.FC<Props> = (props) => {
         ref={setNodeRef}
         {...attributes}
         {...listeners}
-        className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+        className={`
+          ${CARD_STYLES.BASE}
+          ${
+            match
+              ? CARD_STYLES.ACTIVE
+              : CARD_STYLES.INACTIVE
+          }
+          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+        `}
+        radius="lg"
+        shadow="none"
       >
-        <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
+        <CardBody className="pb-1 pt-0 px-0 overflow-visible relative z-10">
           <div className="flex justify-between">
             <Button
               isIconOnly
               className="bg-transparent pointer-events-none"
-              variant="flat"
+              variant="light"
               color="default"
             >
               <LuServer
-                className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] font-bold`}
+                className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
               />
             </Button>
             <BorderSwitch
               isShowBorder={match && enable}
               isSelected={enable}
-              isDisabled={tun?.enable}
               onValueChange={onChange}
             />
           </div>
         </CardBody>
-        <CardFooter className="pt-1">
+        <CardFooter className="pt-1 relative z-10 w-full">
           <h3
             className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >

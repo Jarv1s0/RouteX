@@ -17,6 +17,8 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import ExecLogModal from './exec-log-modal'
 import { openFile, restartCore } from '@renderer/utils/ipc'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import ConfirmModal from '../base/base-confirm'
 
 interface Props {
@@ -193,18 +195,25 @@ const OverrideItem: React.FC<Props> = (props) => {
         as="div"
         fullWidth
         isPressable
-        className="hover:bg-primary/30 transition-all duration-200"
+        className={`
+          ${CARD_STYLES.BASE}
+          ${
+            info.global
+              ? CARD_STYLES.ACTIVE
+              : CARD_STYLES.INACTIVE
+          }
+        `}
         onPress={() => {
           if (disableOpen) return
           setOpenFileEditor(true)
         }}
       >
         <div ref={setNodeRef} {...attributes} {...listeners} className="h-full w-full">
-          <CardBody>
+          <CardBody className="pb-2">
             <div className="flex justify-between h-[32px]">
               <h3
                 title={info?.name}
-                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] text-foreground`}
+                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] ${info.global ? 'text-primary-foreground' : 'text-foreground'}`}
               >
                 {info?.name}
               </h3>
@@ -229,7 +238,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                     }}
                   >
                     <IoMdRefresh
-                      className={`text-[20px] text-foreground-500 ${updating ? 'animate-spin' : ''}`}
+                      className={`text-[20px] ${info.global ? 'text-primary-foreground' : 'text-foreground-500'} ${updating ? 'animate-spin' : ''}`}
                     />
                   </Button>
                 )}
@@ -237,7 +246,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                 <Dropdown>
                   <DropdownTrigger>
                     <Button isIconOnly size="sm" variant="light" color="default">
-                      <IoMdMore className="text-[20px] text-foreground-500" />
+                      <IoMdMore className={`text-[20px] ${info.global ? 'text-primary-foreground' : 'text-foreground-500'}`} />
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu onAction={onMenuAction}>
@@ -255,19 +264,27 @@ const OverrideItem: React.FC<Props> = (props) => {
                 </Dropdown>
               </div>
             </div>
-            <div className="flex justify-between">
-              <div className={`mt-2 flex justify-start`}>
+            <div className="flex justify-between items-end mt-2">
+              <div className={`flex justify-start items-center`}>
                 {info.global && (
-                  <Chip size="sm" variant="dot" color="primary" className="mr-2">
+                  <Chip
+                    size="sm"
+                    variant="solid"
+                    className={`mr-2 ${info.global ? 'bg-yellow-400 text-black font-bold shadow-sm' : 'bg-primary text-white'}`}
+                  >
                     全局
                   </Chip>
                 )}
-                <Chip size="sm" variant="bordered">
+                <Chip
+                  size="sm"
+                  variant="bordered"
+                  className={`${info.global ? 'text-primary-foreground border-primary-foreground/50' : 'border-default-400 text-default-600'}`}
+                >
                   {info.ext === 'yaml' ? 'YAML' : 'JavaScript'}
                 </Chip>
               </div>
               {info.type === 'remote' && (
-                <div className={`mt-2 flex justify-end`}>
+                <div className={`flex justify-end ${info.global ? 'text-primary-foreground/80' : 'text-foreground-400'}`}>
                   <small>{dayjs(info.updated).fromNow()}</small>
                 </div>
               )}

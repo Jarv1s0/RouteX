@@ -5,7 +5,8 @@ import GeoData from '@renderer/components/resources/geo-data'
 import Viewer from '@renderer/components/resources/viewer'
 import { Virtuoso } from 'react-virtuoso'
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Divider, Input, Tab, Tabs } from '@heroui/react'
+import { Button, Input, Tab, Tabs } from '@heroui/react'
+import { IoListOutline, IoLibraryOutline, IoGlobeOutline } from 'react-icons/io5'
 import { useRules } from '@renderer/hooks/use-rules'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { mihomoRuleProviders, mihomoUpdateRuleProviders, getRuntimeConfig } from '@renderer/utils/ipc'
@@ -108,12 +109,43 @@ const Rules: React.FC = () => {
         <div className="flex items-center gap-2 p-2">
           <Tabs
             size="md"
+            variant="solid"
+            radius="lg"
             selectedKey={activeTab}
             onSelectionChange={(key) => setActiveTab(key as string)}
+            classNames={{
+              tabList: 'bg-default-100/50 shadow-sm',
+              cursor: 'bg-background shadow-sm',
+              tabContent: 'group-data-[selected=true]:text-primary font-medium'
+            }}
           >
-            <Tab key="rules" title="规则列表" />
-            <Tab key="providers" title="规则集合" />
-            <Tab key="geodata" title="GeoData" />
+            <Tab
+              key="rules"
+              title={
+                <div className="flex items-center gap-2 px-1">
+                  <IoListOutline className="text-lg" />
+                  <span>规则列表</span>
+                </div>
+              }
+            />
+            <Tab
+              key="providers"
+              title={
+                <div className="flex items-center gap-2 px-1">
+                  <IoLibraryOutline className="text-lg" />
+                  <span>规则集合</span>
+                </div>
+              }
+            />
+            <Tab
+              key="geodata"
+              title={
+                <div className="flex items-center gap-2 px-1">
+                  <IoGlobeOutline className="text-lg" />
+                  <span>GeoData</span>
+                </div>
+              }
+            />
           </Tabs>
           {activeTab === 'rules' && (
             <Input
@@ -124,6 +156,9 @@ const Rules: React.FC = () => {
               isClearable
               onValueChange={setFilter}
               className="flex-1"
+              classNames={{
+                inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
+              }}
             />
           )}
           {activeTab === 'providers' && (
@@ -137,10 +172,9 @@ const Rules: React.FC = () => {
             </Button>
           )}
         </div>
-        <Divider />
       </div>
       {activeTab === 'rules' && (
-        <div className="h-[calc(100vh-100px)] mt-px">
+        <div className="h-[calc(100vh-100px)]">
           <Virtuoso
             data={filteredRules}
             itemContent={(i, rule) => (
@@ -156,7 +190,7 @@ const Rules: React.FC = () => {
         </div>
       )}
       {activeTab === 'providers' && (
-        <div className="h-[calc(100vh-100px)] mt-px">
+        <div className="h-[calc(100vh-100px)]">
           {showDetails.show && (
             <Viewer
               path={showDetails.path}
@@ -200,7 +234,7 @@ const Rules: React.FC = () => {
         </div>
       )}
       {activeTab === 'geodata' && (
-        <div className="p-2">
+        <div className="px-2">
           <GeoData />
         </div>
       )}
