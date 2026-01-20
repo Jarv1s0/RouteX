@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import BasePage from '@renderer/components/base/base-page'
-import { Card, CardBody, Tabs, Tab, Button, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
-import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid } from 'recharts'
+import { Card, CardBody, Tabs, Tab, Button, Modal, ModalContent, ModalHeader, ModalBody, Select, SelectItem } from '@heroui/react'
+import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid, TooltipProps } from 'recharts'
 import { calcTraffic } from '@renderer/utils/calc'
 import { getTrafficStats, clearTrafficStats, getProviderStats, clearProviderStats, triggerProviderSnapshot, getProfileConfig, getProcessTrafficRanking } from '@renderer/utils/ipc'
-import { IoArrowUp, IoArrowDown, IoTrendingUp, IoCalendar, IoRefresh, IoClose } from 'react-icons/io5'
+import { IoArrowUp, IoArrowDown, IoTrendingUp, IoCalendar, IoRefresh, IoClose, IoFilter } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import ConfirmModal from '@renderer/components/base/base-confirm'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface TrafficDataPoint {
   time: string
@@ -36,6 +37,35 @@ const calcTrafficInt = (byte: number): string => {
   return `${Math.round(byte)} TB`
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className={`
+        ${CARD_STYLES.GLASS_CARD}
+        !border-default-200/50
+        px-3 py-2 rounded-xl shadow-xl backdrop-blur-md
+      `}>
+        <p className="text-xs font-semibold mb-1 text-foreground-500">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex items-center gap-2 text-xs">
+            <span 
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: entry.color || entry.fill }}
+            />
+            <span className="text-foreground-500">{entry.name}:</span>
+            <span className="font-mono font-medium" style={{ color: entry.color || entry.fill }}>
+              {entry.name.includes('速度') 
+                ? `${calcTraffic(entry.value as number)}/s` 
+                : calcTraffic(entry.value as number)}
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
+
 const Stats: React.FC = () => {
   // Hook 注入
 
@@ -46,7 +76,9 @@ const Stats: React.FC = () => {
   const [dailyData, setDailyData] = useState<{ date: string; upload: number; download: number }[]>([])
   const [sessionStats, setSessionStats] = useState({ upload: 0, download: 0 })
   const [providerData, setProviderData] = useState<{ date: string; provider: string; used: number }[]>([])
-  const [currentProviders, setCurrentProviders] = useState<string[]>([]) // 当前订阅列表（从 Profile 获取）
+  const [currentProviders, setCurrentProviders] = useState<string[]>([])
+
+
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -230,7 +262,7 @@ const Stats: React.FC = () => {
                 time: timeStr,
                 host: conn.metadata?.host || conn.metadata?.destinationIP || '-',
                 process: conn.metadata?.process || '-',
-                proxy: conn.chains?.length ? conn.chains[conn.chains.length - 1] : 'DIRECT',
+                proxy: conn.chains?.length ? conn.chains[0] : 'DIRECT',
                 upload: conn.upload,
                 download: conn.download
               })
@@ -404,16 +436,23 @@ const Stats: React.FC = () => {
     const totalTraffic = entries.reduce((sum, [, stat]) => sum + stat.upload + stat.download, 0)
     
     return entries
-      .map(([rule, stat]) => ({
-        rule,
-        hits: stat.hits,
-        traffic: stat.upload + stat.download,
-        hitPercent: totalHits > 0 ? Math.round((stat.hits / totalHits) * 100) : 0,
-        trafficPercent: totalTraffic > 0 ? Math.round(((stat.upload + stat.download) / totalTraffic) * 100) : 0
-      }))
+      .map(([rule, stat]) => {
+        // 获取该规则最后使用的代理节点
+        const details = ruleHitDetails.get(rule) || []
+        const lastProxy = details.length > 0 ? details[0].proxy : ''
+        
+        return {
+          rule,
+          hits: stat.hits,
+          traffic: stat.upload + stat.download,
+          hitPercent: totalHits > 0 ? Math.round((stat.hits / totalHits) * 100) : 0,
+          trafficPercent: totalTraffic > 0 ? Math.round(((stat.upload + stat.download) / totalTraffic) * 100) : 0,
+          proxy: lastProxy
+        }
+      })
       .sort((a, b) => b.hits - a.hits)
       .slice(0, 10) // 只显示前10
-  }, [ruleStats])
+  }, [ruleStats, ruleHitDetails])
 
   return (
     <BasePage 
@@ -446,42 +485,65 @@ const Stats: React.FC = () => {
       <div className="p-2 space-y-2">
 
 
-        {/* 流量统计 */}
-        <div className="grid grid-cols-4 gap-3">
-          <Card isPressable onPress={() => handleOpenProcessTraffic('session', 'upload')} className="cursor-pointer hover:bg-default-100 transition-colors">
-            <CardBody className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <IoTrendingUp className="text-cyan-500 text-sm" />
-                <span className="text-foreground-500 text-xs">本次上传</span>
+        {/* 流量统计 - 分组卡片 */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* 本次流量 */}
+          <Card>
+            <CardBody className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <IoTrendingUp className="text-lg text-foreground-400" />
+                <span className="text-sm font-medium">本次流量</span>
               </div>
-              <div className="text-cyan-500 font-semibold">{calcTraffic(sessionStats.upload)}</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div 
+                  className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+                  onClick={() => handleOpenProcessTraffic('session', 'upload')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <IoArrowUp className="text-cyan-500" />
+                    <span className="text-xl font-bold text-cyan-500">{calcTraffic(sessionStats.upload)}</span>
+                  </div>
+                </div>
+                <div 
+                  className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+                  onClick={() => handleOpenProcessTraffic('session', 'download')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <IoArrowDown className="text-purple-500" />
+                    <span className="text-xl font-bold text-purple-500">{calcTraffic(sessionStats.download)}</span>
+                  </div>
+                </div>
+              </div>
             </CardBody>
           </Card>
-          <Card isPressable onPress={() => handleOpenProcessTraffic('session', 'download')} className="cursor-pointer hover:bg-default-100 transition-colors">
-            <CardBody className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <IoTrendingUp className="text-purple-500 text-sm" />
-                <span className="text-foreground-500 text-xs">本次下载</span>
+
+          {/* 今日流量 */}
+          <Card>
+            <CardBody className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <IoCalendar className="text-lg text-foreground-400" />
+                <span className="text-sm font-medium">今日流量</span>
               </div>
-              <div className="text-purple-500 font-semibold">{calcTraffic(sessionStats.download)}</div>
-            </CardBody>
-          </Card>
-          <Card isPressable onPress={() => handleOpenProcessTraffic('today', 'upload')} className="cursor-pointer hover:bg-default-100 transition-colors">
-            <CardBody className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <IoCalendar className="text-cyan-500 text-sm" />
-                <span className="text-foreground-500 text-xs">今日上传</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div 
+                  className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+                  onClick={() => handleOpenProcessTraffic('today', 'upload')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <IoArrowUp className="text-cyan-500" />
+                    <span className="text-xl font-bold text-cyan-500">{calcTraffic(todayStats.upload)}</span>
+                  </div>
+                </div>
+                <div 
+                  className="cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+                  onClick={() => handleOpenProcessTraffic('today', 'download')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <IoArrowDown className="text-purple-500" />
+                    <span className="text-xl font-bold text-purple-500">{calcTraffic(todayStats.download)}</span>
+                  </div>
+                </div>
               </div>
-              <div className="text-cyan-500 font-semibold">{calcTraffic(todayStats.upload)}</div>
-            </CardBody>
-          </Card>
-          <Card isPressable onPress={() => handleOpenProcessTraffic('today', 'download')} className="cursor-pointer hover:bg-default-100 transition-colors">
-            <CardBody className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <IoCalendar className="text-purple-500 text-sm" />
-                <span className="text-foreground-500 text-xs">今日下载</span>
-              </div>
-              <div className="text-purple-500 font-semibold">{calcTraffic(todayStats.download)}</div>
             </CardBody>
           </Card>
         </div>
@@ -492,7 +554,7 @@ const Stats: React.FC = () => {
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4">
                 <Tabs 
-                  size="sm" 
+                  classNames={CARD_STYLES.GLASS_TABS} 
                   selectedKey={historyTab} 
                   onSelectionChange={(key) => setHistoryTab(key as 'realtime' | 'hourly' | 'daily' | 'monthly')}
                 >
@@ -530,188 +592,219 @@ const Stats: React.FC = () => {
               )}
             </div>
 
-            <div className="h-[200px]">
+            <div className="h-[200px] w-full">
+              {/* 图表区域 */}
               {historyTab === 'realtime' ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={trafficHistory} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                    <defs>
-                      <linearGradient id="uploadGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.05} />
-                      </linearGradient>
-                      <linearGradient id="downloadGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#c084fc" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#c084fc" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" strokeOpacity={0.3} vertical={false} />
-                    <XAxis 
-                      dataKey="time" 
-                      tick={{ fontSize: 10, fill: '#888', dy: 8 }} 
-                      axisLine={false}
-                      tickLine={false}
-                      interval={Math.max(Math.floor(trafficHistory.length / 4), 12)}
-                      tickFormatter={(value) => {
-                        if (typeof value === 'string' && value.length >= 5) {
-                          return value.substring(0, 5)
-                        }
-                        return value
-                      }}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fill: '#999' }} 
-                      tickFormatter={(v) => calcTrafficInt(v)} 
-                      width={55}
-                      axisLine={false}
-                      tickLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip 
-                      formatter={(value: number | undefined, name?: string) => {
-                        if (value === undefined) return ['', '']
-                        const label = name === '上传' ? '上传速度' : '下载速度'
-                        return [`${calcTraffic(value)}/s`, label]
-                      }}
-                      labelFormatter={(label) => label}
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(255,255,255,0.95)', 
-                        border: '1px solid #e5e5e5', 
-                        borderRadius: '8px', 
-                        fontSize: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                      }}
-                    />
-                    <Area 
-                      type="basis" 
-                      dataKey="upload" 
-                      name="上传" 
-                      stroke="#22d3ee" 
-                      strokeWidth={1.5} 
-                      fill="url(#uploadGradient)"
-                      isAnimationActive={false}
-                    />
-                    <Area 
-                      type="basis" 
-                      dataKey="download" 
-                      name="下载" 
-                      stroke="#c084fc" 
-                      strokeWidth={1.5} 
-                      fill="url(#downloadGradient)"
-                      isAnimationActive={false}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              ) : historyTab === 'hourly' ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={formattedHourlyData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-                    <XAxis 
-                      dataKey="label" 
-                      tick={{ fontSize: 10, fill: '#888' }} 
-                      axisLine={{ stroke: '#333' }}
-                      tickLine={{ stroke: '#333' }}
-                      interval={2}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fill: '#888' }} 
-                      tickFormatter={(v) => calcTrafficInt(v)} 
-                      width={55}
-                      axisLine={{ stroke: '#333' }}
-                      tickLine={{ stroke: '#333' }}
-                      allowDecimals={false}
-                    />
-                    <Tooltip 
-                      formatter={(value: number | undefined) => value !== undefined ? [calcTraffic(value)] : ['']}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--heroui-content1))', 
-                        border: '1px solid hsl(var(--heroui-default-200))', 
-                        borderRadius: '8px', 
-                        fontSize: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }}
-                    />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={30}
-                      formatter={(value) => <span style={{ fontSize: '12px', color: '#888' }}>{value}</span>}
-                    />
-                    <Bar dataKey="upload" name="上传" fill="#22d3ee" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="download" name="下载" fill="#c084fc" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : historyTab === 'daily' ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={formattedDailyData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-                    <XAxis 
-                      dataKey="label" 
-                      tick={{ fontSize: 10, fill: '#888' }} 
-                      axisLine={{ stroke: '#333' }}
-                      tickLine={{ stroke: '#333' }}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fill: '#888' }} 
-                      tickFormatter={(v) => calcTrafficInt(v)} 
-                      width={55}
-                      axisLine={{ stroke: '#333' }}
-                      tickLine={{ stroke: '#333' }}
-                      allowDecimals={false}
-                    />
-                    <Tooltip 
-                      formatter={(value: number | undefined) => value !== undefined ? [calcTraffic(value)] : ['']}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--heroui-content1))', 
-                        border: '1px solid hsl(var(--heroui-default-200))', 
-                        borderRadius: '8px', 
-                        fontSize: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }}
-                    />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={30}
-                      formatter={(value) => <span style={{ fontSize: '12px', color: '#888' }}>{value}</span>}
-                    />
-                    <Bar dataKey="upload" name="上传" fill="#22d3ee" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="download" name="下载" fill="#c084fc" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : historyTab === 'monthly' ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={formattedMonthlyData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
-                    <XAxis 
-                      dataKey="label" 
-                      tick={{ fontSize: 10, fill: '#888' }} 
-                      axisLine={{ stroke: '#333' }}
-                      tickLine={{ stroke: '#333' }}
-                      interval={4}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fill: '#888' }} 
-                      tickFormatter={(v) => calcTrafficInt(v)} 
-                      width={55}
-                      axisLine={{ stroke: '#333' }}
-                      tickLine={{ stroke: '#333' }}
-                      allowDecimals={false}
-                    />
-                    <Tooltip 
-                      formatter={(value: number | undefined) => value !== undefined ? [calcTraffic(value)] : ['']}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--heroui-content1))', 
-                        border: '1px solid hsl(var(--heroui-default-200))', 
-                        borderRadius: '8px', 
-                        fontSize: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }}
-                    />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={30}
-                      formatter={(value) => <span style={{ fontSize: '12px', color: '#888' }}>{value}</span>}
-                    />
-                    <Bar dataKey="upload" name="上传" fill="#22d3ee" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="download" name="下载" fill="#c084fc" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : null}
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={trafficHistory} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="uploadGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.4} />
+                            <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.05} />
+                          </linearGradient>
+                          <linearGradient id="downloadGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#a855f7" stopOpacity={0.4} />
+                            <stop offset="100%" stopColor="#a855f7" stopOpacity={0.05} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid 
+                          strokeDasharray="3 3" 
+                          stroke="currentColor" 
+                          className="text-default-200/50" 
+                          vertical={false} 
+                        />
+                        <XAxis 
+                          dataKey="time" 
+                          tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
+                          axisLine={false}
+                          tickLine={false}
+                          interval={Math.max(Math.floor(trafficHistory.length / 4), 12)}
+                          tickFormatter={(value) => {
+                            if (typeof value === 'string' && value.length >= 5) {
+                              return value.substring(0, 5)
+                            }
+                            return value
+                          }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
+                          tickFormatter={(v) => calcTrafficInt(v)} 
+                          width={55}
+                          axisLine={false}
+                          tickLine={false}
+                          allowDecimals={false}
+                        />
+                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'currentColor', strokeWidth: 1, strokeOpacity: 0.2, strokeDasharray: '5 5' }} />
+                        <Area 
+                          type="monotone" 
+                          dataKey="upload" 
+                          name="上传速度" 
+                          stroke="#06b6d4" 
+                          strokeWidth={2} 
+                          fill="url(#uploadGradient)"
+                          isAnimationActive={true}
+                          animationDuration={500}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="download" 
+                          name="下载速度" 
+                          stroke="#a855f7" 
+                          strokeWidth={2} 
+                          fill="url(#downloadGradient)"
+                          isAnimationActive={true}
+                          animationDuration={500}
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  ) : historyTab === 'hourly' ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={formattedHourlyData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                        <CartesianGrid 
+                          strokeDasharray="3 3" 
+                          stroke="currentColor" 
+                          className="text-default-200/50" 
+                          vertical={false} 
+                        />
+                        <XAxis 
+                          dataKey="label" 
+                          tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }}
+                          axisLine={false}
+                          tickLine={false}
+                          interval={2}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
+                          tickFormatter={(v) => calcTrafficInt(v)} 
+                          width={55}
+                          axisLine={false}
+                          tickLine={false}
+                          allowDecimals={false}
+                        />
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/50' }} />
+                        <Legend 
+                          verticalAlign="top" 
+                          height={30}
+                          wrapperStyle={{ fontSize: '12px' }}
+                          formatter={(value) => <span className="text-default-500">{value}</span>}
+                        />
+                        <Bar 
+                          dataKey="upload" 
+                          name="上传" 
+                          fill="#06b6d4" 
+                          radius={[4, 4, 0, 0]}
+                          isAnimationActive={true} 
+                          animationDuration={800}
+                        />
+                        <Bar 
+                          dataKey="download" 
+                          name="下载" 
+                          fill="#a855f7" 
+                          radius={[4, 4, 0, 0]}
+                          isAnimationActive={true} 
+                          animationDuration={800}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : historyTab === 'daily' ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={formattedDailyData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                        <CartesianGrid 
+                          strokeDasharray="3 3" 
+                          stroke="currentColor" 
+                          className="text-default-200/50" 
+                          vertical={false} 
+                        />
+                        <XAxis 
+                          dataKey="label" 
+                          tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
+                          tickFormatter={(v) => calcTrafficInt(v)} 
+                          width={55}
+                          axisLine={false}
+                          tickLine={false}
+                          allowDecimals={false}
+                        />
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/50' }} />
+                        <Legend 
+                          verticalAlign="top" 
+                          height={30}
+                          wrapperStyle={{ fontSize: '12px' }}
+                          formatter={(value) => <span className="text-default-500">{value}</span>}
+                        />
+                        <Bar 
+                          dataKey="upload" 
+                          name="上传" 
+                          fill="#06b6d4" 
+                          radius={[4, 4, 0, 0]} 
+                          isAnimationActive={true} 
+                          animationDuration={800}
+                        />
+                        <Bar 
+                          dataKey="download" 
+                          name="下载" 
+                          fill="#a855f7" 
+                          radius={[4, 4, 0, 0]}
+                          isAnimationActive={true} 
+                          animationDuration={800} 
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : historyTab === 'monthly' ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={formattedMonthlyData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                        <CartesianGrid 
+                          strokeDasharray="3 3" 
+                          stroke="currentColor" 
+                          className="text-default-200/50" 
+                          vertical={false} 
+                        />
+                        <XAxis 
+                          dataKey="label" 
+                          tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
+                          axisLine={false}
+                          tickLine={false}
+                          interval={4}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
+                          tickFormatter={(v) => calcTrafficInt(v)} 
+                          width={55}
+                          axisLine={false}
+                          tickLine={false}
+                          allowDecimals={false}
+                        />
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/50' }} />
+                        <Legend 
+                          verticalAlign="top" 
+                          height={30}
+                          wrapperStyle={{ fontSize: '12px' }}
+                          formatter={(value) => <span className="text-default-500">{value}</span>}
+                        />
+                        <Bar 
+                          dataKey="upload" 
+                          name="上传" 
+                          fill="#06b6d4" 
+                          radius={[4, 4, 0, 0]}
+                          isAnimationActive={true} 
+                          animationDuration={800} 
+                        />
+                        <Bar 
+                          dataKey="download" 
+                          name="下载" 
+                          fill="#a855f7" 
+                          radius={[4, 4, 0, 0]}
+                          isAnimationActive={true} 
+                          animationDuration={800}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : null
+                }
             </div>
           </CardBody>
         </Card>
@@ -719,58 +812,105 @@ const Stats: React.FC = () => {
         {/* 订阅统计 */}
         <Card>
           <CardBody className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-sm font-medium">订阅统计</span>
-              <div className="flex items-center gap-2">
-                <select 
-                  className="text-xs bg-default-100 rounded px-2 py-1"
-                  value={selectedProvider}
-                  onChange={(e) => {
-                    setSelectedProvider(e.target.value)
-                    localStorage.setItem('stats-selected-provider', e.target.value)
-                  }}
-                >
-                  <option value="all">全部订阅</option>
-                  {providerList.map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-                <select 
-                  className="text-xs bg-default-100 rounded px-2 py-1"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                >
-                  {availableMonths.map(m => (
-                    <option key={m} value={m}>{m.replace('-', '年')}月</option>
-                  ))}
-                </select>
-                <Button
-                  size="sm"
-                  variant="light"
-                  isIconOnly
-                  title="刷新数据"
-                  className="text-foreground-400 hover:text-foreground-600"
-                  onPress={async () => {
-                    try {
-                      const pStats = await triggerProviderSnapshot()
-                      setProviderData(pStats.snapshots || [])
-                      // 同时更新当前订阅列表
-                      const profileConfig = await getProfileConfig()
-                      const providers = (profileConfig.items || [])
-                        .filter(item => item.extra)
-                        .map(item => item.name || item.id)
-                      setCurrentProviders(providers)
-                    } catch (e) {
-                      // 刷新失败，静默处理
-                    }
-                  }}
-                >
-                  <IoRefresh className="text-sm" />
-                </Button>
-                <span className="text-xs text-foreground-400">
-                  {selectedProvider === 'all' ? '本月总计' : '本月使用'}: <span className="text-primary">{calcTraffic(providerTotalTraffic)}</span>
-                </span>
+            <div className="flex flex-col gap-4 mb-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-4 rounded-full bg-primary/80" />
+                  <span className="text-base font-bold text-foreground">订阅数据分析</span>
+                </div>
+                {/* 玻璃拟态工具栏 */}
+                <div className={`${CARD_STYLES.GLASS_TOOLBAR} px-1.5 py-1.5 rounded-2xl gap-2`}>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-default-100/50 rounded-xl border border-default-200/50 shadow-sm backdrop-blur-sm">
+                    <span className="text-xs text-foreground-500">本月使用</span>
+                    <span className="text-xs font-bold font-mono text-primary/80">
+                      {calcTraffic(providerTotalTraffic)}
+                    </span>
+                  </div>
+                  <Select 
+                    size="sm"
+                    className="w-[140px]"
+                    classNames={CARD_STYLES.GLASS_SELECT}
+                    popoverProps={{
+                      classNames: {
+                        content: CARD_STYLES.GLASS_SELECT.popoverContent
+                      }
+                    }}
+                    startContent={<IoFilter className="text-default-400" />}
+                    selectedKeys={[selectedProvider]}
+                    onChange={(e) => {
+                      setSelectedProvider(e.target.value)
+                      localStorage.setItem('stats-selected-provider', e.target.value)
+                    }}
+                    aria-label="选择订阅"
+                    renderValue={(items) => items.map(item => (
+                      <span key={item.key} className="text-xs font-medium text-foreground-600">
+                        {item.textValue}
+                      </span>
+                    ))}
+                  >
+                    {['all', ...providerList].map(p => (
+                      <SelectItem key={p} textValue={p === 'all' ? '全部订阅' : p} classNames={{ title: "text-xs" }}>
+                        {p === 'all' ? '全部订阅' : p}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  
+                  <div className="w-px h-4 bg-default-200/50 mx-1" />
+
+                  <Select 
+                    size="sm"
+                    className="w-[110px]"
+                    classNames={CARD_STYLES.GLASS_SELECT}
+                     popoverProps={{
+                      classNames: {
+                        content: CARD_STYLES.GLASS_SELECT.popoverContent
+                      }
+                    }}
+                    startContent={<IoCalendar className="text-default-400" />}
+                    selectedKeys={selectedMonth ? [selectedMonth] : []}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setSelectedMonth(e.target.value)
+                      }
+                    }}
+                     renderValue={(items) => items.map(item => (
+                      <span key={item.key} className="text-xs font-medium text-foreground-600">
+                        {item.textValue}
+                      </span>
+                    ))}
+                    aria-label="选择月份"
+                  >
+                    {availableMonths.map(m => (
+                      <SelectItem key={m} textValue={m.replace('-', '.')} classNames={{ title: "text-xs" }}>
+                        {m.replace('-', '.')}
+                      </SelectItem>
+                    ))}
+                  </Select>
+
+                  <Button
+                    size="sm"
+                    isIconOnly
+                    className="bg-default-100/50 hover:bg-default-200/50 text-foreground-500 rounded-xl min-w-8 w-8 h-8 data-[hover=true]:opacity-100"
+                    onPress={async () => {
+                      try {
+                        const pStats = await triggerProviderSnapshot()
+                        setProviderData(pStats.snapshots || [])
+                        const profileConfig = await getProfileConfig()
+                        const providers = (profileConfig.items || [])
+                          .filter(item => item.extra)
+                          .map(item => item.name || item.id)
+                        setCurrentProviders(providers)
+                      } catch (e) {
+                        // 刷新失败，静默处理
+                      }
+                    }}
+                  >
+                    <IoRefresh className="text-sm" />
+                  </Button>
+                </div>
               </div>
+
+
             </div>
             <div className="h-[200px]">
               {providerList.length === 0 ? (
@@ -781,35 +921,29 @@ const Stats: React.FC = () => {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={providerChartData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+                  <BarChart data={providerChartData} margin={{ top: 10, right: 5, left: -10, bottom: 0 }}>
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke="currentColor" 
+                      className="text-default-200/50" 
+                      vertical={false} 
+                    />
                     <XAxis 
                       dataKey="date"
-                      tick={{ fontSize: 9, fill: '#888' }} 
-                      axisLine={{ stroke: '#333' }}
-                      tickLine={{ stroke: '#333' }}
+                      tick={{ fontSize: 9, fill: 'currentColor', className: 'text-default-400' }} 
+                      axisLine={false}
+                      tickLine={false}
                       interval={2}
                     />
                     <YAxis 
-                      tick={{ fontSize: 10, fill: '#888' }} 
+                      tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
                       tickFormatter={(v) => calcTrafficInt(v)}
-                      width={55}
-                      axisLine={{ stroke: '#333' }}
-                      tickLine={{ stroke: '#333' }}
+                      width={45}
+                      axisLine={false}
+                      tickLine={false}
                       allowDecimals={false}
                     />
-                    <Tooltip 
-                      formatter={(value: number | undefined, name?: string) => {
-                        if (value === undefined) return ['', '']
-                        return [calcTraffic(value), name || '']
-                      }}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--heroui-content1))', 
-                        border: '1px solid hsl(var(--heroui-default-200))', 
-                        borderRadius: '8px', 
-                        fontSize: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }}
-                    />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/50' }} />
                     {displayProviderList.map((provider) => {
                       // 根据订阅在完整列表中的索引确定颜色
                       const colorIndex = providerList.indexOf(provider)
@@ -836,7 +970,10 @@ const Stats: React.FC = () => {
         <Card>
           <CardBody className="p-4">
             <div className="flex justify-between items-center mb-4">
-              <span className="text-sm font-medium">规则效率排行</span>
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full bg-primary/80" />
+                <span className="text-base font-bold text-foreground">规则命中统计</span>
+              </div>
               <span className="text-xs text-foreground-400">
                 共 {ruleStats.size} 条规则命中
               </span>
@@ -849,42 +986,65 @@ const Stats: React.FC = () => {
                   <div className="text-xs text-foreground-500">连接产生后将自动统计规则命中情况</div>
                 </div>
               ) : (
-                ruleRanking.map((item, index) => (
-                  <div 
-                    key={item.rule} 
-                    className="flex items-center gap-3 cursor-pointer hover:bg-default-100 rounded-lg p-1 -m-1 transition-colors"
-                    onClick={() => setSelectedRule(item.rule)}
-                  >
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                      index === 0 ? 'bg-warning text-warning-foreground' :
-                      index === 1 ? 'bg-default-300 text-default-foreground' :
-                      index === 2 ? 'bg-warning-200 text-warning-800' :
-                      'bg-default-100 text-default-500'
-                    }`}>
-                      {index + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs truncate" title={item.rule}>
-                          {item.rule.length > 40 ? item.rule.substring(0, 40) + '...' : item.rule}
+                ruleRanking.map((item, index) => {
+                  // 渐变色：从主色到透明
+                  const barColors = [
+                    'from-blue-500 to-blue-500/0',
+                    'from-violet-500 to-violet-500/0', 
+                    'from-emerald-500 to-emerald-500/0',
+                    'from-amber-500 to-amber-500/0',
+                    'from-rose-500 to-rose-500/0',
+                    'from-cyan-500 to-cyan-500/0',
+                    'from-indigo-500 to-indigo-500/0',
+                    'from-pink-500 to-pink-500/0',
+                    'from-teal-500 to-teal-500/0',
+                    'from-orange-500 to-orange-500/0'
+                  ]
+                  const barColor = barColors[index % barColors.length]
+                  
+                  return (
+                    <div 
+                      key={item.rule}
+                      className="group relative cursor-pointer"
+                      onClick={() => setSelectedRule(item.rule)}
+                    >
+                      {/* 渐变进度条背景 */}
+                      <div 
+                        className={`absolute inset-y-0 left-0 bg-gradient-to-r ${barColor} opacity-20 group-hover:opacity-30 transition-opacity rounded-lg pointer-events-none`}
+                        style={{ width: `${Math.max(item.hitPercent, 5)}%` }}
+                      />
+                      {/* 内容 */}
+                      <div className="relative flex items-center gap-3 px-3 py-2.5">
+                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                          index < 3 
+                            ? 'bg-foreground text-background' 
+                            : 'bg-default-100 text-foreground-500'
+                        }`}>
+                          {index + 1}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1.5 bg-default-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: `${item.hitPercent}%` }}
-                          />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm truncate" title={item.rule}>
+                            {item.rule.includes(',') ? (
+                              <>
+                                <span className="text-foreground-400">{item.rule.split(',')[0]}, </span>
+                                <span className="text-foreground">{item.rule.split(',').slice(1).join(',')}</span>
+                              </>
+                            ) : (
+                              <span>{item.rule}</span>
+                            )}
+                            {item.proxy && (
+                              <span className="text-violet-500 ml-2">→ {item.proxy}</span>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-xs text-foreground-400 w-8">{item.hitPercent}%</span>
+                        <div className="flex items-center gap-4 shrink-0">
+                          <span className="text-sm font-semibold tabular-nums">{item.hits.toLocaleString()}</span>
+                          <span className="text-xs text-foreground-400 w-16 text-right">{calcTraffic(item.traffic)}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs font-medium">{item.hits} 次</div>
-                      <div className="text-xs text-foreground-400">{calcTraffic(item.traffic)}</div>
-                    </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           </CardBody>

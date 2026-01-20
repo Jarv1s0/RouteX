@@ -73,8 +73,9 @@ const ProxyItem: React.FC<Props> = (props) => {
   function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
     if (delay === -1) return 'primary'
     if (delay === 0) return 'danger'
-    if (delay < delayThresholds.fair) return 'success'
-    return 'warning'
+    if (delay < delayThresholds.good) return 'success'
+    if (delay < delayThresholds.fair) return 'warning'
+    return 'danger'
   }
 
   function delayText(delay: number): string {
@@ -100,7 +101,7 @@ const ProxyItem: React.FC<Props> = (props) => {
       isPressable
       fullWidth
       shadow="sm"
-      className={`${fixed ? 'bg-secondary/30' : selected ? 'bg-primary/30' : 'bg-content2 hover:bg-primary/10'} ${loading ? 'animate-pulse' : ''} transition-colors border border-default-200/60 dark:border-white/10`}
+      className={`${fixed ? 'bg-secondary/20 backdrop-blur-md border-secondary/50' : selected ? 'bg-primary/20 backdrop-blur-md border-primary/50' : 'bg-white/50 dark:bg-default-100/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-default-100/80 border-transparent hover:border-default-200/50'} ${loading ? 'animate-pulse' : ''} transition-all border shadow-sm`}
       radius="lg"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{

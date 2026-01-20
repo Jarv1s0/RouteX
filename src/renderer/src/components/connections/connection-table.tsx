@@ -7,6 +7,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { DEFAULT_COLUMNS } from './connection-setting-modal'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
 import { Virtuoso } from 'react-virtuoso'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   connections: ControllerConnectionDetail[]
@@ -47,8 +48,8 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   type: 100,
   rule: 150,
   chains: 200,
-  downloadSpeed: 90,
-  uploadSpeed: 90,
+  downloadSpeed: 120,
+  uploadSpeed: 120,
   download: 80,
   upload: 80,
   time: 90,
@@ -84,8 +85,7 @@ const COLUMN_LABELS: Record<string, string> = {
 // 右对齐的列
 const RIGHT_ALIGN_COLUMNS = ['downloadSpeed', 'uploadSpeed', 'download', 'upload', 'time']
 
-// 可以自动扩展的列（优先填充剩余空间）
-const FLEX_COLUMNS = ['host', 'chains', 'rule', 'process']
+
 
 // 列宽调整手柄
 const ResizeHandle: React.FC<{
@@ -146,25 +146,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
     connectionTableColumnWidths = {}
   } = appConfig || {}
 
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [containerWidth, setContainerWidth] = useState(0)
 
-  // 监听容器宽度变化
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width)
-      }
-    })
-
-    observer.observe(container)
-    setContainerWidth(container.clientWidth)
-
-    return () => observer.disconnect()
-  }, [])
 
   // 合并默认宽度和用户自定义宽度
   const columnWidths = useMemo(() => ({
@@ -181,7 +163,13 @@ const ConnectionTableComponent: React.FC<Props> = ({
 
   // 同步配置变化
   useEffect(() => {
-    setLocalWidths({ ...DEFAULT_COLUMN_WIDTHS, ...connectionTableColumnWidths })
+    setLocalWidths(prev => {
+      const next = { ...DEFAULT_COLUMN_WIDTHS, ...connectionTableColumnWidths }
+      if (JSON.stringify(prev) === JSON.stringify(next)) {
+        return prev
+      }
+      return next
+    })
   }, [connectionTableColumnWidths])
 
   // 过滤有效的列
@@ -189,37 +177,8 @@ const ConnectionTableComponent: React.FC<Props> = ({
     return connectionTableColumns.filter(col => COLUMN_LABELS[col])
   }, [connectionTableColumns])
 
-  // 计算实际列宽（包含自动扩展和收缩）
-  const computedWidths = useMemo(() => {
-    if (containerWidth === 0) return localWidths
-
-    // 计算所有列的基础宽度总和
-    const totalBaseWidth = visibleColumns.reduce((sum, col) => {
-      return sum + (localWidths[col] || DEFAULT_COLUMN_WIDTHS[col])
-    }, 0)
-
-    // 找到可以调整的列
-    const flexCols = visibleColumns.filter(col => FLEX_COLUMNS.includes(col))
-    if (flexCols.length === 0) return localWidths
-
-    // 计算需要调整的空间差
-    const spaceDiff = containerWidth - totalBaseWidth
-    
-    // 如果差异很小，不需要调整
-    if (Math.abs(spaceDiff) < 10) return localWidths
-
-    // 平均分配空间差给可调整的列
-    const adjustPerCol = spaceDiff / flexCols.length
-
-    const newWidths = { ...localWidths }
-    flexCols.forEach(col => {
-      const baseWidth = localWidths[col] || DEFAULT_COLUMN_WIDTHS[col]
-      // 设置最小宽度为60，防止列太窄
-      newWidths[col] = Math.max(60, baseWidth + adjustPerCol)
-    })
-
-    return newWidths
-  }, [localWidths, visibleColumns, containerWidth])
+  // 直接使用本地列宽，不进行自动布局计算，避免 resizing 时的联动
+  const computedWidths = localWidths
 
   const handleRowClick = useCallback((conn: ControllerConnectionDetail) => {
     setSelected(conn)
@@ -276,14 +235,14 @@ const ConnectionTableComponent: React.FC<Props> = ({
   ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName])
 
   return (
-    <div ref={containerRef} className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col">
       {/* 表头 */}
-      <div className="sticky top-0 bg-content1 z-10 border-b border-divider flex-shrink-0">
-        <div className="flex">
+      <div className={CARD_STYLES.GLASS_TABLE_HEADER}>
+        <div className="flex w-full">
           {visibleColumns.map((col, index) => (
             <div
               key={col}
-              className={`relative flex-shrink-0 px-2 py-2 text-sm text-foreground-500 font-medium hover:bg-default-100 transition-colors cursor-pointer select-none ${RIGHT_ALIGN_COLUMNS.includes(col) ? 'text-right' : ''}`}
+              className={`relative flex-shrink-0 px-3 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer select-none ${RIGHT_ALIGN_COLUMNS.includes(col) ? 'justify-end' : ''}`}
               style={{ width: computedWidths[col] || DEFAULT_COLUMN_WIDTHS[col] }}
               onClick={() => onSort?.(col)}
             >
@@ -418,7 +377,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
     if (col === 'downloadSpeed') {
       return (
-        <div className={`flex items-center justify-end ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground-500'}`}>
+        <div className={`flex items-center justify-end font-mono ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground-500'}`}>
           {columnValues.downloadSpeed}
         </div>
       )
@@ -426,7 +385,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
     if (col === 'uploadSpeed') {
       return (
-        <div className={`flex items-center justify-end ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground-500'}`}>
+        <div className={`flex items-center justify-end font-mono ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground-500'}`}>
           {columnValues.uploadSpeed}
         </div>
       )
@@ -434,9 +393,10 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
     const isRightAlign = RIGHT_ALIGN_COLUMNS.includes(col)
     const color = ['time'].includes(col) ? 'text-foreground-500' : ''
+    const isMono = ['sourceIP', 'sourcePort', 'destinationIP', 'sniffHost', 'download', 'upload'].includes(col)
 
     return (
-      <div className={`flex items-center truncate ${isRightAlign ? 'justify-end' : ''} ${color}`} title={columnValues[col as keyof typeof columnValues]}>
+      <div className={`flex items-center truncate ${isRightAlign ? 'justify-end' : ''} ${color} ${isMono ? 'font-mono' : ''}`} title={columnValues[col as keyof typeof columnValues]}>
         {columnValues[col as keyof typeof columnValues]}
       </div>
     )
@@ -444,13 +404,14 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
   return (
     <div
-      className={`flex cursor-pointer hover:bg-primary/10 transition-colors border-b border-divider/50 ${isSelected ? 'bg-primary/20' : ''}`}
+      className={CARD_STYLES.GLASS_TABLE_ROW}
+      data-selected={isSelected}
       onClick={() => onRowClick(conn)}
     >
       {visibleColumns.map(col => (
         <div
           key={col}
-          className="flex-shrink-0 px-2 py-2 text-sm"
+          className="flex-shrink-0 px-3 py-2.5 text-sm"
           style={{ width: columnWidths[col] || DEFAULT_COLUMN_WIDTHS[col] }}
         >
           {renderCell(col)}

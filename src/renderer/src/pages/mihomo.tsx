@@ -8,6 +8,7 @@ import ServiceModal from '@renderer/components/mihomo/service-modal'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import PortSetting from '@renderer/components/mihomo/port-setting'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import { platform } from '@renderer/utils/init'
 import { IoMdCloudDownload } from 'react-icons/io'
@@ -256,7 +257,7 @@ const Mihomo: React.FC = () => {
           }}
         />
       )}
-      <div className="p-2">
+      <div className="p-2 flex flex-col gap-2">
       <SettingCard>
         <SettingItem
           title={
@@ -286,7 +287,9 @@ const Mihomo: React.FC = () => {
           divider
         >
           <Select
-            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+            classNames={{
+              trigger: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50"
+            }}
             className="w-[150px]"
             size="sm"
             selectedKeys={new Set([core])}
@@ -301,10 +304,7 @@ const Mihomo: React.FC = () => {
         </SettingItem>
         <SettingItem title="运行模式" divider>
           <Tabs
-            size="sm"
-            color="primary"
-            variant="solid"
-            radius="lg"
+            classNames={CARD_STYLES.GLASS_TABS}
             selectedKey={corePermissionMode}
             disabledKeys={['service']}
             onSelectionChange={(key) => handlePermissionModeChange(key as string)}

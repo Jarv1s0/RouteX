@@ -11,7 +11,10 @@ import {
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import debounce from '@renderer/utils/debounce'
 import { isValidCron } from 'cron-validator'
-import { secondaryInputClassNames } from './advanced-settings'
+const secondaryInputClassNames = {
+  input: "bg-transparent",
+  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
+}
 
 const SubStoreConfig: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { appConfig, patchAppConfig } = useAppConfig()

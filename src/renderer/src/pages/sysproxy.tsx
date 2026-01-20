@@ -11,6 +11,7 @@ import ByPassEditorModal from '@renderer/components/sysproxy/bypass-editor-modal
 import { IoIosHelpCircle } from 'react-icons/io'
 import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
 import { toast } from 'sonner'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 const defaultPacScript = `
 function FindProxyForURL(url, host) {
@@ -154,10 +155,7 @@ const Sysproxy: React.FC = () => {
         </SettingItem>
         <SettingItem title="代理模式" divider>
           <Tabs
-            size="sm"
-            color="primary"
-            variant="solid"
-            radius="lg"
+            classNames={CARD_STYLES.GLASS_TABS}
             selectedKey={values.mode}
             onSelectionChange={(key: Key) => setValues({ ...values, mode: key as SysProxyMode })}
           >
@@ -181,10 +179,7 @@ const Sysproxy: React.FC = () => {
           <>
             <SettingItem title="设置方式" divider>
               <Tabs
-                size="sm"
-                color="primary"
-                variant="solid"
-                radius="lg"
+                classNames={CARD_STYLES.GLASS_TABS}
                 selectedKey={values.settingMode}
                 onSelectionChange={(key) => {
                   setValues({ ...values, settingMode: key as 'exec' | 'service' })

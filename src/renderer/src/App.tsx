@@ -357,7 +357,7 @@ const App: React.FC = () => {
         />
       )}
       {siderWidthValue === narrowWidth ? (
-        <div style={{ width: `${narrowWidth}px` }} className="side h-full flex flex-col">
+        <div style={{ width: `${narrowWidth}px` }} className="side h-full flex flex-col bg-default-100/50 backdrop-blur-2xl border-r border-default-200/50 dark:border-white/5 transition-all duration-300">
           <div className="app-drag flex justify-center items-center z-40 bg-transparent h-[49px] shrink-0">
             {platform !== 'darwin' && (
               <MihomoIcon className="h-[32px] leading-[32px] text-lg" />
@@ -390,7 +390,7 @@ const App: React.FC = () => {
       ) : (
         <div
           style={{ width: `${siderWidthValue}px` }}
-          className="side h-full overflow-y-auto no-scrollbar"
+          className="side h-full overflow-y-auto no-scrollbar bg-default-100/50 backdrop-blur-2xl border-r border-default-200/50 dark:border-white/5 transition-all duration-300"
         >
           <div
             className={`app-drag sticky top-0 z-40 ${disableAnimation ? 'bg-background/95 backdrop-blur-sm' : 'bg-transparent backdrop-blur'} h-[49px]`}
@@ -448,7 +448,7 @@ const App: React.FC = () => {
         }}
         className={resizing ? 'bg-primary' : ''}
       />
-      <Divider orientation="vertical" />
+      {/* Divider removed as border-r is used */}
       <div
         style={{ width: `calc(100% - ${siderWidthValue + 1}px)` }}
         className="main grow h-full overflow-y-auto"

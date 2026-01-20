@@ -9,6 +9,7 @@ import { platform } from '@renderer/utils/init'
 import React, { Key, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { primaryInputClassNames, primaryNumberInputClassNames } from '@renderer/components/settings/advanced-settings'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 const Tun: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -112,10 +113,7 @@ const Tun: React.FC = () => {
           {platform === 'darwin' && (
             <SettingItem title="自动设置系统 DNS" divider>
               <Tabs
-                size="sm"
-                color="primary"
-                variant="solid"
-                radius="lg"
+                classNames={CARD_STYLES.GLASS_TABS}
                 selectedKey={autoSetDNSMode}
                 onSelectionChange={async (key: Key) => {
                   await patchAppConfig({ autoSetDNSMode: key as 'none' | 'exec' | 'service' })
@@ -129,10 +127,7 @@ const Tun: React.FC = () => {
           )}
           <SettingItem title="Tun 模式堆栈" divider>
             <Tabs
-              size="sm"
-              color="primary"
-              variant="solid"
-              radius="lg"
+              classNames={CARD_STYLES.GLASS_TABS}
               selectedKey={values.stack}
               onSelectionChange={(key: Key) => setValues({ ...values, stack: key as TunStack })}
             >

@@ -18,6 +18,7 @@ import { useGroups } from '@renderer/hooks/use-groups'
 import CollapseInput from '@renderer/components/base/collapse-input'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
+import { ProxyGroupCard } from '@renderer/components/proxies/proxy-group-card'
 
 const Proxies: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -270,112 +271,24 @@ const Proxies: React.FC = () => {
       const { groupIndex } = item
 
       if (item.type === 'header') {
-        if (
-          groups[groupIndex] &&
-          groups[groupIndex].icon &&
-          groups[groupIndex].icon.startsWith('http') &&
-          !localStorage.getItem(groups[groupIndex].icon)
-        ) {
-          getImageDataURL(groups[groupIndex].icon).then((dataURL) => {
-            localStorage.setItem(groups[groupIndex].icon, dataURL)
-            mutate()
-          })
-        }
-        
         const group = groups[groupIndex]
-        const currentDelay = getCurrentDelay(group)
-        const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
-        const delayColor = currentDelay === -1 ? 'text-default-400' : currentDelay === 0 ? 'text-danger' : currentDelay < delayThresholds.good ? 'text-success' : currentDelay < delayThresholds.fair ? 'text-warning' : 'text-danger'
         
         return group ? (
-          <div
-            className={`w-full pt-2 px-2`}
-          >
-            <Card
-              as="div"
-              isPressable
-              fullWidth
-              onPress={() => toggleOpen(groupIndex)}
-              className={`transition-all duration-200 ${isOpen[groupIndex] ? 'shadow-md bg-content3' : 'hover:shadow-md'}`}
-            >
-              <CardBody className="w-full p-3">
-                {/* 第一行：组名、类型、节点数、延迟 */}
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    {group.icon && (
-                      <img
-                        className="w-5 h-5 object-contain"
-                        src={
-                          group.icon.startsWith('<svg')
-                            ? `data:image/svg+xml;utf8,${group.icon}`
-                            : localStorage.getItem(group.icon) || group.icon
-                        }
-                        alt=""
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none'
-                        }}
-                      />
-                    )}
-                    <span className="font-medium">{group.name}</span>
-                    <span className="text-xs text-foreground-400">: {group.type}</span>
-                    <span className="text-xs text-foreground-400">({group.all.filter(p => {
-                      if (!p.history || p.history.length === 0) return false
-                      return p.history[p.history.length - 1].delay > 0
-                    }).length}/{group.all.length})</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-medium ${delayColor}`}>
-                      {currentDelay === -1 ? '--' : currentDelay === 0 ? '超时' : currentDelay}
-                    </span>
-                    {isOpen[groupIndex] && (
-                      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                        <CollapseInput
-                          title="搜索节点"
-                          value={searchValue[groupIndex]}
-                          onValueChange={(v) => updateSearchValue(groupIndex, v)}
-                        />
-                        <Button
-                          title="延迟测试"
-                          variant="light"
-                          isLoading={delaying[groupIndex]}
-                          size="sm"
-                          isIconOnly
-                          onPress={() => onGroupDelay(groupIndex)}
-                        >
-                          <MdOutlineSpeed className="text-lg text-foreground-500" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* 第二行：当前节点 */}
-                <div className="flex justify-between items-center mt-1">
-                  <div className="flex items-center gap-1 text-sm text-foreground-500">
-                    <span className="flag-emoji">{group.now}</span>
-                  </div>
-                </div>
-                
-                {/* 第三行：节点状态圆点（收起时显示） */}
-                {!isOpen[groupIndex] && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {group.all.slice(0, 20).map((proxy, i) => (
-                      <div
-                        key={i}
-                        className={`w-3 h-3 rounded-full ${getDelayColor(proxy)} ${proxy.name === group.now ? 'ring-2 ring-primary ring-offset-1' : ''}`}
-                        title={`${proxy.name}: ${proxy.history?.length ? (proxy.history[proxy.history.length - 1].delay || '超时') + 'ms' : '未测试'}`}
-                      />
-                    ))}
-                    {group.all.length > 20 && (
-                      <span className="text-xs text-foreground-400 ml-1">+{group.all.length - 20}</span>
-                    )}
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </div>
+          <ProxyGroupCard
+            group={group}
+            groupIndex={groupIndex}
+            isOpen={isOpen[groupIndex]}
+            toggleOpen={toggleOpen}
+            searchValue={searchValue[groupIndex]}
+            updateSearchValue={updateSearchValue}
+            delaying={delaying[groupIndex]}
+            onGroupDelay={onGroupDelay}
+            getCurrentDelay={getCurrentDelay}
+            mutate={mutate}
+            getDelayColor={getDelayColor}
+          />
         ) : (
-           <div>Never See This</div>
+          <div>Never See This</div>
         )
       } else {
         // Render Proxies Row

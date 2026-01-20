@@ -11,7 +11,8 @@ import { HiOutlineDownload } from 'react-icons/hi'
 import { saveFile, restartCore } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { primaryNumberInputClassNames } from '@renderer/components/settings/advanced-settings'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
+
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
 
@@ -100,90 +101,118 @@ const Logs: React.FC = () => {
           onClose={() => setSelectedLog(null)}
         />
       )}
-      <div className="sticky top-0 z-40">
-        <div className="w-full flex p-2 items-center">
-          <Select
-            classNames={{ trigger: 'bg-default-100/50 shadow-sm data-[hover=true]:bg-default-200/50' }}
-            className="w-[90px]"
-            size="sm"
-            aria-label="日志等级"
-            selectedKeys={new Set([logLevel])}
-            disallowEmptySelection={true}
-            onSelectionChange={async (v) => {
-              await patchControledMihomoConfig({ 'log-level': v.currentKey as LogLevel })
-              await restartCore()
-            }}
-          >
-            <SelectItem key="silent">静默</SelectItem>
-            <SelectItem key="error">错误</SelectItem>
-            <SelectItem key="warning">警告</SelectItem>
-            <SelectItem key="info">信息</SelectItem>
-            <SelectItem key="debug">调试</SelectItem>
-          </Select>
-          <Input
-            size="sm"
-            type="number"
-            className="w-[60px] ml-2"
-            classNames={primaryNumberInputClassNames}
-            aria-label="保留天数"
-            value={logDaysInput}
-            onValueChange={setLogDaysInput}
-            onBlur={() => {
-              const val = parseInt(logDaysInput) || 7
-              setLogDaysInput(val.toString())
-              patchAppConfig({ maxLogDays: val })
-            }}
-            endContent={<span className="text-xs text-foreground-400">天</span>}
-          />
+      <div className="w-full pb-2 px-2 pt-2">
+        <div className={`w-full px-2 py-1.5 flex items-center gap-2 transition-all duration-300 bg-gradient-to-b from-white/20 to-white/5 dark:from-white/5 dark:to-transparent border border-white/20 dark:border-white/10 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-3xl backdrop-saturate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_15px_40px_0_rgba(0,0,0,0.2)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] ${CARD_STYLES.ROUNDED}`}>
+          
+          {/* Left: Config Group */}
+          <div className="flex items-center gap-2 pl-1">
+            <Select
+              classNames={CARD_STYLES.GLASS_SELECT}
+              popoverProps={{
+                classNames: { content: "min-w-[100px]" }
+              }}
+              listboxProps={{
+                itemClasses: {
+                  base: "gap-2 px-2 rounded-lg data-[hover=true]:bg-default-100/50",
+                  selectedIcon: "w-3 h-3"
+                }
+              }}
+              className="w-[75px]"
+              size="sm"
+              aria-label="日志等级"
+              selectedKeys={new Set([logLevel])}
+              disallowEmptySelection={true}
+              onSelectionChange={async (v) => {
+                await patchControledMihomoConfig({ 'log-level': v.currentKey as LogLevel })
+                await restartCore()
+              }}
+            >
+              <SelectItem key="silent">静默</SelectItem>
+              <SelectItem key="error">错误</SelectItem>
+              <SelectItem key="warning">警告</SelectItem>
+              <SelectItem key="info">信息</SelectItem>
+              <SelectItem key="debug">调试</SelectItem>
+            </Select>
+
+            <div className="w-1 h-1 rounded-full bg-default-300/50" />
+
+            <div className="flex items-center group relative">
+              <Input
+                size="sm"
+                type="number"
+                className="w-[42px]"
+                classNames={{
+                  ...CARD_STYLES.GLASS_INPUT,
+                  input: `${CARD_STYLES.GLASS_INPUT.input} text-center [&::-webkit-inner-spin-button]:appearance-none`
+                }}
+                aria-label="保留天数"
+                value={logDaysInput}
+                onValueChange={setLogDaysInput}
+                onBlur={() => {
+                  const val = parseInt(logDaysInput) || 7
+                  setLogDaysInput(val.toString())
+                  patchAppConfig({ maxLogDays: val })
+                }}
+              />
+              <span className="text-[10px] text-default-400 pl-0.5">天</span>
+            </div>
+          </div>
+
+          <div className="w-[1px] h-4 bg-default-200/50" />
+
+          {/* Center: Search Group */}
           <Input
             variant="flat"
             size="sm"
             value={filter}
-            placeholder="筛选过滤"
+            placeholder="搜索..."
             isClearable
+            startContent={<IoJournalOutline className="text-default-400 text-sm" />}
             onValueChange={setFilter}
-            className="flex-1 ml-2"
-            classNames={{
-              inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
-            }}
+            className="flex-1"
+            classNames={CARD_STYLES.GLASS_INPUT}
           />
-          <Button
-            size="sm"
-            isIconOnly
-            className="ml-2"
-            color={trace ? 'primary' : 'default'}
-            variant={trace ? 'solid' : 'bordered'}
-            onPress={() => {
-              setTrace((prev) => !prev)
-            }}
-          >
-            <IoLocationSharp className="text-lg" />
-          </Button>
-          <Button
-            size="sm"
-            isIconOnly
-            title="清空日志"
-            className="ml-2"
-            variant="flat"
-            color="danger"
-            onPress={() => {
-              cachedLogs.clean()
-            }}
-          >
-            <CgTrash className="text-lg" />
-          </Button>
-          <Button
-            size="sm"
-            isIconOnly
-            title="导出日志"
-            className="ml-2"
-            variant="flat"
-            color="primary"
-            isDisabled={filteredLogs.length === 0}
-            onPress={handleExportLogs}
-          >
-            <HiOutlineDownload className="text-lg" />
-          </Button>
+
+          {/* Right: Actions Group */}
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              isIconOnly
+              title={trace ? "暂停追踪" : "开启追踪"}
+              className={`min-w-8 w-8 h-8 rounded-full transition-transform active:scale-95 ${trace ? 'text-primary bg-primary/10' : 'text-default-400 hover:text-default-600'}`}
+              variant="light"
+              onPress={() => {
+                setTrace((prev) => !prev)
+              }}
+            >
+              <IoLocationSharp className="text-lg" />
+            </Button>
+            
+            <Button
+              size="sm"
+              isIconOnly
+              title="清空日志"
+              className="min-w-8 w-8 h-8 rounded-full text-default-400 hover:text-danger hover:bg-danger/10 transition-colors"
+              variant="light"
+              onPress={() => {
+                cachedLogs.clean()
+              }}
+            >
+              <CgTrash className="text-lg" />
+            </Button>
+            
+            <Button
+              size="sm"
+              isIconOnly
+              title="导出日志"
+              className="min-w-8 w-8 h-8 rounded-full text-default-400 hover:text-primary hover:bg-primary/10 transition-colors"
+              variant="light"
+              isDisabled={filteredLogs.length === 0}
+              onPress={handleExportLogs}
+            >
+              <HiOutlineDownload className="text-lg" />
+            </Button>
+          </div>
         </div>
       </div>
       <div className="h-[calc(100vh-100px)]">
@@ -214,6 +243,7 @@ const Logs: React.FC = () => {
           />
         )}
       </div>
+
     </BasePage>
   )
 }
