@@ -306,114 +306,117 @@ ASN: ${ipInfo.as}`
   return (
     <BasePage title="工具">
       <div className="p-2 space-y-2">
-        {/* DNS 查询 */}
-        <Card>
-          <CardBody className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <IoGlobe className="text-primary text-lg" />
+        {/* DNS 查询 & 规则测试 */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* DNS 查询 */}
+          <Card>
+            <CardBody className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-primary/20">
+                  <IoGlobe className="text-primary text-lg" />
+                </div>
+                <span className="font-medium">DNS 查询</span>
+                <span className="text-foreground-400 text-xs">（A/AAAA/CNAME）</span>
               </div>
-              <span className="font-medium">DNS 查询</span>
-              <span className="text-foreground-400 text-xs">（A: IPv4, AAAA: IPv6, CNAME: 别名）</span>
-            </div>
-            
-            <div className="flex items-center gap-2 mb-3">
-              <Input
-                size="sm"
-                placeholder="输入域名，如 google.com"
-                value={dnsQuery}
-                onValueChange={setDnsQuery}
-                onKeyDown={(e) => e.key === 'Enter' && handleDnsQuery()}
-                className="flex-1"
-                classNames={CARD_STYLES.GLASS_INPUT}
-              />
-              <Tabs 
-                classNames={CARD_STYLES.GLASS_TABS}
-                selectedKey={dnsType} 
-                onSelectionChange={(key) => setDnsType(key as typeof dnsType)}
-              >
-                <Tab key="A" title="A" />
-                <Tab key="AAAA" title="AAAA" />
-                <Tab key="CNAME" title="CNAME" />
-              </Tabs>
-              <Button
-                size="sm"
-                color="primary"
-                isLoading={dnsLoading}
-                onPress={handleDnsQuery}
-                isIconOnly
-              >
-                <IoSearch />
-              </Button>
-            </div>
+              
+              <div className="flex items-center gap-2 mb-3">
+                <Input
+                  size="sm"
+                  placeholder="输入域名，如 google.com"
+                  value={dnsQuery}
+                  onValueChange={setDnsQuery}
+                  onKeyDown={(e) => e.key === 'Enter' && handleDnsQuery()}
+                  className="flex-1"
+                  classNames={CARD_STYLES.GLASS_INPUT}
+                />
+                <Tabs 
+                  classNames={CARD_STYLES.GLASS_TABS}
+                  selectedKey={dnsType} 
+                  onSelectionChange={(key) => setDnsType(key as typeof dnsType)}
+                >
+                  <Tab key="A" title="A" />
+                  <Tab key="AAAA" title="AAAA" />
+                  <Tab key="CNAME" title="CNAME" />
+                </Tabs>
+                <Button
+                  size="sm"
+                  color="primary"
+                  isLoading={dnsLoading}
+                  onPress={handleDnsQuery}
+                  isIconOnly
+                >
+                  <IoSearch />
+                </Button>
+              </div>
 
-            {dnsError && (
-              <div className="text-danger text-sm">{dnsError}</div>
-            )}
-            
-            {dnsResult.length > 0 && (
-              <div className="space-y-1">
-                {dnsResult.map((ip, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Chip size="sm" variant="flat" color="primary">{dnsType}</Chip>
-                    <span className="font-mono text-sm">{ip}</span>
+              {dnsError && (
+                <div className="text-danger text-sm">{dnsError}</div>
+              )}
+              
+              {dnsResult.length > 0 && (
+                <div className="space-y-1">
+                  {dnsResult.map((ip, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Chip size="sm" variant="flat" color="primary">{dnsType}</Chip>
+                      <span className="font-mono text-sm">{ip}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* 规则测试 */}
+          <Card>
+            <CardBody className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-warning/20">
+                  <IoShield className="text-warning text-lg" />
+                </div>
+                <span className="font-medium">规则测试</span>
+                <span className="text-foreground-400 text-xs">（测试实际匹配规则）</span>
+              </div>
+              
+              <div className="flex items-center gap-2 mb-3">
+                <Input
+                  size="sm"
+                  placeholder="输入域名，如 google.com"
+                  value={ruleQuery}
+                  onValueChange={setRuleQuery}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRuleTest()}
+                  className="flex-1"
+                  classNames={CARD_STYLES.GLASS_INPUT}
+                />
+                <Button
+                  size="sm"
+                  color="warning"
+                  isLoading={ruleLoading}
+                  onPress={handleRuleTest}
+                  isIconOnly
+                >
+                  <IoSearch />
+                </Button>
+              </div>
+
+              {ruleError && (
+                <div className="text-danger text-sm">{ruleError}</div>
+              )}
+              
+              {ruleResult && (
+                <div className="p-2 rounded-lg bg-content2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-foreground-400 text-sm">匹配规则:</span>
+                    <span className="font-mono text-sm">{ruleResult.rule}{ruleResult.rulePayload ? `,${ruleResult.rulePayload}` : ''}</span>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardBody>
-        </Card>
-
-        {/* 规则测试 */}
-        <Card>
-          <CardBody className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-warning/20">
-                <IoShield className="text-warning text-lg" />
-              </div>
-              <span className="font-medium">规则测试</span>
-              <span className="text-foreground-400 text-xs">（发起请求测试实际匹配规则）</span>
-            </div>
-            
-            <div className="flex items-center gap-2 mb-3">
-              <Input
-                size="sm"
-                placeholder="输入域名，如 google.com"
-                value={ruleQuery}
-                onValueChange={setRuleQuery}
-                onKeyDown={(e) => e.key === 'Enter' && handleRuleTest()}
-                className="flex-1"
-                classNames={CARD_STYLES.GLASS_INPUT}
-              />
-              <Button
-                size="sm"
-                color="warning"
-                isLoading={ruleLoading}
-                onPress={handleRuleTest}
-                isIconOnly
-              >
-                <IoSearch />
-              </Button>
-            </div>
-
-            {ruleError && (
-              <div className="text-danger text-sm">{ruleError}</div>
-            )}
-            
-            {ruleResult && (
-              <div className="p-2 rounded-lg bg-content2 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-foreground-400 text-sm">匹配规则:</span>
-                  <span className="font-mono text-sm">{ruleResult.rule}{ruleResult.rulePayload ? `,${ruleResult.rulePayload}` : ''}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-foreground-400 text-sm">出站代理:</span>
+                    <Chip size="sm" variant="flat" color="success">{ruleResult.proxy}</Chip>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-foreground-400 text-sm">出站代理:</span>
-                  <Chip size="sm" variant="flat" color="success">{ruleResult.proxy}</Chip>
-                </div>
-              </div>
-            )}
-          </CardBody>
-        </Card>
+              )}
+            </CardBody>
+          </Card>
+        </div>
 
         {/* 连通性检测 */}
         <Card>

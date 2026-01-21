@@ -101,7 +101,7 @@ const ProxyItem: React.FC<Props> = (props) => {
       isPressable
       fullWidth
       shadow="sm"
-      className={`${fixed ? 'bg-secondary/20 backdrop-blur-md border-secondary/50' : selected ? 'bg-primary/20 backdrop-blur-md border-primary/50' : 'bg-white/50 dark:bg-default-100/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-default-100/80 border-transparent hover:border-default-200/50'} ${loading ? 'animate-pulse' : ''} transition-all border shadow-sm`}
+      className={`${fixed ? 'bg-secondary/85 dark:bg-secondary/90 backdrop-blur-md border border-white/20 shadow-[0_4px_20px_rgba(var(--heroui-secondary),0.4)]' : selected ? 'bg-primary/85 dark:bg-primary/90 backdrop-blur-md border border-white/20 shadow-[0_4px_20px_rgba(var(--heroui-primary),0.4)]' : 'bg-gradient-to-b from-white/20 to-white/5 dark:from-white/10 dark:to-transparent border-white/20 dark:border-white/10 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_4px_16px_0_rgba(0,0,0,0.08)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_8px_24px_0_rgba(0,0,0,0.12)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]'} ${loading ? 'animate-pulse' : ''} transition-all duration-200 border`}
       radius="lg"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{
