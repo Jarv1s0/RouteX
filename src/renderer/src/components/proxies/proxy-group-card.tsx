@@ -2,7 +2,6 @@ import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { ControllerGroupDetail, ControllerProxiesDetail, ControllerMixedGroup } from '@renderer/utils/protocol'
 
 interface Props {
   group: ControllerMixedGroup
@@ -27,7 +26,6 @@ export const ProxyGroupCard: React.FC<Props> = ({
   onGroupDelay,
   getCurrentDelay,
   mutate,
-  getDelayColor
 }) => {
   const { appConfig } = useAppConfig()
   const currentDelay = getCurrentDelay(group)

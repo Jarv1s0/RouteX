@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Tooltip } from '@heroui/react'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+
 import {
   quitApp,
   quitWithoutCore,

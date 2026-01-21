@@ -2,7 +2,6 @@ import { Button, Card, CardBody } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
-  getImageDataURL,
   mihomoChangeProxy,
   mihomoCloseAllConnections,
   mihomoProxyDelay,
@@ -12,10 +11,10 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
-import { MdOutlineSpeed, MdTune } from 'react-icons/md'
+import { MdTune } from 'react-icons/md'
 import { TbBolt } from 'react-icons/tb'
 import { useGroups } from '@renderer/hooks/use-groups'
-import CollapseInput from '@renderer/components/base/collapse-input'
+
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { ProxyGroupCard } from '@renderer/components/proxies/proxy-group-card'

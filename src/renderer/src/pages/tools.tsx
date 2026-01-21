@@ -3,7 +3,7 @@ import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Input, Button, Tabs, Tab, Chip, Skeleton } from '@heroui/react'
 import { IoSearch, IoGlobe, IoShield, IoWifi, IoCheckmarkCircle, IoCloseCircle, IoRefresh, IoLocation, IoEye, IoEyeOff, IoCopy, IoPlay } from 'react-icons/io5'
 import { mihomoDnsQuery, testRuleMatch, testConnectivity, fetchIpInfo as fetchIpInfoIpc, checkStreamingUnlock } from '@renderer/utils/ipc'
-import { cardInputClassNames } from '@renderer/components/settings/advanced-settings'
+
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface ConnectivityResult {

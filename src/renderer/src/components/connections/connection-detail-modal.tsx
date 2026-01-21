@@ -1,10 +1,10 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, Button, Chip, Divider, ScrollShadow } from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, Button, Chip, ScrollShadow } from '@heroui/react'
 import React, { useMemo } from 'react'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { IoClose, IoServer, IoEarth, IoShieldCheckmark, IoTime, IoSwapVertical, IoCodeSlash, IoPerson } from 'react-icons/io5'
-import { MdNetworkCheck, MdTimeline, MdLinearScale } from 'react-icons/md'
+import { IoClose, IoServer, IoEarth, IoShieldCheckmark, IoTime, IoCodeSlash, IoPerson } from 'react-icons/io5'
+import { MdTimeline } from 'react-icons/md'
 import { FaGlobeAmericas, FaNetworkWired } from 'react-icons/fa'
 import { clsx } from 'clsx'
 import dayjs from 'dayjs'
@@ -27,12 +27,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
     return 'text-danger'
   }
 
-  const getDelayBgClass = (delay: number) => {
-    if (delay === 0) return 'bg-danger'
-    if (delay < delayThresholds.good) return 'bg-success'
-    if (delay < delayThresholds.fair) return 'bg-warning'
-    return 'bg-danger'
-  }
+
 
   // 查找代理链中的组信息
   const chainGroups = useMemo(() => {
@@ -42,16 +37,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
     }).reverse()
   }, [connection.chains, groups])
 
-  // 计算持续时间
-  const duration = useMemo(() => {
-    const start = dayjs(connection.start)
-    const now = dayjs()
-    const diff = now.diff(start, 'second')
-    const h = Math.floor(diff / 3600)
-    const m = Math.floor((diff % 3600) / 60)
-    const s = diff % 60
-    return `${h > 0 ? `${h}h ` : ''}${m > 0 ? `${m}m ` : ''}${s}s`
-  }, [connection.start])
+
 
   // 格式化 IP 和 端口
   const source = `${connection.metadata.sourceIP}:${connection.metadata.sourcePort}`
@@ -247,7 +233,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                 {/* 2. Chain Nodes */}
                 {chainGroups.map((item, index) => {
                   const { name, group } = item
-                  const isLast = index === chainGroups.length - 1
+
                   
                   return (
                     <div key={index} className="relative pl-6 pb-6 last:pb-0 group">
