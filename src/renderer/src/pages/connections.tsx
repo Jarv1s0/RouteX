@@ -258,7 +258,7 @@ const Connections: React.FC = () => {
     localStorage.removeItem('hiddenConnectionRules')
   }, [])
 
-  const { connections: contextConnections, loading: connectionsLoading } = useConnections()
+  const { connections: contextConnections } = useConnections()
 
   // Update effect relying on Context instead of IPC event
   useEffect(() => {
