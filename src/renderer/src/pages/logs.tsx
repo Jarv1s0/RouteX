@@ -5,7 +5,7 @@ import EmptyState from '@renderer/components/base/empty-state'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Input, Select, SelectItem } from '@heroui/react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
-import { IoLocationSharp, IoJournalOutline } from 'react-icons/io5'
+import { IoLocationSharp, IoJournalOutline, IoPause, IoPlay } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import { HiOutlineDownload } from 'react-icons/hi'
 import { saveFile, restartCore } from '@renderer/utils/ipc'
@@ -45,7 +45,7 @@ window.electron.ipcRenderer.on('mihomoLogs', (_e, log: ControllerLog) => {
 const Logs: React.FC = () => {
   const [logs, setLogs] = useState<ControllerLog[]>(cachedLogs.log)
   const [filter, setFilter] = useState('')
-  const [trace, setTrace] = useState(true)
+  const [paused, setPaused] = useState(false)
   const [selectedLog, setSelectedLog] = useState<(ControllerLog & { time?: string }) | null>(null)
   
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -74,24 +74,26 @@ const Logs: React.FC = () => {
   }
 
   useEffect(() => {
-    if (!trace) return
+    if (paused) return
     virtuosoRef.current?.scrollToIndex({
       index: filteredLogs.length - 1,
       behavior: 'smooth',
       align: 'end',
       offset: 0
     })
-  }, [filteredLogs, trace])
+  }, [filteredLogs, paused])
 
   useEffect(() => {
     const old = cachedLogs.trigger
     cachedLogs.trigger = (a): void => {
-      setLogs([...a])
+      if (!paused) {
+        setLogs([...a])
+      }
     }
     return (): void => {
       cachedLogs.trigger = old
     }
-  }, [])
+  }, [paused])
 
   return (
     <BasePage title="实时日志">
@@ -178,14 +180,23 @@ const Logs: React.FC = () => {
             <Button
               size="sm"
               isIconOnly
-              title={trace ? "暂停追踪" : "开启追踪"}
-              className={`min-w-8 w-8 h-8 rounded-full transition-transform active:scale-95 ${trace ? 'text-primary bg-primary/10' : 'text-default-400 hover:text-default-600'}`}
+              title={paused ? "恢复并锁定底部" : "暂停并停止滚动"}
+              className={`min-w-8 w-8 h-8 rounded-full transition-transform active:scale-95 ${paused ? 'text-warning bg-warning/10' : 'text-primary bg-primary/10'}`}
               variant="light"
               onPress={() => {
-                setTrace((prev) => !prev)
+                const next = !paused
+                setPaused(next)
+                // 如果恢复，立即更新一次
+                if (!next) {
+                  setLogs([...cachedLogs.log])
+                }
               }}
             >
-              <IoLocationSharp className="text-lg" />
+              {paused ? (
+                <IoPlay className="text-lg" />
+              ) : (
+                <IoPause className="text-lg" />
+              )}
             </Button>
             
             <Button
@@ -227,7 +238,7 @@ const Logs: React.FC = () => {
             ref={virtuosoRef}
             data={filteredLogs}
             initialTopMostItemIndex={filteredLogs.length - 1}
-            followOutput={trace}
+            followOutput={!paused}
             itemContent={(i, log) => {
               return (
                 <LogItem

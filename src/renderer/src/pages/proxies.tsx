@@ -2,7 +2,6 @@ import { Button, Card, CardBody } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
-  getImageDataURL,
   mihomoChangeProxy,
   mihomoCloseAllConnections,
   mihomoProxyDelay,
@@ -12,18 +11,18 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
-import { MdOutlineSpeed, MdTune } from 'react-icons/md'
+import { MdTune } from 'react-icons/md'
 import { TbBolt } from 'react-icons/tb'
 import { useGroups } from '@renderer/hooks/use-groups'
-import CollapseInput from '@renderer/components/base/collapse-input'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { ProxyGroupCard } from '@renderer/components/proxies/proxy-group-card'
+import { ProxyCardSkeleton } from '@renderer/components/base/skeleton'
 
 const Proxies: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { mode = 'rule' } = controledMihomoConfig || {}
-  const { groups: allGroups = [], mutate } = useGroups()
+  const { groups: allGroups = [], mutate, isLoading } = useGroups()
   const { appConfig } = useAppConfig()
   const {
     proxyDisplayLayout = 'double',
@@ -65,16 +64,18 @@ const Proxies: React.FC = () => {
 
   const flatItems = useMemo(() => {
     const items: FlatItem[] = []
-    if (groups.length !== searchValue.length) setSearchValue(Array(groups.length).fill(''))
     
     groups.forEach((group, index) => {
       // 添加组头
       items.push({ type: 'header', groupIndex: index })
       
       // 如果展开，添加代理行
-      if (isOpen[index]) {
-        let groupProxies = group.all.filter(
-          (proxy) => proxy && includesIgnoreCase(proxy.name, searchValue[index])
+      const isGroupOpen = !!isOpen[index]
+      const currentSearchValue = searchValue[index] || ''
+      
+      if (isGroupOpen) {
+        let groupProxies = (group.all || []).filter(
+          (proxy) => proxy && includesIgnoreCase(proxy.name, currentSearchValue)
         )
 
         // 排序逻辑
@@ -104,6 +105,38 @@ const Proxies: React.FC = () => {
     return items
   }, [groups, isOpen, proxyDisplayOrder, cols, searchValue])
 
+  // 同步状态数组长度
+  useEffect(() => {
+    if (groups.length !== searchValue.length) {
+      setSearchValue(prev => {
+        if (prev.length === groups.length) return prev
+        // 尝试保留旧状态（如果只是追加或减少）
+        if (groups.length > prev.length) {
+             return [...prev, ...Array(groups.length - prev.length).fill('')]
+        }
+        return prev.slice(0, groups.length)
+      })
+    }
+    if (groups.length !== isOpen.length) {
+        setIsOpen(prev => {
+            if (prev.length === groups.length) return prev
+            if (groups.length > prev.length) {
+                return [...prev, ...Array(groups.length - prev.length).fill(false)]
+            }
+            return prev.slice(0, groups.length)
+        })
+    }
+    if (groups.length !== delaying.length) {
+        setDelaying(prev => {
+             if (prev.length === groups.length) return prev
+             if (groups.length > prev.length) {
+                return [...prev, ...Array(groups.length - prev.length).fill(false)]
+            }
+            return prev.slice(0, groups.length)
+        })
+    }
+  }, [groups.length])
+
   const onChangeProxy = useCallback(
     async (group: string, proxy: string): Promise<void> => {
       await mihomoChangeProxy(group, proxy)
@@ -124,12 +157,6 @@ const Proxies: React.FC = () => {
 
   const onGroupDelay = useCallback(
     async (index: number): Promise<void> => {
-      // Logic adapted for flat list or simplified since we pass index
-      // But wait, the original logic used `allProxies[index]`.
-      // I need to adapt onGroupDelay to work with the new data structure or just keep `allProxies` calculation if needed?
-      // Actually, I can re-derive the proxies for the group or use the `flatItems`?
-      // Re-deriving is safer.
-      
       setDelaying((prev) => {
         const newDelaying = [...prev]
         newDelaying[index] = true
@@ -140,10 +167,6 @@ const Proxies: React.FC = () => {
       const groupProxies = group.all.filter(
          (proxy) => proxy && includesIgnoreCase(proxy.name, searchValue[index])
       )
-      // Note: original logic had sorting dependent on display order for the delay test list?
-      // Actually original `onGroupDelay` used `allProxies[index]` which was sorted.
-      // Let's just test all filtered proxies for simplicity or respect sort?
-      // Respecting sort doesn't matter much for execution, just the list matters.
       
       const result: Promise<void>[] = []
       const runningList: Promise<void>[] = []
@@ -224,14 +247,12 @@ const Proxies: React.FC = () => {
   // 首次进入页面时自动测速
   const hasInitialTestRef = useRef(false)
   useEffect(() => {
-    // 强制执行或根据配置，但为了满足"点击左侧代理组卡片自动测速一次"的需求，这里默认执行
     if (groups.length === 0) return
     if (hasInitialTestRef.current) return
     
     hasInitialTestRef.current = true
     
     const doAutoDelayTest = async (): Promise<void> => {
-      // 并行执行所有组的测速，但排除 Proxy 组
       const promises = groups.map((group) => {
         if (includesIgnoreCase(group.name, 'proxy') || includesIgnoreCase(group.name, 'compatible')) {
           return Promise.resolve()
@@ -277,11 +298,11 @@ const Proxies: React.FC = () => {
           <ProxyGroupCard
             group={group}
             groupIndex={groupIndex}
-            isOpen={isOpen[groupIndex]}
+            isOpen={!!isOpen[groupIndex]}
             toggleOpen={toggleOpen}
-            searchValue={searchValue[groupIndex]}
+            searchValue={searchValue[groupIndex] || ''}
             updateSearchValue={updateSearchValue}
-            delaying={delaying[groupIndex]}
+            delaying={!!delaying[groupIndex]}
             onGroupDelay={onGroupDelay}
             getCurrentDelay={getCurrentDelay}
             mutate={mutate}
@@ -372,6 +393,14 @@ const Proxies: React.FC = () => {
               <p className="text-foreground-500 text-sm">所有流量将直接连接，不经过代理</p>
             </CardBody>
           </Card>
+        </div>
+      ) : isLoading && (!allGroups || allGroups.length === 0) ? (
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <ProxyCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
       ) : (
         <div className="h-[calc(100vh-50px)]">

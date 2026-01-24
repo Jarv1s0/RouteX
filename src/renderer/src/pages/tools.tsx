@@ -1,9 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Input, Button, Tabs, Tab, Chip, Skeleton } from '@heroui/react'
-import { IoSearch, IoGlobe, IoShield, IoWifi, IoCheckmarkCircle, IoCloseCircle, IoRefresh, IoLocation, IoEye, IoEyeOff, IoCopy, IoPlay } from 'react-icons/io5'
+import { IoSearch, IoGlobe, IoShield, IoWifi, IoCheckmarkCircle, IoCloseCircle, IoRefresh, IoLocation, IoEye, IoEyeOff, IoCopy, IoPlay, IoBusiness, IoTime, IoServer, IoMap, IoFlag } from 'react-icons/io5'
 import { mihomoDnsQuery, testRuleMatch, testConnectivity, fetchIpInfo as fetchIpInfoIpc, checkStreamingUnlock } from '@renderer/utils/ipc'
-import { cardInputClassNames } from '@renderer/components/settings/advanced-settings'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface ConnectivityResult {
@@ -35,6 +34,7 @@ const defaultTargets = [
   { name: 'GitHub', url: 'https://github.com', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/GitHub.png' },
   { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/YouTube.png' },
   { name: 'Cloudflare', url: 'https://1.1.1.1/cdn-cgi/trace', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Cloudflare.png' },
+  { name: 'Twitter', url: 'https://twitter.com', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Twitter.png' },
   { name: '百度', url: 'https://www.baidu.com', icon: 'https://www.baidu.com/favicon.ico' }
 ]
 
@@ -306,114 +306,121 @@ ASN: ${ipInfo.as}`
   return (
     <BasePage title="工具">
       <div className="p-2 space-y-2">
-        {/* DNS 查询 */}
-        <Card>
-          <CardBody className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <IoGlobe className="text-primary text-lg" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          {/* DNS 查询 */}
+          <Card className="h-full">
+            <CardBody className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-primary/20">
+                  <IoGlobe className="text-primary text-lg" />
+                </div>
+                <span className="font-medium">DNS 查询</span>
+                <span className="text-foreground-400 text-xs">（A: IPv4, AAAA: IPv6, CNAME: 别名）</span>
               </div>
-              <span className="font-medium">DNS 查询</span>
-              <span className="text-foreground-400 text-xs">（A: IPv4, AAAA: IPv6, CNAME: 别名）</span>
-            </div>
-            
-            <div className="flex items-center gap-2 mb-3">
-              <Input
-                size="sm"
-                placeholder="输入域名，如 google.com"
-                value={dnsQuery}
-                onValueChange={setDnsQuery}
-                onKeyDown={(e) => e.key === 'Enter' && handleDnsQuery()}
-                className="flex-1"
-                classNames={CARD_STYLES.GLASS_INPUT}
-              />
-              <Tabs 
-                classNames={CARD_STYLES.GLASS_TABS}
-                selectedKey={dnsType} 
-                onSelectionChange={(key) => setDnsType(key as typeof dnsType)}
-              >
-                <Tab key="A" title="A" />
-                <Tab key="AAAA" title="AAAA" />
-                <Tab key="CNAME" title="CNAME" />
-              </Tabs>
-              <Button
-                size="sm"
-                color="primary"
-                isLoading={dnsLoading}
-                onPress={handleDnsQuery}
-                isIconOnly
-              >
-                <IoSearch />
-              </Button>
-            </div>
+              
+              <div className="flex items-center gap-2 mb-3">
+                <Input
+                  size="sm"
+                  placeholder="输入域名，如 google.com"
+                  value={dnsQuery}
+                  onValueChange={setDnsQuery}
+                  onKeyDown={(e) => e.key === 'Enter' && handleDnsQuery()}
+                  className="flex-1"
+                  classNames={CARD_STYLES.GLASS_INPUT}
+                />
+                <Tabs 
+                  classNames={{
+                    ...CARD_STYLES.GLASS_TABS,
+                    tabList: CARD_STYLES.GLASS_TABS.tabList + " gap-1"
+                  }}
+                  selectedKey={dnsType} 
+                  onSelectionChange={(key) => setDnsType(key as typeof dnsType)}
+                >
+                  <Tab key="A" title="A" />
+                  <Tab key="AAAA" title="AAAA" />
+                  <Tab key="CNAME" title="CNAME" />
+                </Tabs>
+                <Button
+                  size="sm"
+                  color="primary"
+                  isLoading={dnsLoading}
+                  onPress={handleDnsQuery}
+                  isIconOnly
+                >
+                  <IoSearch />
+                </Button>
+              </div>
 
-            {dnsError && (
-              <div className="text-danger text-sm">{dnsError}</div>
-            )}
-            
-            {dnsResult.length > 0 && (
-              <div className="space-y-1">
-                {dnsResult.map((ip, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Chip size="sm" variant="flat" color="primary">{dnsType}</Chip>
-                    <span className="font-mono text-sm">{ip}</span>
+              {dnsError && (
+                <div className="text-danger text-sm">{dnsError}</div>
+              )}
+              
+              {dnsResult.length > 0 && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  {dnsResult.map((ip, i) => (
+                    <div key={i} className="flex items-center gap-3 p-2 rounded-xl bg-default-100/50 border border-default-200/50">
+                      <Chip size="sm" variant="flat" color="primary" className="h-6">{dnsType}</Chip>
+                      <span className="font-mono text-sm select-all">{ip}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* 规则测试 */}
+          <Card className="h-full">
+            <CardBody className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 rounded-lg bg-warning/20">
+                  <IoShield className="text-warning text-lg" />
+                </div>
+                <span className="font-medium">规则测试</span>
+                <span className="text-foreground-400 text-xs">（发起请求测试实际匹配规则）</span>
+              </div>
+              
+              <div className="flex items-center gap-2 mb-3">
+                <Input
+                  size="sm"
+                  placeholder="输入域名，如 google.com"
+                  value={ruleQuery}
+                  onValueChange={setRuleQuery}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRuleTest()}
+                  className="flex-1"
+                  classNames={CARD_STYLES.GLASS_INPUT}
+                />
+                <Button
+                  size="sm"
+                  color="warning"
+                  isLoading={ruleLoading}
+                  onPress={handleRuleTest}
+                  isIconOnly
+                >
+                  <IoSearch />
+                </Button>
+              </div>
+
+              {ruleError && (
+                <div className="text-danger text-sm">{ruleError}</div>
+              )}
+              
+              {ruleResult && (
+                <div className="p-3 rounded-xl bg-content2/50 border border-default-200/50 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-foreground-400 text-xs">匹配规则</span>
+                    <div className="font-mono text-sm bg-background/50 p-1.5 rounded-lg border border-default-100">
+                      {ruleResult.rule}{ruleResult.rulePayload ? `,${ruleResult.rulePayload}` : ''}
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardBody>
-        </Card>
-
-        {/* 规则测试 */}
-        <Card>
-          <CardBody className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-warning/20">
-                <IoShield className="text-warning text-lg" />
-              </div>
-              <span className="font-medium">规则测试</span>
-              <span className="text-foreground-400 text-xs">（发起请求测试实际匹配规则）</span>
-            </div>
-            
-            <div className="flex items-center gap-2 mb-3">
-              <Input
-                size="sm"
-                placeholder="输入域名，如 google.com"
-                value={ruleQuery}
-                onValueChange={setRuleQuery}
-                onKeyDown={(e) => e.key === 'Enter' && handleRuleTest()}
-                className="flex-1"
-                classNames={CARD_STYLES.GLASS_INPUT}
-              />
-              <Button
-                size="sm"
-                color="warning"
-                isLoading={ruleLoading}
-                onPress={handleRuleTest}
-                isIconOnly
-              >
-                <IoSearch />
-              </Button>
-            </div>
-
-            {ruleError && (
-              <div className="text-danger text-sm">{ruleError}</div>
-            )}
-            
-            {ruleResult && (
-              <div className="p-2 rounded-lg bg-content2 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-foreground-400 text-sm">匹配规则:</span>
-                  <span className="font-mono text-sm">{ruleResult.rule}{ruleResult.rulePayload ? `,${ruleResult.rulePayload}` : ''}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-foreground-400 text-xs">出站代理</span>
+                    <div><Chip size="sm" variant="flat" color="success" className="h-6">{ruleResult.proxy}</Chip></div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-foreground-400 text-sm">出站代理:</span>
-                  <Chip size="sm" variant="flat" color="success">{ruleResult.proxy}</Chip>
-                </div>
-              </div>
-            )}
-          </CardBody>
-        </Card>
+              )}
+            </CardBody>
+          </Card>
+        </div>
 
         {/* 连通性检测 */}
         <Card>
@@ -437,13 +444,13 @@ ASN: ${ipInfo.as}`
               </Button>
             </div>
             
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
               {connectivityResults.map((result, index) => (
                 <Card 
                   key={result.name}
                   isPressable
                   onPress={() => !result.testing && testSingleConnectivity(index)}
-                  className={`${CARD_STYLES.GLASS_ITEM_CARD} ${result.testing ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+                  className={`${CARD_STYLES.GLASS_ITEM_CARD} ${result.testing ? 'opacity-70 scale-[0.98]' : 'hover:scale-[1.05] hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:border-success/30'} transition-all duration-300 border-transparent`}
                 >
                   <CardBody className="p-3 text-center">
                     <img 
@@ -502,13 +509,13 @@ ASN: ${ipInfo.as}`
               </Button>
             </div>
             
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
               {streamingServices.map((service, index) => (
                 <Card 
                   key={service.key}
                   isPressable
                   onPress={() => service.status !== 'testing' && testSingleStreaming(index)}
-                  className={`${CARD_STYLES.GLASS_ITEM_CARD} ${service.status === 'testing' ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+                  className={`${CARD_STYLES.GLASS_ITEM_CARD} ${service.status === 'testing' ? 'opacity-70 scale-[0.98]' : 'hover:scale-[1.05] hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:border-secondary/30'} transition-all duration-300 border-transparent`}
                 >
                   <CardBody className="p-3 text-center">
                     <img 
@@ -605,30 +612,72 @@ ASN: ${ipInfo.as}`
             ) : ipError ? (
               <div className="text-danger text-sm">{ipError}</div>
             ) : ipInfo ? (
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                <div>
-                  <span className="text-foreground-400 mr-2">IP</span>
-                  <span className="font-mono">{showIp ? ipInfo.ip : '••••••••••'}</span>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="col-span-2 lg:col-span-3 p-3 rounded-xl bg-default-100/50 border border-default-200/50 flex items-center justify-between group hover:bg-default-200/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                      <IoGlobe className="text-xl" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-foreground-400">公开 IP 地址</div>
+                      <div className="font-mono text-lg font-bold tracking-wide">
+                        {showIp ? ipInfo?.ip : '•••• •••• •••• ••••'}
+                      </div>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="flat" color="primary" className="font-medium" onPress={copyIpInfo}>
+                    复制
+                  </Button>
                 </div>
-                <div>
-                  <span className="text-foreground-400 mr-2">国家/地区</span>
-                  <span>{ipInfo.country}</span>
+
+                <div className="p-3 rounded-xl bg-default-50/50 border border-default-200/30 flex items-center gap-3 hover:bg-default-100/50 transition-colors">
+                  <div className="p-1.5 rounded-lg bg-success/10 text-success">
+                    <IoFlag />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs text-foreground-400">国家/地区</div>
+                    <div className="text-sm font-medium truncate" title={ipInfo?.country}>{ipInfo?.country}</div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-foreground-400 mr-2">城市</span>
-                  <span>{ipInfo.city}, {ipInfo.region}</span>
+
+                <div className="p-3 rounded-xl bg-default-50/50 border border-default-200/30 flex items-center gap-3 hover:bg-default-100/50 transition-colors">
+                  <div className="p-1.5 rounded-lg bg-warning/10 text-warning">
+                    <IoMap />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs text-foreground-400">城市</div>
+                    <div className="text-sm font-medium truncate" title={`${ipInfo?.city}, ${ipInfo?.region}`}>{ipInfo?.city}, {ipInfo?.region}</div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-foreground-400 mr-2">时区</span>
-                  <span>{ipInfo.timezone}</span>
+
+                <div className="p-3 rounded-xl bg-default-50/50 border border-default-200/30 flex items-center gap-3 hover:bg-default-100/50 transition-colors">
+                  <div className="p-1.5 rounded-lg bg-secondary/10 text-secondary">
+                    <IoBusiness />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs text-foreground-400">ISP 运营商</div>
+                    <div className="text-sm font-medium truncate" title={ipInfo?.isp}>{ipInfo?.isp}</div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-foreground-400 mr-2">ISP</span>
-                  <span title={ipInfo.isp}>{ipInfo.isp}</span>
+
+                <div className="p-3 rounded-xl bg-default-50/50 border border-default-200/30 flex items-center gap-3 hover:bg-default-100/50 transition-colors">
+                  <div className="p-1.5 rounded-lg bg-danger/10 text-danger">
+                    <IoServer />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs text-foreground-400">ASN 组织</div>
+                    <div className="text-sm font-medium truncate" title={ipInfo?.as}>{ipInfo?.as}</div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-foreground-400 mr-2">ASN</span>
-                  <span title={ipInfo.as}>{ipInfo.as}</span>
+
+                <div className="p-3 rounded-xl bg-default-50/50 border border-default-200/30 flex items-center gap-3 hover:bg-default-100/50 transition-colors">
+                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                    <IoTime />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs text-foreground-400">时区</div>
+                    <div className="text-sm font-medium truncate">{ipInfo?.timezone}</div>
+                  </div>
                 </div>
               </div>
             ) : null}

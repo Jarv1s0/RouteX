@@ -13,6 +13,7 @@ import {
 import React, { useEffect, useState } from 'react'
 import { HiExternalLink } from 'react-icons/hi'
 import { IoMdCloudDownload } from 'react-icons/io'
+import { useTheme } from 'next-themes'
 
 const SubStore: React.FC = () => {
   const { appConfig } = useAppConfig()
@@ -20,6 +21,8 @@ const SubStore: React.FC = () => {
   const [backendPort, setBackendPort] = useState<number | undefined>()
   const [frontendPort, setFrontendPort] = useState<number | undefined>()
   const [isUpdating, setIsUpdating] = useState(false)
+  const { theme } = useTheme()
+  
   const getPort = async (): Promise<void> => {
     setBackendPort(await subStorePort())
     setFrontendPort(await subStoreFrontendPort())
@@ -30,6 +33,12 @@ const SubStore: React.FC = () => {
 
   if (!useCustomSubStore && !backendPort) return null
   if (!frontendPort) return null
+  
+  // 确定 URL
+  const backendUrl = useCustomSubStore ? customSubStoreUrl : `http://127.0.0.1:${backendPort}`
+  const targetTheme = theme === 'dark' || theme === 'light' ? theme : 'system'
+  const iframeSrc = `http://127.0.0.1:${frontendPort}?api=${backendUrl}&theme=${targetTheme}`
+
   return (
     <>
       <BasePage
@@ -72,9 +81,7 @@ const SubStore: React.FC = () => {
               className="app-nodrag"
               variant="light"
               onPress={() => {
-                open(
-                  `http://127.0.0.1:${frontendPort}?api=${useCustomSubStore ? customSubStoreUrl : `http://127.0.0.1:${backendPort}`}`
-                )
+                open(iframeSrc)
               }}
             >
               <HiExternalLink className="text-lg" />
@@ -83,9 +90,9 @@ const SubStore: React.FC = () => {
         }
       >
         <iframe
-          className="w-full h-full"
+          className="w-full h-full border-none block"
           allow="clipboard-write; clipboard-read"
-          src={`http://127.0.0.1:${frontendPort}?api=${useCustomSubStore ? customSubStoreUrl : `http://127.0.0.1:${backendPort}`}`}
+          src={iframeSrc}
         />
       </BasePage>
     </>

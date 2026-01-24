@@ -2,7 +2,8 @@ import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { ControllerGroupDetail, ControllerProxiesDetail, ControllerMixedGroup } from '@renderer/utils/protocol'
+import { useEffect } from 'react'
+
 
 interface Props {
   group: ControllerMixedGroup
@@ -26,8 +27,7 @@ export const ProxyGroupCard: React.FC<Props> = ({
   delaying,
   onGroupDelay,
   getCurrentDelay,
-  mutate,
-  getDelayColor
+  mutate
 }) => {
   const { appConfig } = useAppConfig()
   const currentDelay = getCurrentDelay(group)
@@ -45,21 +45,24 @@ export const ProxyGroupCard: React.FC<Props> = ({
             : 'text-danger'
 
   // Icon handling
-  if (
-    group.icon &&
-    group.icon.startsWith('http') &&
-    !localStorage.getItem(group.icon)
-  ) {
-    getImageDataURL(group.icon).then((dataURL) => {
-      localStorage.setItem(group.icon, dataURL)
-      mutate()
-    })
-  }
+  useEffect(() => {
+    if (
+        group.icon &&
+        group.icon.startsWith('http') &&
+        !localStorage.getItem(group.icon)
+      ) {
+        getImageDataURL(group.icon).then((dataURL) => {
+          localStorage.setItem(group.icon, dataURL)
+          mutate()
+        })
+      }
+  }, [group.icon, mutate])
 
   // Active Glow Style
+  // Active Glow Style
   const activeStyle = isOpen 
-    ? "bg-background/60 backdrop-blur-xl border-primary/20 shadow-[0_8px_32px_rgba(var(--heroui-primary),0.15)] scale-[1.01]" 
-    : "bg-default-100/60 dark:bg-default-50/60 backdrop-blur-md border-default-200/60 shadow-sm hover:bg-default-100/80 hover:border-default-300/50"
+    ? "bg-gradient-to-br from-default-100/90 to-default-50/90 backdrop-blur-2xl border-primary/30 shadow-[0_0_24px_rgba(var(--heroui-primary),0.12)] scale-[1.01] ring-1 ring-primary/20" 
+    : "bg-default-50/40 dark:bg-default-50/20 backdrop-blur-md border-white/10 dark:border-white/5 shadow-sm hover:scale-[1.002] hover:bg-default-100/60 hover:shadow-md hover:border-default-200/40"
 
   return (
     <div className="w-full pt-2 px-2">
@@ -113,9 +116,9 @@ export const ProxyGroupCard: React.FC<Props> = ({
                   <div className="flex items-center px-3 py-1 rounded-md bg-default-100/80 border border-default-200/50 hover:bg-default-200/50 transition-colors">
                     <span className="text-[10px] font-bold text-default-400 uppercase tracking-wider mr-2">Live</span>
                     <span className="text-xs font-mono font-medium text-foreground/80">
-                      {group.all.filter(p => p.history?.some(h => h.delay > 0)).length}
+                      {(group.all || []).filter(p => p.history?.some(h => h.delay > 0)).length}
                       <span className="opacity-40 mx-0.5">/</span>
-                      {group.all.length}
+                      {(group.all || []).length}
                     </span>
                     <div className={`ml-2 w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
                       currentDelay === -1 ? 'bg-default-300' :

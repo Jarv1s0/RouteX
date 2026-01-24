@@ -726,4 +726,25 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('getNetworkHealthStats', () => {
     return getNetworkHealthStats()
   })
+  ipcMain.handle('getAppUptime', () => process.uptime())
+  ipcMain.handle('getAppMemory', async () => {
+    const metrics = await process.getProcessMemoryInfo()
+    return metrics.private
+  })
+  ipcMain.handle('testDNSLatency', async (_e, domain: string) => {
+    const start = Date.now()
+    try {
+      await mihomoDnsQuery(domain, 'A')
+      return Math.max(1, Date.now() - start)
+    } catch {
+      // Fallback to system DNS
+      try {
+        const dns = await import('dns')
+        await dns.promises.resolve(domain)
+        return Math.max(1, Date.now() - start)
+      } catch {
+        return -1
+      }
+    }
+  })
 }

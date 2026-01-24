@@ -5,12 +5,13 @@ import { mihomoGroups, mihomoGroupDelay } from '@renderer/utils/ipc'
 interface GroupsContextType {
   groups: ControllerMixedGroup[] | undefined
   mutate: () => void
+  isLoading: boolean
 }
 
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined)
 
 export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { data: groups, mutate } = useSWR<ControllerMixedGroup[]>('mihomoGroups', mihomoGroups, {
+  const { data: groups, mutate, isLoading } = useSWR<ControllerMixedGroup[]>('mihomoGroups', mihomoGroups, {
     errorRetryInterval: 200,
     errorRetryCount: 10,
     refreshInterval: 10000 // 每10秒刷新一次代理数据
@@ -39,7 +40,7 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     Promise.allSettled(promises).then(() => mutate())
   }, [groups, mutate])
 
-  return <GroupsContext.Provider value={{ groups, mutate }}>{children}</GroupsContext.Provider>
+  return <GroupsContext.Provider value={{ groups, mutate, isLoading }}>{children}</GroupsContext.Provider>
 }
 
 export const useGroups = (): GroupsContextType => {

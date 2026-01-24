@@ -77,9 +77,10 @@ const SubStoreCard: React.FC<Props> = (props) => {
               : CARD_STYLES.INACTIVE
           }
           ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+          cursor-pointer
         `}
-        radius="lg"
-        shadow="none"
+        isPressable
+        onPress={() => navigate('/substore')}
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">

@@ -2,7 +2,7 @@ import { getAppConfig, getControledMihomoConfig } from '../config'
 import { Worker } from 'worker_threads'
 import { mihomoWorkDir, subStoreDir, substoreLogPath } from '../utils/dirs'
 import subStoreIcon from '../../../resources/subStoreIcon.png?asset'
-import { createWriteStream, existsSync, mkdirSync } from 'fs'
+import { createWriteStream, existsSync, mkdirSync, readFile } from 'fs'
 import { writeFile, rm, cp } from 'fs/promises'
 import http from 'http'
 import net from 'net'
@@ -78,9 +78,53 @@ export async function startSubStoreFrontendServer(): Promise<void> {
   subStoreFrontendPort = await findAvailablePort(14122)
   const app = express()
   const frontendDir = path.join(mihomoWorkDir(), 'sub-store-frontend')
+  
+  // 注入 CSS 修复弹窗位置
+  const injectScript = `
+    <style>
+      /* 强制居中弹窗 */
+      .van-popup--bottom {
+        top: 50% !important;
+        left: 50% !important;
+        bottom: auto !important;
+        transform: translate(-50%, -50%) !important;
+        width: 90% !important;
+        max-width: 480px !important;
+        border-radius: 16px !important;
+        padding-bottom: 20px !important; /* 增加底部内边距，避免紧凑感 */
+      }
+      /* 适配深色模式背景 */
+      .van-popup {
+        background: var(--bg-body, #fff) !important;
+      }
+    </style>
+  `
+
+  app.get('/', (_req, res) => {
+    const indexPath = path.join(frontendDir, 'index.html')
+    readFile(indexPath, 'utf8', (err, data) => {
+      if (err) {
+        res.status(500).send('Error loading Sub-Store')
+        return
+      }
+      // 在 </head> 前插入样式
+      const injectedHtml = data.replace('</head>', `${injectScript}</head>`)
+      res.send(injectedHtml)
+    })
+  })
+
   app.use(express.static(frontendDir))
   app.use((_req, res) => {
-    res.sendFile(path.join(frontendDir, 'index.html'))
+    // Fallback for SPA routing
+    const indexPath = path.join(frontendDir, 'index.html')
+    readFile(indexPath, 'utf8', (err, data) => {
+      if (err) {
+        res.status(500).send('Error loading Sub-Store')
+        return
+      }
+      const injectedHtml = data.replace('</head>', `${injectScript}</head>`)
+      res.send(injectedHtml)
+    })
   })
   subStoreFrontendServer = app.listen(subStoreFrontendPort, subStoreHost)
 }
