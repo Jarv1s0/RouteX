@@ -69,7 +69,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
       classNames={{ 
         backdrop: 'bg-background/10 backdrop-blur-md',
         wrapper: 'z-[9999]',
-        base: 'bg-background/60 backdrop-blur-2xl border border-white/10 shadow-2xl dark:shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)]'
+        base: 'bg-background/80 dark:bg-background/90 backdrop-blur-2xl border border-white/10 shadow-2xl dark:shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)]'
       }}
       size="5xl"
       hideCloseButton

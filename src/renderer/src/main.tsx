@@ -1,20 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
-import { ThemeProvider as NextThemesProvider } from 'next-themes'
-import { HeroUIProvider } from '@heroui/react'
 import { init, platform } from '@renderer/utils/init'
 import '@renderer/assets/main.css'
 import App from '@renderer/App'
-import BaseErrorBoundary from './components/base/base-error-boundary'
 import { openDevTools, quitApp } from './utils/ipc'
-import { AppConfigProvider } from './hooks/use-app-config'
-import { ControledMihomoConfigProvider } from './hooks/use-controled-mihomo-config'
-import { OverrideConfigProvider } from './hooks/use-override-config'
-import { ProfileConfigProvider } from './hooks/use-profile-config'
-import { RulesProvider } from './hooks/use-rules'
-import { GroupsProvider } from './hooks/use-groups'
-import { Toaster } from 'sonner'
+import Providers from './components/providers'
 
 let F12Count = 0
 
@@ -45,27 +35,8 @@ init().then(() => {
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <HeroUIProvider>
-      <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
-        <Toaster richColors position="bottom-right" />
-        <BaseErrorBoundary>
-          <HashRouter>
-            <AppConfigProvider>
-              <ControledMihomoConfigProvider>
-                <ProfileConfigProvider>
-                  <OverrideConfigProvider>
-                    <GroupsProvider>
-                      <RulesProvider>
-                        <App />
-                      </RulesProvider>
-                    </GroupsProvider>
-                  </OverrideConfigProvider>
-                </ProfileConfigProvider>
-              </ControledMihomoConfigProvider>
-            </AppConfigProvider>
-          </HashRouter>
-        </BaseErrorBoundary>
-      </NextThemesProvider>
-    </HeroUIProvider>
+    <Providers>
+      <App />
+    </Providers>
   </React.StrictMode>
 )

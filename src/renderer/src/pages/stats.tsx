@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
+import { useConnections } from '@renderer/hooks/use-connections'
 import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Tabs, Tab, Button, Modal, ModalContent, ModalHeader, ModalBody, Select, SelectItem } from '@heroui/react'
-import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid, TooltipProps } from 'recharts'
+import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid } from 'recharts'
 import { calcTraffic } from '@renderer/utils/calc'
-import { getTrafficStats, clearTrafficStats, getProviderStats, clearProviderStats, triggerProviderSnapshot, getProfileConfig, getProcessTrafficRanking } from '@renderer/utils/ipc'
-import { IoArrowUp, IoArrowDown, IoTrendingUp, IoCalendar, IoRefresh, IoClose, IoFilter } from 'react-icons/io5'
+import { getTrafficStats, clearTrafficStats, getProviderStats, clearProviderStats, triggerProviderSnapshot, getProfileConfig, getProcessTrafficRanking, getAppUptime, testDNSLatency, testConnectivity } from '@renderer/utils/ipc'
+import { IoArrowUp, IoArrowDown, IoTrendingUp, IoCalendar, IoRefresh, IoClose, IoFilter, IoTime, IoServer, IoSwapHorizontal, IoTimer, IoGlobe } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import ConfirmModal from '@renderer/components/base/base-confirm'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
@@ -173,29 +174,91 @@ const Stats: React.FC = () => {
     }
   }, [])
 
+  // System Status State
+  const [uptime, setUptime] = useState<string>('00:00:00')
+  const [dnsLatency, setDnsLatency] = useState<number>(-1)
+  const [networkLatency, setNetworkLatency] = useState<number>(-1)
+  
+  const { connectionCount, memory } = useConnections()
+  const memoryUsage = useMemo(() => calcTraffic(memory), [memory])
+
+  useEffect(() => {
+    let startTime: number | null = null
+    
+    // Initial fetch
+    getAppUptime().then(seconds => {
+      startTime = Date.now() - (seconds * 1000)
+    }).catch(() => {
+      startTime = Date.now()
+    })
+
+    const updateStats = async () => {
+      // DNS Latency
+      try {
+        const latency = await testDNSLatency('www.bing.com')
+        setDnsLatency(latency)
+      } catch {
+        setDnsLatency(-1)
+      }
+
+      // Network Latency
+      try {
+        const res = await testConnectivity('http://www.gstatic.com/generate_204', 2000)
+        setNetworkLatency(res.latency)
+      } catch {
+        setNetworkLatency(-1)
+      }
+    }
+
+    const interval = setInterval(() => {
+      // Uptime Logic
+      if (startTime) {
+        const now = Date.now()
+        const diff = Math.floor((now - startTime) / 1000)
+        const days = Math.floor(diff / 86400)
+        const hours = Math.floor((diff % 86400) / 3600)
+        const minutes = Math.floor((diff % 3600) / 60)
+        const secs = diff % 60
+        let timeStr = ''
+        if (days > 0) timeStr += `${days}天 `
+        timeStr += `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+        setUptime(timeStr)
+      }
+    }, 1000)
+
+    const pollInterval = setInterval(updateStats, 3000) // Poll every 3 seconds for other stats
+    updateStats()
+
+    return () => {
+      clearInterval(interval)
+      clearInterval(pollInterval)
+    }
+  }, [])
+
+
   useEffect(() => {
     // 窗口可见性状态
     const isWindowFocusedRef = { current: !document.hidden }
-    
+
     const handleVisibilityChange = (): void => {
       isWindowFocusedRef.current = !document.hidden
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    
+
     const loadStats = async (): Promise<void> => {
       // 窗口不可见时跳过轮询
       if (!isWindowFocusedRef.current) return
-      
+
       try {
         const stats = await getTrafficStats()
         setHourlyData((stats.hourly || []).slice(-24))
         setDailyData((stats.daily || []).slice(-30))
         setSessionStats({ upload: stats.sessionUpload, download: stats.sessionDownload })
-        
+
         // 加载订阅统计
         const pStats = await getProviderStats()
         setProviderData(pStats.snapshots || [])
-        
+
         // 获取当前订阅列表（从 Profile 配置）
         const profileConfig = await getProfileConfig()
         const providers = (profileConfig.items || [])
@@ -207,7 +270,7 @@ const Stats: React.FC = () => {
       }
     }
     loadStats()
-    const interval = setInterval(loadStats, 5000)
+    const interval = setInterval(loadStats, 15000)
     return () => {
       clearInterval(interval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
@@ -484,6 +547,75 @@ const Stats: React.FC = () => {
       )}
       <div className="p-2 space-y-2">
 
+
+        {/* System Status Card (Full Width) */}
+        <Card className={`w-full ${CARD_STYLES.GLASS_CARD}`}>
+          <CardBody className="p-4 grid grid-cols-5 gap-4 divide-x divide-default-200/50">
+            {/* Uptime */}
+            <div className="flex flex-col items-center justify-center gap-1">
+              <div className="flex items-center gap-2 text-default-500 mb-1">
+                <IoTime className="text-lg" />
+                <span className="text-sm font-medium">运行时间</span>
+              </div>
+              <span className="text-xl font-bold text-foreground bg-gradient-to-r from-orange-400 to-pink-600 bg-clip-text text-transparent">
+                {uptime || '00:00:00'}
+              </span>
+            </div>
+
+            {/* Connections */}
+            <div className="flex flex-col items-center justify-center gap-1">
+              <div className="flex items-center gap-2 text-default-500 mb-1">
+                <IoSwapHorizontal className="text-lg" />
+                <span className="text-sm font-medium">连接数</span>
+              </div>
+              <span className="text-xl font-bold text-cyan-500">
+                {connectionCount ?? 0}
+              </span>
+            </div>
+
+            {/* Memory */}
+            <div className="flex flex-col items-center justify-center gap-1">
+              <div className="flex items-center gap-2 text-default-500 mb-1">
+                <IoServer className="text-lg" />
+                <span className="text-sm font-medium">内存占用</span>
+              </div>
+              <span className="text-xl font-bold text-pink-500">
+                {memoryUsage || '0 B'}
+              </span>
+            </div>
+
+            {/* Network Latency */}
+            <div className="flex flex-col items-center justify-center gap-1">
+              <div className="flex items-center gap-2 text-default-500 mb-1">
+                <IoGlobe className="text-lg" />
+                <span className="text-sm font-medium">网络延迟</span>
+              </div>
+              <span className={`text-xl font-bold ${
+                (networkLatency ?? -1) === -1 ? 'text-default-400' : 
+                networkLatency === 0 ? 'text-danger' : 
+                networkLatency < 200 ? 'text-success' : 
+                networkLatency < 500 ? 'text-warning' : 'text-danger'
+              }`}>
+                {(networkLatency ?? -1) === -1 ? '--' : networkLatency === 0 ? 'TIMEOUT' : `${networkLatency}ms`}
+              </span>
+            </div>
+
+            {/* DNS Latency */}
+            <div className="flex flex-col items-center justify-center gap-1">
+              <div className="flex items-center gap-2 text-default-500 mb-1">
+                <IoTimer className="text-lg" />
+                <span className="text-sm font-medium">DNS 延迟</span>
+              </div>
+              <span className={`text-xl font-bold ${
+                (dnsLatency ?? -1) < 0 ? 'text-danger' :
+                dnsLatency < 50 ? 'text-success' : 
+                dnsLatency < 100 ? 'text-warning' : 'text-danger'
+              }`}>
+                {(dnsLatency ?? -1) >= 0 ? (dnsLatency === 0 ? '<1ms' : `${dnsLatency}ms`) : 'TIMEOUT'}
+              </span>
+            </div>
+          </CardBody>
+        </Card>
 
         {/* 流量统计 - 分组卡片 */}
         <div className="grid grid-cols-2 gap-3">

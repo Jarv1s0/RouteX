@@ -23,6 +23,11 @@ export const AppConfigProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   }
 
+  const contextValue = React.useMemo(
+    () => ({ appConfig, mutateAppConfig, patchAppConfig }),
+    [appConfig, mutateAppConfig]
+  )
+
   React.useEffect(() => {
     window.electron.ipcRenderer.on('appConfigUpdated', () => {
       mutateAppConfig()
@@ -33,7 +38,7 @@ export const AppConfigProvider: React.FC<{ children: ReactNode }> = ({ children 
   }, [])
 
   return (
-    <AppConfigContext.Provider value={{ appConfig, mutateAppConfig, patchAppConfig }}>
+    <AppConfigContext.Provider value={contextValue}>
       {children}
     </AppConfigContext.Provider>
   )

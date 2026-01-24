@@ -680,3 +680,15 @@ export async function checkStreamingUnlock(service: string): Promise<{
 }> {
   return await window.electron.ipcRenderer.invoke('checkStreamingUnlock', service)
 }
+
+export async function getAppUptime(): Promise<number> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAppUptime'))
+}
+
+export async function getAppMemory(): Promise<number> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAppMemory'))
+}
+
+export async function testDNSLatency(domain: string = 'google.com'): Promise<number> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('testDNSLatency', domain))
+}

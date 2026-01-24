@@ -58,6 +58,8 @@ const defaultSiderOrder = [
   'tools'
 ]
 
+import { ConnectionsProvider } from '@renderer/hooks/use-connections'
+
 const App: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
@@ -79,6 +81,9 @@ const App: React.FC = () => {
     }
     if (!result.includes('tools')) {
       result = [...result, 'tools']
+    }
+    if (!result.includes('substore')) {
+      result = [...result, 'substore']
     }
     return result
   }, [siderOrderArray])
@@ -270,6 +275,7 @@ const App: React.FC = () => {
   }
 
   return (
+    <ConnectionsProvider>
     <div
       onMouseMove={(e) => {
         if (!resizing) return
@@ -458,6 +464,7 @@ const App: React.FC = () => {
         </AnimatePresence>
       </div>
     </div>
+    </ConnectionsProvider>
   )
 }
 

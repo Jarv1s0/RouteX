@@ -31,8 +31,7 @@ const ProxyItem: React.FC<Props> = (props) => {
     proxy,
     selected,
     onSelect,
-    onProxyDelay,
-    index = 0
+    onProxyDelay
   } = props
 
   const { appConfig } = useAppConfig()
@@ -100,16 +99,24 @@ const ProxyItem: React.FC<Props> = (props) => {
       onPress={() => onSelect(group.name, proxy.name)}
       isPressable
       fullWidth
-      shadow="sm"
-      className={`${fixed ? 'bg-secondary/20 backdrop-blur-md border-secondary/50' : selected ? 'bg-primary/20 backdrop-blur-md border-primary/50' : 'bg-white/50 dark:bg-default-100/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-default-100/80 border-transparent hover:border-default-200/50'} ${loading ? 'animate-pulse' : ''} transition-all border shadow-sm`}
+      shadow="none"
+      className={`
+        ${fixed 
+          ? 'bg-secondary/20 backdrop-blur-md border-secondary/50' 
+          : selected 
+            ? 'bg-primary/15 backdrop-blur-xl border-primary/40 shadow-[0_0_15px_rgba(var(--heroui-primary),0.1)]' 
+            : 'bg-default-50/60 dark:bg-default-50/30 backdrop-blur-md border-white/20 dark:border-white/10 hover:bg-default-100/60 hover:scale-[1.02] hover:shadow-sm'
+        } 
+        ${loading ? 'animate-pulse' : ''} 
+        transition-all duration-300 border
+      `}
       radius="lg"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{
         opacity: 1,
         scale: 1,
-        transition: { duration: 0.15, delay: Math.min(index * 0.02, 0.3) }
+        transition: { duration: 0.2, ease: 'easeOut' }
       }}
-      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
       <CardBody className="py-1.5 px-2">

@@ -23,6 +23,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { MdTune } from 'react-icons/md'
 import { IoLink } from 'react-icons/io5'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { useConnections } from '@renderer/hooks/use-connections'
 
 let cachedConnections: ControllerConnectionDetail[] = []
 
@@ -257,15 +258,21 @@ const Connections: React.FC = () => {
     localStorage.removeItem('hiddenConnectionRules')
   }, [])
 
+  const { connections: contextConnections, loading: connectionsLoading } = useConnections()
+
+  // Update effect relying on Context instead of IPC event
   useEffect(() => {
-    const handleConnections = (_e: unknown, info: ControllerConnections): void => {
-      if (!info.connections) return
-      if (isPaused) return // 暂停时不更新连接列表
+    if (!contextConnections) return
+    if (isPaused) return
 
-      const prevActiveMap = new Map(activeConnections.map((conn) => [conn.id, conn]))
-      const existingConnectionIds = new Set(allConnections.map((conn) => conn.id))
+    // 1. Snapshot previous active connections for speed calculation
+    // Note: We use the current state from the closure when contextConnections changes.
+    // This effect runs whenever contextConnections updates (new data arrived).
+    const prevActiveMap = new Map(activeConnections.map((conn) => [conn.id, conn]))
+    const existingConnectionIds = new Set(allConnections.map((conn) => conn.id))
 
-      const activeConns = info.connections.map((conn) => {
+    // 2. Process new active connections
+    const activeConns = contextConnections.map((conn) => {
         const preConn = prevActiveMap.get(conn.id)
         const downloadSpeed = preConn ? conn.download - preConn.download : 0
         const uploadSpeed = preConn ? conn.upload - preConn.upload : 0
@@ -278,53 +285,53 @@ const Connections: React.FC = () => {
           ...conn,
           metadata,
           isActive: true,
-          downloadSpeed,
-          uploadSpeed
+          downloadSpeed: Math.max(0, downloadSpeed), // Ensure non-negative
+          uploadSpeed: Math.max(0, uploadSpeed)
         }
       })
 
-      const newConnections = activeConns.filter(
+    // 3. Identify truly new connections to add to history (allConnections)
+    const newHistoryConnections = activeConns.filter(
         (conn) => !existingConnectionIds.has(conn.id) && !deletedIds.has(conn.id)
-      )
+    )
 
-      if (newConnections.length > 0) {
-        const updatedAllConnections = [...allConnections, ...newConnections]
-
-        const activeConnIds = new Set(activeConns.map((conn) => conn.id))
-        const allConns = updatedAllConnections.map((conn) => {
-          const activeConn = activeConns.find((ac) => ac.id === conn.id)
-          return activeConn || { ...conn, isActive: false, downloadSpeed: 0, uploadSpeed: 0 }
+    // 4. Update States safely
+    if (newHistoryConnections.length > 0) {
+        // Add new items
+        setAllConnections(prev => {
+            const updated = [...prev, ...newHistoryConnections]
+            return updated.slice(-(activeConns.length + 200)) // Keep history size manageable
         })
-
-        const closedConns = allConns.filter((conn) => !activeConnIds.has(conn.id))
-
-        setActiveConnections(activeConns)
-        setClosedConnections(closedConns)
-        const finalAllConnections = allConns.slice(-(activeConns.length + 200))
-        setAllConnections(finalAllConnections)
-        cachedConnections = finalAllConnections
-      } else {
-        const activeConnIds = new Set(activeConns.map((conn) => conn.id))
-        const allConns = allConnections.map((conn) => {
-          const activeConn = activeConns.find((ac) => ac.id === conn.id)
-          return activeConn || { ...conn, isActive: false, downloadSpeed: 0, uploadSpeed: 0 }
-        })
-
-        const closedConns = allConns.filter((conn) => !activeConnIds.has(conn.id))
-
-        setActiveConnections(activeConns)
-        setClosedConnections(closedConns)
-        setAllConnections(allConns)
-        cachedConnections = allConns
-      }
     }
+    
+    // Update active list
+    setActiveConnections(activeConns)
 
-    window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
+    // Update closed list (Items in allConnections but not in activeConns)
+    // We derive this to ensure consistency
+    setAllConnections(currentAll => {
+        // We use the functional update to get the latest 'allConnections' including the ones we just added if any
+        // logic above for setAllConnections might be batched, so here we rely on the closure 'allConnections' + 'newHistoryConnections'
+        // Actually, better to just update closedConnections based on current 'allConnections' state + new items.
+        
+        // Let's refine: The original logic trying to do too much in one effect with state dependencies.
+        // We will just update Active and Closed separately.
+        
+        const activeIds = new Set(activeConns.map(c => c.id))
+        const closed = currentAll.filter(c => !activeIds.has(c.id))
+        
+        // Avoid setting state if nothing changed deep inside (React does shallow compare but array ref changes)
+        // Here we just set it.
+        setClosedConnections(closed)
+        
+        // Sync cache
+        cachedConnections = currentAll
+        
+        return currentAll
+    })
 
-    return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('mihomoConnections')
-    }
-  }, [allConnections, activeConnections, closedConnections, deletedIds, isPaused])
+  }, [contextConnections, isPaused]) // Only trigger when new data comes or pause state changes
+
 
   const processAppNameQueue = useCallback(async () => {
     if (processingAppNames.current.size >= 3 || appNameRequestQueue.current.size === 0) return
