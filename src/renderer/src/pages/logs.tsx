@@ -15,6 +15,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
+import { throttle } from 'lodash'
 
 const cachedLogs: {
   log: ControllerLog[]
@@ -83,15 +84,21 @@ const Logs: React.FC = () => {
     })
   }, [filteredLogs, paused])
 
+
+
   useEffect(() => {
     const old = cachedLogs.trigger
-    cachedLogs.trigger = (a): void => {
+    
+    const updateLogs = throttle((a: ControllerLog[]) => {
       if (!paused) {
         setLogs([...a])
       }
-    }
+    }, 500, { leading: true, trailing: true })
+
+    cachedLogs.trigger = updateLogs
     return (): void => {
       cachedLogs.trigger = old
+      updateLogs.cancel()
     }
   }, [paused])
 

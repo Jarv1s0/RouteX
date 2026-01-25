@@ -1,64 +1,22 @@
 import { useTheme } from 'next-themes'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import PageTransition from '@renderer/components/base/page-transition'
-import OutboundModeSwitcher from '@renderer/components/sider/outbound-mode-switcher'
-import SysproxySwitcher from '@renderer/components/sider/sysproxy-switcher'
-import TunSwitcher from '@renderer/components/sider/tun-switcher'
-import { Button } from '@heroui/react'
-import { IoSettings } from 'react-icons/io5'
 import routes from '@renderer/routes'
-import {
-  DndContext,
-  closestCorners,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent
-} from '@dnd-kit/core'
-import { SortableContext } from '@dnd-kit/sortable'
-import ProfileCard from '@renderer/components/sider/profile-card'
-import ProxyCard from '@renderer/components/sider/proxy-card'
-import RuleCard from '@renderer/components/sider/rule-card'
-import DNSCard from '@renderer/components/sider/dns-card'
-import SniffCard from '@renderer/components/sider/sniff-card'
-import OverrideCard from '@renderer/components/sider/override-card'
-import ConnCard from '@renderer/components/sider/conn-card'
-import LogCard from '@renderer/components/sider/log-card'
-import MihomoCoreCard from '@renderer/components/sider/mihomo-core-card'
-import UpdaterButton from '@renderer/components/updater/updater-button'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { applyTheme, checkUpdate, setNativeTheme, setTitleBarOverlay } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
-import SubStoreCard from '@renderer/components/sider/substore-card'
-import StatsCard from '@renderer/components/sider/stats-card'
-import ToolsCard from '@renderer/components/sider/tools-card'
-import MihomoIcon from './components/base/mihomo-icon'
 import useSWR from 'swr'
-import ConfirmModal from '@renderer/components/base/base-confirm'
+import { ConnectionsProvider } from '@renderer/hooks/use-connections'
+
+import AppSidebar from '@renderer/components/layout/AppSidebar'
+import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
+import ErrorBoundary from '@renderer/components/base/error-boundary'
+import { ConnectionsSkeleton } from '@renderer/components/skeletons/ConnectionsSkeleton'
 
 let navigate: NavigateFunction
-
-const defaultSiderOrder = [
-  'sysproxy',
-  'tun',
-  'dns',
-  'sniff',
-  'proxy',
-  'connection',
-  'profile',
-  'mihomo',
-  'rule',
-  'override',
-  'log',
-  'substore',
-  'stats',
-  'tools'
-]
-
-import { ConnectionsProvider } from '@renderer/hooks/use-connections'
 
 const App: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -67,38 +25,27 @@ const App: React.FC = () => {
     customTheme,
     useWindowFrame = false,
     siderWidth = 250,
-    siderOrder,
     autoCheckUpdate,
-    updateChannel = 'stable',
-    disableAnimation = false
+    updateChannel = 'stable'
   } = appConfig || {}
-  const siderOrderArray = siderOrder ?? defaultSiderOrder
-  // 确保新增的卡片被添加到已有配置中
-  const mergedSiderOrder = useMemo(() => {
-    let result = siderOrderArray
-    if (!result.includes('stats')) {
-      result = [...result, 'stats']
-    }
-    if (!result.includes('tools')) {
-      result = [...result, 'tools']
-    }
-    if (!result.includes('substore')) {
-      result = [...result, 'substore']
-    }
-    return result
-  }, [siderOrderArray])
+
   const narrowWidth = platform === 'darwin' ? 70 : 60
-  const [order, setOrder] = useState(mergedSiderOrder)
+  
   // 初始值固定为 250，避免闪烁
   const [siderWidthValue, setSiderWidthValue] = useState(siderWidth)
   const siderWidthValueRef = useRef(siderWidthValue)
   const [resizing, setResizing] = useState(false)
   const resizingRef = useRef(resizing)
-  const sensors = useSensors(useSensor(PointerSensor))
+  
+  const sideRef = useRef<HTMLDivElement>(null)
+  const resizerRef = useRef<HTMLDivElement>(null)
+  const mainRef = useRef<HTMLDivElement>(null)
+
   const { setTheme, systemTheme } = useTheme()
   navigate = useNavigate()
   const location = useLocation()
   const page = useRoutes(routes)
+
   const setTitlebar = (): void => {
     if (!useWindowFrame && platform !== 'darwin') {
       const options = { height: 48 } as TitleBarOverlayOptions
@@ -111,6 +58,7 @@ const App: React.FC = () => {
       }
     }
   }
+
   const { data: latest } = useSWR(
     autoCheckUpdate ? ['checkUpdate', updateChannel] : undefined,
     autoCheckUpdate ? checkUpdate : (): undefined => {},
@@ -120,9 +68,8 @@ const App: React.FC = () => {
   )
 
   useEffect(() => {
-    setOrder(mergedSiderOrder)
     setSiderWidthValue(siderWidth)
-  }, [mergedSiderOrder, siderWidth])
+  }, [siderWidth])
 
   useEffect(() => {
     siderWidthValueRef.current = siderWidthValue
@@ -159,311 +106,92 @@ const App: React.FC = () => {
   const onResizeEnd = (): void => {
     if (resizingRef.current) {
       setResizing(false)
-      patchAppConfig({ siderWidth: siderWidthValueRef.current })
+      const finalWidth = siderWidthValueRef.current
+      setSiderWidthValue(finalWidth)
+      patchAppConfig({ siderWidth: finalWidth })
     }
   }
 
-  const onDragEnd = async (event: DragEndEvent): Promise<void> => {
-    const { active, over } = event
-    if (over) {
-      if (active.id !== over.id) {
-        const newOrder = order.slice()
-        const activeIndex = newOrder.indexOf(active.id as string)
-        const overIndex = newOrder.indexOf(over.id as string)
-        newOrder.splice(activeIndex, 1)
-        newOrder.splice(overIndex, 0, active.id as string)
-        setOrder(newOrder)
-        await patchAppConfig({ siderOrder: newOrder })
-        return
-      }
+  const getFallback = (path: string) => {
+    if (path.includes('/connections')) {
+      return <ConnectionsSkeleton />
     }
-    navigate(navigateMap[active.id as string])
-  }
-
-  const navigateMap = {
-    sysproxy: 'sysproxy',
-    tun: 'tun',
-    profile: 'profiles',
-    proxy: 'proxies',
-    mihomo: 'mihomo',
-    connection: 'connections',
-    dns: 'dns',
-    sniff: 'sniffer',
-    log: 'logs',
-    rule: 'rules',
-    override: 'override',
-    substore: 'substore',
-    stats: 'stats',
-    tools: 'tools'
-  }
-
-  const componentMap = {
-    sysproxy: SysproxySwitcher,
-    tun: TunSwitcher,
-    profile: ProfileCard,
-    proxy: ProxyCard,
-    mihomo: MihomoCoreCard,
-    connection: ConnCard,
-    dns: DNSCard,
-    sniff: SniffCard,
-    log: LogCard,
-    rule: RuleCard,
-    override: OverrideCard,
-    substore: SubStoreCard,
-    stats: StatsCard,
-    tools: ToolsCard
-  }
-
-  const [showQuitConfirm, setShowQuitConfirm] = useState(false)
-  const [showProfileInstallConfirm, setShowProfileInstallConfirm] = useState(false)
-  const [showOverrideInstallConfirm, setShowOverrideInstallConfirm] = useState(false)
-  const [profileInstallData, setProfileInstallData] = useState<{
-    url: string
-    name?: string | null
-  }>()
-  const [overrideInstallData, setOverrideInstallData] = useState<{
-    url: string
-    name?: string | null
-  }>()
-
-  useEffect(() => {
-    const handleShowQuitConfirm = (): void => {
-      setShowQuitConfirm(true)
-    }
-    const handleShowProfileInstallConfirm = (
-      _event: unknown,
-      data: { url: string; name?: string | null }
-    ): void => {
-      setProfileInstallData(data)
-      setShowProfileInstallConfirm(true)
-    }
-    const handleShowOverrideInstallConfirm = (
-      _event: unknown,
-      data: { url: string; name?: string | null }
-    ): void => {
-      setOverrideInstallData(data)
-      setShowOverrideInstallConfirm(true)
-    }
-
-    window.electron.ipcRenderer.on('show-quit-confirm', handleShowQuitConfirm)
-    window.electron.ipcRenderer.on('show-profile-install-confirm', handleShowProfileInstallConfirm)
-    window.electron.ipcRenderer.on(
-      'show-override-install-confirm',
-      handleShowOverrideInstallConfirm
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
     )
-
-    return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('show-quit-confirm')
-      window.electron.ipcRenderer.removeAllListeners('show-profile-install-confirm')
-      window.electron.ipcRenderer.removeAllListeners('show-override-install-confirm')
-    }
-  }, [])
-
-  const handleQuitConfirm = (confirmed: boolean): void => {
-    setShowQuitConfirm(false)
-    window.electron.ipcRenderer.send('quit-confirm-result', confirmed)
-  }
-
-  const handleProfileInstallConfirm = (confirmed: boolean): void => {
-    setShowProfileInstallConfirm(false)
-    window.electron.ipcRenderer.send('profile-install-confirm-result', confirmed)
-  }
-
-  const handleOverrideInstallConfirm = (confirmed: boolean): void => {
-    setShowOverrideInstallConfirm(false)
-    window.electron.ipcRenderer.send('override-install-confirm-result', confirmed)
   }
 
   return (
     <ConnectionsProvider>
-    <div
-      onMouseMove={(e) => {
-        if (!resizing) return
-        if (e.clientX <= 150) {
-          setSiderWidthValue(narrowWidth)
-        } else if (e.clientX <= 250) {
-          setSiderWidthValue(250)
-        } else if (e.clientX >= 400) {
-          setSiderWidthValue(400)
-        } else {
-          setSiderWidthValue(e.clientX)
-        }
-      }}
-      className={`w-full h-screen flex ${resizing ? 'cursor-ew-resize' : ''}`}
-    >
-      {showQuitConfirm && (
-        <ConfirmModal
-          title="确定要退出 RouteX 吗？"
-          description={
-            <div>
-              <p></p>
-              <p className="text-sm text-gray-500 mt-2">退出后代理功能将停止工作</p>
-              <p className="text-sm text-gray-400 mt-1">
-                快按两次或长按 {platform === 'darwin' ? '⌘Q' : 'Ctrl+Q'} 可直接退出
-              </p>
-            </div>
-          }
-          confirmText="退出"
-          cancelText="取消"
-          onChange={(open) => {
-            if (!open) {
-              handleQuitConfirm(false)
-            }
-          }}
-          onConfirm={() => handleQuitConfirm(true)}
-        />
-      )}
-      {showProfileInstallConfirm && profileInstallData && (
-        <ConfirmModal
-          title="确定要导入订阅配置吗？"
-          description={
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                名称：{profileInstallData.name || '未命名'}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">链接：{profileInstallData.url}</p>
-              <p className="text-sm text-orange-500 mt-2">
-                请确保订阅配置来源可信，恶意配置可能影响您的网络安全
-              </p>
-            </div>
-          }
-          confirmText="导入"
-          cancelText="取消"
-          onChange={(open) => {
-            if (!open) {
-              handleProfileInstallConfirm(false)
-            }
-          }}
-          onConfirm={() => handleProfileInstallConfirm(true)}
-          className="w-[500px]"
-        />
-      )}
-      {showOverrideInstallConfirm && overrideInstallData && (
-        <ConfirmModal
-          title="确定要导入覆写文件吗？"
-          description={
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                名称：{overrideInstallData.name || '未命名'}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">链接：{overrideInstallData.url}</p>
-              <p className="text-sm text-orange-500 mt-2">
-                请确保覆写文件来源可信，恶意覆写文件可能影响您的网络安全
-              </p>
-            </div>
-          }
-          confirmText="导入"
-          cancelText="取消"
-          onChange={(open) => {
-            if (!open) {
-              handleOverrideInstallConfirm(false)
-            }
-          }}
-          onConfirm={() => handleOverrideInstallConfirm(true)}
-        />
-      )}
-      {siderWidthValue === narrowWidth ? (
-        <div style={{ width: `${narrowWidth}px` }} className="side h-full flex flex-col bg-default-100/50 backdrop-blur-2xl border-r border-default-200/50 dark:border-white/5 transition-all duration-300">
-          <div className="app-drag flex justify-center items-center z-40 bg-transparent h-[49px] shrink-0">
-            {platform !== 'darwin' && (
-              <MihomoIcon className="h-[32px] leading-[32px] text-lg" />
-            )}
-          </div>
-          <div className="flex-1 overflow-y-auto no-scrollbar px-1">
-            <div className="flex flex-col gap-2 py-1">
-              {order.map((key: string) => {
-                const Component = componentMap[key]
-                if (!Component) return null
-                return <Component key={key} iconOnly={true} />
-              })}
-            </div>
-          </div>
-          <div className="p-2 flex flex-col items-center gap-2 shrink-0 border-t border-divider">
-            {latest && latest.version && <UpdaterButton iconOnly={true} latest={latest} />}
-            <OutboundModeSwitcher iconOnly />
-            <Button
-              size="sm"
-              className="app-nodrag"
-              isIconOnly
-              color={location.pathname.includes('/settings') ? 'primary' : 'default'}
-              variant={location.pathname.includes('/settings') ? 'solid' : 'light'}
-              onPress={() => navigate('/settings')}
-            >
-              <IoSettings className="text-[20px]" />
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div
-          style={{ width: `${siderWidthValue}px` }}
-          className="side h-full overflow-y-auto no-scrollbar bg-default-100/50 backdrop-blur-2xl border-r border-default-200/50 dark:border-white/5 transition-all duration-300"
-        >
-          <div
-            className={`app-drag sticky top-0 z-40 ${disableAnimation ? 'bg-background/95 backdrop-blur-sm' : 'bg-transparent backdrop-blur'} h-[49px]`}
-          >
-            <div
-              className={`flex justify-between items-center p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
-            >
-              <div className="flex ml-1 items-center gap-2">
-                <h3 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-600 bg-clip-text text-transparent">RouteX</h3>
-              </div>
-              {latest && latest.version && <UpdaterButton latest={latest} />}
-              <Button
-                size="sm"
-                className="app-nodrag group"
-                isIconOnly
-                variant="light"
-                onPress={() => {
-                  navigate('/settings')
-                }}
-              >
-                <IoSettings className={`text-[20px] transition-all duration-300 group-hover:rotate-90 group-hover:text-primary group-hover:drop-shadow-[0_0_4px_rgba(0,112,243,0.4)] ${location.pathname.includes('/settings') ? 'text-primary' : 'text-slate-500'}`} />
-              </Button>
-            </div>
-          </div>
-          <div className="mt-0 mx-2">
-            <OutboundModeSwitcher />
-          </div>
-          <div style={{ overflowX: 'clip' }}>
-            <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
-              <div className="grid grid-cols-2 gap-2 m-2">
-                <SortableContext items={order}>
-                  {order.map((key: string) => {
-                    const Component = componentMap[key]
-                    if (!Component) return null
-                    return <Component key={key} />
-                  })}
-                </SortableContext>
-              </div>
-            </DndContext>
-          </div>
-        </div>
-      )}
+      <GlobalConfirmModals />
+      
+      <div
+        onMouseMove={(e) => {
+          if (!resizing) return
+          e.preventDefault()
+          let newWidth = e.clientX
 
-      <div
-        onMouseDown={() => {
-          setResizing(true)
+          if (newWidth <= 150) {
+            newWidth = narrowWidth
+          } else if (newWidth <= 250) {
+            newWidth = 250
+          } else if (newWidth >= 400) {
+            newWidth = 400
+          }
+
+          if (sideRef.current) {
+            sideRef.current.style.width = `${newWidth}px`
+          }
+          if (resizerRef.current) {
+            resizerRef.current.style.left = `${newWidth - 2}px`
+          }
+          if (mainRef.current) {
+            mainRef.current.style.width = `calc(100% - ${newWidth + 1}px)`
+          }
+          
+          siderWidthValueRef.current = newWidth
         }}
-        style={{
-          position: 'fixed',
-          zIndex: 50,
-          left: `${siderWidthValue - 2}px`,
-          width: '5px',
-          height: '100vh',
-          cursor: 'ew-resize'
-        }}
-        className={resizing ? 'bg-primary' : ''}
-      />
-      {/* Divider removed as border-r is used */}
-      <div
-        style={{ width: `calc(100% - ${siderWidthValue + 1}px)` }}
-        className="main grow h-full overflow-y-auto"
+        className={`w-full h-screen flex ${resizing ? 'cursor-ew-resize select-none' : ''}`}
       >
-        <AnimatePresence mode="wait">
-          <PageTransition key={location.pathname}>{page}</PageTransition>
-        </AnimatePresence>
+        <AppSidebar 
+          ref={sideRef}
+          width={siderWidthValue}
+          narrowWidth={narrowWidth}
+          latest={latest}
+        />
+
+        <div
+          ref={resizerRef}
+          onMouseDown={() => {
+            setResizing(true)
+          }}
+          style={{
+            position: 'fixed',
+            zIndex: 50,
+            left: `${siderWidthValue - 2}px`,
+            width: '5px',
+            height: '100vh',
+            cursor: 'ew-resize'
+          }}
+          className={resizing ? 'bg-primary' : ''}
+        />
+        
+        <div
+          ref={mainRef}
+          style={{ width: `calc(100% - ${siderWidthValue + 1}px)` }}
+          className="main grow h-full overflow-y-auto"
+        >
+          <ErrorBoundary>
+            <AnimatePresence mode="wait">
+              <React.Suspense fallback={getFallback(location.pathname)}>
+                <PageTransition key={location.pathname}>{page}</PageTransition>
+              </React.Suspense>
+            </AnimatePresence>
+          </ErrorBoundary>
+        </div>
       </div>
-    </div>
     </ConnectionsProvider>
   )
 }

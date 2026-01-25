@@ -1,20 +1,23 @@
+import React from 'react'
 import { Navigate } from 'react-router-dom'
-import Override from '@renderer/pages/override'
-import Proxies from '@renderer/pages/proxies'
-import Rules from '@renderer/pages/rules'
-import Settings from '@renderer/pages/settings'
-import Profiles from '@renderer/pages/profiles'
-import Logs from '@renderer/pages/logs'
-import Connections from '@renderer/pages/connections'
-import Mihomo from '@renderer/pages/mihomo'
-import Sysproxy from '@renderer/pages/sysproxy'
-import Tun from '@renderer/pages/tun'
 
-import DNS from '@renderer/pages/dns'
-import Sniffer from '@renderer/pages/sniffer'
-import SubStore from '@renderer/pages/substore'
-import Stats from '@renderer/pages/stats'
-import Tools from '@renderer/pages/tools'
+const Override = React.lazy(() => import('@renderer/pages/override'))
+const Proxies = React.lazy(() => import('@renderer/pages/proxies'))
+const Rules = React.lazy(() => import('@renderer/pages/rules'))
+const Settings = React.lazy(() => import('@renderer/pages/settings'))
+const Profiles = React.lazy(() => import('@renderer/pages/profiles'))
+const Logs = React.lazy(() => import('@renderer/pages/logs'))
+const Connections = React.lazy(() => import('@renderer/pages/connections'))
+const Mihomo = React.lazy(() => import('@renderer/pages/mihomo'))
+const Sysproxy = React.lazy(() => import('@renderer/pages/sysproxy'))
+const Tun = React.lazy(() => import('@renderer/pages/tun'))
+
+const DNS = React.lazy(() => import('@renderer/pages/dns'))
+const Sniffer = React.lazy(() => import('@renderer/pages/sniffer'))
+const SubStore = React.lazy(() => import('@renderer/pages/substore'))
+const Stats = React.lazy(() => import('@renderer/pages/stats'))
+const Tools = React.lazy(() => import('@renderer/pages/tools'))
+
 const routes = [
   {
     path: '/mihomo',

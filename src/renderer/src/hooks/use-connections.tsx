@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { throttle } from 'lodash'
 
 interface ConnectionsContextType {
   connections: ControllerConnectionDetail[]
@@ -16,13 +17,13 @@ export const ConnectionsProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [memory, setMemory] = useState(0)
 
   useEffect(() => {
-    const handleConnections = (_e: unknown, info: ControllerConnections): void => {
+    const handleConnections = throttle((_e: unknown, info: ControllerConnections): void => {
       if (info && info.connections) {
         setConnections(info.connections)
         setConnectionCount(info.connections.length)
         setLoading(false)
       }
-    }
+    }, 1000, { leading: true, trailing: true })
 
     const handleMemory = (_e: unknown, info: ControllerMemory): void => {
       if (info && typeof info.inuse === 'number') {
