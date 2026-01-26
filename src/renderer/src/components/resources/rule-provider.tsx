@@ -157,7 +157,7 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <span className="text-foreground-500 text-xs">{dayjs(provider.updatedAt).fromNow()}</span>
-                  {provider.format !== 'MrsRule' && provider.vehicleType !== 'Inline' && (
+                  {provider.vehicleType !== 'Inline' && (
                     <Button
                       isIconOnly
                       title={provider.vehicleType == 'File' ? '编辑' : '查看'}

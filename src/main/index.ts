@@ -15,6 +15,7 @@ import { addOverrideItem, addProfileItem, getAppConfig, patchControledMihomoConf
 import { quitWithoutCore, startCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import icon from '../../resources/icon.png?asset'
+import iconWin from '../../resources/icon.ico?asset'
 import iconProxy from '../../resources/icon_proxy.ico?asset'
 import iconTun from '../../resources/icon_tun.ico?asset'
 import { createTray } from './resolve/tray'
@@ -373,6 +374,9 @@ app.whenReady().then(async () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       try {
         let targetIcon = icon
+        // Windows 上使用 .ico 图标以保持一致性 (因为 .exe 默认图标是 .ico)
+        if (process.platform === 'win32') targetIcon = iconWin
+        
         if (type === 'proxy') targetIcon = iconProxy
         if (type === 'tun') targetIcon = iconTun
         mainWindow.setIcon(targetIcon)
