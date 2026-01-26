@@ -104,6 +104,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
                   : CARD_STYLES.INACTIVE
               }
               ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+              cursor-pointer
             `}
           >
             <CardBody>
@@ -166,6 +167,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
                   : CARD_STYLES.INACTIVE
               }
               ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+              cursor-pointer
             `}
           >
             <CardBody className="overflow-visible flex flex-col justify-between h-full">

@@ -104,6 +104,7 @@ const ProfileCard: React.FC<Props> = (props) => {
                 : CARD_STYLES.INACTIVE
             }
             ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+            cursor-pointer
           `}
           radius="lg"
           shadow="none"
@@ -239,6 +240,7 @@ const ProfileCard: React.FC<Props> = (props) => {
                 : 'bg-gradient-to-br from-default-100/80 to-default-100/50 hover:from-default-200/60 hover:to-default-100/60 border-default-200/60 hover:border-default-300 backdrop-blur-2xl shadow-md hover:shadow-2xl hover:shadow-black/10 hover:scale-[1.02]'
             }
             ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+            cursor-pointer
           `}
         >
           <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">

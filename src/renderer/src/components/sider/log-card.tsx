@@ -72,6 +72,7 @@ const LogCard: React.FC<Props> = (props) => {
               : CARD_STYLES.INACTIVE
           }
           ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+          cursor-pointer
         `}
         radius="lg"
         shadow="none"
