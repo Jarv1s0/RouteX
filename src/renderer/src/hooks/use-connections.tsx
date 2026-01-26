@@ -8,7 +8,7 @@ export const ConnectionsProvider: React.FC<{ children: ReactNode }> = ({ childre
 
 // Hook now proxies to the store
 export const useConnections = () => {
-  const connections = useConnectionsStore((state) => state.connections)
+  const connections = useConnectionsStore((state) => state.activeConnections)
   const connectionCount = useConnectionsStore((state) => state.connectionCount)
   const loading = useConnectionsStore((state) => state.loading)
   const memory = useConnectionsStore((state) => state.memory)

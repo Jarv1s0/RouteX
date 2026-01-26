@@ -20,7 +20,6 @@ interface LogsState {
 // We can replicate that but inside the store module scope.
 
 const logBuffer: ControllerLog[] = []
-let triggerUpdate: ((logs: ControllerLog[]) => void) | null = null
 
 const updateStore = throttle((logs: ControllerLog[]) => {
     useLogsStore.setState({ logs: [...logs] })
@@ -38,7 +37,7 @@ const handleLog = (_e: unknown, log: ControllerLog) => {
     }
 }
 
-export const useLogsStore = create<LogsState>((set, get) => ({
+export const useLogsStore = create<LogsState>((set) => ({
   logs: [],
   paused: false,
 
