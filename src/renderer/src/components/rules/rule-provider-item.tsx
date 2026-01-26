@@ -47,7 +47,7 @@ const RuleProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate
               <span className="text-foreground-400 text-xs">
                 {dayjs(provider.updatedAt).fromNow()}
               </span>
-              {provider.format !== 'MrsRule' && provider.vehicleType !== 'Inline' && (
+              {provider.vehicleType !== 'Inline' && (
                 <Button
                   isIconOnly
                   variant="light"
