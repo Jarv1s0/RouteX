@@ -3,6 +3,7 @@ import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useEffect, memo } from 'react'
+import { getFlag } from '@renderer/utils/flags'
 
 
 interface Props {
@@ -139,6 +140,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
               {/* Current Node (Inline) */}
               <div className="flex items-center gap-2 mr-2 border-r border-default-200/50 pr-4">
                  <span className="text-sm font-medium text-foreground/90 max-w-[120px] truncate" title={group.now}>
+                   <span className="mr-1 flag-emoji">{getFlag(group.now)}</span>
                    {group.now}
                  </span>
               </div>
