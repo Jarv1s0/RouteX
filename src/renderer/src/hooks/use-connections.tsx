@@ -1,57 +1,22 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { throttle } from 'lodash'
+import React, { ReactNode } from 'react'
+import { useConnectionsStore } from '@renderer/store/use-connections-store'
 
-interface ConnectionsContextType {
-  connections: ControllerConnectionDetail[]
-  connectionCount: number
-  loading: boolean
-  memory: number
-}
-
-const ConnectionsContext = createContext<ConnectionsContextType | undefined>(undefined)
-
+// Backward compatibility: Provider is now a no-op fragment
 export const ConnectionsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [connections, setConnections] = useState<ControllerConnectionDetail[]>([])
-  const [connectionCount, setConnectionCount] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [memory, setMemory] = useState(0)
-
-  useEffect(() => {
-    const handleConnections = throttle((_e: unknown, info: ControllerConnections): void => {
-      if (info && info.connections) {
-        setConnections(info.connections)
-        setConnectionCount(info.connections.length)
-        setLoading(false)
-      }
-    }, 1000, { leading: true, trailing: true })
-
-    const handleMemory = (_e: unknown, info: ControllerMemory): void => {
-      if (info && typeof info.inuse === 'number') {
-        setMemory(info.inuse)
-      }
-    }
-
-    // Bind once
-    window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
-    window.electron.ipcRenderer.on('mihomoMemory', handleMemory)
-
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('mihomoConnections', handleConnections)
-      window.electron.ipcRenderer.removeListener('mihomoMemory', handleMemory)
-    }
-  }, []) // Empty dependency array ensures single subscription
-
-  return (
-    <ConnectionsContext.Provider value={{ connections, connectionCount, loading, memory }}>
-      {children}
-    </ConnectionsContext.Provider>
-  )
+  return <>{children}</>
 }
 
-export const useConnections = (): ConnectionsContextType => {
-  const context = useContext(ConnectionsContext)
-  if (context === undefined) {
-    throw new Error('useConnections must be used within a ConnectionsProvider')
+// Hook now proxies to the store
+export const useConnections = () => {
+  const connections = useConnectionsStore((state) => state.connections)
+  const connectionCount = useConnectionsStore((state) => state.connectionCount)
+  const loading = useConnectionsStore((state) => state.loading)
+  const memory = useConnectionsStore((state) => state.memory)
+
+  return {
+    connections,
+    connectionCount,
+    loading,
+    memory
   }
-  return context
 }

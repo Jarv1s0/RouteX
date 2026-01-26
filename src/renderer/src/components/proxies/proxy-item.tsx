@@ -1,8 +1,7 @@
 import { Button, Card, CardBody } from '@heroui/react'
 import { mihomoUnfixedProxy } from '@renderer/utils/ipc'
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, memo } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
-import { motion } from 'framer-motion'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 
 interface Props {
@@ -21,9 +20,7 @@ const isSubGroup = (proxy: ControllerProxiesDetail | ControllerGroupDetail): pro
   return 'all' in proxy && Array.isArray((proxy as ControllerGroupDetail).all) && (proxy as ControllerGroupDetail).all.length > 0
 }
 
-const MotionCard = motion.create(Card)
-
-const ProxyItem: React.FC<Props> = (props) => {
+const ProxyItemComponent: React.FC<Props> = (props) => {
   const {
     mutateProxies,
     proxyDisplayLayout,
@@ -94,7 +91,7 @@ const ProxyItem: React.FC<Props> = (props) => {
   const fixed = group.fixed && group.fixed === proxy.name
 
   return (
-    <MotionCard
+    <Card
       as="div"
       onPress={() => onSelect(group.name, proxy.name)}
       isPressable
@@ -108,16 +105,9 @@ const ProxyItem: React.FC<Props> = (props) => {
             : 'bg-default-50/60 dark:bg-default-50/30 backdrop-blur-md border-white/20 dark:border-white/10 hover:bg-default-100/60 hover:scale-[1.02] hover:shadow-sm'
         } 
         ${loading ? 'animate-pulse' : ''} 
-        transition-all duration-300 border
+        transition-all duration-200 border
       `}
       radius="lg"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{
-        opacity: 1,
-        scale: 1,
-        transition: { duration: 0.2, ease: 'easeOut' }
-      }}
-      whileTap={{ scale: 0.98 }}
     >
       <CardBody className="py-1.5 px-2">
         <div
@@ -246,8 +236,19 @@ const ProxyItem: React.FC<Props> = (props) => {
           )}
         </div>
       </CardBody>
-    </MotionCard>
+    </Card>
   )
 }
+
+const ProxyItem = memo(ProxyItemComponent, (prev, next) => {
+    return (
+        prev.selected === next.selected &&
+        prev.proxyDisplayLayout === next.proxyDisplayLayout &&
+        prev.group.now === next.group.now && // Keep eye on this. Group.now change affects selection logic but simple comparison might be enough.
+        prev.group.fixed === next.group.fixed &&
+        prev.proxy === next.proxy && // Shallow ref compare. Since we mutate, we need to be careful. But usually new data new ref.
+        prev.index === next.index
+    )
+})
 
 export default ProxyItem

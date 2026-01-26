@@ -4,7 +4,7 @@ import RuleProviderItem from '@renderer/components/rules/rule-provider-item'
 import GeoData from '@renderer/components/resources/geo-data'
 import Viewer from '@renderer/components/resources/viewer'
 import { Virtuoso } from 'react-virtuoso'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useDeferredValue } from 'react'
 import { Button, Input, Tab, Tabs } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
 import { useRules } from '@renderer/hooks/use-rules'
@@ -17,6 +17,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 const Rules: React.FC = () => {
   const { rules } = useRules()
   const [filter, setFilter] = useState('')
+  const deferredFilter = useDeferredValue(filter)
   const [activeTab, setActiveTab] = useState('rules')
   const [updating, setUpdating] = useState<boolean[]>([])
   const [showDetails, setShowDetails] = useState({
@@ -94,15 +95,15 @@ const Rules: React.FC = () => {
 
   const filteredRules = useMemo(() => {
     if (!rules) return []
-    if (filter === '') return rules.rules
+    if (deferredFilter === '') return rules.rules
     return rules.rules.filter((rule) => {
       return (
-        includesIgnoreCase(rule.payload, filter) ||
-        includesIgnoreCase(rule.type, filter) ||
-        includesIgnoreCase(rule.proxy, filter)
+        includesIgnoreCase(rule.payload, deferredFilter) ||
+        includesIgnoreCase(rule.type, deferredFilter) ||
+        includesIgnoreCase(rule.proxy, deferredFilter)
       )
     })
-  }, [rules, filter])
+  }, [rules, deferredFilter])
 
   return (
     <BasePage title="规则">

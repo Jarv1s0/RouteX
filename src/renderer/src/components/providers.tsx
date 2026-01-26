@@ -9,7 +9,6 @@ import { ControledMihomoConfigProvider } from '@renderer/hooks/use-controled-mih
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
 import { ProfileConfigProvider } from '@renderer/hooks/use-profile-config'
 import { RulesProvider } from '@renderer/hooks/use-rules'
-import { GroupsProvider } from '@renderer/hooks/use-groups'
 import { Toaster } from 'sonner'
 
 interface ProvidersProps {
@@ -28,11 +27,9 @@ const Providers: React.FC<ProvidersProps> = ({ children }) => {
               <ControledMihomoConfigProvider>
                 <ProfileConfigProvider>
                   <OverrideConfigProvider>
-                    <GroupsProvider>
-                      <RulesProvider>
-                        {children}
-                      </RulesProvider>
-                    </GroupsProvider>
+                    <RulesProvider>
+                      {children}
+                    </RulesProvider>
                   </OverrideConfigProvider>
                 </ProfileConfigProvider>
               </ControledMihomoConfigProvider>

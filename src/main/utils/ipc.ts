@@ -619,36 +619,47 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('testRuleMatch', async (_e, domain: string) => {
     try {
       // 发起一个请求来触发规则匹配
-      return await new Promise(async (resolve) => {
+      return await new Promise((resolve) => {
         const url = `http://${domain}/`
-        const request = net.request({ url, method: 'HEAD' })
         
-        // 设置超时
-        const timeout = setTimeout(async () => {
-          request.abort()
-          // 查找连接记录
-          const result = await findConnectionByHost(domain)
-          resolve(result)
-        }, 3000)
-        
-        request.on('response', async () => {
-          clearTimeout(timeout)
-          request.abort()
-          // 等待一下让连接记录更新
-          await new Promise(r => setTimeout(r, 500))
-          const result = await findConnectionByHost(domain)
-          resolve(result)
-        })
-        
-        request.on('error', async () => {
-          clearTimeout(timeout)
-          // 即使请求失败，也可能有连接记录
-          await new Promise(r => setTimeout(r, 500))
-          const result = await findConnectionByHost(domain)
-          resolve(result)
-        })
-        
-        request.end()
+        // 辅助函数：安全地处理结果
+        const resolveResult = async () => {
+            try {
+                // 等待一下让连接记录更新
+                await new Promise(r => setTimeout(r, 500))
+                const result = await findConnectionByHost(domain)
+                resolve(result)
+            } catch (e) {
+                // 出错也尽量返回 null 而不是抛出异常
+                resolve(null)
+            }
+        }
+
+        try {
+            const request = net.request({ url, method: 'HEAD' })
+            
+            // 设置超时
+            const timeout = setTimeout(() => {
+              try { request.abort() } catch {}
+              resolveResult()
+            }, 3000)
+            
+            request.on('response', () => {
+              clearTimeout(timeout)
+              try { request.abort() } catch {}
+              resolveResult()
+            })
+            
+            request.on('error', () => {
+              clearTimeout(timeout)
+              resolveResult()
+            })
+            
+            request.end()
+        } catch (e) {
+            // request 创建失败（如 URL 错误）
+            resolveResult()
+        }
       })
     } catch (e) {
       return { invokeError: e instanceof Error ? e.message : String(e) }

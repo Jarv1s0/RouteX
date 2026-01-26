@@ -23,9 +23,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { MdTune } from 'react-icons/md'
 import { IoLink } from 'react-icons/io5'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { useConnections } from '@renderer/hooks/use-connections'
-
-let cachedConnections: ControllerConnectionDetail[] = []
+import { useConnectionsStore } from '@renderer/store/use-connections-store'
 
 const Connections: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -38,10 +36,13 @@ const Connections: React.FC = () => {
     displayIcon = true,
     displayAppName = true
   } = appConfig || {}
-  const [allConnections, setAllConnections] =
-    useState<ControllerConnectionDetail[]>(cachedConnections)
-  const [activeConnections, setActiveConnections] = useState<ControllerConnectionDetail[]>([])
-  const [closedConnections, setClosedConnections] = useState<ControllerConnectionDetail[]>([])
+
+  // Use Global Store directly
+  const activeConnections = useConnectionsStore((state) => state.activeConnections)
+  const closedConnections = useConnectionsStore((state) => state.closedConnections)
+  const trashClosedConnection = useConnectionsStore((state) => state.trashClosedConnection)
+  const trashAllClosedConnections = useConnectionsStore((state) => state.trashAllClosedConnections)
+
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [selected, setSelected] = useState<ControllerConnectionDetail>()
@@ -53,9 +54,16 @@ const Connections: React.FC = () => {
   const [tab, setTab] = useState('active')
   const [viewMode, setViewMode] = useState<'list' | 'group' | 'table'>('list')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  
+  // Local deleted IDs just for UI feedback if needed, strictly not required if store handles it immediately.
+  // usage: filteredConnections checking deletedIds.
+  // Since store handles deletion (trashClosedConnection), we might relying on store update.
+  // But let's keep `deletedIds` if we want instant optimistic UI removal before store updates?
+  // Store update is sync for `trashClosedConnection`, so no need for local deletedIds for closed.
+  // For active, we call IPC close, which is async. We might want `deletedIds` for active.
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
   
-  // 从 localStorage 加载隐藏规则
+  // ... hidden rules ...
   const [hiddenRules, setHiddenRules] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('hiddenConnectionRules')
@@ -194,32 +202,9 @@ const Connections: React.FC = () => {
     return Array.from(groups.values()).sort((a, b) => b.connections.length - a.connections.length)
   }, [filteredConnections])
 
-  const trashAllClosedConnection = useCallback((): void => {
-    if (closedConnections.length === 0) return
-
-    const trashIds = closedConnections.map((conn) => conn.id)
-    setDeletedIds((prev) => new Set([...prev, ...trashIds]))
-    setAllConnections((allConns) => {
-      const updatedConnections = allConns.filter((conn) => !trashIds.includes(conn.id))
-      cachedConnections = updatedConnections
-      return updatedConnections
-    })
-    setClosedConnections([])
-  }, [closedConnections])
-
-  const trashClosedConnection = useCallback((id: string): void => {
-    setDeletedIds((prev) => new Set([...prev, id]))
-    setAllConnections((allConns) => {
-      const updatedConnections = allConns.filter((conn) => conn.id !== id)
-      cachedConnections = updatedConnections
-      return updatedConnections
-    })
-    setClosedConnections((closedConns) => closedConns.filter((conn) => conn.id !== id))
-  }, [])
-
   const closeAllConnections = useCallback((): void => {
-    tab === 'active' ? mihomoCloseAllConnections() : trashAllClosedConnection()
-  }, [tab, trashAllClosedConnection])
+    tab === 'active' ? mihomoCloseAllConnections() : trashAllClosedConnections()
+  }, [tab, trashAllClosedConnections])
 
   const closeConnection = useCallback(
     (id: string): void => {
@@ -257,80 +242,6 @@ const Connections: React.FC = () => {
     setHiddenRules(new Set())
     localStorage.removeItem('hiddenConnectionRules')
   }, [])
-
-  const { connections: contextConnections } = useConnections()
-
-  // Update effect relying on Context instead of IPC event
-  useEffect(() => {
-    if (!contextConnections) return
-    if (isPaused) return
-
-    // 1. Snapshot previous active connections for speed calculation
-    // Note: We use the current state from the closure when contextConnections changes.
-    // This effect runs whenever contextConnections updates (new data arrived).
-    const prevActiveMap = new Map(activeConnections.map((conn) => [conn.id, conn]))
-    const existingConnectionIds = new Set(allConnections.map((conn) => conn.id))
-
-    // 2. Process new active connections
-    const activeConns = contextConnections.map((conn) => {
-        const preConn = prevActiveMap.get(conn.id)
-        const downloadSpeed = preConn ? conn.download - preConn.download : 0
-        const uploadSpeed = preConn ? conn.upload - preConn.upload : 0
-        const metadata =
-          conn.metadata.type === 'Inner'
-            ? { ...conn.metadata, process: 'mihomo', processPath: 'mihomo' }
-            : conn.metadata
-
-        return {
-          ...conn,
-          metadata,
-          isActive: true,
-          downloadSpeed: Math.max(0, downloadSpeed), // Ensure non-negative
-          uploadSpeed: Math.max(0, uploadSpeed)
-        }
-      })
-
-    // 3. Identify truly new connections to add to history (allConnections)
-    const newHistoryConnections = activeConns.filter(
-        (conn) => !existingConnectionIds.has(conn.id) && !deletedIds.has(conn.id)
-    )
-
-    // 4. Update States safely
-    if (newHistoryConnections.length > 0) {
-        // Add new items
-        setAllConnections(prev => {
-            const updated = [...prev, ...newHistoryConnections]
-            return updated.slice(-(activeConns.length + 200)) // Keep history size manageable
-        })
-    }
-    
-    // Update active list
-    setActiveConnections(activeConns)
-
-    // Update closed list (Items in allConnections but not in activeConns)
-    // We derive this to ensure consistency
-    setAllConnections(currentAll => {
-        // We use the functional update to get the latest 'allConnections' including the ones we just added if any
-        // logic above for setAllConnections might be batched, so here we rely on the closure 'allConnections' + 'newHistoryConnections'
-        // Actually, better to just update closedConnections based on current 'allConnections' state + new items.
-        
-        // Let's refine: The original logic trying to do too much in one effect with state dependencies.
-        // We will just update Active and Closed separately.
-        
-        const activeIds = new Set(activeConns.map(c => c.id))
-        const closed = currentAll.filter(c => !activeIds.has(c.id))
-        
-        // Avoid setting state if nothing changed deep inside (React does shallow compare but array ref changes)
-        // Here we just set it.
-        setClosedConnections(closed)
-        
-        // Sync cache
-        cachedConnections = currentAll
-        
-        return currentAll
-    })
-
-  }, [contextConnections, isPaused]) // Only trigger when new data comes or pause state changes
 
 
   const processAppNameQueue = useCallback(async () => {
