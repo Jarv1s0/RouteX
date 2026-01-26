@@ -98,7 +98,6 @@ const Stats: React.FC = () => {
   
   // 规则效率统计
   const [ruleStats, setRuleStats] = useState<Map<string, { hits: number; upload: number; download: number }>>(new Map())
-  const [processedConnIds, setProcessedConnIds] = useState<Set<string>>(new Set())
   
   // 规则命中详情
   const [ruleHitDetails, setRuleHitDetails] = useState<Map<string, Array<{
@@ -294,7 +293,6 @@ const Stats: React.FC = () => {
       }
     }> }): void => {
       const connections = data.connections || []
-      let statsChanged = false
       const now = new Date()
       // 这里的 timeStr 可能在渲染周期内不变，但为了 accurately reflecting connection time, keeping it here is fine.
       // 但注意 useCallback 依赖空数组，所以 handleConnections 不会重建，这意味着 timeStr 在函数闭包内是"动态"生成的（每次调用执行），这是正确的。
