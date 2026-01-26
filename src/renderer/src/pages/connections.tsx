@@ -61,7 +61,6 @@ const Connections: React.FC = () => {
   // But let's keep `deletedIds` if we want instant optimistic UI removal before store updates?
   // Store update is sync for `trashClosedConnection`, so no need for local deletedIds for closed.
   // For active, we call IPC close, which is async. We might want `deletedIds` for active.
-  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
   
   // ... hidden rules ...
   const [hiddenRules, setHiddenRules] = useState<Set<string>>(() => {

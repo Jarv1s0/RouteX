@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { throttle } from 'lodash'
 
-interface ExtendedConnection extends ControllerConnectionDetail {
+export interface ExtendedConnection extends ControllerConnectionDetail {
   isActive: boolean
   downloadSpeed: number
   uploadSpeed: number
