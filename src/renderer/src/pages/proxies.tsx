@@ -165,7 +165,7 @@ const Proxies: React.FC = () => {
       })
       
       const group = groups[index]
-      const currentSearch = searchValue[index]
+
 
       try {
         await mihomoGroupDelay(group.name, group.testUrl)
