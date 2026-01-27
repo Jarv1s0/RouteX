@@ -123,7 +123,10 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
     const { name, url, icon } = group
     if (proxies.proxies[name] && 'all' in proxies.proxies[name] && !proxies.proxies[name].hidden) {
       const newGroup = { ...proxies.proxies[name] }
-      newGroup.testUrl = url
+      // 只有当 url 存在且非空时才覆盖，避免覆盖为 undefined 或空字符串
+      if (url && url.length > 0) {
+        newGroup.testUrl = url
+      }
       if (icon) newGroup.icon = icon
       // 为 all 数组中的每个代理/组也添加 icon
       const newAll = newGroup.all.map((proxyName: string) => {
@@ -196,9 +199,12 @@ export const mihomoProxyDelay = async (
   const appConfig = await getAppConfig()
   const { delayTestUrl, delayTestTimeout } = appConfig
   const instance = await getAxios()
+  // 优先使用传入的 URL，如果没有则使用全局配置，最后兜底默认值
+  const finalUrl = (url && url.length > 0) ? url : (delayTestUrl || 'http://cp.cloudflare.com/generate_204')
+  
   return await instance.get(`/proxies/${encodeURIComponent(proxy)}/delay`, {
     params: {
-      url: url || delayTestUrl || 'http://cp.cloudflare.com/generate_204',
+      url: finalUrl,
       timeout: delayTestTimeout || 10000
     }
   })
@@ -211,9 +217,12 @@ export const mihomoGroupDelay = async (
   const appConfig = await getAppConfig()
   const { delayTestUrl, delayTestTimeout } = appConfig
   const instance = await getAxios()
+  // 优先使用传入的 URL，如果没有则使用全局配置，最后兜底默认值
+  const finalUrl = (url && url.length > 0) ? url : (delayTestUrl || 'http://cp.cloudflare.com/generate_204')
+
   return await instance.get(`/group/${encodeURIComponent(group)}/delay`, {
     params: {
-      url: url || delayTestUrl || 'http://cp.cloudflare.com/generate_204',
+      url: finalUrl,
       timeout: delayTestTimeout || 10000
     }
   })
