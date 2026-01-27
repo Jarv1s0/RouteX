@@ -56,6 +56,18 @@ export function resourcesFilesDir(): string {
   return path.join(resourcesDir(), 'files')
 }
 
+export function iconDir(): string {
+  if (is.dev) {
+    return path.join(__dirname, '../../resources')
+  } else {
+    return path.join(process.resourcesPath, 'icons')
+  }
+}
+
+export function getIconPath(filename: string): string {
+  return path.join(iconDir(), filename)
+}
+
 export function themesDir(): string {
   return path.join(dataDir(), 'themes')
 }

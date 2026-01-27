@@ -274,7 +274,7 @@ const Proxies: React.FC = () => {
   const getDelayColor = useCallback((proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {
     if (!proxy.history || proxy.history.length === 0) return 'bg-zinc-400' // 未测试 - 灰色
     const delay = proxy.history[proxy.history.length - 1].delay
-    if (delay === 0) return 'bg-red-500' // 超时 - 红色
+    if (delay === 0) return 'bg-zinc-400' // 0 通常表示测试失败或未测试，暂显示为灰色
     const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
     if (delay < delayThresholds.good) return 'bg-emerald-500' // 低延迟 - 翠绿色
     if (delay < delayThresholds.fair) return 'bg-amber-400' // 中延迟 - 琥珀色

@@ -37,7 +37,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 // 数字输入框样式，隐藏上下箭头
 const numberInputClassNames = {
-  input: 'bg-transparent [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]',
+  input: 'bg-transparent text-foreground [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]',
   inputWrapper: 'border border-default-200 bg-default-50 hover:bg-default-100 data-[focus=true]:bg-default-50'
 }
 

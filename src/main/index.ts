@@ -14,10 +14,9 @@ import {
 import { addOverrideItem, addProfileItem, getAppConfig, patchControledMihomoConfig } from './config'
 import { quitWithoutCore, startCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
-import icon from '../../resources/icon.png?asset'
-import iconWin from '../../resources/icon.ico?asset'
-import iconProxy from '../../resources/icon_proxy.ico?asset'
-import iconTun from '../../resources/icon_tun.ico?asset'
+import { triggerSysProxy } from './sys/sysproxy'
+// Icons are now resolved dynamically via getIconPath
+import { createTray } from './resolve/tray'
 import { createTray } from './resolve/tray'
 import { createApplicationMenu } from './resolve/menu'
 import { init } from './utils/init'
@@ -373,12 +372,12 @@ app.whenReady().then(async () => {
   ipcMain.on('update-taskbar-icon', (_event, type: 'default' | 'proxy' | 'tun') => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       try {
-        let targetIcon = icon
+        let targetIcon = getIconPath('icon.png')
         // Windows 上使用 .ico 图标以保持一致性 (因为 .exe 默认图标是 .ico)
-        if (process.platform === 'win32') targetIcon = iconWin
+        if (process.platform === 'win32') targetIcon = getIconPath('icon.ico')
         
-        if (type === 'proxy') targetIcon = iconProxy
-        if (type === 'tun') targetIcon = iconTun
+        if (type === 'proxy') targetIcon = getIconPath('icon_proxy.ico')
+        if (type === 'tun') targetIcon = getIconPath('icon_tun.ico')
         mainWindow.setIcon(targetIcon)
       } catch (e) {
         console.error('Failed to set taskbar icon', e)
@@ -615,7 +614,9 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       titleBarStyle: useWindowFrame ? 'default' : 'hidden',
       titleBarOverlay: false,
       autoHideMenuBar: true,
-      ...(process.platform === 'linux' ? { icon: icon } : {}),
+      autoHideMenuBar: true,
+      ...(process.platform === 'linux' ? { icon: getIconPath('icon.png') } : {}),
+      webPreferences: {
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         spellcheck: false,
