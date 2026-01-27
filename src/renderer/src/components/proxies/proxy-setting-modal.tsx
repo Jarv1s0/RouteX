@@ -65,9 +65,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
   const [fairThreshold, setFairThreshold] = useState(delayThresholds.fair.toString())
   const [showSortModal, setShowSortModal] = useState(false)
 
-  const setUrlDebounce = debounce((v: string) => {
+  const setUrlDebounce = useMemo(() => debounce((v: string) => {
     patchAppConfig({ delayTestUrl: v })
-  }, 500)
+  }, 500), [patchAppConfig])
 
   useEffect(() => {
     setUrl(delayTestUrl ?? '')
@@ -170,7 +170,15 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="延迟测试并发数量" divider>
+            <SettingItem
+              title={
+                <>
+                  延迟测试并发数量
+                  <span className="text-xs text-foreground-400 font-normal ml-1">(推荐值 5)</span>
+                </>
+              }
+              divider
+            >
               <Input
                 type="number"
                 size="sm"
@@ -183,7 +191,17 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="延迟测试超时时间" divider>
+            <SettingItem
+              title={
+                <>
+                  延迟测试超时时间
+                  <span className="text-xs text-foreground-400 font-normal ml-1">
+                    (推荐值 3000，单位 ms)
+                  </span>
+                </>
+              }
+              divider
+            >
               <Input
                 type="number"
                 size="sm"

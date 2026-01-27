@@ -202,10 +202,13 @@ export const mihomoProxyDelay = async (
   // 优先使用传入的 URL，如果没有则使用全局配置，最后兜底默认值
   const finalUrl = (url && url.length > 0) ? url : (delayTestUrl || 'http://cp.cloudflare.com/generate_204')
   
+  const timeoutVal = parseInt(String(delayTestTimeout || 5000))
+
+
   return await instance.get(`/proxies/${encodeURIComponent(proxy)}/delay`, {
     params: {
       url: finalUrl,
-      timeout: delayTestTimeout || 10000
+      timeout: timeoutVal
     }
   })
 }
@@ -220,10 +223,13 @@ export const mihomoGroupDelay = async (
   // 优先使用传入的 URL，如果没有则使用全局配置，最后兜底默认值
   const finalUrl = (url && url.length > 0) ? url : (delayTestUrl || 'http://cp.cloudflare.com/generate_204')
 
+  const timeoutVal = parseInt(String(delayTestTimeout || 5000))
+
+
   return await instance.get(`/group/${encodeURIComponent(group)}/delay`, {
     params: {
       url: finalUrl,
-      timeout: delayTestTimeout || 10000
+      timeout: timeoutVal
     }
   })
 }
