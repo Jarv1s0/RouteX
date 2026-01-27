@@ -6,9 +6,7 @@ import {
   patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
-import icoIcon from '../../../resources/icon.ico?asset'
-import iconProxy from '../../../resources/icon_proxy.ico?asset'
-import iconTun from '../../../resources/icon_tun.ico?asset'
+
 import pngIcon from '../../../resources/icon.png?asset'
 import templateIcon from '../../../resources/iconTemplate.png?asset'
 import {
@@ -30,7 +28,7 @@ import {
   shell,
   Tray
 } from 'electron'
-import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
+import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir, getIconPath } from '../utils/dirs'
 import { triggerSysProxy } from '../sys/sysproxy'
 import { quitWithoutCore, restartCore } from '../core/manager'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
@@ -452,7 +450,7 @@ export async function createTray(): Promise<void> {
   }
   if (process.platform === 'win32') {
     // 使用 nativeImage 加载 ico，确保高 DPI 显示清晰
-    const icon = nativeImage.createFromPath(icoIcon)
+    const icon = nativeImage.createFromPath(getIconPath('icon.ico'))
     tray = new Tray(icon)
   }
   tray?.setToolTip('RouteX')
@@ -500,13 +498,15 @@ async function updateTrayIcon(): Promise<void> {
     const { sysProxy } = await getAppConfig()
     const { tun } = await getControledMihomoConfig()
 
-    let icon = icoIcon
+    let iconName = 'icon.ico'
     if (sysProxy.enable) {
-      icon = iconProxy
+      iconName = 'icon_proxy.ico'
     } else if (tun?.enable) {
-      icon = iconTun
+      iconName = 'icon_tun.ico'
     }
-    const nativeIcon = nativeImage.createFromPath(icon)
+    
+    const iconPath = getIconPath(iconName)
+    const nativeIcon = nativeImage.createFromPath(iconPath)
     
     if (tray) {
       tray.setImage(nativeIcon)
