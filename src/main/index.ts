@@ -14,9 +14,6 @@ import {
 import { addOverrideItem, addProfileItem, getAppConfig, patchControledMihomoConfig } from './config'
 import { quitWithoutCore, startCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
-import { triggerSysProxy } from './sys/sysproxy'
-// Icons are now resolved dynamically via getIconPath
-import { createTray } from './resolve/tray'
 import { createTray } from './resolve/tray'
 import { createApplicationMenu } from './resolve/menu'
 import { init } from './utils/init'
@@ -26,7 +23,7 @@ import { spawn } from 'child_process'
 import { createElevateTask } from './sys/misc'
 import { initProfileUpdater } from './core/profileUpdater'
 import { copyFileSync, existsSync, writeFileSync } from 'fs'
-import { exePath, resourcesFilesDir, taskDir } from './utils/dirs'
+import { exePath, resourcesFilesDir, taskDir, getIconPath } from './utils/dirs'
 import path from 'path'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
@@ -614,9 +611,7 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       titleBarStyle: useWindowFrame ? 'default' : 'hidden',
       titleBarOverlay: false,
       autoHideMenuBar: true,
-      autoHideMenuBar: true,
       ...(process.platform === 'linux' ? { icon: getIconPath('icon.png') } : {}),
-      webPreferences: {
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         spellcheck: false,
