@@ -104,8 +104,8 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
             <Button
               isIconOnly
               size="sm"
-              variant="light"
-              className="text-default-400 hover:text-foreground hover:bg-default-100/50"
+              variant="flat"
+              className="bg-default-100 hover:bg-default-200 text-default-500 hover:text-foreground"
               onPress={onClose}
             >
               <IoClose className="text-xl" />
@@ -178,7 +178,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
             </div>
 
             {/* Inbound Info */}
-            <div className="p-4 rounded-2xl bg-default-100/40 border border-default-200/50 shadow-sm flex flex-col gap-4">
+            <div className="p-4 rounded-2xl bg-content1 border border-default-200 shadow-sm flex flex-col gap-4">
                <div className="flex items-center gap-2 text-default-500">
                  <IoServer /> Inbound Details
                </div>
@@ -215,7 +215,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                    </div>
 
                    {/* Card */}
-                   <div className="p-3 rounded-xl border border-success/20 bg-success/5 shadow-sm ml-2 transition-all duration-300 hover:bg-success/10">
+                   <div className="p-3 rounded-xl border border-success/20 bg-content1 shadow-sm ml-2 transition-all duration-300 hover:bg-content2">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-success uppercase tracking-wider">Source</span>
                         <div className="flex items-center gap-1.5 text-xs font-mono text-default-500">
@@ -254,8 +254,8 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                        <div className={clsx(
                          "p-3 rounded-xl border transition-all duration-300 ml-2",
                          group 
-                           ? "bg-default-100/40 border-primary/20 hover:bg-primary/5 hover:border-primary/40 shadow-sm"
-                           : "bg-default-50/50 border-default-200/50 hover:bg-default-100/50"
+                           ? "bg-content1 border-primary/20 hover:bg-content2 shadow-sm"
+                           : "bg-content1 border-default-200 hover:bg-content2"
                        )}>
                           {/* Name & Type */}
                           <div className="flex items-center justify-between mb-1">
@@ -291,7 +291,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                    </div>
 
                    {/* Card */}
-                   <div className="p-3 rounded-xl border border-secondary/20 bg-secondary/5 shadow-sm ml-2 transition-all duration-300 hover:bg-secondary/10">
+                   <div className="p-3 rounded-xl border border-secondary/20 bg-content1 shadow-sm ml-2 transition-all duration-300 hover:bg-content2">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xs font-bold text-secondary uppercase tracking-wider">Destination</span>
                       </div>
@@ -315,8 +315,8 @@ const InfoCard = ({ icon, label, value, subValue, highlight, accent }: any) => (
   <div className={clsx(
     "p-4 rounded-2xl border flex flex-col gap-3 transition-all duration-300",
     highlight 
-      ? "bg-primary/5 border-primary/20 shadow-[0_4px_20px_rgba(var(--heroui-primary),0.05)]" 
-      : "bg-default-100/40 border-default-200/50 shadow-sm hover:bg-default-200/40"
+      ? "bg-primary/10 border-primary/20 shadow-sm" 
+      : "bg-content1 border-default-200 shadow-sm hover:bg-content2"
   )}>
      <div className="flex items-center gap-2 text-default-500">
         <div className={clsx("p-1.5 rounded-lg", highlight ? "bg-primary/10 text-primary" : "bg-default-200/50 text-default-600")}>

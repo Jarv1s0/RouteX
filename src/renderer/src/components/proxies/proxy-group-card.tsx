@@ -3,6 +3,7 @@ import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useEffect, memo } from 'react'
+import { addFlag } from '@renderer/utils/flags'
 
 
 interface Props {
@@ -37,7 +38,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
     currentDelay === -1
       ? 'text-default-400'
       : currentDelay === 0
-        ? 'text-danger'
+        ? 'text-default-400' // 0 treated as unknown (gray)
         : currentDelay < delayThresholds.good
           ? 'text-success'
           : currentDelay < delayThresholds.fair
@@ -138,15 +139,15 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
             <div className="flex items-center gap-3">
               {/* Current Node (Inline) */}
               <div className="flex items-center gap-2 mr-2 border-r border-default-200/50 pr-4">
-                 <span className="text-sm font-medium text-foreground/90 max-w-[120px] truncate" title={group.now}>
-                   {group.now}
+                 <span className="text-sm font-medium text-foreground/90 max-w-[120px] truncate flag-emoji" title={group.now}>
+                   {addFlag(group.now)}
                  </span>
               </div>
 
               {/* Current Delay Pill */}
               <div className="flex flex-col items-end mr-1">
                  <span className={`text-base font-bold font-mono ${delayColor} transition-colors duration-300`}>
-                  {currentDelay === -1 ? '--' : currentDelay === 0 ? 'TIMEOUT' : `${currentDelay}ms`}
+                  {currentDelay === -1 ? '--' : currentDelay === 0 ? '--' : `${currentDelay}ms`}
                 </span>
                 <span className="text-[10px] text-default-400 uppercase tracking-wider font-medium">Latency</span>
               </div>

@@ -9,11 +9,13 @@ import {
   Divider,
   Button
 } from '@heroui/react'
-import React from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { IoClose } from 'react-icons/io5'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { restartMihomoConnections } from '@renderer/utils/ipc'
+import debounce from '@renderer/utils/debounce'
+import { secondaryInputClassNames } from '../settings/advanced-settings'
 import {
   DndContext,
   closestCenter,
@@ -123,6 +125,20 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
     connectionTableColumns = DEFAULT_COLUMNS
   } = appConfig || {}
 
+  const [interval, setInterval] = useState(connectionInterval?.toString() ?? '')
+
+  useEffect(() => {
+    setInterval(connectionInterval?.toString() ?? '')
+  }, [connectionInterval])
+
+  const updateInterval = useMemo(() => debounce(async (v: string) => {
+    let num = parseInt(v)
+    if (isNaN(num)) num = 500
+    if (num < 100) num = 100
+    await patchAppConfig({ connectionInterval: num })
+    await restartMihomoConnections()
+  }, 1000), [patchAppConfig])
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -171,7 +187,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
       hideCloseButton
     >
-      <ModalContent className="flag-emoji">
+      <ModalContent>
         <ModalHeader className="flex justify-between items-center px-6 py-4 pr-4">
           <span className="text-lg font-semibold">连接设置</span>
           <Button
@@ -203,20 +219,33 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="刷新间隔">
+            <SettingItem
+              title={
+                <>
+                  刷新间隔
+                  <span className="text-xs text-foreground-400 font-normal ml-1">
+                    (ms)
+                  </span>
+                </>
+              }
+            >
               <Input
-                type="number"
                 size="sm"
-                className="w-[150px]"
-                endContent={<span className="text-xs text-foreground-400">ms</span>}
-                value={connectionInterval?.toString()}
+                className="w-[120px]"
+                classNames={secondaryInputClassNames}
+                value={interval}
                 placeholder="默认 500"
-                onValueChange={async (v) => {
-                  let num = parseInt(v)
-                  if (isNaN(num)) num = 500
-                  if (num < 100) num = 100
-                  await patchAppConfig({ connectionInterval: num })
-                  await restartMihomoConnections()
+                onValueChange={(v) => {
+                  // 允许空值以便用户删除
+                  if (v === '') {
+                    setInterval('')
+                    return
+                  }
+                  // 只允许输入数字
+                  if (!/^\d*$/.test(v)) return
+                  
+                  setInterval(v)
+                  updateInterval(v)
                 }}
               />
             </SettingItem>

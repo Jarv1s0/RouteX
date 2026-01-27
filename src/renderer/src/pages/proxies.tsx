@@ -168,44 +168,16 @@ const Proxies: React.FC = () => {
       const currentSearch = searchValue[index]
 
       try {
-        // 回滚优化：始终使用手动并发测速，因为内核组测速 (mihomoGroupDelay) 在某些情况下不稳定导致全部超时
-        const groupProxies = group.all.filter(
-           // 确保 currentSearch 存在
-           (proxy) => proxy && includesIgnoreCase(proxy.name, currentSearch || '')
-        )
-        
-        const result: Promise<void>[] = []
-        const runningList: Promise<void>[] = []
-        
-        for (const proxy of groupProxies) {
-          const promise = Promise.resolve().then(async () => {
-            try {
-              await mihomoProxyDelay(proxy.name, group.testUrl)
-            } catch {
-              // ignore
-            } finally {
-              mutate()
-            }
-          })
-          result.push(promise)
-          const running = promise.then(() => {
-            runningList.splice(runningList.indexOf(running), 1)
-          })
-          runningList.push(running)
-          if (runningList.length >= (delayTestConcurrency || 50)) {
-            await Promise.race(runningList)
-          }
-        }
-        await Promise.all(result)
-      } catch (e) {
-        console.error('Group delay test failed', e)
+        await mihomoGroupDelay(group.name, group.testUrl)
+      } catch {
+        // ignore
       } finally {
         setDelaying((prev) => {
           const newDelaying = [...prev]
           newDelaying[index] = false
           return newDelaying
         })
-        mutate() // Final refresh
+        mutate()
       }
     },
     [groups, delayTestConcurrency, mutate, searchValue]
