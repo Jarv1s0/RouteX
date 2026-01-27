@@ -572,7 +572,7 @@ const Stats: React.FC = () => {
                 <IoTime className="text-lg" />
                 <span className="text-sm font-medium">运行时间</span>
               </div>
-              <span className="text-xl font-bold text-foreground bg-gradient-to-r from-orange-400 to-pink-600 bg-clip-text text-transparent">
+              <span className="text-xl font-bold text-foreground">
                 {uptime || '00:00:00'}
               </span>
             </div>
@@ -583,7 +583,7 @@ const Stats: React.FC = () => {
                 <IoSwapHorizontal className="text-lg" />
                 <span className="text-sm font-medium">连接数</span>
               </div>
-              <span className="text-xl font-bold text-cyan-500">
+              <span className="text-xl font-bold text-foreground">
                 {connectionCount ?? 0}
               </span>
             </div>
@@ -594,7 +594,7 @@ const Stats: React.FC = () => {
                 <IoServer className="text-lg" />
                 <span className="text-sm font-medium">内存占用</span>
               </div>
-              <span className="text-xl font-bold text-pink-500">
+              <span className="text-xl font-bold text-foreground">
                 {memoryUsage || '0 B'}
               </span>
             </div>

@@ -49,6 +49,26 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
           ? { ...conn.metadata, process: 'mihomo', processPath: 'mihomo' }
           : conn.metadata
 
+        // Optimize object creation: reuse previous object if nothing substantial changed
+        if (
+          prev &&
+          prev.upload === conn.upload &&
+          prev.download === conn.download &&
+          prev.chains?.[0] === conn.chains?.[0] &&
+          prev.rule === conn.rule &&
+          prev.start === conn.start
+        ) {
+           // We still need to update speed to 0 if we calculate it locally, 
+           // but here we calculate distinct speed based on diff.
+           // Actually, if upload/download didn't change, speed is 0.
+           // And if prev was active, and now active, and traffic same -> speed 0.
+           // So if prev had speed 0, we can reuse it?
+           // The computed speed depends on the diff.
+           if (downloadSpeed === 0 && uploadSpeed === 0 && prev.downloadSpeed === 0 && prev.uploadSpeed === 0) {
+             return prev
+           }
+        }
+
         return {
           ...conn,
           metadata,

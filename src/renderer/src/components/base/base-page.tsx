@@ -1,4 +1,4 @@
-import { Button, Divider } from '@heroui/react'
+import { Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import {
@@ -53,7 +53,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
   return (
     <div ref={contentRef} className={`w-full h-full ${props.className || ''}`}>
       <div
-        className={`sticky top-0 z-40 h-[49px] w-full ${props.headerClassName || 'bg-background'}`}
+        className={`sticky top-0 z-40 h-[49px] w-full border-b border-default-200/50 ${props.headerClassName || 'bg-background/70 backdrop-blur-md'}`}
       >
         <div className="app-drag p-2 flex justify-between h-[48px]">
           <div className="title h-full flex items-center select-none">
@@ -122,7 +122,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
           </div>
         </div>
 
-        {(props.showDivider ?? true) && <Divider />}
+        {/* {(props.showDivider ?? true) && <Divider />} */}
       </div>
       <div className="content h-[calc(100vh-49px)] overflow-y-auto custom-scrollbar">
         {props.children}

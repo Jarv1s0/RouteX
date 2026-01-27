@@ -17,6 +17,7 @@ import { subStorePort } from '../resolve/server'
 import { dirname, join } from 'path'
 import { deepMerge } from '../utils/merge'
 import { getUserAgent } from '../utils/userAgent'
+import iconv from 'iconv-lite'
 
 let profileConfig: ProfileConfig // profile.yaml
 
@@ -342,14 +343,19 @@ function isAbsolutePath(path: string): boolean {
 export async function getFileStr(path: string): Promise<string> {
   const { diffWorkDir = false } = await getAppConfig()
   const { current } = await getProfileConfig()
-  if (isAbsolutePath(path)) {
-    return await readFile(path, 'utf-8')
-  } else {
-    return await readFile(
-      join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), path),
-      'utf-8'
-    )
+  let filePath = path
+  if (!isAbsolutePath(path)) {
+    filePath = join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), path)
   }
+
+  const buffer = await readFile(filePath)
+  const str = iconv.decode(buffer, 'utf8')
+
+  if (str.includes('')) {
+    const gbkStr = iconv.decode(buffer, 'gbk')
+    return gbkStr
+  }
+  return str
 }
 
 export async function setFileStr(path: string, content: string): Promise<void> {

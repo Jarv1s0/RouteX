@@ -30,7 +30,12 @@ const LogItem: React.FC<Props> = (props) => {
         isPressable
         shadow="sm"
         radius="lg"
-        className="w-full bg-white/60 dark:bg-[#18181b]/60 hover:bg-default-100/80 transition-all border border-default-200/50 dark:border-white/5 backdrop-blur-md group"
+        className={`w-full transition-all duration-200 border group
+          bg-white/60 dark:bg-[#18181b]/60 backdrop-blur-md 
+          border-default-200/50 dark:border-white/5
+          hover:bg-default-100/80 hover:shadow-md hover:scale-[1.002]
+          data-[pressed=true]:scale-[0.98] data-[pressed=true]:bg-default-100/90
+        `}
         onPress={handlePress}
       >
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${borderColors[type] || 'bg-default'} opacity-60 group-hover:opacity-100 transition-opacity`} />
