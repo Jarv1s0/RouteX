@@ -1,7 +1,7 @@
 import BasePage from '@renderer/components/base/base-page'
 import EmptyState from '@renderer/components/base/empty-state'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
-import React, { Key, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { Key, useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Input, Select, SelectItem, Tab, Tabs, Chip, Card, CardHeader, CardFooter, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
@@ -14,16 +14,15 @@ import { CgClose, CgTrash } from 'react-icons/cg'
 import { IoPulseOutline, IoTimeOutline } from 'react-icons/io5'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { includesIgnoreCase } from '@renderer/utils/includes'
-import { getIconDataURL, getAppName } from '@renderer/utils/ipc'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
 import { IoApps, IoList, IoGrid, IoEye, IoEyeOff, IoPause, IoPlay } from 'react-icons/io5'
-import { cropAndPadTransparent } from '@renderer/utils/image'
-import { platform } from '@renderer/utils/init'
+
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { MdTune } from 'react-icons/md'
 import { IoLink } from 'react-icons/io5'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
+import { useResourceQueue } from '@renderer/hooks/use-resource-queue'
 
 const Connections: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -46,10 +45,6 @@ const Connections: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [selected, setSelected] = useState<ControllerConnectionDetail>()
-
-  const [iconMap, setIconMap] = useState<Record<string, string>>({})
-  const [appNameCache, setAppNameCache] = useState<Record<string, string>>({})
-  const [firstItemRefreshTrigger, setFirstItemRefreshTrigger] = useState(0)
 
   const [tab, setTab] = useState('active')
   const [viewMode, setViewMode] = useState<'list' | 'group' | 'table'>('list')
@@ -74,14 +69,6 @@ const Connections: React.FC = () => {
   const [showHidden, setShowHidden] = useState(false) // 是否显示隐藏的连接
   const [isPaused, setIsPaused] = useState(false) // 是否暂停刷新
   const [timeRefreshTrigger, setTimeRefreshTrigger] = useState(0) // 统一时间刷新触发器
-
-  const iconRequestQueue = useRef(new Set<string>())
-  const processingIcons = useRef(new Set<string>())
-  const processIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const appNameRequestQueue = useRef(new Set<string>())
-  const processingAppNames = useRef(new Set<string>())
-  const processAppNameTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const filteredConnections = useMemo(() => {
     const connections = tab === 'active' ? activeConnections : closedConnections
@@ -241,85 +228,20 @@ const Connections: React.FC = () => {
     setHiddenRules(new Set())
     localStorage.removeItem('hiddenConnectionRules')
   }, [])
-
-
-  const processAppNameQueue = useCallback(async () => {
-    if (processingAppNames.current.size >= 3 || appNameRequestQueue.current.size === 0) return
-
-    const pathsToProcess = Array.from(appNameRequestQueue.current).slice(0, 3)
-    pathsToProcess.forEach((path) => appNameRequestQueue.current.delete(path))
-
-    const promises = pathsToProcess.map(async (path) => {
-      if (processingAppNames.current.has(path)) return
-      processingAppNames.current.add(path)
-
-      try {
-        const appName = await getAppName(path)
-        if (appName) {
-          setAppNameCache((prev) => ({ ...prev, [path]: appName }))
-        }
-      } catch {
-        // ignore
-      } finally {
-        processingAppNames.current.delete(path)
-      }
-    })
-
-    await Promise.all(promises)
-
-    if (appNameRequestQueue.current.size > 0) {
-      processAppNameTimer.current = setTimeout(processAppNameQueue, 100)
-    }
-  }, [])
-
-  const processIconQueue = useCallback(async () => {
-    if (processingIcons.current.size >= 5 || iconRequestQueue.current.size === 0) return
-
-    const pathsToProcess = Array.from(iconRequestQueue.current).slice(0, 5)
-    pathsToProcess.forEach((path) => iconRequestQueue.current.delete(path))
-
-    const promises = pathsToProcess.map(async (path) => {
-      if (processingIcons.current.has(path)) return
-      processingIcons.current.add(path)
-
-      try {
-        const rawBase64 = await getIconDataURL(path)
-        if (!rawBase64) return
-
-        const fullDataURL = rawBase64.startsWith('data:')
-          ? rawBase64
-          : `data:image/png;base64,${rawBase64}`
-
-        let processedDataURL = fullDataURL
-        if (platform != 'darwin') {
-          processedDataURL = await cropAndPadTransparent(fullDataURL)
-        }
-
-        try {
-          localStorage.setItem(path, processedDataURL)
-        } catch {
-          // ignore
-        }
-
-        setIconMap((prev) => ({ ...prev, [path]: processedDataURL }))
-
-        const firstConnection = filteredConnections[0]
-        if (firstConnection?.metadata.processPath === path) {
-          setFirstItemRefreshTrigger((prev) => prev + 1)
-        }
-      } catch {
-        // ignore
-      } finally {
-        processingIcons.current.delete(path)
-      }
-    })
-
-    await Promise.all(promises)
-
-    if (iconRequestQueue.current.size > 0) {
-      processIconTimer.current = setTimeout(processIconQueue, 50)
-    }
-  }, [filteredConnections])
+  
+  // Use the new hook
+  const {
+    iconMap,
+    appNameCache,
+    firstItemRefreshTrigger,
+    loadIcon,
+    loadAppName
+  } = useResourceQueue(
+    displayIcon,
+    displayAppName,
+    findProcessMode,
+    filteredConnections[0]?.metadata?.processPath
+  )
 
   useEffect(() => {
     if (!displayIcon || findProcessMode === 'off') return
@@ -345,26 +267,6 @@ const Connections: React.FC = () => {
     collectPaths(activeConnections)
     collectPaths(closedConnections)
 
-    const loadIcon = (path: string, isVisible: boolean = false): void => {
-      if (iconMap[path] || processingIcons.current.has(path)) return
-
-      const fromStorage = localStorage.getItem(path)
-      if (fromStorage) {
-        setIconMap((prev) => ({ ...prev, [path]: fromStorage }))
-        if (isVisible && filteredConnections[0]?.metadata.processPath === path) {
-          setFirstItemRefreshTrigger((prev) => prev + 1)
-        }
-        return
-      }
-
-      iconRequestQueue.current.add(path)
-    }
-
-    const loadAppName = (path: string): void => {
-      if (appNameCache[path] || processingAppNames.current.has(path)) return
-      appNameRequestQueue.current.add(path)
-    }
-
     visiblePaths.forEach((path) => {
       loadIcon(path, true)
       if (displayAppName) loadAppName(path)
@@ -380,29 +282,15 @@ const Connections: React.FC = () => {
 
       setTimeout(loadOtherPaths, 100)
     }
-
-    if (processIconTimer.current) clearTimeout(processIconTimer.current)
-    if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
-
-    processIconTimer.current = setTimeout(processIconQueue, 10)
-    if (displayAppName) {
-      processAppNameTimer.current = setTimeout(processAppNameQueue, 10)
-    }
-
-    return (): void => {
-      if (processIconTimer.current) clearTimeout(processIconTimer.current)
-      if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
-    }
   }, [
     activeConnections,
     closedConnections,
-    iconMap,
-    appNameCache,
     displayIcon,
     filteredConnections,
-    processIconQueue,
-    processAppNameQueue,
-    displayAppName
+    loadIcon,
+    loadAppName,
+    displayAppName,
+    findProcessMode
   ])
 
   // 统一时间刷新定时器（每60秒触发一次，替代每个卡片的独立定时器）

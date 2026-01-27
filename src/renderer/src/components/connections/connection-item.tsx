@@ -31,6 +31,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
   hide,
   unhide,
   isHidden,
+  selected,
   setSelected,
   setIsDetailModalOpen,
   timeRefreshTrigger
@@ -104,7 +105,14 @@ const ConnectionItemComponent: React.FC<Props> = ({
         as="div"
         isPressable
         shadow="sm"
-        className="w-full bg-white/50 dark:bg-default-100/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-default-100/80 transition-all border border-transparent hover:border-default-200/50 shadow-sm"
+        className={`w-full transition-all duration-200 border group
+          ${
+            info.id === selected?.id
+            ? "bg-gradient-to-br from-default-100/90 to-default-50/90 backdrop-blur-2xl border-primary/30 shadow-[0_0_24px_rgba(var(--heroui-primary),0.12)] scale-[1.002] ring-1 ring-primary/20"
+            : "bg-white/50 dark:bg-default-100/50 backdrop-blur-md border-transparent hover:border-default-200/50 hover:bg-white/80 dark:hover:bg-default-100/80 hover:scale-[1.002] hover:shadow-md"
+          }
+          data-[pressed=true]:scale-[0.98]
+        `}
         radius="lg"
         onPress={handleCardPress}
       >
@@ -216,7 +224,10 @@ const ConnectionItem = memo(ConnectionItemComponent, (prevProps, nextProps) => {
     prevProps.displayName === nextProps.displayName &&
     prevProps.selected?.id === nextProps.selected?.id &&
     prevProps.isHidden === nextProps.isHidden &&
-    prevProps.timeRefreshTrigger === nextProps.timeRefreshTrigger
+    prevProps.timeRefreshTrigger === nextProps.timeRefreshTrigger &&
+    // Add missing deps
+    prevProps.info.chains?.[0] === nextProps.info.chains?.[0] &&
+    prevProps.info.rule === nextProps.info.rule
   )
 })
 

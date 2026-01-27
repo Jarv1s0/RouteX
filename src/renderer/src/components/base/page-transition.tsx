@@ -7,19 +7,28 @@ interface Props {
 
 const pageVariants: Variants = {
   initial: {
-    opacity: 0
+    opacity: 0,
+    y: 10,
+    scale: 0.98,
+    filter: 'blur(4px)'
   },
   enter: {
     opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: 'blur(0px)',
     transition: {
-      duration: 0.15,
-      ease: [0.4, 0, 0.2, 1]
+      duration: 0.3,
+      ease: [0.2, 0, 0, 1] // Custom ease curve for smoothness
     }
   },
   exit: {
     opacity: 0,
+    y: -10,
+    scale: 0.98,
+    filter: 'blur(4px)',
     transition: {
-      duration: 0.1,
+      duration: 0.2,
       ease: [0.4, 0, 1, 1]
     }
   }
