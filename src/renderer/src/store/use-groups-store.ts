@@ -80,7 +80,11 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
     if (!currentGroups || currentGroups.length === 0) return
 
     hasInitialTestRun = true
-    const promises = currentGroups.map((g) => mihomoGroupDelay(g.name, g.testUrl).catch(() => {}))
+    const promises = currentGroups.map((g) => 
+      mihomoGroupDelay(g.name, g.testUrl).catch((e) => {
+        console.error(`[AutoDelay] Failed for group ${g.name}:`, e)
+      })
+    )
     await Promise.allSettled(promises)
     // Fetch again to update delay info
     get().fetchGroups()
