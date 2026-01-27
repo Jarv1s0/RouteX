@@ -25,26 +25,56 @@ class ErrorBoundary extends Component<Props, State> {
     console.error('Uncaught error:', error, errorInfo)
   }
 
+  private handleCopyError = () => {
+    const { error } = this.state
+    if (error) {
+      const text = `Error: ${error.message}\n\nStack:\n${error.stack}`
+      navigator.clipboard.writeText(text)
+    }
+  }
+
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="h-full w-full flex flex-col items-center justify-center gap-4 p-4 text-center">
-          <div className="p-4 rounded-full bg-danger/10 text-danger text-4xl">
-            <BiError />
+        <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-background/50 backdrop-blur-sm">
+          <div className="max-w-md w-full bg-content1 border border-default-200 shadow-xl rounded-2xl p-6 flex flex-col items-center text-center space-y-4">
+            <div className="p-3 rounded-full bg-danger/10 text-danger mb-2">
+              <BiError className="text-4xl" />
+            </div>
+            
+            <h2 className="text-2xl font-bold">应用遇到问题 (Oops!)</h2>
+            
+            <p className="text-default-500 text-sm">
+              很抱歉，RouteX 遇到了一些意料之外的错误。我们要不尝试刷新一下？
+            </p>
+
+            <div className="w-full bg-default-100 p-3 rounded-xl overflow-hidden text-left relative group">
+               <code className="text-xs font-mono text-danger break-words line-clamp-4">
+                 {this.state.error?.message}
+               </code>
+            </div>
+
+            <div className="flex gap-3 w-full pt-2">
+              <Button 
+                variant="flat" 
+                color="default" 
+                className="flex-1"
+                onPress={this.handleCopyError}
+              >
+                复制错误信息
+              </Button>
+              <Button 
+                color="primary" 
+                className="flex-1 shadow-md shadow-primary/20"
+                onPress={() => {
+                  this.setState({ hasError: false, error: null })
+                  window.location.reload()
+                }}
+              >
+                重启应用
+              </Button>
+            </div>
           </div>
-          <h2 className="text-xl font-bold">出错了 (Something went wrong)</h2>
-          <p className="text-default-500 max-w-md text-sm font-mono bg-default-100 p-2 rounded">
-            {this.state.error?.message}
-          </p>
-          <Button 
-            color="primary" 
-            onPress={() => {
-              this.setState({ hasError: false, error: null })
-              window.location.reload()
-            }}
-          >
-            刷新页面 (Reload)
-          </Button>
         </div>
       )
     }

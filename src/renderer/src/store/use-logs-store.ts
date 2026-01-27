@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { throttle } from 'lodash'
+import throttle from 'lodash/throttle'
 
 interface LogsState {
   logs: ControllerLog[]
