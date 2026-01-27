@@ -26,7 +26,7 @@ async function testLatency(): Promise<number> {
     const startTime = Date.now()
     const request = net.request({
       method: 'HEAD',
-      url: 'https://www.gstatic.com/generate_204'
+      url: 'http://cp.cloudflare.com/generate_204'
     })
     
     const timeout = setTimeout(() => {
