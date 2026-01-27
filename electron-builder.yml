@@ -34,6 +34,8 @@ files:
 extraResources:
   - from: './extra/'
     to: ''
+  - from: './resources/'
+    to: 'icons'
 protocols:
   name: 'RouteX URI Scheme'
   schemes:
