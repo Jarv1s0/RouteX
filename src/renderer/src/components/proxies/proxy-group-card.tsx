@@ -38,7 +38,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
     currentDelay === -1
       ? 'text-default-400'
       : currentDelay === 0
-        ? 'text-danger'
+        ? 'text-default-400' // 0 treated as unknown (gray)
         : currentDelay < delayThresholds.good
           ? 'text-success'
           : currentDelay < delayThresholds.fair
@@ -147,7 +147,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
               {/* Current Delay Pill */}
               <div className="flex flex-col items-end mr-1">
                  <span className={`text-base font-bold font-mono ${delayColor} transition-colors duration-300`}>
-                  {currentDelay === -1 ? '--' : currentDelay === 0 ? 'TIMEOUT' : `${currentDelay}ms`}
+                  {currentDelay === -1 ? '--' : currentDelay === 0 ? '--' : `${currentDelay}ms`}
                 </span>
                 <span className="text-[10px] text-default-400 uppercase tracking-wider font-medium">Latency</span>
               </div>

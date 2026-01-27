@@ -68,7 +68,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
 
   function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
     if (delay === -1) return 'primary'
-    if (delay === 0) return 'danger'
+    if (delay === 0) return 'primary' // 0 treated as unknown/primary(gray/blueish) instead of danger
     if (delay < delayThresholds.good) return 'success'
     if (delay < delayThresholds.fair) return 'warning'
     return 'danger'
@@ -76,7 +76,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
 
   function delayText(delay: number): string {
     if (delay === -1) return '测试'
-    if (delay === 0) return '超时'
+    if (delay === 0) return '-'
     return delay.toString()
   }
 

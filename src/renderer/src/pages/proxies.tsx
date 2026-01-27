@@ -165,38 +165,54 @@ const Proxies: React.FC = () => {
       })
       
       const group = groups[index]
-      const groupProxies = group.all.filter(
-         (proxy) => proxy && includesIgnoreCase(proxy.name, searchValue[index])
-      )
-      
-      const result: Promise<void>[] = []
-      const runningList: Promise<void>[] = []
-      
-      for (const proxy of groupProxies) {
-        const promise = Promise.resolve().then(async () => {
-          try {
-            await mihomoProxyDelay(proxy.name, group.testUrl)
-          } catch {
-            // ignore
-          } finally {
-            mutate()
+      const currentSearch = searchValue[index]
+
+      try {
+        // 如果没有搜索关键字，或者搜索关键字为空，直接使用内核组测速（效率更高且稳定）
+        if (!currentSearch || currentSearch.trim() === '') {
+           await mihomoGroupDelay(group.name, group.testUrl)
+           // 延迟一下再刷新，确保内核状态更新
+           setTimeout(() => mutate(), 500)
+        } else {
+          // 有搜索筛选时，只测筛选出的节点
+          const groupProxies = group.all.filter(
+             (proxy) => proxy && includesIgnoreCase(proxy.name, currentSearch)
+          )
+          
+          const result: Promise<void>[] = []
+          const runningList: Promise<void>[] = []
+          
+          for (const proxy of groupProxies) {
+            const promise = Promise.resolve().then(async () => {
+              try {
+                await mihomoProxyDelay(proxy.name, group.testUrl)
+              } catch {
+                // ignore
+              } finally {
+                mutate()
+              }
+            })
+            result.push(promise)
+            const running = promise.then(() => {
+              runningList.splice(runningList.indexOf(running), 1)
+            })
+            runningList.push(running)
+            if (runningList.length >= (delayTestConcurrency || 50)) {
+              await Promise.race(runningList)
+            }
           }
-        })
-        result.push(promise)
-        const running = promise.then(() => {
-          runningList.splice(runningList.indexOf(running), 1)
-        })
-        runningList.push(running)
-        if (runningList.length >= (delayTestConcurrency || 50)) {
-          await Promise.race(runningList)
+          await Promise.all(result)
         }
+      } catch (e) {
+        console.error('Group delay test failed', e)
+      } finally {
+        setDelaying((prev) => {
+          const newDelaying = [...prev]
+          newDelaying[index] = false
+          return newDelaying
+        })
+        mutate() // Final refresh
       }
-      await Promise.all(result)
-      setDelaying((prev) => {
-        const newDelaying = [...prev]
-        newDelaying[index] = false
-        return newDelaying
-      })
     },
     [groups, delayTestConcurrency, mutate, searchValue]
   )

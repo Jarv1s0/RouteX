@@ -169,7 +169,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 className="w-[60%]"
                 classNames={secondaryInputClassNames}
                 value={url}
-                placeholder="默认 https://www.gstatic.com/generate_204"
+                placeholder="默认 http://cp.cloudflare.com/generate_204"
                 onValueChange={(v) => {
                   setUrl(v)
                   setUrlDebounce(v)
