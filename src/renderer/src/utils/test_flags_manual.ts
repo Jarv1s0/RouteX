@@ -1,5 +1,5 @@
 
-import { addFlag, removeFlag, getFlag } from './flags'
+import { addFlag, removeFlag } from './flags'
 
 const testCases = [
   '美国 01',
