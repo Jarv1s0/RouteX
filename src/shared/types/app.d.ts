@@ -55,6 +55,7 @@ interface AppConfig {
   statsCardStatus?: CardStatus
   substoreCardStatus?: CardStatus
   toolsCardStatus?: CardStatus
+  mapCardStatus?: CardStatus
   sysproxyCardStatus?: CardStatus
   tunCardStatus?: CardStatus
   githubToken?: string
@@ -182,3 +183,18 @@ interface SubStoreSub {
   icon?: string
   tag?: string[]
 }
+
+// 代理链配置
+interface ChainsConfig {
+  items: ChainItem[]
+}
+
+interface ChainItem {
+  id: string
+  name: string              // 链名称 (即生成的虚拟节点名)
+  dialerProxy: string       // 前置节点/组
+  targetProxy: string       // 落地节点
+  targetGroups?: string[]   // 要加入的策略组名称列表
+  enabled?: boolean         // 是否启用
+}
+

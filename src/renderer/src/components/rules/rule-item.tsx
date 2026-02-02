@@ -1,9 +1,15 @@
-import { Card, CardBody, Chip } from '@heroui/react'
+import { Card, CardBody, Chip, Switch } from '@heroui/react'
 import React from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
 
-const RuleItem: React.FC<ControllerRulesDetail & { index: number }> = (props) => {
-  const { type, payload, proxy, index } = props
+interface RuleItemProps extends ControllerRulesDetail {
+  index: number
+  enabled?: boolean
+  onToggle?: () => void
+}
+
+const RuleItem: React.FC<RuleItemProps> = (props) => {
+  const { type, payload, proxy, index, enabled = true, onToggle } = props
   const { groups = [] } = useGroups()
 
   // 递归查找最终节点
@@ -33,16 +39,28 @@ const RuleItem: React.FC<ControllerRulesDetail & { index: number }> = (props) =>
   }
 
   return (
-    <div className="w-full px-2 pb-2">
+    <div className={`w-full px-2 pb-2 ${!enabled ? 'opacity-50' : ''}`}>
       <Card
         shadow="sm"
         radius="lg"
-        className="bg-white/50 dark:bg-default-100/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-default-100/80 transition-all border border-transparent hover:border-default-200/50 shadow-sm"
+        className={`bg-white/50 dark:bg-default-100/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-default-100/80 transition-all border border-transparent hover:border-default-200/50 shadow-sm ${!enabled ? 'grayscale' : ''}`}
       >
         <CardBody className="w-full py-2 px-3">
           <div className="flex items-center gap-2">
+            {/* 开关按钮 */}
+            {onToggle && (
+              <Switch
+                size="sm"
+                isSelected={enabled}
+                onValueChange={() => onToggle()}
+                classNames={{
+                  wrapper: "w-8 h-4",
+                  thumb: "w-3 h-3"
+                }}
+              />
+            )}
             {/* 序号 */}
-            <span className="text-foreground-400 text-xs w-6 flex-shrink-0 -mr-1">
+            <span className={`text-foreground-400 text-xs w-6 flex-shrink-0 -mr-1 ${!enabled ? 'line-through' : ''}`}>
               {index + 1}.
             </span>
             {/* 类型 */}
@@ -57,7 +75,7 @@ const RuleItem: React.FC<ControllerRulesDetail & { index: number }> = (props) =>
             {/* 规则名称 */}
             <span
               title={payload}
-              className="text-sm font-medium text-ellipsis whitespace-nowrap overflow-hidden flex-1 min-w-0"
+              className={`text-sm font-medium text-ellipsis whitespace-nowrap overflow-hidden flex-1 min-w-0 ${!enabled ? 'line-through text-default-400' : ''}`}
             >
               {payload}
             </span>

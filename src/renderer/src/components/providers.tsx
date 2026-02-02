@@ -19,7 +19,7 @@ const Providers: React.FC<ProvidersProps> = ({ children }) => {
   return (
     <HeroUIProvider>
       <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
-        <Toaster richColors position="bottom-right" />
+        <Toaster richColors position="bottom-right" toastOptions={{ className: '!z-[99999]', style: { zIndex: 99999 } }} style={{ zIndex: 99999 }} />
         <BaseErrorBoundary>
           <HashRouter>
 

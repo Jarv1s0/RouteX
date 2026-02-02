@@ -17,6 +17,7 @@ const Sniffer = React.lazy(() => import('@renderer/pages/sniffer'))
 const SubStore = React.lazy(() => import('@renderer/pages/substore'))
 const Stats = React.lazy(() => import('@renderer/pages/stats'))
 const Tools = React.lazy(() => import('@renderer/pages/tools'))
+const Map = React.lazy(() => import('@renderer/pages/map'))
 
 const routes = [
   {
@@ -79,6 +80,10 @@ const routes = [
   {
     path: '/tools',
     element: <Tools />
+  },
+  {
+    path: '/map',
+    element: <Map />
   },
   {
     path: '/',

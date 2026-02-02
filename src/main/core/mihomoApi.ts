@@ -99,6 +99,11 @@ export const mihomoRules = async (): Promise<ControllerRules> => {
   return await instance.get('/rules')
 }
 
+export const mihomoToggleRuleDisabled = async (data: Record<number, boolean>): Promise<void> => {
+  const instance = await getAxios()
+  return await instance.patch('/rules/disable', data)
+}
+
 export const mihomoProxies = async (): Promise<ControllerProxies> => {
   const instance = await getAxios()
   return await instance.get('/proxies')

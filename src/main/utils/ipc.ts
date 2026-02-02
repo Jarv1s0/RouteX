@@ -11,6 +11,7 @@ import {
   mihomoProxyProviders,
   mihomoRuleProviders,
   mihomoRules,
+  mihomoToggleRuleDisabled,
   mihomoUnfixedProxy,
   mihomoUpdateProxyProviders,
   mihomoUpdateRuleProviders,
@@ -49,7 +50,12 @@ import {
   removeOverrideItem,
   getOverride,
   setOverride,
-  updateOverrideItem
+  updateOverrideItem,
+  getChainsConfig,
+  addChainItem,
+  updateChainItem,
+  removeChainItem,
+  getAllChains
 } from '../config'
 import {
   startSubStoreFrontendServer,
@@ -419,6 +425,9 @@ export function registerIpcMainHandlers(): void {
     ipcErrorWrapper(mihomoCloseAllConnections)(name)
   )
   ipcMain.handle('mihomoRules', ipcErrorWrapper(mihomoRules))
+  ipcMain.handle('mihomoToggleRuleDisabled', (_e, data) =>
+    ipcErrorWrapper(mihomoToggleRuleDisabled)(data)
+  )
   ipcMain.handle('mihomoProxies', ipcErrorWrapper(mihomoProxies))
   ipcMain.handle('mihomoGroups', ipcErrorWrapper(mihomoGroups))
   ipcMain.handle('mihomoProxyProviders', ipcErrorWrapper(mihomoProxyProviders))
@@ -476,6 +485,12 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('updateOverrideItem', (_e, item) => ipcErrorWrapper(updateOverrideItem)(item))
   ipcMain.handle('getOverride', (_e, id, ext) => ipcErrorWrapper(getOverride)(id, ext))
   ipcMain.handle('setOverride', (_e, id, ext, str) => ipcErrorWrapper(setOverride)(id, ext, str))
+  // 代理链
+  ipcMain.handle('getChainsConfig', (_e, force) => ipcErrorWrapper(getChainsConfig)(force))
+  ipcMain.handle('getAllChains', ipcErrorWrapper(getAllChains))
+  ipcMain.handle('addChainItem', (_e, item) => ipcErrorWrapper(addChainItem)(item))
+  ipcMain.handle('updateChainItem', (_e, item) => ipcErrorWrapper(updateChainItem)(item))
+  ipcMain.handle('removeChainItem', (_e, id) => ipcErrorWrapper(removeChainItem)(id))
   ipcMain.handle('restartCore', ipcErrorWrapper(restartCore))
   ipcMain.handle('restartMihomoConnections', ipcErrorWrapper(restartMihomoConnections))
   ipcMain.handle('startMonitor', (_e, detached) => ipcErrorWrapper(startMonitor)(detached))
@@ -614,6 +629,104 @@ export function registerIpcMainHandlers(): void {
         reject(error)
       })
       request.end()
+    })
+  }))
+
+  // Helper for DNS Resolution
+  const resolveToIp = async (query: string): Promise<string> => {
+    try {
+      const net = await import('net')
+      if (net.isIP(query) !== 0) return query
+      
+      const dns = await import('dns')
+      const { address } = await dns.promises.lookup(query)
+      return address
+    } catch {
+      return query
+    }
+  }
+
+  ipcMain.handle('fetchIpInfoQuery', ipcErrorWrapper(async (_e, query: string) => {
+    return new Promise(async (resolve, reject) => {
+      const ip = await resolveToIp(query)
+      const request = net.request(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`)
+      let data = ''
+      request.on('response', (response) => {
+        response.on('data', (chunk) => {
+          data += chunk.toString()
+        })
+        response.on('end', () => {
+          try {
+            const json = JSON.parse(data)
+            // Restore original query field if it differs
+            if (json.query !== query) json.query = query 
+            resolve(json)
+          } catch {
+            reject(new Error('解析失败'))
+          }
+        })
+      })
+      request.on('error', (error) => {
+        reject(error)
+      })
+      request.end()
+    })
+  }))
+
+  ipcMain.handle('fetchBatchIpInfo', ipcErrorWrapper(async (_e, queries: any[]) => {
+    // Pre-resolve all queries
+    const resolvedQueries = await Promise.all(queries.map(async (q) => {
+        if (q.query) {
+            const ip = await resolveToIp(q.query)
+            return { ...q, query: ip, originalQuery: q.query }
+        }
+        return q
+    }))
+
+    return new Promise((resolve, reject) => {
+      try {
+        const request = net.request({
+          url: 'http://ip-api.com/batch',
+          method: 'POST'
+        })
+        
+        request.setHeader('Content-Type', 'application/json')
+        
+        // Send resolved IPs
+        const body = JSON.stringify(resolvedQueries)
+        request.write(body)
+        
+        let data = ''
+        request.on('response', (response) => {
+          response.on('data', (chunk) => {
+            data += chunk.toString()
+          })
+          response.on('end', () => {
+            try {
+              const json = JSON.parse(data)
+              // Map back to original queries if needed, or rely on renderer to handle map
+              // ip-api batch returns array in same order. 
+              // We should restore the original 'query' field so the Map in renderer (which uses domain as key) can find it.
+              if (Array.isArray(json)) {
+                  json.forEach((item, index) => {
+                      if (resolvedQueries[index].originalQuery) {
+                          item.query = resolvedQueries[index].originalQuery
+                      }
+                  })
+              }
+              resolve(json)
+            } catch {
+              reject(new Error('解析失败'))
+            }
+          })
+        })
+        request.on('error', (error) => {
+          reject(error)
+        })
+        request.end()
+      } catch (e) {
+        reject(e)
+      }
     })
   }))
   ipcMain.handle('testRuleMatch', async (_e, domain: string) => {

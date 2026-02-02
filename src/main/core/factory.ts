@@ -7,7 +7,8 @@ import {
   getOverride,
   getOverrideItem,
   getOverrideConfig,
-  getAppConfig
+  getAppConfig,
+  getChainsConfig
 } from '../config'
 import {
   mihomoProfileWorkDir,
@@ -49,6 +50,13 @@ export async function generateProfile(): Promise<void> {
 
   const profile = deepMerge(JSON.parse(JSON.stringify(currentProfile)), configToMerge)
 
+  // 注入代理链虚拟节点 (安全包装，防止影响正常配置生成)
+  try {
+    await injectChainProxies(profile)
+  } catch (e) {
+    console.error('[Chain] Failed to inject chain proxies:', e)
+  }
+
   await cleanProfile(profile, controlDns, controlSniff)
 
   runtimeConfig = profile
@@ -61,6 +69,103 @@ export async function generateProfile(): Promise<void> {
     runtimeConfigStr
   )
 }
+
+/**
+ * 注入代理链虚拟节点
+ * 根据 chains.yaml 配置生成虚拟节点并加入到指定策略组
+ * 
+ * 实现原理：
+ * 1. 克隆落地节点的配置
+ * 2. 设置 dialer-proxy 为前置节点/组（只支持单级）
+ * 3. 将虚拟节点添加到 proxies 列表
+ * 4. 可选：将虚拟节点添加到指定策略组
+ */
+async function injectChainProxies(profile: MihomoConfig): Promise<void> {
+  const chainsConfig = await getChainsConfig()
+  if (!chainsConfig.items || chainsConfig.items.length === 0) {
+    return
+  }
+
+  // 确保 proxies 和 proxy-groups 存在
+  if (!Array.isArray(profile.proxies)) {
+    profile.proxies = []
+  }
+  if (!Array.isArray(profile['proxy-groups'])) {
+    profile['proxy-groups'] = []
+  }
+
+  const proxies = profile.proxies as Record<string, unknown>[]
+  const proxyGroups = profile['proxy-groups'] as Record<string, unknown>[]
+
+  for (const chain of chainsConfig.items) {
+    if (!chain.name || !chain.targetProxy || !chain.dialerProxy) {
+      continue
+    }
+
+    if (chain.enabled === false) continue
+
+    // 查找落地节点配置
+    const targetProxyConfig = proxies.find((p) => p.name === chain.targetProxy)
+    if (!targetProxyConfig) {
+      console.warn(`[Chain] Target proxy not found: ${chain.targetProxy}`)
+      continue
+    }
+
+    // 验证前置和落地节点是否存在于当前配置中 (Proxies 或 Groups)
+    const dialerExists = 
+      (profile.proxies as any[])?.some(p => p.name === chain.dialerProxy) ||
+      (profile['proxy-groups'] as any[])?.some(g => g.name === chain.dialerProxy)
+    
+    const targetExists = 
+      (profile.proxies as any[])?.some(p => p.name === chain.targetProxy) ||
+      (profile['proxy-groups'] as any[])?.some(g => g.name === chain.targetProxy)
+
+    if (!dialerExists || !targetExists) {
+      console.warn(`[Chain] Skipping ${chain.name}: Missing dependency (Dialer: ${dialerExists}, Target: ${targetExists})`)
+      continue
+    }
+
+    // 检查是否已存在同名代理链节点（覆盖更新）
+    const existingIndex = proxies.findIndex((p) => p.name === chain.name)
+    if (existingIndex !== -1) {
+      proxies.splice(existingIndex, 1)
+    }
+
+    // 克隆落地节点，创建代理链虚拟节点
+    const chainProxy = JSON.parse(JSON.stringify(targetProxyConfig)) as Record<string, unknown>
+    chainProxy.name = chain.name
+
+    // 设置 dialer-proxy 为前置节点/组
+    chainProxy['dialer-proxy'] = chain.dialerProxy
+    
+    console.log(`[Chain] Created chain proxy: ${chain.name}, dialer-proxy: ${chain.dialerProxy}`)
+
+    // 添加到 proxies 列表
+    proxies.push(chainProxy)
+
+    // 加入策略组 (支持多选)
+    if (chain.targetGroups && Array.isArray(chain.targetGroups)) {
+      chain.targetGroups.forEach((groupName) => {
+        const targetGroupIndex = proxyGroups.findIndex((g) => g.name === groupName)
+        if (targetGroupIndex !== -1) {
+          const targetGroup = proxyGroups[targetGroupIndex]
+          // 确保 proxies 数组存在
+          if (!Array.isArray(targetGroup.proxies)) {
+            targetGroup.proxies = []
+          }
+          const groupProxies = targetGroup.proxies as string[]
+          if (!groupProxies.includes(chain.name)) {
+            groupProxies.push(chain.name)
+            console.log(`[Chain] Added ${chain.name} to group ${groupName}`)
+          }
+        } else {
+          console.warn(`[Chain] Target group not found: ${groupName}`)
+        }
+      })
+    }
+  }
+}
+
 
 async function cleanProfile(
   profile: MihomoConfig,

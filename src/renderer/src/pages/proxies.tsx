@@ -11,7 +11,8 @@ import { useEffect, useMemo, useRef, useState, useCallback, useDeferredValue } f
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
-import { MdTune } from 'react-icons/md'
+import ProxyChainModal from '@renderer/components/proxies/proxy-chain-modal'
+import { MdTune, MdLink } from 'react-icons/md'
 import { TbBolt } from 'react-icons/tb'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { includesIgnoreCase } from '@renderer/utils/includes'
@@ -57,6 +58,7 @@ const Proxies: React.FC = () => {
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
   const deferredSearchValue = useDeferredValue(searchValue)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
+  const [isChainModalOpen, setIsChainModalOpen] = useState(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   // 扁平化数据结构
   type FlatItem =
@@ -352,19 +354,31 @@ const Proxies: React.FC = () => {
     <BasePage
       title="代理组"
       header={
-        <Button
-          size="sm"
-          isIconOnly
-          variant="light"
-          className="app-nodrag"
-          title="代理组设置"
-          onPress={() => setIsSettingModalOpen(true)}
-        >
-          <MdTune className="text-lg" />
-        </Button>
+
+        <div className="flex items-center gap-1 app-nodrag">
+          <Button
+            size="sm"
+            isIconOnly
+            variant="light"
+            title="管理代理链"
+            onPress={() => setIsChainModalOpen(true)}
+          >
+            <MdLink className="text-lg" />
+          </Button>
+          <Button
+            size="sm"
+            isIconOnly
+            variant="light"
+            title="代理组设置"
+            onPress={() => setIsSettingModalOpen(true)}
+          >
+            <MdTune className="text-lg" />
+          </Button>
+        </div>
       }
     >
       {isSettingModalOpen && <ProxySettingModal onClose={() => setIsSettingModalOpen(false)} />}
+      {isChainModalOpen && <ProxyChainModal onClose={() => setIsChainModalOpen(false)} />}
       {mode === 'direct' ? (
         <div className="h-full w-full flex justify-center items-center p-4">
           <Card className="bg-default-100/50 border-none shadow-sm px-12 py-8">

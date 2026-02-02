@@ -116,7 +116,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
           {proxyDisplayLayout === 'double' ? (
             <>
               <div className="flex flex-col gap-0 flex-1 min-w-0">
-                <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
+                <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
                   {proxy.icon && (
                     <img
                       className="w-4 h-4 object-contain"
@@ -172,7 +172,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
             </>
           ) : (
             <>
-              <div className="text-ellipsis overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
+              <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
                 {proxy.icon && (
                   <img
                     className="w-4 h-4 object-contain"
