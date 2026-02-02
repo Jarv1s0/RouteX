@@ -330,7 +330,7 @@ const GlobalNodeMap: React.FC = () => {
                        fontSize: 10,
                        color: isDark ? '#fff' : '#333'
                     },
-                    symbolSize: (val: any, params: any) => {
+                    symbolSize: (_val: any, params: any) => {
                         const count = params.data?.count || 1
                         return 6 + Math.log(count) * 4
                     },

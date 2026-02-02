@@ -10,3 +10,4 @@ out
 *.ttf
 .ai_memory/
 .agent/
+.shared/
