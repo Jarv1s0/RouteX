@@ -5,6 +5,7 @@ export interface ExtendedConnection extends ControllerConnectionDetail {
   isActive: boolean
   downloadSpeed: number
   uploadSpeed: number
+  completedAt?: string
 }
 
 interface ConnectionsState {
@@ -83,7 +84,13 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       const newActiveIds = new Set(newActive.map(c => c.id))
       const newlyClosed = prevActive
         .filter(c => !newActiveIds.has(c.id))
-        .map(c => ({ ...c, isActive: false, downloadSpeed: 0, uploadSpeed: 0 }))
+        .map(c => ({ 
+          ...c, 
+          isActive: false, 
+          downloadSpeed: 0, 
+          uploadSpeed: 0,
+          completedAt: new Date().toISOString()
+        }))
       
       // Merge with existing closed list and limit size
       let nextClosed = [...newlyClosed, ...prevClosed]

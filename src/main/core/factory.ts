@@ -136,6 +136,12 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     if (!dependencyGraph.has(name)) dependencyGraph.set(name, new Set())
     dependencyGraph.get(name)?.add(dialerProxy)
 
+    // Chain -> Target (防止 Target 是 Group 或其他 Chain 导致的环路)
+    // 注意：虽然 target 实际上是被克隆的（作为模板），但如果 target 是一个 Group，那么流量确实会流向 target
+    // 如果 target 是一个 Proxy，依赖也是存在的（虽然被克隆了，但逻辑上 Chain 使用了 Target 的配置）
+    if (!dependencyGraph.has(name)) dependencyGraph.set(name, new Set())
+    dependencyGraph.get(name)?.add(chain.targetProxy)
+
     // Group -> Chain (因为 Chain 被加入到了 Group 中，所以流量可能从 Group 流向 Chain)
     if (targetGroups && Array.isArray(targetGroups)) {
       for (const groupName of targetGroups) {
@@ -192,16 +198,12 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     
     // 简单检查 targets 是否在基础配置中 (不依赖顺序，因为 safeChains 内部可能互相引用)
     // 只要 dialer 在 proxies/groups OR 是其他的 safeChain.name 即可
-    const dialerExists = 
-      (profile.proxies as any[])?.some(p => p.name === chain.dialerProxy) ||
-      (profile['proxy-groups'] as any[])?.some(g => g.name === chain.dialerProxy) ||
-      safeChains.some(c => c.name === chain.dialerProxy) // 支持链式引用 ChainA -> ChainB
-
     const targetExists = 
       (profile.proxies as any[])?.some(p => p.name === chain.targetProxy) ||
       (profile['proxy-groups'] as any[])?.some(g => g.name === chain.targetProxy)
 
-    if (!dialerExists || !targetExists) {
+    // 落地节点必须存在（因为需要克隆配置），前置节点可以是 Provider 中的节点（动态的），所以不强制检查前置节点是否存在
+    if (!targetExists) {
       continue
     }
 

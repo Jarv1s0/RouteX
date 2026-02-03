@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Code } from '@heroui/react'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { MdErrorOutline, MdInfoOutline, MdWarningAmber, MdCheckCircleOutline } from 'react-icons/md'
+import { MdErrorOutline, MdInfoOutline, MdWarningAmber, MdCheckCircleOutline, MdContentCopy } from 'react-icons/md'
 
 type DialogType = 'info' | 'error' | 'warning' | 'success'
 
@@ -18,6 +18,8 @@ export const GlobalDialogModal: React.FC = () => {
     title: '',
     content: ''
   })
+
+  const [isCopied, setIsCopied] = useState(false)
 
   useEffect(() => {
     // 监听主进程 IPC 消息
@@ -67,6 +69,17 @@ export const GlobalDialogModal: React.FC = () => {
 
   const onClose = (): void => {
     setIsOpen(false)
+    setIsCopied(false)
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(details.content)
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy functionality', err)
+    }
   }
 
   const getIcon = () => {
@@ -124,6 +137,14 @@ export const GlobalDialogModal: React.FC = () => {
               </div>
             </ModalBody>
             <ModalFooter>
+              <Button
+                variant="light"
+                onPress={handleCopy}
+                className="font-medium text-default-500"
+                startContent={!isCopied && <MdContentCopy size={18} />}
+              >
+                {isCopied ? '已复制' : '复制'}
+              </Button>
               <Button 
                 color={details.type === 'error' ? 'danger' : details.type === 'warning' ? 'warning' : 'primary'}
                 variant="light" 
