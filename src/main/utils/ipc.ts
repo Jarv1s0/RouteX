@@ -824,7 +824,14 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('applyTheme', (_e, theme) => ipcErrorWrapper(applyTheme)(theme))
   ipcMain.handle('copyEnv', (_e, type) => ipcErrorWrapper(copyEnv)(type))
   ipcMain.handle('alert', (_e, msg) => {
-    dialog.showErrorBox('RouteX', msg)
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+      // alert 通常用于普通提示或警告，使用 warning 样式比较合适
+      mainWindow.webContents.send('show-dialog-modal', 'warning', '提示', msg)
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    } else {
+      dialog.showErrorBox('RouteX', msg)
+    }
   })
   ipcMain.handle('resetAppConfig', resetAppConfig)
   ipcMain.handle('relaunchApp', () => {

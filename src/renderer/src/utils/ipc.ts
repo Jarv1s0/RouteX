@@ -699,8 +699,13 @@ export async function copyEnv(type: 'bash' | 'cmd' | 'powershell' | 'nushell'): 
 }
 
 async function alert<T>(msg: T): Promise<void> {
-  const msgStr = typeof msg === 'string' ? msg : JSON.stringify(msg)
-  return await window.electron.ipcRenderer.invoke('alert', msgStr)
+  const msgStr = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)
+  // 直接触发前端事件，不再绕行主进程
+  // 这样能立即响应，且样式统一
+  const event = new CustomEvent('show-global-error', { 
+    detail: { title: '提示', content: msgStr } 
+  })
+  window.dispatchEvent(event)
 }
 
 window.alert = alert

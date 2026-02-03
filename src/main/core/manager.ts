@@ -188,7 +188,11 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
           const promises = await startCore()
           await Promise.all(promises)
         } catch (e) {
-          dialog.showErrorBox('内核启动出错', `${e}`)
+          if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+             mainWindow.webContents.send('show-error-modal', '内核启动出错', `${e}`)
+          } else {
+             dialog.showErrorBox('内核启动出错', `${e}`)
+          }
         }
       }
 
@@ -390,7 +394,11 @@ export async function restartCore(): Promise<void> {
     const promises = await startCore()
     await Promise.all(promises)
   } catch (e) {
-    dialog.showErrorBox('内核启动出错', `${e}`)
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+        mainWindow.webContents.send('show-error-modal', '内核启动出错', `${e}`)
+    } else {
+        dialog.showErrorBox('内核启动出错', `${e}`)
+    }
   }
 }
 

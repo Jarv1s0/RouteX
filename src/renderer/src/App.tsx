@@ -16,7 +16,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 
 import AppSidebar from '@renderer/components/layout/AppSidebar'
 import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
-import { GlobalErrorModal } from '@renderer/components/base/global-error-modal'
+import { GlobalDialogModal } from '@renderer/components/base/global-dialog-modal'
 import ErrorBoundary from '@renderer/components/base/error-boundary'
 import { ConnectionsSkeleton } from '@renderer/components/skeletons/ConnectionsSkeleton'
 import { ProxiesSkeleton } from '@renderer/components/skeletons/ProxiesSkeleton'
@@ -172,7 +172,7 @@ const App: React.FC = () => {
   return (
     <>
       <GlobalConfirmModals />
-      <GlobalErrorModal />
+      <GlobalDialogModal />
       
       <div
 // ... rest of the file ...
