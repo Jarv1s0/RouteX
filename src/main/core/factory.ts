@@ -54,7 +54,7 @@ export async function generateProfile(): Promise<void> {
   try {
     await injectChainProxies(profile)
   } catch (e) {
-    console.error('[Chain] Failed to inject chain proxies:', e)
+    // ignore
   }
 
   await cleanProfile(profile, controlDns, controlSniff)
@@ -107,7 +107,7 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     // 查找落地节点配置
     const targetProxyConfig = proxies.find((p) => p.name === chain.targetProxy)
     if (!targetProxyConfig) {
-      console.warn(`[Chain] Target proxy not found: ${chain.targetProxy}`)
+
       continue
     }
 
@@ -121,7 +121,7 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
       (profile['proxy-groups'] as any[])?.some(g => g.name === chain.targetProxy)
 
     if (!dialerExists || !targetExists) {
-      console.warn(`[Chain] Skipping ${chain.name}: Missing dependency (Dialer: ${dialerExists}, Target: ${targetExists})`)
+
       continue
     }
 
@@ -138,7 +138,7 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     // 设置 dialer-proxy 为前置节点/组
     chainProxy['dialer-proxy'] = chain.dialerProxy
     
-    console.log(`[Chain] Created chain proxy: ${chain.name}, dialer-proxy: ${chain.dialerProxy}`)
+
 
     // 添加到 proxies 列表
     proxies.push(chainProxy)
@@ -156,10 +156,8 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
           const groupProxies = targetGroup.proxies as string[]
           if (!groupProxies.includes(chain.name)) {
             groupProxies.push(chain.name)
-            console.log(`[Chain] Added ${chain.name} to group ${groupName}`)
+
           }
-        } else {
-          console.warn(`[Chain] Target group not found: ${groupName}`)
         }
       })
     }
