@@ -60,12 +60,28 @@ export function iconDir(): string {
   if (is.dev) {
     return path.join(__dirname, '../../resources')
   } else {
-    return path.join(process.resourcesPath, 'icons')
+    // 生产环境：依次检查可能的图标目录
+    const iconsDir = path.join(process.resourcesPath, 'icons')
+    if (existsSync(iconsDir)) {
+      return iconsDir
+    }
+    // 回退：某些情况下图标可能在 app 目录下
+    const appIconsDir = path.join(app.getAppPath(), '..', 'icons')
+    if (existsSync(appIconsDir)) {
+      return appIconsDir
+    }
+    // 最终回退到默认路径
+    return iconsDir
   }
 }
 
 export function getIconPath(filename: string): string {
-  return path.join(iconDir(), filename)
+  const iconPath = path.join(iconDir(), filename)
+  // 如果文件不存在，记录警告便于调试
+  if (!existsSync(iconPath)) {
+    console.warn(`[iconPath] Icon not found: ${iconPath}`)
+  }
+  return iconPath
 }
 
 export function themesDir(): string {

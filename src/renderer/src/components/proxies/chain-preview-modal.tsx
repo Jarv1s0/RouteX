@@ -19,39 +19,43 @@ interface Props {
   onClose: () => void
 }
 
-// 高对比度颜色配置
+// 高亮度饱和颜色配置 - 更明亮醒目
 const COLORS = {
   indigo: {
-    border: '#6366F1',
-    bg: 'rgba(99, 102, 241, 0.30)',
+    border: '#818CF8',
+    bg: 'rgba(129, 140, 248, 0.25)',
     text: '#FFFFFF',
-    textSecondary: '#A5B4FC',
+    textSecondary: '#C7D2FE',
     icon: '#FFFFFF',
-    iconBg: 'rgba(99, 102, 241, 0.45)'
+    iconBg: 'rgba(129, 140, 248, 0.5)',
+    glow: 'rgba(129, 140, 248, 0.6)'
   },
   cyan: {
-    border: '#06B6D4',
-    bg: 'rgba(6, 182, 212, 0.35)',
+    border: '#22D3EE',
+    bg: 'rgba(34, 211, 238, 0.25)',
     text: '#FFFFFF',
-    textSecondary: '#67E8F9',
+    textSecondary: '#A5F3FC',
     icon: '#FFFFFF',
-    iconBg: 'rgba(6, 182, 212, 0.5)'
+    iconBg: 'rgba(34, 211, 238, 0.5)',
+    glow: 'rgba(34, 211, 238, 0.6)'
   },
   orange: {
-    border: '#F97316',
-    bg: 'rgba(249, 115, 22, 0.35)',
+    border: '#FB923C',
+    bg: 'rgba(251, 146, 60, 0.25)',
     text: '#FFFFFF',
-    textSecondary: '#FDBA74',
+    textSecondary: '#FED7AA',
     icon: '#FFFFFF',
-    iconBg: 'rgba(249, 115, 22, 0.5)'
+    iconBg: 'rgba(251, 146, 60, 0.5)',
+    glow: 'rgba(251, 146, 60, 0.6)'
   },
   emerald: {
-    border: '#10B981',
-    bg: 'rgba(16, 185, 129, 0.35)',
+    border: '#34D399',
+    bg: 'rgba(52, 211, 153, 0.25)',
     text: '#FFFFFF',
-    textSecondary: '#6EE7B7',
+    textSecondary: '#A7F3D0',
     icon: '#FFFFFF',
-    iconBg: 'rgba(16, 185, 129, 0.5)'
+    iconBg: 'rgba(52, 211, 153, 0.5)',
+    glow: 'rgba(52, 211, 153, 0.6)'
   }
 }
 
@@ -64,6 +68,7 @@ interface NodeCardProps {
   name?: string
   color: ColorKey
   index?: number
+  targetGroups?: string[]  // 新增：用于互联网卡片显示策略组
   groupInfo?: {
     isGroup: boolean
     activeNode?: string
@@ -78,6 +83,7 @@ const NodeCard: React.FC<NodeCardProps> = React.memo(({
   name,
   color,
   index = 0,
+  targetGroups,
   groupInfo
 }) => {
   const colorConfig = COLORS[color]
@@ -94,33 +100,35 @@ const NodeCard: React.FC<NodeCardProps> = React.memo(({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ 
         duration: 0.4, 
         delay: index * 0.1,
-        ease: [0.25, 0.46, 0.45, 0.94]
+        ease: 'easeOut'
       }}
-      className="rounded-2xl overflow-hidden cursor-default"
+      whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+      className="rounded-3xl overflow-hidden cursor-default"
       style={{
-        border: `3px solid ${colorConfig.border}`,
-        background: colorConfig.bg,
-        minWidth: '220px',
-        maxWidth: '240px',
-        boxShadow: `0 0 20px ${colorConfig.border}40`
+        border: `2px solid ${colorConfig.border}`,
+        background: `linear-gradient(160deg, ${colorConfig.bg}, rgba(15,23,42,0.8))`,
+        minWidth: '200px',
+        maxWidth: '220px',
+        boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05)`
       }}
     >
-      <div className="p-6 flex flex-col items-center gap-5">
+      <div className="p-8 flex flex-col items-center gap-6">
         {/* 图标 */}
         <div 
-          className="p-5 rounded-2xl"
+          className="p-6 rounded-2xl"
           style={{ 
             background: colorConfig.iconBg,
-            boxShadow: `0 0 20px ${colorConfig.border}60`
+            boxShadow: '0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.1)'
           }}
         >
           <Icon 
-            className="text-4xl" 
+            className="text-5xl" 
             style={{ color: colorConfig.icon }}
           />
         </div>
@@ -128,11 +136,11 @@ const NodeCard: React.FC<NodeCardProps> = React.memo(({
         {/* 主标题 */}
         <div className="text-center w-full">
           <div 
-            className="font-bold text-xl px-1 break-words" 
+            className="font-bold text-2xl px-2 break-words" 
             style={{ 
               color: colorConfig.text,
-              textShadow: '0 0 10px rgba(0,0,0,0.5)',
-              lineHeight: '1.3'
+              textShadow: `0 0 15px ${colorConfig.glow}, 0 2px 4px rgba(0,0,0,0.5)`,
+              lineHeight: '1.4'
             }}
             title={groupInfo?.activeNode || name}
           >
@@ -142,7 +150,7 @@ const NodeCard: React.FC<NodeCardProps> = React.memo(({
           {/* 副标题：类型描述 */}
           {getTypeLabel() && (
             <div 
-              className="text-base mt-2 font-medium"
+              className="text-xl mt-3 font-medium"
               style={{ color: colorConfig.textSecondary }}
             >
               {getTypeLabel()}
@@ -150,18 +158,36 @@ const NodeCard: React.FC<NodeCardProps> = React.memo(({
           )}
         </div>
         
-        {/* 节点数量标签 */}
-        {groupInfo?.isGroup && groupInfo.nodeCount !== undefined && (
-          <div 
-            className="px-5 py-2 rounded-full text-base font-semibold"
+        {/* 策略组标签（互联网卡片）或节点数量标签 */}
+        {targetGroups && targetGroups.length > 0 ? (
+          <motion.div 
+            className="px-6 py-3 rounded-2xl text-lg font-semibold text-center"
             style={{ 
               background: colorConfig.iconBg,
-              border: `2px solid ${colorConfig.border}60`,
-              color: colorConfig.text
+              border: `2px solid ${colorConfig.border}`,
+              color: colorConfig.text,
+              boxShadow: '0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
             }}
+            whileHover={{ scale: 1.03 }}
+          >
+            <div className="text-sm opacity-70 mb-1.5">应用到策略组</div>
+            <div className="text-base font-bold" title={targetGroups.join(', ')}>
+              {targetGroups.join(', ')}
+            </div>
+          </motion.div>
+        ) : groupInfo?.isGroup && groupInfo.nodeCount !== undefined && (
+          <motion.div 
+            className="px-6 py-3 rounded-full text-lg font-bold"
+            style={{ 
+              background: colorConfig.iconBg,
+              border: `2px solid ${colorConfig.border}`,
+              color: colorConfig.text,
+              boxShadow: '0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
+            }}
+            whileHover={{ scale: 1.05 }}
           >
             {groupInfo.nodeCount} 节点
-          </div>
+          </motion.div>
         )}
       </div>
     </motion.div>
@@ -170,30 +196,49 @@ const NodeCard: React.FC<NodeCardProps> = React.memo(({
 
 NodeCard.displayName = 'NodeCard'
 
-// ConnectionLine 移到组件外部
+// ConnectionLine - 双粒子流动效果
 const ConnectionLine: React.FC<{ delay: number; index?: number }> = React.memo(({ delay, index = 0 }) => (
   <motion.div 
     initial={{ opacity: 0, scaleX: 0 }}
     animate={{ opacity: 1, scaleX: 1 }}
-    transition={{ duration: 0.5, delay: index * 0.1 + 0.2 }}
-    className="relative w-20 h-1 mx-2"
+    transition={{ duration: 0.6, delay: index * 0.15 + 0.2 }}
+    className="relative w-28 h-2 mx-6"
   >
+    {/* 轨道背景 */}
     <div 
       className="absolute inset-0 rounded-full"
-      style={{ background: 'linear-gradient(90deg, rgba(6,182,212,0.3), rgba(16,185,129,0.3))' }}
+      style={{ 
+        background: 'linear-gradient(90deg, rgba(34,211,238,0.3), rgba(52,211,153,0.3))'
+      }}
     />
+    
+    {/* 流动粒子1 - 主粒子 */}
+    <motion.div
+      className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full"
+      style={{
+        background: 'radial-gradient(circle, #22D3EE 30%, #34D399 100%)'
+      }}
+      animate={{ left: ['-10%', '100%'] }}
+      transition={{ 
+        repeat: Infinity, 
+        duration: 1.8, 
+        ease: 'easeInOut',
+        delay: delay
+      }}
+    />
+    
+    {/* 流动粒子2 - 次粒子 */}
     <motion.div
       className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full"
       style={{
-        background: 'linear-gradient(90deg, #06b6d4, #10b981)',
-        boxShadow: '0 0 10px rgba(6, 182, 212, 0.8)'
+        background: 'radial-gradient(circle, #34D399 30%, #22D3EE 100%)'
       }}
-      animate={{ left: ['0%', '100%'] }}
+      animate={{ left: ['-5%', '105%'] }}
       transition={{ 
         repeat: Infinity, 
-        duration: 1.5, 
+        duration: 1.8, 
         ease: 'easeInOut',
-        delay: delay
+        delay: delay + 0.9
       }}
     />
   </motion.div>
@@ -230,10 +275,10 @@ const ScaleWrapper: React.FC<{ children: React.ReactNode }> = React.memo(({ chil
   }, [])
 
   return (
-    <div ref={containerRef} className="w-full flex justify-center">
+    <div ref={containerRef} className="w-full flex justify-center overflow-visible">
       <div 
         ref={contentRef} 
-        style={{ transform: `scale(${scale})` }} 
+        style={{ transform: `scale(${scale})`, padding: '20px' }} 
         className="origin-center transition-transform duration-300 ease-out"
       >
         {children}
@@ -337,23 +382,35 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
 
               {selectedChain && (
                 <div 
-                  className="flex-1 rounded-3xl p-10 flex items-center justify-center relative overflow-hidden"
+                  className="flex-1 rounded-3xl p-12 flex items-center justify-center relative overflow-hidden"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.6))',
-                    border: '1px solid rgba(71, 85, 105, 0.3)'
+                    background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.8), rgba(30, 41, 59, 0.9))',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    boxShadow: 'inset 0 0 60px rgba(0,0,0,0.3), 0 0 40px rgba(34, 211, 238, 0.1)'
                   }}
                 >
-                  <div 
-                    className="absolute inset-0 opacity-[0.05]" 
+                  {/* 动态网格背景 */}
+                  <motion.div 
+                    className="absolute inset-0" 
                     style={{ 
-                      backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
-                      backgroundSize: '30px 30px' 
-                    }} 
+                      backgroundImage: 'radial-gradient(circle, rgba(148, 163, 184, 0.15) 1.5px, transparent 1.5px)',
+                      backgroundSize: '35px 35px' 
+                    }}
+                    animate={{ opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                  
+                  {/* 背景光晕效果 */}
+                  <div 
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%]"
+                    style={{
+                      background: 'radial-gradient(ellipse at center, rgba(34, 211, 238, 0.08) 0%, transparent 50%)'
+                    }}
                   />
 
-                  <div className="flex items-center w-full justify-center overflow-hidden py-4">
+                  <div className="flex items-center w-full justify-center overflow-visible py-6 relative z-10">
                     <ScaleWrapper>
-                      <div className="flex items-center gap-2 px-8 min-w-max">
+                      <div className="flex items-center gap-4 px-12 min-w-max">
                         <NodeCard 
                           icon={IoPerson} 
                           title="用户" 
@@ -389,10 +446,10 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
                         <NodeCard 
                           icon={IoGlobeOutline} 
                           title="互联网" 
-                          name={selectedChain.targetGroups?.join(', ') || 'Direct'}
+                          name="目标网站"
                           color="emerald"
                           index={3}
-                          groupInfo={getGroupInfo(selectedChain.targetGroups?.[0])}
+                          targetGroups={selectedChain.targetGroups}
                         />
                       </div>
                     </ScaleWrapper>

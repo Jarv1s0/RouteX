@@ -9,12 +9,13 @@ import {
   dialog,
   Notification,
   powerMonitor,
-  ipcMain
+  ipcMain,
+  nativeImage
 } from 'electron'
 import { addOverrideItem, addProfileItem, getAppConfig, patchControledMihomoConfig } from './config'
 import { quitWithoutCore, startCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
-import { createTray } from './resolve/tray'
+import { createTray, tray } from './resolve/tray'
 import { createApplicationMenu } from './resolve/menu'
 import { init } from './utils/init'
 import { join } from 'path'
@@ -367,18 +368,27 @@ app.whenReady().then(async () => {
   registerIpcMainHandlers()
 
   ipcMain.on('update-taskbar-icon', (_event, type: 'default' | 'proxy' | 'tun') => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      try {
-        let targetIcon = getIconPath('icon.png')
-        // Windows 上使用 .ico 图标以保持一致性 (因为 .exe 默认图标是 .ico)
-        if (process.platform === 'win32') targetIcon = getIconPath('icon.ico')
-        
-        if (type === 'proxy') targetIcon = getIconPath('icon_proxy.ico')
-        if (type === 'tun') targetIcon = getIconPath('icon_tun.ico')
-        mainWindow.setIcon(targetIcon)
-      } catch (e) {
-        console.error('Failed to set taskbar icon', e)
+    try {
+      if (process.platform !== 'win32') return
+      
+      let iconName = 'icon.ico'
+      if (type === 'proxy') iconName = 'icon_proxy.ico'
+      if (type === 'tun') iconName = 'icon_tun.ico'
+      
+      const iconPath = getIconPath(iconName)
+      const nativeIcon = nativeImage.createFromPath(iconPath)
+      
+      // 更新任务栏图标
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.setIcon(nativeIcon)
       }
+      
+      // 同时更新托盘图标
+      if (tray) {
+        tray.setImage(nativeIcon)
+      }
+    } catch (e) {
+      console.error('Failed to update icons:', e)
     }
   })
 
@@ -611,7 +621,8 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       titleBarStyle: useWindowFrame ? 'default' : 'hidden',
       titleBarOverlay: false,
       autoHideMenuBar: true,
-      ...(process.platform === 'linux' ? { icon: getIconPath('icon.png') } : {}),
+      ...(process.platform === 'linux' ? { icon: getIconPath('icon.png') } : 
+         process.platform === 'win32' ? { icon: getIconPath('icon.ico') } : {}),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         spellcheck: false,

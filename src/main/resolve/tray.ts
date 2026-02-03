@@ -522,23 +522,8 @@ async function updateTrayIcon(): Promise<void> {
   }
 }
 
-ipcMain.on('update-taskbar-icon', (_event, type: 'default' | 'proxy' | 'tun') => {
-  try {
-    if (process.platform !== 'win32') return
-    let iconName = 'icon.ico'
-    if (type === 'proxy') iconName = 'icon_proxy.ico'
-    if (type === 'tun') iconName = 'icon_tun.ico'
-    
-    const iconPath = getIconPath(iconName)
-    const nativeIcon = nativeImage.createFromPath(iconPath)
-    
-    if (tray) {
-      tray.setImage(nativeIcon)
-    }
-  } catch (e) {
-    console.error('Failed to update tray icon from IPC:', e)
-  }
-})
+// 注意：update-taskbar-icon 事件已移至 index.ts 统一处理，
+// 同时更新任务栏和托盘图标，避免重复监听
 
 async function updateTrayMenu(): Promise<void> {
   const menu = await buildContextMenu()
