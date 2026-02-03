@@ -202,7 +202,7 @@ export async function createApplicationMenu(): Promise<void> {
             }
           }
           }
-        }
+
       ]
     }
   ]
