@@ -344,7 +344,7 @@ app.whenReady().then(async () => {
   try {
     await initPromise
   } catch (e) {
-    dialog.showErrorBox('应用初始化失败', `${e}`)
+    showErrorDialog('应用初始化失败', `${e}`)
     app.quit()
   }
 
@@ -368,6 +368,10 @@ app.whenReady().then(async () => {
   const { showFloatingWindow: showFloating = false, disableTray = false } = appConfig
   registerIpcMainHandlers()
 
+  // 显式设置 AUMID，确保 Windows 任务栏能正确识别应用身份
+  // 这对于“固定”在任务栏的应用图标更新至关重要
+  electronApp.setAppUserModelId('routex.app')
+
   ipcMain.on('update-taskbar-icon', (_event, type: 'default' | 'proxy' | 'tun') => {
     try {
       if (process.platform !== 'win32') return
@@ -377,7 +381,7 @@ app.whenReady().then(async () => {
       if (type === 'tun') iconName = 'icon_tun.ico'
       
       const iconPath = getIconPath(iconName)
-      console.log(`[IconUpdate] Updating taskbar icon to: ${iconPath}`)
+      // console.log(`[IconUpdate] Updating taskbar icon to: ${iconPath}`)
 
       const nativeIcon = nativeImage.createFromPath(iconPath)
       
@@ -388,7 +392,19 @@ app.whenReady().then(async () => {
 
       // 更新任务栏图标
       if (mainWindow && !mainWindow.isDestroyed()) {
+        // 1. 尝试直接设置主图标
         mainWindow.setIcon(nativeIcon)
+        
+        // 2. 双重保障：设置 Overlay Icon (状态角标)
+        // 即使主图标因被“固定”而无法更改，右下角的状态标也能指示当前状态
+        if (type === 'default') {
+            mainWindow.setOverlayIcon(null, '') // 清除 Overlay
+        } else {
+            // 使用相同的图标作为 Overlay，Windows 会自动缩放显示在右下角
+            // description 文本有助于辅助功能
+            const description = type === 'proxy' ? 'System Proxy On' : type === 'tun' ? 'TUN Mode On' : ''
+            mainWindow.setOverlayIcon(nativeIcon, description)
+        }
       }
       
       // 同时更新托盘图标
@@ -404,6 +420,29 @@ app.whenReady().then(async () => {
 
   let coreStarted = false
 
+// 辅助函数：优先使用前端美化弹窗，如果窗口不可用则回退到系统弹窗
+function showErrorDialog(title: string, content: string) {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+    mainWindow.webContents.send('show-error-modal', title, content)
+    // 聚焦窗口以确保用户注意到弹窗
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  } else {
+    dialog.showErrorBox(title, content)
+  }
+}
+
+// ... existing code ...
+
+  try {
+    await initPromise
+  } catch (e) {
+    showErrorDialog('应用初始化失败', `${e}`)
+    app.quit()
+  }
+
+// ... existing code ...
+
   const coreStartPromise = (async (): Promise<void> => {
     try {
       const [startPromise] = await startCore()
@@ -412,7 +451,7 @@ app.whenReady().then(async () => {
       })
       coreStarted = true
     } catch (e) {
-      dialog.showErrorBox('内核启动出错', `${e}`)
+      showErrorDialog('内核启动出错', `${e}`)
     }
   })()
 
