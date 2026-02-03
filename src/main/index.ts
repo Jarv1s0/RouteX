@@ -344,7 +344,7 @@ app.whenReady().then(async () => {
   try {
     await initPromise
   } catch (e) {
-    showErrorDialog('应用初始化失败', `${e}`)
+    showDialog('error', '应用初始化失败', `${e}`)
     app.quit()
   }
 
@@ -418,15 +418,17 @@ app.whenReady().then(async () => {
 
   let coreStarted = false
 
-// 辅助函数：优先使用前端美化弹窗，如果窗口不可用则回退到系统弹窗
-function showErrorDialog(title: string, content: string) {
+// 辅助函数：通用弹窗
+function showDialog(type: 'info' | 'error' | 'warning' | 'success', title: string, content: string) {
   if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
-    mainWindow.webContents.send('show-error-modal', title, content)
+    mainWindow.webContents.send('show-dialog-modal', type, title, content)
     // 聚焦窗口以确保用户注意到弹窗
     if (mainWindow.isMinimized()) mainWindow.restore()
     mainWindow.focus()
   } else {
-    dialog.showErrorBox(title, content)
+    // 降级处理
+    if (type === 'error') dialog.showErrorBox(title, content)
+    else dialog.showMessageBox({ type: type as any, title, message: title, detail: content })
   }
 }
 
@@ -435,7 +437,7 @@ function showErrorDialog(title: string, content: string) {
   try {
     await initPromise
   } catch (e) {
-    showErrorDialog('应用初始化失败', `${e}`)
+    showDialog('error', '应用初始化失败', `${e}`)
     app.quit()
   }
 
@@ -449,7 +451,7 @@ function showErrorDialog(title: string, content: string) {
       })
       coreStarted = true
     } catch (e) {
-      showErrorDialog('内核启动出错', `${e}`)
+      showDialog('error', '内核启动出错', `${e}`)
     }
   })()
 
