@@ -9,6 +9,9 @@ import {
 
 import pngIcon from '../../../resources/icon.png?asset'
 import templateIcon from '../../../resources/iconTemplate.png?asset'
+import iconIco from '../../../resources/icon.ico?asset'
+import iconProxyIco from '../../../resources/icon_proxy.ico?asset'
+import iconTunIco from '../../../resources/icon_tun.ico?asset'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -492,31 +495,26 @@ export async function createTray(): Promise<void> {
   await updateTrayIcon()
 }
 
+// ... (imports are handled in a separate block)
+
 async function updateTrayIcon(): Promise<void> {
   try {
     if (process.platform !== 'win32') return
     const { sysProxy } = await getAppConfig()
     const { tun } = await getControledMihomoConfig()
 
-    let iconName = 'icon.ico'
+    let iconPath = iconIco
     if (tun?.enable) {
-      iconName = 'icon_tun.ico'
+      iconPath = iconTunIco
     } else if (sysProxy.enable) {
-      iconName = 'icon_proxy.ico'
+      iconPath = iconProxyIco
     }
     
-    const iconPath = getIconPath(iconName)
     const nativeIcon = nativeImage.createFromPath(iconPath)
     
     if (tray) {
       tray.setImage(nativeIcon)
     }
-    
-    // Sync main window icon with tray icon (System Proxy / Tun status)
-    // Removed to avoid conflict with App.tsx and index.ts logic
-    // if (mainWindow && !mainWindow.isDestroyed()) {
-    //   mainWindow.setIcon(nativeIcon)
-    // }
   } catch (e) {
     console.error('Failed to update tray icon:', e)
   }
