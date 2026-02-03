@@ -23,7 +23,7 @@ import { initShortcut } from './resolve/shortcut'
 import { spawn } from 'child_process'
 import { createElevateTask } from './sys/misc'
 import { initProfileUpdater } from './core/profileUpdater'
-import { copyFileSync, existsSync, writeFileSync, appendFileSync } from 'fs'
+import { copyFileSync, existsSync, writeFileSync } from 'fs'
 import { exePath, resourcesFilesDir, taskDir, getIconPath } from './utils/dirs'
 import path from 'path'
 import { startMonitor } from './resolve/trafficMonitor'
@@ -381,45 +381,27 @@ app.whenReady().then(async () => {
       if (type === 'tun') iconName = 'icon_tun.ico'
       
       const iconPath = getIconPath(iconName)
-      
-      const debugPath = join(app.getPath('userData'), 'icon_debug.log')
-      const log = (msg: string): void => {
-        try {
-          appendFileSync(debugPath, `[${new Date().toISOString()}] ${msg}\n`)
-        } catch {
-          // ignore
-        }
-      }
-      
-      log(`[Update] type=${type}, path=${iconPath}`)
+      // console.log(`[IconUpdate] Updating taskbar icon to: ${iconPath}`)
 
       const nativeIcon = nativeImage.createFromPath(iconPath)
       
       if (nativeIcon.isEmpty()) {
-        log(`[Error] Native icon is empty! File exists: ${existsSync(iconPath)}`)
         console.warn(`[IconUpdate] Failed to load icon from path: ${iconPath}`)
         return
       }
 
       // 更新任务栏图标
       if (mainWindow && !mainWindow.isDestroyed()) {
-        // 1. 尝试直接设置主图标
+        // 1. 尝试直接设置主图标 (注意：如果应用被固定在任务栏，Windows 可能忽略此调用且只显示固定图标)
         mainWindow.setIcon(nativeIcon)
         
         // 2. 双重保障：设置 Overlay Icon (状态角标)
-        // 即使主图标因被“固定”而无法更改，右下角的状态标也能指示当前状态
-        if (type === 'default') {
-            mainWindow.setOverlayIcon(null, '') // 清除 Overlay
-            log(`[Success] Cleared overlay`)
-        } else {
-            // 使用相同的图标作为 Overlay，Windows 会自动缩放显示在右下角
-            // description 文本有助于辅助功能
+        // 清除旧的 Overlay 以强制刷新
+        mainWindow.setOverlayIcon(null, '')
+
+        if (type !== 'default') {
             const description = type === 'proxy' ? 'System Proxy On' : type === 'tun' ? 'TUN Mode On' : ''
-            
-            // 尝试缩放图标，避免某些情况下原始图标过大导致 Overlay 不显示
-            const overlayIcon = nativeIcon.resize({ width: 16, height: 16 })
-            mainWindow.setOverlayIcon(overlayIcon, description)
-            log(`[Success] Set overlay with resized icon`)
+            mainWindow.setOverlayIcon(nativeIcon, description)
         }
       }
       
@@ -429,12 +411,6 @@ app.whenReady().then(async () => {
       }
     } catch (e) {
       console.error('Failed to update icons:', e)
-      const debugPath = join(app.getPath('userData'), 'icon_debug.log')
-      try {
-          appendFileSync(debugPath, `[Exception] ${e}\n`)
-      } catch {
-          // ignore
-      }
     }
   })
 
