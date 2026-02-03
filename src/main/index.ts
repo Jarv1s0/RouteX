@@ -392,17 +392,8 @@ app.whenReady().then(async () => {
 
       // 更新任务栏图标
       if (mainWindow && !mainWindow.isDestroyed()) {
-        // 1. 尝试直接设置主图标 (注意：如果应用被固定在任务栏，Windows 可能忽略此调用且只显示固定图标)
+        // 尝试直接设置主图标 (注意：如果应用被固定在任务栏，Windows 可能忽略此调用且只显示固定图标)
         mainWindow.setIcon(nativeIcon)
-        
-        // 2. 双重保障：设置 Overlay Icon (状态角标)
-        // 清除旧的 Overlay 以强制刷新
-        mainWindow.setOverlayIcon(null, '')
-
-        if (type !== 'default') {
-            const description = type === 'proxy' ? 'System Proxy On' : type === 'tun' ? 'TUN Mode On' : ''
-            mainWindow.setOverlayIcon(nativeIcon, description)
-        }
       }
       
       // 同时更新托盘图标
