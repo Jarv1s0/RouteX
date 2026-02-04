@@ -74,6 +74,7 @@ export async function updateChainItem(item: ChainItem): Promise<void> {
   }
   config.items[index] = item
   await setChainsConfig(config)
+  console.log(`[Chains] Updated chain ${item.id} name to "${item.name}"`)
 }
 
 /**

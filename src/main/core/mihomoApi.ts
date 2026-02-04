@@ -283,6 +283,7 @@ export const mihomoDnsQuery = async (name: string, type: string): Promise<{ Answ
 }
 
 export const startMihomoTraffic = async (): Promise<void> => {
+  trafficRetry = 10
   await mihomoTraffic()
 }
 
@@ -332,7 +333,9 @@ const mihomoTraffic = async (): Promise<void> => {
   mihomoTrafficWs.onclose = (): void => {
     if (trafficRetry) {
       trafficRetry--
-      mihomoTraffic()
+      setTimeout(() => {
+        mihomoTraffic()
+      }, 1000)
     }
   }
 
@@ -345,6 +348,7 @@ const mihomoTraffic = async (): Promise<void> => {
 }
 
 export const startMihomoMemory = async (): Promise<void> => {
+  memoryRetry = 10
   await mihomoMemory()
 }
 
@@ -374,7 +378,9 @@ const mihomoMemory = async (): Promise<void> => {
   mihomoMemoryWs.onclose = (): void => {
     if (memoryRetry) {
       memoryRetry--
-      mihomoMemory()
+      setTimeout(() => {
+        mihomoMemory()
+      }, 1000)
     }
   }
 
@@ -387,6 +393,7 @@ const mihomoMemory = async (): Promise<void> => {
 }
 
 export const startMihomoLogs = async (): Promise<void> => {
+  logsRetry = 10
   await mihomoLogs()
 }
 
@@ -418,7 +425,9 @@ const mihomoLogs = async (): Promise<void> => {
   mihomoLogsWs.onclose = (): void => {
     if (logsRetry) {
       logsRetry--
-      mihomoLogs()
+      setTimeout(() => {
+        mihomoLogs()
+      }, 1000)
     }
   }
 
@@ -431,6 +440,7 @@ const mihomoLogs = async (): Promise<void> => {
 }
 
 export const startMihomoConnections = async (): Promise<void> => {
+  connectionsRetry = 10
   await mihomoConnections()
 }
 
@@ -473,7 +483,9 @@ const mihomoConnections = async (): Promise<void> => {
   mihomoConnectionsWs.onclose = (): void => {
     if (connectionsRetry) {
       connectionsRetry--
-      mihomoConnections()
+      setTimeout(() => {
+        mihomoConnections()
+      }, 1000)
     }
   }
 
