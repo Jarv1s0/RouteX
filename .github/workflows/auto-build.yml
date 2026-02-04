@@ -52,4 +52,4 @@ jobs:
         with:
           name: RouteX-Windows-Installer
           path: dist/*.exe
-          retention-days: 7 // artifact retention days
+          retention-days: 7 # artifact retention days
