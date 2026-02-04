@@ -1,13 +1,7 @@
 import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
-import { dataDir } from '../utils/dirs'
+import { chainsConfigPath } from '../utils/dirs'
 import { parseYaml, stringifyYaml } from '../utils/yaml'
-import path from 'path'
-
-// 代理链配置路径
-export function chainsConfigPath(): string {
-  return path.join(dataDir(), 'chains.yaml')
-}
 
 let chainsConfig: ChainsConfig // chains.yaml
 

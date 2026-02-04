@@ -389,15 +389,36 @@ async function stopChildProcess(process: ChildProcess): Promise<void> {
 }
 
 export async function restartCore(): Promise<void> {
-  try {
-    await stopCore()
-    const promises = await startCore()
-    await Promise.all(promises)
-  } catch (e) {
-    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+  const maxRetries = 3
+  
+  await stopCore()
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const promises = await startCore()
+      await Promise.all(promises)
+      return
+    } catch (e) {
+      const errorMsg = String(e)
+      // 如果是管道监听错误（通常是因为上一个进程未完全释放），且还有重试机会
+      if (
+        errorMsg.includes('External controller pipe listen error') &&
+        i < maxRetries - 1
+      ) {
+        await writeFile(logPath(), `[Manager]: Pipe listen error, retrying in 1s... (${i + 1}/${maxRetries})\n`, { flag: 'a' })
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        // 再次尝试停止，确保残留进程被清理
+        await stopCore(true) 
+        continue
+      }
+      
+      // 其他错误或重试耗尽，显示错误弹窗
+      if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
         mainWindow.webContents.send('show-error-modal', '内核启动出错', `${e}`)
-    } else {
+      } else {
         dialog.showErrorBox('内核启动出错', `${e}`)
+      }
+      break // 停止重试
     }
   }
 }
