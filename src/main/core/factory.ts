@@ -81,7 +81,9 @@ export async function generateProfile(): Promise<void> {
  * 4. 可选：将虚拟节点添加到指定策略组
  */
 async function injectChainProxies(profile: MihomoConfig): Promise<void> {
-  const chainsConfig = await getChainsConfig()
+  // Force reload chains config to ensure we get the latest updates from disk
+  // regardless of memory cache state in other modules
+  const chainsConfig = await getChainsConfig(true)
   if (!chainsConfig.items || chainsConfig.items.length === 0) {
     return
   }
@@ -112,7 +114,6 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
   }
 
   // 1.5 添加普通代理的 dialer-proxy 依赖 (Proxy -> Dialer)
-  // 这是为了防止普通代理引用了代理链，而代理链又引用了该普通代理（或通过其他链间接引用）形成环路
   if (Array.isArray(proxies)) {
     for (const p of proxies) {
       const name = p.name as string
@@ -124,61 +125,113 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     }
   }
 
-  // 2. 筛选活跃的代理链并构建潜在依赖
+  // 2. 筛选活跃的代理链并构建初始依赖 (Chain -> Dependencies)
   const activeChains = chainsConfig.items.filter(
     (c) => c.enabled !== false && c.name && c.targetProxy && c.dialerProxy
   )
 
-  for (const chain of activeChains) {
-    const { name, dialerProxy, targetGroups } = chain
-    
-    // Chain -> Dialer
-    if (!dependencyGraph.has(name)) dependencyGraph.set(name, new Set())
-    dependencyGraph.get(name)?.add(dialerProxy)
-
-    // Chain -> Target (防止 Target 是 Group 或其他 Chain 导致的环路)
-    // 注意：虽然 target 实际上是被克隆的（作为模板），但如果 target 是一个 Group，那么流量确实会流向 target
-    // 如果 target 是一个 Proxy，依赖也是存在的（虽然被克隆了，但逻辑上 Chain 使用了 Target 的配置）
-    if (!dependencyGraph.has(name)) dependencyGraph.set(name, new Set())
-    dependencyGraph.get(name)?.add(chain.targetProxy)
-
-    // Group -> Chain (因为 Chain 被加入到了 Group 中，所以流量可能从 Group 流向 Chain)
-    if (targetGroups && Array.isArray(targetGroups)) {
-      for (const groupName of targetGroups) {
-        if (!dependencyGraph.has(groupName)) dependencyGraph.set(groupName, new Set())
-        dependencyGraph.get(groupName)?.add(name)
-      }
-    }
+  // --- 0. 预处理：全局隔离 (Global Chain Isolation) ---
+  // 用户要求：所有代理链都不应被自动筛选规则（filter）命中进入策略组。
+  // 必须通过 targetGroups 显式指定才能进入。
+  // 因此，我们将所有活跃代理链的名称添加到所有带 filter 的策略组的 exclude-filter 中。
+  const escapeRegExp = (string: string): string => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   }
 
-  // 3. DFS 检测环路
-  const hasLoop = (startNode: string, visited = new Set<string>(), stack = new Set<string>()): boolean => {
-    visited.add(startNode)
-    stack.add(startNode)
+  if (activeChains.length > 0) {
+    const chainNames = activeChains.map((c) => escapeRegExp(c.name)).join('|')
 
-    const neighbors = dependencyGraph.get(startNode)
-    if (neighbors) {
-      for (const neighbor of neighbors) {
-        if (!visited.has(neighbor)) {
-          if (hasLoop(neighbor, visited, stack)) return true
-        } else if (stack.has(neighbor)) {
-          return true
+    for (const group of proxyGroups) {
+      // 只有带 filter 的组才需要处理排除逻辑 (url-test, select, fallback 等都可能带 filter)
+      if (group.filter || (group as any)._filter) { // 兼容性检查，通常只有 filter 字段
+        const currentExclude = (group['exclude-filter'] as string) || ''
+        
+        // 直接拼接名称，不使用锚点 (^$)，以提高兼容性防止正则引擎解析异常
+        // 虽然可能导致部分匹配（如 'Chain' 也会排除 'Chain2'），但鉴于代理链名称通常独特且为了解决 Core 问题，这是安全折中
+        if (!currentExclude) {
+            group['exclude-filter'] = chainNames
+        } else { // 简单防重检查：如果已经包含了其中任何一个名字，就不加了？不，必须全加。
+            // 为简单起见，直接拼接。Clash 会处理形如 "A|B|A" 这样的重复正则吗？会的。
+            // 但为了避免字符串无限增长（虽然每次 generateProfile 都是新的 profile 对象），还是做个简单检查
+            // 只要 exclude-filter 字符串里不包含 chainNames (作为整体) 就拼接
+            // 注意：这里无法完美去重，但对于 "生成一次性 config" 场景，重复拼接不影响逻辑
+             group['exclude-filter'] = `${currentExclude}|${chainNames}`
         }
       }
     }
+  }
 
-    stack.delete(startNode)
+  for (const chain of activeChains) {
+    const { name, dialerProxy } = chain
+    
+    if (!dependencyGraph.has(name)) dependencyGraph.set(name, new Set())
+    
+    // Chain -> Dialer (强路由依赖)
+    dependencyGraph.get(name)?.add(dialerProxy)
+    // Chain -> Target (配置依赖)
+    dependencyGraph.get(name)?.add(chain.targetProxy)
+  }
+
+  // BFS 可达性检测
+  const canReach = (start: string, end: string, graph: Map<string, Set<string>>): boolean => {
+    if (start === end) return true
+    const queue = [start]
+    const visited = new Set<string>([start])
+    
+    while (queue.length > 0) {
+      const node = queue.shift()!
+      if (node === end) return true
+      
+      const neighbors = graph.get(node)
+      if (neighbors) {
+        for (const next of neighbors) {
+          if (!visited.has(next)) {
+            visited.add(next)
+            queue.push(next)
+          }
+        }
+      }
+    }
     return false
   }
 
+  // 3. 安全注入检查
   const safeChains: typeof activeChains = []
+
   for (const chain of activeChains) {
-    // 每次检测都使用新的 visited/stack，确保独立性
-    // 只要能从 chain.name 出发并回到 chain.name，即视为该 chain 参与了环路
-    if (hasLoop(chain.name, new Set(), new Set())) {
-      console.error(`[Factory] Detected loop for chain "${chain.name}" (dialer: "${chain.dialerProxy}"), skipping to prevent memory overflow.`)
+    // 3.1 核心自环检查
+    let isSelfLoop = false
+    const neighbors = dependencyGraph.get(chain.name)
+    if (neighbors) {
+      for (const neighbor of neighbors) {
+        if (canReach(neighbor, chain.name, dependencyGraph)) {
+          isSelfLoop = true
+          break
+        }
+      }
+    }
+    
+    if (isSelfLoop) {
+      console.error(`[Factory] Structural loop detected for chain "${chain.name}", skipping.`)
       continue
     }
+
+    // 3.2 策略组环路规避 (Group Membership Check)
+    if (chain.targetGroups && Array.isArray(chain.targetGroups)) {
+      const safeTargetGroups: string[] = []
+      
+      for (const groupName of chain.targetGroups) {
+        if (canReach(chain.name, groupName, dependencyGraph)) {
+           console.warn(`[Factory] Loop prevention: Skipping add chain "${chain.name}" to group "${groupName}".`)
+        } else {
+           safeTargetGroups.push(groupName)
+           if (!dependencyGraph.has(groupName)) dependencyGraph.set(groupName, new Set())
+           dependencyGraph.get(groupName)?.add(chain.name)
+        }
+      }
+      chain.targetGroups = safeTargetGroups
+    }
+    
     safeChains.push(chain)
   }
 
@@ -190,19 +243,12 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
       continue
     }
 
-    // 验证前置和落地节点是否存在于当前配置中 (Proxies 或 Groups)
-    // 注意：前置节点可能就是另一个 Chain，所以这里只要在 safeChains 或 existing 中即可
-    // 但为了简化，这里只检查是否在“最终会存在的集合”中有点复杂
-    // 保持原有逻辑：检查 profile 中是否存在，或者是否是本次新加的 chain (safeChains)
-    // 实际上依赖图中已经处理了关系，这里主要防止引用了不存在的节点导致内核报错
-    
-    // 简单检查 targets 是否在基础配置中 (不依赖顺序，因为 safeChains 内部可能互相引用)
-    // 只要 dialer 在 proxies/groups OR 是其他的 safeChain.name 即可
+    // 简单检查 targets
     const targetExists = 
       (profile.proxies as any[])?.some(p => p.name === chain.targetProxy) ||
       (profile['proxy-groups'] as any[])?.some(g => g.name === chain.targetProxy)
 
-    // 落地节点必须存在（因为需要克隆配置），前置节点可以是 Provider 中的节点（动态的），所以不强制检查前置节点是否存在
+    // 落地节点必须存在
     if (!targetExists) {
       continue
     }
@@ -220,8 +266,6 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     // 设置 dialer-proxy 为前置节点/组
     chainProxy['dialer-proxy'] = chain.dialerProxy
     
-
-
     // 添加到 proxies 列表
     proxies.push(chainProxy)
 
@@ -238,14 +282,12 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
           const groupProxies = targetGroup.proxies as string[]
           if (!groupProxies.includes(chain.name)) {
             groupProxies.push(chain.name)
-
           }
         }
       })
     }
   }
 }
-
 
 async function cleanProfile(
   profile: MihomoConfig,

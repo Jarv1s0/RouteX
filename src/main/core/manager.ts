@@ -388,10 +388,32 @@ async function stopChildProcess(process: ChildProcess): Promise<void> {
   })
 }
 
+
+async function killAllMihomoProcesses(): Promise<void> {
+  // Only for Windows where we have taskkill
+  if (process.platform !== 'win32') return
+  
+  const execPromise = promisify(execFile)
+  try {
+    // /F = Force, /IM = Image Name
+    // This will kill ALL processes named mihomo.exe, ensuring no orphans hold the pipe
+    await execPromise('taskkill', ['/F', '/IM', 'mihomo.exe'])
+    await writeFile(logPath(), `[Manager]: Forced cleanup of all mihomo.exe processes via taskkill\n`, { flag: 'a' })
+  } catch (e) {
+    // Ignore error if process not found (exit code 128)
+    const msg = String(e)
+    if (!msg.includes('not found') && !msg.includes('没有找到进程')) {
+       await writeFile(logPath(), `[Manager]: taskkill failed: ${e}\n`, { flag: 'a' })
+    }
+  }
+}
+
 export async function restartCore(): Promise<void> {
-  const maxRetries = 3
+  const maxRetries = 5
   
   await stopCore()
+  // Add a small delay to ensure the OS fully releases the named pipe resource
+  await new Promise((resolve) => setTimeout(resolve, 500))
   
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -405,10 +427,16 @@ export async function restartCore(): Promise<void> {
         errorMsg.includes('External controller pipe listen error') &&
         i < maxRetries - 1
       ) {
-        await writeFile(logPath(), `[Manager]: Pipe listen error, retrying in 1s... (${i + 1}/${maxRetries})\n`, { flag: 'a' })
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        // 再次尝试停止，确保残留进程被清理
+        await writeFile(logPath(), `[Manager]: Pipe listen error, retrying in 2s... (${i + 1}/${maxRetries})\n`, { flag: 'a' })
+        
+        // 尝试强力清理环境
+        await killAllMihomoProcesses()
+        
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        // 再次尝试停止，确保状态同步
         await stopCore(true) 
+        // 再次等待
+        await new Promise((resolve) => setTimeout(resolve, 500))
         continue
       }
       
