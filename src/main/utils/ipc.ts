@@ -55,7 +55,7 @@ import {
   addChainItem,
   updateChainItem,
   removeChainItem,
-  removeChainItem,
+
   getAllChains,
   convertMrsRuleset
 } from '../config'
