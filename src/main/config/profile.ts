@@ -370,3 +370,47 @@ export async function setFileStr(path: string, content: string): Promise<void> {
     await writeFile(target, content, 'utf-8')
   }
 }
+
+export async function convertMrsRuleset(filePath: string, behavior: string): Promise<string> {
+  const { exec } = await import('child_process')
+  const { promisify } = await import('util')
+  const execAsync = promisify(exec)
+  const { mihomoCorePath } = await import('../utils/dirs')
+  const { getAppConfig } = await import('./app')
+  const { tmpdir } = await import('os')
+  const { randomBytes } = await import('crypto')
+  const { unlink } = await import('fs/promises')
+
+  const { core = 'mihomo' } = await getAppConfig()
+  const corePath = mihomoCorePath(core)
+  const { diffWorkDir = false } = await getAppConfig()
+  const { current } = await getProfileConfig()
+  let fullPath: string
+  if (isAbsolutePath(filePath)) {
+    fullPath = filePath
+  } else {
+    fullPath = join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), filePath)
+  }
+
+  const tempFileName = `mrs-convert-${randomBytes(8).toString('hex')}.txt`
+  const tempFilePath = join(tmpdir(), tempFileName)
+
+  try {
+    // 使用 mihomo convert-ruleset 命令转换 MRS 文件为 text 格式
+    // 命令格式: mihomo convert-ruleset <behavior> <format> <source> <output>
+    await execAsync(`"${corePath}" convert-ruleset ${behavior} mrs "${fullPath}" "${tempFilePath}"`)
+    const content = await readFile(tempFilePath, 'utf-8')
+    await unlink(tempFilePath)
+
+    return content
+  } catch (error) {
+    try {
+      if (existsSync(tempFilePath)) {
+        await unlink(tempFilePath)
+      }
+    } catch {
+      // ignore
+    }
+    throw error
+  }
+}
