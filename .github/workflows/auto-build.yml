@@ -63,13 +63,13 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-            command: npx electron-builder --win --publish never -c.nsis.artifactName="RouteX-Autobuild-${version}-windows-${arch}-setup.${ext}" -c.win.artifactName="RouteX-Autobuild-${version}-windows-${arch}-portable.${ext}"
+            command: npx electron-builder --win --publish never
           - os: ubuntu-latest
             platform: linux
-            command: npx electron-builder --linux --publish never -c.linux.artifactName="RouteX-Autobuild-${version}-linux-${arch}.${ext}"
+            command: npx electron-builder --linux --publish never
           - os: macos-latest
             platform: macos
-            command: npx electron-builder --mac --publish never -c.mac.artifactName="RouteX-Autobuild-${version}-macos-${arch}.${ext}"
+            command: npx electron-builder --mac --publish never
 
     permissions:
       contents: write
@@ -109,6 +109,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          node scripts/patch-autobuild.mjs
           npm run build
           ${{ matrix.command }}
 

@@ -244,12 +244,25 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     }
 
     // 简单检查 targets
-    const targetExists = 
-      (profile.proxies as any[])?.some(p => p.name === chain.targetProxy) ||
-      (profile['proxy-groups'] as any[])?.some(g => g.name === chain.targetProxy)
+    const targetExists =
+      (profile.proxies as any[])?.some((p) => p.name === chain.targetProxy) ||
+      (profile['proxy-groups'] as any[])?.some((g) => g.name === chain.targetProxy)
 
     // 落地节点必须存在
     if (!targetExists) {
+      continue
+    }
+
+    // 检查 dialer-proxy 是否存在
+    const dialerExists =
+      ['DIRECT', 'REJECT', 'COMPATIBLE'].includes(chain.dialerProxy) ||
+      (profile.proxies as any[])?.some((p) => p.name === chain.dialerProxy) ||
+      (profile['proxy-groups'] as any[])?.some((g) => g.name === chain.dialerProxy)
+
+    if (!dialerExists) {
+      console.warn(
+        `[Factory] Dialer proxy "${chain.dialerProxy}" not found for chain "${chain.name}", skipping injection.`
+      )
       continue
     }
 
@@ -265,7 +278,7 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
 
     // 设置 dialer-proxy 为前置节点/组
     chainProxy['dialer-proxy'] = chain.dialerProxy
-    
+
     // 添加到 proxies 列表
     proxies.push(chainProxy)
 

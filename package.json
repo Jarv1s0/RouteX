@@ -1,6 +1,6 @@
 {
   "name": "routex",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "RouteX",
   "main": "./out/main/index.js",
   "scripts": {
