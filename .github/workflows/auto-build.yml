@@ -65,13 +65,13 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-            command: npx electron-builder --win --publish never
+            command: npx electron-builder --win --publish never -c.nsis.artifactName="RouteX-Autobuild-${version}-windows-${arch}-setup.${ext}" -c.win.artifactName="RouteX-Autobuild-${version}-windows-${arch}-portable.${ext}"
           - os: ubuntu-latest
             platform: linux
-            command: npx electron-builder --linux --publish never
+            command: npx electron-builder --linux --publish never -c.linux.artifactName="RouteX-Autobuild-${version}-linux-${arch}.${ext}"
           - os: macos-latest
             platform: macos
-            command: npx electron-builder --mac --publish never
+            command: npx electron-builder --mac --publish never -c.mac.artifactName="RouteX-Autobuild-${version}-macos-${arch}.${ext}"
 
     permissions:
       contents: write
