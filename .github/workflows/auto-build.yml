@@ -76,8 +76,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: autobuild
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

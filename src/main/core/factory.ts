@@ -237,6 +237,13 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
 
   // --- 执行安全的注入 ---
   for (const chain of safeChains) {
+    // 检查是否已存在同名代理链节点（覆盖更新）
+    // 必须最先删除，防止任何校验失败 continue 后，残留的（可能无效的）旧配置导致 Profile Check 失败
+    const existingIndex = proxies.findIndex((p) => p.name === chain.name)
+    if (existingIndex !== -1) {
+      proxies.splice(existingIndex, 1)
+    }
+
     // 查找落地节点配置
     const targetProxyConfig = proxies.find((p) => p.name === chain.targetProxy)
     if (!targetProxyConfig) {
@@ -264,12 +271,6 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
         `[Factory] Dialer proxy "${chain.dialerProxy}" not found for chain "${chain.name}", skipping injection.`
       )
       continue
-    }
-
-    // 检查是否已存在同名代理链节点（覆盖更新）
-    const existingIndex = proxies.findIndex((p) => p.name === chain.name)
-    if (existingIndex !== -1) {
-      proxies.splice(existingIndex, 1)
     }
 
     // 克隆落地节点，创建代理链虚拟节点
