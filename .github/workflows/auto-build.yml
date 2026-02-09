@@ -39,22 +39,20 @@ jobs:
           
           # Delete existing release and tag if they exist
           gh release delete autobuild --yes --cleanup-tag || true
-          git tag -d autobuild || true
           git push origin :refs/tags/autobuild || true
           
-          # Create new tag pointing to current HEAD
-          git tag autobuild
-          git push origin autobuild
+          # Wait a moment for GitHub to process the deletion
+          sleep 2
           
-          # Get short commit hash
+          # Get short commit hash for display
           SHORT_HASH=$(git rev-parse --short HEAD)
           
-          # Create new release
+          # Create new release and tag pointing to the current commit SHA
           gh release create autobuild \
             --title "Autobuild - v${{ env.VERSION }} ($SHORT_HASH)" \
             --notes "Latest build from main branch. Commit: $SHORT_HASH" \
             --prerelease \
-            --target autobuild
+            --target ${{ github.sha }}
 
   build-and-upload:
     needs: update-tag
