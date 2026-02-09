@@ -70,7 +70,7 @@ const RuleItem: React.FC<RuleItemProps> = (props) => {
               color="default"
               classNames={{ content: "text-xs" }}
             >
-              {type}
+              {type === 'PROCESS-NAME-WILDCARD' ? 'PROC-NAME-WILD' : type === 'PROCESS-PATH-WILDCARD' ? 'PROC-PATH-WILD' : type}
             </Chip>
             {/* 规则名称 */}
             <span

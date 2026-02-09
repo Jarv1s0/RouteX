@@ -4,6 +4,7 @@ interface MihomoConfig {
   'external-controller': string
   'external-ui': string
   'external-ui-url': string
+  'external-ui-name'?: string
   'external-controller-cors'?: {
     'allow-origins'?: string[]
     'allow-private-network'?: boolean

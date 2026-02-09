@@ -11,3 +11,4 @@ out
 .ai_memory/
 .agent/
 .shared/
+*.code-workspace

@@ -33,7 +33,7 @@ const MapCard: React.FC<Props> = (props) => {
   if (iconOnly) {
     return (
       <div className={`${mapCardStatus} flex justify-center`}>
-        <Tooltip content="节点分布" placement="right">
+        <Tooltip content="网络拓扑" placement="right">
           <Button
             size="sm"
             isIconOnly
@@ -96,7 +96,7 @@ const MapCard: React.FC<Props> = (props) => {
           <h3
              className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >
-             节点分布
+             网络拓扑
           </h3>
         </CardFooter>
       </Card>
