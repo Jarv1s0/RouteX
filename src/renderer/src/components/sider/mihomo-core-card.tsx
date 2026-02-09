@@ -1,7 +1,7 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { mihomoVersion, restartCore } from '@renderer/utils/ipc'
+import { mihomoVersion, restartCore, checkMihomoLatestVersion } from '@renderer/utils/ipc'
 import { toast } from 'sonner'
 import React, { useEffect, useState } from 'react'
 import { IoMdRefresh } from 'react-icons/io'
@@ -20,7 +20,7 @@ interface Props {
 const MihomoCoreCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { mihomoCoreCardStatus = 'col-span-2', disableAnimation = false } = appConfig || {}
+  const { mihomoCoreCardStatus = 'col-span-2', disableAnimation = false, core = 'mihomo' } = appConfig || {}
   const { data: version, mutate } = useSWR('mihomoVersion', mihomoVersion, {
     errorRetryInterval: 200,
     errorRetryCount: 10
@@ -42,6 +42,32 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const [mem, setMem] = useState(0)
   const [restarting, setRestarting] = useState(false)
+  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+
+  // 检查最新版本
+  useEffect(() => {
+    const checkLatest = async () => {
+      try {
+        const isAlpha = core === 'mihomo-alpha'
+        const latest = await checkMihomoLatestVersion(isAlpha)
+        setLatestVersion(latest)
+      } catch {
+        // 忽略错误
+      }
+    }
+    checkLatest()
+  }, [core])
+
+  // 判断是否有新版本
+  const hasNewVersion = (): boolean => {
+    if (!version?.version || !latestVersion) return false
+    if (core === 'mihomo-alpha') {
+      return !version.version.includes(latestVersion)
+    }
+    const current = version.version.replace(/^v/, '')
+    const latest = latestVersion.replace(/^v/, '')
+    return current !== latest && latest > current
+  }
 
   useEffect(() => {
     const token = PubSub.subscribe('mihomo-core-changed', () => {
@@ -116,6 +142,11 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
               >
                 <span className="relative">
                   {version?.version ?? '-'}
+                  {hasNewVersion() && (
+                    <Tooltip content={`新版本 ${latestVersion}`} placement="top">
+                      <span className="absolute -top-0.5 -right-3 w-2 h-2 bg-success rounded-full animate-pulse" />
+                    </Tooltip>
+                  )}
                 </span>
               </h3>
 
