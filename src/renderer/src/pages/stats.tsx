@@ -119,6 +119,9 @@ const Stats: React.FC = () => {
   } | null>(null)
   const [processTrafficData, setProcessTrafficData] = useState<ProcessTrafficItem[]>([])
 
+  // 排行榜切换状态
+  const [rankingTab, setRankingTab] = useState<'rule' | 'process' | 'host'>('rule')
+
   // 清除统计数据
   const handleClearStats = useCallback(async () => {
     setClearingStats(true)
@@ -548,9 +551,72 @@ const Stats: React.FC = () => {
           proxy: lastProxy
         }
       })
-      .sort((a, b) => b.hits - a.hits)
-      .slice(0, 10) // 只显示前10
+      .sort((a, b) => b.traffic - a.traffic) // 按流量排序
+      .slice(0, 7) // 只显示前7
   }, [ruleStats, ruleHitDetails])
+
+  // 进程排行（按流量排序）
+  const processRanking = useMemo(() => {
+    const processMap = new Map<string, { upload: number; download: number }>()
+    
+    // 从 ruleHitDetails 聚合进程流量
+    ruleHitDetails.forEach((details) => {
+      details.forEach((detail) => {
+        const processName = detail.process || '-'
+        const existing = processMap.get(processName) || { upload: 0, download: 0 }
+        existing.upload += detail.upload
+        existing.download += detail.download
+        processMap.set(processName, existing)
+      })
+    })
+    
+    return Array.from(processMap.entries())
+      .map(([name, stat]) => ({
+        name,
+        traffic: stat.upload + stat.download
+      }))
+      .sort((a, b) => b.traffic - a.traffic)
+      .slice(0, 7)
+  }, [ruleHitDetails])
+
+  // 主机排行（按流量排序）
+  const hostRanking = useMemo(() => {
+    const hostMap = new Map<string, { upload: number; download: number }>()
+    
+    // 从 ruleHitDetails 聚合主机流量
+    ruleHitDetails.forEach((details) => {
+      details.forEach((detail) => {
+        const host = detail.host || '-'
+        // 提取主域名（简化显示）
+        const shortHost = host.length > 20 ? host.split('.').slice(-2).join('.') : host
+        const existing = hostMap.get(shortHost) || { upload: 0, download: 0 }
+        existing.upload += detail.upload
+        existing.download += detail.download
+        hostMap.set(shortHost, existing)
+      })
+    })
+    
+    return Array.from(hostMap.entries())
+      .map(([name, stat]) => ({
+        name,
+        traffic: stat.upload + stat.download
+      }))
+      .sort((a, b) => b.traffic - a.traffic)
+      .slice(0, 7)
+  }, [ruleHitDetails])
+
+  // 当前排行榜数据（根据 Tab 切换）
+  const currentRanking = useMemo(() => {
+    switch (rankingTab) {
+      case 'process':
+        return processRanking
+      case 'host':
+        return hostRanking
+      case 'rule':
+      default:
+        return ruleRanking.map(r => ({ name: r.rule, traffic: r.traffic }))
+    }
+  }, [rankingTab, ruleRanking, processRanking, hostRanking])
 
   return (
     <BasePage 
@@ -1133,82 +1199,86 @@ const Stats: React.FC = () => {
           </CardBody>
         </Card>
 
-        {/* 规则效率统计 */}
+        {/* 排行榜 */}
         <Card>
           <CardBody className="p-4">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-4 rounded-full bg-primary/80" />
-                <span className="text-base font-bold text-foreground">规则命中统计</span>
+                <span className="text-base font-bold text-foreground">排行榜</span>
               </div>
-              <span className="text-xs text-foreground-400">
-                共 {ruleStats.size} 条规则命中
-              </span>
+              <Tabs
+                size="sm"
+                classNames={{
+                  tabList: "bg-default-100/50 rounded-xl p-0.5",
+                  tab: "px-3 h-7 text-xs data-[selected=true]:bg-background data-[selected=true]:shadow-sm rounded-lg",
+                  cursor: "bg-background shadow-sm rounded-lg"
+                }}
+                selectedKey={rankingTab}
+                onSelectionChange={(key) => setRankingTab(key as 'rule' | 'process' | 'host')}
+              >
+                <Tab key="rule" title="策略" />
+                <Tab key="process" title="进程" />
+                <Tab key="host" title="主机" />
+              </Tabs>
             </div>
-            <div className="space-y-2">
-              {ruleRanking.length === 0 ? (
-                <div className="h-[120px] flex flex-col items-center justify-center text-foreground-400 gap-2">
+            <div className="space-y-3">
+              {currentRanking.length === 0 ? (
+                <div className="h-[200px] flex flex-col items-center justify-center text-foreground-400 gap-2">
                   <div className="text-4xl opacity-30">📋</div>
-                  <div className="text-sm">暂无规则命中数据</div>
-                  <div className="text-xs text-foreground-500">连接产生后将自动统计规则命中情况</div>
+                  <div className="text-sm">暂无数据</div>
+                  <div className="text-xs text-foreground-500">连接产生后将自动统计</div>
                 </div>
               ) : (
-                ruleRanking.map((item, index) => {
-                  // 渐变色：从主色到透明
+                currentRanking.map((item, index) => {
+                  // 彩色进度条颜色
                   const barColors = [
-                    'from-blue-500 to-blue-500/0',
-                    'from-violet-500 to-violet-500/0', 
-                    'from-emerald-500 to-emerald-500/0',
-                    'from-amber-500 to-amber-500/0',
-                    'from-rose-500 to-rose-500/0',
-                    'from-cyan-500 to-cyan-500/0',
-                    'from-indigo-500 to-indigo-500/0',
-                    'from-pink-500 to-pink-500/0',
-                    'from-teal-500 to-teal-500/0',
-                    'from-orange-500 to-orange-500/0'
+                    '#22d3ee', // cyan
+                    '#3b82f6', // blue
+                    '#8b5cf6', // violet
+                    '#f43f5e', // rose
+                    '#f97316', // orange
+                    '#eab308', // yellow
+                    '#22c55e', // green
+                    '#14b8a6', // teal
+                    '#ec4899', // pink
+                    '#6366f1', // indigo
                   ]
                   const barColor = barColors[index % barColors.length]
+                  const maxTraffic = currentRanking[0]?.traffic || 1
+                  const percentage = Math.max((item.traffic / maxTraffic) * 100, 3)
                   
                   return (
                     <div 
-                      key={item.rule}
-                      className="group relative cursor-pointer"
-                      onClick={() => setSelectedRule(item.rule)}
+                      key={item.name}
+                      className="flex items-center gap-2 group cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => rankingTab === 'rule' && setSelectedRule(item.name)}
                     >
-                      {/* 渐变进度条背景 */}
-                      <div 
-                        className={`absolute inset-y-0 left-0 bg-gradient-to-r ${barColor} opacity-20 group-hover:opacity-30 transition-opacity rounded-lg pointer-events-none`}
-                        style={{ width: `${Math.max(item.hitPercent, 5)}%` }}
-                      />
-                      {/* 内容 */}
-                      <div className="relative flex items-center gap-3 px-3 py-2.5">
-                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                          index < 3 
-                            ? 'bg-foreground text-background' 
-                            : 'bg-default-100 text-foreground-500'
-                        }`}>
-                          {index + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm truncate" title={item.rule}>
-                            {item.rule.includes(',') ? (
-                              <>
-                                <span className="text-foreground-400">{item.rule.split(',')[0]}, </span>
-                                <span className="text-foreground">{item.rule.split(',').slice(1).join(',')}</span>
-                              </>
-                            ) : (
-                              <span>{item.rule}</span>
-                            )}
-                            {item.proxy && (
-                              <span className="text-violet-500 ml-2">→ {item.proxy}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4 shrink-0">
-                          <span className="text-sm font-semibold tabular-nums">{item.hits.toLocaleString()}</span>
-                          <span className="text-xs text-foreground-400 w-16 text-right">{calcTraffic(item.traffic)}</span>
-                        </div>
+                      {/* 名称 - 固定宽度确保对齐 */}
+                      <div className="w-[120px] text-sm text-left truncate" title={item.name}>
+                        {item.name}
                       </div>
+                      {/* 排名徽章 */}
+                      <span 
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white"
+                        style={{ backgroundColor: barColor }}
+                      >
+                        {index + 1}
+                      </span>
+                      {/* 进度条 */}
+                      <div className="flex-1 min-w-[100px] h-4 bg-default-100/50 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all duration-300"
+                          style={{ 
+                            width: `${percentage}%`,
+                            backgroundColor: barColor
+                          }}
+                        />
+                      </div>
+                      {/* 流量 */}
+                      <span className="text-sm font-medium tabular-nums whitespace-nowrap shrink-0">
+                        {calcTraffic(item.traffic)}
+                      </span>
                     </div>
                   )
                 })

@@ -385,6 +385,7 @@ const GlobalNodeMap: React.FC = () => {
              <ReactECharts 
                 ref={chartRef}
                 option={getOption()} 
+                opts={{ devicePixelRatio: window.devicePixelRatio * 2 }}
                 style={{ height: '100%', width: '100%' }}
                 className="react-echarts-container"
              />
