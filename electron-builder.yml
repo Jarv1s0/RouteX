@@ -64,6 +64,7 @@ nsis:
 mac:
   target:
     - pkg
+    - dmg
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -83,6 +84,7 @@ linux:
   target:
     - deb
     - rpm
+    - AppImage
   maintainer: Jarv1s0
   category: Utility
   artifactName: RouteX-${version}-linux-${arch}.${ext}
