@@ -56,6 +56,7 @@ import {
   updateChainItem,
   removeChainItem,
 
+  removeOverrideReference,
   getAllChains,
   convertMrsRuleset
 } from '../config'
@@ -478,16 +479,53 @@ export function registerIpcMainHandlers(): void {
     ipcErrorWrapper(convertMrsRuleset)(path, behavior)
   )
   ipcMain.handle('setProfileStr', (_e, id, str) => ipcErrorWrapper(setProfileStr)(id, str))
-  ipcMain.handle('updateProfileItem', (_e, item) => ipcErrorWrapper(updateProfileItem)(item))
+  ipcMain.handle('updateProfileItem', (_e, item) =>
+    ipcErrorWrapper(async (item: ProfileItem) => {
+      await updateProfileItem(item)
+      mainWindow?.webContents.send('profileConfigUpdated')
+    })(item)
+  )
   ipcMain.handle('changeCurrentProfile', (_e, id) => ipcErrorWrapper(changeCurrentProfile)(id))
-  ipcMain.handle('addProfileItem', (_e, item) => ipcErrorWrapper(addProfileItem)(item))
-  ipcMain.handle('removeProfileItem', (_e, id) => ipcErrorWrapper(removeProfileItem)(id))
+  ipcMain.handle('addProfileItem', (_e, item) =>
+    ipcErrorWrapper(async (item: Partial<ProfileItem>) => {
+      await addProfileItem(item)
+      mainWindow?.webContents.send('profileConfigUpdated')
+    })(item)
+  )
+  ipcMain.handle('removeProfileItem', (_e, id) =>
+    ipcErrorWrapper(async (id: string) => {
+      await removeProfileItem(id)
+      mainWindow?.webContents.send('profileConfigUpdated')
+    })(id)
+  )
   ipcMain.handle('getOverrideConfig', (_e, force) => ipcErrorWrapper(getOverrideConfig)(force))
-  ipcMain.handle('setOverrideConfig', (_e, config) => ipcErrorWrapper(setOverrideConfig)(config))
+  ipcMain.handle('setOverrideConfig', (_e, config) =>
+    ipcErrorWrapper(async (config: OverrideConfig) => {
+      await setOverrideConfig(config)
+      mainWindow?.webContents.send('overrideConfigUpdated')
+    })(config)
+  )
   ipcMain.handle('getOverrideItem', (_e, id) => ipcErrorWrapper(getOverrideItem)(id))
-  ipcMain.handle('addOverrideItem', (_e, item) => ipcErrorWrapper(addOverrideItem)(item))
-  ipcMain.handle('removeOverrideItem', (_e, id) => ipcErrorWrapper(removeOverrideItem)(id))
-  ipcMain.handle('updateOverrideItem', (_e, item) => ipcErrorWrapper(updateOverrideItem)(item))
+  ipcMain.handle('addOverrideItem', (_e, item) =>
+    ipcErrorWrapper(async (item: Partial<OverrideItem>) => {
+      await addOverrideItem(item)
+      mainWindow?.webContents.send('overrideConfigUpdated')
+    })(item)
+  )
+  ipcMain.handle('removeOverrideItem', (_e, id) =>
+    ipcErrorWrapper(async (id: string) => {
+      await removeOverrideItem(id)
+      await removeOverrideReference(id)
+      await restartCore()
+      mainWindow?.webContents.send('overrideConfigUpdated')
+    })(id)
+  )
+  ipcMain.handle('updateOverrideItem', (_e, item) =>
+    ipcErrorWrapper(async (item: OverrideItem) => {
+      await updateOverrideItem(item)
+      mainWindow?.webContents.send('overrideConfigUpdated')
+    })(item)
+  )
   ipcMain.handle('getOverride', (_e, id, ext) => ipcErrorWrapper(getOverride)(id, ext))
   ipcMain.handle('setOverride', (_e, id, ext, str) => ipcErrorWrapper(setOverride)(id, ext, str))
   // 代理链

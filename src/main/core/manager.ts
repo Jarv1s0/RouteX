@@ -28,7 +28,8 @@ import {
   stopMihomoLogs,
   stopMihomoMemory,
   patchMihomoConfig,
-  mihomoGroups
+  mihomoGroups,
+  mihomoRules
 } from './mihomoApi'
 import { readFile, rm, writeFile } from 'fs/promises'
 import { promisify } from 'util'
@@ -234,6 +235,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
                   for (let i = 0; i < maxRetries; i++) {
                     try {
                       await mihomoGroups()
+                      await mihomoRules()
                       break
                     } catch (error) {
                       await new Promise((r) => setTimeout(r, retryInterval))
@@ -418,6 +420,21 @@ export async function restartCore(): Promise<void> {
   for (let i = 0; i < maxRetries; i++) {
     try {
       const promises = await startCore()
+      // 立即开始轮询 mihomo API，不等待 Provider 初始化
+      // 一旦 API 可用就通知前端刷新（fire-and-forget）
+      ;(async () => {
+        for (let i = 0; i < 50; i++) {
+          try {
+            await mihomoRules()
+            mainWindow?.webContents.send('rulesUpdated')
+            mainWindow?.webContents.send('groupsUpdated')
+            return
+          } catch {
+            await new Promise((r) => setTimeout(r, 200))
+          }
+        }
+      })()
+      // 仍然等待 Provider 初始化完成以确保完整启动
       await Promise.all(promises)
       return
     } catch (e) {

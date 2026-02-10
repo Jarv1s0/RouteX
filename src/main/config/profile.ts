@@ -112,6 +112,29 @@ export async function removeProfileItem(id: string): Promise<void> {
   await delProfileUpdater(id)
 }
 
+export async function removeOverrideReference(id: string): Promise<boolean> {
+  const config = await getProfileConfig()
+  let currentProfileModified = false
+  let anyProfileModified = false
+
+  if (config.items) {
+    for (const profile of config.items) {
+      if (profile.override?.includes(id)) {
+        profile.override = profile.override.filter((oid) => oid !== id)
+        anyProfileModified = true
+        if (config.current === profile.id) {
+          currentProfileModified = true
+        }
+      }
+    }
+  }
+
+  if (anyProfileModified) {
+    await setProfileConfig(config)
+  }
+  return currentProfileModified
+}
+
 export async function getCurrentProfileItem(): Promise<ProfileItem> {
   const { current } = await getProfileConfig()
   return (await getProfileItem(current)) || { id: 'default', type: 'local', name: '空白订阅' }

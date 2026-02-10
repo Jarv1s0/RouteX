@@ -8,7 +8,6 @@ import {
   DropdownMenu,
   DropdownTrigger
 } from '@heroui/react'
-import { OverrideItem as IOverrideItem } from '@renderer/utils/interfaces'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { IoMdMore, IoMdRefresh } from 'react-icons/io'
@@ -28,10 +27,10 @@ dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
 
 interface Props {
-  info: IOverrideItem
+  info: OverrideItem
   isActive?: boolean
-  addOverrideItem: (item: Partial<IOverrideItem>) => Promise<void>
-  updateOverrideItem: (item: IOverrideItem) => Promise<void>
+  addOverrideItem: (item: Partial<OverrideItem>) => Promise<void>
+  updateOverrideItem: (item: OverrideItem) => Promise<void>
   removeOverrideItem: (id: string) => Promise<void>
   mutateOverrideConfig: () => void
   onToggleOverride?: (id: string, active: boolean) => Promise<void>
