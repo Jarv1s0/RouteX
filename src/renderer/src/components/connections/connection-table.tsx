@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useMemo, useState, useRef, useEffect } from 'react'
 import { Avatar, Button } from '@heroui/react'
+
 import { calcTraffic } from '@renderer/utils/calc'
 import dayjs from 'dayjs'
 import { CgClose, CgTrash } from 'react-icons/cg'
@@ -9,36 +10,6 @@ import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
 import { Virtuoso } from 'react-virtuoso'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
-interface Props {
-  connections: ControllerConnectionDetail[]
-  selected: ControllerConnectionDetail | undefined
-  setSelected: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
-  setIsDetailModalOpen: React.Dispatch<React.SetStateAction<boolean>>
-  close: (id: string) => void
-  iconMap: Record<string, string>
-  appNameCache: Record<string, string>
-  displayIcon: boolean
-  displayAppName: boolean
-  sortBy?: string
-  sortDirection?: 'asc' | 'desc'
-  onSort?: (column: string) => void
-}
-
-// 格式化时间
-const formatDuration = (start: string): string => {
-  const seconds = dayjs().diff(dayjs(start), 'second')
-  if (seconds < 60) return `${seconds}秒前`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}分钟前`
-  const hours = Math.floor(minutes / 60)
-  return `${hours}小时前`
-}
-
-// 获取代理链显示
-const getChainDisplay = (chains: string[]): string => {
-  if (!chains || chains.length === 0) return 'DIRECT'
-  return chains.slice().reverse().join(' → ')
-}
 
 // 列配置 - 默认宽度
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
@@ -60,6 +31,24 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   inboundName: 100,
   inboundUser: 100
 }
+
+interface Props {
+  connections: ControllerConnectionDetail[]
+  selected: ControllerConnectionDetail | undefined
+  setSelected: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
+  setIsDetailModalOpen: React.Dispatch<React.SetStateAction<boolean>>
+  close: (id: string) => void
+  iconMap: Record<string, string>
+  appNameCache: Record<string, string>
+  displayIcon: boolean
+  displayAppName: boolean
+  sortBy?: string
+  sortDirection?: 'asc' | 'desc'
+  onSort?: (column: string) => void
+  onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
+}
+
+// ... (existing code)
 
 // 列标签
 const COLUMN_LABELS: Record<string, string> = {
@@ -84,8 +73,6 @@ const COLUMN_LABELS: Record<string, string> = {
 
 // 右对齐的列
 const RIGHT_ALIGN_COLUMNS = ['downloadSpeed', 'uploadSpeed', 'download', 'upload', 'time']
-
-
 
 // 列宽调整手柄
 const ResizeHandle: React.FC<{
@@ -138,15 +125,14 @@ const ConnectionTableComponent: React.FC<Props> = ({
   displayAppName,
   sortBy,
   sortDirection,
-  onSort
+  onSort,
+  onContextMenu
 }) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const { 
     connectionTableColumns = DEFAULT_COLUMNS,
     connectionTableColumnWidths = {}
   } = appConfig || {}
-
-
 
   // 合并默认宽度和用户自定义宽度
   const columnWidths = useMemo(() => ({
@@ -231,8 +217,9 @@ const ConnectionTableComponent: React.FC<Props> = ({
       appNameCache={appNameCache}
       displayIcon={displayIcon}
       displayAppName={displayAppName}
+      onContextMenu={onContextMenu}
     />
-  ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName])
+  ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName, onContextMenu])
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -289,6 +276,7 @@ interface RowProps {
   appNameCache: Record<string, string>
   displayIcon: boolean
   displayAppName: boolean
+  onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
 }
 
 const ConnectionRowComponent: React.FC<RowProps> = ({
@@ -301,12 +289,29 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
   iconMap,
   appNameCache,
   displayIcon,
-  displayAppName
+  displayAppName,
+  onContextMenu
 }) => {
   const processPath = conn.metadata.processPath || ''
   const iconUrl = displayIcon ? iconMap[processPath] || '' : ''
   const appName = displayAppName && processPath ? appNameCache[processPath] : undefined
   const processName = appName || conn.metadata.process?.replace(/\.exe$/, '') || conn.metadata.sourceIP || '-'
+
+  // 获取代理链显示
+  const getChainDisplay = (chains: string[]): string => {
+    if (!chains || chains.length === 0) return 'DIRECT'
+    return chains.slice().reverse().join(' → ')
+  }
+
+  // 格式化时间
+  const formatDuration = (start: string): string => {
+    const seconds = dayjs().diff(dayjs(start), 'second')
+    if (seconds < 60) return `${seconds}秒前`
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return `${minutes}分钟前`
+    const hours = Math.floor(minutes / 60)
+    return `${hours}小时前`
+  }
 
   // 预计算所有可能的列值
   const columnValues = useMemo(() => ({
@@ -402,11 +407,17 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
     )
   }
 
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    onContextMenu?.(conn, e)
+  }, [onContextMenu, conn])
+
   return (
     <div
       className={CARD_STYLES.GLASS_TABLE_ROW}
       data-selected={isSelected}
       onClick={() => onRowClick(conn)}
+      onContextMenu={handleContextMenu}
     >
       {visibleColumns.map(col => (
         <div

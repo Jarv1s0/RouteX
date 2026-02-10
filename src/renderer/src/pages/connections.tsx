@@ -10,17 +10,19 @@ import { Virtuoso } from 'react-virtuoso'
 import dayjs from 'dayjs'
 import ConnectionDetailModal from '@renderer/components/connections/connection-detail-modal'
 import ConnectionSettingModal from '@renderer/components/connections/connection-setting-modal'
+import CreateRuleModal from '@renderer/components/connections/create-rule-modal'
 import { CgClose, CgTrash } from 'react-icons/cg'
 import { IoPulseOutline, IoTimeOutline } from 'react-icons/io5'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
-import { IoApps, IoList, IoGrid, IoEye, IoEyeOff, IoPause, IoPlay } from 'react-icons/io5'
+import { IoApps, IoList, IoGrid, IoEye, IoEyeOff, IoPause, IoPlay, IoAddCircleOutline } from 'react-icons/io5'
 
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { MdTune } from 'react-icons/md'
 import { IoLink } from 'react-icons/io5'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { CustomContextMenu } from '@renderer/components/ui/custom-context-menu'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useResourceQueue } from '@renderer/hooks/use-resource-queue'
 
@@ -41,10 +43,14 @@ const Connections: React.FC = () => {
   const closedConnections = useConnectionsStore((state) => state.closedConnections)
   const trashClosedConnection = useConnectionsStore((state) => state.trashClosedConnection)
   const trashAllClosedConnections = useConnectionsStore((state) => state.trashAllClosedConnections)
+  const isPaused = useConnectionsStore((state) => state.isPaused)
+  const setPaused = useConnectionsStore((state) => state.setPaused)
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
+  const [isCreateRuleModalOpen, setIsCreateRuleModalOpen] = useState(false)
   const [selected, setSelected] = useState<ControllerConnectionDetail>()
+  const [createRuleConnection, setCreateRuleConnection] = useState<ControllerConnectionDetail>()
 
   const [tab, setTab] = useState('active')
   const [viewMode, setViewMode] = useState<'list' | 'group' | 'table'>('list')
@@ -67,7 +73,7 @@ const Connections: React.FC = () => {
     }
   })
   const [showHidden, setShowHidden] = useState(false) // 是否显示隐藏的连接
-  const [isPaused, setIsPaused] = useState(false) // 是否暂停刷新
+
   const [timeRefreshTrigger, setTimeRefreshTrigger] = useState(0) // 统一时间刷新触发器
 
   const filteredConnections = useMemo(() => {
@@ -224,6 +230,19 @@ const Connections: React.FC = () => {
     })
   }, [activeConnections, closedConnections])
 
+  // 右键菜单状态
+  const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; conn?: ControllerConnectionDetail }>({ isOpen: false, x: 0, y: 0 })
+
+  const handleContextMenu = useCallback((conn: ControllerConnectionDetail, e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY, conn })
+  }, [])
+
+  const handleCreateRule = useCallback((conn: ControllerConnectionDetail) => {
+    setCreateRuleConnection(conn)
+    setIsCreateRuleModalOpen(true)
+  }, [])
+
   const clearAllHidden = useCallback((): void => {
     setHiddenRules(new Set())
     localStorage.removeItem('hiddenConnectionRules')
@@ -366,6 +385,7 @@ const Connections: React.FC = () => {
           key={itemKey}
           info={connection}
           timeRefreshTrigger={timeRefreshTrigger}
+          onContextMenu={handleContextMenu}
         />
       )
     },
@@ -381,7 +401,8 @@ const Connections: React.FC = () => {
       appNameCache,
       findProcessMode,
       displayAppName,
-      timeRefreshTrigger
+      timeRefreshTrigger,
+      handleContextMenu
     ]
   )
 
@@ -407,6 +428,36 @@ const Connections: React.FC = () => {
           connection={selected} 
           onDisconnect={tab === 'active' ? (id) => { closeConnection(id); setIsDetailModalOpen(false) } : undefined}
         />
+      )}
+      {isCreateRuleModalOpen && createRuleConnection && (
+        <CreateRuleModal
+          connection={createRuleConnection}
+          onClose={() => setIsCreateRuleModalOpen(false)}
+        />
+      )}
+      {contextMenu.isOpen && (
+        <CustomContextMenu
+          isOpen={contextMenu.isOpen}
+          onClose={() => setContextMenu(prev => ({ ...prev, isOpen: false }))}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+        >
+          <div className="flex flex-col">
+            <Button
+               size="sm"
+               variant="light"
+               className="w-full justify-start h-9 px-3 min-w-[140px] font-medium text-default-700 gap-2"
+               startContent={<IoAddCircleOutline className="text-lg text-primary" />}
+               onPress={() => {
+                 if (contextMenu.conn) {
+                   handleCreateRule(contextMenu.conn)
+                   setContextMenu(prev => ({ ...prev, isOpen: false }))
+                 }
+               }}
+            >
+              新建规则
+            </Button>
+          </div>
+        </CustomContextMenu>
       )}
       {isSettingModalOpen && (
         <ConnectionSettingModal onClose={() => setIsSettingModalOpen(false)} />
@@ -513,7 +564,7 @@ const Connections: React.FC = () => {
             variant="flat"
             color={isPaused ? 'success' : 'warning'}
             title={isPaused ? '继续刷新' : '暂停刷新'}
-            onPress={() => setIsPaused(!isPaused)}
+            onPress={() => setPaused(!isPaused)}
           >
             {isPaused ? <IoPlay className="text-lg" /> : <IoPause className="text-lg" />}
           </Button>
@@ -569,7 +620,7 @@ const Connections: React.FC = () => {
             description="连接信息将在这里显示"
           />
         ) : viewMode === 'table' ? (
-          <ConnectionTable
+            <ConnectionTable
             connections={filteredConnections}
             selected={selected}
             setSelected={setSelected}
@@ -608,6 +659,7 @@ const Connections: React.FC = () => {
                 }
               }
             }}
+            onContextMenu={handleContextMenu}
           />
         ) : viewMode === 'list' ? (
           <Virtuoso data={filteredConnections} itemContent={renderConnectionItem} />
@@ -704,6 +756,7 @@ const Connections: React.FC = () => {
                             isHidden={hiddenRules.has(`${conn.metadata.process || 'unknown'}:${conn.metadata.host || conn.metadata.destinationIP || 'unknown'}`)}
                             index={i}
                             info={conn}
+                            onContextMenu={handleContextMenu}
                           />
                         )
                       })}
