@@ -17,7 +17,9 @@ export const RulesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   React.useEffect(() => {
     window.electron.ipcRenderer.on('rulesUpdated', () => {
-      mutate()
+      setTimeout(() => {
+        mutate()
+      }, 200)
     })
     window.electron.ipcRenderer.on('core-started', () => {
       mutate()

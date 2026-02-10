@@ -16,6 +16,7 @@ export {
   setProfileStr,
   changeCurrentProfile,
   updateProfileItem,
+  removeOverrideReference,
   convertMrsRuleset
 } from './profile'
 export {

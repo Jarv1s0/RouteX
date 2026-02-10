@@ -1,9 +1,7 @@
 import {
   Modal,
   ModalContent,
-  ModalHeader,
   ModalBody,
-  ModalFooter,
   Button,
   Select,
   SelectItem,
@@ -12,8 +10,7 @@ import {
   Autocomplete,
   AutocompleteItem,
   Divider,
-  Tooltip,
-  Card
+  Tooltip
 } from '@heroui/react'
 import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
@@ -185,8 +182,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
 
   // 当规则类型变化时，自动填充合适的值
   const handleRuleTypeChange = useCallback(
-    (keys: unknown) => {
-      const selectedKey = (keys as { currentKey: string }).currentKey
+    (selectedKey: string) => {
       if (!selectedKey) return
       setRuleType(selectedKey)
 
@@ -321,17 +317,18 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
           file: yamlContent,
           global: false
         })
-        // 绑定到当前 profile 的 override 列表末尾
-        const currentProfile = await getCurrentProfileItem()
-        const currentOverride = currentProfile.override || []
-        if (!currentOverride.includes(QUICK_RULES_ID)) {
-          currentOverride.push(QUICK_RULES_ID)
-          await updateProfileItem({ ...currentProfile, override: currentOverride })
-        }
         setQuickRulesExists(true)
       } else {
         // 更新已有覆写文件
         await setOverride(QUICK_RULES_ID, 'yaml', yamlContent)
+      }
+
+      // 确保绑定到当前 profile 的 override 列表（无论是新建还是更新）
+      const currentProfile = await getCurrentProfileItem()
+      const currentOverride = currentProfile.override || []
+      if (!currentOverride.includes(QUICK_RULES_ID)) {
+        currentOverride.push(QUICK_RULES_ID)
+        await updateProfileItem({ ...currentProfile, override: currentOverride })
       }
 
       // 重启核心使规则生效
@@ -435,7 +432,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
   
   const renderContent = () => (
     <>
-             <div className="flex flex-col gap-1 mb-4">
+             <div className="flex flex-col gap-0.5 mb-2">
               <span className="text-large font-medium">{editingIndex >= 0 ? '编辑规则' : '新建规则'}</span>
               <span className="text-small text-foreground-400 font-normal">
                 从连接信息快速创建路由规则
@@ -443,7 +440,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
             </div>
           
             {/* 连接信息摘要 */}
-            <div className="flex flex-wrap gap-1.5 mb-4">
+            <div className="flex flex-wrap gap-1.5 mb-2">
               {host && (
                 <Chip size="sm" variant="flat" color="primary">
                   域名: {host}
@@ -478,18 +475,20 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
               )}
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               {/* 规则类型选择 */}
               <Select
-                label="规则类型"
+                label={`规则类型 - ${RULE_TYPES.find((r) => r.key === ruleType)?.desc || ''}`}
                 selectedKeys={new Set([ruleType])}
-                onSelectionChange={handleRuleTypeChange}
+                onSelectionChange={(v) => {
+                  const selectedKey = v.currentKey as string
+                  if (selectedKey) handleRuleTypeChange(selectedKey)
+                }}
                 disallowEmptySelection
-                size="sm"
-                description={RULE_TYPES.find((r) => r.key === ruleType)?.desc}
+                size="md"
               >
-                {RULE_TYPES.map(r => (
-                   <SelectItem key={r.key}>{r.label} - {r.desc}</SelectItem>
+                {RULE_TYPES.map((r) => (
+                   <SelectItem key={r.key} textValue={r.label}>{r.label} - {r.desc}</SelectItem>
                 ))}
               </Select>
 
@@ -498,7 +497,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
                 label="规则值"
                 value={ruleValue}
                 onValueChange={setRuleValue}
-                size="sm"
+                size="md"
                 placeholder="输入规则值"
               />
 
@@ -510,7 +509,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
                 onSelectionChange={(key) => {
                   if (key) setProxyTarget(key as string)
                 }}
-                size="sm"
+                size="md"
                 allowsCustomValue
                 placeholder="选择或输入代理组名称"
               >
@@ -545,8 +544,8 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
 
               {/* 已有快速规则列表 */}
               <div>
-                <Divider className="my-2" />
-                <div className="text-sm font-medium mb-2 text-foreground-600">
+                <Divider />
+                <div className="text-sm font-semibold mt-2 mb-2 text-warning">
                   已有快速规则 ({existingRules.length})
                 </div>
                 
@@ -595,14 +594,14 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-xs text-foreground-400 text-center py-2 bg-default-50 rounded-lg border border-dashed border-default-200">
+                  <div className="text-xs text-foreground-400 text-center py-1 bg-default-50 rounded-lg border border-dashed border-default-200">
                     暂无快速规则
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-2 mt-2">
               {editingIndex >= 0 && (
                 <Button variant="flat" onPress={handleCancelEdit} isDisabled={isSubmitting}>
                   取消编辑
