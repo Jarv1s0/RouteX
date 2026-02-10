@@ -157,7 +157,7 @@ export async function createOverride(item: Partial<OverrideItem>): Promise<Overr
     }
     case 'local': {
       const data = item.file || ''
-      setOverride(id, newItem.ext, data)
+      await setOverride(id, newItem.ext, data)
       break
     }
   }

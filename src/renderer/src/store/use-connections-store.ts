@@ -15,9 +15,12 @@ interface ConnectionsState {
   loading: boolean
   memory: number
   
+  isPaused: boolean
+  
   // Actions
   initializeListeners: () => void
   cleanupListeners: () => void
+  setPaused: (paused: boolean) => void
   
   // Management actions
   closeConnection: (id: string) => void
@@ -32,9 +35,15 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   connectionCount: 0,
   loading: true,
   memory: 0,
+  isPaused: false,
+
+  setPaused: (paused: boolean) => set({ isPaused: paused }),
 
   initializeListeners: () => {
     const handleConnections = throttle((_e: unknown, info: ControllerConnections): void => {
+      const { isPaused } = get()
+      if (isPaused) return
+      
       if (!info || !info.connections) return
       
       const { activeConnections: prevActive, closedConnections: prevClosed } = get()

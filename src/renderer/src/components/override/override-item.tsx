@@ -8,25 +8,33 @@ import {
   DropdownMenu,
   DropdownTrigger
 } from '@heroui/react'
-import { IoMdMore, IoMdRefresh } from 'react-icons/io'
-import dayjs from 'dayjs'
-import React, { Key, useEffect, useMemo, useState } from 'react'
-import EditFileModal from './edit-file-modal'
-import EditInfoModal from './edit-info-modal'
+import { OverrideItem as IOverrideItem } from '@renderer/utils/interfaces'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import ExecLogModal from './exec-log-modal'
-import { openFile, restartCore } from '@renderer/utils/ipc'
-
-import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { IoMdMore, IoMdRefresh } from 'react-icons/io'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import { Key, useEffect, useMemo, useState } from 'react'
+import EditInfoModal from './edit-info-modal'
+import EditFileModal from './edit-file-modal'
+import { openFile } from '@renderer/utils/ipc'
 import ConfirmModal from '../base/base-confirm'
+import { restartCore } from '@renderer/utils/ipc'
+import ExecLogModal from './exec-log-modal'
+import 'dayjs/locale/zh-cn'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
+
+dayjs.extend(relativeTime)
+dayjs.locale('zh-cn')
 
 interface Props {
-  info: OverrideItem
-  addOverrideItem: (item: Partial<OverrideItem>) => Promise<void>
-  updateOverrideItem: (item: OverrideItem) => Promise<void>
+  info: IOverrideItem
+  isActive?: boolean
+  addOverrideItem: (item: Partial<IOverrideItem>) => Promise<void>
+  updateOverrideItem: (item: IOverrideItem) => Promise<void>
   removeOverrideItem: (id: string) => Promise<void>
   mutateOverrideConfig: () => void
+  onToggleOverride?: (id: string, active: boolean) => Promise<void>
 }
 
 interface MenuItem {
@@ -38,7 +46,7 @@ interface MenuItem {
 }
 
 const OverrideItem: React.FC<Props> = (props) => {
-  const { info, addOverrideItem, removeOverrideItem, mutateOverrideConfig, updateOverrideItem } =
+  const { info, isActive, addOverrideItem, removeOverrideItem, mutateOverrideConfig, updateOverrideItem, onToggleOverride } =
     props
   const [updating, setUpdating] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
@@ -57,58 +65,86 @@ const OverrideItem: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const [disableOpen, setDisableOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+
   const menuItems: MenuItem[] = useMemo(() => {
-    const list = [
-      {
+    const list: MenuItem[] = []
+    
+    // Restore toggle-override menu item
+    if (!info.global) {
+        list.push({
+            key: 'toggle-override',
+            label: isActive ? '禁用覆写' : '启用覆写',
+            showDivider: true,
+            color: isActive ? 'danger' : 'default',
+            className: isActive ? 'text-danger' : ''
+        })
+    }
+    
+    list.push({
         key: 'toggle-global',
         label: info.global ? '取消全局覆写' : '设为全局覆写',
         showDivider: true,
         color: 'default',
         className: ''
-      } as MenuItem,
+      })
+    
+    list.push(
       {
         key: 'edit-info',
         label: '编辑信息',
         showDivider: false,
         color: 'default',
         className: ''
-      } as MenuItem,
+      },
       {
         key: 'edit-file',
         label: '编辑文件',
         showDivider: false,
         color: 'default',
         className: ''
-      } as MenuItem,
+      },
       {
         key: 'open-file',
         label: '打开文件',
         showDivider: false,
         color: 'default',
         className: ''
-      } as MenuItem,
+      },
       {
         key: 'exec-log',
         label: '执行日志',
         showDivider: true,
         color: 'default',
         className: ''
-      } as MenuItem,
+      },
       {
         key: 'delete',
         label: '删除',
         showDivider: false,
         color: 'danger',
         className: 'text-danger'
-      } as MenuItem
-    ]
+      }
+    )
     if (info.ext === 'yaml') {
-      list.splice(4, 1)
+      const execLogIndex = list.findIndex(i => i.key === 'exec-log')
+      if (execLogIndex !== -1) list.splice(execLogIndex, 1)
     }
     return list
-  }, [info])
+  }, [info, isActive])
+
   const onMenuAction = async (key: Key): Promise<void> => {
     switch (key) {
+      case 'toggle-override': {
+        if (onToggleOverride) {
+            try {
+                await onToggleOverride(info.id, !!isActive)
+                mutateOverrideConfig()
+            } catch (e) {
+                alert(e)
+            }
+        }
+        break
+      }
       case 'toggle-global': {
         try {
           await updateOverrideItem({ ...info, global: !info.global })
@@ -198,7 +234,7 @@ const OverrideItem: React.FC<Props> = (props) => {
         className={`
           ${CARD_STYLES.BASE}
           ${
-            info.global
+            info.global || isActive
               ? CARD_STYLES.ACTIVE
               : CARD_STYLES.INACTIVE
           }
@@ -213,7 +249,7 @@ const OverrideItem: React.FC<Props> = (props) => {
             <div className="flex justify-between h-[32px]">
               <h3
                 title={info?.name}
-                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] ${info.global ? 'text-primary-foreground' : 'text-foreground'}`}
+                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] ${info.global || isActive ? 'text-primary-foreground' : 'text-foreground'}`}
               >
                 {info?.name}
               </h3>
@@ -238,7 +274,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                     }}
                   >
                     <IoMdRefresh
-                      className={`text-[20px] ${info.global ? 'text-primary-foreground' : 'text-foreground-500'} ${updating ? 'animate-spin' : ''}`}
+                      className={`text-[20px] ${info.global || isActive ? 'text-primary-foreground' : 'text-foreground-500'} ${updating ? 'animate-spin' : ''}`}
                     />
                   </Button>
                 )}
@@ -246,7 +282,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                 <Dropdown>
                   <DropdownTrigger>
                     <Button isIconOnly size="sm" variant="light" color="default">
-                      <IoMdMore className={`text-[20px] ${info.global ? 'text-primary-foreground' : 'text-foreground-500'}`} />
+                      <IoMdMore className={`text-[20px] ${info.global || isActive ? 'text-primary-foreground' : 'text-foreground-500'}`} />
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu onAction={onMenuAction}>
@@ -265,26 +301,36 @@ const OverrideItem: React.FC<Props> = (props) => {
               </div>
             </div>
             <div className="flex justify-between items-end mt-2">
-              <div className={`flex justify-start items-center`}>
-                {info.global && (
+              <div className={`flex justify-start items-center gap-2`}>
+                {info.global ? (
                   <Chip
                     size="sm"
                     variant="solid"
-                    className={`mr-2 ${info.global ? 'bg-yellow-400 text-black font-bold shadow-sm' : 'bg-primary text-white'}`}
+                    className={`bg-yellow-400 text-black font-bold shadow-sm`}
                   >
                     全局
                   </Chip>
+                ) : (
+                   isActive && (
+                    <Chip
+                        size="sm"
+                        variant="solid"
+                        className={`bg-yellow-400 text-black font-bold shadow-sm`}
+                    >
+                        已启用
+                    </Chip>
+                   )
                 )}
                 <Chip
                   size="sm"
                   variant="bordered"
-                  className={`${info.global ? 'text-primary-foreground border-primary-foreground/50' : 'border-default-400 text-default-600'}`}
+                  className={`${info.global || isActive ? 'text-primary-foreground border-primary-foreground/50' : 'border-default-400 text-default-600'}`}
                 >
                   {info.ext === 'yaml' ? 'YAML' : 'JavaScript'}
                 </Chip>
               </div>
               {info.type === 'remote' && (
-                <div className={`flex justify-end ${info.global ? 'text-primary-foreground/80' : 'text-foreground-400'}`}>
+                <div className={`flex justify-end ${info.global || isActive ? 'text-primary-foreground/80' : 'text-foreground-400'}`}>
                   <small>{dayjs(info.updated).fromNow()}</small>
                 </div>
               )}

@@ -6,8 +6,9 @@ import {
   DropdownTrigger,
   Input
 } from '@heroui/react'
+import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import BasePage from '@renderer/components/base/base-page'
-import { getFilePath, readTextFile } from '@renderer/utils/ipc'
+import { getFilePath, readTextFile, updateProfileItem, restartCore } from '@renderer/utils/ipc'
 import { useEffect, useRef, useState } from 'react'
 import { MdContentPaste } from 'react-icons/md'
 import {
@@ -38,6 +39,10 @@ const Override: React.FC = () => {
     removeOverrideItem,
     mutateOverrideConfig
   } = useOverrideConfig()
+
+  const { profileConfig, mutateProfileConfig } = useProfileConfig()
+  const currentProfile = profileConfig?.items?.find((p) => p.id === profileConfig?.current)
+
   const { items } = overrideConfig || {}
   const itemsArray = items ?? emptyItems
   const [sortedItems, setSortedItems] = useState(itemsArray)
@@ -46,6 +51,22 @@ const Override: React.FC = () => {
   const [url, setUrl] = useState('')
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingItem, setEditingItem] = useState<OverrideItem | null>(null)
+
+  const onToggleOverride = async (id: string, active: boolean): Promise<void> => {
+    if (!currentProfile) return
+    let newOverride = currentProfile.override || []
+    if (active) {
+      newOverride = newOverride.filter((oid) => oid !== id)
+    } else {
+      if (!newOverride.includes(id)) {
+        newOverride = [...newOverride, id]
+      }
+    }
+    await updateProfileItem({ ...currentProfile, override: newOverride })
+    await restartCore()
+    mutateProfileConfig()
+  }
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -281,6 +302,8 @@ const Override: React.FC = () => {
             {sortedItems.map((item) => (
               <OverrideItem
                 key={item.id}
+                isActive={currentProfile?.override?.includes(item.id)}
+                onToggleOverride={onToggleOverride}
                 addOverrideItem={addOverrideItem}
                 removeOverrideItem={removeOverrideItem}
                 mutateOverrideConfig={mutateOverrideConfig}

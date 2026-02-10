@@ -1,7 +1,7 @@
 import { Avatar, Button, Card, Chip } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import dayjs from 'dayjs'
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import React, { memo, useCallback, useMemo } from 'react'
 import { CgClose, CgTrash } from 'react-icons/cg'
 import { IoEyeOff, IoEye } from 'react-icons/io5'
 
@@ -9,98 +9,81 @@ interface Props {
   index: number
   info: ControllerConnectionDetail
   displayIcon?: boolean
-  iconUrl: string
+  iconUrl?: string
   displayName?: string
-  selected: ControllerConnectionDetail | undefined
-  setSelected: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
-  setIsDetailModalOpen: React.Dispatch<React.SetStateAction<boolean>>
-  close: (id: string) => void
+  selected?: ControllerConnectionDetail
+  setSelected?: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
+  setIsDetailModalOpen?: React.Dispatch<React.SetStateAction<boolean>>
+  close?: (id: string) => void
   hide?: (id: string) => void
   unhide?: (id: string) => void
   isHidden?: boolean
-  timeRefreshTrigger?: number // 统一时间刷新触发器
+  timeRefreshTrigger?: number
+  onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
 }
 
 const ConnectionItemComponent: React.FC<Props> = ({
-  index: _index,
   info,
   displayIcon,
   iconUrl,
   displayName,
+  selected,
+  setSelected,
+  setIsDetailModalOpen,
   close,
   hide,
   unhide,
   isHidden,
-  selected,
-  setSelected,
-  setIsDetailModalOpen,
-  timeRefreshTrigger
+  onContextMenu
 }) => {
-  const fallbackProcessName = useMemo(
-    () => info.metadata.process?.replace(/\.exe$/, '') || info.metadata.sourceIP,
-    [info.metadata.process, info.metadata.sourceIP]
-  )
-  const processName = displayName || fallbackProcessName
-
-  const destination = useMemo(
-    () =>
-      info.metadata.host ||
-      info.metadata.sniffHost ||
-      info.metadata.destinationIP ||
-      info.metadata.remoteDestination,
-    [
-      info.metadata.host,
-      info.metadata.sniffHost,
-      info.metadata.destinationIP,
-      info.metadata.remoteDestination
-    ]
-  )
-
-  const [timeAgo, setTimeAgo] = useState(() => dayjs(info.start).fromNow())
-
-  // 使用父组件的统一触发器更新时间，避免每个卡片独立定时器
-  useEffect(() => {
-    setTimeAgo(dayjs(info.start).fromNow())
-  }, [info.start, timeRefreshTrigger])
+  const processName = displayName || info.metadata.process?.replace(/\.exe$/, '') || info.metadata.sourceIP || '-'
+  const destination = info.metadata.host || info.metadata.destinationIP || info.metadata.remoteDestination || '-'
+  
+  const timeAgo = useMemo(() => {
+    const seconds = dayjs().diff(dayjs(info.start), 'second')
+    if (seconds < 60) return `${seconds}s`
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return `${minutes}m`
+    const hours = Math.floor(minutes / 60)
+    return `${hours}h`
+  }, [info.start])
 
   const uploadTraffic = useMemo(() => calcTraffic(info.upload), [info.upload])
-
   const downloadTraffic = useMemo(() => calcTraffic(info.download), [info.download])
-
-  const uploadSpeed = useMemo(
-    () => (info.uploadSpeed ? calcTraffic(info.uploadSpeed) : null),
-    [info.uploadSpeed]
-  )
-
-  const downloadSpeed = useMemo(
-    () => (info.downloadSpeed ? calcTraffic(info.downloadSpeed) : null),
-    [info.downloadSpeed]
-  )
-
-  const hasSpeed = useMemo(
-    () => Boolean(info.uploadSpeed || info.downloadSpeed),
-    [info.uploadSpeed, info.downloadSpeed]
-  )
+  const uploadSpeed = useMemo(() => calcTraffic(info.uploadSpeed || 0), [info.uploadSpeed])
+  const downloadSpeed = useMemo(() => calcTraffic(info.downloadSpeed || 0), [info.downloadSpeed])
+  const hasSpeed = (info.uploadSpeed || 0) > 0 || (info.downloadSpeed || 0) > 0
 
   const handleCardPress = useCallback(() => {
-    setSelected(info)
-    setIsDetailModalOpen(true)
-  }, [info, setSelected, setIsDetailModalOpen])
+    setSelected?.(info)
+    setIsDetailModalOpen?.(true)
+  }, [setSelected, setIsDetailModalOpen, info])
 
-  const handleClose = useCallback(() => {
-    close(info.id)
+  const handleClose = useCallback((e: any) => {
+    e.stopPropagation?.()
+    e.preventDefault?.()
+    close?.(info.id)
   }, [close, info.id])
 
-  const handleHide = useCallback(() => {
-    if (isHidden && unhide) {
-      unhide(info.id)
-    } else if (!isHidden && hide) {
-      hide(info.id)
+  const handleHide = useCallback((e: any) => {
+    e.stopPropagation?.()
+    e.preventDefault?.()
+    const id = info.id
+    if (isHidden) {
+      unhide?.(id)
+    } else {
+      hide?.(id)
     }
-  }, [hide, unhide, isHidden, info.id])
+  }, [isHidden, hide, unhide, info.id])
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    onContextMenu?.(info, e)
+  }, [onContextMenu, info])
 
   return (
-    <div className="px-2 pb-2">
+    <div className="px-2 pb-2" onContextMenu={handleContextMenu}>
+
       <Card
         as="div"
         isPressable
@@ -225,7 +208,6 @@ const ConnectionItem = memo(ConnectionItemComponent, (prevProps, nextProps) => {
     prevProps.selected?.id === nextProps.selected?.id &&
     prevProps.isHidden === nextProps.isHidden &&
     prevProps.timeRefreshTrigger === nextProps.timeRefreshTrigger &&
-    // Add missing deps
     prevProps.info.chains?.[0] === nextProps.info.chains?.[0] &&
     prevProps.info.rule === nextProps.info.rule
   )
