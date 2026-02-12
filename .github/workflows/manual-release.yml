@@ -115,31 +115,10 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Calculate Commit Count
-        id: commits
-        shell: bash
-        run: |
-          # Try to get the previous tag.
-          # We use HEAD^ to ensure we don't pick up the current commit if it happens to be tagged already (though unlikely in this workflow order before release edit).
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          
-          if [ -z "$PREV_TAG" ]; then
-            echo "No previous tag found, counting all commits."
-            COUNT=$(git rev-list --count HEAD)
-          else
-            echo "Counting commits since $PREV_TAG"
-            COUNT=$(git rev-list --count $PREV_TAG..HEAD)
-          fi
-          
-          echo "COMMIT_COUNT=$COUNT" >> $GITHUB_ENV
-          echo "Commits: $COUNT"
-
       - name: Generate Release Notes
         shell: bash
         run: |
-          echo "距离本次发布已有 $COMMIT_COUNT 次提交" > release_notes.md
-          echo "" >> release_notes.md
-          cat changelog.md >> release_notes.md
+          cat changelog.md > release_notes.md
 
       - name: Update Release
         env:
