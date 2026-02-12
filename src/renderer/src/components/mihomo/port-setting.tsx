@@ -8,9 +8,66 @@ import { restartCore, startSubStoreBackendServer, triggerSysProxy } from '@rende
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { Button, Input, Switch } from '@heroui/react'
-import { secondaryInputClassNames } from '../settings/advanced-settings'
+
 import { FaNetworkWired } from 'react-icons/fa'
 import InterfaceModal from '@renderer/components/mihomo/interface-modal'
+
+const portInputClassNames = {
+  input: "bg-transparent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
+}
+
+// 端口输入子组件，整合确认按钮和 Input
+const PortInput: React.FC<{
+  label: string
+  value: number
+  current: number
+  hasConflict: boolean
+  onSave: () => void
+  onChange: (v: number) => void
+  divider?: boolean
+}> = ({ label, value, current, hasConflict, onSave, onChange, divider = true }) => (
+  <SettingItem title={label} divider={divider}>
+    <div className="flex items-center gap-2">
+      {value !== current && (
+        <Button
+          size="sm"
+          color="primary"
+          isDisabled={hasConflict}
+          onPress={onSave}
+        >
+          确认
+        </Button>
+      )}
+      <Input
+        size="sm"
+        type="number"
+        className="w-[100px]"
+        classNames={portInputClassNames}
+        value={value.toString()}
+        max={65535}
+        min={0}
+        onValueChange={(v) => onChange(parseInt(v) || 0)}
+      />
+    </div>
+  </SettingItem>
+)
+
+// 子面板容器，统一嵌套区域的视觉样式
+const SubPanel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+  <div className={`text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4 ${className}`}>
+    <div className="ml-2">
+      {children}
+    </div>
+  </div>
+)
+
+// 子面板内的列表容器
+const ListPanel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1 mb-0 [&>div]:!mt-0">
+    {children}
+  </div>
+)
 
 const PortSetting: React.FC = () => {
   const { appConfig } = useAppConfig()
@@ -65,165 +122,63 @@ const PortSetting: React.FC = () => {
     <>
       {lanOpen && <InterfaceModal onClose={() => setLanOpen(false)} />}
       <SettingCard title="端口设置" collapsible>
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2">
-          <div className="ml-2">
-            <SettingItem title="混合端口" divider>
-          <div className="flex">
-            {mixedPortInput !== mixedPort && (
-              <Button
-                size="sm"
-                color="primary"
-                className="mr-2"
-                isDisabled={hasPortConflict()}
-                onPress={async () => {
-                  await onChangeNeedRestart({ 'mixed-port': mixedPortInput })
-                  await startSubStoreBackendServer()
-                  if (sysProxy?.enable) {
-                    triggerSysProxy(true, onlyActiveDevice)
-                  }
-                }}
-              >
-                确认
-              </Button>
-            )}
-            <Input
-              size="sm"
-              type="number"
-              className="w-[100px]"
-              classNames={secondaryInputClassNames}
-              value={mixedPortInput.toString()}
-              max={65535}
-              min={0}
-              onValueChange={(v) => {
-                setMixedPortInput(parseInt(v) || 0)
-              }}
-            />
-          </div>
-        </SettingItem>
-        <SettingItem title="Socks 端口" divider>
-          <div className="flex">
-            {socksPortInput !== socksPort && (
-              <Button
-                size="sm"
-                color="primary"
-                className="mr-2"
-                isDisabled={hasPortConflict()}
-                onPress={() => {
-                  onChangeNeedRestart({ 'socks-port': socksPortInput })
-                }}
-              >
-                确认
-              </Button>
-            )}
 
-            <Input
-              size="sm"
-              type="number"
-              className="w-[100px]"
-              classNames={secondaryInputClassNames}
-              value={socksPortInput.toString()}
-              max={65535}
-              min={0}
-              onValueChange={(v) => {
-                setSocksPortInput(parseInt(v) || 0)
-              }}
-            />
-          </div>
-        </SettingItem>
-        <SettingItem title="Http 端口" divider>
-          <div className="flex">
-            {httpPortInput !== httpPort && (
-              <Button
-                size="sm"
-                color="primary"
-                className="mr-2"
-                isDisabled={hasPortConflict()}
-                onPress={() => {
-                  onChangeNeedRestart({ port: httpPortInput })
-                }}
-              >
-                确认
-              </Button>
-            )}
-
-            <Input
-              size="sm"
-              type="number"
-              className="w-[100px]"
-              classNames={secondaryInputClassNames}
-              value={httpPortInput.toString()}
-              max={65535}
-              min={0}
-              onValueChange={(v) => {
-                setHttpPortInput(parseInt(v) || 0)
-              }}
-            />
-          </div>
-        </SettingItem>
+        {/* ═══ 第一层：端口配置 ═══ */}
+        <PortInput
+          label="混合端口"
+          value={mixedPortInput}
+          current={mixedPort}
+          hasConflict={hasPortConflict()}
+          onChange={setMixedPortInput}
+          onSave={async () => {
+            await onChangeNeedRestart({ 'mixed-port': mixedPortInput })
+            await startSubStoreBackendServer()
+            if (sysProxy?.enable) {
+              triggerSysProxy(true, onlyActiveDevice)
+            }
+          }}
+        />
+        <PortInput
+          label="Socks 端口"
+          value={socksPortInput}
+          current={socksPort}
+          hasConflict={hasPortConflict()}
+          onChange={setSocksPortInput}
+          onSave={() => onChangeNeedRestart({ 'socks-port': socksPortInput })}
+        />
+        <PortInput
+          label="Http 端口"
+          value={httpPortInput}
+          current={httpPort}
+          hasConflict={hasPortConflict()}
+          onChange={setHttpPortInput}
+          onSave={() => onChangeNeedRestart({ port: httpPortInput })}
+          divider
+        />
         {platform !== 'win32' && (
-          <SettingItem title="Redir 端口" divider>
-            <div className="flex">
-              {redirPortInput !== redirPort && (
-                <Button
-                  size="sm"
-                  color="primary"
-                  className="mr-2"
-                  isDisabled={hasPortConflict()}
-                  onPress={() => {
-                    onChangeNeedRestart({ 'redir-port': redirPortInput })
-                  }}
-                >
-                  确认
-                </Button>
-              )}
-
-              <Input
-                size="sm"
-                type="number"
-                className="w-[100px]"
-                classNames={secondaryInputClassNames}
-                value={redirPortInput.toString()}
-                max={65535}
-                min={0}
-                onValueChange={(v) => {
-                  setRedirPortInput(parseInt(v) || 0)
-                }}
-              />
-            </div>
-          </SettingItem>
+          <PortInput
+            label="Redir 端口"
+            value={redirPortInput}
+            current={redirPort}
+            hasConflict={hasPortConflict()}
+            onChange={setRedirPortInput}
+            onSave={() => onChangeNeedRestart({ 'redir-port': redirPortInput })}
+            divider={platform !== 'linux'}
+          />
         )}
         {platform === 'linux' && (
-          <SettingItem title="TProxy 端口" divider>
-            <div className="flex">
-              {tproxyPortInput !== tproxyPort && (
-                <Button
-                  size="sm"
-                  color="primary"
-                  className="mr-2"
-                  isDisabled={hasPortConflict()}
-                  onPress={() => {
-                    onChangeNeedRestart({ 'tproxy-port': tproxyPortInput })
-                  }}
-                >
-                  确认
-                </Button>
-              )}
-
-              <Input
-                size="sm"
-                type="number"
-                className="w-[100px]"
-                classNames={secondaryInputClassNames}
-                value={tproxyPortInput.toString()}
-                max={65535}
-                min={0}
-                onValueChange={(v) => {
-                  setTproxyPortInput(parseInt(v) || 0)
-                }}
-              />
-            </div>
-          </SettingItem>
+          <PortInput
+            label="TProxy 端口"
+            value={tproxyPortInput}
+            current={tproxyPort}
+            hasConflict={hasPortConflict()}
+            onChange={setTproxyPortInput}
+            onSave={() => onChangeNeedRestart({ 'tproxy-port': tproxyPortInput })}
+            divider={false}
+          />
         )}
+
+        {/* ═══ 第二层：局域网连接 ═══ */}
         <SettingItem
           title="允许局域网连接"
           actions={
@@ -231,143 +186,142 @@ const PortSetting: React.FC = () => {
               size="sm"
               isIconOnly
               variant="light"
-              onPress={() => {
-                setLanOpen(true)
-              }}
+              onPress={() => setLanOpen(true)}
             >
               <FaNetworkWired className="text-lg" />
             </Button>
           }
-          divider
+          divider={!allowLan}
         >
           <Switch
             size="sm"
             isSelected={allowLan}
-            onValueChange={(v) => {
-              onChangeNeedRestart({ 'allow-lan': v })
-            }}
+            onValueChange={(v) => onChangeNeedRestart({ 'allow-lan': v })}
           />
         </SettingItem>
+
         {allowLan && (
-          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-            <div className="ml-4 text-sm">
-              <SettingItem title="允许连接的 IP 段">
-                {lanAllowedIpsInput.join('') !== lanAllowedIps.join('') && (
-                  <Button
-                    size="sm"
-                    color="primary"
-                    onPress={() => {
-                      onChangeNeedRestart({ 'lan-allowed-ips': lanAllowedIpsInput })
-                    }}
-                  >
-                    确认
-                  </Button>
-                )}
-              </SettingItem>
-              <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1 mb-3">
-                <div className="ml-6">
-                  <EditableList
-                    items={lanAllowedIpsInput}
-                    onChange={(items) => setLanAllowedIpsInput(items as string[])}
-                    placeholder="IP 段"
-                  />
-                </div>
-              </div>
-              <SettingItem title="禁止连接的 IP 段">
-                {lanDisallowedIpsInput.join('') !== lanDisallowedIps.join('') && (
-                  <Button
-                    size="sm"
-                    color="primary"
-                    onPress={() => {
-                      onChangeNeedRestart({ 'lan-disallowed-ips': lanDisallowedIpsInput })
-                    }}
-                  >
-                    确认
-                  </Button>
-                )}
-              </SettingItem>
-              <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1 mb-3">
-                <div className="ml-6">
-                  <EditableList
-                    items={lanDisallowedIpsInput}
-                    onChange={(items) => setLanDisallowedIpsInput(items as string[])}
-                    placeholder="IP 段"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <SubPanel>
+            {/* 允许的 IP */}
+            <SettingItem title="允许连接的 IP 段" divider>
+              {lanAllowedIpsInput.join('') !== lanAllowedIps.join('') && (
+                <Button
+                  size="sm"
+                  color="primary"
+                  onPress={() => onChangeNeedRestart({ 'lan-allowed-ips': lanAllowedIpsInput })}
+                >
+                  确认
+                </Button>
+              )}
+            </SettingItem>
+            <ListPanel>
+              <EditableList
+                items={lanAllowedIpsInput}
+                onChange={(items) => setLanAllowedIpsInput(items as string[])}
+                placeholder="IP 段"
+                divider={false}
+                inputClassNames={portInputClassNames}
+              />
+            </ListPanel>
+
+            {/* 禁止的 IP */}
+            <SettingItem title="禁止连接的 IP 段">
+              {lanDisallowedIpsInput.join('') !== lanDisallowedIps.join('') && (
+                <Button
+                  size="sm"
+                  color="primary"
+                  onPress={() => onChangeNeedRestart({ 'lan-disallowed-ips': lanDisallowedIpsInput })}
+                >
+                  确认
+                </Button>
+              )}
+            </SettingItem>
+            <ListPanel>
+              <EditableList
+                items={lanDisallowedIpsInput}
+                onChange={(items) => setLanDisallowedIpsInput(items as string[])}
+                placeholder="IP 段"
+                divider={false}
+                inputClassNames={portInputClassNames}
+              />
+            </ListPanel>
+          </SubPanel>
         )}
+
+        {/* ═══ 第三层：用户验证 ═══ */}
         <SettingItem title="用户验证">
           <Switch
             size="sm"
             isSelected={authenticationInput.length > 0}
             onValueChange={(v) => {
-              if (!v) {
+              if (v) {
+                if (authenticationInput.length === 0) {
+                  setAuthenticationInput([''])
+                }
+              } else {
                 setAuthenticationInput([])
                 onChangeNeedRestart({ authentication: [] })
               }
             }}
           />
         </SettingItem>
+
         {authenticationInput.length > 0 && (
-          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
-            <div className="ml-4 text-sm">
-              <SettingItem title="用户验证列表">
-                {authenticationInput.join() !== authentication.join() && (
-                  <Button
-                    size="sm"
-                    color="primary"
-                    onPress={() => onChangeNeedRestart({ authentication: authenticationInput })}
-                  >
-                    确认
-                  </Button>
-                )}
-              </SettingItem>
-              <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1 mb-3">
-                <div className="ml-6">
-                  <EditableList
-                    items={authenticationInput}
-                    onChange={(items) => setAuthenticationInput(items as string[])}
-                    placeholder="用户名"
-                    part2Placeholder="密码"
-                    parse={parseAuth}
-                    format={formatAuth}
-                  />
-                </div>
-              </div>
-              <SettingItem title="允许跳过验证的 IP 段">
-                {skipAuthPrefixesInput.join('') !== skipAuthPrefixes.join('') && (
-                  <Button
-                    size="sm"
-                    color="primary"
-                    onPress={() => {
-                      onChangeNeedRestart({ 'skip-auth-prefixes': skipAuthPrefixesInput })
-                    }}
-                  >
-                    确认
-                  </Button>
-                )}
-              </SettingItem>
-              <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1">
-                <div className="ml-6">
-                  <EditableList
-                    items={skipAuthPrefixesInput}
-                    onChange={(items) => setSkipAuthPrefixesInput(items as string[])}
-                    placeholder="IP 段"
-                    disableFirst
-                    divider={false}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <SubPanel>
+            {/* 验证列表 */}
+            <SettingItem title="用户验证列表" divider>
+              {authenticationInput.join() !== authentication.join() && (
+                <Button
+                  size="sm"
+                  color="primary"
+                  onPress={() => onChangeNeedRestart({ authentication: authenticationInput })}
+                >
+                  确认
+                </Button>
+              )}
+            </SettingItem>
+            <ListPanel>
+              <EditableList
+                items={authenticationInput}
+                onChange={(items) => setAuthenticationInput(items as string[])}
+                placeholder="用户名"
+                part2Placeholder="密码"
+                parse={parseAuth}
+                format={formatAuth}
+                divider={false}
+                inputClassNames={portInputClassNames}
+              />
+            </ListPanel>
+
+            {/* 跳过验证的 IP */}
+            <SettingItem title="允许跳过验证的 IP 段">
+              {skipAuthPrefixesInput.join('') !== skipAuthPrefixes.join('') && (
+                <Button
+                  size="sm"
+                  color="primary"
+                  onPress={() => onChangeNeedRestart({ 'skip-auth-prefixes': skipAuthPrefixesInput })}
+                >
+                  确认
+                </Button>
+              )}
+            </SettingItem>
+            <ListPanel>
+              <EditableList
+                items={skipAuthPrefixesInput}
+                onChange={(items) => setSkipAuthPrefixesInput(items as string[])}
+                placeholder="IP 段"
+                disableFirst
+                divider={false}
+                inputClassNames={portInputClassNames}
+              />
+            </ListPanel>
+          </SubPanel>
         )}
-          </div>
-        </div>
+
       </SettingCard>
     </>
   )
 }
 
 export default PortSetting
+

@@ -9,7 +9,12 @@ import { IoMdCloudDownload, IoMdRefresh } from 'react-icons/io'
 import { HiExternalLink } from 'react-icons/hi'
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai'
 import { isValidListenAddress } from '@renderer/utils/validate'
-import { secondaryInputClassNames } from '../settings/advanced-settings'
+
+
+const inputClassNames = {
+  input: "bg-transparent",
+  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
+}
 
 const ControllerSetting: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -66,8 +71,7 @@ const ControllerSetting: React.FC = () => {
 
   return (
     <SettingCard title="外部控制器" collapsible>
-      <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-2 mt-2">
-        <div className="ml-2">
+
           <SettingItem title="监听地址" divider={externalController !== ''}>
             <div className="flex">
               {externalControllerInput != externalController && !externalControllerError && (
@@ -95,8 +99,8 @@ const ControllerSetting: React.FC = () => {
               >
                 <Input
                   size="sm"
-                  className={`w-[200px] ${externalControllerError ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''}`}
-                  classNames={externalControllerError ? undefined : secondaryInputClassNames}
+                  className={`w-[200px] ${externalControllerError ? 'border-danger ring-1 ring-danger rounded-2xl' : ''}`}
+                  classNames={externalControllerError ? undefined : inputClassNames}
                   value={externalControllerInput}
                   onValueChange={(v) => {
                     setExternalControllerInput(v)
@@ -122,6 +126,7 @@ const ControllerSetting: React.FC = () => {
                     <IoMdRefresh className="text-lg" />
                   </Button>
                 }
+                divider
               >
                 <div className="flex">
                   {secretInput != secret && (
@@ -140,7 +145,7 @@ const ControllerSetting: React.FC = () => {
                     size="sm"
                     type={showPassword ? 'text' : 'password'}
                     className="w-[200px]"
-                    classNames={secondaryInputClassNames}
+                    classNames={inputClassNames}
                     value={secretInput}
                     onValueChange={setSecretInput}
                     startContent={
@@ -159,7 +164,7 @@ const ControllerSetting: React.FC = () => {
                   />
                 </div>
               </SettingItem>
-              <SettingItem title="启用控制器面板">
+              <SettingItem title="启用控制器面板" divider>
                 <Switch
                   size="sm"
                   isSelected={enableExternalUi}
@@ -174,6 +179,7 @@ const ControllerSetting: React.FC = () => {
               {enableExternalUi && (
                 <SettingItem
                   title="控制器面板"
+                  divider
                   actions={
                     <>
                       <Button
@@ -267,8 +273,8 @@ const ControllerSetting: React.FC = () => {
                     </div>
                   </SettingItem>
                 )}
-              <SettingItem title="CORS 配置" />
-              <SettingItem title="允许私有网络访问">
+              <SettingItem title="CORS 配置" divider />
+              <SettingItem title="允许私有网络访问" divider>
                 <Switch
                   size="sm"
                   isSelected={allowPrivateNetwork}
@@ -300,19 +306,16 @@ const ControllerSetting: React.FC = () => {
                     确认
                   </Button>
                 )}
-              </SettingItem>
-              <div className="ml-4">
                 <EditableList
                   items={allowOriginsInput}
                   onChange={(items) => setAllowOriginsInput(items as string[])}
                   divider={false}
-                  inputClassNames={secondaryInputClassNames}
+                  inputClassNames={inputClassNames}
                 />
-              </div>
+              </SettingItem>
             </>
           )}
-        </div>
-      </div>
+
     </SettingCard>
   )
 }

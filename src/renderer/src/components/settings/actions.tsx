@@ -1,4 +1,4 @@
-import { Button, Tooltip } from '@heroui/react'
+import { Button } from '@heroui/react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import {
@@ -8,7 +8,6 @@ import {
 } from '@renderer/utils/ipc'
 import { useState } from 'react'
 import { version } from '@renderer/utils/init'
-import { IoIosHelpCircle } from 'react-icons/io'
 import ConfirmModal from '../base/base-confirm'
 
 const Actions: React.FC = () => {
@@ -33,39 +32,19 @@ const Actions: React.FC = () => {
       )}
       <SettingCard title="更多设置">
 
-        <SettingItem
-          title="重置软件"
-          actions={
-            <Tooltip content="删除所有配置，将软件恢复初始状态">
-              <Button isIconOnly size="sm" variant="light">
-                <IoIosHelpCircle className="text-lg" />
-              </Button>
-            </Tooltip>
-          }
-          divider
-        >
-          <Button size="sm" onPress={() => setConfirmOpen(true)}>
+        <SettingItem title="重置软件" divider>
+          <Button size="sm" variant="flat" onPress={() => setConfirmOpen(true)}>
             重置软件
           </Button>
         </SettingItem>
 
-        <SettingItem
-          title="保留内核退出"
-          actions={
-            <Tooltip content="完全退出软件，只保留内核进程">
-              <Button isIconOnly size="sm" variant="light">
-                <IoIosHelpCircle className="text-lg" />
-              </Button>
-            </Tooltip>
-          }
-          divider
-        >
-          <Button size="sm" onPress={quitWithoutCore}>
+        <SettingItem title="保留内核退出" divider>
+          <Button size="sm" variant="flat" onPress={quitWithoutCore}>
             退出
           </Button>
         </SettingItem>
         <SettingItem title="退出应用" divider>
-          <Button size="sm" onPress={quitApp}>
+          <Button size="sm" variant="flat" onPress={quitApp}>
             退出应用
           </Button>
         </SettingItem>

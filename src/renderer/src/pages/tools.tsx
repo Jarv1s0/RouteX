@@ -1,19 +1,21 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Input, Button, Tabs, Tab, Chip, Skeleton } from '@heroui/react'
-import { IoSearch, IoGlobe, IoShield, IoWifi, IoCheckmarkCircle, IoCloseCircle, IoRefresh, IoLocation, IoEye, IoEyeOff, IoCopy, IoPlay, IoBusiness, IoTime, IoServer, IoMap, IoFlag } from 'react-icons/io5'
-import { mihomoDnsQuery, testRuleMatch, testConnectivity, fetchIpInfo as fetchIpInfoIpc, checkStreamingUnlock } from '@renderer/utils/ipc'
+import { IoSearch, IoGlobe, IoShield, IoWifi, IoCheckmarkCircle, IoCloseCircle, IoRefresh, IoLocation, IoEye, IoEyeOff, IoCopy, IoBusiness, IoTime, IoServer, IoMap, IoFlag } from 'react-icons/io5'
+import { mihomoDnsQuery, testRuleMatch, testConnectivity, fetchIpInfo as fetchIpInfoIpc, checkStreamingUnlock, fetchBatchIpInfo } from '@renderer/utils/ipc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { IPCheckModal } from '@renderer/components/tools/ip-check-modal'
 
-interface ConnectivityResult {
+interface CombinedTestTarget {
+  id: string
   name: string
-  url: string
+  url?: string
   icon: string
-  success: boolean
+  type: 'connectivity' | 'streaming'
+  status: 'idle' | 'testing' | 'success' | 'locked' | 'unlocked' | 'error'
   latency: number
+  region?: string
   error?: string
-  testing: boolean
 }
 
 interface IpInfo {
@@ -39,29 +41,38 @@ const defaultTargets = [
   { name: '百度', url: 'https://www.baidu.com', icon: 'https://www.baidu.com/favicon.ico' }
 ]
 
-interface StreamingService {
-  key: string
-  name: string
-  icon: string
-  status: 'idle' | 'testing' | 'unlocked' | 'locked' | 'error'
-  region?: string
-  error?: string
-}
+const defaultStreamingServices = [
+  { key: 'chatgpt', name: 'ChatGPT', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/ChatGPT.png' },
+  { key: 'gemini', name: 'Gemini', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Google.png' },
+  { key: 'netflix', name: 'Netflix', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Netflix.png' },
+  { key: 'youtube', name: 'YouTube', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/YouTube.png' },
+  { key: 'spotify', name: 'Spotify', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Spotify.png' },
+  { key: 'tiktok', name: 'TikTok', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/TikTok.png' }
+]
 
-const defaultStreamingServices: StreamingService[] = [
-  { key: 'chatgpt', name: 'ChatGPT', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/ChatGPT.png', status: 'idle' },
-  { key: 'gemini', name: 'Gemini', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Google.png', status: 'idle' },
-  { key: 'netflix', name: 'Netflix', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Netflix.png', status: 'idle' },
-  { key: 'youtube', name: 'YouTube', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/YouTube.png', status: 'idle' },
-  { key: 'spotify', name: 'Spotify', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Spotify.png', status: 'idle' },
-  { key: 'tiktok', name: 'TikTok', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/TikTok.png', status: 'idle' }
+const defaultTestTargets: CombinedTestTarget[] = [
+  ...defaultTargets.map(t => ({ 
+    id: t.name, 
+    ...t, 
+    type: 'connectivity' as const, 
+    status: 'idle' as const, 
+    latency: -1 
+  })),
+  ...defaultStreamingServices.map(s => ({ 
+    id: s.key, 
+    name: s.name, 
+    icon: s.icon, 
+    type: 'streaming' as const, 
+    status: 'idle' as const, 
+    latency: -1 
+  }))
 ]
 
 const Tools: React.FC = () => {
   // DNS 查询
   const [dnsQuery, setDnsQuery] = useState('')
   const [dnsType, setDnsType] = useState<'A' | 'AAAA' | 'CNAME' | 'MX' | 'TXT'>('A')
-  const [dnsResult, setDnsResult] = useState<string[]>([])
+  const [dnsResult, setDnsResult] = useState<{ ip: string; country?: string; region?: string }[]>([])
   const [dnsLoading, setDnsLoading] = useState(false)
   const [dnsError, setDnsError] = useState<string | null>(null)
 
@@ -74,10 +85,8 @@ const Tools: React.FC = () => {
   const [ruleLoading, setRuleLoading] = useState(false)
   const [ruleError, setRuleError] = useState<string | null>(null)
 
-  // 连通性检测
-  const [connectivityResults, setConnectivityResults] = useState<ConnectivityResult[]>(
-    defaultTargets.map(t => ({ ...t, success: false, latency: -1, testing: false }))
-  )
+  // 合并测试状态
+  const [testTargets, setTestTargets] = useState<CombinedTestTarget[]>(defaultTestTargets)
   const [allTesting, setAllTesting] = useState(false)
 
   // IP 信息
@@ -85,10 +94,6 @@ const Tools: React.FC = () => {
   const [ipLoading, setIpLoading] = useState(false)
   const [showIp, setShowIp] = useState(false)
   const [ipError, setIpError] = useState<string | null>(null)
-
-  // 流媒体解锁检测
-  const [streamingServices, setStreamingServices] = useState<StreamingService[]>(defaultStreamingServices)
-  const [streamingAllTesting, setStreamingAllTesting] = useState(false)
 
   const handleDnsQuery = async (): Promise<void> => {
     if (!dnsQuery.trim()) return
@@ -98,7 +103,23 @@ const Tools: React.FC = () => {
     try {
       const result = await mihomoDnsQuery(dnsQuery.trim(), dnsType)
       if (result.Answer && result.Answer.length > 0) {
-        setDnsResult(result.Answer.map(a => a.data))
+        const ips = result.Answer.map(a => a.data)
+        // 自动查询归属地
+        try {
+          const geoInfos = await fetchBatchIpInfo(ips.map(ip => ({ query: ip, lang: 'zh-CN' })))
+          const resultsWithGeo = ips.map((ip, index) => {
+            const geo = geoInfos[index]
+            return {
+              ip,
+              country: geo?.status === 'success' ? geo.country : undefined,
+              region: geo?.status === 'success' ? geo.regionName : undefined
+            }
+          })
+          setDnsResult(resultsWithGeo)
+        } catch {
+          // 如果归属地查询失败，只显示 IP
+          setDnsResult(ips.map(ip => ({ ip })))
+        }
       } else {
         setDnsError('无解析结果')
       }
@@ -128,80 +149,42 @@ const Tools: React.FC = () => {
     }
   }
 
-  const testSingleConnectivity = async (index: number): Promise<void> => {
-    setConnectivityResults(prev => {
-      const next = [...prev]
-      next[index] = { ...next[index], testing: true }
-      return next
-    })
-    
-    const target = connectivityResults[index]
-    const result = await testConnectivity(target.url, 5000)
-    
-    setConnectivityResults(prev => {
-      const next = [...prev]
-      next[index] = { 
-        ...next[index], 
-        success: result.success, 
-        latency: result.latency,
-        error: result.error,
-        testing: false 
-      }
-      return next
-    })
-  }
-
-  const testAllConnectivity = async (): Promise<void> => {
-    setAllTesting(true)
-    // 重置所有结果
-    setConnectivityResults(prev => prev.map(r => ({ ...r, testing: true, success: false, latency: -1, error: undefined })))
-    
-    // 并行测试所有目标
-    await Promise.all(
-      connectivityResults.map(async (_, index) => {
-        const target = defaultTargets[index]
-        const result = await testConnectivity(target.url, 5000)
-        setConnectivityResults(prev => {
-          const next = [...prev]
-          next[index] = { 
-            ...next[index], 
-            success: result.success, 
-            latency: result.latency,
-            error: result.error,
-            testing: false 
-          }
-          return next
-        })
-      })
-    )
-    
-    setAllTesting(false)
-  }
-
-  // 流媒体解锁检测
-  const testSingleStreaming = async (index: number): Promise<void> => {
-    setStreamingServices(prev => {
+  const testSingle = async (index: number): Promise<void> => {
+    setTestTargets(prev => {
       const next = [...prev]
       next[index] = { ...next[index], status: 'testing', region: undefined, error: undefined }
       return next
     })
     
+    const target = testTargets[index]
     try {
-      const service = streamingServices[index]
-      const result = await checkStreamingUnlock(service.key)
-      
-      setStreamingServices(prev => {
-        const next = [...prev]
-        next[index] = { 
-          ...next[index], 
-          status: result.status,
-          region: result.region,
-          error: result.error
-        }
-        return next
-      })
+      if (target.type === 'connectivity') {
+        const result = await testConnectivity(target.url!, 5000)
+        setTestTargets(prev => {
+          const next = [...prev]
+          next[index] = { 
+            ...next[index], 
+            status: result.success ? 'success' : 'error', 
+            latency: result.latency,
+            error: result.error,
+          }
+          return next
+        })
+      } else {
+        const result = await checkStreamingUnlock(target.id)
+        setTestTargets(prev => {
+          const next = [...prev]
+          next[index] = { 
+            ...next[index], 
+            status: result.status,
+            region: result.region,
+            error: result.error
+          }
+          return next
+        })
+      }
     } catch (e) {
-      setStreamingServices(prev => {
+      setTestTargets(prev => {
         const next = [...prev]
         next[index] = { 
           ...next[index], 
@@ -213,41 +196,17 @@ const Tools: React.FC = () => {
     }
   }
 
-  const testAllStreaming = async (): Promise<void> => {
-    setStreamingAllTesting(true)
-    // 重置所有结果
-    setStreamingServices(prev => prev.map(s => ({ ...s, status: 'testing' as const, region: undefined, error: undefined })))
+  const testAll = async (): Promise<void> => {
+    setAllTesting(true)
+    setTestTargets(prev => prev.map(t => ({ ...t, status: 'testing', region: undefined, error: undefined })))
     
-    // 并行测试所有服务
     await Promise.all(
-      defaultStreamingServices.map(async (service, index) => {
-        try {
-          const result = await checkStreamingUnlock(service.key)
-          setStreamingServices(prev => {
-            const next = [...prev]
-            next[index] = { 
-              ...next[index], 
-              status: result.status,
-              region: result.region,
-              error: result.error
-            }
-            return next
-          })
-        } catch (e) {
-          setStreamingServices(prev => {
-            const next = [...prev]
-            next[index] = { 
-              ...next[index], 
-              status: 'error',
-              error: e instanceof Error ? e.message : String(e)
-            }
-            return next
-          })
-        }
+      testTargets.map(async (_, index) => {
+        await testSingle(index)
       })
     )
     
-    setStreamingAllTesting(false)
+    setAllTesting(false)
   }
 
   // 获取 IP 信息
@@ -316,7 +275,7 @@ ASN: ${ipInfo.as}`
 
 
           {/* DNS 查询 */}
-          <Card className="h-full">
+          <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} h-full hover:!scale-100 !cursor-default`}>
             <CardBody className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="p-2 rounded-lg bg-primary/20">
@@ -365,10 +324,18 @@ ASN: ${ipInfo.as}`
               
               {dnsResult.length > 0 && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                  {dnsResult.map((ip, i) => (
+                  {dnsResult.map((item, i) => (
                     <div key={i} className="flex items-center gap-3 p-2 rounded-xl bg-default-100/50 border border-default-200/50">
                       <Chip size="sm" variant="flat" color="primary" className="h-6">{dnsType}</Chip>
-                      <span className="font-mono text-sm select-all">{ip}</span>
+                      <span className="font-mono text-sm select-all">{item.ip}</span>
+                      {(item.country || item.region) && (
+                        <div className="flex items-center gap-1 ml-auto">
+                          <IoLocation className="text-foreground-500 text-xs" />
+                          <span className="text-xs text-foreground-600 font-medium">
+                            {item.country} {item.region}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -377,7 +344,7 @@ ASN: ${ipInfo.as}`
           </Card>
 
           {/* 规则测试 */}
-          <Card className="h-full">
+          <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} h-full hover:!scale-100 !cursor-default`}>
             <CardBody className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="p-2 rounded-lg bg-warning/20">
@@ -430,22 +397,22 @@ ASN: ${ipInfo.as}`
           </Card>
         </div>
 
-        {/* 连通性检测 */}
-        <Card>
+        {/* 网络与服务检测 */}
+        <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default`}>
           <CardBody className="p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-success/20">
                   <IoWifi className="text-success text-lg" />
                 </div>
-                <span className="font-medium">连通性检测</span>
+                <span className="font-medium">网络与服务检测</span>
               </div>
               <Button
                 size="sm"
                 color="success"
                 variant="flat"
                 isLoading={allTesting}
-                onPress={testAllConnectivity}
+                onPress={testAll}
                 startContent={!allTesting && <IoRefresh />}
               >
                 全部测试
@@ -453,37 +420,47 @@ ASN: ${ipInfo.as}`
             </div>
             
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-              {connectivityResults.map((result, index) => (
+              {testTargets.map((target, index) => (
                 <Card 
-                  key={result.name}
+                  key={target.id}
                   isPressable
-                  onPress={() => !result.testing && testSingleConnectivity(index)}
-                  className={`${CARD_STYLES.GLASS_ITEM_CARD} ${result.testing ? 'opacity-70 scale-[0.98]' : 'hover:scale-[1.05] hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:border-success/30'} transition-all duration-300 border-transparent`}
+                  onPress={() => target.status !== 'testing' && testSingle(index)}
+                  className={`${CARD_STYLES.GLASS_ITEM_CARD} ${target.status === 'testing' ? 'opacity-70 scale-[0.98]' : 'hover:scale-[1.05] hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:border-success/30'} transition-all duration-300 border-transparent`}
                 >
                   <CardBody className="p-3 text-center">
                     <img 
-                      src={result.icon} 
-                      alt={result.name} 
+                      src={target.icon} 
+                      alt={target.name} 
                       className="w-6 h-6 mx-auto mb-1" 
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23888"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'
                       }}
                     />
-                    <div className="text-sm font-medium mb-2">{result.name}</div>
-                    {result.testing ? (
-                      <div className="text-primary text-xs animate-pulse">测试中...</div>
-                    ) : result.latency >= 0 ? (
+                    <div className="text-xs font-medium mb-2">{target.name}</div>
+                    {target.status === 'testing' ? (
+                      <div className="text-primary text-xs animate-pulse">检测中...</div>
+                    ) : target.status === 'success' || target.status === 'unlocked' ? (
                       <div className="animate-in fade-in duration-200">
                         <div className="flex justify-center mb-1">
-                          {result.success ? (
-                            <IoCheckmarkCircle className="text-success text-xl animate-in zoom-in duration-200" />
-                          ) : (
-                            <IoCloseCircle className="text-danger text-xl animate-in zoom-in duration-200" />
-                          )}
+                          <IoCheckmarkCircle className="text-success text-xl animate-in zoom-in duration-200" />
                         </div>
-                        <div className={`text-xs ${result.success ? 'text-success' : 'text-danger'}`}>
-                          {result.success ? `${result.latency}ms` : result.error || '失败'}
+                        <div className="text-success text-xs">
+                          {target.type === 'connectivity' ? `${target.latency}ms` : (target.region || '已解锁')}
                         </div>
+                      </div>
+                    ) : target.status === 'locked' ? (
+                      <div className="animate-in fade-in duration-200">
+                        <div className="flex justify-center mb-1">
+                          <IoCloseCircle className="text-danger text-xl animate-in zoom-in duration-200" />
+                        </div>
+                        <div className="text-danger text-xs">未解锁</div>
+                      </div>
+                    ) : target.status === 'error' ? (
+                      <div className="animate-in fade-in duration-200">
+                        <div className="flex justify-center mb-1">
+                          <IoCloseCircle className="text-warning text-xl animate-in zoom-in duration-200" />
+                        </div>
+                        <div className="text-warning text-xs" title={target.error}>检测失败</div>
                       </div>
                     ) : (
                       <div className="text-primary text-xs">点击测试</div>
@@ -495,82 +472,8 @@ ASN: ${ipInfo.as}`
           </CardBody>
         </Card>
 
-
-        {/* 流媒体解锁检测 */}
-        <Card>
-          <CardBody className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-secondary/20">
-                  <IoPlay className="text-secondary text-lg" />
-                </div>
-                <span className="font-medium">流媒体解锁检测</span>
-              </div>
-              <Button
-                size="sm"
-                color="secondary"
-                variant="flat"
-                isLoading={streamingAllTesting}
-                onPress={testAllStreaming}
-                startContent={!streamingAllTesting && <IoRefresh />}
-              >
-                全部测试
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-              {streamingServices.map((service, index) => (
-                <Card 
-                  key={service.key}
-                  isPressable
-                  onPress={() => service.status !== 'testing' && testSingleStreaming(index)}
-                  className={`${CARD_STYLES.GLASS_ITEM_CARD} ${service.status === 'testing' ? 'opacity-70 scale-[0.98]' : 'hover:scale-[1.05] hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:border-secondary/30'} transition-all duration-300 border-transparent`}
-                >
-                  <CardBody className="p-3 text-center">
-                    <img 
-                      src={service.icon} 
-                      alt={service.name} 
-                      className="w-6 h-6 mx-auto mb-1" 
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23888"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'
-                      }}
-                    />
-                    <div className="text-xs font-medium mb-2">{service.name}</div>
-                    {service.status === 'testing' ? (
-                      <div className="text-secondary text-xs animate-pulse">检测中...</div>
-                    ) : service.status === 'unlocked' ? (
-                      <div className="animate-in fade-in duration-200">
-                        <div className="flex justify-center mb-1">
-                          <IoCheckmarkCircle className="text-success text-xl animate-in zoom-in duration-200" />
-                        </div>
-                        <div className="text-success text-xs">{service.region || '已解锁'}</div>
-                      </div>
-                    ) : service.status === 'locked' ? (
-                      <div className="animate-in fade-in duration-200">
-                        <div className="flex justify-center mb-1">
-                          <IoCloseCircle className="text-danger text-xl animate-in zoom-in duration-200" />
-                        </div>
-                        <div className="text-danger text-xs">未解锁</div>
-                      </div>
-                    ) : service.status === 'error' ? (
-                      <div className="animate-in fade-in duration-200">
-                        <div className="flex justify-center mb-1">
-                          <IoCloseCircle className="text-warning text-xl animate-in zoom-in duration-200" />
-                        </div>
-                        <div className="text-warning text-xs" title={service.error}>检测失败</div>
-                      </div>
-                    ) : (
-                      <div className="text-secondary text-xs">点击检测</div>
-                    )}
-                  </CardBody>
-                </Card>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
-
         {/* IP 信息 */}
-        <Card>
+        <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default`}>
           <CardBody className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">

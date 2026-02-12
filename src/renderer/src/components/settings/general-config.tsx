@@ -13,9 +13,7 @@ import {
   copyEnv, 
   openUWPTool, 
   patchControledMihomoConfig, 
-  restartCore,
-  listWebdavBackups,
-  webdavBackup
+  restartCore
 } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoIosHelpCircle } from 'react-icons/io'
@@ -24,15 +22,8 @@ import UpdaterModal from '../updater/updater-modal'
 import { toast } from 'sonner'
 import { platform } from '@renderer/utils/init'
 
-import SubStoreConfig from './substore-config'
-import WebdavRestoreModal from './webdav-restore-modal'
-import debounce from '@renderer/utils/debounce'
-
-// 通用输入框样式，用于二级菜单中的输入框
-const secondaryInputClassNames = {
-  input: "bg-transparent",
-  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
-}
+import SubStoreConfigModal from './substore-config-modal'
+import WebdavConfigModal from './webdav-config-modal'
 
 const emptyArray: string[] = []
 
@@ -50,55 +41,13 @@ const GeneralConfig: React.FC = () => {
     autoLightweight = false,
     autoLightweightDelay = 60,
     autoLightweightMode = 'core',
-    enableWebdavConfig = true,
-    webdavUrl,
-    webdavUsername,
-    webdavPassword,
-    webdavDir = 'routex'
   } = appConfig || {}
 
   const pauseSSIDArray = pauseSSID ?? emptyArray
   const [pauseSSIDInput, setPauseSSIDInput] = useState(pauseSSIDArray)
 
-  // WebDAV 相关状态
-  const [backuping, setBackuping] = useState(false)
-  const [restoring, setRestoring] = useState(false)
-  const [filenames, setFilenames] = useState<string[]>([])
-  const [restoreOpen, setRestoreOpen] = useState(false)
-  const [webdav, setWebdav] = useState({ webdavUrl, webdavUsername, webdavPassword, webdavDir })
-
-  useEffect(() => {
-    setWebdav({ webdavUrl, webdavUsername, webdavPassword, webdavDir })
-  }, [webdavUrl, webdavUsername, webdavPassword, webdavDir])
-
-  const setWebdavDebounce = debounce(({ webdavUrl, webdavUsername, webdavPassword, webdavDir }) => {
-    patchAppConfig({ webdavUrl, webdavUsername, webdavPassword, webdavDir })
-  }, 500)
-
-  const handleBackup = async (): Promise<void> => {
-    setBackuping(true)
-    try {
-      await webdavBackup()
-      toast.success('备份成功', { description: '备份文件已上传至 WebDAV' })
-    } catch (e) {
-      toast.error(String(e))
-    } finally {
-      setBackuping(false)
-    }
-  }
-
-  const handleRestore = async (): Promise<void> => {
-    try {
-      setRestoring(true)
-      const filenames = await listWebdavBackups()
-      setFilenames(filenames)
-      setRestoreOpen(true)
-    } catch (e) {
-      toast.error(`获取备份列表失败：${e}`)
-    } finally {
-      setRestoring(false)
-    }
-  }
+  const [isSubStoreModalOpen, setIsSubStoreModalOpen] = useState(false)
+  const [isWebdavModalOpen, setIsWebdavModalOpen] = useState(false)
 
   useEffect(() => {
     setPauseSSIDInput(pauseSSIDArray)
@@ -107,7 +56,6 @@ const GeneralConfig: React.FC = () => {
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
   const [pendingDisableGPU, setPendingDisableGPU] = useState(disableGPU)
 
-  // Update logic moved from Actions
   const [newVersion, setNewVersion] = useState('')
   const [releaseNotes, setReleaseNotes] = useState('')
   const [openUpdate, setOpenUpdate] = useState(false)
@@ -209,47 +157,38 @@ const GeneralConfig: React.FC = () => {
           />
         </SettingItem>
         <SettingItem 
-          title="自动检查更新" 
+          title="检查更新" 
           divider
-          actions={
-            <Button
-              size="sm"
-              isLoading={checkingUpdate}
-              className="mr-2"
-              onPress={async () => {
-                try {
-                  setCheckingUpdate(true)
-                  const version = await checkUpdate()
-                  if (version) {
-                    setNewVersion(version.version)
-                    setReleaseNotes(version.releaseNotes)
-                    setOpenUpdate(true)
-                  } else {
-                    toast.success('当前已是最新版本')
-                  }
-                } catch (e) {
-                  const errorMsg = String(e)
-                  if (errorMsg.includes('404')) {
-                    toast.error('检查更新失败', { description: '暂无可用更新' })
-                  } else {
-                    toast.error(String(e))
-                  }
-                } finally {
-                  setCheckingUpdate(false)
-                }
-              }}
-            >
-              检查更新
-            </Button>
-          }
         >
-          <Switch
+          <Button
             size="sm"
-            isSelected={autoCheckUpdate}
-            onValueChange={(v) => {
-              patchAppConfig({ autoCheckUpdate: v })
+            variant="flat"
+            isLoading={checkingUpdate}
+            onPress={async () => {
+              try {
+                setCheckingUpdate(true)
+                const version = await checkUpdate()
+                if (version) {
+                  setNewVersion(version.version)
+                  setReleaseNotes(version.releaseNotes)
+                  setOpenUpdate(true)
+                } else {
+                  toast.success('当前已是最新版本')
+                }
+              } catch (e) {
+                const errorMsg = String(e)
+                if (errorMsg.includes('404')) {
+                  toast.error('检查更新失败', { description: '暂无可用更新' })
+                } else {
+                  toast.error(String(e))
+                }
+              } finally {
+                setCheckingUpdate(false)
+              }
             }}
-          />
+          >
+            立即检查
+          </Button>
         </SettingItem>
 
         <SettingItem
@@ -325,7 +264,7 @@ const GeneralConfig: React.FC = () => {
                 onSelectionChange={(v) => {
                   patchAppConfig({ autoLightweightMode: v as 'core' | 'tray' })
                   if (v === 'core') {
-                    patchAppConfig({ autoLightweightDelay: Math.max(autoLightweightDelay, 5) })
+                    patchAppConfig({ autoLightweightDelay: 1 /* delay check handled by hook */ })
                   }
                 }}
               >
@@ -343,12 +282,10 @@ const GeneralConfig: React.FC = () => {
                 }}
                 type="number"
                 endContent="秒"
-                value={autoLightweightDelay.toString()}
+                value={appConfig?.autoLightweightDelay?.toString()}
                 onValueChange={async (v: string) => {
                   let num = parseInt(v)
                   if (isNaN(num)) num = 0
-                  const minDelay = autoLightweightMode === 'core' ? 5 : 0
-                  if (num < minDelay) num = minDelay
                   await patchAppConfig({ autoLightweightDelay: num })
                 }}
               />
@@ -357,22 +294,21 @@ const GeneralConfig: React.FC = () => {
           </div>
         )}
         <SettingItem title="复制终端代理命令" divider>
-          <Tooltip content={`复制 ${platform === 'win32' ? 'PowerShell' : 'Bash'} 代理命令`}>
-            <Button
-              size="sm"
-              onPress={() => {
-                const type = platform === 'win32' ? 'powershell' : 'bash'
-                copyEnv(type)
-              }}
-            >
-              复制命令
-            </Button>
-          </Tooltip>
+          <Button
+            size="sm"
+            variant="flat"
+            onPress={() => {
+              const type = platform === 'win32' ? 'powershell' : 'bash'
+              copyEnv(type)
+            }}
+          >
+            复制命令
+          </Button>
         </SettingItem>
         {platform === 'win32' && (
           <SettingItem title="UWP 工具" divider>
-            <Button size="sm" onPress={() => openUWPTool()}>
-              打开
+            <Button size="sm" variant="flat" onPress={() => openUWPTool()}>
+              打开工具
             </Button>
           </SettingItem>
         )}
@@ -412,7 +348,7 @@ const GeneralConfig: React.FC = () => {
             {pauseSSIDInput.join('') !== pauseSSIDArray.join('') && (
               <Button
                 size="sm"
-                color="primary"
+                variant="flat"
                 onPress={() => {
                   patchAppConfig({ pauseSSID: pauseSSIDInput })
                 }}
@@ -435,88 +371,18 @@ const GeneralConfig: React.FC = () => {
             />
           </div>
         </SettingItem>
-        <SubStoreConfig embedded />
-        <SettingItem title="启用 WebDAV 备份">
-          <Switch
-            size="sm"
-            isSelected={enableWebdavConfig}
-            onValueChange={async (v) => {
-              await patchAppConfig({ enableWebdavConfig: v })
-            }}
-          />
+        <SettingItem title="Sub-Store 设置" divider>
+          <Button size="sm" variant="flat" onPress={() => setIsSubStoreModalOpen(true)}>
+            管理服务
+          </Button>
         </SettingItem>
-        {enableWebdavConfig && (
-          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2">
-            <div className="ml-2 text-sm">
-              <SettingItem title="WebDAV 地址" divider>
-                <Input
-                  size="sm"
-                  className="w-[60%]"
-                  classNames={secondaryInputClassNames}
-                  value={webdav.webdavUrl}
-                  onValueChange={(v) => {
-                    setWebdav({ ...webdav, webdavUrl: v })
-                    setWebdavDebounce({ ...webdav, webdavUrl: v })
-                  }}
-                />
-              </SettingItem>
-              <SettingItem title="WebDAV 备份目录" divider>
-                <Input
-                  size="sm"
-                  className="w-[60%]"
-                  classNames={secondaryInputClassNames}
-                  value={webdav.webdavDir}
-                  onValueChange={(v) => {
-                    setWebdav({ ...webdav, webdavDir: v })
-                    setWebdavDebounce({ ...webdav, webdavDir: v })
-                  }}
-                />
-              </SettingItem>
-              <SettingItem title="WebDAV 用户名" divider>
-                <Input
-                  size="sm"
-                  className="w-[60%]"
-                  classNames={secondaryInputClassNames}
-                  value={webdav.webdavUsername}
-                  onValueChange={(v) => {
-                    setWebdav({ ...webdav, webdavUsername: v })
-                    setWebdavDebounce({ ...webdav, webdavUsername: v })
-                  }}
-                />
-              </SettingItem>
-              <SettingItem title="WebDAV 密码">
-                <Input
-                  size="sm"
-                  className="w-[60%]"
-                  classNames={secondaryInputClassNames}
-                  type="password"
-                  value={webdav.webdavPassword}
-                  onValueChange={(v) => {
-                    setWebdav({ ...webdav, webdavPassword: v })
-                    setWebdavDebounce({ ...webdav, webdavPassword: v })
-                  }}
-                />
-              </SettingItem>
-              <div className="flex justify-between mt-2">
-                <Button isLoading={backuping} fullWidth size="sm" className="mr-1" onPress={handleBackup}>
-                  备份
-                </Button>
-                <Button
-                  isLoading={restoring}
-                  fullWidth
-                  size="sm"
-                  className="ml-1"
-                  onPress={handleRestore}
-                >
-                  恢复
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-        {restoreOpen && (
-          <WebdavRestoreModal filenames={filenames} onClose={() => setRestoreOpen(false)} />
-        )}
+        <SettingItem title="WebDAV 备份设置">
+          <Button size="sm" variant="flat" onPress={() => setIsWebdavModalOpen(true)}>
+            同步配置
+          </Button>
+        </SettingItem>
+        <SubStoreConfigModal isOpen={isSubStoreModalOpen} onOpenChange={setIsSubStoreModalOpen} />
+        <WebdavConfigModal isOpen={isWebdavModalOpen} onOpenChange={setIsWebdavModalOpen} />
       </SettingCard>
     </>
   )

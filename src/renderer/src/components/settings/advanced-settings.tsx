@@ -15,13 +15,13 @@ import ConfirmModal from '../base/base-confirm'
 // 通用输入框样式，用于二级菜单中的输入框
 export const secondaryInputClassNames = {
   input: "bg-transparent text-default-900",
-  inputWrapper: "border border-default-200 bg-default-50 hover:bg-default-100 data-[focus=true]:bg-default-50"
+  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
 }
 
 // 数字输入框样式，隐藏上下箭头
 export const numberInputClassNames = {
   input: "bg-transparent text-default-900 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]",
-  inputWrapper: "border border-default-200 bg-default-50 hover:bg-default-100 data-[focus=true]:bg-default-50"
+  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
 }
 
 // 一级页面输入框样式
@@ -86,7 +86,7 @@ const AdvancedSettings: React.FC = () => {
           }
           divider
         >
-          <Button size="sm" onPress={() => setConfirmOpen(true)}>
+          <Button size="sm" color="danger" className="bg-danger/80" onPress={() => setConfirmOpen(true)}>
             重置软件
           </Button>
         </SettingItem>
@@ -102,12 +102,12 @@ const AdvancedSettings: React.FC = () => {
           }
           divider
         >
-          <Button size="sm" onPress={quitWithoutCore}>
+          <Button size="sm" color="danger" className="bg-danger/80" onPress={quitWithoutCore}>
             退出
           </Button>
         </SettingItem>
         <SettingItem title="退出应用" divider>
-          <Button size="sm" onPress={quitApp}>
+          <Button size="sm" color="danger" className="bg-danger/80" onPress={quitApp}>
             退出应用
           </Button>
         </SettingItem>

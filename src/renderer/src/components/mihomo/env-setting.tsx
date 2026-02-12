@@ -6,6 +6,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { restartCore } from '@renderer/utils/ipc'
 import EditableList from '../base/base-list-editor'
 import { platform } from '@renderer/utils/init'
+import { secondaryInputClassNames } from '../settings/advanced-settings'
 
 const EnvSetting: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -30,8 +31,6 @@ const EnvSetting: React.FC = () => {
 
   return (
     <SettingCard title="环境变量" collapsible>
-      <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2">
-        <div className="ml-2">
           <SettingItem title="禁用系统 CA" divider>
         <Switch
           size="sm"
@@ -104,14 +103,13 @@ const EnvSetting: React.FC = () => {
                   items={safePathsInput}
                   onChange={(items) => setSafePathsInput(items as string[])}
                   divider={false}
+                  inputClassNames={secondaryInputClassNames}
                 />
               </div>
             </div>
           </div>
         </div>
       )}
-        </div>
-      </div>
     </SettingCard>
   )
 }
