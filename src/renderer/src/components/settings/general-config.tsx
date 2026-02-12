@@ -32,14 +32,12 @@ const GeneralConfig: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     silentStart = false,
-    autoCheckUpdate,
     disableGPU = false,
     disableAnimation = false,
     controlDns = true,
     controlSniff = true,
     pauseSSID,
     autoLightweight = false,
-    autoLightweightDelay = 60,
     autoLightweightMode = 'core',
   } = appConfig || {}
 
