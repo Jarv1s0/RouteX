@@ -26,7 +26,7 @@ import { MdEditDocument } from 'react-icons/md'
 import SiderConfigModal from './sider-config-modal'
 import ShortcutConfigModal from './shortcut-config-modal'
 import CSSEditorModal from './css-editor-modal'
-import { secondaryInputClassNames } from './advanced-settings'
+
 
 const SiderConfigContent: React.FC = () => {
   const [isSiderModalOpen, setIsSiderModalOpen] = useState(false)
