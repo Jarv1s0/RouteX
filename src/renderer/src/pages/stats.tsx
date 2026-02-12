@@ -6,7 +6,7 @@ import { clearTrafficStats, clearProviderStats } from '@renderer/utils/ipc'
 import { IoClose } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import ConfirmModal from '@renderer/components/base/base-confirm'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
+
 
 import StatusGrid from '@renderer/components/stats/status-grid'
 import TrafficChart from '@renderer/components/stats/traffic-chart'
