@@ -47,6 +47,7 @@ export const defaultConfig: AppConfig = {
   disableGPU: process.platform === 'win32' && parseInt(os.release().split('.')[2], 10) <= 20000,
   proxyDisplayLayout: 'double',
   groupDisplayLayout: 'double',
+  mapCardStatus: 'col-span-1',
   autoLightweightMode: 'core'
 }
 

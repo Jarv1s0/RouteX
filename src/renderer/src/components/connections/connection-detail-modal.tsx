@@ -97,9 +97,9 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
       backdrop={disableAnimation ? 'transparent' : 'blur'}
       disableAnimation={disableAnimation}
       classNames={{ 
-        backdrop: 'bg-black/40 backdrop-blur-md',
+        backdrop: 'bg-black/40 backdrop-blur-sm',
         wrapper: 'z-[9999]',
-        base: 'bg-content1/90 dark:bg-content1/80 border border-white/10 shadow-2xl max-h-[90vh] backdrop-saturate-150'
+        base: 'bg-background/60 dark:bg-default-100/50 backdrop-blur-xl border border-default-200/50 shadow-2xl max-h-[90vh]'
       }}
       size="5xl"
       hideCloseButton
@@ -117,6 +117,17 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
         <ModalHeader className="flex flex-col gap-0 p-0 relative overflow-hidden bg-gradient-to-b from-default-100/50 to-transparent">
           {/* 顶部背景装饰 */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+          {/* Close Button - Absolute Positioned */}
+          <Button 
+             isIconOnly 
+             size="sm" 
+             variant="light" 
+             onPress={onClose}
+             className="absolute right-4 top-4 z-50"
+          >
+             <IoClose size={20} />
+          </Button>
 
           {/* 标题栏 */}
           <div className="flex justify-between items-start px-2 pt-2 pb-2 z-10">
@@ -193,20 +204,6 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                 </div>
               </div>
             </div>
-
-            {/* 右侧操作区：仅保留关闭按钮 */}
-            <div className="flex items-center gap-3">
-              {/*  关闭按钮 */}
-              <Button
-                isIconOnly
-                radius="full"
-                variant="light"
-                className="text-default-400 hover:text-foreground hover:bg-default-100"
-                onPress={onClose}
-              >
-                <IoClose className="text-2xl" />
-              </Button>
-            </div>
           </div>
         </ModalHeader>
 
@@ -217,8 +214,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
             
             {/* 核心地址信息 */}
             <div className="grid grid-cols-1 gap-2">
-               {/* 目标地址 - 重点展示 */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-content1 to-default-50 border border-default-200/60 dark:border-white/5 shadow-sm">
+              <div className="p-4 rounded-2xl bg-white/40 dark:bg-content1/10 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm hover:bg-white/50 transition-colors">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                     <FaNetworkWired className="text-base" />
@@ -275,7 +271,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
             </div>
 
             {/* 统计数据横条 - 嵌入在 Header 底部 */}
-          <div className="p-2 pt-4 z-10 rounded-xl bg-content1 border border-default-200/60 dark:border-white/5 shadow-sm">
+          <div className="p-2 pt-4 z-10 rounded-xl bg-white/40 dark:bg-content1/10 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm hover:bg-white/50 transition-colors">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-1.5 rounded-lg bg-secondary/10 text-secondary">
                   <IoServer className="text-base" />
@@ -387,7 +383,7 @@ const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value, subValue, accen
   }
 
   return (
-    <div className="p-4 rounded-xl bg-content1 border border-default-200/60 dark:border-white/5 hover:border-default-300 transition-colors shadow-sm group relative">
+    <div className="p-4 rounded-xl bg-white/40 dark:bg-content1/10 backdrop-blur-md border border-white/20 dark:border-white/5 hover:border-white/40 hover:bg-white/50 transition-colors shadow-sm group relative">
       <div className="flex items-center gap-3 mb-2 opacity-70 group-hover:opacity-100 transition-opacity">
         <div className={clsx("p-1.5 rounded-lg text-base", iconWrapperClassName || "bg-default-100 text-default-500")}>
           {icon}

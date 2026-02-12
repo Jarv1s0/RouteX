@@ -103,7 +103,7 @@ const ConnCard: React.FC<Props> = (props) => {
     window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
 
     return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('mihomoTraffic')
+      window.electron.ipcRenderer.removeListener('mihomoTraffic', handleTraffic)
     }
   }, [])
 

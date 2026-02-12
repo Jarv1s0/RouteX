@@ -16,6 +16,7 @@ const titleMap = {
   dnsCardStatus: 'DNS',
   sniffCardStatus: '域名嗅探',
   logCardStatus: '日志',
+  mapCardStatus: '网络拓扑',
   substoreCardStatus: 'Sub-Store'
 }
 const SiderConfig: React.FC = () => {
@@ -34,6 +35,7 @@ const SiderConfig: React.FC = () => {
     dnsCardStatus = 'col-span-1',
     sniffCardStatus = 'col-span-1',
     logCardStatus = 'col-span-1',
+    mapCardStatus = 'col-span-1',
     substoreCardStatus = 'col-span-1'
   } = appConfig || {}
 
@@ -50,6 +52,7 @@ const SiderConfig: React.FC = () => {
     dnsCardStatus,
     sniffCardStatus,
     logCardStatus,
+    mapCardStatus,
     substoreCardStatus
   }
 
@@ -65,23 +68,30 @@ const SiderConfig: React.FC = () => {
         />
       </SettingItem>
       {enableSiderConfig && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg py-1 pl-1 pr-2 mt-2">
-          <div className="ml-2">
-            {Object.keys(cardStatus).map((key, index, array) => {
+        <div className="text-sm text-foreground-600 bg-content2/50 backdrop-blur-md rounded-xl p-4 mt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2">
+            {Object.keys(cardStatus).map((key) => {
               return (
-                <SettingItem title={titleMap[key]} key={key} divider={index !== array.length - 1}>
+                <div key={key} className="flex items-center justify-between group py-1">
+                  <span className="text-xs font-medium whitespace-nowrap text-foreground-500 group-hover:text-primary transition-colors pr-2">
+                    {titleMap[key]}
+                  </span>
                   <RadioGroup
                     orientation="horizontal"
+                    size="sm"
                     value={cardStatus[key]}
                     onValueChange={(v) => {
                       patchAppConfig({ [key]: v as CardStatus })
                     }}
+                    classNames={{
+                      wrapper: "gap-1"
+                    }}
                   >
-                    <Radio value="col-span-2">大</Radio>
-                    <Radio value="col-span-1">小</Radio>
-                    <Radio value="hidden">隐藏</Radio>
+                    <Radio value="col-span-2" classNames={{ label: "text-[10px]" }}>大</Radio>
+                    <Radio value="col-span-1" classNames={{ label: "text-[10px]" }}>小</Radio>
+                    <Radio value="hidden" classNames={{ label: "text-[10px]" }}>隐</Radio>
                   </RadioGroup>
-                </SettingItem>
+                </div>
               )
             })}
           </div>

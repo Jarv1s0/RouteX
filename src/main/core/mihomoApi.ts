@@ -8,6 +8,8 @@ import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
 import { mihomoIpcPath } from '../utils/dirs'
 import { updateTrafficStats, updateProcessTraffic, resetTrafficDelta } from '../resolve/trafficStats'
+import { writeFile } from 'fs/promises'
+import { logPath } from '../utils/dirs'
 
 let axiosIns: AxiosInstance = null!
 let mihomoTrafficWs: WebSocket | null = null
@@ -365,17 +367,24 @@ export const stopMihomoMemory = (): void => {
 const mihomoMemory = async (): Promise<void> => {
   mihomoMemoryWs = new WebSocket(`ws+unix:${mihomoIpcPath()}:/memory`)
 
-  mihomoMemoryWs.onmessage = (e): void => {
+  mihomoMemoryWs.onopen = async () => {
+    await writeFile(logPath(), `[MihomoApi] Memory WS connected\n`, { flag: 'a' })
+  }
+
+  mihomoMemoryWs.onmessage = async (e): Promise<void> => {
     const data = e.data as string
     memoryRetry = 10
     try {
+      // Log first message to verify format
+      // await writeFile(logPath(), `[MihomoApi] Memory Data: ${data.substring(0, 100)}\n`, { flag: 'a' })
       mainWindow?.webContents.send('mihomoMemory', JSON.parse(data) as ControllerMemory)
     } catch {
-      // ignore
+      await writeFile(logPath(), `[MihomoApi] Memory WS Parse Error\n`, { flag: 'a' })
     }
   }
 
-  mihomoMemoryWs.onclose = (): void => {
+  mihomoMemoryWs.onclose = async (event): Promise<void> => {
+    await writeFile(logPath(), `[MihomoApi] Memory WS Closed: ${event.code} ${event.reason}\n`, { flag: 'a' })
     if (memoryRetry) {
       memoryRetry--
       setTimeout(() => {
@@ -384,7 +393,8 @@ const mihomoMemory = async (): Promise<void> => {
     }
   }
 
-  mihomoMemoryWs.onerror = (): void => {
+  mihomoMemoryWs.onerror = async (err): Promise<void> => {
+    await writeFile(logPath(), `[MihomoApi] Memory WS Error: ${err.message}\n`, { flag: 'a' })
     if (mihomoMemoryWs) {
       mihomoMemoryWs.close()
       mihomoMemoryWs = null

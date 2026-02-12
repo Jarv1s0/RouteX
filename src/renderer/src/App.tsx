@@ -12,6 +12,7 @@ import useSWR from 'swr'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useGroupsStore } from '@renderer/store/use-groups-store'
 import { useLogsStore } from '@renderer/store/use-logs-store'
+import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 
 import AppSidebar from '@renderer/components/layout/AppSidebar'
@@ -131,12 +132,14 @@ const App: React.FC = () => {
     useConnectionsStore.getState().initializeListeners()
     useGroupsStore.getState().initializeListeners()
     useLogsStore.getState().initializeListeners()
+    useTrafficStore.getState().initializeListeners()
     
     return (): void => {
       window.removeEventListener('mouseup', onResizeEnd)
       useConnectionsStore.getState().cleanupListeners()
       useGroupsStore.getState().cleanupListeners()
       useLogsStore.getState().cleanupListeners()
+      useTrafficStore.getState().cleanupListeners()
     }
   }, [])
 
