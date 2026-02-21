@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import React, { useState } from 'react'
+import { motion } from 'framer-motion'
+import CountUp from 'react-countup'
 import { IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 
@@ -16,22 +17,15 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   todayUpload,
   todayDownload
 }) => {
+  const [isHovered, setIsHovered] = useState(false)
+
   const sessionTotal = sessionUpload + sessionDownload
-  const todayTotal = todayUpload + todayDownload
 
-  const sessionData = useMemo(() => [
-    { name: 'Upload', value: sessionUpload, color: '#06b6d4', group: '本次' },
-    { name: 'Download', value: sessionDownload, color: '#8b5cf6', group: '本次' }
-  ], [sessionUpload, sessionDownload])
-
-  const todayData = useMemo(() => [
-    { name: 'Upload', value: todayUpload, color: 'rgba(6, 182, 212, 0.5)', group: '今日' },
-    { name: 'Download', value: todayDownload, color: 'rgba(139, 92, 246, 0.5)', group: '今日' }
-  ], [todayUpload, todayDownload])
-
-  // Helper to safely split traffic string
-  const formatTraffic = (bytes: number) => {
-    const [val, unit] = calcTraffic(bytes).split(' ')
+  const formatTraffic = (value: number) => {
+    const formatted = calcTraffic(value) // e.g., "1.5 MB" or "0 B"
+    const parts = formatted.split(' ')
+    const val = parseFloat(parts[0]) || 0
+    const unit = parts[1] || 'B'
     return { val, unit }
   }
 
@@ -41,157 +35,146 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   const todayUploadFormatted = formatTraffic(todayUpload)
   const todayDownloadFormatted = formatTraffic(todayDownload)
 
+  const uploadRatio = sessionTotal > 0 ? sessionUpload / sessionTotal : 0
+
   return (
-    <div className="w-full h-full min-h-[160px]" style={{ containerType: 'inline-size' }}>
-      <div className="flex flex-row items-center justify-center gap-[clamp(10px,6cqi,40px)] h-full w-full px-2">
-        {/* Left Block (Upload Group) - Pro Max Style */}
-        <div className="flex flex-col gap-2 p-3 min-w-[100px] flex-1 items-end relative transition-all" style={{ containerType: 'inline-size' }}>
-
-          {/* Session Upload */}
-          <div className="flex flex-col items-end relative z-10 w-full">
-            <div className="flex items-center gap-1.5 mb-1 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 self-end">
-              <IoArrowUp className="text-cyan-500 text-xs font-bold" />
-              <span className="font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide whitespace-nowrap" style={{ fontSize: '9cqw' }}>本次上传</span>
+    <div className="w-full h-full min-h-[160px] flex items-center justify-center p-2" style={{ containerType: 'inline-size' }}>
+      <div className="flex flex-row items-center justify-center w-full h-full max-w-[80cqw] mx-auto gap-4 md:gap-8">
+        
+        {/* Left Block: Upload */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex flex-col items-end flex-1 min-w-0 max-w-[160px]" 
+          style={{ containerType: 'inline-size' }}
+        >
+          {/* 本次上传 */}
+          <div className="flex flex-col items-end w-full">
+            <div className="flex items-center gap-1.5 mb-1.5 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+              <IoArrowUp className="text-cyan-500 text-[clamp(12px,4cqi,16px)]" />
+              <span className="font-bold text-cyan-600 dark:text-cyan-400 whitespace-nowrap tracking-wide" style={{ fontSize: 'clamp(11px, 4cqi, 14px)' }}>
+                本次上传
+              </span>
             </div>
-            <div className="flex items-baseline gap-1 self-end">
-              <span className="font-bold text-cyan-500 font-mono tracking-tight" style={{ fontSize: '18cqw', lineHeight: 1 }}>{sessionUploadFormatted.val}</span>
-              <span className="text-default-500 font-medium" style={{ fontSize: '9cqw' }}>{sessionUploadFormatted.unit}</span>
-            </div>
-          </div>
-          
-          {/* Divider */}
-          <div className="w-full h-px bg-gradient-to-r from-transparent via-default-300/50 to-transparent my-1" />
-
-          {/* Today Upload */}
-          <div className="flex flex-col items-end relative z-10 w-full">
-            <span className="text-default-400 font-medium mb-0.5 whitespace-nowrap" style={{ fontSize: '9cqw' }}>今日累计</span>
-            <div className="flex items-baseline gap-1 self-end">
-              <span className="font-semibold text-default-600" style={{ fontSize: '12cqw' }}>{todayUploadFormatted.val}</span>
-              <span className="text-default-400" style={{ fontSize: '9cqw' }}>{todayUploadFormatted.unit}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Center Chart: Double Concentric Donut - Pro Max Geometry */}
-        <div className="relative h-full flex-[2] min-w-[140px] max-w-[50%] p-1" style={{ containerType: 'size' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-   {/* ... tooltip ... */}
-              <Tooltip 
-                formatter={(value: any, name: any, props: any) => {
-                  if (value === undefined) return ['-', '']
-                  const group = props.payload?.group || ''
-                  const type = name === 'Upload' ? '上传' : '下载'
-                  return [calcTraffic(value), `${group}${type}`]
-                }}
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.8)', 
-                  borderRadius: '12px', 
-                  border: '1px solid rgba(255,255,255,0.5)', 
-                  boxShadow: '0 8px 16px -2px rgba(0, 0, 0, 0.1)',
-                  fontSize: '12px',
-                  color: '#000',
-                  backdropFilter: 'blur(12px)'
-                }}
-                itemStyle={{ color: '#000' }}
-                cursor={{ fill: 'transparent' }}
-              />
-
-              {/* Layer B: Outer Ring (Today) - Translucent colors */}
-              <Pie
-                data={todayTotal > 0 ? todayData : [{ value: 1 }]}
-                dataKey="value"
-                cx="50%"
-                cy="50%"
-                innerRadius="65%" // Percentage for scaling
-                outerRadius="80%" // Percentage for scaling
-                startAngle={90}
-                endAngle={450}
-                stroke="none"
-                strokeWidth={0}
-                cornerRadius={0}
-                paddingAngle={0}
-                isAnimationActive={false}
-              >
-                {todayTotal > 0 ? (
-                  todayData.map((entry, index) => (
-                    <Cell key={`cell-today-${index}`} fill={entry.color} stroke="none" strokeWidth={0} />
-                  ))
-                ) : (
-                  <Cell fill="var(--heroui-default-100)" stroke="none" strokeWidth={0} />
-                )}
-              </Pie>
-
-              {/* Layer A: Inner Ring (Session) - Solid Vibrant colors */}
-              <Pie
-                data={sessionTotal > 0 ? sessionData : [{ value: 1 }]}
-                dataKey="value"
-                cx="50%"
-                cy="50%"
-                innerRadius="45%" // Percentage for scaling
-                outerRadius="55%" // Percentage for scaling
-                startAngle={90}
-                endAngle={450}
-                stroke="none"
-                strokeWidth={0}
-                cornerRadius={0}
-                paddingAngle={0}
-                isAnimationActive={false}
-              >
-                 {sessionTotal > 0 ? (
-                  sessionData.map((entry, index) => (
-                    <Cell key={`cell-session-${index}`} fill={entry.color} stroke="none" strokeWidth={0} />
-                  ))
-                ) : (
-                  <Cell fill="var(--heroui-default-200)" stroke="none" strokeWidth={0} />
-                )}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          
-          {/* Center Label - Pro Max Typography - User Tuned */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-            <span className="text-default-400 uppercase tracking-[0.2em] mb-[1.5cqh] text-[10px] opacity-80" style={{ fontSize: '4cqw' }}>本次总计</span>
-            <div className="flex items-baseline justify-center">
-               <span className="font-black text-foreground tabular-nums tracking-tighter drop-shadow-sm" style={{ fontSize: '8cqw', lineHeight: 0.9 }}>
-                  {sessionTotalFormatted.val}
-               </span>
-               <span className="font-bold text-default-400 ml-[0.5cqw]" style={{ fontSize: '3.5cqw' }}>
-                  {sessionTotalFormatted.unit}
-               </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Block (Download Group) - Symmetric Design */}
-        <div className="flex flex-col gap-2 p-3 min-w-[100px] flex-1 items-start relative transition-all" style={{ containerType: 'inline-size' }}>
-
-          {/* Session Download */}
-          <div className="flex flex-col items-start relative z-10 w-full">
-            <div className="flex items-center gap-1.5 mb-1 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 self-start">
-              <IoArrowDown className="text-purple-500 text-xs font-bold" />
-              <span className="font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wide whitespace-nowrap" style={{ fontSize: '9cqw' }}>本次下载</span>
-            </div>
-            <div className="flex items-baseline gap-1 self-start">
-              <span className="font-bold text-purple-500 font-mono tracking-tight" style={{ fontSize: '18cqw', lineHeight: 1 }}>{sessionDownloadFormatted.val}</span>
-              <span className="text-default-500 font-medium" style={{ fontSize: '9cqw' }}>{sessionDownloadFormatted.unit}</span>
+            <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
+              <span className="font-extrabold text-cyan-500 font-mono tracking-tight leading-none">
+                <CountUp end={sessionUploadFormatted.val} decimals={sessionUploadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
+              </span>
+              <span className="text-cyan-500/70 font-semibold tracking-wider translate-y-[-1px]" style={{ fontSize: 'clamp(11px, 4cqi, 16px)' }}>{sessionUploadFormatted.unit}</span>
             </div>
           </div>
           
-          {/* Divider */}
-          <div className="w-full h-px bg-gradient-to-r from-transparent via-default-300/50 to-transparent my-1" />
-
-          {/* Today Download */}
-          <div className="flex flex-col items-start relative z-10 w-full">
-            <span className="text-default-400 font-medium mb-0.5 whitespace-nowrap" style={{ fontSize: '9cqw' }}>今日累计</span>
-            <div className="flex items-baseline gap-1 self-start">
-              <span className="font-semibold text-default-600" style={{ fontSize: '12cqw' }}>{todayDownloadFormatted.val}</span>
-              <span className="text-default-400" style={{ fontSize: '9cqw' }}>{todayDownloadFormatted.unit}</span>
+          {/* 今日累计 (上传) */}
+          <div className="flex flex-col items-end w-full mt-3 opacity-70 transition-opacity duration-300 hover:opacity-100">
+            <span className="text-default-400 font-medium whitespace-nowrap mb-0.5 tracking-wider" style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>
+              今日累计
+            </span>
+            <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(14px, 5cqi, 20px)' }}>
+              <span className="font-semibold text-default-600 leading-none">
+                <CountUp end={todayUploadFormatted.val} decimals={todayUploadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
+              </span>
+              <span className="text-default-500/70 uppercase font-medium tracking-wide" style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>{todayUploadFormatted.unit}</span>
             </div>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Center Chart: Responsive Full Circle Slim Donut with Framer Motion */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
+          className="flex justify-center items-center flex-[1.5] min-w-[140px] max-w-[240px] relative cursor-default" 
+          style={{ containerType: 'inline-size' }}
+          onHoverStart={() => setIsHovered(true)}
+          onHoverEnd={() => setIsHovered(false)}
+        >
+          <svg viewBox="0 0 100 100" className="w-[90%] max-w-[200px] aspect-square -rotate-90 origin-center relative z-10 transition-transform duration-300 hover:scale-[1.03]">
+            {/* Background Ring (Purple - Download Track) - Tailwind Purple 500 equivalent: #a855f7 */}
+            <circle
+              cx="50"
+              cy="50"
+              r="46"
+              fill="transparent"
+              stroke="#a855f7"
+              strokeWidth="4"
+              strokeOpacity="0.4"
+            />
+            {/* Foreground Ring (Cyan - Upload Ratio) */}
+            <motion.circle
+              cx="50"
+              cy="50"
+              r="46"
+              fill="transparent"
+              stroke="#06b6d4"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 46}
+              initial={{ strokeDashoffset: 2 * Math.PI * 46 }}
+              animate={{ strokeDashoffset: (2 * Math.PI * 46) * (1 - uploadRatio) }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              style={{
+                filter: isHovered ? 'drop-shadow(0px 0px 8px rgba(6,182,212,0.6))' : 'none'
+              }}
+            />
+          </svg>
+          
+          {/* Centered Text inside Donut */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center z-20">
+            <span className="text-default-400 font-semibold tracking-[0.2em] opacity-80 mb-1 whitespace-nowrap" style={{ fontSize: 'clamp(10px, 3cqi, 13px)' }}>
+              本次总计
+            </span>
+            <div className="flex items-baseline justify-center" style={{ fontSize: 'clamp(22px, 10cqi, 40px)' }}>
+              <span className="font-black text-foreground tabular-nums tracking-tighter leading-none">
+                <CountUp end={sessionTotalFormatted.val} decimals={sessionTotalFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
+              </span>
+              <span className="font-bold text-default-400/80 ml-1 translate-y-[-1px] uppercase tracking-wider" style={{ fontSize: 'clamp(11px, 4cqi, 16px)' }}>
+                {sessionTotalFormatted.unit}
+              </span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Right Block: Download */}
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex flex-col items-start flex-1 min-w-0 max-w-[160px]" 
+          style={{ containerType: 'inline-size' }}
+        >
+          {/* 本次下载 */}
+          <div className="flex flex-col items-start w-full">
+            <div className="flex items-center gap-1.5 mb-1.5 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+              <IoArrowDown className="text-purple-500 text-[clamp(12px,4cqi,16px)]" />
+              <span className="font-bold text-purple-600 dark:text-purple-400 whitespace-nowrap tracking-wide" style={{ fontSize: 'clamp(11px, 4cqi, 14px)' }}>
+                本次下载
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
+              <span className="font-extrabold text-purple-500 font-mono tracking-tight leading-none">
+                <CountUp end={sessionDownloadFormatted.val} decimals={sessionDownloadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
+              </span>
+              <span className="text-purple-500/70 font-semibold tracking-wider translate-y-[-1px]" style={{ fontSize: 'clamp(11px, 4cqi, 16px)' }}>{sessionDownloadFormatted.unit}</span>
+            </div>
+          </div>
+          
+          {/* 今日累计 (下载) */}
+          <div className="flex flex-col items-start w-full mt-3 opacity-70 transition-opacity duration-300 hover:opacity-100">
+            <span className="text-default-400 font-medium whitespace-nowrap mb-0.5 tracking-wider" style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>
+              今日累计
+            </span>
+            <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(14px, 5cqi, 20px)' }}>
+              <span className="font-semibold text-default-600 leading-none">
+                <CountUp end={todayDownloadFormatted.val} decimals={todayDownloadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
+              </span>
+              <span className="text-default-500/70 uppercase font-medium tracking-wide" style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>{todayDownloadFormatted.unit}</span>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
+
   )
 }
 

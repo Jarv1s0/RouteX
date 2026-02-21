@@ -326,12 +326,12 @@ ASN: ${ipInfo.as}`
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   {dnsResult.map((item, i) => (
                     <div key={i} className="flex items-center gap-3 p-2 rounded-xl bg-default-100/50 border border-default-200/50">
-                      <Chip size="sm" variant="flat" color="primary" className="h-6">{dnsType}</Chip>
+                      <Chip size="sm" variant="flat" color="primary" className="h-6 shrink-0">{dnsType}</Chip>
                       <span className="font-mono text-sm select-all">{item.ip}</span>
                       {(item.country || item.region) && (
-                        <div className="flex items-center gap-1 ml-auto">
-                          <IoLocation className="text-foreground-500 text-xs" />
-                          <span className="text-xs text-foreground-600 font-medium">
+                        <div className="flex items-center gap-1 ml-2">
+                          <IoLocation className="text-primary-500 text-sm" />
+                          <span className="text-sm text-primary-600 dark:text-primary-400 font-bold">
                             {item.country} {item.region}
                           </span>
                         </div>

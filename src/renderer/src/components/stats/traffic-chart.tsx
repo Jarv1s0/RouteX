@@ -30,7 +30,7 @@ const calcTrafficInt = (byte: number): string => {
   return `${Math.round(byte)} TB`
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?: any[], label?: string }) => {
   if (active && payload && payload.length) {
     return (
       <div className={`
@@ -39,7 +39,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         px-3 py-2 rounded-xl shadow-xl backdrop-blur-md
       `}>
         <p className="text-xs font-semibold mb-1 text-foreground-500">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: { color?: string; fill?: string; name: string; value: number }, index: number) => (
           <div key={index} className="flex items-center gap-2 text-xs">
             <span 
               className="w-2 h-2 rounded-full"
@@ -197,7 +197,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'currentColor', strokeWidth: 1, strokeOpacity: 0.2, strokeDasharray: '5 5' }} />
                     <Area 
-                      type="monotone" 
+                      type="basis" 
                       dataKey="upload" 
                       name="上传速度" 
                       stroke="#06b6d4" 
@@ -207,7 +207,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
                       animationDuration={500}
                     />
                     <Area 
-                      type="monotone" 
+                      type="basis" 
                       dataKey="download" 
                       name="下载速度" 
                       stroke="#a855f7" 

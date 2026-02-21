@@ -46,7 +46,7 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
         </defs>
         <Area
           isAnimationActive={false}
-          type="monotone"
+          type="basis"
           dataKey="upload"
           stroke={uploadColor}
           strokeWidth={1.5}
@@ -55,7 +55,7 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
         />
         <Area
           isAnimationActive={false}
-          type="monotone"
+          type="basis"
           dataKey="download"
           stroke={downloadColor}
           strokeWidth={1.5}

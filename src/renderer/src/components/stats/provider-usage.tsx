@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Card, CardBody, Select, SelectItem, Button } from '@heroui/react'
 import { BarChart, Bar, ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
-import { IoFilter, IoCalendar, IoRefresh } from 'react-icons/io5'
+import { IoCalendar, IoRefresh, IoFilter } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
@@ -24,7 +24,7 @@ const calcTrafficInt = (byte: number): string => {
   return `${Math.round(byte)} TB`
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?: any[], label?: string }) => {
   if (active && payload && payload.length) {
     return (
       <div className={`
@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         px-3 py-2 rounded-xl shadow-xl backdrop-blur-md
       `}>
         <p className="text-xs font-semibold mb-1 text-foreground-500">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: { color?: string; fill?: string; name: string; value: number }, index: number) => (
           <div key={index} className="flex items-center gap-2 text-xs">
             <span 
               className="w-2 h-2 rounded-full"
@@ -41,7 +41,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             />
             <span className="text-foreground-500">{entry.name}:</span>
             <span className="font-mono font-medium" style={{ color: entry.color || entry.fill }}>
-              {calcTraffic(entry.value as number)}
+              {calcTraffic(entry.value)}
             </span>
           </div>
         ))}
@@ -265,18 +265,19 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
                   tickLine={false}
                   allowDecimals={false}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/50' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/30' }} />
                 {displayProviderList.map((provider) => {
                   const colorIndex = providerList.indexOf(provider)
                   const colors = ['#006FEE', '#f5a524', '#17c964', '#f31260', '#7828c8', '#0072f5']
+                  const fillColor = colors[colorIndex >= 0 ? colorIndex % colors.length : 0]
                   return (
                     <Bar 
                       key={provider} 
                       dataKey={provider}
                       name={provider}
+                      fill={fillColor}
                       stackId={selectedProvider === 'all' ? 'a' : undefined}
-                      fill={colors[colorIndex >= 0 ? colorIndex % colors.length : 0]}
-                      radius={[4, 4, 0, 0]} 
+                      radius={[4, 4, 0, 0]}
                     />
                   )
                 })}

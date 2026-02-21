@@ -205,7 +205,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
     get().fetchInitialStats()
 
     // Start polling for static stats
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     trafficStatsInterval = setInterval(() => {
         get().fetchInitialStats()
     }, 15000) as any

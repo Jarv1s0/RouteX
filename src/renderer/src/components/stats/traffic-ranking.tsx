@@ -51,7 +51,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
         }
       })
       .sort((a, b) => b.hits - a.hits) // Default sort by hits for rules? Or traffic? Let's use traffic for consistency with screenshot visual
-      .slice(0, 10)
+      .slice(0, 8)
   }, [ruleStats, ruleHitDetails])
 
   // 进程排行
@@ -74,7 +74,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
         traffic: stat.upload + stat.download
       }))
       .sort((a, b) => b.traffic - a.traffic)
-      .slice(0, 10)
+      .slice(0, 8)
   }, [ruleHitDetails])
 
   // 主机排行
@@ -98,7 +98,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
         traffic: stat.upload + stat.download
       }))
       .sort((a, b) => b.traffic - a.traffic)
-      .slice(0, 10)
+      .slice(0, 8)
   }, [ruleHitDetails])
 
   const currentRanking = useMemo(() => {
@@ -110,7 +110,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
       case 'rule':
       default:
         // 按命中次数排序
-        return ruleRanking.sort((a,b) => b.hits - a.hits).slice(0, 10)
+        return ruleRanking.sort((a,b) => b.hits - a.hits).slice(0, 8)
     }
   }, [rankingTab, ruleRanking, processRanking, hostRanking])
 
@@ -168,7 +168,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                     </Tabs>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto pr-2 space-y-3 min-h-[200px] max-h-[300px]">
+                <div className="flex-1 overflow-y-auto pr-2 space-y-3 min-h-[180px] max-h-[300px]">
                     {currentRanking.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-foreground-400 gap-2">
                             <div className="text-4xl opacity-30">📋</div>
@@ -182,10 +182,10 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                               const barColor = barColors[index % barColors.length]
                               // Rule tab: max is max hits, others: max traffic
                               const maxMetric = rankingTab === 'rule' 
-                                ? (currentRanking[0] as any).hits || 1
+                                ? (currentRanking[0] as { hits?: number }).hits || 1
                                 : currentRanking[0]?.traffic || 1
                               const currentMetric = rankingTab === 'rule' 
-                                ? (item as any).hits 
+                                ? (item as { hits?: number }).hits || 0
                                 : item.traffic
                               const percentage = Math.max((currentMetric / maxMetric) * 100, 2)
 
@@ -213,7 +213,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                                   <div className="text-sm font-medium tabular-nums whitespace-nowrap flex-shrink-0 w-[90px] text-right">
                                     {rankingTab === 'rule' && (
                                          <span className="text-xs text-foreground-400 tabular-nums mr-1">
-                                            {(item as any).hits}次
+                                            {(item as { hits?: number }).hits}次
                                          </span>
                                       )}
                                     {calcTraffic(item.traffic)}
