@@ -4,11 +4,11 @@ export const CARD_STYLES = {
   BASE: "relative overflow-hidden transition-all duration-300 border antialiased",
   
   // Active state: Dynamic Theme Gradient (Primary -> Primary-600)
-  ACTIVE: "bg-primary/85 dark:bg-primary/90 backdrop-blur-md border border-white/20 shadow-[0_4px_20px_rgba(var(--heroui-primary),0.4)] hover:scale-[1.02]",
+  ACTIVE: "bg-primary/85 dark:bg-primary/90 backdrop-blur-md border border-white/20 shadow-[0_4px_20px_rgba(var(--heroui-primary),0.4)] hover:-translate-y-0.5",
   
   // Inactive state: iOS 26 Liquid Glass
   // Features: High blur (3xl), Specular Highlight (from-white/20), Inset Shadow (Glass thickness), Saturation post-process
-  INACTIVE: "bg-gradient-to-b from-white/20 to-white/5 dark:from-white/5 dark:to-transparent border-white/20 dark:border-white/10 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-3xl backdrop-saturate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_15px_40px_0_rgba(0,0,0,0.2)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] hover:scale-[1.02]",
+  INACTIVE: "bg-gradient-to-b from-white/20 to-white/5 dark:from-white/5 dark:to-transparent border-white/20 dark:border-white/10 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-3xl backdrop-saturate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_15px_40px_0_rgba(0,0,0,0.2)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] hover:-translate-y-0.5",
   
   // Toolbar style: Same as INACTIVE but without scale and tuned for toolbar
   GLASS_TOOLBAR: "flex items-center transition-all duration-300 bg-gradient-to-b from-white/20 to-white/5 dark:from-white/5 dark:to-transparent border border-white/20 dark:border-white/10 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-3xl backdrop-saturate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_15px_40px_0_rgba(0,0,0,0.2)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] overflow-visible",
