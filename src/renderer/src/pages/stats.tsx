@@ -125,18 +125,19 @@ const Stats: React.FC = () => {
           backdrop="blur"
           hideCloseButton
           classNames={{
-             base: 'bg-background/60 dark:bg-default-100/50 backdrop-blur-xl border border-default-200/50 shadow-2xl',
-             header: 'border-b border-default-100/50',
-             body: 'py-6',
-             backdrop: 'bg-black/40 backdrop-blur-sm'
+             base: 'bg-background/95 dark:bg-default-50/95 backdrop-blur-2xl border border-default-200/50 shadow-2xl',
+              header: 'border-b border-default-200/80 dark:border-default-100/30',
+              body: 'pt-1.5 pb-4 px-3',
+              backdrop: 'bg-black/50 backdrop-blur-sm'
           }}
         >
           <ModalContent>
             {(onClose) => (
               <>
                 <ModalHeader className="flex flex-col gap-1">
-                  <div className="flex flex-col gap-1 pr-8">
+                  <div className="flex items-center gap-2 pr-8">
                      <span>规则详情: {selectedRule}</span>
+                     <span className="text-[10px] font-normal text-foreground-400 bg-default-100 px-1.5 py-0.5 rounded">Top 50 · 时间倒序</span>
                   </div>
                   <Button 
                      isIconOnly 
@@ -149,15 +150,7 @@ const Stats: React.FC = () => {
                   </Button>
                 </ModalHeader>
                 <ModalBody>
-                  <div className="space-y-4">
-                     <div className="flex justify-between items-center">
-                        <span className="text-sm text-foreground-500">最近命中记录 (Top 50)</span>
-                        <span className="text-xs text-foreground-400 bg-default-100 px-2 py-1 rounded-md">
-                           按时间倒序
-                        </span>
-                     </div>
-                     <RuleDetailList details={(ruleHitDetails.get(selectedRule || '') || []).slice(0, 50)} />
-                  </div>
+                   <RuleDetailList details={(ruleHitDetails.get(selectedRule || '') || []).slice(0, 50)} />
                 </ModalBody>
               </>
             )}

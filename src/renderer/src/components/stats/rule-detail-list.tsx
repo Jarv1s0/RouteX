@@ -1,6 +1,6 @@
 import React from 'react'
-import { ScrollShadow, Chip } from '@heroui/react'
-import { IoTimeOutline, IoGlobeOutline, IoServerOutline, IoArrowUp, IoArrowDown } from 'react-icons/io5'
+import { Card, CardBody, ScrollShadow } from '@heroui/react'
+import { IoGlobeOutline, IoArrowUp, IoArrowDown, IoServerOutline } from 'react-icons/io5'
 import { RiAppsLine } from 'react-icons/ri'
 import { calcTraffic } from '@renderer/utils/calc'
 import { format } from 'date-fns'
@@ -32,73 +32,68 @@ const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
 
   return (
     <ScrollShadow className="h-[400px] w-full">
-      <div className="flex flex-col gap-2 p-1">
-        {details.map((hit) => (
-          <div 
-            key={hit.id || Math.random()} 
-            className="group flex items-center justify-between p-3 rounded-xl hover:bg-default-100/50 transition-all border border-transparent hover:border-default-200/50"
-          >
-            {/* Left: Host & Process info */}
-            <div className="flex flex-col gap-1 min-w-0 flex-1 mr-4">
-               {/* Host */}
-               <div className="flex items-center gap-2">
-                  <div className="p-1 rounded bg-primary/10 text-primary shrink-0">
-                    <IoGlobeOutline size={14} />
-                  </div>
-                  <span className="font-semibold text-sm truncate select-text" title={hit.host}>
-                    {hit.host || 'Unknown Host'}
-                  </span>
-               </div>
-               
-               {/* Meta Row: Process & Time */}
-               <div className="flex items-center gap-3 text-xs text-foreground-400 pl-7">
-                  <div className="flex items-center gap-1 max-w-[120px] truncate" title={hit.process}>
-                    <RiAppsLine size={12} />
-                    <span>{hit.process ? hit.process.split('/').pop() : 'System'}</span>
-                  </div>
-                  <div className="w-px h-3 bg-default-200" />
-                  <div className="flex items-center gap-1">
-                    <IoTimeOutline size={12} />
-                    <span>
-                      {(() => {
-                        const date = new Date(hit.time)
-                        return isNaN(date.getTime()) ? '-' : format(date, 'HH:mm:ss')
-                      })()}
-                    </span>
-                  </div>
-               </div>
-            </div>
+      <div className="flex flex-col p-1">
+        {details.map((hit) => {
+          const formattedTime = (() => {
+            const date = new Date(hit.time)
+            return isNaN(date.getTime()) ? '-' : format(date, 'HH:mm:ss')
+          })()
 
-            {/* Right: Proxy & Traffic */}
-            <div className="flex flex-col items-end gap-1 shrink-0">
-               {/* Proxy Tag */}
-               <Chip 
-                  size="sm" 
-                  variant="flat" 
-                  classNames={{
-                    base: "bg-default-100 group-hover:bg-background/80 h-6",
-                    content: "text-[10px] font-medium text-foreground-500 flex gap-1 items-center px-2"
-                  }}
-               >
-                  <IoServerOutline size={10} />
-                  <span className="max-w-[80px] truncate">{hit.proxy}</span>
-               </Chip>
+          return (
+            <div key={hit.id || Math.random()} className="px-0.5 pb-1.5">
+              <Card 
+                as="div"
+                shadow="sm"
+                radius="lg"
+                className={`w-full transition-all duration-200 border group
+                  bg-white/60 dark:bg-[#18181b]/60 backdrop-blur-md 
+                  border-default-200/50 dark:border-white/5
+                  hover:bg-default-100/80 hover:shadow-md
+                `}
+              >
 
-               {/* Traffic Badge */}
-               <div className="flex items-center gap-3 text-[10px] font-medium font-mono bg-default-50 px-2 py-0.5 rounded-md border border-default-100">
-                  <div className="flex items-center gap-0.5 text-cyan-500">
-                     <IoArrowUp size={10} />
-                     <span>{calcTraffic(hit.upload)}</span>
+                <CardBody className="py-2 px-3">
+                  {/* 第一行：标签 + 时间 + 流量 */}
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      {/* 代理标签 */}
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-primary/30 text-primary bg-primary/10 flex items-center gap-1">
+                        <IoServerOutline size={10} />
+                        <span className="max-w-[100px] truncate">{hit.proxy}</span>
+                      </span>
+                      {/* 进程 */}
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-default/30 text-default-500 bg-default/10 flex items-center gap-1">
+                        <RiAppsLine size={10} />
+                        <span className="max-w-[80px] truncate">{hit.process ? hit.process.split('/').pop() : 'System'}</span>
+                      </span>
+                      {/* 时间 */}
+                      <span className="text-default-400 text-[10px] font-mono tracking-tight">
+                        {formattedTime}
+                      </span>
+                    </div>
+                    {/* 流量 */}
+                    <div className="flex items-center gap-2 text-[11px] font-mono font-medium">
+                      <div className="flex items-center gap-0.5 text-cyan-500">
+                        <IoArrowUp size={10} />
+                        <span>{calcTraffic(hit.upload)}</span>
+                      </div>
+                      <div className="w-px h-2.5 bg-default-200" />
+                      <div className="flex items-center gap-0.5 text-purple-500">
+                        <IoArrowDown size={10} />
+                        <span>{calcTraffic(hit.download)}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-px h-2 bg-default-200" />
-                  <div className="flex items-center gap-0.5 text-purple-500">
-                     <IoArrowDown size={10} />
-                     <span>{calcTraffic(hit.download)}</span>
+                  {/* 第二行：主机地址 */}
+                  <div className="flex items-center gap-1.5 select-text text-sm font-mono text-default-700 dark:text-default-300 break-all line-clamp-1 leading-relaxed">
+                    <IoGlobeOutline size={14} className="text-default-400 shrink-0" />
+                    <span title={hit.host}>{hit.host || 'Unknown Host'}</span>
                   </div>
-               </div>
+                </CardBody>
+              </Card>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </ScrollShadow>
   )

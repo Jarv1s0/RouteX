@@ -214,8 +214,8 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
             
             {/* 核心地址信息 */}
             <div className="grid grid-cols-1 gap-2">
-              <div className="p-4 rounded-2xl bg-white/40 dark:bg-content1/10 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm hover:bg-white/50 transition-colors">
-                <div className="flex items-center gap-3 mb-3">
+              <div className="p-4 rounded-xl bg-white/40 dark:bg-content1/10 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm hover:border-white/40 hover:bg-white/50 transition-colors group relative">
+                <div className="flex items-center gap-3 mb-3 opacity-70 group-hover:opacity-100 transition-opacity">
                   <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                     <FaNetworkWired className="text-base" />
                   </div>
@@ -238,6 +238,14 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                         </span>
                      )}
                   </div>
+                </div>
+                {/* 复制按钮 */}
+                <div 
+                  onClick={() => navigator.clipboard.writeText(destination)}
+                  className="absolute top-3 right-3 p-1.5 rounded-md text-default-400 hover:text-primary hover:bg-default-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-20"
+                  title="Copy"
+                >
+                  <IoCopy className="text-xs" />
                 </div>
               </div>
 
