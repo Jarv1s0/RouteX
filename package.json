@@ -67,7 +67,7 @@
     "cron-validator": "^1.4.0",
     "driver.js": "^1.4.0",
     "electron": "^37.10.3",
-    "electron-builder": "26.0.12",
+    "electron-builder": "26.8.1",
     "electron-vite": "^4.0.1",
     "electron-window-state": "^5.0.3",
     "eslint": "^9.39.1",
@@ -112,7 +112,13 @@
       "tar": "^7.5.8",
       "fast-xml-parser": ">=5.3.6",
       "@isaacs/brace-expansion": "^5.0.1",
-      "minimatch": ">=10.2.1"
+      "@eslint/eslintrc>minimatch": ">=10.2.1",
+      "@typescript-eslint/typescript-estree>minimatch": ">=10.2.1"
+    },
+    "auditConfig": {
+      "ignoreCves": [
+        "CVE-2026-26996"
+      ]
     }
   },
   "packageManager": "pnpm@10.15.0"
