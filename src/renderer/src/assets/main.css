@@ -206,13 +206,28 @@ pre,
   margin-right: 1px !important;
 }
 
-/* React Flow Topology Map Animations */
-@keyframes dashdraw {
-  from {
-    stroke-dashoffset: 16;
+/* React Flow 拓扑图：高亮缓慢脉冲动画 */
+@keyframes lightning-bolt {
+  0% {
+    stroke-dashoffset: 2030;
+    opacity: 0;
   }
 
-  to {
-    stroke-dashoffset: 0;
+  10% {
+    opacity: 1;
+  }
+
+  85% {
+    stroke-dashoffset: -1000;
+    opacity: 1;
+  }
+
+  95% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -1000;
   }
 }

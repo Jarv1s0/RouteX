@@ -12,7 +12,6 @@ import '@xyflow/react/dist/style.css'
 import dagre from 'dagre'
 import { useConnections } from '@renderer/hooks/use-connections'
 import { mihomoProxies } from '@renderer/utils/ipc'
-import { useTheme } from 'next-themes'
 import { Button } from '@heroui/react'
 import { IoRefresh } from 'react-icons/io5'
 
@@ -108,8 +107,7 @@ const TopologyMapInner = () => {
     const { connections } = useConnections()
     const [proxies, setProxies] = useState<Record<string, any>>({})
     const [manualRefreshTrigger, setManualRefreshTrigger] = useState(0)
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme === 'dark'
+
 
     const [nodes, setNodes] = useState<Node[]>([])
     const [edges, setEdges] = useState<Edge[]>([])
@@ -362,7 +360,7 @@ const TopologyMapInner = () => {
                     proOptions={{ hideAttribution: true }}
                 >
                     <LayoutHelper nodesCount={nodes.length} />
-                    <Background color={isDark ? '#444' : '#ccc'} gap={20} size={1} />
+                    <Background color="transparent" gap={20} size={0} />
                     <Controls showInteractive={false} className="opacity-50 hover:opacity-100 border-none shadow-md overflow-hidden rounded-lg mx-4" />
                 </ReactFlow>
             )}
