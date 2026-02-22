@@ -1,7 +1,7 @@
 import BasePage from '@renderer/components/base/base-page'
 import EmptyState from '@renderer/components/base/empty-state'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
-import React, { Key, useCallback, useEffect, useMemo, useState } from 'react'
+import React, { Key, useCallback, useEffect, useMemo, useState, useDeferredValue } from 'react'
 import { Button, Input, Select, SelectItem, Tab, Tabs, Chip, Card, CardHeader, CardFooter, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
@@ -12,11 +12,10 @@ import ConnectionDetailModal from '@renderer/components/connections/connection-d
 import ConnectionSettingModal from '@renderer/components/connections/connection-setting-modal'
 import CreateRuleModal from '@renderer/components/connections/create-rule-modal'
 import { CgClose, CgTrash } from 'react-icons/cg'
-import { IoPulseOutline, IoTimeOutline } from 'react-icons/io5'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
-import { IoApps, IoList, IoGrid, IoEye, IoEyeOff, IoPause, IoPlay, IoAddCircleOutline } from 'react-icons/io5'
+import { IoApps, IoList, IoGrid, IoEye, IoEyeOff, IoPause, IoPlay, IoAddCircleOutline, IoPulseOutline, IoTimeOutline } from 'react-icons/io5'
 
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { MdTune } from 'react-icons/md'
@@ -75,6 +74,11 @@ const Connections: React.FC = () => {
   const [showHidden, setShowHidden] = useState(false) // 是否显示隐藏的连接
 
   const [timeRefreshTrigger, setTimeRefreshTrigger] = useState(0) // 统一时间刷新触发器
+  
+  // 使用防抖值处理用户的输入或者频繁变动的排序依据，使其脱离高频的主更新渲染流水线
+  const deferredFilter = useDeferredValue(filter)
+  const deferredOrder = useDeferredValue(connectionOrderBy)
+  const deferredDirection = useDeferredValue(connectionDirection)
 
   const filteredConnections = useMemo(() => {
     const connections = tab === 'active' ? activeConnections : closedConnections
@@ -89,7 +93,7 @@ const Connections: React.FC = () => {
       })
     }
     
-    if (filter !== '') {
+    if (deferredFilter !== '') {
       filtered = filtered.filter((connection) => {
         const searchableFields = [
           connection.metadata.process,
@@ -103,14 +107,14 @@ const Connections: React.FC = () => {
           .filter(Boolean)
           .join(' ')
 
-        return includesIgnoreCase(searchableFields, filter)
+        return includesIgnoreCase(searchableFields, deferredFilter)
       })
     }
 
-    if (connectionOrderBy) {
+    if (deferredOrder) {
       filtered = [...filtered].sort((a, b) => {
-        if (connectionDirection === 'asc') {
-          switch (connectionOrderBy) {
+        if (deferredDirection === 'asc') {
+          switch (deferredOrder) {
             case 'time':
               return dayjs(b.start).unix() - dayjs(a.start).unix()
             case 'upload':
@@ -129,7 +133,7 @@ const Connections: React.FC = () => {
               return (a.rule || '').localeCompare(b.rule || '')
           }
         } else {
-          switch (connectionOrderBy) {
+          switch (deferredOrder) {
             case 'time':
               return dayjs(a.start).unix() - dayjs(b.start).unix()
             case 'upload':
@@ -152,7 +156,7 @@ const Connections: React.FC = () => {
     }
 
     return filtered
-  }, [activeConnections, closedConnections, filter, connectionDirection, connectionOrderBy, tab, hiddenRules, showHidden])
+  }, [activeConnections, closedConnections, deferredFilter, deferredDirection, deferredOrder, tab, hiddenRules, showHidden])
 
   // 按进程分组
   const groupedConnections = useMemo(() => {

@@ -247,12 +247,16 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
 }
 
 const ProxyItem = memo(ProxyItemComponent, (prev, next) => {
+    // 精细化阻断不必要渲染。比如测速或者选择了其他节点，不要带动我这颗没变的节点重绘
+    const isPrevSelected = prev.group.now === prev.proxy.name
+    const isNextSelected = next.group.now === next.proxy.name
+    
     return (
+        isPrevSelected === isNextSelected &&
         prev.selected === next.selected &&
         prev.proxyDisplayLayout === next.proxyDisplayLayout &&
-        prev.group.now === next.group.now && // Keep eye on this. Group.now change affects selection logic but simple comparison might be enough.
         prev.group.fixed === next.group.fixed &&
-        prev.proxy === next.proxy && // Shallow ref compare. Since we mutate, we need to be careful. But usually new data new ref.
+        prev.proxy === next.proxy && 
         prev.index === next.index
     )
 })
