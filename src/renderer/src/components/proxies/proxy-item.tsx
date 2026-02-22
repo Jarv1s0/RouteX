@@ -99,12 +99,12 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
       shadow="none"
       className={`
         ${fixed 
-          ? 'bg-secondary/20 backdrop-blur-md border-secondary/50' 
+          ? 'bg-secondary/20 backdrop-blur-md border border-secondary/50' 
           : selected 
-            ? 'bg-primary/15 backdrop-blur-xl border-primary/40 shadow-[0_0_15px_rgba(var(--heroui-primary),0.1)]' 
-            : 'bg-default-50/60 dark:bg-default-50/30 backdrop-blur-md border-white/20 dark:border-white/10 hover:bg-default-100/60 hover:-translate-y-0.5 hover:shadow-sm'
+            ? 'bg-primary/15 backdrop-blur-xl border border-primary/40 shadow-[0_0_15px_rgba(var(--heroui-primary),0.1)]' 
+            : 'bg-default-100/60 dark:bg-default-50/30 backdrop-blur-md border border-default-200/60 dark:border-white/10 hover:bg-default-200/60 dark:hover:bg-default-100/40 hover:-translate-y-0.5 hover:shadow-md'
         } 
-        ${loading ? 'animate-pulse' : ''} 
+        ${displayDelay === 0 ? 'opacity-70 grayscale-[30%] hover:grayscale-0' : ''}
         transition-all duration-200 border
       `}
       radius="lg"
@@ -119,7 +119,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
                   {proxy.icon && (
                     <img
-                      className="w-4 h-4 object-contain"
+                      className={`w-4 h-4 object-contain ${displayDelay === 0 ? 'opacity-50' : ''}`}
                       src={proxy.icon}
                       alt=""
                       onError={(e) => {
@@ -159,13 +159,17 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 )}
                 <Button
                   title={proxy.type}
-                  isLoading={loading}
+                  isDisabled={loading}
                   color={delayColor(displayDelay)}
                   onPress={onDelay}
                   variant="light"
-                  className="h-[28px] min-w-[48px] px-2 p-0 text-[11px] font-mono font-bold rounded-md bg-default-100/30 hover:bg-default-200/50"
+                  className="h-[28px] min-w-[48px] px-2 p-0 text-[11px] font-mono font-bold hover:bg-default-100/50"
                 >
-                  {delayText(displayDelay)}
+                   {loading ? (
+                    <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-current border-t-transparent animate-spin opacity-70" />
+                  ) : (
+                    delayText(displayDelay)
+                  )}
                 </Button>
               </div>
             </>
@@ -174,7 +178,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
               <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
                 {proxy.icon && (
                   <img
-                    className="w-4 h-4 object-contain"
+                    className={`w-4 h-4 object-contain ${displayDelay === 0 ? 'opacity-50' : ''}`}
                     src={proxy.icon}
                     alt=""
                     onError={(e) => {
@@ -220,13 +224,17 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 <div className="flex items-center">
                   <Button
                     title={proxy.type}
-                    isLoading={loading}
+                    isDisabled={loading}
                     color={delayColor(displayDelay)}
                     onPress={onDelay}
                     variant="light"
-                    className="h-[30px] min-w-[48px] px-2 p-0 text-xs font-mono font-bold rounded-md bg-default-100/30 hover:bg-default-200/50"
+                    className="h-[30px] min-w-[48px] px-2 p-0 text-xs font-mono font-bold hover:bg-default-100/50"
                   >
-                    {delayText(displayDelay)}
+                    {loading ? (
+                      <div className="w-4 h-4 rounded-full border-[1.5px] border-current border-t-transparent animate-spin opacity-70" />
+                    ) : (
+                      delayText(displayDelay)
+                    )}
                   </Button>
                 </div>
               </div>

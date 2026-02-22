@@ -62,7 +62,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
   // Active Glow Style
   // Active Glow Style
   const activeStyle = isOpen 
-    ? "bg-gradient-to-br from-default-100/90 to-default-50/90 backdrop-blur-2xl border-primary/30 shadow-[0_0_24px_rgba(var(--heroui-primary),0.12)] scale-[1.01] ring-1 ring-primary/20" 
+    ? "bg-gradient-to-br from-default-100/90 to-default-50/90 backdrop-blur-2xl border-primary/30 shadow-[inset_0_-4px_10px_rgba(0,0,0,0.03),0_0_24px_rgba(var(--heroui-primary),0.12)] scale-[1.01] ring-1 ring-primary/20 relative" 
     : "bg-default-50/40 dark:bg-default-50/20 backdrop-blur-md border-white/10 dark:border-white/5 shadow-sm hover:scale-[1.002] hover:bg-default-100/60 hover:shadow-md hover:border-default-200/40"
 
   return (
@@ -123,7 +123,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                     </span>
                     <div className={`ml-2 w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
                       currentDelay === -1 ? 'bg-default-300' :
-                      currentDelay === 0 ? 'bg-danger shadow-[0_0_8px_rgba(243,18,96,0.4)] animate-pulse' :
+                      currentDelay === 0 ? 'bg-default-400' :
                       currentDelay < delayThresholds.good ? 'bg-success shadow-[0_0_8px_rgba(23,201,100,0.4)] animate-pulse' :
                       currentDelay < delayThresholds.fair ? 'bg-warning shadow-[0_0_8px_rgba(245,165,36,0.4)] animate-pulse' :
                       'bg-danger shadow-[0_0_8px_rgba(243,18,96,0.4)] animate-pulse'
@@ -140,8 +140,8 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
               <div className="flex items-center bg-default-100/50 dark:bg-default-50/50 border border-default-200/50 rounded-xl px-1.5 py-1.5 backdrop-blur-md transition-colors hover:bg-default-200/50">
                 {/* Node Name */}
                 <div className="flex items-center max-w-[140px] px-2 border-r border-default-200/50">
-                  <span className="text-xs font-semibold text-foreground/80 truncate flag-emoji tracking-wide flex items-center gap-1.5 transition-colors" title={group.now}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${delayColor.replace('text-', 'bg-')} shadow-sm`} />
+                  <span className={`text-xs font-semibold truncate flag-emoji tracking-wide flex items-center gap-1.5 transition-colors ${currentDelay === 0 ? 'text-default-400' : 'text-foreground/80'}`} title={group.now}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${delayColor.replace('text-', 'bg-')} ${currentDelay !== 0 && currentDelay !== -1 ? 'shadow-sm' : ''}`} />
                     {addFlag(group.now)}
                   </span>
                 </div>
@@ -162,14 +162,18 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                   <Button
                     variant="flat"
                     color="primary"
-                    isLoading={delaying}
                     size="sm"
                     isIconOnly
                     radius="lg"
                     className="bg-primary/10 hover:bg-primary/20 text-primary shadow-sm"
                     onPress={() => onGroupDelay(groupIndex)}
+                    isDisabled={delaying}
                   >
-                    <MdOutlineSpeed className="text-lg" />
+                    {delaying ? (
+                      <div className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                    ) : (
+                      <MdOutlineSpeed className="text-lg" />
+                    )}
                   </Button>
                 </div>
               )}
@@ -180,6 +184,9 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
 
 
         </CardBody>
+        {isOpen && (
+           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        )}
       </Card>
     </div>
   )

@@ -92,7 +92,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
         scrollBehavior="inside"
       >
         <ModalContent>
-          <ModalHeader className="flex justify-between items-center pr-4">
+          <ModalHeader className="flex justify-between items-center pr-4 py-3 pb-1">
             <span>代理组设置</span>
             <Button
               isIconOnly
@@ -103,7 +103,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               <IoClose className="text-lg" />
             </Button>
           </ModalHeader>
-          <ModalBody className="py-2 pb-6 gap-1">
+          <ModalBody className="py-2 gap-1 pb-2 px-6">
             <SettingItem title="代理节点展示列数" divider>
               <Select
                 classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
@@ -341,15 +341,18 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
     <Modal
       backdrop="blur"
       classNames={{ backdrop: 'top-[48px]' }}
-      size="md"
+      size="sm"
       hideCloseButton
       isOpen={true}
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
       <ModalContent>
-        <ModalHeader className="flex justify-between items-center pr-4">
-          <span>调整代理组顺序</span>
+        <ModalHeader className="flex justify-between items-center pr-4 py-3 pb-1">
+          <div className="flex items-end gap-2">
+            <span>调整代理组顺序</span>
+            <span className="text-xs text-foreground-500 font-normal mb-0.5">拖拽调整顺序</span>
+          </div>
           <Button
             isIconOnly
             size="sm"
@@ -359,8 +362,7 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
             <IoClose className="text-lg" />
           </Button>
         </ModalHeader>
-        <ModalBody className="py-2 pb-6">
-          <div className="text-sm text-foreground-500 mb-3">拖拽调整顺序</div>
+        <ModalBody className="pb-2 pt-0 px-6">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
