@@ -156,9 +156,17 @@ const Rules: React.FC = () => {
   }
 
   const filteredRules = useMemo(() => {
-    if (!rules) return []
-    if (deferredFilter === '') return rules.rules
-    return rules.rules.filter((rule) => {
+    if (!rules?.rules) return []
+    
+    // Map initial rules to include their original index
+    const rulesWithIndex = rules.rules.map((rule, index) => ({
+      ...rule,
+      originalIndex: index
+    }))
+
+    if (deferredFilter === '') return rulesWithIndex
+
+    return rulesWithIndex.filter((rule) => {
       return (
         includesIgnoreCase(rule.payload, deferredFilter) ||
         includesIgnoreCase(rule.type, deferredFilter) ||
@@ -238,10 +246,8 @@ const Rules: React.FC = () => {
           <Virtuoso
             data={filteredRules}
             itemContent={(i, rule) => {
-              // 使用原始索引而不是过滤后的索引
-              const originalIndex = rules?.rules?.findIndex(
-                r => r.type === rule.type && r.payload === rule.payload && r.proxy === rule.proxy
-              ) ?? i
+              // 使用提前缓存的原始索引，消除 O(N^2) 的高频查找开销
+              const originalIndex = rule.originalIndex
               const isDisabled = disabledRules[originalIndex] || rule.disabled || false
               return (
                 <RuleItem

@@ -2,7 +2,7 @@ import BasePage from '@renderer/components/base/base-page'
 import LogItem from '@renderer/components/logs/log-item'
 import LogDetailModal from '@renderer/components/logs/log-detail-modal'
 import EmptyState from '@renderer/components/base/empty-state'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useDeferredValue } from 'react'
 import { Button, Input, Select, SelectItem } from '@heroui/react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { IoJournalOutline, IoPause, IoPlay } from 'react-icons/io5'
@@ -32,12 +32,16 @@ const Logs: React.FC = () => {
   const { 'log-level': logLevel = 'info' } = controledMihomoConfig || {}
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
+  
+  // Use deferred filter to prevent input lagging and reduce frequent re-filters on high volume incoming logs
+  const deferredFilter = useDeferredValue(filter)
+
   const filteredLogs = useMemo(() => {
-    if (filter === '') return logs
+    if (deferredFilter === '') return logs
     return logs.filter((log) => {
-      return includesIgnoreCase(log.payload, filter) || includesIgnoreCase(log.type, filter)
+      return includesIgnoreCase(log.payload, deferredFilter) || includesIgnoreCase(log.type, deferredFilter)
     })
-  }, [logs, filter])
+  }, [logs, deferredFilter])
 
   const handleExportLogs = async () => {
     if (filteredLogs.length === 0) {
