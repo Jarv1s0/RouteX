@@ -205,3 +205,14 @@ pre,
 .outbound-mode-card [data-slot="cursor"] {
   margin-right: 1px !important;
 }
+
+/* React Flow Topology Map Animations */
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 16;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}

@@ -64,18 +64,7 @@ export default function AnimatedEdge({
           />
       )}
       
-      <style>
-        {`
-          @keyframes dashdraw {
-            from {
-              stroke-dashoffset: 16;
-            }
-            to {
-              stroke-dashoffset: 0;
-            }
-          }
-        `}
-      </style>
+
     </>
   )
 }

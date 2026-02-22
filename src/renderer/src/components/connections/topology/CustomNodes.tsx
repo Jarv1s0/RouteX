@@ -47,7 +47,7 @@ export const SourceNode = memo(function SourceNode({ data }: NodeProps) {
     const { name, displayIcon, iconUrl, uploadSpeed, downloadSpeed, count } = data as any
 
     return (
-        <Card className="w-[240px] h-[80px] bg-slate-100/60 dark:bg-slate-800/60 backdrop-blur-xl border-1.5 border-sky-400/50 shadow-[0_4px_20px_rgba(14,165,233,0.15)] relative overflow-visible p-2 transition-all hover:bg-slate-100/80 dark:hover:bg-slate-800/80" radius="md">
+        <Card className="w-[240px] h-[80px] bg-slate-50 dark:bg-slate-800 border-1.5 border-sky-400/50 shadow-[0_4px_20px_rgba(14,165,233,0.15)] relative overflow-visible p-2 transition-all hover:bg-slate-100 dark:hover:bg-slate-700" radius="md">
             {count > 0 && (
                  <div className="absolute -top-3 -right-3 bg-sky-500 text-white text-[13px] font-bold px-2 py-0.5 rounded-full z-10 shadow-md">
                     {count}
@@ -80,7 +80,7 @@ export const RuleNode = memo(function RuleNode({ data }: NodeProps) {
     const color = theme.hex
     
     return (
-        <Card className={`w-[180px] h-[56px] bg-slate-100/60 dark:bg-slate-800/60 backdrop-blur-xl ${theme.shadow} relative px-3 py-2 outline-none border-1.5 ${theme.ring} transition-all hover:bg-slate-100/80 dark:hover:bg-slate-800/80`} 
+        <Card className={`w-[180px] h-[56px] bg-slate-50 dark:bg-slate-800 ${theme.shadow} relative px-3 py-2 outline-none border-1.5 ${theme.ring} transition-all hover:bg-slate-100 dark:hover:bg-slate-700`} 
               radius="md">
             <Handle type="target" position={Position.Left} className="w-2.5 h-2.5 border-none" style={{ background: color }} />
             <Handle type="source" position={Position.Right} className="w-2.5 h-2.5 border-none" style={{ background: color }} />
@@ -101,7 +101,7 @@ export const GroupNode = memo(function GroupNode({ data }: NodeProps) {
     const color = theme.hex
     
     return (
-        <Card className={`w-[180px] h-[56px] bg-slate-100/60 dark:bg-slate-800/60 backdrop-blur-xl ${theme.shadow} relative px-3 py-2 outline-none border-1.5 ${theme.ring} transition-all hover:bg-slate-100/80 dark:hover:bg-slate-800/80`} 
+        <Card className={`w-[180px] h-[56px] bg-slate-50 dark:bg-slate-800 ${theme.shadow} relative px-3 py-2 outline-none border-1.5 ${theme.ring} transition-all hover:bg-slate-100 dark:hover:bg-slate-700`} 
               radius="md">
             <Handle type="target" position={Position.Left} className="w-2.5 h-2.5 border-none" style={{ background: color }} />
             <Handle type="source" position={Position.Right} className="w-2.5 h-2.5 border-none" style={{ background: color }} />
@@ -132,7 +132,7 @@ export const ExitNode = memo(function ExitNode({ data }: NodeProps) {
                 {groupText}
              </div>
              
-             <Card className="w-[230px] h-[76px] bg-slate-100/70 dark:bg-slate-800/70 backdrop-blur-xl shadow-[0_0_24px_rgba(16,185,129,0.25)] border-2 border-emerald-500/80 relative overflow-visible rounded-full p-2 transition-all hover:bg-slate-100/90 dark:hover:bg-slate-800/90" 
+             <Card className="w-[230px] h-[76px] bg-slate-50 dark:bg-slate-800 shadow-[0_0_24px_rgba(16,185,129,0.25)] border-2 border-emerald-500/80 relative overflow-visible rounded-full p-2 transition-all hover:bg-slate-100 dark:hover:bg-slate-700" 
                    radius="lg">
                 <Handle type="target" position={Position.Left} className="w-3 h-3 border-none" style={{ background: color }} />
                 
