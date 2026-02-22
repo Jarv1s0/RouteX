@@ -7,7 +7,7 @@ import {
   mihomoProxyDelay,
   mihomoGroupDelay
 } from '@renderer/utils/ipc'
-import { useEffect, useMemo, useRef, useState, useCallback, useDeferredValue } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, useDeferredValue, memo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
@@ -19,6 +19,91 @@ import { includesIgnoreCase } from '@renderer/utils/includes'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { ProxyGroupCard } from '@renderer/components/proxies/proxy-group-card'
 import { ProxyCardSkeleton } from '@renderer/components/base/skeleton'
+
+// ----------------------------------------
+// ProxyRowChunk: 独立的 Grid 块渲染组件，用于性能优化
+// ----------------------------------------
+interface ProxyRowChunkProps {
+  proxies: (ControllerProxiesDetail | ControllerGroupDetail)[]
+  group: ControllerMixedGroup
+  isAuto: boolean
+  chunkSize: number
+  mutate: () => void
+  onProxyDelay: (proxy: string, url?: string) => Promise<ControllerProxiesDelay>
+  onChangeProxy: (group: string, proxy: string) => Promise<void>
+  proxyDisplayLayout: 'hidden' | 'single' | 'double'
+}
+
+const ProxyRowChunk = memo(
+  ({
+    proxies,
+    group,
+    isAuto,
+    chunkSize,
+    mutate,
+    onProxyDelay,
+    onChangeProxy,
+    proxyDisplayLayout
+  }: ProxyRowChunkProps) => {
+    return (
+      <div
+        style={
+          !isAuto
+            ? { gridTemplateColumns: `repeat(${chunkSize}, minmax(0, 1fr))` }
+            : {}
+        }
+        className={`w-full grid ${
+          isAuto
+            ? 'grid-cols-[repeat(auto-fill,minmax(200px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]'
+            : ''
+        } gap-2 px-2 pt-2 pb-1`}
+      >
+        {proxies.map((proxy, i) => {
+          if (!proxy) return null
+          return (
+            <ProxyItem
+              key={proxy.name}
+              mutateProxies={mutate}
+              onProxyDelay={onProxyDelay}
+              onSelect={onChangeProxy}
+              proxy={proxy}
+              group={group}
+              proxyDisplayLayout={proxyDisplayLayout}
+              selected={proxy.name === group.now}
+              index={i}
+            />
+          )
+        })}
+      </div>
+    )
+  },
+  (prev, next) => {
+    // 粗略比较，只有同名节点、选择状态及布局配置发生变化时重渲染。
+    // 由于外部 mutate 会刷新整个引用，我们需要按值比较核心变化点。
+    if (prev.isAuto !== next.isAuto) return false
+    if (prev.chunkSize !== next.chunkSize) return false
+    if (prev.proxyDisplayLayout !== next.proxyDisplayLayout) return false
+    if (prev.group.now !== next.group.now) return false
+    if (prev.group.name !== next.group.name) return false
+    if (prev.proxies.length !== next.proxies.length) return false
+    
+    // 如果测速改变了 delay，我们需要依赖组件内部的 delay 更新或者判断 reference
+    // 由于 proxy 对象包含 history 且可能频繁变化，我们需要检查每个代理的基础属性和历史记录最后一次延迟
+    for (let i = 0; i < prev.proxies.length; i++) {
+        const p1 = prev.proxies[i]
+        const p2 = next.proxies[i]
+        if (p1.name !== p2.name) return false
+        
+        const d1 = p1.history?.length ? p1.history[p1.history.length - 1].delay : -1
+        const d2 = p2.history?.length ? p2.history[p2.history.length - 1].delay : -1
+        if (d1 !== d2) return false
+    }
+
+    return true
+  }
+)
+
+ProxyRowChunk.displayName = 'ProxyRowChunk'
 
 const Proxies: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -52,7 +137,13 @@ const Proxies: React.FC = () => {
       return aIndex - bIndex
     })
   }, [filteredGroups, groupOrder])
-  const [cols, setCols] = useState(1)
+
+  // Determine a reasonable chunk size based on proxyCols preference
+  const chunkSize = useMemo(() => {
+    if (proxyCols === 'auto') return 24
+    return parseInt(proxyCols) || 3
+  }, [proxyCols])
+
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(false))
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
@@ -95,18 +186,18 @@ const Proxies: React.FC = () => {
           groupProxies = groupProxies.sort((a, b) => a.name.localeCompare(b.name))
         }
 
-        // 分组为行
-        for (let i = 0; i < groupProxies.length; i += cols) {
+        // 分组为大的虚拟化行/块
+        for (let i = 0; i < groupProxies.length; i += chunkSize) {
           items.push({
             type: 'proxies',
             groupIndex: index,
-            proxies: groupProxies.slice(i, i + cols)
+            proxies: groupProxies.slice(i, i + chunkSize)
           })
         }
       }
     })
     return items
-  }, [groups, isOpen, proxyDisplayOrder, cols, deferredSearchValue])
+  }, [groups, isOpen, proxyDisplayOrder, chunkSize, deferredSearchValue])
 
   // 同步状态数组长度
   useEffect(() => {
@@ -185,18 +276,6 @@ const Proxies: React.FC = () => {
     [groups, delayTestConcurrency, mutate, searchValue]
   )
 
-  const calcCols = useCallback((): number => {
-    if (window.matchMedia('(min-width: 1536px)').matches) {
-      return 5
-    } else if (window.matchMedia('(min-width: 1280px)').matches) {
-      return 4
-    } else if (window.matchMedia('(min-width: 1024px)').matches) {
-      return 3
-    } else {
-      return 2
-    }
-  }, [])
-
   const toggleOpen = useCallback((index: number) => {
     setIsOpen((prev) => {
       const newOpen = [...prev]
@@ -213,21 +292,6 @@ const Proxies: React.FC = () => {
       return newSearchValue
     })
   }, [])
-
-  useEffect(() => {
-    if (proxyCols !== 'auto') {
-      setCols(parseInt(proxyCols))
-      return
-    }
-    setCols(calcCols())
-    const handleResize = (): void => {
-      setCols(calcCols())
-    }
-    window.addEventListener('resize', handleResize)
-    return (): void => {
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [proxyCols, calcCols])
 
   // 首次进入页面时自动测速
   const hasInitialTestRef = useRef(false)
@@ -297,36 +361,21 @@ const Proxies: React.FC = () => {
           <div>Never See This</div>
         )
       } else {
-        // Render Proxies Row
+        // Render Proxies Row Chunk
         const { proxies } = item
+        const isAuto = proxyCols === 'auto'
         return (
-          <div
-            style={
-              proxyCols !== 'auto'
-                ? { gridTemplateColumns: `repeat(${proxyCols}, minmax(0, 1fr))` }
-                : {}
-            }
-            className={`w-full grid ${proxyCols === 'auto' ? 'sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5' : ''} gap-2 px-2 pt-2`}
-          >
-            {Array.from({ length: cols }).map((_, i) => {
-              if (!proxies[i]) return null
-              return (
-                <ProxyItem
-                  key={proxies[i].name}
-                  mutateProxies={mutate}
-                  onProxyDelay={onProxyDelay}
-                  onSelect={onChangeProxy}
-                  proxy={proxies[i]}
-                  group={groups[groupIndex]}
-                  proxyDisplayLayout={proxyDisplayLayout}
-                  selected={
-                    proxies[i]?.name === groups[groupIndex].now
-                  }
-                  index={i} // simple index, real tracking might need more if needed
-                />
-              )
-            })}
-          </div>
+          <ProxyRowChunk
+            key={`chunk-${groupIndex}-${proxies[0]?.name}`}
+            proxies={proxies}
+            group={groups[groupIndex]}
+            isAuto={isAuto}
+            chunkSize={chunkSize}
+            mutate={mutate}
+            onProxyDelay={onProxyDelay}
+            onChangeProxy={onChangeProxy}
+            proxyDisplayLayout={proxyDisplayLayout as "hidden" | "single" | "double"}
+          />
         )
       }
     },
@@ -342,7 +391,7 @@ const Proxies: React.FC = () => {
       getDelayColor,
       getCurrentDelay,
       proxyCols,
-      cols,
+      chunkSize,
       proxyDisplayLayout,
       onProxyDelay,
       onChangeProxy,

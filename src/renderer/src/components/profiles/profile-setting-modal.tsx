@@ -66,7 +66,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent className="flag-emoji">
-        <ModalHeader className="flex justify-between items-center pr-4">
+        <ModalHeader className="flex justify-between items-center pl-6 pr-4 py-3 pb-1">
           <span>订阅设置</span>
           <Button
             isIconOnly
@@ -77,7 +77,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
             <IoClose className="text-lg" />
           </Button>
         </ModalHeader>
-        <ModalBody className="py-2 pb-6 gap-1">
+        <ModalBody className="px-6 py-2 gap-1 pb-4 pt-0">
           <SettingItem title="显示日期" divider>
             <Tabs
               size="sm"

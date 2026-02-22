@@ -188,7 +188,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
       hideCloseButton
     >
       <ModalContent>
-        <ModalHeader className="flex justify-between items-center px-6 py-4 pr-4">
+        <ModalHeader className="flex justify-between items-center pl-6 pr-4 py-3 pb-1">
           <span className="text-lg font-semibold">连接设置</span>
           <Button
             isIconOnly
@@ -199,9 +199,9 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
             <IoClose className="text-lg" />
           </Button>
         </ModalHeader>
-        <ModalBody className="px-6 py-4 gap-4 pb-6">
-          <div className="space-y-3">
-            <SettingItem title="显示应用图标">
+        <ModalBody className="px-6 gap-4 pb-4 pt-0">
+          <div className="space-y-1">
+            <SettingItem title="显示应用图标" divider>
               <Switch
                 size="sm"
                 isSelected={displayIcon}
@@ -210,7 +210,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="显示应用名称">
+            <SettingItem title="显示应用名称" divider>
               <Switch
                 size="sm"
                 isSelected={displayAppName}
@@ -251,7 +251,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
             </SettingItem>
           </div>
           
-          <Divider />
+          <Divider className="-mt-2 mb-1" />
           
           <div>
             <div className="text-sm font-medium mb-3">自定义表格列</div>
