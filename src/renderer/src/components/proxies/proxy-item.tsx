@@ -102,7 +102,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
           ? 'bg-secondary/20 backdrop-blur-md border-secondary/50' 
           : selected 
             ? 'bg-primary/15 backdrop-blur-xl border-primary/40 shadow-[0_0_15px_rgba(var(--heroui-primary),0.1)]' 
-            : 'bg-default-50/60 dark:bg-default-50/30 backdrop-blur-md border-white/20 dark:border-white/10 hover:bg-default-100/60 hover:scale-[1.02] hover:shadow-sm'
+            : 'bg-default-50/60 dark:bg-default-50/30 backdrop-blur-md border-white/20 dark:border-white/10 hover:bg-default-100/60 hover:-translate-y-0.5 hover:shadow-sm'
         } 
         ${loading ? 'animate-pulse' : ''} 
         transition-all duration-200 border
@@ -158,13 +158,12 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   </Button>
                 )}
                 <Button
-                  isIconOnly
                   title={proxy.type}
                   isLoading={loading}
                   color={delayColor(displayDelay)}
                   onPress={onDelay}
                   variant="light"
-                  className="h-[32px] w-[32px] min-w-[32px] p-0 text-xs"
+                  className="h-[28px] min-w-[48px] px-2 p-0 text-[11px] font-mono font-bold rounded-md bg-default-100/30 hover:bg-default-200/50"
                 >
                   {delayText(displayDelay)}
                 </Button>
@@ -220,13 +219,12 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 )}
                 <div className="flex items-center">
                   <Button
-                    isIconOnly
                     title={proxy.type}
                     isLoading={loading}
                     color={delayColor(displayDelay)}
                     onPress={onDelay}
                     variant="light"
-                    className="h-full w-[32px] min-w-[32px] p-0 text-sm"
+                    className="h-[30px] min-w-[48px] px-2 p-0 text-xs font-mono font-bold rounded-md bg-default-100/30 hover:bg-default-200/50"
                   >
                     {delayText(displayDelay)}
                   </Button>

@@ -136,25 +136,29 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
             </div>
 
             {/* Right: Controls & Delay */}
-            <div className="flex items-center gap-3">
-              {/* Current Node (Inline) */}
-              <div className="flex items-center gap-2 mr-2 border-r border-default-200/50 pr-4">
-                 <span className="text-sm font-medium text-foreground/90 max-w-[120px] truncate flag-emoji" title={group.now}>
-                   {addFlag(group.now)}
-                 </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-default-100/50 dark:bg-default-50/50 border border-default-200/50 rounded-xl px-1.5 py-1.5 backdrop-blur-md transition-colors hover:bg-default-200/50">
+                {/* Node Name */}
+                <div className="flex items-center max-w-[140px] px-2 border-r border-default-200/50">
+                  <span className="text-xs font-semibold text-foreground/80 truncate flag-emoji tracking-wide flex items-center gap-1.5 transition-colors" title={group.now}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${delayColor.replace('text-', 'bg-')} shadow-sm`} />
+                    {addFlag(group.now)}
+                  </span>
+                </div>
 
-              {/* Current Delay Pill */}
-              <div className="flex flex-col items-end mr-1">
-                 <span className={`text-base font-bold font-mono ${delayColor} transition-colors duration-300`}>
-                  {currentDelay === -1 ? '--' : currentDelay === 0 ? '--' : `${currentDelay}ms`}
-                </span>
-                <span className="text-[10px] text-default-400 uppercase tracking-wider font-medium">Latency</span>
+                {/* Delay Value */}
+                <div className="flex items-center justify-center min-w-[54px] px-2">
+                  <span className={`text-sm font-bold font-mono ${delayColor}`}>
+                    {currentDelay === -1 || currentDelay === 0 ? '--' : `${currentDelay}`}
+                  </span>
+                  {(currentDelay !== -1 && currentDelay !== 0) && (
+                     <span className="text-[10px] font-medium text-foreground-400 ml-[1px]">ms</span>
+                  )}
+                </div>
               </div>
 
               {isOpen && (
                 <div className="flex items-center animate-appearance-in" onClick={(e) => e.stopPropagation()}>
-
                   <Button
                     variant="flat"
                     color="primary"
@@ -162,7 +166,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                     size="sm"
                     isIconOnly
                     radius="lg"
-                    className="bg-primary/10 hover:bg-primary/20 text-primary"
+                    className="bg-primary/10 hover:bg-primary/20 text-primary shadow-sm"
                     onPress={() => onGroupDelay(groupIndex)}
                   >
                     <MdOutlineSpeed className="text-lg" />
