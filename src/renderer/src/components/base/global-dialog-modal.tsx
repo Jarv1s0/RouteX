@@ -40,27 +40,31 @@ export const GlobalDialogModal: React.FC = () => {
       setIsOpen(true)
     }
 
+    const handleErrorModal = (_e: Electron.IpcRendererEvent, t: string, c: string): void => handleIPC(_e, 'error', t, c)
+    const handleGlobalError = (e: Event): void => {
+        const detail = (e as CustomEvent).detail
+        setDetails({ type: 'error', title: detail?.title || '错误', content: detail?.content || '' })
+        setIsOpen(true)
+    }
+
     try {
         window.electron.ipcRenderer.on('show-dialog-modal', handleIPC)
         // 兼容旧的 show-error-modal，默认为 error
-        window.electron.ipcRenderer.on('show-error-modal', (_e, t, c) => handleIPC(_e, 'error', t, c))
+        window.electron.ipcRenderer.on('show-error-modal', handleErrorModal)
         
         window.addEventListener('show-global-dialog', handleCustom)
         // 兼容旧的 show-global-error，默认为 error
-        window.addEventListener('show-global-error', (e) => {
-            const detail = (e as CustomEvent).detail
-            setDetails({ type: 'error', title: detail?.title || '错误', content: detail?.content || '' })
-            setIsOpen(true)
-        })
+        window.addEventListener('show-global-error', handleGlobalError)
     } catch (e) {
         console.error('Failed to register dialog listeners', e)
     }
 
     return (): void => {
       try {
-          window.electron.ipcRenderer.removeAllListeners('show-dialog-modal')
-          window.electron.ipcRenderer.removeAllListeners('show-error-modal')
+          window.electron.ipcRenderer.removeListener('show-dialog-modal', handleIPC)
+          window.electron.ipcRenderer.removeListener('show-error-modal', handleErrorModal)
           window.removeEventListener('show-global-dialog', handleCustom)
+          window.removeEventListener('show-global-error', handleGlobalError)
       } catch (e) {
           // ignore
       }

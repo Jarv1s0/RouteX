@@ -42,9 +42,9 @@ const GlobalConfirmModals: React.FC = () => {
     )
 
     return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('show-quit-confirm')
-      window.electron.ipcRenderer.removeAllListeners('show-profile-install-confirm')
-      window.electron.ipcRenderer.removeAllListeners('show-override-install-confirm')
+      window.electron.ipcRenderer.removeListener('show-quit-confirm', handleShowQuitConfirm)
+      window.electron.ipcRenderer.removeListener('show-profile-install-confirm', handleShowProfileInstallConfirm)
+      window.electron.ipcRenderer.removeListener('show-override-install-confirm', handleShowOverrideInstallConfirm)
     }
   }, [])
 

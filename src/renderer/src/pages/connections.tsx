@@ -2,9 +2,10 @@ import BasePage from '@renderer/components/base/base-page'
 import EmptyState from '@renderer/components/base/empty-state'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
 import React, { Key, useCallback, useEffect, useMemo, useState, useDeferredValue } from 'react'
-import { Button, Input, Select, SelectItem, Tab, Tabs, Chip, Card, CardHeader, CardFooter, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
-import { calcTraffic } from '@renderer/utils/calc'
+import { Button, Input, Select, SelectItem, Tab, Tabs, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
+
 import ConnectionItem from '@renderer/components/connections/connection-item'
+import ConnectionsGroupView from '@renderer/components/connections/connections-group-view'
 import ConnectionTable from '@renderer/components/connections/connection-table'
 import { Virtuoso } from 'react-virtuoso'
 import dayjs from 'dayjs'
@@ -113,44 +114,26 @@ const Connections: React.FC = () => {
 
     if (deferredOrder) {
       filtered = [...filtered].sort((a, b) => {
-        if (deferredDirection === 'asc') {
-          switch (deferredOrder) {
-            case 'time':
-              return dayjs(b.start).unix() - dayjs(a.start).unix()
-            case 'upload':
-              return a.upload - b.upload
-            case 'download':
-              return a.download - b.download
-            case 'uploadSpeed':
-              return (a.uploadSpeed || 0) - (b.uploadSpeed || 0)
-            case 'downloadSpeed':
-              return (a.downloadSpeed || 0) - (b.downloadSpeed || 0)
-            case 'process':
-              return (a.metadata.process || '').localeCompare(b.metadata.process || '')
-            case 'type':
-              return `${a.metadata.type}|${a.metadata.network}`.localeCompare(`${b.metadata.type}|${b.metadata.network}`)
-            case 'rule':
-              return (a.rule || '').localeCompare(b.rule || '')
-          }
-        } else {
-          switch (deferredOrder) {
-            case 'time':
-              return dayjs(a.start).unix() - dayjs(b.start).unix()
-            case 'upload':
-              return b.upload - a.upload
-            case 'download':
-              return b.download - a.download
-            case 'uploadSpeed':
-              return (b.uploadSpeed || 0) - (a.uploadSpeed || 0)
-            case 'downloadSpeed':
-              return (b.downloadSpeed || 0) - (a.downloadSpeed || 0)
-            case 'process':
-              return (b.metadata.process || '').localeCompare(a.metadata.process || '')
-            case 'type':
-              return `${b.metadata.type}|${b.metadata.network}`.localeCompare(`${a.metadata.type}|${a.metadata.network}`)
-            case 'rule':
-              return (b.rule || '').localeCompare(a.rule || '')
-          }
+        const dir = deferredDirection === 'asc' ? 1 : -1
+        switch (deferredOrder) {
+          case 'time':
+            return dir * (dayjs(b.start).unix() - dayjs(a.start).unix())
+          case 'upload':
+            return dir * (a.upload - b.upload)
+          case 'download':
+            return dir * (a.download - b.download)
+          case 'uploadSpeed':
+            return dir * ((a.uploadSpeed || 0) - (b.uploadSpeed || 0))
+          case 'downloadSpeed':
+            return dir * ((a.downloadSpeed || 0) - (b.downloadSpeed || 0))
+          case 'process':
+            return dir * (a.metadata.process || '').localeCompare(b.metadata.process || '')
+          case 'type':
+            return dir * `${a.metadata.type}|${a.metadata.network}`.localeCompare(`${b.metadata.type}|${b.metadata.network}`)
+          case 'rule':
+            return dir * (a.rule || '').localeCompare(b.rule || '')
+          default:
+            return 0
         }
       })
     }
@@ -668,108 +651,25 @@ const Connections: React.FC = () => {
         ) : viewMode === 'list' ? (
           <Virtuoso data={filteredConnections} itemContent={renderConnectionItem} />
         ) : (
-          <div className="p-2 space-y-3">
-            {groupedConnections.map(group => {
-              const isExpanded = expandedGroups.has(group.process)
-              const iconUrl = (displayIcon && findProcessMode !== 'off' && iconMap[group.processPath]) || ''
-              const displayName = displayAppName && group.processPath ? appNameCache[group.processPath] : undefined
-              const processName = displayName || group.process.replace(/\.exe$/, '')
-              
-              return (
-                <div key={group.process}>
-                  {/* 分组头部卡片 */}
-                  <Card
-                    isPressable
-                    className="w-full hover:bg-primary/30 transition-all duration-200"
-                    onPress={() => toggleGroup(group.process)}
-                  >
-                    <div className="w-full flex justify-between items-center">
-                      {displayIcon && (
-                        <div>
-                          <Avatar
-                            size="md"
-                            radius="sm"
-                            src={iconUrl}
-                            className="bg-transparent ml-2 w-12 h-12"
-                            fallback={<IoApps className="text-default-400" />}
-                          />
-                        </div>
-                      )}
-                      <div className={`w-full flex flex-col justify-start truncate relative ${displayIcon ? '-ml-2' : ''}`}>
-                        <CardHeader className="pb-0 gap-1 flex items-center pr-4">
-                          <div className="ml-2 flex-1 text-ellipsis whitespace-nowrap overflow-hidden text-left font-medium">
-                            {processName}
-                          </div>
-                          <Chip size="sm" variant="flat" color="primary" className="mr-2">
-                            {group.connections.length} 连接
-                          </Chip>
-                          <span className="text-foreground-400 text-sm">
-                            {isExpanded ? '▼' : '▶'}
-                          </span>
-                        </CardHeader>
-                        <CardFooter className="pt-2">
-                          <div className="flex gap-1 overflow-x-auto no-scrollbar">
-                            <Chip
-                              color="primary"
-                              size="sm"
-                              radius="sm"
-                              variant="dot"
-                            >
-                              {tab === 'active' ? '活动中' : '已关闭'}
-                            </Chip>
-                            <Chip size="sm" radius="sm" variant="bordered">
-                              <span style={{ color: '#22d3ee' }}>↑ {calcTraffic(group.totalUpload)}</span>
-                              {' '}
-                              <span style={{ color: '#c084fc' }}>↓ {calcTraffic(group.totalDownload)}</span>
-                            </Chip>
-                            {(group.uploadSpeed > 0 || group.downloadSpeed > 0) && (
-                              <Chip color="primary" size="sm" radius="sm" variant="bordered">
-                                <span style={{ color: '#22d3ee' }}>↑ {calcTraffic(group.uploadSpeed)}/s</span>
-                                {' '}
-                                <span style={{ color: '#c084fc' }}>↓ {calcTraffic(group.downloadSpeed)}/s</span>
-                              </Chip>
-                            )}
-                          </div>
-                        </CardFooter>
-                      </div>
-                    </div>
-                  </Card>
-                  
-                  {/* 展开的连接列表 */}
-                  {isExpanded && (
-                    <div className="ml-6 mt-1 border-l-2 border-primary/30 pl-2">
-                      {group.connections.map((conn, i) => {
-                        const path = conn.metadata.processPath || ''
-                        const connIconUrl = (displayIcon && findProcessMode !== 'off' && iconMap[path]) || ''
-                        const connDisplayName = displayAppName && conn.metadata.processPath 
-                          ? appNameCache[conn.metadata.processPath] 
-                          : undefined
-                        
-                        return (
-                          <ConnectionItem
-                            key={conn.id}
-                            setSelected={setSelected}
-                            setIsDetailModalOpen={setIsDetailModalOpen}
-                            selected={selected}
-                            iconUrl={connIconUrl}
-                            displayIcon={false}
-                            displayName={connDisplayName}
-                            close={closeConnection}
-                            hide={hideConnection}
-                            unhide={unhideConnection}
-                            isHidden={hiddenRules.has(`${conn.metadata.process || 'unknown'}:${conn.metadata.host || conn.metadata.destinationIP || 'unknown'}`)}
-                            index={i}
-                            info={conn}
-                            onContextMenu={handleContextMenu}
-                          />
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+          <ConnectionsGroupView
+            groupedConnections={groupedConnections}
+            expandedGroups={expandedGroups}
+            toggleGroup={toggleGroup}
+            displayIcon={displayIcon}
+            displayAppName={displayAppName}
+            findProcessMode={findProcessMode}
+            iconMap={iconMap}
+            appNameCache={appNameCache}
+            tab={tab}
+            selected={selected}
+            setSelected={setSelected}
+            setIsDetailModalOpen={setIsDetailModalOpen}
+            closeConnection={closeConnection}
+            hideConnection={hideConnection}
+            unhideConnection={unhideConnection}
+            hiddenRules={hiddenRules}
+            handleContextMenu={handleContextMenu}
+          />
         )}
       </div>
     </BasePage>

@@ -121,25 +121,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       }
     }
 
-    try {
-        window.electron.ipcRenderer.removeListener('mihomoConnections', handleConnections)
-        window.electron.ipcRenderer.removeListener('mihomoMemory', handleMemory)
-    } catch {
-        // ignore
-    }
-
-    window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
-    window.electron.ipcRenderer.on('mihomoMemory', handleMemory)
-    
-    // Cleanup function for internal usage if needed? 
-    // Actually store persists, so we might attach this to the object to support removal.
-    // But since `throttle` creates a new function each time `initializeListeners` is called,
-    // we need to be careful. 
-    // A better pattern: define handlers outside or reference them on the store instance?
-    // Given the previous code just did on/off, and we want to avoid multiple subscriptions:
-    // We can store the throttled function on the store instance (monkey-patch) or use a module-level variable.
-    // Let's use module-level variable for simplicity in this file scope.
-    // See below outside `create`.
+    // Register Listeners (registerHandlers handles cleanup of old ones)
     registerHandlers(handleConnections, handleMemory)
   },
 

@@ -40,8 +40,8 @@ const RuleCard: React.FC<Props> = (props) => {
     window.electron.ipcRenderer.on('rulesUpdated', handleRefresh)
     
     return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('core-started')
-      window.electron.ipcRenderer.removeAllListeners('rulesUpdated')
+      window.electron.ipcRenderer.removeListener('core-started', handleRefresh)
+      window.electron.ipcRenderer.removeListener('rulesUpdated', handleRefresh)
     }
   }, [mutate])
   
