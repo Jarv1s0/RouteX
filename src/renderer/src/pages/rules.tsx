@@ -20,9 +20,9 @@ const Rules: React.FC = () => {
   const [filter, setFilter] = useState('')
   const deferredFilter = useDeferredValue(filter)
   const [activeTab, setActiveTab] = useState('rules')
-  const [updating, setUpdating] = useState<boolean[]>([])
+  const [updating, setUpdating] = useState<Record<string, boolean>>({})
   
-  const { disabledRules, setRuleDisabled, toggleRuleDisabled } = useRulesStore()
+  const { disabledRules, setRuleDisabledBatch, toggleRuleDisabled } = useRulesStore()
   
   const [showDetails, setShowDetails] = useState({
     show: false,
@@ -58,20 +58,12 @@ const Rules: React.FC = () => {
     })
 
     if (hasUpdates) {
-       // Batch update by merging into current state
-       // We need to access the store's setter carefully. 
-       // Since the store's `setRuleDisabled` only sets one, we should actually add a batch action to the store 
-       // or just iterate. Iterating here is fine if we don't depend on `disabledRules` in the effect.
-       // But better to avoid N re-renders. 
-       // For now, simpler fix: iterate but ensure effect dependency doesn't include disabledRules.
-       Object.entries(updates).forEach(([index, disabled]) => {
-           setRuleDisabled(Number(index), disabled)
-       })
+       setRuleDisabledBatch(updates)
     }
     
     initializedRef.current = true
     prevRulesLength.current = rules.rules.length
-  }, [rules, setRuleDisabled]) // Removed disabledRules from dependency
+  }, [rules, setRuleDisabledBatch]) // Removed disabledRules from dependency
 
   // 切换规则状态
   const toggleRule = useCallback(async (index: number) => {
@@ -105,10 +97,6 @@ const Rules: React.FC = () => {
   }, [providersData])
 
   useEffect(() => {
-    setUpdating(Array(providers.length).fill(false))
-  }, [providers.length])
-
-  useEffect(() => {
     if (showDetails.title) {
       const fetchProviderPath = async (name: string): Promise<void> => {
         try {
@@ -129,50 +117,41 @@ const Rules: React.FC = () => {
     }
   }, [showDetails.title])
 
-  const onUpdate = async (name: string, index: number): Promise<void> => {
-    setUpdating((prev) => {
-      const next = [...prev]
-      next[index] = true
-      return next
-    })
+  const onUpdate = async (name: string): Promise<void> => {
+    setUpdating((prev) => ({ ...prev, [name]: true }))
     try {
       await mihomoUpdateRuleProviders(name)
       mutate()
     } catch (e) {
       new Notification(`${name} 更新失败\n${e}`)
     } finally {
-      setUpdating((prev) => {
-        const next = [...prev]
-        next[index] = false
-        return next
-      })
+      setUpdating((prev) => ({ ...prev, [name]: false }))
     }
   }
 
   const updateAll = (): void => {
-    providers.forEach((provider, index) => {
-      onUpdate(provider.name, index)
+    providers.forEach((provider) => {
+      onUpdate(provider.name)
     })
   }
 
-  const filteredRules = useMemo(() => {
+  const filteredIndices = useMemo(() => {
     if (!rules?.rules) return []
     
-    // Map initial rules to include their original index
-    const rulesWithIndex = rules.rules.map((rule, index) => ({
-      ...rule,
-      originalIndex: index
-    }))
+    if (deferredFilter === '') {
+      return rules.rules.map((_, index) => index)
+    }
 
-    if (deferredFilter === '') return rulesWithIndex
-
-    return rulesWithIndex.filter((rule) => {
-      return (
+    return rules.rules.reduce((acc, rule, index) => {
+      if (
         includesIgnoreCase(rule.payload, deferredFilter) ||
         includesIgnoreCase(rule.type, deferredFilter) ||
         includesIgnoreCase(rule.proxy, deferredFilter)
-      )
-    })
+      ) {
+        acc.push(index)
+      }
+      return acc
+    }, [] as number[])
   }, [rules, deferredFilter])
 
   return (
@@ -244,14 +223,13 @@ const Rules: React.FC = () => {
       {activeTab === 'rules' && (
         <div className="h-[calc(100vh-100px)]">
           <Virtuoso
-            data={filteredRules}
-            itemContent={(i, rule) => {
-              // 使用提前缓存的原始索引，消除 O(N^2) 的高频查找开销
-              const originalIndex = rule.originalIndex
+            data={filteredIndices}
+            itemContent={(_i, originalIndex) => {
+              const rule = rules!.rules[originalIndex]
               const isDisabled = disabledRules[originalIndex] || rule.disabled || false
               return (
                 <RuleItem
-                  index={i}
+                  index={originalIndex}
                   type={rule.type}
                   payload={rule.payload}
                   proxy={rule.proxy}
@@ -291,8 +269,8 @@ const Rules: React.FC = () => {
               <RuleProviderItem
                 provider={provider}
                 index={i}
-                updating={updating[i] || false}
-                onUpdate={() => onUpdate(provider.name, i)}
+                updating={updating[provider.name] || false}
+                onUpdate={() => onUpdate(provider.name)}
                 onView={() => {
                   setShowDetails({
                     show: false,

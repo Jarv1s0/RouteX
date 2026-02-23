@@ -209,7 +209,7 @@ pre,
 /* React Flow 拓扑图：高亮缓慢脉冲动画 */
 @keyframes lightning-bolt {
   0% {
-    stroke-dashoffset: 2030;
+    stroke-dashoffset: 4000;
     opacity: 0;
   }
 
@@ -218,7 +218,7 @@ pre,
   }
 
   85% {
-    stroke-dashoffset: -1000;
+    stroke-dashoffset: -2000;
     opacity: 1;
   }
 
@@ -228,6 +228,6 @@ pre,
 
   100% {
     opacity: 0;
-    stroke-dashoffset: -1000;
+    stroke-dashoffset: -2000;
   }
 }

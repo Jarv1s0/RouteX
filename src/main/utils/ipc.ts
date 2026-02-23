@@ -851,6 +851,13 @@ export function registerIpcMainHandlers(): void {
       return { success: false, latency: -1, error: e instanceof Error ? e.message : String(e) }
     }
   })
+  ipcMain.handle('httpGet', async (_e, url: string, timeout: number = 5000) => {
+    try {
+      return await httpGet(url, timeout)
+    } catch (e) {
+      return { status: 500, data: '', headers: {}, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
   // 流媒体解锁检测
   ipcMain.handle('checkStreamingUnlock', async (_e, service: string) => {
     try {

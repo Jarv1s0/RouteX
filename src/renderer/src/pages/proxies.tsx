@@ -115,7 +115,6 @@ const Proxies: React.FC = () => {
     proxyDisplayOrder = 'default',
     autoCloseConnection = true,
     proxyCols = 'auto',
-    delayTestConcurrency = 50,
     groupOrder = []
   } = appConfig || {}
 
@@ -144,9 +143,9 @@ const Proxies: React.FC = () => {
     return parseInt(proxyCols) || 3
   }, [proxyCols])
 
-  const [isOpen, setIsOpen] = useState(Array(groups.length).fill(false))
-  const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
-  const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
+  const [isOpen, setIsOpen] = useState<Record<string, boolean>>({})
+  const [delaying, setDelaying] = useState<Record<string, boolean>>({})
+  const [searchValue, setSearchValue] = useState<Record<string, string>>({})
   const deferredSearchValue = useDeferredValue(searchValue)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [isChainModalOpen, setIsChainModalOpen] = useState(false)
@@ -164,8 +163,8 @@ const Proxies: React.FC = () => {
       items.push({ type: 'header', groupIndex: index })
       
       // 如果展开，添加代理行
-      const isGroupOpen = !!isOpen[index]
-      const currentSearchValue = deferredSearchValue[index] || ''
+      const isGroupOpen = !!isOpen[group.name]
+      const currentSearchValue = deferredSearchValue[group.name] || ''
       
       if (isGroupOpen) {
         let groupProxies = (group.all || []).filter(
@@ -199,37 +198,7 @@ const Proxies: React.FC = () => {
     return items
   }, [groups, isOpen, proxyDisplayOrder, chunkSize, deferredSearchValue])
 
-  // 同步状态数组长度
-  useEffect(() => {
-    if (groups.length !== searchValue.length) {
-      setSearchValue(prev => {
-        if (prev.length === groups.length) return prev
-        // 尝试保留旧状态（如果只是追加或减少）
-        if (groups.length > prev.length) {
-             return [...prev, ...Array(groups.length - prev.length).fill('')]
-        }
-        return prev.slice(0, groups.length)
-      })
-    }
-    if (groups.length !== isOpen.length) {
-        setIsOpen(prev => {
-            if (prev.length === groups.length) return prev
-            if (groups.length > prev.length) {
-                return [...prev, ...Array(groups.length - prev.length).fill(false)]
-            }
-            return prev.slice(0, groups.length)
-        })
-    }
-    if (groups.length !== delaying.length) {
-        setDelaying(prev => {
-             if (prev.length === groups.length) return prev
-             if (groups.length > prev.length) {
-                return [...prev, ...Array(groups.length - prev.length).fill(false)]
-            }
-            return prev.slice(0, groups.length)
-        })
-    }
-  }, [groups.length])
+
 
   const onChangeProxy = useCallback(
     async (group: string, proxy: string): Promise<void> => {
@@ -250,47 +219,27 @@ const Proxies: React.FC = () => {
   )
 
   const onGroupDelay = useCallback(
-    async (index: number): Promise<void> => {
-      setDelaying((prev) => {
-        const newDelaying = [...prev]
-        newDelaying[index] = true
-        return newDelaying
-      })
+    async (groupName: string, testUrl?: string): Promise<void> => {
+      setDelaying((prev) => ({ ...prev, [groupName]: true }))
       
-      const group = groups[index]
-
-
       try {
-        await mihomoGroupDelay(group.name, group.testUrl)
+        await mihomoGroupDelay(groupName, testUrl)
       } catch {
         // ignore
       } finally {
-        setDelaying((prev) => {
-          const newDelaying = [...prev]
-          newDelaying[index] = false
-          return newDelaying
-        })
+        setDelaying((prev) => ({ ...prev, [groupName]: false }))
         mutate()
       }
     },
-    [groups, delayTestConcurrency, mutate, searchValue]
+    [mutate]
   )
 
-  const toggleOpen = useCallback((index: number) => {
-    setIsOpen((prev) => {
-      const newOpen = [...prev]
-      const wasOpen = prev[index]
-      newOpen[index] = !wasOpen
-      return newOpen
-    })
+  const toggleOpen = useCallback((groupName: string) => {
+    setIsOpen((prev) => ({ ...prev, [groupName]: !prev[groupName] }))
   }, [])
 
-  const updateSearchValue = useCallback((index: number, value: string) => {
-    setSearchValue((prev) => {
-      const newSearchValue = [...prev]
-      newSearchValue[index] = value
-      return newSearchValue
-    })
+  const updateSearchValue = useCallback((groupName: string, value: string) => {
+    setSearchValue((prev) => ({ ...prev, [groupName]: value }))
   }, [])
 
   // 首次进入页面时自动测速
@@ -346,13 +295,12 @@ const Proxies: React.FC = () => {
         return group ? (
           <ProxyGroupCard
             group={group}
-            groupIndex={groupIndex}
-            isOpen={!!isOpen[groupIndex]}
-            toggleOpen={toggleOpen}
-            searchValue={searchValue[groupIndex] || ''}
-            updateSearchValue={updateSearchValue}
-            delaying={!!delaying[groupIndex]}
-            onGroupDelay={onGroupDelay}
+            isOpen={!!isOpen[group.name]}
+            toggleOpen={() => toggleOpen(group.name)}
+            searchValue={searchValue[group.name] || ''}
+            updateSearchValue={(val) => updateSearchValue(group.name, val)}
+            delaying={!!delaying[group.name]}
+            onGroupDelay={() => onGroupDelay(group.name, group.testUrl)}
             getCurrentDelay={getCurrentDelay}
             mutate={mutate}
             getDelayColor={getDelayColor}

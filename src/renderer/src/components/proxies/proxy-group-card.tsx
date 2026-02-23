@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/ipc'
@@ -8,13 +9,12 @@ import { addFlag } from '@renderer/utils/flags'
 
 interface Props {
   group: ControllerMixedGroup
-  groupIndex: number
   isOpen: boolean
-  toggleOpen: (index: number) => void
+  toggleOpen: () => void
   searchValue: string
-  updateSearchValue: (index: number, value: string) => void
+  updateSearchValue: (value: string) => void
   delaying: boolean
-  onGroupDelay: (index: number) => Promise<void>
+  onGroupDelay: () => Promise<void>
   getCurrentDelay: (group: ControllerMixedGroup) => number
   mutate: () => void
   getDelayColor: (proxy: ControllerProxiesDetail | ControllerGroupDetail) => string
@@ -22,7 +22,6 @@ interface Props {
 
 const ProxyGroupCardComponent: React.FC<Props> = ({
   group,
-  groupIndex,
   isOpen,
   toggleOpen,
   delaying,
@@ -71,7 +70,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
         as="div"
         isPressable
         fullWidth
-        onPress={() => toggleOpen(groupIndex)}
+        onPress={toggleOpen}
         className={`transition-all duration-200 border group ${activeStyle}`}
       >
         <CardBody className="w-full p-4">
@@ -166,7 +165,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                     isIconOnly
                     radius="lg"
                     className="bg-primary/10 hover:bg-primary/20 text-primary shadow-sm"
-                    onPress={() => onGroupDelay(groupIndex)}
+                    onPress={onGroupDelay}
                     isDisabled={delaying}
                   >
                     {delaying ? (
