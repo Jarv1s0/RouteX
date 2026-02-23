@@ -15,6 +15,21 @@ interface GroupsState {
 let updateTimer: NodeJS.Timeout | null = null
 let hasInitialTestRun = false
 
+// 精确的监听器引用，避免使用 removeAllListeners
+let currentGroupsHandler: (() => void) | null = null
+let currentCoreStartedHandler: (() => void) | null = null
+
+function unregisterGroupHandlers(): void {
+  if (currentGroupsHandler) {
+    window.electron.ipcRenderer.removeListener('groupsUpdated', currentGroupsHandler)
+    currentGroupsHandler = null
+  }
+  if (currentCoreStartedHandler) {
+    window.electron.ipcRenderer.removeListener('core-started', currentCoreStartedHandler)
+    currentCoreStartedHandler = null
+  }
+}
+
 export const useGroupsStore = create<GroupsState>((set, get) => ({
   groups: undefined,
   isLoading: true,
@@ -29,10 +44,16 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
   },
 
   initializeListeners: () => {
-    const handleUpdate = () => {
-        get().fetchGroups()
+    // 先清理旧的监听器
+    unregisterGroupHandlers()
+
+    const handleUpdate = (): void => {
+      get().fetchGroups()
     }
 
+    // 保存引用并注册
+    currentGroupsHandler = handleUpdate
+    currentCoreStartedHandler = handleUpdate
     window.electron.ipcRenderer.on('groupsUpdated', handleUpdate)
     window.electron.ipcRenderer.on('core-started', handleUpdate)
     
@@ -42,7 +63,7 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
     // Polling interval (matches original SWR logic: 10000ms)
     if (updateTimer) clearInterval(updateTimer)
     updateTimer = setInterval(() => {
-        get().fetchGroups()
+      get().fetchGroups()
     }, 10000)
 
     // Initial speed test check
@@ -50,31 +71,24 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
   },
 
   cleanupListeners: () => {
-    window.electron.ipcRenderer.removeAllListeners('groupsUpdated')
-    window.electron.ipcRenderer.removeAllListeners('core-started')
+    unregisterGroupHandlers()
     if (updateTimer) {
-        clearInterval(updateTimer)
-        updateTimer = null
+      clearInterval(updateTimer)
+      updateTimer = null
     }
   },
 
   runInitialTest: async () => {
     if (hasInitialTestRun) return
 
-    // We need to wait for groups to be loaded. 
-    // Since fetchGroups is async but we don't await it in initializeListeners (it's void),
-    // we might need to check if groups are available.
-    // If not, we can rely on the fact that fetchGroups calls set(), and we could listen to that?
-    // Or just try nicely:
     let currentGroups = get().groups
     if (!currentGroups || currentGroups.length === 0) {
-        // Try fetching once and await
-        try {
-            currentGroups = await mihomoGroups()
-            set({ groups: currentGroups, isLoading: false })
-        } catch {
-            return
-        }
+      try {
+        currentGroups = await mihomoGroups()
+        set({ groups: currentGroups, isLoading: false })
+      } catch {
+        return
+      }
     }
 
     if (!currentGroups || currentGroups.length === 0) return

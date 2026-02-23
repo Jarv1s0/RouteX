@@ -16,17 +16,19 @@ export const RulesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   })
 
   React.useEffect(() => {
-    window.electron.ipcRenderer.on('rulesUpdated', () => {
+    const handleRulesUpdated = (): void => {
       setTimeout(() => {
         mutate()
       }, 200)
-    })
-    window.electron.ipcRenderer.on('core-started', () => {
+    }
+    const handleCoreStarted = (): void => {
       mutate()
-    })
+    }
+    window.electron.ipcRenderer.on('rulesUpdated', handleRulesUpdated)
+    window.electron.ipcRenderer.on('core-started', handleCoreStarted)
     return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('rulesUpdated')
-      window.electron.ipcRenderer.removeAllListeners('core-started')
+      window.electron.ipcRenderer.removeListener('rulesUpdated', handleRulesUpdated)
+      window.electron.ipcRenderer.removeListener('core-started', handleCoreStarted)
     }
   }, [])
 

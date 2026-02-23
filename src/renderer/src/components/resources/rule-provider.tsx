@@ -56,11 +56,12 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
   })
 
   useEffect(() => {
-    window.electron.ipcRenderer.on('core-started', () => {
+    const handleCoreStarted = (): void => {
       mutate()
-    })
+    }
+    window.electron.ipcRenderer.on('core-started', handleCoreStarted)
     return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('core-started')
+      window.electron.ipcRenderer.removeListener('core-started', handleCoreStarted)
     }
   }, [])
 

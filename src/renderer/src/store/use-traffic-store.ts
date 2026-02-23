@@ -182,8 +182,15 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
         if (newStats.size > 2000) {
              return {}
         }
-        if (processedConnIds.size > 10000) {
-            processedConnIds.clear()
+        
+        // Garbage collect processedConnIds: remove IDs no longer in current connections
+        const currentIds = new Set(connections.map((c: any) => c.id))
+        if (processedConnIds.size > 5000) {
+            for (const id of processedConnIds) {
+                if (!currentIds.has(id)) {
+                    processedConnIds.delete(id)
+                }
+            }
         }
 
         return hasChanges ? { ruleStats: newStats, ruleHitDetails: newDetails } : {}
