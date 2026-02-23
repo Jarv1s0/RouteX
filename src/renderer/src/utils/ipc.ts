@@ -734,3 +734,7 @@ export async function getAppMemory(): Promise<number> {
 export async function testDNSLatency(domain: string = 'google.com'): Promise<number> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('testDNSLatency', domain))
 }
+
+export async function httpGet(url: string, timeout?: number): Promise<{ status: number; data: string; headers: Record<string, string>; error?: string }> {
+  return await window.electron.ipcRenderer.invoke('httpGet', url, timeout)
+}

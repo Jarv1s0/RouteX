@@ -85,7 +85,6 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
     // Traffic Listener Definition
     const handleTraffic = (_e: unknown, traffic: { up: number; down: number }): void => {
-      // console.log('Traffic:', traffic)
       const now = new Date()
       // Format time as HH:mm:ss
       const timeStr = now.toTimeString().split(' ')[0]

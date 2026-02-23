@@ -22,13 +22,14 @@ export default function AnimatedEdge({
 
   const isDark = document.documentElement.classList.contains('dark')
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const edgeColor = (data as any)?.color || (isDark ? '#818cf840' : '#818cf850')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const boltColor = (data as any)?.animatedColor || (data as any)?.color || (isDark ? '#c4b5fd' : '#7c3aed')
+  const edgeData = data as { color?: string; animatedColor?: string; weight?: number } | undefined
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const weight = (data as any)?.weight || 0
+  // 优雅深紫色作为基底
+  const edgeColor = edgeData?.color || (isDark ? '#8b5cf640' : '#8b5cf650') // violet-500 with opacity
+  // 赛博朋克亮紫色作为高亮电波
+  const boltColor = edgeData?.animatedColor || edgeData?.color || (isDark ? '#d8b4fe' : '#a855f7') // fuchsia/purple accents
+
+  const weight = edgeData?.weight || 0
   const strokeWidth = 2
   const isAnimated = weight > 0
 
@@ -59,7 +60,7 @@ export default function AnimatedEdge({
                   strokeLinecap: 'round',
                   fill: 'none',
                   strokeDasharray: '30 2000', // 增加发光段的长度
-                  animation: 'lightning-bolt 3.5s linear infinite', // 减慢速度
+                  animation: 'lightning-bolt 6.5s linear infinite', // 减慢速度
                   filter: `drop-shadow(0 0 5px ${boltColor})`, // 添加发光滤镜
                   opacity: 1 // 确保完全不透明
               }}
