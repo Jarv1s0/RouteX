@@ -117,6 +117,7 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
           title={showDetails.title}
           format={showDetails.format}
           privderType={showDetails.privderType}
+          behavior={showDetails.behavior}
           onClose={() =>
             setShowDetails({
               show: false,

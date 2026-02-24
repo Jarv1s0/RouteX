@@ -30,7 +30,8 @@ const Rules: React.FC = () => {
     type: '',
     title: '',
     format: '',
-    privderType: ''
+    privderType: '',
+    behavior: ''
   })
 
   // Optimize: Use ref to track initialization to prevent infinite loops
@@ -106,7 +107,8 @@ const Rules: React.FC = () => {
             setShowDetails((prev) => ({
               ...prev,
               show: true,
-              path: provider?.path || `rules/${getHash(provider?.url || '')}`
+              path: provider?.path || `rules/${getHash(provider?.url || '')}`,
+              behavior: provider?.behavior || 'domain'
             }))
           }
         } catch {
@@ -251,6 +253,7 @@ const Rules: React.FC = () => {
               title={showDetails.title}
               format={showDetails.format}
               privderType={showDetails.privderType}
+              behavior={showDetails.behavior}
               onClose={() =>
                 setShowDetails({
                   show: false,
@@ -258,7 +261,8 @@ const Rules: React.FC = () => {
                   type: '',
                   title: '',
                   format: '',
-                  privderType: ''
+                  privderType: '',
+                  behavior: ''
                 })
               }
             />
@@ -278,7 +282,8 @@ const Rules: React.FC = () => {
                     path: provider.name,
                     type: provider.vehicleType,
                     title: provider.name,
-                    format: provider.format
+                    format: provider.format,
+                    behavior: provider.behavior
                   })
                 }}
               />
