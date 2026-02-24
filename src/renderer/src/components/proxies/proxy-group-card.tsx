@@ -114,22 +114,19 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                 {/* Stats & Dots Capsules */}
                 <div className="flex items-center gap-2">
                   <div className="flex items-center px-3 py-1 rounded-md bg-default-100/80 border border-default-200/50 hover:bg-default-200/50 transition-colors">
-                    <span className="text-[10px] font-bold text-default-400 uppercase tracking-wider mr-2">Live</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider mr-2 transition-colors duration-500 ${
+                      currentDelay === -1 ? 'text-default-400' :
+                      currentDelay === 0 ? 'text-default-400' :
+                      currentDelay < delayThresholds.good ? 'text-success' :
+                      currentDelay < delayThresholds.fair ? 'text-warning' :
+                      'text-danger'
+                    }`}>Live</span>
                     <span className="text-xs font-mono font-medium text-foreground/80">
                       {(group.all || []).filter(p => p.history?.some(h => h.delay > 0)).length}
                       <span className="opacity-40 mx-0.5">/</span>
                       {(group.all || []).length}
                     </span>
-                    <div className={`ml-2 w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
-                      currentDelay === -1 ? 'bg-default-300' :
-                      currentDelay === 0 ? 'bg-default-400' :
-                      currentDelay < delayThresholds.good ? 'bg-success shadow-[0_0_8px_rgba(23,201,100,0.4)] animate-pulse' :
-                      currentDelay < delayThresholds.fair ? 'bg-warning shadow-[0_0_8px_rgba(245,165,36,0.4)] animate-pulse' :
-                      'bg-danger shadow-[0_0_8px_rgba(243,18,96,0.4)] animate-pulse'
-                    }`} />
                   </div>
-
-
                 </div>
               </div>
             </div>
@@ -140,7 +137,6 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                 {/* Node Name */}
                 <div className="flex items-center max-w-[140px] px-2 border-r border-default-200/50">
                   <span className={`text-xs font-semibold truncate flag-emoji tracking-wide flex items-center gap-1.5 transition-colors ${currentDelay === 0 ? 'text-default-400' : 'text-foreground/80'}`} title={group.now}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${delayColor.replace('text-', 'bg-')} ${currentDelay !== 0 && currentDelay !== -1 ? 'shadow-sm' : ''}`} />
                     {addFlag(group.now)}
                   </span>
                 </div>
