@@ -43,6 +43,8 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     const handleConnections = throttle((_e: unknown, info: ControllerConnections): void => {
       const { isPaused } = get()
       if (isPaused) return
+      // 窗口不可见时跳过处理，降低后台 CPU 占用
+      if (document.hidden) return
       
       if (!info || !info.connections) return
       

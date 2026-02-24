@@ -48,7 +48,7 @@ let trafficStatsInterval: number | undefined
 
 // Module-level handler references for robust cleanup
 let currentTrafficHandler: ((e: unknown, traffic: { up: number; down: number }) => void) | null = null
-let currentConnectionsHandler: ((e: unknown, data: { connections?: Array<any> }) => void) | null = null
+let currentConnectionsHandler: ((e: unknown, data: { connections?: ControllerConnectionDetail[] }) => void) | null = null
 
 function unregisterTrafficHandlers() {
     if (currentTrafficHandler) {
@@ -111,9 +111,10 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       })
     }
 
-    // Connections Listener Definition
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleConnections = (_e: unknown, data: { connections?: Array<any> }): void => {
+      // 窗口不可见时跳过规则统计处理，降低 CPU 占用
+      if (document.hidden) return
       const connections = data.connections || []
       // Pre-calculate time string once
       const timeStr = new Date().toTimeString().split(' ')[0]
@@ -184,8 +185,8 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
         }
         
         // Garbage collect processedConnIds: remove IDs no longer in current connections
-        const currentIds = new Set(connections.map((c: any) => c.id))
-        if (processedConnIds.size > 5000) {
+        const currentIds = new Set(connections.map((c: ControllerConnectionDetail) => c.id))
+        if (processedConnIds.size > 2000) {
             for (const id of processedConnIds) {
                 if (!currentIds.has(id)) {
                     processedConnIds.delete(id)
@@ -212,9 +213,9 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
     // Start polling for static stats
      
-    trafficStatsInterval = setInterval(() => {
+    trafficStatsInterval = window.setInterval(() => {
         get().fetchInitialStats()
-    }, 15000) as any
+    }, 5000)
   },
 
   cleanupListeners: () => {
@@ -228,9 +229,12 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
   fetchInitialStats: async () => {
       try {
-        const stats = await getTrafficStats()
-        const pStats = await getProviderStats()
-        const profileConfig = await getProfileConfig()
+        // 并发请求，减少串行等待时间
+        const [stats, pStats, profileConfig] = await Promise.all([
+          getTrafficStats(),
+          getProviderStats(),
+          getProfileConfig()
+        ])
         
         const providers = (profileConfig.items || [])
           .filter(item => item.extra)

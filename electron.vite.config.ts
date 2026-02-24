@@ -30,6 +30,20 @@ export default defineConfig({
           index: resolve('src/renderer/index.html'),
           floating: resolve('src/renderer/floating.html'),
           traymenu: resolve('src/renderer/traymenu.html')
+        },
+        output: {
+          manualChunks: {
+            // UI 组件库（最大的单一依赖）
+            'vendor-ui': ['@heroui/react', 'framer-motion'],
+            // 图表库
+            'vendor-chart': ['recharts'],
+            // 编辑器（仅 override 页面使用）
+            'vendor-editor': ['react-monaco-editor', 'monaco-yaml'],
+            // 拓扑图（仅 map 页面使用）
+            'vendor-flow': ['@xyflow/react', 'dagre'],
+            // 路由和状态管理
+            'vendor-core': ['react-router-dom', 'zustand', 'swr'],
+          }
         }
       }
     },
