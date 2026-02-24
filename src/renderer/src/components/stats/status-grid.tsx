@@ -44,7 +44,7 @@ const StatusGrid: React.FC = () => {
     }
 
     const interval = setInterval(() => {
-      // Uptime Logic
+      // 运行时间逻辑
       if (startTime) {
         const now = Date.now()
         const diff = Math.floor((now - startTime) / 1000)
@@ -64,7 +64,7 @@ const StatusGrid: React.FC = () => {
     }
     window.electron.ipcRenderer.on('mihomoMemory', onMemoryUpdate)
 
-    const pollInterval = setInterval(updateStats, 3000) // Poll every 3 seconds for other stats
+    const pollInterval = setInterval(updateStats, 10000) // 10s 更新一次网络延迟
     updateStats()
 
     return () => {

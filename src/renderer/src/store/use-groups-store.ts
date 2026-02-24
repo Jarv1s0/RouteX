@@ -63,8 +63,9 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
     // Polling interval (matches original SWR logic: 10000ms)
     if (updateTimer) clearInterval(updateTimer)
     updateTimer = setInterval(() => {
-      get().fetchGroups()
-    }, 10000)
+      // 窗口不可见时跳过轮询
+      if (!document.hidden) get().fetchGroups()
+    }, 30000) // 30s 足够，代理组变化已由事件驱动
 
     // Initial speed test check
     get().runInitialTest()

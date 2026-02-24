@@ -70,6 +70,6 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
 export default React.memo(TrafficChart, (prevProps, nextProps) => {
   return (
     prevProps.isActive === nextProps.isActive &&
-    JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data)
+    prevProps.data === nextProps.data
   )
 })

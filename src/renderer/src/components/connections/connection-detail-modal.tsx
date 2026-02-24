@@ -72,7 +72,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
   // 1. Duration Timer Logic
   const [duration, setDuration] = React.useState('')
   React.useEffect(() => {
-    const completedAt = (connection as any).completedAt
+    const completedAt = connection.completedAt
     
     const updateDuration = () => {
       const end = completedAt ? dayjs(completedAt) : dayjs()
@@ -90,7 +90,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
 
     const timer = setInterval(updateDuration, 1000)
     return () => clearInterval(timer)
-  }, [connection.start, (connection as any).completedAt])
+  }, [connection.start, connection.completedAt])
 
   return (
     <Modal

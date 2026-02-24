@@ -104,6 +104,7 @@ interface ControllerConnectionDetail {
   isActive: boolean
   uploadSpeed?: number
   downloadSpeed?: number
+  completedAt?: string
 }
 
 // ${api}/logs
