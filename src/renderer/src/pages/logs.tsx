@@ -73,7 +73,7 @@ const Logs: React.FC = () => {
         />
       )}
       <div className="w-full pb-2 px-2 pt-2">
-        <div className={`w-full px-2 py-1.5 flex items-center gap-2 transition-all duration-300 bg-gradient-to-b from-white/20 to-white/5 dark:from-white/5 dark:to-transparent border border-white/20 dark:border-white/10 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-3xl backdrop-saturate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_15px_40px_0_rgba(0,0,0,0.2)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] ${CARD_STYLES.ROUNDED}`}>
+        <div className={`w-full px-2 py-1.5 flex items-center gap-2 ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}>
           
           {/* Left: Config Group */}
           <div className="flex items-center gap-2 pl-1">

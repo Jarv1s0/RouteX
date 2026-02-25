@@ -614,11 +614,34 @@ export async function fetchIpInfo(): Promise<{
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchIpInfo'))
 }
 
-export async function fetchBatchIpInfo(queries: any[]): Promise<any[]> {
+interface IpInfoQuery {
+  query: string
+  lang?: string
+}
+
+export interface IpInfoResult {
+  status: string
+  message?: string
+  query?: string
+  country?: string
+  countryCode?: string
+  region?: string
+  regionName?: string
+  city?: string
+  zip?: string
+  lat?: number
+  lon?: number
+  timezone?: string
+  isp?: string
+  org?: string
+  as?: string
+}
+
+export async function fetchBatchIpInfo(queries: IpInfoQuery[]): Promise<IpInfoResult[]> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchBatchIpInfo', queries))
 }
 
-export async function fetchIpInfoQuery(query: string): Promise<any> {
+export async function fetchIpInfoQuery(query: string): Promise<IpInfoResult> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchIpInfoQuery', query))
 }
 

@@ -3,6 +3,7 @@ import BasePage from '@renderer/components/base/base-page'
 import { IoLogoGithub, IoSettingsOutline, IoBuildOutline } from 'react-icons/io5'
 import GeneralConfig from '@renderer/components/settings/general-config'
 import AdvancedSettings from '@renderer/components/settings/advanced-settings'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 
 
@@ -36,11 +37,8 @@ const Settings: React.FC = () => {
           variant="solid"
           radius="lg"
           classNames={{
-            tabList: 'bg-default-100/50 shadow-sm mb-2',
-            cursor: 'bg-background shadow-sm',
-            tab: 'h-8 px-4',
-            tabContent: 'group-data-[selected=true]:text-primary font-medium',
-            panel: 'p-0'
+            ...CARD_STYLES.GLASS_TABS,
+            tab: CARD_STYLES.GLASS_TABS.tab + ' px-4',
           }}
         >
           <Tab

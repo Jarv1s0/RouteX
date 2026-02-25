@@ -163,7 +163,7 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({ showIp = true, o
                 {state?.status === 'success' && state.data && (
                   <div className="flex items-center gap-2">
                     <div className="text-sm font-bold font-mono tracking-wide select-all truncate">
-                      {showIp ? state.data.ip : '•••• •••• •••• ••••'}
+                      {showIp ? state.data.ip : '•••.•••.•••.•••'}
                     </div>
                     {showIp && (
                       <IoCopy 

@@ -104,9 +104,13 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
         }))
       
       // Merge with existing closed list and limit size
-      let nextClosed = [...newlyClosed, ...prevClosed]
-      if (nextClosed.length > 500) {
-        nextClosed = nextClosed.slice(0, 500)
+      // 仅在有新关闭连接时才创建新数组，避免无意义的拷贝
+      let nextClosed = prevClosed
+      if (newlyClosed.length > 0) {
+        nextClosed = [...newlyClosed, ...prevClosed]
+        if (nextClosed.length > 500) {
+          nextClosed = nextClosed.slice(0, 500)
+        }
       }
 
       set({

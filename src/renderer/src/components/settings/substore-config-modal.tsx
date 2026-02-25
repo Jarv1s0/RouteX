@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Switch } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { startSubStoreFrontendServer, startSubStoreBackendServer, stopSubStoreBackendServer } from '@renderer/utils/ipc'
+import { startSubStoreFrontendServer, startSubStoreBackendServer, stopSubStoreBackendServer, stopSubStoreFrontendServer } from '@renderer/utils/ipc'
 import debounce from '@renderer/utils/debounce'
 import { isValidCron } from 'cron-validator'
 
@@ -132,6 +132,30 @@ const SubStoreConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
             </ModalHeader>
             <ModalBody className="py-2 px-4">
               <div className="flex flex-col gap-2">
+                {/* 启用 Sub-Store 总开关 */}
+                <ConfigCard title="启用 Sub-Store" subtitle="开启后侧边栏显示 Sub-Store 入口">
+                  <Switch 
+                    size="sm" 
+                    color="success"
+                    isSelected={useSubStore} 
+                    onValueChange={async (v) => {
+                      try {
+                        await patchAppConfig({ useSubStore: v })
+                        if (v) {
+                          await startSubStoreFrontendServer()
+                          await startSubStoreBackendServer()
+                        } else {
+                          await stopSubStoreFrontendServer()
+                          await stopSubStoreBackendServer()
+                        }
+                      } catch (e) {
+                        alert(e)
+                      }
+                    }} 
+                  />
+                </ConfigCard>
+
+                <div className={`flex flex-col gap-2 transition-opacity duration-200 ${useSubStore ? '' : 'opacity-40 pointer-events-none'}`}>
                 <div className="grid grid-cols-2 gap-2">
                   <ConfigCard title="允许局域网连接" subtitle="监听 0.0.0.0">
                     <Switch 
@@ -204,6 +228,7 @@ const SubStoreConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                     </div>
                   </>
                 )}
+                </div>
               </div>
             </ModalBody>
             <ModalFooter className="py-2 px-4">

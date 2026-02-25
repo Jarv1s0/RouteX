@@ -1,5 +1,5 @@
 import { useTheme } from 'next-themes'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import PageTransition from '@renderer/components/base/page-transition'
@@ -23,6 +23,7 @@ import { ConnectionsSkeleton } from '@renderer/components/skeletons/ConnectionsS
 import { ProxiesSkeleton } from '@renderer/components/skeletons/ProxiesSkeleton'
 import { RulesSkeleton } from '@renderer/components/skeletons/RulesSkeleton'
 import { LogsSkeleton } from '@renderer/components/skeletons/LogsSkeleton'
+import { StatsSkeleton } from '@renderer/components/skeletons/StatsSkeleton'
 
 let navigate: NavigateFunction
 
@@ -143,14 +144,14 @@ const App: React.FC = () => {
     }
   }, [])
 
-  const onResizeEnd = (): void => {
+  const onResizeEnd = useCallback((): void => {
     if (resizingRef.current) {
       setResizing(false)
       const finalWidth = siderWidthValueRef.current
       setSiderWidthValue(finalWidth)
       patchAppConfig({ siderWidth: finalWidth })
     }
-  }
+  }, [patchAppConfig])
 
   const getFallback = (path: string) => {
     if (path.includes('/connections')) {
@@ -164,6 +165,9 @@ const App: React.FC = () => {
     }
     if (path.includes('/logs')) {
       return <LogsSkeleton />
+    }
+    if (path.includes('/stats')) {
+      return <StatsSkeleton />
     }
     return (
       <div className="flex items-center justify-center h-full w-full">

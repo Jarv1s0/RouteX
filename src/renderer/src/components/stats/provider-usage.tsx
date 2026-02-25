@@ -24,7 +24,14 @@ const calcTrafficInt = (byte: number): string => {
   return `${Math.round(byte)} TB`
 }
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?: any[], label?: string }) => {
+interface TooltipPayloadEntry {
+  color?: string
+  fill?: string
+  name: string
+  value: number
+}
+
+const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?: TooltipPayloadEntry[], label?: string }) => {
   if (active && payload && payload.length) {
     return (
       <div className={`
@@ -33,7 +40,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?:
         px-3 py-2 rounded-xl shadow-xl backdrop-blur-md
       `}>
         <p className="text-xs font-semibold mb-1 text-foreground-500">{label}</p>
-        {payload.map((entry: { color?: string; fill?: string; name: string; value: number }, index: number) => (
+        {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2 text-xs">
             <span 
               className="w-2 h-2 rounded-full"
@@ -234,7 +241,7 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
             </div>
           </div>
         </div>
-        <div className="h-[200px]">
+        <div className="h-[220px] lg:h-[280px] transition-all">
           {providerList.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-foreground-400 gap-2">
               <div className="text-4xl opacity-30">📊</div>
@@ -244,6 +251,19 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={providerChartData} margin={{ top: 10, right: 5, left: -10, bottom: 0 }}>
+                <defs>
+                  {displayProviderList.map((provider) => {
+                    const colorIndex = providerList.indexOf(provider)
+                    const colors = ['#006FEE', '#f5a524', '#17c964', '#f31260', '#7828c8', '#0072f5']
+                    const baseColor = colors[colorIndex >= 0 ? colorIndex % colors.length : 0]
+                    return (
+                      <linearGradient key={`grad-${provider}`} id={`providerGrad-${colorIndex}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={baseColor} stopOpacity={0.9} />
+                        <stop offset="100%" stopColor={baseColor} stopOpacity={0.4} />
+                      </linearGradient>
+                    )
+                  })}
+                </defs>
                 <CartesianGrid 
                   strokeDasharray="3 3" 
                   stroke="currentColor" 
@@ -275,9 +295,12 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
                       key={provider} 
                       dataKey={provider}
                       name={provider}
-                      fill={fillColor}
+                      fill={`url(#providerGrad-${colorIndex})`}
+                      stroke={fillColor}
+                      strokeWidth={0.5}
                       stackId={selectedProvider === 'all' ? 'a' : undefined}
                       radius={[4, 4, 0, 0]}
+                      isAnimationActive={false}
                     />
                   )
                 })}

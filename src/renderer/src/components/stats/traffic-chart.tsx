@@ -30,7 +30,14 @@ const calcTrafficInt = (byte: number): string => {
   return `${Math.round(byte)} TB`
 }
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?: any[], label?: string }) => {
+interface TooltipPayloadEntry {
+  color?: string
+  fill?: string
+  name: string
+  value: number
+}
+
+const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?: TooltipPayloadEntry[], label?: string }) => {
   if (active && payload && payload.length) {
     return (
       <div className={`
@@ -39,7 +46,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?:
         px-3 py-2 rounded-xl shadow-xl backdrop-blur-md
       `}>
         <p className="text-xs font-semibold mb-1 text-foreground-500">{label}</p>
-        {payload.map((entry: { color?: string; fill?: string; name: string; value: number }, index: number) => (
+        {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2 text-xs">
             <span 
               className="w-2 h-2 rounded-full"

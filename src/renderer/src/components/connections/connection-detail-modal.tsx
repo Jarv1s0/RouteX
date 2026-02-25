@@ -212,34 +212,30 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
           {/* 左侧：详细信息 */}
           <ScrollShadow className="flex-1 p-2 pr-2 flex flex-col gap-2">
             
-            {/* 核心地址信息 */}
             <div className="grid grid-cols-1 gap-2">
-              <div className="p-4 rounded-xl bg-white/40 dark:bg-content1/10 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm hover:border-white/40 hover:bg-white/50 transition-colors group relative">
-                <div className="flex items-center gap-3 mb-3 opacity-70 group-hover:opacity-100 transition-opacity">
-                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                    <FaNetworkWired className="text-base" />
+              {/* 目标地址卡片 */}
+              <div className="p-4 rounded-xl bg-default-50/60 dark:bg-content1/10 backdrop-blur-md border border-default-200/50 dark:border-white/5 shadow-sm hover:border-default-300/60 transition-colors group relative">
+                <div className="flex items-center gap-2.5 mb-3 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-500">
+                    <FaNetworkWired className="text-sm" />
                   </div>
-                  <span className="text-xs font-bold text-default-500 uppercase tracking-wide">目标地址</span>
+                  <span className="text-xs font-bold text-blue-500/80 uppercase tracking-wide">目标地址</span>
                 </div>
-                
-                <div className="flex flex-col gap-1">
-                  <span className="text-lg font-bold text-foreground font-mono break-all selection:bg-primary/20 leading-tight">
-                    {destination}
-                  </span>
-                  <div className="flex items-center gap-2 mt-1">
-                     {connection.metadata.destinationGeoIP && (
-                       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-default-100 text-default-600 border border-default-200/50">
-                         {connection.metadata.destinationGeoIP}
-                       </span>
-                     )}
-                     {connection.metadata.destinationIPASN && (
-                        <span className="text-[10px] text-default-400">
-                          {connection.metadata.destinationIPASN}
-                        </span>
-                     )}
-                  </div>
+                <span className="text-base font-bold text-foreground font-mono break-all leading-tight block pr-6">
+                  {destination}
+                </span>
+                <div className="flex items-center gap-2 mt-1.5">
+                   {connection.metadata.destinationGeoIP && (
+                     <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-default-100 text-default-600 border border-default-200/50">
+                       {connection.metadata.destinationGeoIP}
+                     </span>
+                   )}
+                   {connection.metadata.destinationIPASN && (
+                      <span className="text-[10px] text-default-400">
+                        {connection.metadata.destinationIPASN}
+                      </span>
+                   )}
                 </div>
-                {/* 复制按钮 */}
                 <div 
                   onClick={() => navigator.clipboard.writeText(destination)}
                   className="absolute top-3 right-3 p-1.5 rounded-md text-default-400 hover:text-primary hover:bg-default-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-20"
@@ -249,13 +245,13 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                 </div>
               </div>
 
-               {/* 源地址 */}
+               {/* 源地址 — 绿色主题 */}
                <InfoCard 
                 icon={<IoPerson />} 
                 label="源地址" 
                 value={source} 
                 subValue={connection.metadata.sourceGeoIP?.join(' ') || 'Local Network'}
-                iconWrapperClassName="bg-primary/10 text-primary"
+                theme="green"
               />
             </div>
             
@@ -266,32 +262,38 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                 label="规则" 
                 value={connection.rulePayload || connection.rule} 
                 subValue={connection.rulePayload ? connection.rule : undefined}
-                accent="secondary"
-                iconWrapperClassName="bg-purple-500/10 text-purple-500"
+                theme="purple"
               />
               <InfoCard 
                 icon={<IoEarth />} 
                 label="DNS 模式" 
                 value={connection.metadata.dnsMode} 
                 subValue={connection.metadata.sniffHost ? `Sniffed: ${connection.metadata.sniffHost}` : undefined}
-                iconWrapperClassName="bg-warning/10 text-warning"
+                theme="orange"
               />
             </div>
 
-            {/* 统计数据横条 - 嵌入在 Header 底部 */}
-          <div className="p-2 pt-4 z-10 rounded-xl bg-white/40 dark:bg-content1/10 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm hover:bg-white/50 transition-colors">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-1.5 rounded-lg bg-secondary/10 text-secondary">
-                  <IoServer className="text-base" />
+            {/* 入站详情 — divider 横条布局 */}
+            <div className="rounded-xl bg-default-50/60 dark:bg-content1/10 backdrop-blur-md border border-default-200/50 dark:border-white/5 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-secondary/5 border-b border-default-200/50 dark:border-white/5">
+                <div className="p-1 rounded-md bg-secondary/15 text-secondary">
+                  <IoServer className="text-sm" />
                 </div>
-                <span className="text-xs font-bold text-default-500 uppercase tracking-wide">入站详情</span>
+                <span className="text-xs font-bold text-secondary/80 uppercase tracking-wide">入站详情</span>
               </div>
-              <div className="grid grid-cols-3 gap-y-4 gap-x-2">
-                <DetailItem label="入站名称" value={connection.metadata.inboundName} />
-                <DetailItem label="端口" value={connection.metadata.inboundPort?.toString()} />
-                <DetailItem label="IP" value={connection.metadata.inboundIP} />
-                <DetailItem label="用户 ID" value={connection.metadata.uid?.toString()} />
-                <DetailItem label="DSCP" value={connection.metadata.dscp?.toString()} />
+              <div className="divide-y divide-default-200/40 dark:divide-white/5">
+                {[
+                  { label: '入站名称', value: connection.metadata.inboundName },
+                  { label: '入站端口', value: connection.metadata.inboundPort?.toString() },
+                  { label: '入站 IP', value: connection.metadata.inboundIP },
+                  { label: '用户 ID', value: connection.metadata.uid?.toString() },
+                  { label: 'DSCP', value: connection.metadata.dscp?.toString() },
+                ].filter(item => item.value !== undefined && item.value !== '').map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between px-4 py-2 hover:bg-default-100/50 transition-colors">
+                    <span className="text-xs text-default-400 font-medium w-24 shrink-0">{label}</span>
+                    <span className="text-xs font-mono text-foreground text-right truncate select-all" title={value}>{value || '-'}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -379,67 +381,51 @@ interface InfoCardProps {
   label: string
   value?: string
   subValue?: string
-  accent?: 'warning' | 'success' | 'danger' | 'default' | 'secondary'
+  theme?: 'green' | 'purple' | 'orange' | 'blue' | 'default'
+  /** @deprecated */
+  accent?: string
+  /** @deprecated */
   iconWrapperClassName?: string
 }
 
-const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value, subValue, accent = 'default', iconWrapperClassName }) => {
-  const handleCopy = () => {
-    if (value) {
-      navigator.clipboard.writeText(value)
-    }
-  }
+const NEUTRAL_CARD = 'bg-default-50/60 dark:bg-content1/10 border-default-200/50 dark:border-white/5 hover:border-default-300/60'
+
+const THEME_MAP = {
+  green:   { icon: 'bg-green-500/15 text-green-500',  label: 'text-green-500/80',  value: 'text-foreground'  },
+  purple:  { icon: 'bg-purple-500/15 text-purple-500', label: 'text-purple-500/80', value: 'text-purple-500' },
+  orange:  { icon: 'bg-warning/15 text-warning',       label: 'text-warning/80',    value: 'text-foreground'  },
+  blue:    { icon: 'bg-blue-500/15 text-blue-500',     label: 'text-blue-500/80',   value: 'text-foreground'  },
+  default: { icon: 'bg-default-100 text-default-500',  label: 'text-default-500',   value: 'text-foreground'  },
+} as const
+
+const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value, subValue, theme = 'default' }) => {
+  const t = THEME_MAP[theme]
+  const handleCopy = () => { if (value) navigator.clipboard.writeText(value) }
 
   return (
-    <div className="p-4 rounded-xl bg-white/40 dark:bg-content1/10 backdrop-blur-md border border-white/20 dark:border-white/5 hover:border-white/40 hover:bg-white/50 transition-colors shadow-sm group relative">
-      <div className="flex items-center gap-3 mb-2 opacity-70 group-hover:opacity-100 transition-opacity">
-        <div className={clsx("p-1.5 rounded-lg text-base", iconWrapperClassName || "bg-default-100 text-default-500")}>
-          {icon}
-        </div>
-        <span className="text-xs font-semibold text-default-500 uppercase">{label}</span>
+    <div className={`p-4 rounded-xl backdrop-blur-md border shadow-sm transition-colors group relative ${NEUTRAL_CARD}`}>
+      <div className="flex items-center gap-2.5 mb-2 opacity-80 group-hover:opacity-100 transition-opacity">
+        <div className={clsx('p-1.5 rounded-lg text-sm', t.icon)}>{icon}</div>
+        <span className={`text-xs font-bold uppercase tracking-wide ${t.label}`}>{label}</span>
       </div>
-      <div className="flex flex-col">
-        <span 
-          className={clsx(
-            "text-sm font-bold font-mono truncate pr-6",
-            accent === 'warning' ? "text-warning" : 
-            accent === 'success' ? "text-success" : 
-            accent === 'danger' ? "text-danger" : 
-            accent === 'secondary' ? "text-purple-500" : "text-foreground"
-          )} 
-          title={value}
-        >
-          {value || 'N/A'}
-        </span>
-        {subValue && (
-          <span className="text-xs text-default-400 truncate mt-0.5" title={subValue}>
-            {subValue}
-          </span>
-        )}
-      </div>
-      {/* 复制按钮 */}
+      <span className={clsx('text-sm font-bold font-mono truncate block pr-6', t.value)} title={value}>
+        {value || 'N/A'}
+      </span>
+      {subValue && (
+        <span className="text-xs text-default-400 truncate mt-0.5 block" title={subValue}>{subValue}</span>
+      )}
       {value && (
-         <div 
-           onClick={handleCopy}
-           className="absolute top-3 right-3 p-1.5 rounded-md text-default-400 hover:text-primary hover:bg-default-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-20"
-           title="Copy"
-         >
-           <IoCopy className="text-xs" />
-         </div>
+        <div
+          onClick={handleCopy}
+          className="absolute top-3 right-3 p-1.5 rounded-md text-default-400 hover:text-primary hover:bg-default-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+          title="Copy"
+        >
+          <IoCopy className="text-xs" />
+        </div>
       )}
     </div>
   )
 }
-
-// 2. DetailItem - 入站详情小项
-const DetailItem: React.FC<{ label: string, value?: string }> = ({ label, value }) => (
-  <div className="flex flex-col gap-0.5 min-w-0">
-    <span className="text-[10px] uppercase text-default-400 font-bold">{label}</span>
-    <span className="text-xs font-mono text-foreground truncate select-all" title={value}>
-      {value || '-'}
-    </span>
-  </div>
-)
 
 // 3. TimelineNode - 时间线/路径节点
 interface TimelineNodeProps {
@@ -486,7 +472,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
       <div className={clsx(
         "relative rounded-xl border p-3 transition-all",
         isGroup 
-          ? "bg-content1 border-default-200/60 dark:border-white/5 hover:border-primary/30 hover:shadow-sm" 
+          ? "bg-content1/80 dark:bg-default-100/80 border-default-300/60 dark:border-white/10 hover:border-primary/40 shadow-sm hover:shadow-md backdrop-blur-sm" 
           : "bg-transparent border-transparent px-0 py-0" 
       )}>
         {/* 顶部标签行 */}

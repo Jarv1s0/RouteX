@@ -1,5 +1,6 @@
-import { Button, Card, CardBody } from '@heroui/react'
+import { Button } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
+import EmptyState from '@renderer/components/base/empty-state'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
   mihomoChangeProxy,
@@ -377,17 +378,11 @@ const Proxies: React.FC = () => {
       {isSettingModalOpen && <ProxySettingModal onClose={() => setIsSettingModalOpen(false)} />}
       {isChainModalOpen && <ProxyChainModal onClose={() => setIsChainModalOpen(false)} />}
       {mode === 'direct' ? (
-        <div className="h-full w-full flex justify-center items-center p-4">
-          <Card className="bg-default-100/50 border-none shadow-sm px-12 py-8">
-            <CardBody className="flex flex-col items-center gap-2">
-              <div className="w-20 h-20 rounded-full bg-teal-500/20 flex items-center justify-center">
-                <TbBolt className="text-teal-500 text-[48px]" />
-              </div>
-              <h2 className="text-foreground text-xl font-semibold mt-2">直连模式</h2>
-              <p className="text-foreground-500 text-sm">所有流量将直接连接，不经过代理</p>
-            </CardBody>
-          </Card>
-        </div>
+        <EmptyState
+          icon={<TbBolt className="!text-[40px] text-teal-500" />}
+          title="直连模式"
+          description="所有流量将直接连接，不经过代理"
+        />
       ) : isLoading && (!allGroups || allGroups.length === 0) ? (
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
