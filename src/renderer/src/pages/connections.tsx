@@ -185,6 +185,14 @@ const Connections: React.FC = () => {
     tab === 'active' ? mihomoCloseAllConnections() : trashAllClosedConnections()
   }, [tab, trashAllClosedConnections])
 
+  // 建立 O(1) 连接 ID 索引，避免 hideConnection / unhideConnection 每次合并数组再线性查找
+  const connectionMap = useMemo(() => {
+    const map = new Map<string, ControllerConnectionDetail>()
+    for (const c of activeConnections) map.set(c.id, c)
+    for (const c of closedConnections) map.set(c.id, c)
+    return map
+  }, [activeConnections, closedConnections])
+
   const closeConnection = useCallback(
     (id: string): void => {
       tab === 'active' ? mihomoCloseConnection(id) : trashClosedConnection(id)
@@ -193,7 +201,7 @@ const Connections: React.FC = () => {
   )
 
   const hideConnection = useCallback((id: string) => {
-    const conn = [...activeConnections, ...closedConnections].find(c => c.id === id)
+    const conn = connectionMap.get(id)
     if (!conn) return
     
     const rule = `${conn.metadata.process || 'unknown'}:${conn.metadata.host || conn.metadata.destinationIP || 'unknown'}`
@@ -202,10 +210,10 @@ const Connections: React.FC = () => {
       localStorage.setItem('hiddenConnectionRules', JSON.stringify(Array.from(newSet)))
       return newSet
     })
-  }, [activeConnections, closedConnections])
+  }, [connectionMap])
 
   const unhideConnection = useCallback((id: string) => {
-    const conn = [...activeConnections, ...closedConnections].find(c => c.id === id)
+    const conn = connectionMap.get(id)
     if (!conn) return
     
     const rule = `${conn.metadata.process || 'unknown'}:${conn.metadata.host || conn.metadata.destinationIP || 'unknown'}`
@@ -215,7 +223,7 @@ const Connections: React.FC = () => {
       localStorage.setItem('hiddenConnectionRules', JSON.stringify(Array.from(newSet)))
       return newSet
     })
-  }, [activeConnections, closedConnections])
+  }, [connectionMap])
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number; conn?: ControllerConnectionDetail }>({ isOpen: false, x: 0, y: 0 })
@@ -470,7 +478,10 @@ const Connections: React.FC = () => {
               title={
                 <div className="flex items-center gap-2 px-2">
                   <IoPulseOutline className="text-lg" />
-                  <span>活动中 ({activeConnections.length})</span>
+                  <span>活动中</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-success/15 text-success leading-none">
+                    {activeConnections.length}
+                  </span>
                 </div>
               }
             />
@@ -479,7 +490,12 @@ const Connections: React.FC = () => {
               title={
                 <div className="flex items-center gap-2 px-2">
                   <IoTimeOutline className="text-lg" />
-                  <span>已关闭 ({closedConnections.length})</span>
+                  <span>已关闭</span>
+                  {closedConnections.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-default-400/15 text-default-500 leading-none">
+                      {closedConnections.length}
+                    </span>
+                  )}
                 </div>
               }
             />

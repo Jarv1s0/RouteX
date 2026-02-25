@@ -22,7 +22,7 @@ interface LogsState {
 const logBuffer: ControllerLog[] = []
 
 const updateStore = throttle((logs: ControllerLog[]) => {
-    useLogsStore.setState({ logs: [...logs] })
+    useLogsStore.setState({ logs: logs.slice() })
 }, 500, { leading: true, trailing: true })
 
 const handleLog = (_e: unknown, log: ControllerLog) => {

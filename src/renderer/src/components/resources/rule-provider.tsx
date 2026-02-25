@@ -18,6 +18,7 @@ interface Props {
   onUpdateAllRef?: React.MutableRefObject<(() => void) | null>
 }
 
+/* eslint-disable react/prop-types */
 const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }) => {
   const [showDetails, setShowDetails] = useState({
     show: false,
@@ -207,5 +208,6 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
     </div>
   )
 }
+/* eslint-enable react/prop-types */
 
 export default RuleProvider

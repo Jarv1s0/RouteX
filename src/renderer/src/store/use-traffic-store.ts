@@ -45,6 +45,8 @@ const MAX_RULES_TRACKED = 1000
 
 // Module-level interval reference
 let trafficStatsInterval: number | undefined
+// Module-level visibility change handler reference
+let visibilityChangeHandler: (() => void) | null = null
 
 // Module-level handler references for robust cleanup
 let currentTrafficHandler: ((e: unknown, traffic: { up: number; down: number }) => void) | null = null
@@ -58,6 +60,10 @@ function unregisterTrafficHandlers() {
     if (currentConnectionsHandler) {
         window.electron.ipcRenderer.removeListener('mihomoConnections', currentConnectionsHandler)
         currentConnectionsHandler = null
+    }
+    if (visibilityChangeHandler) {
+        document.removeEventListener('visibilitychange', visibilityChangeHandler)
+        visibilityChangeHandler = null
     }
 }
 
@@ -211,11 +217,21 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
     // Initial fetch of static stats
     get().fetchInitialStats()
 
-    // Start polling for static stats
-     
+    // 每 30s 轮询一次静态历史数据（历史数据不需要高频更新）
+    // 并且只在窗口可见时才轮询，避免后台无效 IPC 消耗
     trafficStatsInterval = window.setInterval(() => {
-        get().fetchInitialStats()
-    }, 5000)
+        if (!document.hidden) {
+            get().fetchInitialStats()
+        }
+    }, 30000)
+
+    // 当用户从后台切换回前台时，立即补刷一次（防止数据陈旧）
+    visibilityChangeHandler = () => {
+        if (!document.hidden) {
+            get().fetchInitialStats()
+        }
+    }
+    document.addEventListener('visibilitychange', visibilityChangeHandler)
   },
 
   cleanupListeners: () => {

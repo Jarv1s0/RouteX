@@ -1,10 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
-import worldMap from '@renderer/assets/world.json'
-import { fetchBatchIpInfo, getCurrentProfileStr } from '@renderer/utils/ipc'
+import { fetchBatchIpInfo, getCurrentProfileStr, IpInfoResult } from '@renderer/utils/ipc'
 import { useTheme } from 'next-themes'
 import YAML from 'yaml'
+
+interface ProxyItem {
+    name: string
+    server: string
+    [key: string]: unknown
+}
 
 interface GeoNode {
     name: string
@@ -64,8 +69,11 @@ const GlobalNodeMap: React.FC = () => {
                 // Start location detection in background
                 detectLocation()
 
+                // Load worldMap dynamically to split chunks and reduce initial bundle size
+                const worldMap = (await import('@renderer/assets/world.json')).default
+                
                 // Register Map Immediately
-                echarts.registerMap('world', worldMap as any)
+                echarts.registerMap('world', worldMap as unknown as Parameters<typeof echarts.registerMap>[1])
                 
                 // Get Raw Profile Config for Server Addresses
                 const profileYaml = await getCurrentProfileStr()
@@ -140,7 +148,7 @@ const GlobalNodeMap: React.FC = () => {
                 const candidatesForQuery: { name: string, query: string }[] = []
 
                 if (Array.isArray(proxies)) {
-                    proxies.forEach((proxy: any) => {
+                    proxies.forEach((proxy: ProxyItem) => {
                          if (!proxy.server || proxy.name === 'GLOBAL') return
                          
                          const matchedKey = findKeywordInName(proxy.name)
@@ -181,13 +189,13 @@ const GlobalNodeMap: React.FC = () => {
                     for (const chunk of chunks) {
                          try {
                             const queries = chunk.map(q => ({ query: q, fields: "status,message,lat,lon,country,countryCode,query" }))
-                            let data: any[] = []
+                            let data: IpInfoResult[] = []
                             try {
                                 data = await fetchBatchIpInfo(queries)
                             } catch(e) { console.error(e) }
 
                             if (Array.isArray(data)) {
-                                data.forEach((item: any) => {
+                                data.forEach((item: IpInfoResult) => {
                                     if (item.status === 'success') {
                                         // Try to map back to our Canonical Names
                                         const rawCountry = item.country || item.countryCode
@@ -196,7 +204,7 @@ const GlobalNodeMap: React.FC = () => {
                                         // Try to find a coordinate for this canonical name if possible
                                         // If we already have this country from keywords, use that coord
                                         // If not, use the IP coord
-                                        let coord: [number, number] = [item.lon, item.lat]
+                                        let coord: [number, number] = [item.lon || 0, item.lat || 0]
                                         
                                         if (countryStats.has(canonicalName)) {
                                             const existing = countryStats.get(canonicalName)!
@@ -252,11 +260,29 @@ const GlobalNodeMap: React.FC = () => {
             backgroundColor: 'transparent',
             tooltip: {
                 trigger: 'item',
-                formatter: (params: any) => {
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                padding: 0,
+                formatter: (params: echarts.DefaultLabelFormatterCallbackParams) => {
+                    const name = params.name
                     if (params.seriesType === 'effectScatter') {
-                         return `${params.name}<br/> Nodes: ${params.data.count || 1}`
+                         const data = params.data as GeoNode
+                         const count = data.count || 1
+                         return `
+                            <div class="px-4 py-2 rounded-xl backdrop-blur-md bg-white/70 dark:bg-black/40 border border-white/40 dark:border-white/10 shadow-xl text-foreground">
+                                <div class="font-bold text-sm mb-1 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-success"></span>
+                                    ${name}
+                                </div>
+                                <div class="text-xs text-default-500">可用节点: <span class="text-foreground font-mono">${count}</span></div>
+                            </div>
+                         `
                     }
-                    return params.name
+                    return `
+                        <div class="px-3 py-1.5 rounded-lg backdrop-blur-md bg-white/70 dark:bg-black/40 border border-white/40 dark:border-white/10 shadow-lg text-xs text-foreground font-medium">
+                            ${name}
+                        </div>
+                    `
                 }
             },
             grid: {
@@ -276,11 +302,14 @@ const GlobalNodeMap: React.FC = () => {
                 },
                 itemStyle: {
                     normal: {
-                        areaColor: isDark ? '#1b1b1b' : '#e4e4e7',
-                        borderColor: isDark ? '#404a59' : '#d4d4d8'
+                        areaColor: isDark ? '#0f172a' : '#f4f4f5', // 深空蓝 / 灰白
+                        borderColor: isDark ? '#1e293b' : '#e4e4e7', // 深色边缘
+                        borderWidth: 1,
                     },
                     emphasis: {
-                        areaColor: isDark ? '#2a333d' : '#d1d5db'
+                        areaColor: isDark ? '#1e293b' : '#e4e4e7',
+                        shadowBlur: 10,
+                        shadowColor: isDark ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'
                     }
                 }
             },
@@ -290,18 +319,18 @@ const GlobalNodeMap: React.FC = () => {
                     zlevel: 1,
                     effect: {
                         show: true,
-                        period: 4,
-                        trailLength: 0.2, // Shorter trail for cleaner look
-                        color: '#4ade80', // Match node color
+                        period: 3, // Slightly faster
+                        trailLength: 0.4, // Longer trail for better glow
+                        color: '#2dd4bf', // Teal glow for lines
                         symbol: 'arrow',
                         symbolSize: 4
                     },
                     lineStyle: {
                         normal: {
-                            color: '#4ade80',
-                            width: 0.5, // Slight visible line for structure
-                            opacity: 0.05, // Very faint path
-                            curveness: 0.3
+                            color: '#2dd4bf',
+                            width: 0.5, 
+                            opacity: 0.1, // Slightly more visible
+                            curveness: 0.2 // Smoother flatter curve
                         }
                     },
                     data: nodes.map(node => {
@@ -324,18 +353,21 @@ const GlobalNodeMap: React.FC = () => {
                     label: {
                        show: true,
                        position: 'right',
-                       formatter: (params: any) => {
+                       formatter: (params: echarts.DefaultLabelFormatterCallbackParams) => {
                            return `${params.name}`
                        },
                        fontSize: 10,
                        color: isDark ? '#fff' : '#333'
                     },
-                    symbolSize: (_val: any, params: any) => {
-                        const count = params.data?.count || 1
+                    symbolSize: (_val: unknown, params: echarts.DefaultLabelFormatterCallbackParams) => {
+                        const data = params.data as GeoNode
+                        const count = data?.count || 1
                         return 6 + Math.log(count) * 4
                     },
                     itemStyle: {
-                        color: '#4ade80'
+                        color: '#2dd4bf', // Teal for remote nodes
+                        shadowBlur: 10,
+                        shadowColor: '#2dd4bf'
                     },
                     data: nodes
                 },
@@ -390,10 +422,19 @@ const GlobalNodeMap: React.FC = () => {
                 className="react-echarts-container"
              />
              
-             {/* Stats Overlay - Bottom Right Only */}
-             <div className="absolute bottom-10 right-10 text-right pointer-events-none">
-                <div className="text-default-500 text-sm">覆盖区域</div>
-                <div className="text-6xl font-bold text-primary glow-text">{nodes.length}</div>
+             {/* Stats Overlay - Bottom Right Classy Card */}
+             <div className="absolute bottom-6 right-6 pointer-events-none">
+                <div className="flex items-center gap-4 px-6 py-4 rounded-2xl backdrop-blur-lg bg-white/40 dark:bg-black/20 border border-white/40 dark:border-white/10 shadow-2xl">
+                    <div className="flex flex-col items-end">
+                        <span className="text-default-500 text-xs font-medium tracking-wider mb-1">全球覆盖</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-500 tracking-tighter">
+                                {nodes.length}
+                            </span>
+                            <span className="text-default-400 text-sm font-medium">个节点</span>
+                        </div>
+                    </div>
+                </div>
              </div>
         </div>
     )

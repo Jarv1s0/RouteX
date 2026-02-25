@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Input, Button, Tabs, Tab, Chip, Skeleton } from '@heroui/react'
 import { IoSearch, IoGlobe, IoShield, IoWifi, IoCheckmarkCircle, IoCloseCircle, IoRefresh, IoLocation, IoMap, IoTime, IoBusiness, IoServer, IoCopy, IoEye, IoEyeOff } from 'react-icons/io5'
@@ -88,6 +88,8 @@ const Tools: React.FC = () => {
 
   // 合并测试状态
   const [testTargets, setTestTargets] = useState<CombinedTestTarget[]>(defaultTestTargets)
+  const testTargetsRef = useRef(testTargets)
+  testTargetsRef.current = testTargets  // 始终保持最新引用
   const [allTesting, setAllTesting] = useState(false)
 
   // IP 信息
@@ -157,7 +159,9 @@ const Tools: React.FC = () => {
       return next
     })
     
-    const target = testTargets[index]
+    // 从 ref 读取最新状态，避免并发调用时闭包捕获过期值
+    const target = testTargetsRef.current[index]
+    if (!target) return
     try {
       if (target.type === 'connectivity') {
         const result = await testConnectivity(target.url!, 5000)
@@ -201,10 +205,8 @@ const Tools: React.FC = () => {
     setAllTesting(true)
     setTestTargets(prev => prev.map(t => ({ ...t, status: 'testing', region: undefined, error: undefined })))
     
-    await Promise.all(
-      testTargets.map(async (_, index) => {
-        await testSingle(index)
-      })
+    await Promise.allSettled(
+      testTargetsRef.current.map((_, index) => testSingle(index))
     )
     
     setAllTesting(false)
@@ -548,7 +550,7 @@ ASN: ${ipInfo.as}`
                         <div className="text-xs text-foreground-400">公开 IP 地址</div>
                         <div className="flex items-center gap-2">
                           <div className="font-mono text-lg font-bold tracking-wide truncate">
-                            {showIp ? ipInfo?.ip : '•••• •••• •••• ••••'}
+                            {showIp ? ipInfo?.ip : '•••.•••.•••.•••'}
                           </div>
                           {showIp && (
                             <IoCopy 

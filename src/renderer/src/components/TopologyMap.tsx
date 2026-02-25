@@ -103,9 +103,22 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
     return { nodes: newNodes, edges }
 }
 
+// 拓扑节点数据结构
+interface TopologyNodeData {
+    [key: string]: unknown
+    name: string
+    displayIcon?: boolean
+    iconUrl?: string
+    layerIndex: number
+    policyGroups: Set<string>
+    uploadSpeed?: number
+    downloadSpeed?: number
+    count?: number
+}
+
 const TopologyMapInner = () => {
     const { connections } = useConnections()
-    const [proxies, setProxies] = useState<Record<string, any>>({})
+    const [proxies, setProxies] = useState<ControllerProxies['proxies']>({})
     const [manualRefreshTrigger, setManualRefreshTrigger] = useState(0)
 
 
@@ -115,7 +128,7 @@ const TopologyMapInner = () => {
     const fetchProxies = async () => {
         try {
             const data = await mihomoProxies()
-            setProxies(data.proxies as any)
+            setProxies(data.proxies)
         } catch (e) {
             console.error("Failed to fetch proxies for topology", e)
         }
@@ -133,7 +146,7 @@ const TopologyMapInner = () => {
             return
         }
 
-        const nodesMap = new Map<string, any>()
+        const nodesMap = new Map<string, Node<TopologyNodeData>>()
         const linksMap = new Map<string, { weight: number, download: number, upload: number }>()
 
         // Maps to aggregate traffic per node
@@ -162,7 +175,7 @@ const TopologyMapInner = () => {
                 
                 nodeTraffic.set(uniqueName, { download: 0, upload: 0, count: 0 })
             } else if (policyGroup) {
-                nodesMap.get(uniqueName).data.policyGroups.add(policyGroup)
+                nodesMap.get(uniqueName)!.data.policyGroups.add(policyGroup)
             }
             return uniqueName
         }
