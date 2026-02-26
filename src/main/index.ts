@@ -10,7 +10,8 @@ import {
   Notification,
   powerMonitor,
   ipcMain,
-  nativeImage
+  nativeImage,
+  screen
 } from 'electron'
 import { addOverrideItem, addProfileItem, getAppConfig, patchControledMihomoConfig } from './config'
 import { quitWithoutCore, startCore, stopCore } from './core/manager'
@@ -396,9 +397,12 @@ app.whenReady().then(async () => {
         mainWindow.setIcon(nativeIcon)
       }
       
-      // 同时更新托盘图标
+      // 同时更新托盘图标（根据 DPI 缩放 resize，确保清晰）
       if (tray) {
-        tray.setImage(nativeIcon)
+        const scaleFactor = screen.getPrimaryDisplay().scaleFactor
+        const traySize = Math.round(16 * scaleFactor)
+        const trayIcon = nativeIcon.resize({ width: traySize, height: traySize })
+        tray.setImage(trayIcon)
       }
     } catch (e) {
       console.error('Failed to update icons:', e)

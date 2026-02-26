@@ -40,6 +40,15 @@ import { applyTheme } from './theme'
 export let tray: Tray | null = null
 let customTrayWindow: BrowserWindow | null = null
 
+// 辅助函数：根据 DPI 缩放加载清晰的托盘图标
+function getTrayIcon(iconPath: string): Electron.NativeImage {
+  const icon = nativeImage.createFromPath(iconPath)
+  // Windows 托盘图标基准尺寸为 16px，需根据显示器 DPI 缩放
+  const scaleFactor = screen.getPrimaryDisplay().scaleFactor
+  const size = Math.round(16 * scaleFactor)
+  return icon.resize({ width: size, height: size })
+}
+
 function formatDelayText(delay: number): string {
   if (delay === 0) {
     return 'Timeout'
@@ -450,8 +459,8 @@ export async function createTray(): Promise<void> {
     tray = new Tray(icon)
   }
   if (process.platform === 'win32') {
-    // 使用 nativeImage 加载 ico，确保高 DPI 显示清晰
-    const icon = nativeImage.createFromPath(getIconPath('icon.ico'))
+    // 使用 nativeImage 加载 ico，并根据 DPI 缩放 resize，确保高 DPI 显示清晰
+    const icon = getTrayIcon(getIconPath('icon.ico'))
     tray = new Tray(icon)
   }
   tray?.setToolTip('RouteX')
@@ -510,7 +519,7 @@ async function updateTrayIcon(): Promise<void> {
     
     const iconPath = getIconPath(iconName)
     // console.log(`[TrayUpdate] Updating tray icon to: ${iconPath}`)
-    const nativeIcon = nativeImage.createFromPath(iconPath)
+    const nativeIcon = getTrayIcon(iconPath)
     
     if (tray) {
       tray.setImage(nativeIcon)
