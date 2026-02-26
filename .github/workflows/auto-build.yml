@@ -11,6 +11,10 @@ concurrency:
   group: autobuild
   cancel-in-progress: true
 
+env:
+  VERSION: ""
+  STORE_PATH: ""
+
 jobs:
   update-tag:
     runs-on: ubuntu-latest
