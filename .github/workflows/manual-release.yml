@@ -20,6 +20,11 @@ on:
           - linux
           - macos
 
+env:
+  VERSION: ""
+  STORE_PATH: ""
+  SHORT_COMMIT: ""
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
