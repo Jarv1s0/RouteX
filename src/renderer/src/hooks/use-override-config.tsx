@@ -72,19 +72,22 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     return (): void => {
       window.electron.ipcRenderer.removeListener('overrideConfigUpdated', handleOverrideConfigUpdated)
     }
-  }, [])
+  }, [mutateOverrideConfig])
+
+  const contextValue = React.useMemo(
+    () => ({
+      overrideConfig,
+      setOverrideConfig,
+      mutateOverrideConfig,
+      addOverrideItem,
+      removeOverrideItem,
+      updateOverrideItem
+    }),
+    [overrideConfig, mutateOverrideConfig]
+  )
 
   return (
-    <OverrideConfigContext.Provider
-      value={{
-        overrideConfig,
-        setOverrideConfig,
-        mutateOverrideConfig,
-        addOverrideItem,
-        removeOverrideItem,
-        updateOverrideItem
-      }}
-    >
+    <OverrideConfigContext.Provider value={contextValue}>
       {children}
     </OverrideConfigContext.Provider>
   )
