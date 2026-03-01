@@ -2,7 +2,19 @@ import fs from 'fs'
 import path from 'path'
 import plist from 'plist'
 import { findBestAppPath, isIOSApp } from './icon'
-import { spawnSync } from 'child_process'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+
+const execAsync = promisify(exec)
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.promises.access(filePath)
+    return true
+  } catch {
+    return false
+  }
+}
 
 export async function getAppName(appPath: string): Promise<string> {
   if (process.platform === 'darwin') {
@@ -12,21 +24,21 @@ export async function getAppName(appPath: string): Promise<string> {
 
       if (isIOSApp(targetPath)) {
         const plistPath = path.join(targetPath, 'Info.plist')
-        const xml = fs.readFileSync(plistPath, 'utf-8')
+        const xml = await fs.promises.readFile(plistPath, 'utf-8')
         const parsed = plist.parse(xml) as Record<string, unknown>
         return (parsed.CFBundleDisplayName as string) || (parsed.CFBundleName as string) || ''
       }
 
       try {
-        const appName = getLocalizedAppName(targetPath)
+        const appName = await getLocalizedAppName(targetPath)
         if (appName) return appName
       } catch (err) {
         // ignore
       }
 
       const plistPath = path.join(targetPath, 'Contents', 'Info.plist')
-      if (fs.existsSync(plistPath)) {
-        const xml = fs.readFileSync(plistPath, 'utf-8')
+      if (await fileExists(plistPath)) {
+        const xml = await fs.promises.readFile(plistPath, 'utf-8')
         const parsed = plist.parse(xml) as Record<string, unknown>
 
         return (parsed.CFBundleDisplayName as string) || (parsed.CFBundleName as string) || ''
@@ -40,23 +52,17 @@ export async function getAppName(appPath: string): Promise<string> {
   return ''
 }
 
-function getLocalizedAppName(appPath: string): string {
+async function getLocalizedAppName(appPath: string): Promise<string> {
   const jxa = `
   ObjC.import('Foundation');
   const fm = $.NSFileManager.defaultManager;
   const name = fm.displayNameAtPath('${appPath}');
   name.js;
 `
-  const res = spawnSync('osascript', ['-l', 'JavaScript'], {
-    input: jxa,
-    encoding: 'utf8',
-    stdio: ['pipe', 'pipe', 'pipe']
-  })
-  if (res.error) {
-    throw res.error
+  try {
+    const { stdout } = await execAsync(`osascript -l JavaScript -e "${jxa.replace(/\n/g, ' ')}"`)
+    return stdout.trim()
+  } catch (err) {
+    throw new Error(`osascript execution failed: ${(err as Error).message}`)
   }
-  if (res.status !== 0) {
-    throw new Error(res.stderr.trim() || `osascript exited ${res.status}`)
-  }
-  return res.stdout.trim()
 }

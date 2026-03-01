@@ -29,11 +29,11 @@ function getStatsFilePath(): string {
   return path.join(dataDir(), STATS_FILE)
 }
 
-export function loadProviderStats(): ProviderStatsData {
+export async function loadProviderStats(): Promise<ProviderStatsData> {
   try {
     const filePath = getStatsFilePath()
     if (fs.existsSync(filePath)) {
-      const data = fs.readFileSync(filePath, 'utf-8')
+      const data = await fs.promises.readFile(filePath, 'utf-8')
       const parsed = JSON.parse(data)
       // 兼容旧数据格式（daily -> snapshots）
       if (parsed.daily && !parsed.snapshots) {
@@ -51,10 +51,10 @@ export function loadProviderStats(): ProviderStatsData {
   return statsData
 }
 
-export function saveProviderStats(): void {
+export async function saveProviderStats(): Promise<void> {
   try {
     const filePath = getStatsFilePath()
-    fs.writeFileSync(filePath, JSON.stringify(statsData, null, 2))
+    await fs.promises.writeFile(filePath, JSON.stringify(statsData, null, 2))
   } catch (e) {
     console.error('Failed to save provider stats:', e)
   }
