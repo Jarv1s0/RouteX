@@ -36,12 +36,19 @@ export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = 
     return (): void => {
       window.electron.ipcRenderer.removeListener('controledMihomoConfigUpdated', handleConfigUpdated)
     }
-  }, [])
+  }, [mutateControledMihomoConfig])
+
+  const contextValue = React.useMemo(
+    () => ({
+      controledMihomoConfig,
+      mutateControledMihomoConfig,
+      patchControledMihomoConfig
+    }),
+    [controledMihomoConfig, mutateControledMihomoConfig]
+  )
 
   return (
-    <ControledMihomoConfigContext.Provider
-      value={{ controledMihomoConfig, mutateControledMihomoConfig, patchControledMihomoConfig }}
-    >
+    <ControledMihomoConfigContext.Provider value={contextValue}>
       {children}
     </ControledMihomoConfigContext.Provider>
   )

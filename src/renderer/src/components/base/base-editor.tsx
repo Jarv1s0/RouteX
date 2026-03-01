@@ -183,7 +183,10 @@ export const BaseEditor: React.FC<Props> = (props) => {
         options={options}
         editorWillMount={editorWillMount}
         editorDidMount={diffEditorDidMount}
-        editorWillUnmount={(): void => {}}
+        editorWillUnmount={(): void => {
+          diffEditorRef.current?.getModel()?.original?.dispose()
+          diffEditorRef.current?.getModel()?.modified?.dispose()
+        }}
         onChange={onChange}
       />
     )
@@ -198,7 +201,9 @@ export const BaseEditor: React.FC<Props> = (props) => {
       options={options}
       editorWillMount={editorWillMount}
       editorDidMount={editorDidMount}
-      editorWillUnmount={(): void => {}}
+      editorWillUnmount={(): void => {
+        editorRef.current?.getModel()?.dispose()
+      }}
       onChange={onChange}
     />
   )
