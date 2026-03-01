@@ -89,20 +89,23 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     return (): void => {
       window.electron.ipcRenderer.removeListener('profileConfigUpdated', handleProfileConfigUpdated)
     }
-  }, [])
+  }, [mutateProfileConfig])
+
+  const contextValue = React.useMemo(
+    () => ({
+      profileConfig,
+      setProfileConfig,
+      mutateProfileConfig,
+      addProfileItem,
+      removeProfileItem,
+      updateProfileItem,
+      changeCurrentProfile
+    }),
+    [profileConfig, mutateProfileConfig] // functions inside rely on stale closures if not careful, but they use mutate/set so it's fine
+  )
 
   return (
-    <ProfileConfigContext.Provider
-      value={{
-        profileConfig,
-        setProfileConfig,
-        mutateProfileConfig,
-        addProfileItem,
-        removeProfileItem,
-        updateProfileItem,
-        changeCurrentProfile
-      }}
-    >
+    <ProfileConfigContext.Provider value={contextValue}>
       {children}
     </ProfileConfigContext.Provider>
   )

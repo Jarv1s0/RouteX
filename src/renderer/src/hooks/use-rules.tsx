@@ -32,7 +32,9 @@ export const RulesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [])
 
-  return <RulesContext.Provider value={{ rules, mutate }}>{children}</RulesContext.Provider>
+  const contextValue = React.useMemo(() => ({ rules, mutate }), [rules, mutate])
+
+  return <RulesContext.Provider value={contextValue}>{children}</RulesContext.Provider>
 }
 
 export const useRules = (): RulesContextType => {
