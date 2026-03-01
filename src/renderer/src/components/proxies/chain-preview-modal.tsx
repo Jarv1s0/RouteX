@@ -1,4 +1,4 @@
-import {
+﻿import {
   Modal,
   ModalContent,
   ModalHeader,
@@ -19,56 +19,46 @@ interface Props {
   onClose: () => void
 }
 
-// 高亮度饱和颜色配置 - 更明亮醒目
-const COLORS = {
-  indigo: {
-    border: '#818CF8',
-    bg: 'rgba(129, 140, 248, 0.25)',
-    text: '#FFFFFF',
-    textSecondary: '#C7D2FE',
-    icon: '#FFFFFF',
-    iconBg: 'rgba(129, 140, 248, 0.5)',
-    glow: 'rgba(129, 140, 248, 0.6)'
+const STYLE_VARIANTS = {
+  user: {
+    cardBg: 'bg-blue-500/10 dark:bg-blue-500/15',
+    iconBg: 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30',
+    iconText: 'text-blue-600 dark:text-blue-400',
+    badge: 'bg-blue-500/10 text-foreground border-blue-500/20',
+    indicator: 'bg-blue-500'
   },
-  cyan: {
-    border: '#22D3EE',
-    bg: 'rgba(34, 211, 238, 0.25)',
-    text: '#FFFFFF',
-    textSecondary: '#A5F3FC',
-    icon: '#FFFFFF',
-    iconBg: 'rgba(34, 211, 238, 0.5)',
-    glow: 'rgba(34, 211, 238, 0.6)'
+  dialer: {
+    cardBg: 'bg-violet-500/10 dark:bg-violet-500/15',
+    iconBg: 'bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/30',
+    iconText: 'text-violet-600 dark:text-violet-400',
+    badge: 'bg-violet-500/10 text-foreground border-violet-500/20',
+    indicator: 'bg-violet-500'
   },
-  orange: {
-    border: '#FB923C',
-    bg: 'rgba(251, 146, 60, 0.25)',
-    text: '#FFFFFF',
-    textSecondary: '#FED7AA',
-    icon: '#FFFFFF',
-    iconBg: 'rgba(251, 146, 60, 0.5)',
-    glow: 'rgba(251, 146, 60, 0.6)'
+  target: {
+    cardBg: 'bg-orange-500/10 dark:bg-orange-500/15',
+    iconBg: 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30',
+    iconText: 'text-orange-600 dark:text-orange-400',
+    badge: 'bg-orange-500/10 text-foreground border-orange-500/20',
+    indicator: 'bg-orange-500'
   },
-  emerald: {
-    border: '#34D399',
-    bg: 'rgba(52, 211, 153, 0.25)',
-    text: '#FFFFFF',
-    textSecondary: '#A7F3D0',
-    icon: '#FFFFFF',
-    iconBg: 'rgba(52, 211, 153, 0.5)',
-    glow: 'rgba(52, 211, 153, 0.6)'
+  internet: {
+    cardBg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
+    iconBg: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+    iconText: 'text-emerald-600 dark:text-emerald-400',
+    badge: 'bg-emerald-500/10 text-foreground border-emerald-500/20',
+    indicator: 'bg-emerald-500'
   }
 }
 
-type ColorKey = keyof typeof COLORS
+type VariantKey = keyof typeof STYLE_VARIANTS
 
-// NodeCard 移到组件外部避免无限刷新
 interface NodeCardProps {
   icon: React.ElementType
   title: string
   name?: string
-  color: ColorKey
+  variant: VariantKey
   index?: number
-  targetGroups?: string[]  // 新增：用于互联网卡片显示策略组
+  targetGroups?: string[]
   groupInfo?: {
     isGroup: boolean
     activeNode?: string
@@ -77,22 +67,22 @@ interface NodeCardProps {
   }
 }
 
-const NodeCard: React.FC<NodeCardProps> = React.memo(({ 
+const NodeCard = React.memo(function NodeCard({ 
   icon: Icon, 
   title, 
   name,
-  color,
+  variant,
   index = 0,
   targetGroups,
   groupInfo
-}) => {
-  const colorConfig = COLORS[color]
+}: NodeCardProps) {
+  const styles = STYLE_VARIANTS[variant]
   
   const getTypeLabel = () => {
     if (!groupInfo?.isGroup) return null
     const { groupType } = groupInfo
-    if (groupType === 'URLTest') return '动态节点'
-    if (groupType === 'Selector') return '手动选择'
+    if (groupType === 'URLTest') return '自动测速'
+    if (groupType === 'Selector') return '手动指定'
     if (groupType === 'Fallback') return '故障转移'
     if (groupType === 'LoadBalance') return '负载均衡'
     return groupType
@@ -100,95 +90,48 @@ const NodeCard: React.FC<NodeCardProps> = React.memo(({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ 
-        duration: 0.4, 
-        delay: index * 0.1,
-        ease: 'easeOut'
-      }}
-      whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-      className="rounded-3xl overflow-hidden cursor-default"
-      style={{
-        border: `2px solid ${colorConfig.border}`,
-        background: `linear-gradient(160deg, ${colorConfig.bg}, rgba(15,23,42,0.8))`,
-        minWidth: '200px',
-        maxWidth: '220px',
-        boxShadow: `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05)`
-      }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1, ease: 'easeOut' }}
+      className={`relative flex flex-col items-center p-6 w-[200px] h-[240px] rounded-3xl backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/20 dark:border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] hover:shadow-2xl transition-all duration-300 overflow-hidden hover:-translate-y-1 group ${styles.cardBg}`}
     >
-      <div className="p-8 flex flex-col items-center gap-6">
-        {/* 图标 */}
-        <div 
-          className="p-6 rounded-2xl"
-          style={{ 
-            background: colorConfig.iconBg,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}
+      <div className={`flex items-center justify-center w-14 h-14 rounded-2xl mb-4 border shadow-inner transition-transform duration-300 group-hover:-translate-y-0.5 ${styles.iconBg}`}>
+        <Icon className={`text-3xl drop-shadow-sm transition-transform duration-300 group-hover:scale-110 ${styles.iconText}`} />
+      </div>
+      
+      <div className="flex flex-col items-center w-full grow">
+        <span className="text-xs font-semibold text-default-400 tracking-wide mb-1 uppercase">{title}</span>
+        <span 
+          className="font-bold text-base text-foreground text-center break-words line-clamp-2 leading-snug drop-shadow-sm" 
+          title={groupInfo?.activeNode || name}
         >
-          <Icon 
-            className="text-5xl" 
-            style={{ color: colorConfig.icon }}
-          />
-        </div>
+          {groupInfo?.activeNode || name || title}
+        </span>
         
-        {/* 主标题 */}
-        <div className="text-center w-full">
-          <div 
-            className="font-bold text-2xl px-2 break-words" 
-            style={{ 
-              color: colorConfig.text,
-              textShadow: `0 0 15px ${colorConfig.glow}, 0 2px 4px rgba(0,0,0,0.5)`,
-              lineHeight: '1.4'
-            }}
-            title={groupInfo?.activeNode || name}
-          >
-            {groupInfo?.activeNode || name || title}
-          </div>
-          
-          {/* 副标题：类型描述 */}
-          {getTypeLabel() && (
-            <div 
-              className="text-xl mt-3 font-medium"
-              style={{ color: colorConfig.textSecondary }}
-            >
-              {getTypeLabel()}
-            </div>
-          )}
-        </div>
-        
-        {/* 策略组标签（互联网卡片）或节点数量标签 */}
-        {targetGroups && targetGroups.length > 0 ? (
-          <motion.div 
-            className="px-6 py-3 rounded-2xl text-lg font-semibold text-center"
-            style={{ 
-              background: colorConfig.iconBg,
-              border: `2px solid ${colorConfig.border}`,
-              color: colorConfig.text,
-              boxShadow: '0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
-            }}
-            whileHover={{ scale: 1.03 }}
-          >
-            <div className="text-sm opacity-70 mb-1.5">应用到策略组</div>
-            <div className="text-base font-bold" title={targetGroups.join(', ')}>
-              {targetGroups.join(', ')}
-            </div>
-          </motion.div>
-        ) : groupInfo?.isGroup && groupInfo.nodeCount !== undefined && (
-          <motion.div 
-            className="px-6 py-3 rounded-full text-lg font-bold"
-            style={{ 
-              background: colorConfig.iconBg,
-              border: `2px solid ${colorConfig.border}`,
-              color: colorConfig.text,
-              boxShadow: '0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
-            }}
-            whileHover={{ scale: 1.05 }}
-          >
-            {groupInfo.nodeCount} 节点
-          </motion.div>
+        {getTypeLabel() && (
+          <span className="text-[10px] font-semibold text-default-500 mt-2 bg-default-200/50 dark:bg-white/5 backdrop-blur-md px-2 py-0.5 rounded-md border border-default-200/50 dark:border-white/5">
+            {getTypeLabel()}
+          </span>
         )}
+      </div>
+      
+      <div className="absolute w-full bottom-0 left-0 px-4 pb-4">
+        {(targetGroups && targetGroups.length > 0) ? (
+          <div className="w-full flex justify-center">
+            <div className={`px-3 py-1.5 rounded-xl text-center border shadow-inner max-w-full ${styles.badge}`}>
+              <div className="opacity-80 mb-0.5 text-[9px] font-bold uppercase tracking-widest leading-none">应用策略组</div>
+              <div className="text-xs font-bold truncate drop-shadow-sm" title={targetGroups.join(', ')}>
+                {targetGroups.join(', ')}
+              </div>
+            </div>
+          </div>
+        ) : (groupInfo?.isGroup && groupInfo.nodeCount !== undefined) ? (
+          <div className="w-full flex justify-center">
+            <div className={`px-4 py-1.5 rounded-full text-[11px] font-black tracking-wide border shadow-inner ${styles.badge}`}>
+              {groupInfo.nodeCount} 节点
+            </div>
+          </div>
+        ) : null}
       </div>
     </motion.div>
   )
@@ -196,58 +139,34 @@ const NodeCard: React.FC<NodeCardProps> = React.memo(({
 
 NodeCard.displayName = 'NodeCard'
 
-// ConnectionLine - 双粒子流动效果
-const ConnectionLine: React.FC<{ delay: number; index?: number }> = React.memo(({ delay, index = 0 }) => (
-  <motion.div 
-    initial={{ opacity: 0, scaleX: 0 }}
-    animate={{ opacity: 1, scaleX: 1 }}
-    transition={{ duration: 0.6, delay: index * 0.15 + 0.2 }}
-    className="relative w-28 h-2 mx-6"
-  >
-    {/* 轨道背景 */}
-    <div 
-      className="absolute inset-0 rounded-full"
-      style={{ 
-        background: 'linear-gradient(90deg, rgba(34,211,238,0.3), rgba(52,211,153,0.3))'
-      }}
-    />
-    
-    {/* 流动粒子1 - 主粒子 */}
-    <motion.div
-      className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full"
-      style={{
-        background: 'radial-gradient(circle, #22D3EE 30%, #34D399 100%)'
-      }}
-      animate={{ left: ['-10%', '100%'] }}
-      transition={{ 
-        repeat: Infinity, 
-        duration: 1.8, 
-        ease: 'easeInOut',
-        delay: delay
-      }}
-    />
-    
-    {/* 流动粒子2 - 次粒子 */}
-    <motion.div
-      className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full"
-      style={{
-        background: 'radial-gradient(circle, #34D399 30%, #22D3EE 100%)'
-      }}
-      animate={{ left: ['-5%', '105%'] }}
-      transition={{ 
-        repeat: Infinity, 
-        duration: 1.8, 
-        ease: 'easeInOut',
-        delay: delay + 0.9
-      }}
-    />
-  </motion.div>
-))
+const ConnectionLine = React.memo(function ConnectionLine({ delay, index = 0 }: { delay: number; index?: number }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scaleX: 0 }}
+      animate={{ opacity: 1, scaleX: 1 }}
+      transition={{ duration: 0.6, delay: index * 0.15 + 0.2 }}
+      className="relative w-16 md:w-24 h-[3px] mx-2 bg-default-200 dark:bg-white/10 overflow-hidden rounded-full shrink-0"
+    >
+      <motion.div
+        className="absolute top-0 bottom-0 w-1/2 rounded-full"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(161, 161, 170, 0.4), rgba(161, 161, 170, 0.9), transparent)'
+        }}
+        animate={{ left: ['-100%', '200%'] }}
+        transition={{ 
+          repeat: Infinity, 
+          duration: 2, 
+          ease: 'linear',
+          delay: delay
+        }}
+      />
+    </motion.div>
+  )
+})
 
 ConnectionLine.displayName = 'ConnectionLine'
 
-// ScaleWrapper 优化避免无限刷新
-const ScaleWrapper: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
+const ScaleWrapper = React.memo(function ScaleWrapper({ children }: { children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
@@ -258,7 +177,7 @@ const ScaleWrapper: React.FC<{ children: React.ReactNode }> = React.memo(({ chil
       if (containerRef.current && contentRef.current) {
         const containerWidth = containerRef.current.clientWidth
         const contentWidth = contentRef.current.scrollWidth
-        const newScale = containerWidth < contentWidth ? (containerWidth - 40) / contentWidth : 1
+        const newScale = containerWidth < contentWidth ? (containerWidth - 20) / contentWidth : 1
         const clampedScale = Math.max(0.5, Math.min(1, newScale))
         if (Math.abs(clampedScale - scaleRef.current) > 0.01) {
           scaleRef.current = clampedScale
@@ -275,11 +194,11 @@ const ScaleWrapper: React.FC<{ children: React.ReactNode }> = React.memo(({ chil
   }, [])
 
   return (
-    <div ref={containerRef} className="w-full flex justify-center overflow-visible">
+    <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-visible">
       <div 
         ref={contentRef} 
-        style={{ transform: `scale(${scale})`, padding: '20px' }} 
-        className="origin-center transition-transform duration-300 ease-out"
+        style={{ transform: `scale(${scale})` }} 
+        className="origin-center transition-transform duration-300 ease-out py-8"
       >
         {children}
       </div>
@@ -335,41 +254,46 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
     <Modal
       backdrop="blur"
       classNames={{ backdrop: 'top-[48px]' }}
-      size="4xl"
+      size="5xl"
       hideCloseButton
       isOpen={true}
       onOpenChange={onClose}
     >
-      <ModalContent>
-        <ModalHeader className="flex justify-between items-center pr-4">
+      <ModalContent className="bg-background/90 dark:bg-content1/80 border border-default-200 dark:border-white/10 shadow-2xl">
+        <ModalHeader className="flex justify-between items-center pr-4 border-b border-default-200/50 dark:border-white/5 pb-3">
           <div className="flex items-center gap-2">
-            <MdLink className="text-lg text-primary" />
-            <span>链路预览</span>
-            <span className="text-xs font-normal text-default-400 ml-2">
+            <MdLink className="text-xl text-primary" />
+            <span className="font-bold">链路预览</span>
+            <span className="text-xs font-medium text-default-400 opacity-80 bg-default-100 px-2 py-0.5 rounded-md ml-2">
               节点总数: {chains.length}
             </span>
           </div>
-          <Button isIconOnly size="sm" variant="light" onPress={onClose}>
+          <Button isIconOnly size="sm" variant="light" color="danger" onPress={onClose}>
             <IoClose className="text-lg" />
           </Button>
         </ModalHeader>
-        <ModalBody className="py-6 min-h-[400px] flex flex-col">
+        <ModalBody className="py-6 min-h-[450px] flex flex-col pt-4">
           {chains.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-default-400">
-              <TbPlugConnected className="text-5xl mb-4 opacity-50" />
-              <p>暂无配置的代理链</p>
+              <div className="p-4 rounded-full bg-default-100 dark:bg-white/5 mb-4">
+                <TbPlugConnected className="text-5xl opacity-50" />
+              </div>
+              <p className="font-medium text-default-500">暂无配置的代理链</p>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-sm font-medium text-foreground whitespace-nowrap">选择链路</span>
+              <div className="flex items-center gap-3 mb-4 select-none px-1">
+                <span className="text-sm font-semibold text-default-600 whitespace-nowrap">匹配链路选择</span>
                 <Select
                   size="sm"
-                  className="max-w-xs"
+                  className="w-[280px]"
                   selectedKeys={selectedChainId ? new Set([selectedChainId]) : new Set()}
                   onSelectionChange={(keys) => {
                     const id = Array.from(keys)[0] as string
                     setSelectedChainId(id)
+                  }}
+                  classNames={{
+                    trigger: "bg-default-100 dark:bg-default-50/50 shadow-none border border-default-200 dark:border-white/5"
                   }}
                 >
                   {chains.map((chain) => (
@@ -382,40 +306,16 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
 
               {selectedChain && (
                 <div 
-                  className="flex-1 rounded-3xl p-12 flex items-center justify-center relative overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.8), rgba(30, 41, 59, 0.9))',
-                    border: '1px solid rgba(148, 163, 184, 0.25)',
-                    boxShadow: 'inset 0 0 60px rgba(0,0,0,0.3), 0 0 40px rgba(34, 211, 238, 0.1)'
-                  }}
+                  className="flex-1 rounded-3xl p-8 flex items-center justify-center relative overflow-hidden bg-default-50/50 dark:bg-background/50 border border-default-200/60 dark:border-white/5 shadow-inner"
                 >
-                  {/* 动态网格背景 */}
-                  <motion.div 
-                    className="absolute inset-0" 
-                    style={{ 
-                      backgroundImage: 'radial-gradient(circle, rgba(148, 163, 184, 0.15) 1.5px, transparent 1.5px)',
-                      backgroundSize: '35px 35px' 
-                    }}
-                    animate={{ opacity: [0.3, 0.6, 0.3] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                  />
-                  
-                  {/* 背景光晕效果 */}
-                  <div 
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%]"
-                    style={{
-                      background: 'radial-gradient(ellipse at center, rgba(34, 211, 238, 0.08) 0%, transparent 50%)'
-                    }}
-                  />
-
-                  <div className="flex items-center w-full justify-center overflow-visible py-6 relative z-10">
+                  <div className="w-full h-full relative z-10">
                     <ScaleWrapper>
-                      <div className="flex items-center gap-4 px-12 min-w-max">
+                      <div className="flex items-center justify-center min-w-max pb-4 px-4">
                         <NodeCard 
                           icon={IoPerson} 
                           title="用户" 
                           name="本机"
-                          color="indigo"
+                          variant="user"
                           index={0}
                         />
 
@@ -425,29 +325,29 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
                           icon={TbServer} 
                           title="前置节点" 
                           name={selectedChain.dialerProxy}
-                          color="cyan"
+                          variant="dialer"
                           index={1}
                           groupInfo={getGroupInfo(selectedChain.dialerProxy)}
                         />
 
-                        <ConnectionLine delay={0.3} index={1} />
+                        <ConnectionLine delay={0.4} index={1} />
 
                         <NodeCard 
                           icon={TbServer} 
                           title="落地节点" 
                           name={selectedChain.targetProxy}
-                          color="orange"
+                          variant="target"
                           index={2}
                           groupInfo={getGroupInfo(selectedChain.targetProxy)}
                         />
 
-                        <ConnectionLine delay={0.6} index={2} />
+                        <ConnectionLine delay={0.8} index={2} />
 
                         <NodeCard 
                           icon={IoGlobeOutline} 
                           title="互联网" 
-                          name="目标网站"
-                          color="emerald"
+                          name="目标站点"
+                          variant="internet"
                           index={3}
                           targetGroups={selectedChain.targetGroups}
                         />
@@ -455,27 +355,17 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
                     </ScaleWrapper>
                   </div>
                   
-                  {/* 图例说明 */}
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-                    <div 
-                      className="flex gap-4 px-4 py-2 rounded-full"
-                      style={{
-                        background: 'rgba(15, 23, 42, 0.8)',
-                        border: '1px solid rgba(71, 85, 105, 0.4)'
-                      }}
-                    >
+                  <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+                    <div className="flex gap-6 px-6 py-2.5 rounded-2xl bg-background/80 dark:bg-content1/80 backdrop-blur-md border border-default-200 dark:border-white/10 shadow-sm">
                       {[
-                        { color: COLORS.indigo.border, label: '用户' },
-                        { color: COLORS.cyan.border, label: '前置节点' },
-                        { color: COLORS.orange.border, label: '落地节点' },
-                        { color: COLORS.emerald.border, label: '互联网' }
+                        { variant: 'user', label: '用户', color: 'bg-blue-500' },
+                        { variant: 'dialer', label: '前置节点', color: 'bg-violet-500' },
+                        { variant: 'target', label: '落地节点', color: 'bg-orange-500' },
+                        { variant: 'internet', label: '互联网', color: 'bg-emerald-500' }
                       ].map((item, i) => (
-                        <div key={i} className="flex items-center gap-1.5">
-                          <span 
-                            className="w-2.5 h-2.5 rounded-full"
-                            style={{ background: item.color }}
-                          />
-                          <span className="text-xs text-default-400">{item.label}</span>
+                        <div key={i} className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                          <span className="text-xs font-semibold text-default-600">{item.label}</span>
                         </div>
                       ))}
                     </div>

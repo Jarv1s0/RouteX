@@ -38,7 +38,12 @@ const Viewer: React.FC<Props> = (props) => {
         fileContent = await getFileStr(path)
       }
 
-      const parsedYaml = yaml.load(fileContent)
+      let parsedYaml: unknown
+      try {
+        parsedYaml = yaml.load(fileContent)
+      } catch (e) {
+        parsedYaml = null
+      }
       if (parsedYaml && typeof parsedYaml === 'object') {
         const yamlObj = parsedYaml as Record<string, unknown>
         const payload = yamlObj[privderType]?.[title]?.payload

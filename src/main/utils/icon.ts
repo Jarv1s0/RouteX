@@ -89,13 +89,13 @@ async function findDesktopFile(appPath: string): Promise<string | null> {
     for (const dir of desktopDirs) {
       if (!existsSync(dir)) continue
 
-      const files = fs.readdirSync(dir)
-      const desktopFiles = files.filter((file) => file.endsWith('.desktop'))
+      const files = await fs.promises.readdir(dir)
+      const desktopFiles = files.filter((file: string) => file.endsWith('.desktop'))
 
       for (const file of desktopFiles) {
         const fullPath = path.join(dir, file)
         try {
-          const content = fs.readFileSync(fullPath, 'utf-8')
+          const content = await fs.promises.readFile(fullPath, 'utf-8')
 
           const execMatch = content.match(/^Exec\s*=\s*(.+?)$/m)
           if (execMatch) {
@@ -240,13 +240,13 @@ export async function getIconDataURL(appPath: string): Promise<string> {
   } else if (process.platform === 'linux') {
     const desktopFile = await findDesktopFile(appPath)
     if (desktopFile) {
-      const content = fs.readFileSync(desktopFile, 'utf-8')
+      const content = await fs.promises.readFile(desktopFile, 'utf-8')
       const iconName = parseIconNameFromDesktopFile(content)
       if (iconName) {
         const iconPath = resolveIconPath(iconName)
         if (iconPath) {
           try {
-            const iconBuffer = fs.readFileSync(iconPath)
+            const iconBuffer = await fs.promises.readFile(iconPath)
             return `data:image/png;base64,${iconBuffer.toString('base64')}`
           } catch {
             return darwinDefaultIcon

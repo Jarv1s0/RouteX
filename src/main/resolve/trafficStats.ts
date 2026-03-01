@@ -73,11 +73,11 @@ function getStatsFilePath(): string {
   return path.join(dataDir(), STATS_FILE)
 }
 
-export function loadTrafficStats(): TrafficStatsData {
+export async function loadTrafficStats(): Promise<TrafficStatsData> {
   try {
     const filePath = getStatsFilePath()
     if (fs.existsSync(filePath)) {
-      const data = fs.readFileSync(filePath, 'utf-8')
+      const data = await fs.promises.readFile(filePath, 'utf-8')
       const loaded = JSON.parse(data)
       // 确保数据结构完整
       statsData = {
@@ -106,7 +106,7 @@ export function loadTrafficStats(): TrafficStatsData {
   return statsData
 }
 
-export function saveTrafficStats(): void {
+export async function saveTrafficStats(): Promise<void> {
   // 清除待执行的保存定时器
   if (saveTimer) {
     clearTimeout(saveTimer)
@@ -114,7 +114,7 @@ export function saveTrafficStats(): void {
   }
   try {
     const filePath = getStatsFilePath()
-    fs.writeFileSync(filePath, JSON.stringify(statsData, null, 2))
+    await fs.promises.writeFile(filePath, JSON.stringify(statsData, null, 2))
   } catch (e) {
     console.error('Failed to save traffic stats:', e)
   }
