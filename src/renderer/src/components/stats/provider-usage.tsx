@@ -7,7 +7,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface ProviderUsageProps {
   providerData: { date: string; provider: string; used: number }[]
-  currentProviders: string[]
+  currentProviders: { name: string; resetDay?: number }[]
   onRefresh: () => void
 }
 
@@ -73,9 +73,9 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
   })
 
   // 获取所有订阅名称（用于下拉菜单）
-  const providerList = useMemo(() => {
+  const providerNameList = useMemo(() => {
     if (currentProviders.length > 0) {
-      return currentProviders
+      return currentProviders.map(p => p.name)
     }
     const providers = new Set<string>()
     providerData.forEach(item => {
@@ -83,6 +83,12 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
     })
     return Array.from(providers)
   }, [currentProviders, providerData])
+
+  // 获取指定订阅的 resetDay
+  const getResetDay = (providerName: string): number => {
+    const p = currentProviders.find(item => item.name === providerName)
+    return p?.resetDay || 1
+  }
 
   // 可选月份列表
   const availableMonths = useMemo(() => {
@@ -100,9 +106,9 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
 
   // 当前显示的订阅列表
   const displayProviderList = useMemo(() => {
-    if (selectedProvider === 'all') return [...providerList].reverse()
+    if (selectedProvider === 'all') return [...providerNameList].reverse()
     return [selectedProvider]
-  }, [selectedProvider, providerList])
+  }, [selectedProvider, providerNameList])
 
   // 订阅统计数据处理
   const providerChartData = useMemo(() => {
@@ -131,24 +137,49 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
         
         let daily = 0
         if (todaySnapshot && prevSnapshot) {
-          daily = Math.max(0, todaySnapshot.used - prevSnapshot.used)
+          const diff = todaySnapshot.used - prevSnapshot.used
+          if (diff < 0) {
+            // 流量重置：today < prev 说明订阅在这一天重置了，当日增量为重置后的新值
+            daily = todaySnapshot.used
+          } else if (prevSnapshot.used > 0 && diff > prevSnapshot.used * 10 && diff > 1073741824) {
+            // 异常正向跳变：增量超过前日值的10倍且超过1GB，判定为订阅数据刷新/修正
+            // 不显示（或可均摊），避免单日出现不真实的巨大柱子
+            daily = 0
+          } else {
+            daily = diff
+          }
+        } else if (todaySnapshot && !prevSnapshot) {
+          // 无前一天数据时不显示，避免大量累计值堆在单日
+          daily = 0
         }
         
         dayData[provider] = daily
       })
       return dayData
     })
-  }, [providerData, selectedMonth, selectedProvider])
+  }, [providerData, selectedMonth, selectedProvider, currentProviders])
 
+  // 按账单周期计算本期使用量
   const providerTotalTraffic = useMemo(() => {
+
+    // 确定账单周期的 resetDay（选了单订阅时取其 resetDay，否则默认 1）
+    const resetDay = selectedProvider !== 'all' ? getResetDay(selectedProvider) : 1
+
+    // 账单周期：从本月 resetDay 到月末（或到下月 resetDay-1）
+    // 如果当前日期 < resetDay，说明我们还在上个周期中
+    // 图表只显示当月 1-31 日的数据，按 resetDay 截取求和
     let total = 0
-    providerChartData.forEach(day => {
-      displayProviderList.forEach(provider => {
-        total += (day[provider] as number) || 0
-      })
+    providerChartData.forEach((day, index) => {
+      const dayNum = index + 1 // 1-based
+      // 只累加 resetDay 当日及之后的柱子（本账单周期内的日期）
+      if (dayNum >= resetDay) {
+        displayProviderList.forEach(provider => {
+          total += (day[provider] as number) || 0
+        })
+      }
     })
     return total
-  }, [providerChartData, displayProviderList])
+  }, [providerChartData, displayProviderList, selectedMonth, selectedProvider, currentProviders])
 
   return (
     <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}>
@@ -164,7 +195,9 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
             {/* Toolbar */}
             <div className={`${CARD_STYLES.GLASS_TOOLBAR} px-1.5 py-1.5 rounded-2xl gap-2`}>
               <div className="flex items-center gap-2 px-3 py-1 bg-default-100/50 rounded-xl border border-default-200/50 shadow-sm backdrop-blur-sm">
-                <span className="text-xs text-foreground-500">本月使用</span>
+                <span className="text-xs text-foreground-500">
+                  {selectedProvider !== 'all' && getResetDay(selectedProvider) !== 1 ? '本期使用' : '本月使用'}
+                </span>
                 <span className="text-xs font-bold font-mono text-primary/80">
                   {calcTraffic(providerTotalTraffic)}
                 </span>
@@ -191,7 +224,7 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
                   </span>
                 ))}
               >
-                {['all', ...providerList].map(p => (
+                {['all', ...providerNameList].map(p => (
                   <SelectItem key={p} textValue={p === 'all' ? '全部订阅' : p} classNames={{ title: "text-xs" }}>
                     {p === 'all' ? '全部订阅' : p}
                   </SelectItem>
@@ -242,7 +275,7 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
           </div>
         </div>
         <div className="h-[220px] lg:h-[280px] transition-all">
-          {providerList.length === 0 ? (
+          {providerNameList.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-foreground-400 gap-2">
               <div className="text-4xl opacity-30">📊</div>
               <div className="text-sm">暂无订阅统计数据</div>
@@ -253,7 +286,7 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
               <BarChart data={providerChartData} margin={{ top: 10, right: 5, left: -10, bottom: 0 }}>
                 <defs>
                   {displayProviderList.map((provider) => {
-                    const colorIndex = providerList.indexOf(provider)
+                    const colorIndex = providerNameList.indexOf(provider)
                     const colors = ['#006FEE', '#f5a524', '#17c964', '#f31260', '#7828c8', '#0072f5']
                     const baseColor = colors[colorIndex >= 0 ? colorIndex % colors.length : 0]
                     return (
@@ -287,7 +320,7 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/30' }} />
                 {displayProviderList.map((provider) => {
-                  const colorIndex = providerList.indexOf(provider)
+                  const colorIndex = providerNameList.indexOf(provider)
                   const colors = ['#006FEE', '#f5a524', '#17c964', '#f31260', '#7828c8', '#0072f5']
                   const fillColor = colors[colorIndex >= 0 ? colorIndex % colors.length : 0]
                   return (

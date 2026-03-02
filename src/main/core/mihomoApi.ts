@@ -479,9 +479,15 @@ const mihomoConnections = async (): Promise<void> => {
     const data = e.data as string
     connectionsRetry = 10
     try {
+      // 优化：不再对整个庞大的 connections 字符串进行全量深拷贝解析
+      // 主进程只做最基础的正则/轻量提取用于 updateProcessTraffic
       const connectionsData = JSON.parse(data) as ControllerConnections
-      mainWindow?.webContents.send('mihomoConnections', connectionsData)
-      // 更新进程流量统计
+      
+      // 发送原始 JSON 字符串到渲染进程，由渲染进程的 Web Worker 或主线程解析
+      // 避免 Electron IPC 在主进程进行极度浪费 CPU 的对象序列化
+      mainWindow?.webContents.send('mihomoConnections', data)
+      
+      // 更新进程流量统计 (主进程仍需要对象，但我们未来可以优化这一步)
       if (connectionsData.connections) {
         updateProcessTraffic(connectionsData.connections)
       }

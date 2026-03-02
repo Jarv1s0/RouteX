@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { getTrafficStats, getProviderStats, getProfileConfig, triggerProviderSnapshot, startMonitor } from '@renderer/utils/ipc'
+import throttle from 'lodash/throttle'
 
 interface TrafficDataPoint {
   time: string
@@ -15,7 +16,7 @@ interface TrafficState {
   
   // Provider Data
   providerData: { date: string; provider: string; used: number }[]
-  currentProviders: string[]
+  currentProviders: { name: string; resetDay?: number }[]
   
   // Rule Stats
   ruleStats: Map<string, { hits: number; upload: number; download: number }>
@@ -117,10 +118,21 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       })
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleConnections = (_e: unknown, data: { connections?: Array<any> }): void => {
+    const handleConnections = throttle((_e: unknown, dataStr: string | { connections?: ControllerConnectionDetail[] }): void => {
       // 窗口不可见时跳过规则统计处理，降低 CPU 占用
       if (document.hidden) return
+      
+      let data: { connections?: ControllerConnectionDetail[] }
+      if (typeof dataStr === 'string') {
+        try {
+          data = JSON.parse(dataStr)
+        } catch {
+          return
+        }
+      } else {
+        data = dataStr
+      }
+      
       const connections = data.connections || []
       // Pre-calculate time string once
       const timeStr = new Date().toTimeString().split(' ')[0]
@@ -130,8 +142,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
         const newDetails = new Map(state.ruleHitDetails)
         let hasChanges = false
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        connections.forEach((conn: any) => {
+        connections.forEach((conn) => {
           if (!conn.rule) return
           
           const ruleName = conn.rulePayload 
@@ -202,7 +213,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
         return hasChanges ? { ruleStats: newStats, ruleHitDetails: newDetails } : {}
       })
-    }
+    }, 1500, { leading: true, trailing: true })
 
     // Register Listeners
     try {
@@ -254,7 +265,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
         
         const providers = (profileConfig.items || [])
           .filter(item => item.extra)
-          .map(item => item.name || item.id)
+          .map(item => ({ name: item.name || item.id, resetDay: item.resetDay }))
 
         set({
             hourlyData: (stats.hourly || []).slice(-24),
@@ -274,7 +285,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       const profileConfig = await getProfileConfig()
       const providers = (profileConfig.items || [])
         .filter(item => item.extra)
-        .map(item => item.name || item.id)
+        .map(item => ({ name: item.name || item.id, resetDay: item.resetDay }))
         
       set({
           providerData: pStats.snapshots || [],

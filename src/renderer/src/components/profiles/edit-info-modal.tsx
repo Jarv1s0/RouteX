@@ -169,6 +169,25 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   />
                 </SettingItem>
               )}
+              <SettingItem title="流量结算日">
+                <Input
+                  size="sm"
+                  className={cn(inputWidth)}
+                  inputMode="numeric"
+                  placeholder="默认为 1（每月1日重置）"
+                  value={values.resetDay?.toString() ?? ''}
+                  onValueChange={(v) => {
+                    if (!v || v === '') {
+                      setValues({ ...values, resetDay: undefined })
+                    } else {
+                      const num = parseInt(v)
+                      if (!isNaN(num) && num >= 1 && num <= 31) {
+                        setValues({ ...values, resetDay: num })
+                      }
+                    }
+                  }}
+                />
+              </SettingItem>
             </>
           )}
           <SettingItem title="覆写">

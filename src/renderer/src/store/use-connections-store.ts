@@ -40,12 +40,23 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   setPaused: (paused: boolean) => set({ isPaused: paused }),
 
   initializeListeners: () => {
-    const handleConnections = throttle((_e: unknown, info: ControllerConnections): void => {
+    const handleConnections = throttle((_e: unknown, infoStr: string | ControllerConnections): void => {
       const { isPaused } = get()
       if (isPaused) return
       // 窗口不可见时跳过处理，降低后台 CPU 占用
       if (document.hidden) return
       
+      let info: ControllerConnections
+      if (typeof infoStr === 'string') {
+        try {
+          info = JSON.parse(infoStr)
+        } catch {
+          return
+        }
+      } else {
+        info = infoStr
+      }
+
       if (!info || !info.connections) return
       
       const { activeConnections: prevActive, closedConnections: prevClosed } = get()
@@ -67,15 +78,10 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
           prev.upload === conn.upload &&
           prev.download === conn.download &&
           prev.chains?.[0] === conn.chains?.[0] &&
+          // 比较 rule 等可能会变的参数，如果没变就复用
           prev.rule === conn.rule &&
           prev.start === conn.start
         ) {
-           // We still need to update speed to 0 if we calculate it locally, 
-           // but here we calculate distinct speed based on diff.
-           // Actually, if upload/download didn't change, speed is 0.
-           // And if prev was active, and now active, and traffic same -> speed 0.
-           // So if prev had speed 0, we can reuse it?
-           // The computed speed depends on the diff.
            if (downloadSpeed === 0 && uploadSpeed === 0 && prev.downloadSpeed === 0 && prev.uploadSpeed === 0) {
              return prev
            }
@@ -102,9 +108,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
           uploadSpeed: 0,
           completedAt: new Date().toISOString()
         }))
-      
-      // Merge with existing closed list and limit size
-      // 仅在有新关闭连接时才创建新数组，避免无意义的拷贝
+        
       let nextClosed = prevClosed
       if (newlyClosed.length > 0) {
         nextClosed = [...newlyClosed, ...prevClosed]
