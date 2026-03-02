@@ -210,8 +210,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
                       stroke="#06b6d4" 
                       strokeWidth={2} 
                       fill="url(#uploadGradient)"
-                      isAnimationActive={true}
-                      animationDuration={500}
+                      isAnimationActive={false}
                     />
                     <Area 
                       type="basis" 
@@ -220,8 +219,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
                       stroke="#a855f7" 
                       strokeWidth={2} 
                       fill="url(#downloadGradient)"
-                      isAnimationActive={true}
-                      animationDuration={500}
+                      isAnimationActive={false}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
