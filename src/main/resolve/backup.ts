@@ -1,8 +1,10 @@
 import { getAppConfig } from '../config'
 import dayjs from 'dayjs'
 import AdmZip from 'adm-zip'
+import { existsSync } from 'fs'
 import {
   appConfigPath,
+  chainsConfigPath,
   controledMihomoConfigPath,
   dataDir,
   overrideConfigPath,
@@ -24,6 +26,10 @@ export async function webdavBackup(): Promise<boolean> {
   const zip = new AdmZip()
 
   zip.addLocalFile(appConfigPath())
+  const chainsConfig = chainsConfigPath()
+  if (existsSync(chainsConfig)) {
+    zip.addLocalFile(chainsConfig)
+  }
   zip.addLocalFile(controledMihomoConfigPath())
   zip.addLocalFile(profileConfigPath())
   zip.addLocalFile(overrideConfigPath())
