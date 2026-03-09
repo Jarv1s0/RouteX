@@ -72,17 +72,25 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
   // 1. Duration Timer Logic
   const [duration, setDuration] = React.useState('')
   React.useEffect(() => {
+    const completedAt = (connection as any).completedAt
+    
     const updateDuration = () => {
-      const diff = dayjs().diff(dayjs(connection.start))
+      const end = completedAt ? dayjs(completedAt) : dayjs()
+      const diff = end.diff(dayjs(connection.start))
       const hours = Math.floor(diff / 3600000)
       const minutes = Math.floor((diff % 3600000) / 60000)
       const seconds = Math.floor((diff % 60000) / 1000)
       setDuration(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
     }
+    
     updateDuration()
+    
+    // 如果已经有结束时间，则不需要定时器刷新
+    if (completedAt) return
+
     const timer = setInterval(updateDuration, 1000)
     return () => clearInterval(timer)
-  }, [connection.start])
+  }, [connection.start, (connection as any).completedAt])
 
   return (
     <Modal
