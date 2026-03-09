@@ -402,7 +402,11 @@ const Connections: React.FC = () => {
       }
     >
       {isDetailModalOpen && selected && (
-        <ConnectionDetailModal onClose={() => setIsDetailModalOpen(false)} connection={selected} />
+        <ConnectionDetailModal 
+          onClose={() => setIsDetailModalOpen(false)} 
+          connection={selected} 
+          onDisconnect={tab === 'active' ? (id) => { closeConnection(id); setIsDetailModalOpen(false) } : undefined}
+        />
       )}
       {isSettingModalOpen && (
         <ConnectionSettingModal onClose={() => setIsSettingModalOpen(false)} />
