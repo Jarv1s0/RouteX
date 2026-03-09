@@ -104,7 +104,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
         as="div"
         isPressable
         shadow="sm"
-        className="w-full bg-content2 hover:bg-primary/10 transition-colors border border-default-200/60 dark:border-white/10"
+        className="w-full bg-white/50 dark:bg-default-100/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-default-100/80 transition-all border border-transparent hover:border-default-200/50 shadow-sm"
         radius="lg"
         onPress={handleCardPress}
       >
@@ -114,7 +114,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
               size="md"
               radius="md"
               src={iconUrl}
-              className="flex-shrink-0"
+              className="flex-shrink-0 bg-transparent"
             />
           )}
           <div className="flex-1 min-w-0 flex flex-col gap-2">

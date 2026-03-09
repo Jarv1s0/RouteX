@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import { LuActivity } from 'react-icons/lu'
+import { IoStatsChart } from 'react-icons/io5'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -43,7 +43,7 @@ const StatsCard: React.FC<Props> = (props) => {
               navigate('/stats')
             }}
           >
-            <LuActivity className="text-[20px]" />
+            <IoStatsChart className="text-[20px]" />
           </Button>
         </Tooltip>
       </div>
@@ -86,7 +86,7 @@ const StatsCard: React.FC<Props> = (props) => {
               variant="light"
               color="default"
             >
-              <LuActivity
+              <IoStatsChart
                 className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
               />
             </Button>

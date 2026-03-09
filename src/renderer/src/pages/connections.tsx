@@ -22,6 +22,7 @@ import { platform } from '@renderer/utils/init'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { MdTune } from 'react-icons/md'
 import { IoLink } from 'react-icons/io5'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 let cachedConnections: ControllerConnectionDetail[] = []
 
@@ -607,19 +608,15 @@ const Connections: React.FC = () => {
           <span className="text-xs text-warning font-medium">连接列表已暂停刷新</span>
         </div>
       )}
-      <div className="overflow-x-auto sticky top-0 z-40">
-        <div className="flex p-2 gap-2 items-center">
+      <div className="overflow-x-auto sticky top-0 z-40 w-full pb-2 px-2 pt-2 pointer-events-none">
+        <div className={`flex items-center w-full px-2 py-1.5 gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}>
           <Tabs
             size="md"
             variant="solid"
             radius="lg"
             selectedKey={tab}
             onSelectionChange={handleTabChange}
-            classNames={{
-              tabList: 'bg-default-100/50 shadow-sm',
-              cursor: 'bg-background shadow-sm',
-              tabContent: 'group-data-[selected=true]:text-primary font-medium'
-            }}
+            classNames={CARD_STYLES.GLASS_TABS}
           >
             <Tab
               key="active"
@@ -644,9 +641,7 @@ const Connections: React.FC = () => {
             variant="flat"
             size="sm"
             className="min-w-[120px] flex-1"
-            classNames={{
-              inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
-            }}
+            classNames={CARD_STYLES.GLASS_INPUT}
             value={filter}
             placeholder="筛选过滤"
             isClearable
@@ -654,7 +649,7 @@ const Connections: React.FC = () => {
           />
 
           <Select
-            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+            classNames={CARD_STYLES.GLASS_SELECT}
             size="sm"
             className="w-[110px] min-w-[110px]"
             selectedKeys={new Set([connectionOrderBy])}

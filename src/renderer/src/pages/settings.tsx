@@ -1,11 +1,11 @@
 import { Button, Tab, Tabs } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
-import { IoLogoGithub, IoSettingsOutline, IoColorPaletteOutline, IoBuildOutline } from 'react-icons/io5'
+import { IoLogoGithub, IoSettingsOutline, IoBuildOutline } from 'react-icons/io5'
 import GeneralConfig from '@renderer/components/settings/general-config'
 import AdvancedSettings from '@renderer/components/settings/advanced-settings'
-import Actions from '@renderer/components/settings/actions'
 
-import AppearanceConfig from '@renderer/components/settings/appearance-config'
+
+
 
 const Settings: React.FC = () => {
   return (
@@ -52,22 +52,9 @@ const Settings: React.FC = () => {
               </div>
             }
           >
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-2">
               <GeneralConfig />
-              <Actions />
-            </div>
-          </Tab>
-          <Tab
-            key="appearance"
-            title={
-              <div className="flex items-center gap-2">
-                <IoColorPaletteOutline className="text-lg" />
-                <span>外观</span>
-              </div>
-            }
-          >
-            <div className="flex flex-col">
-              <AppearanceConfig />
+    
             </div>
           </Tab>
           <Tab

@@ -6,12 +6,13 @@ import Viewer from '@renderer/components/resources/viewer'
 import { Virtuoso } from 'react-virtuoso'
 import { useEffect, useMemo, useState } from 'react'
 import { Button, Input, Tab, Tabs } from '@heroui/react'
-import { IoListOutline, IoLibraryOutline, IoGlobeOutline } from 'react-icons/io5'
+import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
 import { useRules } from '@renderer/hooks/use-rules'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { mihomoRuleProviders, mihomoUpdateRuleProviders, getRuntimeConfig } from '@renderer/utils/ipc'
 import { getHash } from '@renderer/utils/hash'
 import useSWR from 'swr'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 const Rules: React.FC = () => {
   const { rules } = useRules()
@@ -105,19 +106,15 @@ const Rules: React.FC = () => {
 
   return (
     <BasePage title="规则">
-      <div className="sticky top-0 z-40 bg-background">
-        <div className="flex items-center gap-2 p-2">
+      <div className="sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
+        <div className={`w-full px-2 py-1.5 flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}>
           <Tabs
             size="md"
             variant="solid"
             radius="lg"
             selectedKey={activeTab}
             onSelectionChange={(key) => setActiveTab(key as string)}
-            classNames={{
-              tabList: 'bg-default-100/50 shadow-sm',
-              cursor: 'bg-background shadow-sm',
-              tabContent: 'group-data-[selected=true]:text-primary font-medium'
-            }}
+            classNames={CARD_STYLES.GLASS_TABS}
           >
             <Tab
               key="rules"
@@ -128,15 +125,17 @@ const Rules: React.FC = () => {
                 </div>
               }
             />
+
             <Tab
               key="providers"
               title={
                 <div className="flex items-center gap-2 px-1">
-                  <IoLibraryOutline className="text-lg" />
+                  <IoCubeOutline className="text-lg" />
                   <span>规则集合</span>
                 </div>
               }
             />
+
             <Tab
               key="geodata"
               title={
@@ -156,9 +155,7 @@ const Rules: React.FC = () => {
               isClearable
               onValueChange={setFilter}
               className="flex-1"
-              classNames={{
-                inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
-              }}
+              classNames={CARD_STYLES.GLASS_INPUT}
             />
           )}
           {activeTab === 'providers' && (

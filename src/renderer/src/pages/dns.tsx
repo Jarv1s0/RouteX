@@ -15,6 +15,8 @@ import {
   isValidDnsServer
 } from '@renderer/utils/validate'
 import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
+
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { toast } from 'sonner'
 
 const DNS: React.FC = () => {
@@ -169,10 +171,7 @@ const DNS: React.FC = () => {
         </SettingItem>
         <SettingItem title="域名映射模式" divider>
           <Tabs
-            size="sm"
-            color="primary"
-            variant="solid"
-            radius="lg"
+            classNames={CARD_STYLES.GLASS_TABS}
             selectedKey={values.enhancedMode}
             onSelectionChange={(key: Key) => setValues({ ...values, enhancedMode: key as DnsMode })}
           >

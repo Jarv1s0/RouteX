@@ -586,11 +586,7 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       frame: useWindowFrame,
       fullscreenable: false,
       titleBarStyle: useWindowFrame ? 'default' : 'hidden',
-      titleBarOverlay: useWindowFrame
-        ? false
-        : {
-            height: 49
-          },
+      titleBarOverlay: false,
       autoHideMenuBar: true,
       ...(process.platform === 'linux' ? { icon: icon } : {}),
       webPreferences: {

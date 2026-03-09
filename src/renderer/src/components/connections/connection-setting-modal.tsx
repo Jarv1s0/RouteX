@@ -55,7 +55,7 @@ const ALL_COLUMNS = [
 ]
 
 // 默认显示的列
-export const DEFAULT_COLUMNS = ['close', 'process', 'host', 'type', 'rule', 'chains', 'downloadSpeed', 'uploadSpeed', 'download', 'upload', 'time']
+export const DEFAULT_COLUMNS = ['process', 'host', 'type', 'rule', 'chains', 'downloadSpeed', 'uploadSpeed', 'download', 'upload', 'time', 'close']
 
 interface Props {
   onClose: () => void

@@ -1,12 +1,6 @@
-import { Card, CardBody, Chip } from '@heroui/react'
+import { Card, CardBody } from '@heroui/react'
 import React from 'react'
 
-const colorMap: Record<string, 'danger' | 'warning' | 'primary' | 'default'> = {
-  error: 'danger',
-  warning: 'warning',
-  info: 'primary',
-  debug: 'default'
-}
 
 interface Props extends ControllerLog {
   index: number
@@ -22,6 +16,13 @@ const LogItem: React.FC<Props> = (props) => {
     }
   }
 
+  const borderColors: Record<string, string> = {
+    error: 'bg-danger',
+    warning: 'bg-warning',
+    info: 'bg-primary',
+    debug: 'bg-default'
+  }
+
   return (
     <div className="px-2 pb-2">
       <Card 
@@ -29,24 +30,28 @@ const LogItem: React.FC<Props> = (props) => {
         isPressable
         shadow="sm"
         radius="lg"
-        className="w-full bg-content2 hover:bg-primary/10 transition-colors border border-default-200/60 dark:border-white/10"
+        className="w-full bg-white/60 dark:bg-[#18181b]/60 hover:bg-default-100/80 transition-all border border-default-200/50 dark:border-white/5 backdrop-blur-md group"
         onPress={handlePress}
       >
-        <CardBody className="py-2 px-3">
-          <div className="flex items-center gap-2">
-            <Chip
-              size="sm"
-              variant="flat"
-              color={colorMap[type] || 'default'}
-              classNames={{ content: "text-xs font-medium" }}
-            >
-              {type.toUpperCase()}
-            </Chip>
-            <span className="text-foreground-400 text-xs flex-shrink-0">
-              {time}
-            </span>
+        <div className={`absolute left-0 top-0 bottom-0 w-1 ${borderColors[type] || 'bg-default'} opacity-60 group-hover:opacity-100 transition-opacity`} />
+        
+        <CardBody className="py-2.5 px-3 pl-4">
+          <div className="flex items-center justify-between mb-1.5">
+             <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                    type === 'error' ? 'border-danger/30 text-danger bg-danger/10' :
+                    type === 'warning' ? 'border-warning/30 text-warning bg-warning/10' :
+                    type === 'info' ? 'border-primary/30 text-primary bg-primary/10' :
+                    'border-default/30 text-default-500 bg-default/10'
+                }`}>
+                  {type.toUpperCase()}
+                </span>
+                <span className="text-default-400 text-[10px] font-mono tracking-tight">
+                  {time}
+                </span>
+             </div>
           </div>
-          <div className="select-text text-sm mt-1 break-all line-clamp-2">
+          <div className="select-text text-sm font-mono text-default-700 dark:text-default-300 break-all line-clamp-2 leading-relaxed">
             {payload}
           </div>
         </CardBody>

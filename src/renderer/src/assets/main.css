@@ -9,7 +9,12 @@
 }
 
 html {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 15px;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace !important;
 }
 
 .driver-popover {

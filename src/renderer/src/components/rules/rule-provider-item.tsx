@@ -19,7 +19,7 @@ const RuleProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate
       <Card 
         shadow="sm"
         radius="lg"
-        className="bg-content2 hover:bg-primary/10 transition-colors border border-default-200/60 dark:border-white/10"
+        className="bg-white/50 dark:bg-default-100/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-default-100/80 transition-all border border-transparent hover:border-default-200/50 shadow-sm"
       >
         <CardBody className="w-full py-2 px-3">
           <div className="flex items-center gap-2">

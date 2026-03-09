@@ -4,6 +4,7 @@ import { Card, CardBody, Input, Button, Tabs, Tab, Chip, Skeleton } from '@herou
 import { IoSearch, IoGlobe, IoShield, IoWifi, IoCheckmarkCircle, IoCloseCircle, IoRefresh, IoLocation, IoEye, IoEyeOff, IoCopy, IoPlay } from 'react-icons/io5'
 import { mihomoDnsQuery, testRuleMatch, testConnectivity, fetchIpInfo as fetchIpInfoIpc, checkStreamingUnlock } from '@renderer/utils/ipc'
 import { cardInputClassNames } from '@renderer/components/settings/advanced-settings'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface ConnectivityResult {
   name: string
@@ -324,12 +325,10 @@ ASN: ${ipInfo.as}`
                 onValueChange={setDnsQuery}
                 onKeyDown={(e) => e.key === 'Enter' && handleDnsQuery()}
                 className="flex-1"
-                classNames={cardInputClassNames}
+                classNames={CARD_STYLES.GLASS_INPUT}
               />
               <Tabs 
-                size="sm" 
-                variant="solid"
-                radius="lg"
+                classNames={CARD_STYLES.GLASS_TABS}
                 selectedKey={dnsType} 
                 onSelectionChange={(key) => setDnsType(key as typeof dnsType)}
               >
@@ -384,7 +383,7 @@ ASN: ${ipInfo.as}`
                 onValueChange={setRuleQuery}
                 onKeyDown={(e) => e.key === 'Enter' && handleRuleTest()}
                 className="flex-1"
-                classNames={cardInputClassNames}
+                classNames={CARD_STYLES.GLASS_INPUT}
               />
               <Button
                 size="sm"
@@ -444,7 +443,7 @@ ASN: ${ipInfo.as}`
                   key={result.name}
                   isPressable
                   onPress={() => !result.testing && testSingleConnectivity(index)}
-                  className={`transition-all duration-200 ${result.testing ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+                  className={`${CARD_STYLES.GLASS_ITEM_CARD} ${result.testing ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
                 >
                   <CardBody className="p-3 text-center">
                     <img 
@@ -509,7 +508,7 @@ ASN: ${ipInfo.as}`
                   key={service.key}
                   isPressable
                   onPress={() => service.status !== 'testing' && testSingleStreaming(index)}
-                  className={`transition-all duration-200 ${service.status === 'testing' ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+                  className={`${CARD_STYLES.GLASS_ITEM_CARD} ${service.status === 'testing' ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
                 >
                   <CardBody className="p-3 text-center">
                     <img 

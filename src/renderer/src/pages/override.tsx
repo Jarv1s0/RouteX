@@ -23,8 +23,9 @@ import { useOverrideConfig } from '@renderer/hooks/use-override-config'
 import OverrideItem from '@renderer/components/override/override-item'
 import EditInfoModal from '@renderer/components/override/edit-info-modal'
 import { FaPlus } from 'react-icons/fa6'
-import { HiOutlineDocumentText } from 'react-icons/hi'
-import { RiArchiveLine } from 'react-icons/ri'
+import { LuFileText } from 'react-icons/lu'
+import { FaGithub } from 'react-icons/fa6'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 const emptyItems: OverrideItem[] = []
 
@@ -158,7 +159,7 @@ const Override: React.FC = () => {
               open('https://mihomo.party/docs/guide/override')
             }}
           >
-            <HiOutlineDocumentText className="text-lg" />
+            <LuFileText className="w-[18px] h-[18px]" />
           </Button>
           <Button
             className="app-nodrag"
@@ -170,19 +171,17 @@ const Override: React.FC = () => {
               open('https://github.com/mihomo-party-org/override-hub')
             }}
           >
-            <RiArchiveLine className="text-lg" />
+            <FaGithub className="w-[18px] h-[18px]" />
           </Button>
         </>
       }
     >
-      <div className="sticky top-0 z-40 bg-background">
-        <div className="flex p-2">
+      <div className="sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
+        <div className={`w-full px-2 py-1.5 flex gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}>
           <Input
             variant="flat"
             size="sm"
-            classNames={{
-              inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
-            }}
+            classNames={CARD_STYLES.GLASS_INPUT}
             value={url}
             onValueChange={setUrl}
             endContent={

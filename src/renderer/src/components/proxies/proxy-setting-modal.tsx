@@ -53,8 +53,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
   const {
     proxyCols = 'auto',
     proxyDisplayOrder = 'default',
-    groupDisplayLayout = 'single',
-    proxyDisplayLayout = 'double',
+
     autoCloseConnection = true,
     delayTestUrl,
     delayTestConcurrency,
@@ -145,42 +144,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 <Tab key="name" title="名称" />
               </Tabs>
             </SettingItem>
-            <SettingItem title="代理组详细信息" divider>
-              <Tabs
-                size="sm"
-                color="primary"
-                variant="solid"
-                radius="lg"
-                selectedKey={groupDisplayLayout}
-                onSelectionChange={async (v) => {
-                  await patchAppConfig({
-                    groupDisplayLayout: v as 'hidden' | 'single' | 'double'
-                  })
-                }}
-              >
-                <Tab key="hidden" title="隐藏" />
-                <Tab key="single" title="单行" />
-                <Tab key="double" title="双行" />
-              </Tabs>
-            </SettingItem>
-            <SettingItem title="代理节点详细信息" divider>
-              <Tabs
-                size="sm"
-                color="primary"
-                variant="solid"
-                radius="lg"
-                selectedKey={proxyDisplayLayout}
-                onSelectionChange={async (v) => {
-                  await patchAppConfig({
-                    proxyDisplayLayout: v as 'hidden' | 'single' | 'double'
-                  })
-                }}
-              >
-                <Tab key="hidden" title="隐藏" />
-                <Tab key="single" title="单行" />
-                <Tab key="double" title="双行" />
-              </Tabs>
-            </SettingItem>
+
             <SettingItem title="切换节点时断开连接" divider>
               <Switch
                 size="sm"

@@ -18,6 +18,7 @@ import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getFilePath, readTextFile, subStoreCollections, subStoreSubs, mihomoProxyProviders, mihomoUpdateProxyProviders, getRuntimeConfig } from '@renderer/utils/ipc'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getHash } from '@renderer/utils/hash'
 import { Virtuoso } from 'react-virtuoso'
 import type { KeyboardEvent } from 'react'
@@ -332,19 +333,15 @@ const Profiles: React.FC = () => {
           }}
         />
       )}
-      <div className="sticky profiles-sticky top-0 z-40 bg-background">
-        <div className="flex items-center gap-2 p-2">
+      <div className="sticky profiles-sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
+        <div className={`w-full px-2 py-1.5 gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}>
           <Tabs
             size="md"
             variant="solid"
             radius="lg"
             selectedKey={activeTab}
             onSelectionChange={(key) => setActiveTab(key as string)}
-            classNames={{
-              tabList: 'bg-default-100/50 shadow-sm',
-              cursor: 'bg-background shadow-sm',
-              tabContent: 'group-data-[selected=true]:text-primary font-medium'
-            }}
+            classNames={CARD_STYLES.GLASS_TABS}
           >
             <Tab key="profiles" title="订阅" />
             <Tab key="providers" title="代理集合" />
@@ -354,9 +351,7 @@ const Profiles: React.FC = () => {
               <Input
                 size="sm"
                 className="flex-1"
-                classNames={{
-                  inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
-                }}
+                classNames={CARD_STYLES.GLASS_INPUT}
                 value={url}
                 onValueChange={setUrl}
                 onKeyUp={handleInputKeyUp}

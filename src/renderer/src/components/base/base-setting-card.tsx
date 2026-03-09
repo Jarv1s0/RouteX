@@ -15,11 +15,11 @@ const SettingCard: React.FC<Props> = (props) => {
   const [collapsed, setCollapsed] = useState(collapsible && defaultCollapsed)
 
   return (
-    <Card className={`${props.className || ''} mb-2 hover:shadow-md transition-shadow duration-200`}>
+    <Card className={`${props.className || ''} hover:shadow-md transition-shadow duration-200`}>
       <CardBody className="p-0">
         {props.title && (
           <div
-            className={`px-4 py-3 text-md font-bold text-foreground flex justify-between items-center ${collapsible ? 'cursor-pointer hover:bg-default-100' : ''}`}
+            className={`px-4 py-3 text-sm font-bold text-foreground flex justify-between items-center ${collapsible ? 'cursor-pointer hover:bg-default-100' : ''}`}
             onClick={() => collapsible && setCollapsed(!collapsed)}
           >
             <div className="flex items-center gap-2">
