@@ -9,9 +9,7 @@ import {
 
 import pngIcon from '../../../resources/icon.png?asset'
 import templateIcon from '../../../resources/iconTemplate.png?asset'
-import iconIco from '../../../resources/icon.ico?asset'
-import iconProxyIco from '../../../resources/icon_proxy.ico?asset'
-import iconTunIco from '../../../resources/icon_tun.ico?asset'
+
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -503,13 +501,15 @@ async function updateTrayIcon(): Promise<void> {
     const { sysProxy } = await getAppConfig()
     const { tun } = await getControledMihomoConfig()
 
-    let iconPath = iconIco
+    let iconName = 'icon.ico'
     if (tun?.enable) {
-      iconPath = iconTunIco
+      iconName = 'icon_tun.ico'
     } else if (sysProxy.enable) {
-      iconPath = iconProxyIco
+      iconName = 'icon_proxy.ico'
     }
     
+    const iconPath = getIconPath(iconName)
+    // console.log(`[TrayUpdate] Updating tray icon to: ${iconPath}`)
     const nativeIcon = nativeImage.createFromPath(iconPath)
     
     if (tray) {

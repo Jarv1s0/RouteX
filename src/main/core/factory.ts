@@ -97,31 +97,111 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
   const proxies = profile.proxies as Record<string, unknown>[]
   const proxyGroups = profile['proxy-groups'] as Record<string, unknown>[]
 
-  for (const chain of chainsConfig.items) {
-    if (!chain.name || !chain.targetProxy || !chain.dialerProxy) {
-      continue
+  // --- 环路检测 (Loop Detection) ---
+  const dependencyGraph = new Map<string, Set<string>>()
+  
+  // 1. 添加现有的策略组依赖 (Group -> Proxy)
+  for (const group of proxyGroups) {
+    const name = group.name as string
+    if (!name) continue
+    if (!dependencyGraph.has(name)) dependencyGraph.set(name, new Set())
+    
+    if (Array.isArray(group.proxies)) {
+      group.proxies.forEach((p: string) => dependencyGraph.get(name)?.add(p))
+    }
+  }
+
+  // 1.5 添加普通代理的 dialer-proxy 依赖 (Proxy -> Dialer)
+  // 这是为了防止普通代理引用了代理链，而代理链又引用了该普通代理（或通过其他链间接引用）形成环路
+  if (Array.isArray(proxies)) {
+    for (const p of proxies) {
+      const name = p.name as string
+      const dialer = p['dialer-proxy'] as string
+      if (name && dialer) {
+        if (!dependencyGraph.has(name)) dependencyGraph.set(name, new Set())
+        dependencyGraph.get(name)?.add(dialer)
+      }
+    }
+  }
+
+  // 2. 筛选活跃的代理链并构建潜在依赖
+  const activeChains = chainsConfig.items.filter(
+    (c) => c.enabled !== false && c.name && c.targetProxy && c.dialerProxy
+  )
+
+  for (const chain of activeChains) {
+    const { name, dialerProxy, targetGroups } = chain
+    
+    // Chain -> Dialer
+    if (!dependencyGraph.has(name)) dependencyGraph.set(name, new Set())
+    dependencyGraph.get(name)?.add(dialerProxy)
+
+    // Group -> Chain (因为 Chain 被加入到了 Group 中，所以流量可能从 Group 流向 Chain)
+    if (targetGroups && Array.isArray(targetGroups)) {
+      for (const groupName of targetGroups) {
+        if (!dependencyGraph.has(groupName)) dependencyGraph.set(groupName, new Set())
+        dependencyGraph.get(groupName)?.add(name)
+      }
+    }
+  }
+
+  // 3. DFS 检测环路
+  const hasLoop = (startNode: string, visited = new Set<string>(), stack = new Set<string>()): boolean => {
+    visited.add(startNode)
+    stack.add(startNode)
+
+    const neighbors = dependencyGraph.get(startNode)
+    if (neighbors) {
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          if (hasLoop(neighbor, visited, stack)) return true
+        } else if (stack.has(neighbor)) {
+          return true
+        }
+      }
     }
 
-    if (chain.enabled === false) continue
+    stack.delete(startNode)
+    return false
+  }
 
+  const safeChains: typeof activeChains = []
+  for (const chain of activeChains) {
+    // 每次检测都使用新的 visited/stack，确保独立性
+    // 只要能从 chain.name 出发并回到 chain.name，即视为该 chain 参与了环路
+    if (hasLoop(chain.name, new Set(), new Set())) {
+      console.error(`[Factory] Detected loop for chain "${chain.name}" (dialer: "${chain.dialerProxy}"), skipping to prevent memory overflow.`)
+      continue
+    }
+    safeChains.push(chain)
+  }
+
+  // --- 执行安全的注入 ---
+  for (const chain of safeChains) {
     // 查找落地节点配置
     const targetProxyConfig = proxies.find((p) => p.name === chain.targetProxy)
     if (!targetProxyConfig) {
-
       continue
     }
 
     // 验证前置和落地节点是否存在于当前配置中 (Proxies 或 Groups)
+    // 注意：前置节点可能就是另一个 Chain，所以这里只要在 safeChains 或 existing 中即可
+    // 但为了简化，这里只检查是否在“最终会存在的集合”中有点复杂
+    // 保持原有逻辑：检查 profile 中是否存在，或者是否是本次新加的 chain (safeChains)
+    // 实际上依赖图中已经处理了关系，这里主要防止引用了不存在的节点导致内核报错
+    
+    // 简单检查 targets 是否在基础配置中 (不依赖顺序，因为 safeChains 内部可能互相引用)
+    // 只要 dialer 在 proxies/groups OR 是其他的 safeChain.name 即可
     const dialerExists = 
       (profile.proxies as any[])?.some(p => p.name === chain.dialerProxy) ||
-      (profile['proxy-groups'] as any[])?.some(g => g.name === chain.dialerProxy)
-    
+      (profile['proxy-groups'] as any[])?.some(g => g.name === chain.dialerProxy) ||
+      safeChains.some(c => c.name === chain.dialerProxy) // 支持链式引用 ChainA -> ChainB
+
     const targetExists = 
       (profile.proxies as any[])?.some(p => p.name === chain.targetProxy) ||
       (profile['proxy-groups'] as any[])?.some(g => g.name === chain.targetProxy)
 
     if (!dialerExists || !targetExists) {
-
       continue
     }
 

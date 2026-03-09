@@ -33,9 +33,7 @@ import { getUserAgent } from './utils/userAgent'
 import { loadTrafficStats, saveTrafficStats } from './resolve/trafficStats'
 import { loadProviderStats, startMapUpdateTimer, onCoreStarted } from './resolve/providerStats'
 import { startNetworkHealthMonitor } from './resolve/networkHealth'
-import iconIco from '../../resources/icon.ico?asset'
-import iconProxyIco from '../../resources/icon_proxy.ico?asset'
-import iconTunIco from '../../resources/icon_tun.ico?asset'
+
 
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
@@ -374,12 +372,20 @@ app.whenReady().then(async () => {
     try {
       if (process.platform !== 'win32') return
       
-      let iconPath = iconIco
-      if (type === 'proxy') iconPath = iconProxyIco
-      if (type === 'tun') iconPath = iconTunIco
+      let iconName = 'icon.ico'
+      if (type === 'proxy') iconName = 'icon_proxy.ico'
+      if (type === 'tun') iconName = 'icon_tun.ico'
       
+      const iconPath = getIconPath(iconName)
+      console.log(`[IconUpdate] Updating taskbar icon to: ${iconPath}`)
+
       const nativeIcon = nativeImage.createFromPath(iconPath)
       
+      if (nativeIcon.isEmpty()) {
+        console.warn(`[IconUpdate] Failed to load icon from path: ${iconPath}`)
+        return
+      }
+
       // 更新任务栏图标
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.setIcon(nativeIcon)
