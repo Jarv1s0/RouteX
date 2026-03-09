@@ -28,6 +28,7 @@ import MihomoCoreCard from '@renderer/components/sider/mihomo-core-card'
 import SubStoreCard from '@renderer/components/sider/substore-card'
 import StatsCard from '@renderer/components/sider/stats-card'
 import ToolsCard from '@renderer/components/sider/tools-card'
+import MapCard from '@renderer/components/sider/map-card'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import MihomoIcon from '../base/mihomo-icon'
 
@@ -48,6 +49,7 @@ const defaultSiderOrder = [
   'log',
   'substore',
   'stats',
+  'map',
   'tools'
 ]
 
@@ -65,7 +67,8 @@ const navigateMap = {
   override: 'override',
   substore: 'substore',
   stats: 'stats',
-  tools: 'tools'
+  tools: 'tools',
+  map: 'map'
 }
 
 const componentMap = {
@@ -82,7 +85,8 @@ const componentMap = {
   override: OverrideCard,
   substore: SubStoreCard,
   stats: StatsCard,
-  tools: ToolsCard
+  tools: ToolsCard,
+  map: MapCard
 }
 
 interface LatestVersion {
@@ -119,6 +123,9 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
       }
       if (!result.includes('substore')) {
         result = [...result, 'substore']
+      }
+      if (!result.includes('map')) {
+        result = [...result, 'map']
       }
       return result
     }, [siderOrderArray])

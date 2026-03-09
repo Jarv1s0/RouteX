@@ -28,3 +28,13 @@ export {
   setOverride,
   updateOverrideItem
 } from './override'
+export {
+  getChainsConfig,
+  setChainsConfig,
+  getChainItem,
+  addChainItem,
+  updateChainItem,
+  removeChainItem,
+  getAllChains
+} from './chains'
+

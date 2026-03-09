@@ -499,10 +499,10 @@ async function updateTrayIcon(): Promise<void> {
     const { tun } = await getControledMihomoConfig()
 
     let iconName = 'icon.ico'
-    if (sysProxy.enable) {
-      iconName = 'icon_proxy.ico'
-    } else if (tun?.enable) {
+    if (tun?.enable) {
       iconName = 'icon_tun.ico'
+    } else if (sysProxy.enable) {
+      iconName = 'icon_proxy.ico'
     }
     
     const iconPath = getIconPath(iconName)
@@ -513,13 +513,32 @@ async function updateTrayIcon(): Promise<void> {
     }
     
     // Sync main window icon with tray icon (System Proxy / Tun status)
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.setIcon(nativeIcon)
-    }
+    // Removed to avoid conflict with App.tsx and index.ts logic
+    // if (mainWindow && !mainWindow.isDestroyed()) {
+    //   mainWindow.setIcon(nativeIcon)
+    // }
   } catch (e) {
     console.error('Failed to update tray icon:', e)
   }
 }
+
+ipcMain.on('update-taskbar-icon', (_event, type: 'default' | 'proxy' | 'tun') => {
+  try {
+    if (process.platform !== 'win32') return
+    let iconName = 'icon.ico'
+    if (type === 'proxy') iconName = 'icon_proxy.ico'
+    if (type === 'tun') iconName = 'icon_tun.ico'
+    
+    const iconPath = getIconPath(iconName)
+    const nativeIcon = nativeImage.createFromPath(iconPath)
+    
+    if (tray) {
+      tray.setImage(nativeIcon)
+    }
+  } catch (e) {
+    console.error('Failed to update tray icon from IPC:', e)
+  }
+})
 
 async function updateTrayMenu(): Promise<void> {
   const menu = await buildContextMenu()

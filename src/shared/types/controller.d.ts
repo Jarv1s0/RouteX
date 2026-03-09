@@ -201,6 +201,7 @@ interface ControllerRulesDetail {
   payload: string
   proxy: string
   size: number
+  disabled?: boolean
 }
 
 // ${api}/version

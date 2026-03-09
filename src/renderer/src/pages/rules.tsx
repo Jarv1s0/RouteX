@@ -4,15 +4,16 @@ import RuleProviderItem from '@renderer/components/rules/rule-provider-item'
 import GeoData from '@renderer/components/resources/geo-data'
 import Viewer from '@renderer/components/resources/viewer'
 import { Virtuoso } from 'react-virtuoso'
-import { useEffect, useMemo, useState, useDeferredValue } from 'react'
+import { useEffect, useMemo, useState, useDeferredValue, useCallback } from 'react'
 import { Button, Input, Tab, Tabs } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
 import { useRules } from '@renderer/hooks/use-rules'
 import { includesIgnoreCase } from '@renderer/utils/includes'
-import { mihomoRuleProviders, mihomoUpdateRuleProviders, getRuntimeConfig } from '@renderer/utils/ipc'
+import { mihomoRuleProviders, mihomoUpdateRuleProviders, getRuntimeConfig, mihomoToggleRuleDisabled } from '@renderer/utils/ipc'
 import { getHash } from '@renderer/utils/hash'
 import useSWR from 'swr'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { useRulesStore } from '@renderer/store/use-rules-store'
 
 const Rules: React.FC = () => {
   const { rules } = useRules()
@@ -20,6 +21,9 @@ const Rules: React.FC = () => {
   const deferredFilter = useDeferredValue(filter)
   const [activeTab, setActiveTab] = useState('rules')
   const [updating, setUpdating] = useState<boolean[]>([])
+  
+  const { disabledRules, setRuleDisabled, toggleRuleDisabled } = useRulesStore()
+  
   const [showDetails, setShowDetails] = useState({
     show: false,
     path: '',
@@ -28,6 +32,36 @@ const Rules: React.FC = () => {
     format: '',
     privderType: ''
   })
+
+  // 从 rules 初始化 disabled 状态（仅首次加载或规则列表变化时）
+  useEffect(() => {
+    if (rules?.rules) {
+      rules.rules.forEach((rule, index) => {
+        // 如果 API 返回了 disabled 且本地 store 中未记录，则同步到 store
+        if (rule.disabled && disabledRules[index] === undefined) {
+          setRuleDisabled(index, true)
+        }
+      })
+    }
+  }, [rules, disabledRules, setRuleDisabled])
+
+  // 切换规则状态
+  const toggleRule = useCallback(async (index: number) => {
+    const currentDisabled = disabledRules[index] || false
+    const newDisabled = !currentDisabled
+    
+    // 乐观更新 UI
+    toggleRuleDisabled(index)
+    
+    try {
+      await mihomoToggleRuleDisabled({ [index]: newDisabled })
+      // 不刷新规则列表，因为 mihomo 不会在 rules API 中返回 disabled 状态
+    } catch (error) {
+      // 回滚状态
+      console.error('Failed to toggle rule:', error)
+      toggleRuleDisabled(index) // 反向切换回滚
+    }
+  }, [disabledRules, toggleRuleDisabled])
 
   const { data: providersData, mutate } = useSWR('mihomoRuleProviders', mihomoRuleProviders, {
     errorRetryInterval: 200,
@@ -175,15 +209,24 @@ const Rules: React.FC = () => {
         <div className="h-[calc(100vh-100px)]">
           <Virtuoso
             data={filteredRules}
-            itemContent={(i, rule) => (
-              <RuleItem
-                index={i}
-                type={rule.type}
-                payload={rule.payload}
-                proxy={rule.proxy}
-                size={rule.size}
-              />
-            )}
+            itemContent={(i, rule) => {
+              // 使用原始索引而不是过滤后的索引
+              const originalIndex = rules?.rules?.findIndex(
+                r => r.type === rule.type && r.payload === rule.payload && r.proxy === rule.proxy
+              ) ?? i
+              const isDisabled = disabledRules[originalIndex] || rule.disabled || false
+              return (
+                <RuleItem
+                  index={i}
+                  type={rule.type}
+                  payload={rule.payload}
+                  proxy={rule.proxy}
+                  size={rule.size}
+                  enabled={!isDisabled}
+                  onToggle={() => toggleRule(originalIndex)}
+                />
+              )
+            }}
           />
         </div>
       )}

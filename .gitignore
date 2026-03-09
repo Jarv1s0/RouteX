@@ -9,3 +9,4 @@ out
 .idea
 *.ttf
 .ai_memory/
+.agent/

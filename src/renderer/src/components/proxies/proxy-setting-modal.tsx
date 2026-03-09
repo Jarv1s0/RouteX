@@ -18,6 +18,8 @@ import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useGroups } from '@renderer/hooks/use-groups'
 import debounce from '@renderer/utils/debounce'
+
+
 import { secondaryInputClassNames, numberInputClassNames } from '../settings/advanced-settings'
 import {
   DndContext,
@@ -255,7 +257,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 </div>
               </div>
             </SettingItem>
-            <SettingItem title="代理组排序">
+            <SettingItem title="代理组排序" divider>
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
@@ -280,6 +282,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 </Button>
               </div>
             </SettingItem>
+
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -291,6 +294,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
           patchAppConfig={patchAppConfig}
         />
       )}
+
     </>
   )
 }

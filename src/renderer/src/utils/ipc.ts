@@ -31,6 +31,10 @@ export async function mihomoRules(): Promise<ControllerRules> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoRules'))
 }
 
+export async function mihomoToggleRuleDisabled(data: Record<number, boolean>): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoToggleRuleDisabled', data))
+}
+
 export async function mihomoProxies(): Promise<ControllerProxies> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoProxies'))
 }
@@ -217,6 +221,27 @@ export async function getOverride(id: string, ext: 'js' | 'yaml' | 'log'): Promi
 
 export async function setOverride(id: string, ext: 'js' | 'yaml', str: string): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setOverride', id, ext, str))
+}
+
+// 代理链 IPC
+export async function getChainsConfig(force = false): Promise<ChainsConfig> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getChainsConfig', force))
+}
+
+export async function getAllChains(): Promise<ChainItem[]> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAllChains'))
+}
+
+export async function addChainItem(item: Partial<ChainItem>): Promise<ChainItem> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('addChainItem', item))
+}
+
+export async function updateChainItem(item: ChainItem): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('updateChainItem', item))
+}
+
+export async function removeChainItem(id: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('removeChainItem', id))
 }
 
 export async function restartCore(): Promise<void> {
@@ -583,6 +608,14 @@ export async function fetchIpInfo(): Promise<{
   as?: string
 }> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchIpInfo'))
+}
+
+export async function fetchBatchIpInfo(queries: any[]): Promise<any[]> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchBatchIpInfo', queries))
+}
+
+export async function fetchIpInfoQuery(query: string): Promise<any> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchIpInfoQuery', query))
 }
 
 export async function testRuleMatch(domain: string): Promise<{ rule: string; rulePayload: string; proxy: string } | null> {

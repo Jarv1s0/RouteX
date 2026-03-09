@@ -10,6 +10,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { addFlag, removeFlag } from '@renderer/utils/flags'
 import React, { useMemo, useEffect, useState } from 'react'
 import { mihomoProxies } from '@renderer/utils/ipc'
+import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 
 interface Props {
   iconOnly?: boolean
@@ -19,6 +20,8 @@ const ProxyCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const { iconOnly } = props
   const { proxyCardStatus = 'col-span-2', disableAnimation = false } = appConfig || {}
+  const { controledMihomoConfig } = useControledMihomoConfig()
+  const { mode } = controledMihomoConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/proxies')
@@ -52,7 +55,11 @@ const ProxyCard: React.FC<Props> = (props) => {
   }, [groups])
 
   // 缓存第一个非GLOBAL组
-  const firstGroup = useMemo(() => groups.find(g => g.name !== 'GLOBAL'), [groups])
+  const firstGroup = useMemo(() => {
+    return mode === 'global' 
+      ? groups.find((g) => g.name === 'GLOBAL') 
+      : groups.find((g) => g.name !== 'GLOBAL')
+  }, [groups, mode])
   
   // 缓存当前选中的代理组名（带国旗）
   const currentGroupName = useMemo(() => {

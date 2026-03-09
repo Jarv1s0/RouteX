@@ -6,6 +6,7 @@
 @font-face {
   font-family: 'twemoji';
   src: url('./twemoji.ttf');
+  unicode-range: U+0080-10FFFF;
 }
 
 html {
