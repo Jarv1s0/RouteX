@@ -327,6 +327,17 @@ const Stats: React.FC = () => {
               const newDetails = new Map(prevDetails)
               const ruleDetails = newDetails.get(ruleName) || []
               
+              // 限制每个规则的详情数量 (从 100 降至 20)
+              const MAX_DETAILS_PER_RULE = 20
+              // 限制总详情 Map 的大小 (防止规则无限增加)
+              const MAX_RULES_TRACKED = 1000
+
+              if (newDetails.size >= MAX_RULES_TRACKED && !newDetails.has(ruleName)) {
+                 // 如果已满且是新规则，删除最早的一个 (简单清理)
+                 const firstKey = newDetails.keys().next().value
+                  if (firstKey) newDetails.delete(firstKey)
+              }
+
               ruleDetails.unshift({
                 id: conn.id,
                 time: timeStr,
@@ -337,8 +348,8 @@ const Stats: React.FC = () => {
                 download: conn.download
               })
               
-              if (ruleDetails.length > 100) {
-                 newDetails.set(ruleName, ruleDetails.slice(0, 100))
+              if (ruleDetails.length > MAX_DETAILS_PER_RULE) {
+                 newDetails.set(ruleName, ruleDetails.slice(0, MAX_DETAILS_PER_RULE))
               } else {
                  newDetails.set(ruleName, ruleDetails)
               }
@@ -353,10 +364,19 @@ const Stats: React.FC = () => {
           }
         })
         
+        // 限制 ruleStats 大小
+        if (newStats.size > 2000) {
+             // 清理掉 hits 较少的规则
+             // 这里简单做个保护，避免无限增长
+             // 仅为了防止内存溢出，不追求完美 LRU
+             return prev 
+        }
+
         return hasChanges ? newStats : prev
       })
       
-      if (processedConnIdsRef.current.size > 50000) {
+      // 降低 ID 缓存上限
+      if (processedConnIdsRef.current.size > 10000) {
            processedConnIdsRef.current.clear()
       }
     }, [])

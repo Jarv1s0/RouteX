@@ -33,6 +33,9 @@ import { getUserAgent } from './utils/userAgent'
 import { loadTrafficStats, saveTrafficStats } from './resolve/trafficStats'
 import { loadProviderStats, startMapUpdateTimer, onCoreStarted } from './resolve/providerStats'
 import { startNetworkHealthMonitor } from './resolve/networkHealth'
+import iconIco from '../../resources/icon.ico?asset'
+import iconProxyIco from '../../resources/icon_proxy.ico?asset'
+import iconTunIco from '../../resources/icon_tun.ico?asset'
 
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
@@ -313,8 +316,8 @@ app.whenReady().then(async () => {
           app.exit()
           return // Stop initialization
         } catch (e) {
-          let createErrorStr = `${createError}`
-          let eStr = `${e}`
+          const createErrorStr = `${createError}`
+          const eStr = `${e}`
           try {
             // Buffer/Iconv logic... simplified for async?
             // If exec throws, e.stderr is available.
@@ -331,7 +334,7 @@ app.whenReady().then(async () => {
         }
       } else {
          // First run, need admin
-         let errorMsg = '首次启动需要管理员权限来创建系统任务。\n\n请右键点击应用图标，选择"以管理员身份运行"。'
+          const errorMsg = '首次启动需要管理员权限来创建系统任务。\n\n请右键点击应用图标，选择"以管理员身份运行"。'
          // ... error details ...
          dialog.showErrorBox('需要管理员权限', errorMsg)
          app.exit()
@@ -371,11 +374,10 @@ app.whenReady().then(async () => {
     try {
       if (process.platform !== 'win32') return
       
-      let iconName = 'icon.ico'
-      if (type === 'proxy') iconName = 'icon_proxy.ico'
-      if (type === 'tun') iconName = 'icon_tun.ico'
+      let iconPath = iconIco
+      if (type === 'proxy') iconPath = iconProxyIco
+      if (type === 'tun') iconPath = iconTunIco
       
-      const iconPath = getIconPath(iconName)
       const nativeIcon = nativeImage.createFromPath(iconPath)
       
       // 更新任务栏图标

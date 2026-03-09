@@ -4,7 +4,7 @@ import RuleProviderItem from '@renderer/components/rules/rule-provider-item'
 import GeoData from '@renderer/components/resources/geo-data'
 import Viewer from '@renderer/components/resources/viewer'
 import { Virtuoso } from 'react-virtuoso'
-import { useEffect, useMemo, useState, useDeferredValue, useCallback } from 'react'
+import { useEffect, useMemo, useState, useDeferredValue, useCallback, useRef } from 'react'
 import { Button, Input, Tab, Tabs } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
 import { useRules } from '@renderer/hooks/use-rules'
@@ -33,17 +33,45 @@ const Rules: React.FC = () => {
     privderType: ''
   })
 
-  // 从 rules 初始化 disabled 状态（仅首次加载或规则列表变化时）
+  // Optimize: Use ref to track initialization to prevent infinite loops
+  const initializedRef = useRef(false)
+  const prevRulesLength = useRef(0)
+
+  // Sync disabled state from rules to store (run once when rules are loaded)
   useEffect(() => {
-    if (rules?.rules) {
-      rules.rules.forEach((rule, index) => {
-        // 如果 API 返回了 disabled 且本地 store 中未记录，则同步到 store
-        if (rule.disabled && disabledRules[index] === undefined) {
-          setRuleDisabled(index, true)
-        }
-      })
+    if (!rules?.rules) return
+
+    // Only run if rules length changed (new rules loaded) or not initialized
+    if (initializedRef.current && rules.rules.length === prevRulesLength.current) {
+        return
     }
-  }, [rules, disabledRules, setRuleDisabled])
+
+    const updates: Record<number, boolean> = {}
+    let hasUpdates = false
+
+    rules.rules.forEach((rule, index) => {
+      // If API returns disabled and local store doesn't have it, sync to store
+      if (rule.disabled && disabledRules[index] === undefined) {
+        updates[index] = true
+        hasUpdates = true
+      }
+    })
+
+    if (hasUpdates) {
+       // Batch update by merging into current state
+       // We need to access the store's setter carefully. 
+       // Since the store's `setRuleDisabled` only sets one, we should actually add a batch action to the store 
+       // or just iterate. Iterating here is fine if we don't depend on `disabledRules` in the effect.
+       // But better to avoid N re-renders. 
+       // For now, simpler fix: iterate but ensure effect dependency doesn't include disabledRules.
+       Object.entries(updates).forEach(([index, disabled]) => {
+           setRuleDisabled(Number(index), disabled)
+       })
+    }
+    
+    initializedRef.current = true
+    prevRulesLength.current = rules.rules.length
+  }, [rules, setRuleDisabled]) // Removed disabledRules from dependency
 
   // 切换规则状态
   const toggleRule = useCallback(async (index: number) => {
