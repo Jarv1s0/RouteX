@@ -3,6 +3,7 @@ import { HashRouter } from 'react-router-dom'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { HeroUIProvider } from '@heroui/react'
 import BaseErrorBoundary from './base/base-error-boundary'
+
 import { AppConfigProvider } from '@renderer/hooks/use-app-config'
 import { ControledMihomoConfigProvider } from '@renderer/hooks/use-controled-mihomo-config'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
@@ -22,6 +23,7 @@ const Providers: React.FC<ProvidersProps> = ({ children }) => {
         <Toaster richColors position="bottom-right" />
         <BaseErrorBoundary>
           <HashRouter>
+
             <AppConfigProvider>
               <ControledMihomoConfigProvider>
                 <ProfileConfigProvider>
@@ -35,6 +37,7 @@ const Providers: React.FC<ProvidersProps> = ({ children }) => {
                 </ProfileConfigProvider>
               </ControledMihomoConfigProvider>
             </AppConfigProvider>
+
           </HashRouter>
         </BaseErrorBoundary>
       </NextThemesProvider>

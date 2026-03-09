@@ -1,53 +1,43 @@
-import React, { createContext, useContext, ReactNode } from 'react'
-import useSWR from 'swr'
-import { getAppConfig, patchAppConfig as patch } from '@renderer/utils/ipc'
+import React, { ReactNode } from 'react'
+import { useAppStore } from '@renderer/store/use-app-store'
 
+// Backward compatibility interface
 interface AppConfigContextType {
   appConfig: AppConfig | undefined
   mutateAppConfig: () => void
   patchAppConfig: (value: Partial<AppConfig>) => Promise<void>
 }
 
-const AppConfigContext = createContext<AppConfigContextType | undefined>(undefined)
-
+// Provider responsible for initialization
 export const AppConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { data: appConfig, mutate: mutateAppConfig } = useSWR('getConfig', () => getAppConfig())
-
-  const patchAppConfig = async (value: Partial<AppConfig>): Promise<void> => {
-    try {
-      await patch(value)
-    } catch (e) {
-      alert(e)
-    } finally {
-      mutateAppConfig()
-    }
-  }
-
-  const contextValue = React.useMemo(
-    () => ({ appConfig, mutateAppConfig, patchAppConfig }),
-    [appConfig, mutateAppConfig]
-  )
+  const fetchAppConfig = useAppStore((state) => state.fetchAppConfig)
 
   React.useEffect(() => {
-    window.electron.ipcRenderer.on('appConfigUpdated', () => {
-      mutateAppConfig()
-    })
-    return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('appConfigUpdated')
+    fetchAppConfig()
+    
+    const handler = (): void => {
+      fetchAppConfig()
     }
-  }, [])
+    
+    window.electron.ipcRenderer.on('appConfigUpdated', handler)
+    return (): void => {
+      window.electron.ipcRenderer.removeListener('appConfigUpdated', handler)
+    }
+  }, [fetchAppConfig])
 
-  return (
-    <AppConfigContext.Provider value={contextValue}>
-      {children}
-    </AppConfigContext.Provider>
-  )
+  return <>{children}</>
 }
 
+// Hook wrapper
 export const useAppConfig = (): AppConfigContextType => {
-  const context = useContext(AppConfigContext)
-  if (context === undefined) {
-    throw new Error('useAppConfig must be used within an AppConfigProvider')
+  const appConfig = useAppStore((state) => state.appConfig)
+  const mutateAppConfig = useAppStore((state) => state.mutateAppConfig)
+  const patchAppConfig = useAppStore((state) => state.patchAppConfig)
+
+  return {
+    appConfig,
+    mutateAppConfig,
+    patchAppConfig
   }
-  return context
 }
+

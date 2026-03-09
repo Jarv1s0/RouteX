@@ -36,7 +36,8 @@
     "sonner": "^2.0.7",
     "webdav": "^5.8.0",
     "ws": "^8.18.3",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.2",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@dnd-kit/core": "^6.3.1",
