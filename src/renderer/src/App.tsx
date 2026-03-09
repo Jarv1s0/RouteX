@@ -415,7 +415,7 @@ const App: React.FC = () => {
               </Button>
             </div>
           </div>
-          <div className="mt-2 mx-2">
+          <div className="mt-0 mx-2">
             <OutboundModeSwitcher />
           </div>
           <div style={{ overflowX: 'clip' }}>

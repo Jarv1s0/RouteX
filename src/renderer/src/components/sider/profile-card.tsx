@@ -13,6 +13,7 @@ import dayjs from 'dayjs'
 import React, { useState } from 'react'
 import ConfigViewer from './config-viewer'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { TiFolder } from 'react-icons/ti'
 
 dayjs.extend(relativeTime)
@@ -95,7 +96,17 @@ const ProfileCard: React.FC<Props> = (props) => {
           ref={setNodeRef}
           {...attributes}
           {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+          className={`
+            ${CARD_STYLES.BASE}
+            ${
+              match
+                ? CARD_STYLES.ACTIVE
+                : CARD_STYLES.INACTIVE
+            }
+            ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+          `}
+          radius="lg"
+          shadow="none"
         >
           <CardBody className="pb-1">
             <div
@@ -178,7 +189,7 @@ const ProfileCard: React.FC<Props> = (props) => {
               </div>
             )}
           </CardBody>
-          <CardFooter className="pt-0">
+          <CardFooter className="pt-0 relative z-10 px-3 pb-3">
             {info.type === 'remote' && !extra && (
               <div
                 className={`w-full mt-2 flex justify-between ${match ? 'text-primary-foreground' : 'text-foreground'}`}
@@ -220,7 +231,15 @@ const ProfileCard: React.FC<Props> = (props) => {
           ref={setNodeRef}
           {...attributes}
           {...listeners}
-          className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+          className={`
+            relative overflow-hidden transition-all duration-300 border
+            ${
+              match
+                ? 'bg-gradient-to-br from-primary/90 to-primary-600/90 border-primary/50 shadow-lg shadow-primary/20'
+                : 'bg-gradient-to-br from-default-100/80 to-default-100/50 hover:from-default-200/60 hover:to-default-100/60 border-default-200/60 hover:border-default-300 backdrop-blur-2xl shadow-md hover:shadow-2xl hover:shadow-black/10 hover:scale-[1.02]'
+            }
+            ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+          `}
         >
           <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
             <div className="flex justify-between">

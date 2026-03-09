@@ -559,6 +559,16 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('setDockVisible', (_e, visible: boolean) => setDockVisible(visible))
   ipcMain.handle('showMainWindow', showMainWindow)
   ipcMain.handle('closeMainWindow', closeMainWindow)
+  ipcMain.handle('windowMin', () => {
+    mainWindow?.minimize()
+  })
+  ipcMain.handle('windowMax', () => {
+    if (mainWindow?.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow?.maximize()
+    }
+  })
   ipcMain.handle('triggerMainWindow', triggerMainWindow)
   ipcMain.handle('showFloatingWindow', () => ipcErrorWrapper(showFloatingWindow)())
   ipcMain.handle('closeFloatingWindow', () => ipcErrorWrapper(closeFloatingWindow)())
@@ -696,7 +706,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('relaunchApp', () => {
     setNotQuitDialog()
     app.relaunch()
-    app.quit()
+    app.exit(0)
   })
   ipcMain.handle('quitWithoutCore', ipcErrorWrapper(quitWithoutCore))
   ipcMain.handle('startNetworkDetection', ipcErrorWrapper(startNetworkDetection))

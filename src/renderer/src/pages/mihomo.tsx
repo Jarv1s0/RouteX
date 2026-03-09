@@ -35,6 +35,7 @@ import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
 import useSWR from 'swr'
+import { toast } from 'sonner'
 
 const Mihomo: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -53,6 +54,7 @@ const Mihomo: React.FC = () => {
 
   // 检查最新版本
   useEffect(() => {
+    setLatestVersion(null)
     const checkLatest = async () => {
       const isAlpha = core === 'mihomo-alpha'
       const latest = await checkMihomoLatestVersion(isAlpha)
@@ -64,6 +66,13 @@ const Mihomo: React.FC = () => {
   // 比较版本号，判断是否有新版本
   const hasNewVersion = (): boolean => {
     if (!version?.version || !latestVersion) return false
+
+    // Alpha 版本使用 Hash 匹配
+    if (core === 'mihomo-alpha') {
+      return !version.version.includes(latestVersion)
+    }
+
+    // Stable 版本使用语义化比较
     const current = version.version.replace(/^v/, '')
     const latest = latestVersion.replace(/^v/, '')
     return current !== latest && latest > current
@@ -80,7 +89,7 @@ const Mihomo: React.FC = () => {
       await restartCore()
       PubSub.publish('mihomo-core-changed')
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     }
   }
 
@@ -91,9 +100,9 @@ const Mihomo: React.FC = () => {
       setTimeout(() => PubSub.publish('mihomo-core-changed'), 2000)
     } catch (e) {
       if (typeof e === 'string' && e.includes('already using latest version')) {
-        new Notification('已经是最新版本')
+        toast.info('已经是最新版本')
       } else {
-        alert(e)
+        toast.error(String(e))
       }
     } finally {
       setUpgrading(false)
@@ -137,10 +146,10 @@ const Mihomo: React.FC = () => {
         try {
           if (platform === 'win32') {
             await deleteElevateTask()
-            new Notification('任务计划已取消注册')
+            toast.success('任务计划已取消注册')
           } else {
             await revokeCorePermission()
-            new Notification('内核权限已撤销')
+            toast.success('内核权限已撤销')
           }
           await patchAppConfig({
             corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
@@ -148,7 +157,7 @@ const Mihomo: React.FC = () => {
 
           await restartCore()
         } catch (e) {
-          alert(e)
+          toast.error(String(e))
         }
       }
     },
@@ -161,13 +170,13 @@ const Mihomo: React.FC = () => {
             onPress: async () => {
               try {
                 await deleteElevateTask()
-                new Notification('任务计划已取消注册')
+                toast.success('任务计划已取消注册')
                 await patchAppConfig({
                   corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
                 })
                 await relaunchApp()
               } catch (e) {
-                alert(e)
+                toast.error(String(e))
               }
             }
           }
@@ -204,16 +213,16 @@ const Mihomo: React.FC = () => {
           onRevoke={async () => {
             if (platform === 'win32') {
               await deleteElevateTask()
-              new Notification('任务计划已取消注册')
+              toast.success('任务计划已取消注册')
             } else {
               await revokeCorePermission()
-              new Notification('内核权限已撤销')
+              toast.success('内核权限已撤销')
             }
             await restartCore()
           }}
           onGrant={async () => {
             await manualGrantCorePermition()
-            new Notification('内核授权成功')
+            toast.success('内核授权成功')
             await restartCore()
           }}
         />
@@ -223,27 +232,27 @@ const Mihomo: React.FC = () => {
           onChange={setShowServiceModal}
           onInit={async () => {
             await initService()
-            new Notification('服务初始化成功')
+            toast.success('服务初始化成功')
           }}
           onInstall={async () => {
             await installService()
-            new Notification('服务安装成功')
+            toast.success('服务安装成功')
           }}
           onUninstall={async () => {
             await uninstallService()
-            new Notification('服务卸载成功')
+            toast.success('服务卸载成功')
           }}
           onStart={async () => {
             await startService()
-            new Notification('服务启动成功')
+            toast.success('服务启动成功')
           }}
           onRestart={async () => {
             await restartService()
-            new Notification('服务重启成功')
+            toast.success('服务重启成功')
           }}
           onStop={async () => {
             await stopService()
-            new Notification('服务停止成功')
+            toast.success('服务停止成功')
           }}
         />
       )}
@@ -294,6 +303,8 @@ const Mihomo: React.FC = () => {
           <Tabs
             size="sm"
             color="primary"
+            variant="solid"
+            radius="lg"
             selectedKey={corePermissionMode}
             disabledKeys={['service']}
             onSelectionChange={(key) => handlePermissionModeChange(key as string)}

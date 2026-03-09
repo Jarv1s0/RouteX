@@ -69,6 +69,8 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
         <Tabs
           size="sm"
           color="primary"
+          variant="solid"
+          radius="lg"
           selectedKey={fakeIpFilterMode}
           onSelectionChange={(key) => onFakeIpFilterModeChange(key as FilterMode)}
         >

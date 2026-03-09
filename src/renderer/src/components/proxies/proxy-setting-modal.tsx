@@ -131,6 +131,8 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               <Tabs
                 size="sm"
                 color="primary"
+                variant="solid"
+                radius="lg"
                 selectedKey={proxyDisplayOrder}
                 onSelectionChange={async (v) => {
                   await patchAppConfig({
@@ -147,6 +149,8 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               <Tabs
                 size="sm"
                 color="primary"
+                variant="solid"
+                radius="lg"
                 selectedKey={groupDisplayLayout}
                 onSelectionChange={async (v) => {
                   await patchAppConfig({
@@ -163,6 +167,8 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               <Tabs
                 size="sm"
                 color="primary"
+                variant="solid"
+                radius="lg"
                 selectedKey={proxyDisplayLayout}
                 onSelectionChange={async (v) => {
                   await patchAppConfig({

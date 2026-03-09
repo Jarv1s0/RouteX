@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useEffect, useMemo } from 'react'
 import { mihomoRuleProviders } from '@renderer/utils/ipc'
 import useSWR from 'swr'
@@ -85,34 +86,44 @@ const RuleCard: React.FC<Props> = (props) => {
       }}
       className={`${ruleCardStatus} rule-card`}
     >
+
       <Card
         fullWidth
         ref={setNodeRef}
         {...attributes}
         {...listeners}
-        className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+        className={`
+          ${CARD_STYLES.BASE}
+          ${
+            match
+              ? CARD_STYLES.ACTIVE
+              : CARD_STYLES.INACTIVE
+          }
+          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+        `}
+        radius="lg"
+        shadow="none"
       >
-        <CardBody className="pb-1 pt-0 px-0">
+        <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
             <Button
               isIconOnly
               className="bg-transparent pointer-events-none"
-              variant="flat"
+              variant="light"
               color="default"
             >
               <TbStack2
-                color="default"
                 className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
               />
             </Button>
           </div>
         </CardBody>
-        <CardFooter className="pt-1">
+        <CardFooter className="pt-1 relative z-10">
           <div
             className={`flex justify-between w-full text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
           >
             <h3>规则</h3>
-            {ruleCount > 0 && <h3>{ruleCount}</h3>}
+            {ruleCount > 0 && <h3>{ruleCount.toLocaleString()}</h3>}
           </div>
         </CardFooter>
       </Card>

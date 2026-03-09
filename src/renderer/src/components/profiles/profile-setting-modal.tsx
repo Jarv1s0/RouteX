@@ -82,6 +82,8 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
             <Tabs
               size="sm"
               color="primary"
+              variant="solid"
+              radius="lg"
               selectedKey={profileDisplayDate}
               onSelectionChange={async (v) => {
                 await patchAppConfig({

@@ -1,9 +1,11 @@
+
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { LuGroup } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { addFlag, removeFlag } from '@renderer/utils/flags'
 import React, { useMemo, useEffect, useState } from 'react'
@@ -110,10 +112,18 @@ const ProxyCard: React.FC<Props> = (props) => {
         {...listeners}
         isPressable
         onPress={handleCardClick}
-        className={`${match ? 'bg-primary' : 'hover:bg-primary/30 hover:-translate-y-0.5 hover:shadow-md'} transition-all duration-200 ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent` : ''}`}
+        className={`
+          ${CARD_STYLES.BASE}
+          ${
+            match
+              ? CARD_STYLES.ACTIVE
+              : CARD_STYLES.INACTIVE
+          }
+          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+        `}
       >
         <CardBody>
-          <div className="flex justify-between h-[32px]">
+          <div className="flex justify-between">
             <h3
               className={`text-md font-bold leading-[32px] flag-emoji ${match ? 'text-primary-foreground' : 'text-foreground'} truncate`}
             >

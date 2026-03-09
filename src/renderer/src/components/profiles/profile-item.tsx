@@ -22,6 +22,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { openFile } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import ConfirmModal from '../base/base-confirm'
 
 interface Props {
@@ -205,7 +206,14 @@ const ProfileItem: React.FC<Props> = (props) => {
             setSelecting(false)
           })
         }}
-        className={`${isCurrent ? 'bg-primary' : 'hover:bg-primary/30'} transition-all duration-200 relative`}
+        className={`
+          ${CARD_STYLES.BASE}
+          ${
+            isCurrent
+              ? CARD_STYLES.ACTIVE
+              : CARD_STYLES.INACTIVE
+          }
+        `}
       >
         {selecting && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 rounded-xl">
@@ -213,7 +221,7 @@ const ProfileItem: React.FC<Props> = (props) => {
           </div>
         )}
         <div ref={setNodeRef} {...attributes} {...listeners} className="w-full h-full">
-          <CardBody className="pb-1">
+          <CardBody className="pb-1 overflow-hidden">
             <div className="flex justify-between h-[32px]">
               <h3
                 title={info?.name}

@@ -2,7 +2,7 @@ import BasePage from '@renderer/components/base/base-page'
 import EmptyState from '@renderer/components/base/empty-state'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
 import React, { Key, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Divider, Input, Select, SelectItem, Tab, Tabs, Chip, Card, CardHeader, CardFooter, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
+import { Button, Input, Select, SelectItem, Tab, Tabs, Chip, Card, CardHeader, CardFooter, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
 import ConnectionTable from '@renderer/components/connections/connection-table'
@@ -11,6 +11,7 @@ import dayjs from 'dayjs'
 import ConnectionDetailModal from '@renderer/components/connections/connection-detail-modal'
 import ConnectionSettingModal from '@renderer/components/connections/connection-setting-modal'
 import { CgClose, CgTrash } from 'react-icons/cg'
+import { IoPulseOutline, IoTimeOutline } from 'react-icons/io5'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { getIconDataURL, getAppName } from '@renderer/utils/ipc'
@@ -610,16 +611,42 @@ const Connections: React.FC = () => {
         <div className="flex p-2 gap-2 items-center">
           <Tabs
             size="md"
+            variant="solid"
+            radius="lg"
             selectedKey={tab}
             onSelectionChange={handleTabChange}
+            classNames={{
+              tabList: 'bg-default-100/50 shadow-sm',
+              cursor: 'bg-background shadow-sm',
+              tabContent: 'group-data-[selected=true]:text-primary font-medium'
+            }}
           >
-            <Tab key="active" title={`活动中 (${activeConnections.length})`} />
-            <Tab key="closed" title={`已关闭 (${closedConnections.length})`} />
+            <Tab
+              key="active"
+              title={
+                <div className="flex items-center gap-2 px-2">
+                  <IoPulseOutline className="text-lg" />
+                  <span>活动中 ({activeConnections.length})</span>
+                </div>
+              }
+            />
+            <Tab
+              key="closed"
+              title={
+                <div className="flex items-center gap-2 px-2">
+                  <IoTimeOutline className="text-lg" />
+                  <span>已关闭 ({closedConnections.length})</span>
+                </div>
+              }
+            />
           </Tabs>
           <Input
             variant="flat"
             size="sm"
             className="min-w-[120px] flex-1"
+            classNames={{
+              inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
+            }}
             value={filter}
             placeholder="筛选过滤"
             isClearable
@@ -729,9 +756,8 @@ const Connections: React.FC = () => {
             </>
           )}
         </div>
-        <Divider />
       </div>
-      <div className="h-[calc(100vh-100px)] mt-px overflow-y-auto">
+      <div className="h-[calc(100vh-100px)] overflow-y-auto">
         {filteredConnections.length === 0 ? (
           <EmptyState
             icon={<IoLink />}

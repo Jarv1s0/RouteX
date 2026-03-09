@@ -2,7 +2,6 @@ import {
   Button,
   Checkbox,
   Chip,
-  Divider,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -40,6 +39,7 @@ import SubStoreIcon from '@renderer/components/base/substore-icon'
 import ProfileSettingModal from '@renderer/components/profiles/profile-setting-modal'
 import useSWR from 'swr'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
 const emptyItems: ProfileItem[] = []
 
@@ -121,7 +121,7 @@ const Profiles: React.FC = () => {
       await mihomoUpdateProxyProviders(name)
       mutateProviders()
     } catch (e) {
-      new Notification(`${name} 更新失败\n${e}`)
+      toast.error(`${name} 更新失败\n${e}`)
     } finally {
       setProviderUpdating((prev) => {
         const next = [...prev]
@@ -280,10 +280,10 @@ const Profiles: React.FC = () => {
             const content = await readTextFile(path)
             await addProfileItem({ name: file.name, type: 'local', file: content })
           } catch (e) {
-            alert('文件导入失败' + e)
+            toast.error('文件导入失败' + e)
           }
         } else {
-          alert('不支持的文件类型')
+          toast.error('不支持的文件类型')
         }
       }
       setFileOver(false)
@@ -336,8 +336,15 @@ const Profiles: React.FC = () => {
         <div className="flex items-center gap-2 p-2">
           <Tabs
             size="md"
+            variant="solid"
+            radius="lg"
             selectedKey={activeTab}
             onSelectionChange={(key) => setActiveTab(key as string)}
+            classNames={{
+              tabList: 'bg-default-100/50 shadow-sm',
+              cursor: 'bg-background shadow-sm',
+              tabContent: 'group-data-[selected=true]:text-primary font-medium'
+            }}
           >
             <Tab key="profiles" title="订阅" />
             <Tab key="providers" title="代理集合" />
@@ -347,6 +354,9 @@ const Profiles: React.FC = () => {
               <Input
                 size="sm"
                 className="flex-1"
+                classNames={{
+                  inputWrapper: 'border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
+                }}
                 value={url}
                 onValueChange={setUrl}
                 onKeyUp={handleInputKeyUp}
@@ -426,7 +436,7 @@ const Profiles: React.FC = () => {
                         useProxy
                       })
                     } catch (e) {
-                      alert(e)
+                      toast.error(String(e))
                     } finally {
                       setSubStoreImporting(false)
                     }
@@ -447,7 +457,7 @@ const Profiles: React.FC = () => {
                         useProxy
                       })
                     } catch (e) {
-                      alert(e)
+                      toast.error(String(e))
                     } finally {
                       setSubStoreImporting(false)
                     }
@@ -480,7 +490,7 @@ const Profiles: React.FC = () => {
                         await addProfileItem({ name: fileName, type: 'local', file: content })
                       }
                     } catch (e) {
-                      alert(e)
+                      toast.error(String(e))
                     }
                     break
                   }
@@ -553,12 +563,11 @@ const Profiles: React.FC = () => {
             </Button>
           )}
         </div>
-        <Divider />
       </div>
       {activeTab === 'profiles' ? (
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <div
-          className={`${fileOver ? 'blur-sm' : ''} grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 m-2`}
+          className={`${fileOver ? 'blur-sm' : ''} grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mx-2`}
         >
           <SortableContext
             items={sortedItems.map((item) => {
@@ -587,7 +596,7 @@ const Profiles: React.FC = () => {
         </div>
       </DndContext>
       ) : (
-        <div className="h-[calc(100vh-100px)] mt-px">
+        <div className="h-[calc(100vh-100px)]">
           {showProviderDetails.show && (
             <Viewer
               path={showProviderDetails.path}

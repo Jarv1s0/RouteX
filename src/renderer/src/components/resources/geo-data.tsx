@@ -111,6 +111,8 @@ const GeoData: React.FC = () => {
         <Tabs
           size="sm"
           color="primary"
+          variant="solid"
+          radius="lg"
           selectedKey={geoMode ? 'dat' : 'db'}
           onSelectionChange={(key) => {
             patchControledMihomoConfig({ 'geodata-mode': key === 'dat' })

@@ -551,6 +551,8 @@ const AppearanceConfig: React.FC = () => {
           <Tabs
             size="sm"
             color="primary"
+            variant="solid"
+            radius="lg"
             selectedKey={appTheme}
             onSelectionChange={(key) => {
               setTheme(key.toString())

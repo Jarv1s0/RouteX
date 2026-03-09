@@ -65,7 +65,7 @@ async function getDownloadUrl(isAlpha: boolean): Promise<{ url: string; version:
   // Release 文件名示例: mihomo-windows-amd64-v1.18.1.zip
   
   const filename = isAlpha
-    ? `mihomo-${osStr}-${archStr}-alpha-${version}${ext}`
+    ? `mihomo-${osStr}-${archStr}-${version.startsWith('alpha-') ? version : 'alpha-' + version}${ext}`
     : `mihomo-${osStr}-${archStr}-${version}${ext}`
 
   const downloadUrl = isAlpha

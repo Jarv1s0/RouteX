@@ -328,6 +328,8 @@ ASN: ${ipInfo.as}`
               />
               <Tabs 
                 size="sm" 
+                variant="solid"
+                radius="lg"
                 selectedKey={dnsType} 
                 onSelectionChange={(key) => setDnsType(key as typeof dnsType)}
               >

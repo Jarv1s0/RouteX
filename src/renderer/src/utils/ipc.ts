@@ -472,6 +472,14 @@ export async function closeMainWindow(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('closeMainWindow'))
 }
 
+export async function windowMin(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('windowMin'))
+}
+
+export async function windowMax(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('windowMax'))
+}
+
 export async function triggerMainWindow(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('triggerMainWindow'))
 }

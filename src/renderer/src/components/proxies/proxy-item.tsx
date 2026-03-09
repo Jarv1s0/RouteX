@@ -100,12 +100,12 @@ const ProxyItem: React.FC<Props> = (props) => {
       isPressable
       fullWidth
       shadow="sm"
-      className={`${fixed ? 'bg-secondary/30' : selected ? 'bg-primary/30' : 'bg-content2 hover:bg-primary/10'} ${loading ? 'animate-pulse' : ''} transition-colors`}
-      radius="sm"
+      className={`${fixed ? 'bg-secondary/30' : selected ? 'bg-primary/30' : 'bg-content2 hover:bg-primary/10'} ${loading ? 'animate-pulse' : ''} transition-colors border border-default-200/60 dark:border-white/10`}
+      radius="lg"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{
         opacity: 1,
-        scale: selected ? 1.02 : 1,
+        scale: 1,
         transition: { duration: 0.15, delay: Math.min(index * 0.02, 0.3) }
       }}
       whileHover={{ scale: 1.02 }}

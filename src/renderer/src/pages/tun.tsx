@@ -114,6 +114,8 @@ const Tun: React.FC = () => {
               <Tabs
                 size="sm"
                 color="primary"
+                variant="solid"
+                radius="lg"
                 selectedKey={autoSetDNSMode}
                 onSelectionChange={async (key: Key) => {
                   await patchAppConfig({ autoSetDNSMode: key as 'none' | 'exec' | 'service' })
@@ -129,6 +131,8 @@ const Tun: React.FC = () => {
             <Tabs
               size="sm"
               color="primary"
+              variant="solid"
+              radius="lg"
               selectedKey={values.stack}
               onSelectionChange={(key: Key) => setValues({ ...values, stack: key as TunStack })}
             >

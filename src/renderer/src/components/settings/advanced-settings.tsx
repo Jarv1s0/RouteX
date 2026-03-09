@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Input, Select, SelectItem, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
+import { Button, Input, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
   copyEnv,
@@ -13,10 +13,11 @@ import {
 } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import { IoIosHelpCircle } from 'react-icons/io'
-import { BiCopy } from 'react-icons/bi'
+
 import SubStoreConfig from './substore-config'
 import WebdavRestoreModal from './webdav-restore-modal'
 import debounce from '@renderer/utils/debounce'
+import { toast } from 'sonner'
 
 const emptyArray: string[] = []
 
@@ -35,19 +36,19 @@ export const numberInputClassNames = {
 // 一级页面输入框样式
 export const primaryInputClassNames = {
   input: "bg-transparent",
-  inputWrapper: "border border-default-200 bg-default-100 hover:bg-default-200 data-[focus=true]:bg-default-100"
+  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary"
 }
 
 // 一级页面数字输入框样式
 export const primaryNumberInputClassNames = {
   input: "bg-transparent [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]",
-  inputWrapper: "border border-default-200 bg-default-100 hover:bg-default-200 data-[focus=true]:bg-default-100"
+  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary"
 }
 
 // 卡片内输入框样式（用于工具页面等卡片内的输入框）
 export const cardInputClassNames = {
   input: "bg-transparent",
-  inputWrapper: "border border-default-200 bg-default-100 hover:bg-default-200 data-[focus=true]:bg-default-100"
+  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-lg hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary"
 }
 
 // Select 下拉框样式
@@ -61,11 +62,9 @@ const AdvancedSettings: React.FC = () => {
     controlDns = true,
     controlSniff = true,
     pauseSSID,
-    mihomoCpuPriority = 'PRIORITY_NORMAL',
     autoLightweight = false,
     autoLightweightDelay = 60,
     autoLightweightMode = 'core',
-    envType = [platform === 'win32' ? 'powershell' : 'bash'],
     enableWebdavConfig = true,
     webdavUrl,
     webdavUsername,
@@ -92,9 +91,9 @@ const AdvancedSettings: React.FC = () => {
     setBackuping(true)
     try {
       await webdavBackup()
-      new window.Notification('备份成功', { body: '备份文件已上传至 WebDAV' })
+      toast.success('备份成功', { description: '备份文件已上传至 WebDAV' })
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     } finally {
       setBackuping(false)
     }
@@ -107,7 +106,7 @@ const AdvancedSettings: React.FC = () => {
       setFilenames(filenames)
       setRestoreOpen(true)
     } catch (e) {
-      alert(`获取备份列表失败：${e}`)
+      toast.error(`获取备份列表失败：${e}`)
     } finally {
       setRestoring(false)
     }
@@ -145,6 +144,8 @@ const AdvancedSettings: React.FC = () => {
             <Tabs
               size="sm"
               color="primary"
+              variant="solid"
+              radius="lg"
               selectedKey={autoLightweightMode}
               onSelectionChange={(v) => {
                 patchAppConfig({ autoLightweightMode: v as 'core' | 'tray' })
@@ -177,44 +178,18 @@ const AdvancedSettings: React.FC = () => {
           </div>
         </div>
       )}
-      <SettingItem
-        title="复制环境变量类型"
-        actions={envType.map((type) => (
+      <SettingItem title="复制终端代理命令" divider>
+        <Tooltip content={`复制 ${platform === 'win32' ? 'PowerShell' : 'Bash'} 代理命令`}>
           <Button
-            key={type}
-            title={type}
-            isIconOnly
             size="sm"
-            variant="light"
-            onPress={() => copyEnv(type)}
+            onPress={() => {
+              const type = platform === 'win32' ? 'powershell' : 'bash'
+              copyEnv(type)
+            }}
           >
-            <BiCopy className="text-lg" />
+            复制命令
           </Button>
-        ))}
-        divider
-      >
-        <Select
-          classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-          className="w-[150px]"
-          size="sm"
-          selectionMode="multiple"
-          selectedKeys={new Set(envType)}
-          disallowEmptySelection={true}
-          onSelectionChange={async (v) => {
-            try {
-              await patchAppConfig({
-                envType: Array.from(v) as ('bash' | 'cmd' | 'powershell')[]
-              })
-            } catch (e) {
-              alert(e)
-            }
-          }}
-        >
-          <SelectItem key="bash">Bash</SelectItem>
-          <SelectItem key="cmd">CMD</SelectItem>
-          <SelectItem key="powershell">PowerShell</SelectItem>
-          <SelectItem key="nushell">NuShell</SelectItem>
-        </Select>
+        </Tooltip>
       </SettingItem>
       {platform === 'win32' && (
         <SettingItem title="UWP 工具" divider>
@@ -223,34 +198,7 @@ const AdvancedSettings: React.FC = () => {
           </Button>
         </SettingItem>
       )}
-      {platform === 'win32' && (
-        <SettingItem title="内核进程优先级" divider>
-          <Select
-            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-            className="w-[150px]"
-            size="sm"
-            selectedKeys={new Set([mihomoCpuPriority])}
-            disallowEmptySelection={true}
-            onSelectionChange={async (v) => {
-              try {
-                await patchAppConfig({
-                  mihomoCpuPriority: v.currentKey as Priority
-                })
-                await restartCore()
-              } catch (e) {
-                alert(e)
-              }
-            }}
-          >
-            <SelectItem key="PRIORITY_HIGHEST">实时</SelectItem>
-            <SelectItem key="PRIORITY_HIGH">高</SelectItem>
-            <SelectItem key="PRIORITY_ABOVE_NORMAL">高于正常</SelectItem>
-            <SelectItem key="PRIORITY_NORMAL">正常</SelectItem>
-            <SelectItem key="PRIORITY_BELOW_NORMAL">低于正常</SelectItem>
-            <SelectItem key="PRIORITY_LOW">低</SelectItem>
-          </Select>
-        </SettingItem>
-      )}
+
       <SettingItem title="接管 DNS 设置" divider>
         <Switch
           size="sm"
@@ -261,7 +209,7 @@ const AdvancedSettings: React.FC = () => {
               await patchControledMihomoConfig({})
               await restartCore()
             } catch (e) {
-              alert(e)
+              toast.error(String(e))
             }
           }}
         />
@@ -276,7 +224,7 @@ const AdvancedSettings: React.FC = () => {
               await patchControledMihomoConfig({})
               await restartCore()
             } catch (e) {
-              alert(e)
+              toast.error(String(e))
             }
           }}
         />
