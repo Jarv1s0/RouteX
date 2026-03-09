@@ -54,6 +54,7 @@ export const defaultControledMihomoConfig: Partial<MihomoConfig> = {
   'external-controller': '',
   'external-ui': '',
   'external-ui-url': 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip',
+  'external-ui-name': 'zashboard',
   'external-controller-cors': {
     'allow-origins': ['https://metacubex.github.io', 'https://board.zash.run.place'],
     'allow-private-network': false

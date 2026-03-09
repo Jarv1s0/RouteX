@@ -11,7 +11,7 @@ type Priority =
   | 'PRIORITY_HIGH'
   | 'PRIORITY_HIGHEST'
 
-type MihomoGroupType = 'Selector' | 'Fallback' | 'URLTest' | 'LoadBalance' | 'Relay'
+type MihomoGroupType = 'Selector' | 'Fallback' | 'URLTest' | 'LoadBalance'
 type MihomoProxyType =
   | 'Direct'
   | 'Reject'
@@ -19,7 +19,6 @@ type MihomoProxyType =
   | 'Compatible'
   | 'Pass'
   | 'Dns'
-  | 'Relay'
   | 'Selector'
   | 'Fallback'
   | 'URLTest'

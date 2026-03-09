@@ -17,6 +17,7 @@ const ControllerSetting: React.FC = () => {
     'external-controller': externalController = '',
     'external-ui': externalUi = '',
     'external-ui-url': externalUiUrl = '',
+    'external-ui-name': externalUiName = '',
     'external-controller-cors': externalControllerCors,
     secret
   } = controledMihomoConfig || {}
@@ -191,32 +192,29 @@ const ControllerSetting: React.FC = () => {
                         size="sm"
                         className="app-nodrag"
                         variant="light"
+                        isDisabled={upgrading}
                         onPress={() => {
                           const controller = externalController.startsWith(':')
                             ? `127.0.0.1${externalController}`
                             : externalController
                           const host = controller.split(':')[0]
                           const port = controller.split(':')[1]
-                          if (
-                            ['zashboard', 'metacubexd'].find((keyword) =>
-                              externalUiUrl.includes(keyword)
-                            )
-                          ) {
-                            open(
-                              `http://${controller}/ui/#/setup?hostname=${host}&port=${port}&secret=${secret}`
-                            )
-                          } else if (externalUiUrl.includes('Razord')) {
-                            open(
-                              `http://${controller}/ui/#/proxies?host=${host}&port=${port}&secret=${secret}`
-                            )
-                          } else {
-                            if (secret && secret.length > 0) {
-                              open(
-                                `http://${controller}/ui/?hostname=${host}&port=${port}&secret=${secret}`
-                              )
-                            } else {
-                              open(`http://${controller}/ui/?hostname=${host}&port=${port}`)
-                            }
+                          
+                          // Use configured external-ui-name if available, otherwise fallback
+                          const uiPath = externalUiName && externalUiName.length > 0 ? externalUiName : 'ui'
+                          
+                          if (uiPath === 'zashboard' || externalUiUrl.includes('zashboard')) {
+                             open(`http://${controller}/ui/${uiPath}/#/setup?hostname=${host}&port=${port}&secret=${secret}`)
+                          } 
+                          else if (uiPath.includes('metacubexd') || externalUiUrl.includes('metacubexd')) {
+                             open(`http://${controller}/ui/${uiPath}/#/setup?hostname=${host}&port=${port}&secret=${secret}`)
+                          }
+                          else {
+                             if (secret && secret.length > 0) {
+                                open(`http://${controller}/ui/${uiPath}/?hostname=${host}&port=${port}&secret=${secret}`)
+                             } else {
+                                open(`http://${controller}/ui/${uiPath}/?hostname=${host}&port=${port}`)
+                             }
                           }
                         }}
                       >
@@ -232,43 +230,43 @@ const ControllerSetting: React.FC = () => {
                         color="primary"
                         className="mr-2"
                         onPress={() => {
+                          let newName = externalUiName
+                          if (externalUiUrlInput.includes('zashboard')) {
+                            newName = 'zashboard'
+                          } else if (externalUiUrlInput.includes('metacubexd')) {
+                            newName = 'metacubexd-gh-pages'
+                          }
+                          
                           onChangeNeedRestart({
-                            'external-ui-url': externalUiUrlInput
+                            'external-ui-url': externalUiUrlInput,
+                            'external-ui-name': newName
                           })
                         }}
                       >
                         确认
                       </Button>
                     )}
-                    <Select
-                      classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-                      className="w-[150px]"
-                      size="sm"
-                      selectedKeys={new Set([externalUiUrlInput])}
-                      disallowEmptySelection={true}
-                      onSelectionChange={(v) => {
-                        setExternalUiUrlInput(v.currentKey as string)
-                      }}
-                    >
-                      <SelectItem key="https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip">
-                        zashboard
-                      </SelectItem>
-                      <SelectItem key="https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip">
-                        metacubexd
-                      </SelectItem>
-                      <SelectItem key="https://github.com/MetaCubeX/Yacd-meta/archive/refs/heads/gh-pages.zip">
-                        yacd-meta
-                      </SelectItem>
-                      <SelectItem key="https://github.com/haishanh/yacd/archive/refs/heads/gh-pages.zip">
-                        yacd
-                      </SelectItem>
-                      <SelectItem key="https://github.com/MetaCubeX/Razord-meta/archive/refs/heads/gh-pages.zip">
-                        razord-meta
-                      </SelectItem>
-                    </Select>
-                  </div>
-                </SettingItem>
-              )}
+                      <Select
+                        classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+                        className="w-[150px]"
+                        size="sm"
+                        selectedKeys={new Set([externalUiUrlInput])}
+                        disallowEmptySelection={true}
+                        onSelectionChange={(v) => {
+                          const newUrl = v.currentKey as string
+                          setExternalUiUrlInput(newUrl)
+                        }}
+                      >
+                        <SelectItem key="https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip">
+                          zashboard
+                        </SelectItem>
+                        <SelectItem key="https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip">
+                          metacubexd
+                        </SelectItem>
+                      </Select>
+                    </div>
+                  </SettingItem>
+                )}
               <SettingItem title="CORS 配置" />
               <SettingItem title="允许私有网络访问">
                 <Switch
