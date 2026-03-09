@@ -26,8 +26,6 @@ interface SankeyNode {
     depth?: number // Optional manual depth control
 }
 
-
-
 const TopologyMap: React.FC = () => {
     const { connections } = useConnections()
     const [proxies, setProxies] = useState<Record<string, ProxyNode>>({})
@@ -150,7 +148,33 @@ const TopologyMap: React.FC = () => {
         })
 
         // Convert Maps to Arrays
-        const nodes = Array.from(nodesMap.values())
+        // 统计每个节点的连接数量（作为流量指标）
+        const nodeConnectionCount = new Map<string, number>()
+        linksMap.forEach((count, key) => {
+            const [source, target] = key.split('|')
+            nodeConnectionCount.set(source, (nodeConnectionCount.get(source) || 0) + count)
+            nodeConnectionCount.set(target, (nodeConnectionCount.get(target) || 0) + count)
+        })
+        
+        // 对节点排序：特殊节点优先 + 流量排序
+        const nodes = Array.from(nodesMap.values()).sort((a, b) => {
+            const getName = (n: string) => n.split('__')[0]
+            const aName = getName(a.name)
+            const bName = getName(b.name)
+            
+            // 1. DIRECT 最优先（固定最上方）
+            if (aName === 'DIRECT' && bName !== 'DIRECT') return -1
+            if (bName === 'DIRECT' && aName !== 'DIRECT') return 1
+            
+            // 2. REJECT 次优先（固定第二）
+            if (aName === 'REJECT' && bName !== 'REJECT') return -1
+            if (bName === 'REJECT' && aName !== 'REJECT') return 1
+            
+            // 3. 其他节点按连接数量降序排列（流量大的在上面）
+            const aCount = nodeConnectionCount.get(a.name) || 0
+            const bCount = nodeConnectionCount.get(b.name) || 0
+            return bCount - aCount
+        })
         const links = Array.from(linksMap.entries()).map(([key, value]) => {
             const [source, target] = key.split('|')
             return {
@@ -196,27 +220,30 @@ const TopologyMap: React.FC = () => {
                     data: sankeyData.nodes,
                     links: sankeyData.links,
                     emphasis: {
-                        focus: 'adjacency'
+                        focus: 'adjacency',
+                        lineStyle: {
+                            opacity: 0.6 // 悬停时提高透明度，更容易追踪路径
+                        }
                     },
-                    nodeAlign: 'left', // Align nodes to left to form layers strictly? 'justify' spreads them.
-                    layoutIterations: 64, // Optimization level
-                    nodeWidth: 20, // Slightly wider for better presence
-                    nodeGap: 16,   // More breathing room
+                    nodeAlign: 'left',
+                    layoutIterations: 64,
+                    nodeWidth: 20,
+                    nodeGap: 24,   // 增加节点间距，让线条更分散
                     lineStyle: {
                         color: 'gradient',
-                        curveness: 0.5,
-                        opacity: 0.35 // Subtle transparency
+                        curveness: 0.4, // 稍微降低曲率，减少线条交叉
+                        opacity: 0.25   // 降低默认透明度，悬停时更明显
                     },
                     label: {
-                        color: isDark ? '#e5e5e5' : '#374151',
-                        fontFamily: 'Inter, sans-serif',
+                        color: isDark ? '#ffffff' : '#000000',
+                        fontFamily: 'Inter, system-ui, sans-serif',
                         fontSize: 12,
                         fontWeight: 500,
                         formatter: (params: { name: string }) => {
-                            if (typeof params.name === 'string' && params.name.includes('__')) {
-                                return params.name.split('__')[0]
-                            }
-                            return params.name
+                            // 提取原始名称（去除层级后缀）
+                            return params.name.includes('__') 
+                                ? params.name.split('__')[0] 
+                                : params.name
                         }
                     },
                     // Levels config to force consistent colors/positions if needed, 
@@ -258,6 +285,7 @@ const TopologyMap: React.FC = () => {
                 <ReactECharts
                     ref={chartRef}
                     option={getOption()}
+                    opts={{ renderer: 'svg' }}
                     style={{ height: '100%', width: '100%' }}
                     className="react-echarts-container"
                     notMerge={false} 
