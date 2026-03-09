@@ -17,7 +17,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import ExecLogModal from './exec-log-modal'
 import { openFile, restartCore } from '@renderer/utils/ipc'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import ConfirmModal from '../base/base-confirm'
 

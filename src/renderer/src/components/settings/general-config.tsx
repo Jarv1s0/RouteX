@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Switch, Tooltip, Tabs, Tab, Input, Divider } from '@heroui/react'
+import { Button, Switch, Tooltip, Tabs, Tab, Input } from '@heroui/react'
 import useSWR from 'swr'
 import { 
   checkAutoRun, 

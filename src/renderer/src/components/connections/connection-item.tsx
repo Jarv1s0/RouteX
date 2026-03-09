@@ -22,7 +22,7 @@ interface Props {
 }
 
 const ConnectionItemComponent: React.FC<Props> = ({
-  index,
+  index: _index,
   info,
   displayIcon,
   iconUrl,
