@@ -3,7 +3,7 @@ import React, { useMemo } from 'react'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { IoClose, IoServer, IoEarth, IoShieldCheckmark, IoTime, IoCodeSlash, IoPerson } from 'react-icons/io5'
+import { IoClose, IoServer, IoEarth, IoShieldCheckmark, IoTime, IoCodeSlash, IoPerson, IoArrowForward } from 'react-icons/io5'
 import { MdTimeline } from 'react-icons/md'
 import { FaGlobeAmericas, FaNetworkWired } from 'react-icons/fa'
 import { clsx } from 'clsx'
@@ -27,8 +27,6 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
     return 'text-danger'
   }
 
-
-
   // 查找代理链中的组信息
   const chainGroups = useMemo(() => {
     return connection.chains.map((chainName, index) => {
@@ -36,8 +34,6 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
       return { name: chainName, group, isLast: index === connection.chains.length - 1 }
     }).reverse()
   }, [connection.chains, groups])
-
-
 
   // 格式化 IP 和 端口
   const source = `${connection.metadata.sourceIP}:${connection.metadata.sourcePort}`
@@ -53,255 +49,198 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
       backdrop={disableAnimation ? 'transparent' : 'blur'}
       disableAnimation={disableAnimation}
       classNames={{ 
-        backdrop: 'bg-background/10 backdrop-blur-md',
+        backdrop: 'bg-black/60 backdrop-blur-sm',
         wrapper: 'z-[9999]',
-        base: 'bg-background/80 dark:bg-background/90 backdrop-blur-2xl border border-white/10 shadow-2xl dark:shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)]'
+        base: 'bg-content1 dark:bg-content1 border border-divider shadow-xl max-h-[90vh]'
       }}
-      size="5xl"
+      size="4xl"
       hideCloseButton
       isOpen={true}
       onOpenChange={onClose}
       motionProps={{
         variants: {
-          enter: { scale: 0.95, opacity: 1, transition: { duration: 0.2, ease: "easeOut" } },
-          exit: { scale: 0.95, opacity: 0, transition: { duration: 0.15, ease: "easeIn" } },
+          enter: { scale: 1, opacity: 1, transition: { duration: 0.2, ease: "easeOut" } },
+          exit: { scale: 0.98, opacity: 0, transition: { duration: 0.15, ease: "easeIn" } },
         }
       }}
     >
-      <ModalContent className="flag-emoji min-h-[600px]">
-        {/* Header Section */}
-        <ModalHeader className="flex flex-col gap-1 p-0 border-b border-white/5 bg-default-100/30">
-          <div className="flex justify-between items-start p-6 pb-4">
-            <div className="flex items-center gap-5">
-              {/* Process Icon */}
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-white/10 shadow-inner flex items-center justify-center p-3 shrink-0">
+      <ModalContent className="flag-emoji">
+        {/* Header */}
+        <ModalHeader className="flex flex-col gap-0 p-0 border-b border-divider">
+          {/* 顶部标题栏 */}
+          <div className="flex justify-between items-center px-6 py-4">
+            <div className="flex items-center gap-4">
+              {/* 进程图标 */}
+              <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                 {localStorage.getItem(processPath || '') ? (
                   <img
                     src={localStorage.getItem(processPath || '') || ''}
-                    className="w-full h-full object-contain drop-shadow-md"
+                    className="w-8 h-8 object-contain"
                     alt=""
                   />
                 ) : (
-                  <FaGlobeAmericas className="text-3xl text-primary/40" />
+                  <FaGlobeAmericas className="text-2xl text-primary" />
                 )}
               </div>
               
-              {/* Title & Badges */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground/90">{processName}</h2>
-                  <Chip size="sm" variant="flat" color="primary" className="bg-primary/10 text-primary border border-primary/20 h-5">
+              {/* 标题和标签 */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-foreground">{processName}</h2>
+                  <Chip size="sm" variant="flat" color="primary" className="h-5">
                     {connection.metadata.network.toUpperCase()}
                   </Chip>
-                  <Chip size="sm" variant="flat" className="h-5 bg-default-100/50 border border-white/5 text-default-500">
+                  <Chip size="sm" variant="flat" className="h-5 bg-default-100 text-default-600">
                     {connection.metadata.type}
                   </Chip>
                 </div>
-
               </div>
             </div>
 
             <Button
               isIconOnly
               size="sm"
-              variant="flat"
-              className="bg-default-100 hover:bg-default-200 text-default-500 hover:text-foreground"
+              variant="light"
+              className="text-default-500 hover:text-foreground"
               onPress={onClose}
             >
               <IoClose className="text-xl" />
             </Button>
           </div>
           
-          {/* Traffic Bar */}
-          <div className="flex w-full bg-default-50/30 border-t border-white/5 divide-x divide-white/5">
-             <div className="flex-1 px-6 py-3 flex items-center justify-between group hover:bg-primary/5 transition-colors">
-                <span className="text-xs font-bold text-default-500 uppercase tracking-wider">Download</span>
-                <div className="flex items-baseline gap-1">
-                   <span className="text-lg font-mono font-bold text-foreground">{calcTraffic(connection.download)}</span>
-                   <span className="text-xs font-mono text-success bg-success/10 px-1 rounded ml-2 font-bold">
-                     ↓ {calcTraffic(connection.downloadSpeed || 0)}/s
-                   </span>
+          {/* 流量统计条 */}
+          <div className="grid grid-cols-2 gap-4 px-6 py-4 bg-default-50 dark:bg-default-100/30">
+            {/* 下载 */}
+            <div className="flex items-center gap-4 p-3 rounded-xl bg-content1 border border-divider">
+              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <span className="text-success text-lg">↓</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold text-default-500 uppercase">下载</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-mono font-bold text-foreground">{calcTraffic(connection.download)}</span>
+                  <span className="text-xs font-mono text-success">{calcTraffic(connection.downloadSpeed || 0)}/s</span>
                 </div>
-             </div>
-             <div className="flex-1 px-6 py-3 flex items-center justify-between group hover:bg-primary/5 transition-colors">
-                <span className="text-xs font-bold text-default-500 uppercase tracking-wider">Upload</span>
-                <div className="flex items-baseline gap-1">
-                   <span className="text-lg font-mono font-bold text-foreground">{calcTraffic(connection.upload)}</span>
-                   <span className="text-xs font-mono text-primary bg-primary/10 px-1 rounded ml-2 font-bold">
-                     ↑ {calcTraffic(connection.uploadSpeed || 0)}/s
-                   </span>
+              </div>
+            </div>
+            
+            {/* 上传 */}
+            <div className="flex items-center gap-4 p-3 rounded-xl bg-content1 border border-divider">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <span className="text-primary text-lg">↑</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold text-default-500 uppercase">上传</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-mono font-bold text-foreground">{calcTraffic(connection.upload)}</span>
+                  <span className="text-xs font-mono text-primary">{calcTraffic(connection.uploadSpeed || 0)}/s</span>
                 </div>
-             </div>
+              </div>
+            </div>
           </div>
         </ModalHeader>
 
-        <ModalBody className="p-0 flex flex-row overflow-hidden bg-content1/30">
+        <ModalBody className="p-0 flex flex-row overflow-hidden">
           
-          {/* Left: Metadata Dashboard */}
-          <ScrollShadow className="flex-1 p-6 flex flex-col gap-6 max-h-[600px] overflow-y-auto">
+          {/* 左侧：连接信息 */}
+          <ScrollShadow className="flex-1 p-5 flex flex-col gap-4 max-h-[500px] overflow-y-auto">
             
-            {/* Meta Grid */}
-            <div className="grid grid-cols-2 gap-4">
-               {/* Source */}
-               <InfoCard 
-                 icon={<IoPerson />} 
-                 label="Source" 
-                 value={source} 
-                 subValue={connection.metadata.sourceGeoIP || 'Local Network'}
-               />
-               
-               {/* Destination */}
-               <InfoCard 
-                 icon={<FaNetworkWired />} 
-                 label="Destination" 
-                 value={destination} 
-                 subValue={connection.metadata.destinationGeoIP ? `${connection.metadata.destinationGeoIP} ${connection.metadata.destinationIPASN || ''}` : connection.metadata.host ? 'Resolved IP Pending' : 'Direct IP'}
-                 highlight
-               />
-               
-               {/* Rule */}
-               <InfoCard 
-                 icon={<IoShieldCheckmark />} 
-                 label="Rule" 
-                 value={connection.rulePayload || connection.rule} 
-                 subValue={connection.rulePayload ? connection.rule : undefined}
-                 accent="warning"
-               />
-               
-               {/* DNS */}
-               <InfoCard 
-                 icon={<IoEarth />} 
-                 label="DNS Mode" 
-                 value={connection.metadata.dnsMode} 
-                 subValue={connection.metadata.sniffHost ? `Sniff: ${connection.metadata.sniffHost}` : undefined}
-               />
+            {/* 源地址和目标地址 */}
+            <div className="grid grid-cols-2 gap-3">
+              <InfoCard 
+                icon={<IoPerson />} 
+                label="源地址" 
+                value={source} 
+                subValue={connection.metadata.sourceGeoIP?.join(' ') || '本地网络'}
+              />
+              <InfoCard 
+                icon={<FaNetworkWired />} 
+                label="目标地址" 
+                value={destination} 
+                subValue={connection.metadata.destinationGeoIP ? `${connection.metadata.destinationGeoIP} ${connection.metadata.destinationIPASN || ''}` : connection.metadata.host ? '解析中' : '直连'}
+                highlight
+              />
+            </div>
+            
+            {/* 规则和 DNS */}
+            <div className="grid grid-cols-2 gap-3">
+              <InfoCard 
+                icon={<IoShieldCheckmark />} 
+                label="匹配规则" 
+                value={connection.rulePayload || connection.rule} 
+                subValue={connection.rulePayload ? connection.rule : undefined}
+                accent="warning"
+              />
+              <InfoCard 
+                icon={<IoEarth />} 
+                label="DNS 模式" 
+                value={connection.metadata.dnsMode} 
+                subValue={connection.metadata.sniffHost ? `嗅探: ${connection.metadata.sniffHost}` : undefined}
+              />
             </div>
 
-            {/* Inbound Info */}
-            <div className="p-4 rounded-2xl bg-content1 border border-default-200 shadow-sm flex flex-col gap-4">
-               <div className="flex items-center gap-2 text-default-500">
-                 <IoServer /> Inbound Details
-               </div>
-               <div className="grid grid-cols-3 gap-y-4 gap-x-8">
-                  <DetailItem label="Inbound Name" value={connection.metadata.inboundName} />
-                  <DetailItem label="Inbound Port" value={connection.metadata.inboundPort?.toString()} />
-                  <DetailItem label="Inbound IP" value={connection.metadata.inboundIP} />
-                  <DetailItem label="User ID" value={connection.metadata.uid?.toString()} />
-                  <DetailItem label="DSCP" value={connection.metadata.dscp?.toString()} />
-               </div>
+            {/* 入站信息 */}
+            <div className="p-4 rounded-xl bg-default-50 dark:bg-default-100/50 border border-divider">
+              <div className="flex items-center gap-2 text-default-600 mb-3">
+                <IoServer className="text-base" />
+                <span className="text-sm font-semibold">入站详情</span>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <DetailItem label="入站名称" value={connection.metadata.inboundName} />
+                <DetailItem label="入站端口" value={connection.metadata.inboundPort?.toString()} />
+                <DetailItem label="入站 IP" value={connection.metadata.inboundIP} />
+                <DetailItem label="用户 ID" value={connection.metadata.uid?.toString()} />
+                <DetailItem label="DSCP" value={connection.metadata.dscp?.toString()} />
+              </div>
             </div>
 
           </ScrollShadow>
 
-          {/* Vertical Divider */}
-          <div className="w-px bg-white/5 my-4" />
+          {/* 分隔线 */}
+          <div className="w-px bg-divider" />
 
-          {/* Right: Proxy Chain Timeline */}
-          <div className="w-[320px] bg-default-50/20 backdrop-blur-sm p-4 flex flex-col gap-4 border-l border-white/5">
-             <div className="flex items-center gap-2 px-2 pb-2 border-b border-white/5">
-                <MdTimeline className="text-xl text-primary" />
-                <span className="font-bold text-foreground/80">Timeline</span>
-             </div>
-             
-             <ScrollShadow className="flex-1 flex flex-col gap-0 max-h-[500px] pt-4 pr-2">
-                {/* 1. Source Node */}
-                <div className="relative pl-6 pb-6 group">
-                   {/* Line */}
-                   <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-default-200/50 group-hover:bg-primary/30 transition-colors" />
-                   
-                   {/* Dot (Green for Start) */}
-                   <div className="absolute left-0 top-1.5 w-[22px] h-[22px] rounded-full border-2 border-success bg-background shadow-[0_0_10px_rgba(23,201,100,0.3)] flex items-center justify-center z-10">
-                     <div className="w-2 h-2 rounded-full bg-success" />
-                   </div>
+          {/* 右侧：代理链时间线 */}
+          <div className="w-[280px] bg-default-50 dark:bg-default-100/30 p-4 flex flex-col">
+            <div className="flex items-center gap-2 px-1 pb-3 border-b border-divider mb-4">
+              <MdTimeline className="text-lg text-primary" />
+              <span className="font-semibold text-foreground">代理链</span>
+            </div>
+            
+            <ScrollShadow className="flex-1 flex flex-col gap-0 max-h-[400px] pr-1 pb-4">
+              {/* 源节点 */}
+              <TimelineNode 
+                type="source"
+                label="SOURCE"
+                title={processPath ? processPath.split(/[\\/]/).pop() || 'Unknown' : 'Unknown'}
+                subtitle={dayjs(connection.start).format('HH:mm:ss')}
+                isFirst
+              />
 
-                   {/* Card */}
-                   <div className="p-3 rounded-xl border border-success/20 bg-content1 shadow-sm ml-2 transition-all duration-300 hover:bg-content2">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-success uppercase tracking-wider">Source</span>
-                        <div className="flex items-center gap-1.5 text-xs font-mono text-default-500">
-                          <IoTime />
-                          <span>{dayjs(connection.start).format('HH:mm:ss')}</span>
-                        </div>
-                      </div>
-                       <div className="flex items-center gap-2" title={processPath}>
-                         <IoCodeSlash className="text-default-500 shrink-0" />
-                         <span className="text-sm font-medium text-foreground truncate">{processPath ? processPath.split(/[\\/]/).pop() : 'Unknown'}</span>
-                       </div>
-                   </div>
-                </div>
+              {/* 代理链节点 */}
+              {chainGroups.map((item, index) => {
+                const { name, group } = item
+                return (
+                  <TimelineNode 
+                    key={index}
+                    type={group ? 'group' : 'proxy'}
+                    label={group?.type?.toUpperCase()}
+                    title={name}
+                    subtitle={group?.now}
+                    delay={group?.all?.find(p => p.name === group.now)?.history?.at(-1)?.delay}
+                    delayColorClass={getDelayColorClass(group?.all?.find(p => p.name === group.now)?.history?.at(-1)?.delay || 0)}
+                    icon={group?.icon}
+                  />
+                )
+              })}
 
-                {/* 2. Chain Nodes */}
-                {chainGroups.map((item, index) => {
-                  const { name, group } = item
-
-                  
-                  return (
-                    <div key={index} className="relative pl-6 pb-6 last:pb-0 group">
-                       {/* Line (always visible because we have Destination at the end) */}
-                       <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-default-200/50 group-hover:bg-primary/30 transition-colors" />
-                       
-                       {/* Dot */}
-                       <div className={clsx(
-                         "absolute left-0 top-1.5 w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center z-10 transition-all duration-300",
-                         group 
-                           ? "border-primary bg-background shadow-[0_0_10px_rgba(var(--heroui-primary),0.3)]" 
-                           : "border-default-400 bg-background"
-                       )}>
-                         <div className={clsx("w-2 h-2 rounded-full", group ? "bg-primary" : "bg-default-400")} />
-                       </div>
-
-                       {/* Card */}
-                       <div className={clsx(
-                         "p-3 rounded-xl border transition-all duration-300 ml-2",
-                         group 
-                           ? "bg-content1 border-primary/20 hover:bg-content2 shadow-sm"
-                           : "bg-content1 border-default-200 hover:bg-content2"
-                       )}>
-                          {/* Name & Type */}
-                          <div className="flex items-center justify-between mb-1">
-                             <div className="font-bold text-sm tracking-tight flex items-center gap-2 text-foreground" title={name}>
-                                {name} 
-                                {group && <span className="text-[10px] px-1.5 py-0.5 bg-default-200/50 rounded text-default-600 font-mono font-bold uppercase">{group.type}</span>}
-                             </div>
-                             {group && (
-                               <span className={clsx("text-xs font-mono font-bold", getDelayColorClass(group.all?.find(p => p.name === group.now)?.history?.at(-1)?.delay || 0))}>
-                                  {group.all?.find(p => p.name === group.now)?.history?.at(-1)?.delay || '-'}ms
-                               </span>
-                             )}
-                          </div>
-                          
-                          {/* Current Selection */}
-                          {group && (
-                            <div className="flex items-center gap-2 mt-2 text-xs text-foreground/80 bg-background/40 p-1.5 rounded-lg border border-white/5 shadow-inner">
-                               {group.icon && <img src={group.icon} className="w-4 h-4 object-contain" />}
-                               <span className="font-mono truncate font-medium" title={group.now}>{group.now}</span>
-                            </div>
-                          )}
-                       </div>
-                    </div>
-                  )
-                })}
-
-                {/* 3. Destination Node */}
-                <div className="relative pl-6 pb-6 group">
-                   
-                   {/* Dot (Primary/Blue for Target) */}
-                   <div className="absolute left-0 top-1.5 w-[22px] h-[22px] rounded-full border-2 border-secondary bg-background shadow-[0_0_10px_rgba(var(--heroui-secondary),0.3)] flex items-center justify-center z-10">
-                     <div className="w-2 h-2 rounded-full bg-secondary" />
-                   </div>
-
-                   {/* Card */}
-                   <div className="p-3 rounded-xl border border-secondary/20 bg-content1 shadow-sm ml-2 transition-all duration-300 hover:bg-content2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-bold text-secondary uppercase tracking-wider">Destination</span>
-                      </div>
-                       <div className="flex items-center gap-2">
-                         <FaGlobeAmericas className="text-default-500 shrink-0" />
-                         <span className="text-sm font-medium text-foreground truncate select-text" title={destination}>{destination}</span>
-                       </div>
-                   </div>
-                </div>
-             </ScrollShadow>
+              {/* 目标节点 */}
+              <TimelineNode 
+                type="destination"
+                label="DESTINATION"
+                title={destination}
+                isLast
+              />
+            </ScrollShadow>
           </div>
 
         </ModalBody>
@@ -310,38 +249,142 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
   )
 }
 
-// Sub-components for cleaner code
-const InfoCard = ({ icon, label, value, subValue, highlight, accent }: any) => (
+// 信息卡片组件
+interface InfoCardProps {
+  icon: React.ReactNode
+  label: string
+  value?: string
+  subValue?: string
+  highlight?: boolean
+  accent?: 'warning' | 'success' | 'danger'
+}
+
+const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value, subValue, highlight, accent }) => (
   <div className={clsx(
-    "p-4 rounded-2xl border flex flex-col gap-3 transition-all duration-300",
+    "p-4 rounded-xl border transition-colors",
     highlight 
-      ? "bg-primary/10 border-primary/20 shadow-sm" 
-      : "bg-content1 border-default-200 shadow-sm hover:bg-content2"
+      ? "bg-primary/5 border-primary/30" 
+      : "bg-default-50 dark:bg-default-100/50 border-divider hover:bg-default-100 dark:hover:bg-default-200/50"
   )}>
-     <div className="flex items-center gap-2 text-default-500">
-        <div className={clsx("p-1.5 rounded-lg", highlight ? "bg-primary/10 text-primary" : "bg-default-200/50 text-default-600")}>
-           {icon}
-        </div>
-        <span className="text-xs font-bold uppercase tracking-wider opacity-90">{label}</span>
-     </div>
-     <div className="flex flex-col">
-        <span className={clsx("text-base font-bold font-mono truncate text-foreground", accent === 'warning' && "text-warning")} title={value}>
-           {value || 'N/A'}
-        </span>
-        {subValue && (
-          <span className="text-xs text-default-500 truncate mt-0.5 font-medium" title={subValue}>{subValue}</span>
-        )}
-     </div>
+    <div className="flex items-center gap-2 mb-2">
+      <div className={clsx(
+        "p-1.5 rounded-lg text-sm",
+        highlight ? "bg-primary/10 text-primary" : "bg-default-200 dark:bg-default-300/50 text-default-600"
+      )}>
+        {icon}
+      </div>
+      <span className="text-xs font-semibold text-default-500 uppercase">{label}</span>
+    </div>
+    <div className="flex flex-col gap-0.5">
+      <span 
+        className={clsx(
+          "text-sm font-bold font-mono truncate",
+          accent === 'warning' ? "text-warning" : "text-foreground"
+        )} 
+        title={value}
+      >
+        {value || 'N/A'}
+      </span>
+      {subValue && (
+        <span className="text-xs text-default-500 truncate" title={subValue}>{subValue}</span>
+      )}
+    </div>
   </div>
 )
 
-const DetailItem = ({ label, value }: any) => (
-  <div className="flex flex-col gap-1">
-     <span className="text-[10px] uppercase text-default-500 font-bold tracking-wider">{label}</span>
-     <span className="text-sm font-mono text-foreground font-medium truncate border-b border-dashed border-default-200/50 pb-0.5 hover:text-primary transition-colors cursor-copy" title={value}>
-       {value || '-'}
-     </span>
+// 详情项组件
+interface DetailItemProps {
+  label: string
+  value?: string
+}
+
+const DetailItem: React.FC<DetailItemProps> = ({ label, value }) => (
+  <div className="flex flex-col gap-0.5">
+    <span className="text-[10px] uppercase text-default-500 font-semibold">{label}</span>
+    <span className="text-sm font-mono text-foreground truncate" title={value}>
+      {value || '-'}
+    </span>
   </div>
 )
+
+// 时间线节点组件
+interface TimelineNodeProps {
+  type: 'source' | 'group' | 'proxy' | 'destination'
+  label?: string
+  title: string
+  subtitle?: string
+  delay?: number
+  delayColorClass?: string
+  icon?: string
+  isFirst?: boolean
+  isLast?: boolean
+}
+
+const TimelineNode: React.FC<TimelineNodeProps> = ({ 
+  type, label, title, subtitle, delay, delayColorClass, icon, isFirst, isLast 
+}) => {
+  const colors = {
+    source: 'border-success bg-success text-success',
+    group: 'border-primary bg-primary text-primary',
+    proxy: 'border-default-400 bg-default-400 text-default-500',
+    destination: 'border-secondary bg-secondary text-secondary'
+  }
+  
+  const [borderColor, dotColor, textColor] = colors[type].split(' ')
+  
+  return (
+    <div className="relative pl-6 pb-4 last:pb-0">
+      {/* 连接线 */}
+      {!isLast && (
+        <div className="absolute left-[9px] top-5 bottom-0 w-0.5 bg-default-200 dark:bg-default-300" />
+      )}
+      
+      {/* 节点点 */}
+      <div className={clsx(
+        "absolute left-0 top-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center z-10 bg-content1",
+        borderColor
+      )}>
+        <div className={clsx("w-2 h-2 rounded-full", dotColor)} />
+      </div>
+
+      {/* 内容卡片 */}
+      <div className="ml-2 p-2.5 rounded-lg bg-content1 border border-divider hover:bg-default-50 dark:hover:bg-default-100/50 transition-colors">
+        {/* 标签行 */}
+        <div className="flex items-center justify-between mb-1">
+          <span className={clsx("text-[10px] font-bold uppercase tracking-wide", textColor)}>
+            {label || (type === 'proxy' ? 'PROXY' : '')}
+          </span>
+          {delay !== undefined && (
+            <span className={clsx("text-xs font-mono font-bold", delayColorClass)}>
+              {delay}ms
+            </span>
+          )}
+          {isFirst && subtitle && (
+            <div className="flex items-center gap-1 text-[10px] text-default-500">
+              <IoTime className="text-xs" />
+              <span>{subtitle}</span>
+            </div>
+          )}
+        </div>
+        
+        {/* 标题 */}
+        <div className="flex items-center gap-2">
+          {icon && <img src={icon} className="w-4 h-4 object-contain" alt="" />}
+          {type === 'source' && <IoCodeSlash className="text-default-500 text-sm shrink-0" />}
+          {type === 'destination' && <FaGlobeAmericas className="text-default-500 text-sm shrink-0" />}
+          <span className="text-sm font-medium text-foreground truncate" title={title}>{title}</span>
+        </div>
+        
+        {/* 子标题（当前选择的节点） */}
+        {!isFirst && subtitle && (
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-default-600 bg-default-100 dark:bg-default-200/50 px-2 py-1 rounded">
+            <IoArrowForward className="text-[10px]" />
+            <span className="font-mono truncate" title={subtitle}>{subtitle}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default ConnectionDetailModal
