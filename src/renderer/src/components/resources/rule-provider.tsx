@@ -25,7 +25,8 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
     type: '',
     title: '',
     format: '',
-    privderType: ''
+    privderType: '',
+    behavior: ''
   })
   useEffect(() => {
     if (showDetails.title) {
@@ -37,11 +38,12 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
             setShowDetails((prev) => ({
               ...prev,
               show: true,
-              path: provider?.path || `rules/${getHash(provider?.url || '')}`
+              path: provider?.path || `rules/${getHash(provider?.url || '')}`,
+              behavior: provider?.behavior || 'domain'
             }))
           }
         } catch {
-          setShowDetails((prev) => ({ ...prev, path: '' }))
+          setShowDetails((prev) => ({ ...prev, path: '', behavior: '' }))
         }
       }
       fetchProviderPath(showDetails.title)
@@ -121,7 +123,8 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
               type: '',
               title: '',
               format: '',
-              privderType: ''
+              privderType: '',
+              behavior: ''
             })
           }
         />
@@ -170,7 +173,8 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
                           path: provider.name,
                           type: provider.vehicleType,
                           title: provider.name,
-                          format: provider.format
+                          format: provider.format,
+                          behavior: provider.behavior
                         })
                       }}
                     >

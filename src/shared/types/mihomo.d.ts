@@ -139,4 +139,5 @@ interface MihomoProfileConfig {
 interface ProxyProviderConfig {
   path?: string
   url?: string
+  behavior?: string
 }

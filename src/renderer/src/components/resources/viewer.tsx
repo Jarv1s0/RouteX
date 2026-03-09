@@ -1,9 +1,10 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
-import { getFileStr, setFileStr } from '@renderer/utils/ipc'
+import { getFileStr, setFileStr, convertMrsRuleset } from '@renderer/utils/ipc'
 import yaml from 'js-yaml'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { Spinner } from '@heroui/react'
 type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
 
 interface Props {
@@ -13,22 +14,30 @@ interface Props {
   title: string
   privderType: string
   format?: string
+  behavior?: string
 }
 const Viewer: React.FC<Props> = (props) => {
-  const { type, path, title, format, privderType, onClose } = props
+  const { type, path, title, format, privderType, behavior, onClose } = props
   const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
   const [currData, setCurrData] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   let language: Language = !format || format === 'YamlRule' ? 'yaml' : 'text'
 
   const getContent = async (): Promise<void> => {
-    let fileContent: string
-    if (type === 'Inline') {
-      fileContent = await getFileStr('config.yaml')
-      language = 'yaml'
-    } else {
-      fileContent = await getFileStr(path)
-    }
+    setIsLoading(true)
     try {
+      let fileContent: string
+      // 处理 MRS 格式
+      if (format === 'MrsRule' || format === 'mrs') {
+        fileContent = await convertMrsRuleset(path, behavior || 'domain')
+        language = 'text'
+      } else if (type === 'Inline') {
+        fileContent = await getFileStr('config.yaml')
+        language = 'yaml'
+      } else {
+        fileContent = await getFileStr(path)
+      }
+
       const parsedYaml = yaml.load(fileContent)
       if (parsedYaml && typeof parsedYaml === 'object') {
         const yamlObj = parsedYaml as Record<string, unknown>
@@ -59,7 +68,9 @@ const Viewer: React.FC<Props> = (props) => {
         setCurrData(fileContent)
       }
     } catch (error) {
-      setCurrData(fileContent)
+      setCurrData('')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -84,12 +95,19 @@ const Viewer: React.FC<Props> = (props) => {
       <ModalContent className="h-full w-[calc(100%-100px)]">
         <ModalHeader className="flex pb-0 app-drag">{title}</ModalHeader>
         <ModalBody className="h-full">
-          <BaseEditor
-            language={language}
-            value={currData}
-            readOnly={type != 'File'}
-            onChange={(value) => setCurrData(value)}
-          />
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center h-full gap-4">
+              <Spinner size="lg" />
+              <p className="text-default-500">加载中...</p>
+            </div>
+          ) : (
+            <BaseEditor
+              language={language}
+              value={currData}
+              readOnly={type != 'File'}
+              onChange={(value) => setCurrData(value)}
+            />
+          )}
         </ModalBody>
         <ModalFooter className="pt-0">
           <Button size="sm" variant="light" onPress={onClose}>

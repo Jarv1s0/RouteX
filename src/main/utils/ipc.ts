@@ -55,7 +55,9 @@ import {
   addChainItem,
   updateChainItem,
   removeChainItem,
-  getAllChains
+  removeChainItem,
+  getAllChains,
+  convertMrsRuleset
 } from '../config'
 import {
   startSubStoreFrontendServer,
@@ -186,7 +188,7 @@ async function httpGet(url: string, timeout: number): Promise<{ status: number; 
       const timer = setTimeout(() => {
         if (!resolved) {
           resolved = true
-          try { request.abort() } catch {}
+          try { request.abort() } catch { /* ignore */ }
           reject(new Error('请求超时'))
         }
       }, timeout)
@@ -472,6 +474,9 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('getProfileStr', (_e, id) => ipcErrorWrapper(getProfileStr)(id))
   ipcMain.handle('getFileStr', (_e, path) => ipcErrorWrapper(getFileStr)(path))
   ipcMain.handle('setFileStr', (_e, path, str) => ipcErrorWrapper(setFileStr)(path, str))
+  ipcMain.handle('convertMrsRuleset', (_e, path, behavior) =>
+    ipcErrorWrapper(convertMrsRuleset)(path, behavior)
+  )
   ipcMain.handle('setProfileStr', (_e, id, str) => ipcErrorWrapper(setProfileStr)(id, str))
   ipcMain.handle('updateProfileItem', (_e, item) => ipcErrorWrapper(updateProfileItem)(item))
   ipcMain.handle('changeCurrentProfile', (_e, id) => ipcErrorWrapper(changeCurrentProfile)(id))
@@ -647,8 +652,8 @@ export function registerIpcMainHandlers(): void {
   }
 
   ipcMain.handle('fetchIpInfoQuery', ipcErrorWrapper(async (_e, query: string) => {
-    return new Promise(async (resolve, reject) => {
-      const ip = await resolveToIp(query)
+    const ip = await resolveToIp(query)
+    return new Promise((resolve, reject) => {
       const request = net.request(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`)
       let data = ''
       request.on('response', (response) => {
@@ -753,13 +758,13 @@ export function registerIpcMainHandlers(): void {
             
             // 设置超时
             const timeout = setTimeout(() => {
-              try { request.abort() } catch {}
+              try { request.abort() } catch { /* ignore */ }
               resolveResult()
             }, 3000)
             
             request.on('response', () => {
               clearTimeout(timeout)
-              try { request.abort() } catch {}
+              try { request.abort() } catch { /* ignore */ }
               resolveResult()
             })
             

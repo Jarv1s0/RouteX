@@ -15,7 +15,8 @@ export {
   getProfileParseStr,
   setProfileStr,
   changeCurrentProfile,
-  updateProfileItem
+  updateProfileItem,
+  convertMrsRuleset
 } from './profile'
 export {
   getOverrideConfig,
