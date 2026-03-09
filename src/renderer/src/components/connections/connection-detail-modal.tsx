@@ -177,26 +177,25 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                         <IoSwapVertical className="text-lg text-[#22d3ee]"/>
                      </div>
                    </div>
+                  {/* 断开连接按钮 - 放在流量卡片后面 */}
+                  {onDisconnect && (
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="danger"
+                      className="ml-2 h-7 min-w-0 px-2"
+                      startContent={<IoUnlink className="text-base" />}
+                      onPress={() => onDisconnect(connection.id)}
+                    >
+                      断开
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* 右侧操作区：仅保留关闭按钮 */}
             <div className="flex items-center gap-3">
-              {/* 断开连接按钮 */}
-              {onDisconnect && (
-                <Button
-                  size="sm"
-                  variant="flat"
-                  color="danger"
-                  startContent={<IoUnlink className="text-lg" />}
-                  onPress={() => onDisconnect(connection.id)}
-                  className="font-medium"
-                >
-                  断开连接
-                </Button>
-              )}
-
               {/*  关闭按钮 */}
               <Button
                 isIconOnly
