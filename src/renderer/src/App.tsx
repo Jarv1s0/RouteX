@@ -12,6 +12,7 @@ import useSWR from 'swr'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useGroupsStore } from '@renderer/store/use-groups-store'
 import { useLogsStore } from '@renderer/store/use-logs-store'
+import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 
 import AppSidebar from '@renderer/components/layout/AppSidebar'
 import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
@@ -28,8 +29,10 @@ const App: React.FC = () => {
     useWindowFrame = false,
     siderWidth = 250,
     autoCheckUpdate,
-    updateChannel = 'stable'
+    updateChannel = 'stable',
+    sysProxy
   } = appConfig || {}
+  const { controledMihomoConfig } = useControledMihomoConfig()
 
   const narrowWidth = platform === 'darwin' ? 70 : 60
   
@@ -99,6 +102,20 @@ const App: React.FC = () => {
       setTitlebar()
     })
   }, [customTheme])
+
+  useEffect(() => {
+    // Sync Taskbar Icon
+    const tunEnabled = controledMihomoConfig?.tun?.enable
+    const sysProxyEnabled = sysProxy?.enable
+
+    if (tunEnabled) {
+      window.electron.ipcRenderer.send('update-taskbar-icon', 'tun')
+    } else if (sysProxyEnabled) {
+      window.electron.ipcRenderer.send('update-taskbar-icon', 'proxy')
+    } else {
+      window.electron.ipcRenderer.send('update-taskbar-icon', 'default')
+    }
+  }, [controledMihomoConfig?.tun?.enable, sysProxy?.enable])
 
   useEffect(() => {
     window.addEventListener('mouseup', onResizeEnd)

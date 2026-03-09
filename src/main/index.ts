@@ -15,6 +15,8 @@ import { addOverrideItem, addProfileItem, getAppConfig, patchControledMihomoConf
 import { quitWithoutCore, startCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import icon from '../../resources/icon.png?asset'
+import iconProxy from '../../resources/icon_proxy.ico?asset'
+import iconTun from '../../resources/icon_tun.ico?asset'
 import { createTray } from './resolve/tray'
 import { createApplicationMenu } from './resolve/menu'
 import { init } from './utils/init'
@@ -366,6 +368,19 @@ app.whenReady().then(async () => {
   const appConfig = await getAppConfig()
   const { showFloatingWindow: showFloating = false, disableTray = false } = appConfig
   registerIpcMainHandlers()
+
+  ipcMain.on('update-taskbar-icon', (_event, type: 'default' | 'proxy' | 'tun') => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      try {
+        let targetIcon = icon
+        if (type === 'proxy') targetIcon = iconProxy
+        if (type === 'tun') targetIcon = iconTun
+        mainWindow.setIcon(targetIcon)
+      } catch (e) {
+        console.error('Failed to set taskbar icon', e)
+      }
+    }
+  })
 
   const createWindowPromise = createWindow(appConfig)
 
