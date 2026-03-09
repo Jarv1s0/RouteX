@@ -7,7 +7,7 @@ import {
   mihomoProxyDelay,
   mihomoGroupDelay
 } from '@renderer/utils/ipc'
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, useDeferredValue } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
@@ -55,6 +55,7 @@ const Proxies: React.FC = () => {
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(false))
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
+  const deferredSearchValue = useDeferredValue(searchValue)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
   // 扁平化数据结构
@@ -71,7 +72,7 @@ const Proxies: React.FC = () => {
       
       // 如果展开，添加代理行
       const isGroupOpen = !!isOpen[index]
-      const currentSearchValue = searchValue[index] || ''
+      const currentSearchValue = deferredSearchValue[index] || ''
       
       if (isGroupOpen) {
         let groupProxies = (group.all || []).filter(
@@ -103,7 +104,7 @@ const Proxies: React.FC = () => {
       }
     })
     return items
-  }, [groups, isOpen, proxyDisplayOrder, cols, searchValue])
+  }, [groups, isOpen, proxyDisplayOrder, cols, deferredSearchValue])
 
   // 同步状态数组长度
   useEffect(() => {

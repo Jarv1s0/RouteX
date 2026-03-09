@@ -496,7 +496,7 @@ export async function createTray(): Promise<void> {
 
 async function updateTrayIcon(): Promise<void> {
   try {
-    if (process.platform !== 'win32' || !tray) return
+    if (process.platform !== 'win32') return
     const { sysProxy } = await getAppConfig()
     const { tun } = await getControledMihomoConfig()
 
@@ -507,7 +507,15 @@ async function updateTrayIcon(): Promise<void> {
       icon = iconTun
     }
     const nativeIcon = nativeImage.createFromPath(icon)
-    tray.setImage(nativeIcon)
+    
+    if (tray) {
+      tray.setImage(nativeIcon)
+    }
+    
+    // Sync main window icon with tray icon (System Proxy / Tun status)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setIcon(nativeIcon)
+    }
   } catch (e) {
     console.error('Failed to update tray icon:', e)
   }

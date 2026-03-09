@@ -1,6 +1,6 @@
 import { exec, execFile, execSync, spawn } from 'child_process'
 import { app, dialog, nativeTheme, shell } from 'electron'
-import { readFile } from 'fs/promises'
+import { readFile, writeFile, copyFile } from 'fs/promises'
 import path from 'path'
 import { promisify } from 'util'
 import {
@@ -14,6 +14,8 @@ import {
   taskDir
 } from '../utils/dirs'
 import { copyFileSync, writeFileSync } from 'fs'
+
+const execPromise = promisify(exec)
 
 export function getFilePath(ext: string[]): string[] | undefined {
   return dialog.showOpenDialogSync({
@@ -56,7 +58,6 @@ export async function openUWPTool(): Promise<void> {
 }
 
 export async function setupFirewall(): Promise<void> {
-  const execPromise = promisify(exec)
   const removeCommand = `
   $rules = @("mihomo", "mihomo-alpha", "RouteX")
   foreach ($rule in $rules) {
@@ -130,9 +131,21 @@ export function createElevateTaskSync(): void {
   )
 }
 
+export async function createElevateTask(): Promise<void> {
+  const taskFilePath = path.join(taskDir(), `sparkle-run.xml`)
+  await writeFile(taskFilePath, Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le'))
+  await copyFile(
+    path.join(resourcesFilesDir(), 'sparkle-run.exe'),
+    path.join(taskDir(), 'sparkle-run.exe')
+  )
+  await execPromise(
+    `%SystemRoot%\\System32\\schtasks.exe /create /tn "sparkle-run" /xml "${taskFilePath}" /f`
+  )
+}
+
 export async function deleteElevateTask(): Promise<void> {
   try {
-    execSync(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "sparkle-run" /f`)
+    await execPromise(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "sparkle-run" /f`)
   } catch {
     // ignore
   }
@@ -140,7 +153,8 @@ export async function deleteElevateTask(): Promise<void> {
 
 export async function checkElevateTask(): Promise<boolean> {
   try {
-    execSync(`%SystemRoot%\\System32\\schtasks.exe /query /tn "sparkle-run"`, { stdio: 'pipe' })
+    // Use execPromise instead of execSync for non-blocking check
+    await execPromise(`%SystemRoot%\\System32\\schtasks.exe /query /tn "sparkle-run"`)
     return true
   } catch {
     return false

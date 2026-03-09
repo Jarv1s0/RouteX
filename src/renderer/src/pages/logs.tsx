@@ -12,41 +12,17 @@ import { saveFile, restartCore } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-
+import { useLogsStore } from '@renderer/store/use-logs-store'
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
-import { throttle } from 'lodash'
-
-const cachedLogs: {
-  log: ControllerLog[]
-  trigger: ((i: ControllerLog[]) => void) | null
-  clean: () => void
-} = {
-  log: [],
-  trigger: null,
-  clean(): void {
-    this.log = []
-    if (this.trigger !== null) {
-      this.trigger(this.log)
-    }
-  }
-}
-
-window.electron.ipcRenderer.on('mihomoLogs', (_e, log: ControllerLog) => {
-  log.time = new Date().toLocaleString()
-  cachedLogs.log.push(log)
-  if (cachedLogs.log.length >= 500) {
-    cachedLogs.log.shift()
-  }
-  if (cachedLogs.trigger !== null) {
-    cachedLogs.trigger(cachedLogs.log)
-  }
-})
 
 const Logs: React.FC = () => {
-  const [logs, setLogs] = useState<ControllerLog[]>(cachedLogs.log)
+  const logs = useLogsStore((state) => state.logs)
+  const paused = useLogsStore((state) => state.paused)
+  const setPaused = useLogsStore((state) => state.setPaused)
+  const clearLogs = useLogsStore((state) => state.clearLogs)
+
   const [filter, setFilter] = useState('')
-  const [paused, setPaused] = useState(false)
   const [selectedLog, setSelectedLog] = useState<(ControllerLog & { time?: string }) | null>(null)
   
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -83,24 +59,6 @@ const Logs: React.FC = () => {
       offset: 0
     })
   }, [filteredLogs, paused])
-
-
-
-  useEffect(() => {
-    const old = cachedLogs.trigger
-    
-    const updateLogs = throttle((a: ControllerLog[]) => {
-      if (!paused) {
-        setLogs([...a])
-      }
-    }, 500, { leading: true, trailing: true })
-
-    cachedLogs.trigger = updateLogs
-    return (): void => {
-      cachedLogs.trigger = old
-      updateLogs.cancel()
-    }
-  }, [paused])
 
   return (
     <BasePage title="实时日志">
@@ -191,12 +149,7 @@ const Logs: React.FC = () => {
               className={`min-w-8 w-8 h-8 rounded-full transition-transform active:scale-95 ${paused ? 'text-warning bg-warning/10' : 'text-primary bg-primary/10'}`}
               variant="light"
               onPress={() => {
-                const next = !paused
-                setPaused(next)
-                // 如果恢复，立即更新一次
-                if (!next) {
-                  setLogs([...cachedLogs.log])
-                }
+                setPaused(!paused)
               }}
             >
               {paused ? (
@@ -213,7 +166,7 @@ const Logs: React.FC = () => {
               className="min-w-8 w-8 h-8 rounded-full text-default-400 hover:text-danger hover:bg-danger/10 transition-colors"
               variant="light"
               onPress={() => {
-                cachedLogs.clean()
+                clearLogs()
               }}
             >
               <CgTrash className="text-lg" />

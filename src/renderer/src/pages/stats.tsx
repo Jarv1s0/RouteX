@@ -948,7 +948,7 @@ const Stats: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-4 rounded-full bg-primary/80" />
-                  <span className="text-base font-bold text-foreground">订阅数据分析</span>
+                  <span className="text-base font-bold text-foreground">订阅数据</span>
                 </div>
                 {/* 玻璃拟态工具栏 */}
                 <div className={`${CARD_STYLES.GLASS_TOOLBAR} px-1.5 py-1.5 rounded-2xl gap-2`}>

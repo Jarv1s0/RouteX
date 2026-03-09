@@ -9,7 +9,9 @@ import { applyTheme, checkUpdate, setNativeTheme, setTitleBarOverlay } from '@re
 import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
 import useSWR from 'swr'
-import { ConnectionsProvider } from '@renderer/hooks/use-connections'
+import { useConnectionsStore } from '@renderer/store/use-connections-store'
+import { useGroupsStore } from '@renderer/store/use-groups-store'
+import { useLogsStore } from '@renderer/store/use-logs-store'
 
 import AppSidebar from '@renderer/components/layout/AppSidebar'
 import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
@@ -100,7 +102,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     window.addEventListener('mouseup', onResizeEnd)
-    return (): void => window.removeEventListener('mouseup', onResizeEnd)
+    
+    // Initialize global store listeners
+    useConnectionsStore.getState().initializeListeners()
+    useGroupsStore.getState().initializeListeners()
+    useLogsStore.getState().initializeListeners()
+    
+    return (): void => {
+      window.removeEventListener('mouseup', onResizeEnd)
+      useConnectionsStore.getState().cleanupListeners()
+      useGroupsStore.getState().cleanupListeners()
+      useLogsStore.getState().cleanupListeners()
+    }
   }, [])
 
   const onResizeEnd = (): void => {
@@ -124,7 +137,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <ConnectionsProvider>
+    <>
       <GlobalConfirmModals />
       
       <div
@@ -192,7 +205,7 @@ const App: React.FC = () => {
           </ErrorBoundary>
         </div>
       </div>
-    </ConnectionsProvider>
+    </>
   )
 }
 

@@ -2,7 +2,7 @@ import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { useEffect } from 'react'
+import { useEffect, memo } from 'react'
 
 
 interface Props {
@@ -19,7 +19,7 @@ interface Props {
   getDelayColor: (proxy: ControllerProxiesDetail | ControllerGroupDetail) => string
 }
 
-export const ProxyGroupCard: React.FC<Props> = ({
+const ProxyGroupCardComponent: React.FC<Props> = ({
   group,
   groupIndex,
   isOpen,
@@ -71,7 +71,7 @@ export const ProxyGroupCard: React.FC<Props> = ({
         isPressable
         fullWidth
         onPress={() => toggleOpen(groupIndex)}
-        className={`transition-all duration-300 border group ${activeStyle}`}
+        className={`transition-all duration-200 border group ${activeStyle}`}
       >
         <CardBody className="w-full p-4">
           {/* Header Row */}
@@ -179,3 +179,29 @@ export const ProxyGroupCard: React.FC<Props> = ({
     </div>
   )
 }
+
+export const ProxyGroupCard = memo(ProxyGroupCardComponent, (prev, next) => {
+    // Only update if relevant props changed
+    return (
+        prev.isOpen === next.isOpen &&
+        prev.delaying === next.delaying &&
+        prev.searchValue === next.searchValue &&
+        prev.group.name === next.group.name &&
+        prev.group.now === next.group.now &&
+        // Check live count efficiently? Or just accept fetch update. 
+        // Comparing length is cheap.
+        (prev.group.all?.length === next.group.all?.length) &&
+        // If it's closed, we don't care about internal updates that much? 
+        // But the "Live" count and "Delay" indicator needs updates.
+        // So we might as well rely on shallow compare of group if mutate changes ref.
+        // But mutate ALWAYS chances ref.
+        // So we must compare data.
+        // Let's compare the last history item of the "now" proxy for the delay dot?
+        // Actually `getCurrentDelay` calculates it.
+        prev.getCurrentDelay(prev.group) === next.getCurrentDelay(next.group)
+        // And live count?
+        // That is expensive to calculate in comparator.
+        // Let's just return false if we are not sure. 
+        // But at least if isOpen/delaying/searchValue/name/now/delay is same, we might skip.
+    )
+})
