@@ -18,6 +18,9 @@ import AppSidebar from '@renderer/components/layout/AppSidebar'
 import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
 import ErrorBoundary from '@renderer/components/base/error-boundary'
 import { ConnectionsSkeleton } from '@renderer/components/skeletons/ConnectionsSkeleton'
+import { ProxiesSkeleton } from '@renderer/components/skeletons/ProxiesSkeleton'
+import { RulesSkeleton } from '@renderer/components/skeletons/RulesSkeleton'
+import { LogsSkeleton } from '@renderer/components/skeletons/LogsSkeleton'
 
 let navigate: NavigateFunction
 
@@ -108,6 +111,9 @@ const App: React.FC = () => {
     const tunEnabled = controledMihomoConfig?.tun?.enable
     const sysProxyEnabled = sysProxy?.enable
 
+    // Prevent premature updates if config is not yet loaded
+    if (!appConfig || !controledMihomoConfig) return
+
     if (tunEnabled) {
       window.electron.ipcRenderer.send('update-taskbar-icon', 'tun')
     } else if (sysProxyEnabled) {
@@ -145,6 +151,15 @@ const App: React.FC = () => {
   const getFallback = (path: string) => {
     if (path.includes('/connections')) {
       return <ConnectionsSkeleton />
+    }
+    if (path.includes('/proxies')) {
+      return <ProxiesSkeleton />
+    }
+    if (path.includes('/rules')) {
+      return <RulesSkeleton />
+    }
+    if (path.includes('/logs')) {
+      return <LogsSkeleton />
     }
     return (
       <div className="flex items-center justify-center h-full w-full">

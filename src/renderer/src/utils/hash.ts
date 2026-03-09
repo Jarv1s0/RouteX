@@ -1,4 +1,4 @@
-import { MD5 } from 'crypto-js'
+import SparkMD5 from 'spark-md5'
 
 export class HashType {
   private hashValue: string
@@ -8,7 +8,7 @@ export class HashType {
   }
 
   static makeHash(data: string): HashType {
-    const hash = MD5(data).toString()
+    const hash = SparkMD5.hash(data)
     return new HashType(hash)
   }
 
