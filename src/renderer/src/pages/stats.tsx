@@ -551,8 +551,8 @@ const Stats: React.FC = () => {
           proxy: lastProxy
         }
       })
-      .sort((a, b) => b.traffic - a.traffic) // 按流量排序
-      .slice(0, 7) // 只显示前7
+      .sort((a, b) => b.hits - a.hits) // 按命中次数排序
+      .slice(0, 10) // 显示前10
   }, [ruleStats, ruleHitDetails])
 
   // 进程排行（按流量排序）
@@ -576,7 +576,7 @@ const Stats: React.FC = () => {
         traffic: stat.upload + stat.download
       }))
       .sort((a, b) => b.traffic - a.traffic)
-      .slice(0, 7)
+      .slice(0, 10)
   }, [ruleHitDetails])
 
   // 主机排行（按流量排序）
@@ -602,7 +602,7 @@ const Stats: React.FC = () => {
         traffic: stat.upload + stat.download
       }))
       .sort((a, b) => b.traffic - a.traffic)
-      .slice(0, 7)
+      .slice(0, 10)
   }, [ruleHitDetails])
 
   // 当前排行榜数据（根据 Tab 切换）
@@ -614,7 +614,8 @@ const Stats: React.FC = () => {
         return hostRanking
       case 'rule':
       default:
-        return ruleRanking.map(r => ({ name: r.rule, traffic: r.traffic }))
+        // 传递 hits 数据
+        return ruleRanking.map(r => ({ name: r.rule, traffic: r.traffic, hits: r.hits }))
     }
   }, [rankingTab, ruleRanking, processRanking, hostRanking])
 
@@ -1209,11 +1210,7 @@ const Stats: React.FC = () => {
               </div>
               <Tabs
                 size="sm"
-                classNames={{
-                  tabList: "bg-default-100/50 rounded-xl p-0.5",
-                  tab: "px-3 h-7 text-xs data-[selected=true]:bg-background data-[selected=true]:shadow-sm rounded-lg",
-                  cursor: "bg-background shadow-sm rounded-lg"
-                }}
+                classNames={CARD_STYLES.GLASS_TABS}
                 selectedKey={rankingTab}
                 onSelectionChange={(key) => setRankingTab(key as 'rule' | 'process' | 'host')}
               >
@@ -1245,8 +1242,29 @@ const Stats: React.FC = () => {
                     '#6366f1', // indigo
                   ]
                   const barColor = barColors[index % barColors.length]
-                  const maxTraffic = currentRanking[0]?.traffic || 1
-                  const percentage = Math.max((item.traffic / maxTraffic) * 100, 3)
+                  
+                  // 如果是规则排行，使用 hits 计算百分比，否则使用 traffic
+                  const isRuleRanking = rankingTab === 'rule'
+                  
+                  // 安全地访问 hits 属性
+                  const getMaxMetric = () => {
+                   if (isRuleRanking && currentRanking.length > 0 && 'hits' in currentRanking[0]) {
+                     return (currentRanking[0] as { hits: number }).hits || 1
+                   }
+                   return currentRanking[0]?.traffic || 1
+                  }
+                  
+                  const getMetric = (itm: typeof item) => {
+                    if (isRuleRanking && 'hits' in itm) {
+                      return (itm as { hits: number }).hits
+                    }
+                    return itm.traffic
+                  }
+
+                  const maxMetric = getMaxMetric()
+                  const metric = getMetric(item)
+                  
+                  const percentage = Math.max((metric / maxMetric) * 100, 3)
                   
                   return (
                     <div 
@@ -1275,10 +1293,15 @@ const Stats: React.FC = () => {
                           }}
                         />
                       </div>
-                      {/* 流量 */}
-                      <span className="text-sm font-medium tabular-nums whitespace-nowrap shrink-0">
-                        {calcTraffic(item.traffic)}
-                      </span>
+                      {/* 流量/命中次数 */}
+                      <div className="text-sm font-medium tabular-nums whitespace-nowrap shrink-0 flex items-center gap-2 justify-end min-w-[80px]">
+                        {isRuleRanking && 'hits' in item && (
+                          <span className="text-foreground-500 text-xs mr-1">
+                            {(item as { hits: number }).hits} 次
+                          </span>
+                        )}
+                        <span>{calcTraffic(item.traffic)}</span>
+                      </div>
                     </div>
                   )
                 })
