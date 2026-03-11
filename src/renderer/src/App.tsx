@@ -230,7 +230,7 @@ const App: React.FC = () => {
             height: '100vh',
             cursor: 'ew-resize'
           }}
-          className={resizing ? 'bg-primary' : ''}
+          className={`transition-colors duration-200 hover:bg-primary/50 ${resizing ? 'bg-primary' : ''}`}
         />
         
         <div
