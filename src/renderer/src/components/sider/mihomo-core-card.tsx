@@ -142,14 +142,12 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
               <h3
                 className={`text-md font-bold leading-[32px] ${match ? 'text-primary-foreground' : 'text-foreground'} `}
               >
-                <span className="relative">
-                  {version?.version ?? '-'}
-                  {hasNewVersion() && (
-                    <Tooltip content={`新版本 ${latestVersion}`} placement="top">
-                      <span className="absolute -top-0.5 -right-3 w-2 h-2 bg-success rounded-full animate-pulse" />
-                    </Tooltip>
-                  )}
-                </span>
+                {version?.version ?? '-'}
+                {hasNewVersion() && (
+                  <Tooltip content={`新版本 ${latestVersion}`} placement="top">
+                    <span className={`inline-block ml-1.5 w-2 h-2 rounded-full animate-pulse align-middle ${match ? 'bg-primary-foreground' : 'bg-success'}`} />
+                  </Tooltip>
+                )}
               </h3>
 
               <Button
