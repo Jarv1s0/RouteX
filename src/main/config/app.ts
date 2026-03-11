@@ -105,14 +105,18 @@ export async function patchAppConfig(patch: Partial<AppConfig>): Promise<void> {
 }
 
 export function getAppConfigSync(): AppConfig {
+  if (appConfig) return appConfig
   try {
     const raw = readFileSync(appConfigPath(), 'utf-8')
     const data = parseYaml<AppConfig>(raw)
     if (typeof data === 'object' && data !== null) {
-      return decryptConfig(data)
+      appConfig = decryptConfig(data)
+      return appConfig
     }
+    appConfig = defaultConfig
     return defaultConfig
   } catch (e) {
+    appConfig = defaultConfig
     return defaultConfig
   }
 }
