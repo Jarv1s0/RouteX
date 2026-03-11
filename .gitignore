@@ -12,3 +12,5 @@ out
 .agent/
 .shared/
 *.code-workspace
+
+.mihomo/
