@@ -24,6 +24,7 @@ let statsData: ProviderStatsData = {
 }
 
 let snapshotTimer: NodeJS.Timeout | null = null
+let mutationQueue: Promise<void> = Promise.resolve()
 
 function getStatsFilePath(): string {
   return path.join(dataDir(), STATS_FILE)
@@ -51,13 +52,25 @@ export async function loadProviderStats(): Promise<ProviderStatsData> {
   return statsData
 }
 
-export async function saveProviderStats(): Promise<void> {
+async function persistProviderStats(): Promise<void> {
   try {
     const filePath = getStatsFilePath()
     await fs.promises.writeFile(filePath, JSON.stringify(statsData, null, 2))
   } catch (e) {
     console.error('Failed to save provider stats:', e)
   }
+}
+
+function queueMutation(operation: () => Promise<void>): Promise<void> {
+  const task = mutationQueue.then(operation)
+  mutationQueue = task.catch(() => undefined)
+  return task
+}
+
+export async function saveProviderStats(): Promise<void> {
+  await queueMutation(async () => {
+    await persistProviderStats()
+  })
 }
 
 function getCurrentDateKey(): string {
@@ -129,7 +142,7 @@ async function takeSnapshot(): Promise<void> {
     const cutoffDateStr = cutoffDate.toISOString().split('T')[0]
     statsData.snapshots = statsData.snapshots.filter(s => s.date >= cutoffDateStr)
     
-    saveProviderStats()
+    await persistProviderStats()
   } catch (e) {
     console.error('[ProviderStats] 记录快照失败:', e)
   }
@@ -142,13 +155,13 @@ export function startMapUpdateTimer(): void {
     clearInterval(snapshotTimer)
   }
   snapshotTimer = setInterval(() => {
-    takeSnapshot()
+    void triggerSnapshot()
   }, 60 * 60 * 1000) // 1小时
 }
 
 // 当 mihomo 内核启动完成后调用
 export function onCoreStarted(): void {
-  takeSnapshot()
+  void triggerSnapshot()
 }
 
 export function stopMapUpdateTimer(): void {
@@ -164,13 +177,17 @@ export function getProviderStats(): ProviderStatsData {
 
 // 手动触发快照记录
 export async function triggerSnapshot(): Promise<void> {
-  await takeSnapshot()
+  await queueMutation(async () => {
+    await takeSnapshot()
+  })
 }
 
-export function clearProviderStats(): void {
-  statsData = {
-    snapshots: [],
-    lastUpdate: Date.now()
-  }
-  saveProviderStats()
+export async function clearProviderStats(): Promise<void> {
+  await queueMutation(async () => {
+    statsData = {
+      snapshots: [],
+      lastUpdate: Date.now()
+    }
+    await persistProviderStats()
+  })
 }

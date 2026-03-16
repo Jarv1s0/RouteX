@@ -32,8 +32,13 @@ import { showFloatingWindow } from './resolve/floatingWindow'
 import { getAppConfigSync } from './config/app'
 import { getUserAgent } from './utils/userAgent'
 import { loadTrafficStats, saveTrafficStats } from './resolve/trafficStats'
-import { loadProviderStats, startMapUpdateTimer, onCoreStarted } from './resolve/providerStats'
-import { startNetworkHealthMonitor } from './resolve/networkHealth'
+import {
+  loadProviderStats,
+  startMapUpdateTimer,
+  onCoreStarted,
+  saveProviderStats,
+  stopMapUpdateTimer
+} from './resolve/providerStats'
 
 
 let quitTimeout: NodeJS.Timeout | null = null
@@ -42,6 +47,8 @@ let isCreatingWindow = false
 let windowShown = false
 let createWindowPromiseResolve: (() => void) | null = null
 let createWindowPromise: Promise<void> | null = null
+let mainWindowDidFinishLoad = false
+let shutdownPromise: Promise<void> | null = null
 
 async function scheduleLightweightMode(): Promise<void> {
   const {
@@ -142,6 +149,31 @@ export function setNotQuitDialog(): void {
   notQuitDialog = true
 }
 
+function reloadMainWindowRenderer(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindowDidFinishLoad = false
+  mainWindow.webContents.reload()
+}
+
+function ensureMainWindowRendererReady(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.webContents.isCrashed()) {
+    reloadMainWindowRenderer()
+    return
+  }
+  if (!mainWindowDidFinishLoad && !mainWindow.webContents.isLoadingMainFrame()) {
+    reloadMainWindowRenderer()
+  }
+}
+
+function focusMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.focusOnWebView()
+  mainWindow.setAlwaysOnTop(true, 'pop-up-menu')
+  mainWindow.focus()
+  mainWindow.setAlwaysOnTop(false)
+}
+
 function showWindow(): number {
   if (mainWindow) {
     if (mainWindow.isMinimized()) {
@@ -149,35 +181,29 @@ function showWindow(): number {
     } else if (!mainWindow.isVisible()) {
       mainWindow.show()
     }
-    mainWindow.focusOnWebView()
-    mainWindow.setAlwaysOnTop(true, 'pop-up-menu')
-    mainWindow.focus()
-    mainWindow.setAlwaysOnTop(false)
-    
-    // 检查渲染进程是否正常，如果崩溃则重新加载
-    if (mainWindow.webContents.isCrashed()) {
-      mainWindow.webContents.reload()
-    } else {
-      // 检查页面是否正常加载（防止白屏）
-      mainWindow.webContents.executeJavaScript('document.body ? document.body.innerHTML.length : 0')
-        .then((length) => {
-          if (length === 0 && mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.reload()
-          }
-        })
-        .catch(() => {
-          // 执行失败，可能渲染进程有问题，尝试重新加载
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.reload()
-          }
-        })
-    }
+    focusMainWindow()
+    ensureMainWindowRendererReady()
 
     if (!mainWindow.isMinimized()) {
       return 100
     }
   }
   return 500
+}
+
+async function performAppShutdown(): Promise<void> {
+  if (shutdownPromise) {
+    await shutdownPromise
+    return
+  }
+
+  shutdownPromise = (async () => {
+    stopMapUpdateTimer()
+    await Promise.allSettled([saveTrafficStats(), saveProviderStats(), triggerSysProxy(false, false)])
+    await stopCore()
+  })()
+
+  await shutdownPromise
 }
 
 function showQuitConfirmDialog(): Promise<boolean> {
@@ -214,9 +240,7 @@ app.on('before-quit', async (e) => {
         clearTimeout(quitTimeout)
         quitTimeout = null
       }
-      saveTrafficStats() // 退出前保存流量统计
-      triggerSysProxy(false, false)
-      await stopCore()
+      await performAppShutdown()
       app.exit()
       return
     }
@@ -230,9 +254,7 @@ app.on('before-quit', async (e) => {
         clearTimeout(quitTimeout)
         quitTimeout = null
       }
-      saveTrafficStats() // 退出前保存流量统计
-      triggerSysProxy(false, false)
-      await stopCore()
+      await performAppShutdown()
       app.exit()
     }
   } else if (notQuitDialog) {
@@ -241,9 +263,7 @@ app.on('before-quit', async (e) => {
       clearTimeout(quitTimeout)
       quitTimeout = null
     }
-    saveTrafficStats() // 退出前保存流量统计
-    triggerSysProxy(false, false)
-    await stopCore()
+    await performAppShutdown()
     app.exit()
   }
 })
@@ -253,8 +273,7 @@ powerMonitor.on('shutdown', async () => {
     clearTimeout(quitTimeout)
     quitTimeout = null
   }
-  triggerSysProxy(false, false)
-  await stopCore()
+  await performAppShutdown()
   app.exit()
 })
 
@@ -365,9 +384,6 @@ app.whenReady().then(async () => {
   // 加载订阅统计数据
   loadProviderStats()
   startMapUpdateTimer()
-  
-  // 启动网络健康监控
-  startNetworkHealthMonitor()
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -671,24 +687,26 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
         await scheduleLightweightMode()
       }
     })
+    mainWindow.webContents.on('did-start-loading', () => {
+      mainWindowDidFinishLoad = false
+    })
+    mainWindow.webContents.on('did-finish-load', () => {
+      mainWindowDidFinishLoad = true
+    })
     mainWindow.webContents.on('did-fail-load', () => {
-      mainWindow?.webContents.reload()
+      reloadMainWindowRenderer()
     })
 
     // 处理渲染进程崩溃
     mainWindow.webContents.on('render-process-gone', (_event, details) => {
       console.error('Renderer process crashed:', details)
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.reload()
-      }
+      reloadMainWindowRenderer()
     })
 
     // 处理渲染进程无响应
     mainWindow.on('unresponsive', () => {
       console.warn('Main window became unresponsive')
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.reload()
-      }
+      reloadMainWindowRenderer()
     })
 
     // 处理渲染进程恢复响应
@@ -705,6 +723,7 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
     })
 
     mainWindow.on('closed', () => {
+      mainWindowDidFinishLoad = false
       mainWindow = null
     })
 
@@ -729,6 +748,7 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       shell.openExternal(details.url)
       return { action: 'deny' }
     })
+    mainWindowDidFinishLoad = false
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -767,17 +787,15 @@ export async function showMainWindow(): Promise<void> {
   if (mainWindow) {
     windowShown = true
     mainWindow.show()
-    mainWindow.focusOnWebView()
-    // 检查渲染进程是否正常，如果崩溃则重新加载
-    if (mainWindow.webContents.isCrashed()) {
-      mainWindow.webContents.reload()
-    }
+    focusMainWindow()
+    ensureMainWindowRendererReady()
   } else {
     await createWindow()
     if (mainWindow !== null) {
       windowShown = true
       ;(mainWindow as BrowserWindow).show()
-      ;(mainWindow as BrowserWindow).focusOnWebView()
+      focusMainWindow()
+      ensureMainWindowRendererReady()
     }
   }
 }

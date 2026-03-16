@@ -3,7 +3,7 @@ import { Card, CardBody, ScrollShadow } from '@heroui/react'
 import { IoGlobeOutline, IoArrowUp, IoArrowDown, IoServerOutline } from 'react-icons/io5'
 import { RiAppsLine } from 'react-icons/ri'
 import { calcTraffic } from '@renderer/utils/calc'
-import { format } from 'date-fns'
+import dayjs from 'dayjs'
 
 interface RuleHitDetail {
   id: string
@@ -35,8 +35,8 @@ const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
       <div className="flex flex-col p-1">
         {details.map((hit) => {
           const formattedTime = (() => {
-            const date = new Date(hit.time)
-            return isNaN(date.getTime()) ? '-' : format(date, 'HH:mm:ss')
+            const time = dayjs(hit.time)
+            return time.isValid() ? time.format('HH:mm:ss') : '-'
           })()
 
           return (

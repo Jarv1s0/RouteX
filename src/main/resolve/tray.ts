@@ -40,6 +40,20 @@ import { applyTheme } from './theme'
 export let tray: Tray | null = null
 let customTrayWindow: BrowserWindow | null = null
 
+async function handleTrayIconUpdate(_event: Electron.IpcMainEvent, png: string): Promise<void> {
+  if (process.platform !== 'darwin' || !tray) return
+  const image = nativeImage.createFromDataURL(png).resize({ height: 16 })
+  image.setTemplateImage(true)
+  tray.setImage(image)
+}
+
+async function handleUpdateTrayMenu(): Promise<void> {
+  await updateTrayMenu()
+}
+
+ipcMain.on('trayIconUpdate', handleTrayIconUpdate)
+ipcMain.on('updateTrayMenu', handleUpdateTrayMenu)
+
 // 辅助函数：根据 DPI 缩放加载清晰的托盘图标
 function getTrayIcon(iconPath: string): Electron.NativeImage {
   const icon = nativeImage.createFromPath(iconPath)
@@ -469,11 +483,6 @@ export async function createTray(): Promise<void> {
     if (!useDockIcon && app.dock) {
       app.dock.hide()
     }
-    ipcMain.on('trayIconUpdate', async (_, png: string) => {
-      const image = nativeImage.createFromDataURL(png).resize({ height: 16 })
-      image.setTemplateImage(true)
-      tray?.setImage(image)
-    })
     tray?.addListener('right-click', async () => {
       await triggerMainWindow()
     })
@@ -494,10 +503,6 @@ export async function createTray(): Promise<void> {
       await triggerMainWindow()
     })
   }
-
-  ipcMain.on('updateTrayMenu', async () => {
-    await updateTrayMenu()
-  })
 
   await updateTrayIcon()
 }

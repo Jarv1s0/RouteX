@@ -2,8 +2,8 @@ import { getAppConfig, getControledMihomoConfig } from '../config'
 import { Worker } from 'worker_threads'
 import { mihomoWorkDir, subStoreDir, substoreLogPath } from '../utils/dirs'
 import subStoreIcon from '../../../resources/subStoreIcon.png?asset'
-import { createWriteStream, existsSync, mkdirSync, readFile } from 'fs'
-import { writeFile, rm, cp } from 'fs/promises'
+import { createWriteStream, existsSync, mkdirSync } from 'fs'
+import { writeFile, rm, cp, readFile } from 'fs/promises'
 import http from 'http'
 import net from 'net'
 import path from 'path'
@@ -23,6 +23,35 @@ function FindProxyForURL(url, host) {
   return "PROXY 127.0.0.1:%mixed-port%; SOCKS5 127.0.0.1:%mixed-port%; DIRECT;";
 }
 `
+
+const subStoreInjectedStyle = `
+  <style>
+    /* Force center popup placement for the embedded frontend. */
+    .van-popup--bottom {
+      top: 50% !important;
+      left: 50% !important;
+      bottom: auto !important;
+      transform: translate(-50%, -50%) !important;
+      width: 90% !important;
+      max-width: 480px !important;
+      border-radius: 16px !important;
+      padding-bottom: 20px !important;
+    }
+
+    .van-popup {
+      background: var(--bg-body, #fff) !important;
+    }
+  </style>
+`
+
+async function loadSubStoreIndexHtml(frontendDir: string): Promise<string> {
+  const indexPath = path.join(frontendDir, 'index.html')
+  const indexHtml = await readFile(indexPath, 'utf8')
+  if (indexHtml.includes('</head>')) {
+    return indexHtml.replace('</head>', `${subStoreInjectedStyle}</head>`)
+  }
+  return `${subStoreInjectedStyle}${indexHtml}`
+}
 
 export function findAvailablePort(startPort: number): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -78,53 +107,15 @@ export async function startSubStoreFrontendServer(): Promise<void> {
   subStoreFrontendPort = await findAvailablePort(14122)
   const app = express()
   const frontendDir = path.join(mihomoWorkDir(), 'sub-store-frontend')
-  
-  // 注入 CSS 修复弹窗位置
-  const injectScript = `
-    <style>
-      /* 强制居中弹窗 */
-      .van-popup--bottom {
-        top: 50% !important;
-        left: 50% !important;
-        bottom: auto !important;
-        transform: translate(-50%, -50%) !important;
-        width: 90% !important;
-        max-width: 480px !important;
-        border-radius: 16px !important;
-        padding-bottom: 20px !important; /* 增加底部内边距，避免紧凑感 */
-      }
-      /* 适配深色模式背景 */
-      .van-popup {
-        background: var(--bg-body, #fff) !important;
-      }
-    </style>
-  `
+  const injectedIndexHtml = await loadSubStoreIndexHtml(frontendDir)
 
   app.get('/', (_req, res) => {
-    const indexPath = path.join(frontendDir, 'index.html')
-    readFile(indexPath, 'utf8', (err, data) => {
-      if (err) {
-        res.status(500).send('Error loading Sub-Store')
-        return
-      }
-      // 在 </head> 前插入样式
-      const injectedHtml = data.replace('</head>', `${injectScript}</head>`)
-      res.send(injectedHtml)
-    })
+    res.type('html').send(injectedIndexHtml)
   })
 
   app.use(express.static(frontendDir))
   app.use((_req, res) => {
-    // Fallback for SPA routing
-    const indexPath = path.join(frontendDir, 'index.html')
-    readFile(indexPath, 'utf8', (err, data) => {
-      if (err) {
-        res.status(500).send('Error loading Sub-Store')
-        return
-      }
-      const injectedHtml = data.replace('</head>', `${injectScript}</head>`)
-      res.send(injectedHtml)
-    })
+    res.type('html').send(injectedIndexHtml)
   })
   subStoreFrontendServer = app.listen(subStoreFrontendPort, subStoreHost)
 }
