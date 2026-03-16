@@ -36,7 +36,7 @@ import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
 import useSWR from 'swr'
-import { toast } from 'sonner'
+import { notifyError, notifyInfo, notifySuccess } from '@renderer/utils/notify'
 
 const Mihomo: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -90,7 +90,7 @@ const Mihomo: React.FC = () => {
       await restartCore()
       PubSub.publish('mihomo-core-changed')
     } catch (e) {
-      toast.error(String(e))
+      notifyError(e)
     }
   }
 
@@ -101,9 +101,9 @@ const Mihomo: React.FC = () => {
       setTimeout(() => PubSub.publish('mihomo-core-changed'), 2000)
     } catch (e) {
       if (typeof e === 'string' && e.includes('already using latest version')) {
-        toast.info('已经是最新版本')
+        notifyInfo('已经是最新版本')
       } else {
-        toast.error(String(e))
+        notifyError(e)
       }
     } finally {
       setUpgrading(false)
@@ -147,10 +147,10 @@ const Mihomo: React.FC = () => {
         try {
           if (platform === 'win32') {
             await deleteElevateTask()
-            toast.success('任务计划已取消注册')
+            notifySuccess('任务计划已取消注册')
           } else {
             await revokeCorePermission()
-            toast.success('内核权限已撤销')
+            notifySuccess('内核权限已撤销')
           }
           await patchAppConfig({
             corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
@@ -158,7 +158,7 @@ const Mihomo: React.FC = () => {
 
           await restartCore()
         } catch (e) {
-          toast.error(String(e))
+          notifyError(e)
         }
       }
     },
@@ -171,13 +171,13 @@ const Mihomo: React.FC = () => {
             onPress: async () => {
               try {
                 await deleteElevateTask()
-                toast.success('任务计划已取消注册')
+                notifySuccess('任务计划已取消注册')
                 await patchAppConfig({
                   corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
                 })
                 await relaunchApp()
               } catch (e) {
-                toast.error(String(e))
+                notifyError(e)
               }
             }
           }
@@ -214,16 +214,16 @@ const Mihomo: React.FC = () => {
           onRevoke={async () => {
             if (platform === 'win32') {
               await deleteElevateTask()
-              toast.success('任务计划已取消注册')
+              notifySuccess('任务计划已取消注册')
             } else {
               await revokeCorePermission()
-              toast.success('内核权限已撤销')
+              notifySuccess('内核权限已撤销')
             }
             await restartCore()
           }}
           onGrant={async () => {
             await manualGrantCorePermition()
-            toast.success('内核授权成功')
+            notifySuccess('内核授权成功')
             await restartCore()
           }}
         />
@@ -233,27 +233,27 @@ const Mihomo: React.FC = () => {
           onChange={setShowServiceModal}
           onInit={async () => {
             await initService()
-            toast.success('服务初始化成功')
+            notifySuccess('服务初始化成功')
           }}
           onInstall={async () => {
             await installService()
-            toast.success('服务安装成功')
+            notifySuccess('服务安装成功')
           }}
           onUninstall={async () => {
             await uninstallService()
-            toast.success('服务卸载成功')
+            notifySuccess('服务卸载成功')
           }}
           onStart={async () => {
             await startService()
-            toast.success('服务启动成功')
+            notifySuccess('服务启动成功')
           }}
           onRestart={async () => {
             await restartService()
-            toast.success('服务重启成功')
+            notifySuccess('服务重启成功')
           }}
           onStop={async () => {
             await stopService()
-            toast.success('服务停止成功')
+            notifySuccess('服务停止成功')
           }}
         />
       )}

@@ -76,10 +76,7 @@ const syncConfig = getAppConfigSync()
 
 // Elevation logic moved to app.whenReady()
 
-
-if (process.platform === 'win32' && is.dev) {
-  patchControledMihomoConfig({ tun: { enable: false } })
-}
+// Dev TUN control moved to whenReady to ensure proper initialization sequence
 
 const gotTheLock = app.requestSingleInstanceLock()
 
@@ -261,9 +258,18 @@ powerMonitor.on('shutdown', async () => {
   app.exit()
 })
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+// 辅助函数：通用弹窗
+function showDialog(type: 'info' | 'error' | 'warning' | 'success', title: string, content: string) {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+    mainWindow.webContents.send('show-dialog-modal', type, title, content)
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  } else {
+    if (type === 'error') dialog.showErrorBox(title, content)
+    else dialog.showMessageBox({ type: type as any, title, message: title, detail: content })
+  }
+}
+
 app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('routex.app')
@@ -332,14 +338,18 @@ app.whenReady().then(async () => {
           return
         }
       } else {
-         // First run, need admin
-          const errorMsg = '首次启动需要管理员权限来创建系统任务。\n\n请右键点击应用图标，选择"以管理员身份运行"。'
-         // ... error details ...
-         dialog.showErrorBox('需要管理员权限', errorMsg)
-         app.exit()
-         return
+        // First run, need admin
+        const errorMsg = '首次启动需要管理员权限来创建系统任务。\n\n请右键点击应用图标，选择"以管理员身份运行"。'
+        dialog.showErrorBox('需要管理员权限', errorMsg)
+        app.exit()
+        return
       }
     }
+  }
+
+  // Ensure TUN is disabled in development mode on Windows
+  if (process.platform === 'win32' && is.dev) {
+    await patchControledMihomoConfig({ tun: { enable: false } })
   }
 
   try {
@@ -412,31 +422,6 @@ app.whenReady().then(async () => {
   const createWindowPromise = createWindow(appConfig)
 
   let coreStarted = false
-
-// 辅助函数：通用弹窗
-function showDialog(type: 'info' | 'error' | 'warning' | 'success', title: string, content: string) {
-  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
-    mainWindow.webContents.send('show-dialog-modal', type, title, content)
-    // 聚焦窗口以确保用户注意到弹窗
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    mainWindow.focus()
-  } else {
-    // 降级处理
-    if (type === 'error') dialog.showErrorBox(title, content)
-    else dialog.showMessageBox({ type: type as any, title, message: title, detail: content })
-  }
-}
-
-// ... existing code ...
-
-  try {
-    await initPromise
-  } catch (e) {
-    showDialog('error', '应用初始化失败', `${e}`)
-    app.quit()
-  }
-
-// ... existing code ...
 
   const coreStartPromise = (async (): Promise<void> => {
     try {

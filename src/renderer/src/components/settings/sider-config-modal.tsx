@@ -1,6 +1,7 @@
 import React from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, RadioGroup, Radio } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 
 interface Props {
   isOpen: boolean
@@ -74,12 +75,7 @@ const SiderConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
       size="3xl"
       scrollBehavior="inside"
       backdrop="blur"
-      classNames={{
-        base: "bg-background/80 backdrop-blur-xl border border-white/10 shadow-2xl",
-        header: "border-b border-default-100",
-        footer: "border-t border-default-100",
-        closeButton: "hover:bg-danger hover:text-white active:bg-danger/90 text-default-500 transition-colors z-50"
-      }}
+      classNames={createSecondaryModalClassNames()}
     >
       <ModalContent>
         {(onClose) => (

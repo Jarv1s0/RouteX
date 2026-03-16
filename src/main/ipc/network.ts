@@ -9,6 +9,137 @@ export interface StreamingResult {
   error?: string
 }
 
+interface MapGeoLocation {
+  countryCode: string
+  lat: number
+  lon: number
+}
+
+interface IpApiCoLocationResponse {
+  country_code?: string
+  latitude?: number
+  longitude?: number
+}
+
+interface IpApiLocationResponse {
+  status?: string
+  countryCode?: string
+  lat?: number
+  lon?: number
+}
+
+const MAP_GEOLOCATION_CACHE_TTL = 1000 * 60 * 30
+const MAP_GEOLOCATION_ERROR_TTL = 1000 * 60 * 5
+
+let cachedMapGeoLocation:
+  | {
+      value: MapGeoLocation | null
+      expiresAt: number
+    }
+  | null = null
+let inflightMapGeoLocation: Promise<MapGeoLocation | null> | null = null
+
+async function requestJson(url: string, timeout: number): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const request = net.request({ url, method: 'GET', redirect: 'follow' })
+    let finished = false
+    let body = ''
+
+    const finish = (fn: () => void): void => {
+      if (finished) return
+      finished = true
+      clearTimeout(timer)
+      fn()
+    }
+
+    const timer = setTimeout(() => {
+      finish(() => {
+        try {
+          request.abort()
+        } catch {
+          // ignore
+        }
+        reject(new Error(`Request timed out: ${url}`))
+      })
+    }, timeout)
+
+    request.on('response', (response) => {
+      response.on('data', (chunk) => {
+        body += chunk.toString()
+      })
+      response.on('end', () => {
+        finish(() => {
+          try {
+            resolve(JSON.parse(body))
+          } catch {
+            reject(new Error(`Failed to parse response from ${url}`))
+          }
+        })
+      })
+      response.on('error', (error) => {
+        finish(() => reject(error))
+      })
+    })
+
+    request.on('error', (error) => {
+      finish(() => reject(error))
+    })
+
+    request.end()
+  })
+}
+
+async function fetchMapGeoLocationUncached(): Promise<MapGeoLocation | null> {
+  const ipApiCo = (await requestJson('https://ipapi.co/json/', 3000).catch(
+    () => null
+  )) as IpApiCoLocationResponse | null
+  if (typeof ipApiCo?.latitude === 'number' && typeof ipApiCo?.longitude === 'number') {
+    return {
+      countryCode: ipApiCo.country_code || 'CN',
+      lat: ipApiCo.latitude,
+      lon: ipApiCo.longitude
+    }
+  }
+
+  const ipApi = (await requestJson(
+    'http://ip-api.com/json/?fields=status,countryCode,lat,lon',
+    3000
+  ).catch(() => null)) as IpApiLocationResponse | null
+
+  if (ipApi?.status === 'success' && typeof ipApi.lat === 'number' && typeof ipApi.lon === 'number') {
+    return {
+      countryCode: ipApi.countryCode || 'CN',
+      lat: ipApi.lat,
+      lon: ipApi.lon
+    }
+  }
+
+  return null
+}
+
+async function getMapGeoLocation(): Promise<MapGeoLocation | null> {
+  const now = Date.now()
+  if (cachedMapGeoLocation && cachedMapGeoLocation.expiresAt > now) {
+    return cachedMapGeoLocation.value
+  }
+
+  if (!inflightMapGeoLocation) {
+    inflightMapGeoLocation = fetchMapGeoLocationUncached()
+      .then((value) => {
+        cachedMapGeoLocation = {
+          value,
+          expiresAt: Date.now() + (value ? MAP_GEOLOCATION_CACHE_TTL : MAP_GEOLOCATION_ERROR_TTL)
+        }
+        return value
+      })
+      .finally(() => {
+        inflightMapGeoLocation = null
+      })
+  }
+
+  return inflightMapGeoLocation
+}
+
 export async function checkStreamingService(service: string): Promise<StreamingResult> {
   const timeout = 15000
   try {
@@ -285,6 +416,8 @@ export function registerNetworkHandlers(): void {
       request.end()
     })
   }))
+
+  ipcMain.handle('getMapGeoLocation', ipcErrorWrapper(getMapGeoLocation))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ipcMain.handle('fetchBatchIpInfo', ipcErrorWrapper(async (_e, queries: any[]) => {

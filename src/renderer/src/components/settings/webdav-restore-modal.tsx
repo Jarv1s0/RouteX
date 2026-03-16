@@ -3,7 +3,11 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { relaunchApp, webdavDelete, webdavRestore } from '@renderer/utils/ipc'
 import React, { useState } from 'react'
 import { MdDeleteForever } from 'react-icons/md'
-import { IoClose } from 'react-icons/io5'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 interface Props {
   filenames: string[]
   onClose: () => void
@@ -18,24 +22,16 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
     <Modal
       backdrop={disableAnimation ? 'transparent' : 'blur'}
       disableAnimation={disableAnimation}
-      classNames={{ backdrop: 'top-[48px]' }}
+      classNames={createSecondaryModalClassNames()}
       hideCloseButton
       isOpen={true}
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
       <ModalContent>
-        <ModalHeader className="flex justify-between items-center app-drag pr-4">
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>恢复备份</span>
-          <Button
-            isIconOnly
-            size="sm"
-            variant="light"
-            className="app-nodrag"
-            onPress={onClose}
-          >
-            <IoClose className="text-lg" />
-          </Button>
+          <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="pb-6">
           {filenames.length === 0 ? (

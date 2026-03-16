@@ -27,6 +27,7 @@ import { FaPlus } from 'react-icons/fa6'
 import { LuFileText } from 'react-icons/lu'
 import { FaGithub } from 'react-icons/fa6'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { notifyError } from '@renderer/utils/notify'
 
 const emptyItems: OverrideItem[] = []
 
@@ -108,57 +109,70 @@ const Override: React.FC = () => {
   }
 
   useEffect(() => {
-    pageRef.current?.addEventListener('dragover', (e) => {
+    const pageElement = pageRef.current
+    if (!pageElement) return
+
+    const handleDragOver = (e: DragEvent): void => {
       e.preventDefault()
       e.stopPropagation()
       setFileOver(true)
-    })
-    pageRef.current?.addEventListener('dragleave', (e) => {
+    }
+
+    const handleDragLeave = (e: DragEvent): void => {
       e.preventDefault()
       e.stopPropagation()
       setFileOver(false)
-    })
-    pageRef.current?.addEventListener('drop', async (event) => {
+    }
+
+    const handleDrop = async (event: DragEvent): Promise<void> => {
       event.preventDefault()
       event.stopPropagation()
       if (isProcessingDrop.current) return
       isProcessingDrop.current = true
-      if (event.dataTransfer?.files) {
-        const file = event.dataTransfer.files[0]
-        if (
-          file.name.endsWith('.js') ||
-          file.name.endsWith('.yml') ||
-          file.name.endsWith('.yaml') ||
-          file.name.endsWith('.json') ||
-          file.name.endsWith('.jsonc') ||
-          file.name.endsWith('.json5') ||
-          file.name.endsWith('.txt')
-        ) {
-          try {
-            const path = window.api.webUtils.getPathForFile(file)
-            const content = await readTextFile(path)
-            await addOverrideItem({
-              name: file.name,
-              type: 'local',
-              file: content,
-              ext: file.name.endsWith('.js') ? 'js' : 'yaml'
-            })
-          } catch (e) {
-            alert('文件导入失败' + e)
+      try {
+        if (event.dataTransfer?.files) {
+          const file = event.dataTransfer.files[0]
+          if (
+            file.name.endsWith('.js') ||
+            file.name.endsWith('.yml') ||
+            file.name.endsWith('.yaml') ||
+            file.name.endsWith('.json') ||
+            file.name.endsWith('.jsonc') ||
+            file.name.endsWith('.json5') ||
+            file.name.endsWith('.txt')
+          ) {
+            try {
+              const path = window.api.webUtils.getPathForFile(file)
+              const content = await readTextFile(path)
+              await addOverrideItem({
+                name: file.name,
+                type: 'local',
+                file: content,
+                ext: file.name.endsWith('.js') ? 'js' : 'yaml'
+              })
+            } catch (e) {
+              notifyError(`文件导入失败: ${e}`, { title: '导入失败' })
+            }
+          } else {
+            notifyError('不支持的文件类型', { title: '导入失败' })
           }
-        } else {
-          alert('不支持的文件类型')
         }
+      } finally {
+        isProcessingDrop.current = false
+        setFileOver(false)
       }
-      isProcessingDrop.current = false
-      setFileOver(false)
-    })
-    return (): void => {
-      pageRef.current?.removeEventListener('dragover', () => {})
-      pageRef.current?.removeEventListener('dragleave', () => {})
-      pageRef.current?.removeEventListener('drop', () => {})
     }
-  }, [])
+
+    pageElement.addEventListener('dragover', handleDragOver)
+    pageElement.addEventListener('dragleave', handleDragLeave)
+    pageElement.addEventListener('drop', handleDrop)
+
+    return (): void => {
+      pageElement.removeEventListener('dragover', handleDragOver)
+      pageElement.removeEventListener('dragleave', handleDragLeave)
+      pageElement.removeEventListener('drop', handleDrop)
+    }
+  }, [addOverrideItem])
 
   useEffect(() => {
     setSortedItems(itemsArray)
@@ -252,7 +266,7 @@ const Override: React.FC = () => {
                       })
                     }
                   } catch (e) {
-                    alert(e)
+                    notifyError(e, { title: '打开本地覆写失败' })
                   }
                 } else if (key === 'new-yaml') {
                   await addOverrideItem({

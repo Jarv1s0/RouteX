@@ -14,6 +14,7 @@ import ProviderUsage from '@renderer/components/stats/provider-usage'
 import TrafficRanking from '@renderer/components/stats/traffic-ranking'
 import RuleDetailList from '@renderer/components/stats/rule-detail-list'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
+import { notifyError } from '@renderer/utils/notify'
 
 const Stats: React.FC = () => {
   const {
@@ -42,7 +43,7 @@ const Stats: React.FC = () => {
       await clearProviderStats()
       clearStats() // Clear local store
     } catch (e) {
-      alert('清除失败: ' + e)
+      notifyError(`清除失败: ${e}`, { title: '清除统计失败' })
     } finally {
       setClearingStats(false)
       setShowClearConfirm(false)

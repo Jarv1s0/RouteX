@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Code } from '@heroui/react'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { MdErrorOutline, MdInfoOutline, MdWarningAmber, MdCheckCircleOutline, MdContentCopy } from 'react-icons/md'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 
 type DialogType = 'info' | 'error' | 'warning' | 'success'
 
@@ -112,12 +113,9 @@ export const GlobalDialogModal: React.FC = () => {
       onClose={onClose}
       backdrop="blur"
       placement="center"
-      classNames={{
-        base: `${CARD_STYLES.GLASS_CARD} ${getColorClass().split(' ')[1]}`,
-        header: "border-b border-white/10",
-        footer: "border-t border-white/10",
-        closeButton: "hover:bg-white/5 active:bg-white/10"
-      }}
+      classNames={createSecondaryModalClassNames({
+        base: `${CARD_STYLES.GLASS_CARD} ${getColorClass().split(' ')[1]}`
+      })}
       motionProps={{
         variants: {
             enter: { scale: 1, opacity: 1, transition: { duration: 0.3, ease: "easeOut" } },

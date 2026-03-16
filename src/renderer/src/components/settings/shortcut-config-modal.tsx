@@ -4,6 +4,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { registerShortcut } from '@renderer/utils/ipc'
 import { MdCheck, MdKeyboard, MdRestore } from 'react-icons/md'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 
 interface Props {
   isOpen: boolean
@@ -143,12 +144,7 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
       onOpenChange={onOpenChange} 
       size="4xl" 
       backdrop="blur"
-      classNames={{
-        base: "bg-background/80 backdrop-blur-xl border border-white/10 shadow-2xl",
-        header: "border-b border-default-100",
-        footer: "border-t border-default-100",
-        closeButton: "hover:bg-danger hover:text-white active:bg-danger/90 text-default-500 transition-colors z-50"
-      }}
+      classNames={createSecondaryModalClassNames()}
     >
       <ModalContent>
         {(onClose) => (

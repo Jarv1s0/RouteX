@@ -14,6 +14,11 @@ import {
 } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { serviceStatus, testServiceConnection } from '@renderer/utils/ipc'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 
 interface Props {
   onChange: (open: boolean) => void
@@ -140,13 +145,15 @@ const ServiceModal: React.FC<Props> = (props) => {
       size="5xl"
       onOpenChange={onChange}
       scrollBehavior="inside"
-      classNames={{
-        base: 'max-w-none w-full',
-        backdrop: 'top-[48px]'
-      }}
+      classNames={createSecondaryModalClassNames({
+        base: 'max-w-none w-full'
+      })}
     >
       <ModalContent className="w-[450px]">
-        <ModalHeader className="flex flex-col gap-1">RouteX 服务管理</ModalHeader>
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
+          <span>RouteX 服务管理</span>
+          <SecondaryModalCloseButton onPress={() => onChange(false)} />
+        </ModalHeader>
         <ModalBody>
           <div className="space-y-4">
             <Card

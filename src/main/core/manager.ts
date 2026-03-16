@@ -216,7 +216,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
                   'Start TUN listening error: configure tun interface: Connect: operation not permitted'
                 )
               ) {
-                patchControledMihomoConfig({ tun: { enable: false } })
+                await patchControledMihomoConfig({ tun: { enable: false } })
                 mainWindow?.webContents.send('controledMihomoConfigUpdated')
                 ipcMain.emit('updateTrayMenu')
                 reject('虚拟网卡启动失败，前往内核设置页尝试手动授予内核权限')

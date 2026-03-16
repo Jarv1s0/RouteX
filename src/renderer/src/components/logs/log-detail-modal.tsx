@@ -1,7 +1,12 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@heroui/react'
 import React from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { IoClose, IoCopy } from 'react-icons/io5'
+import { IoCopy } from 'react-icons/io5'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 
 interface Props {
   log: ControllerLog & { time?: string }
@@ -31,10 +36,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
     <Modal
       backdrop={disableAnimation ? 'transparent' : 'blur'}
       disableAnimation={disableAnimation}
-      classNames={{ 
-        backdrop: 'top-[48px]',
-        base: 'bg-background/80 backdrop-blur-xl border border-default-200/50 dark:border-white/10 shadow-2xl'
-      }}
+      classNames={createSecondaryModalClassNames()}
       size="2xl"
       hideCloseButton
       isOpen={true}
@@ -42,7 +44,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent>
-        <ModalHeader className="flex justify-between items-center app-drag pr-3 border-b border-default-100 p-3">
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold">日志详情</span>
           </div>
@@ -56,15 +58,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
             >
               复制
             </Button>
-            <Button
-              isIconOnly
-              size="sm"
-              variant="light"
-              className="app-nodrag h-7 w-7 text-default-500"
-              onPress={onClose}
-            >
-              <IoClose className="text-lg" />
-            </Button>
+            <SecondaryModalCloseButton onPress={onClose} className="h-7 w-7 min-w-7" />
           </div>
         </ModalHeader>
         <ModalBody className="p-4">

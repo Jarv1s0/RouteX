@@ -4,7 +4,6 @@ import { calcTraffic } from '@renderer/utils/calc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { 
-  IoClose, 
   IoServer, 
   IoEarth, 
   IoShieldCheckmark, 
@@ -19,6 +18,8 @@ import { MdTimeline } from 'react-icons/md'
 import { FaGlobeAmericas, FaNetworkWired } from 'react-icons/fa'
 import { clsx } from 'clsx'
 import dayjs from 'dayjs'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 
 interface Props {
   connection: ControllerConnectionDetail
@@ -96,11 +97,11 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
     <Modal
       backdrop={disableAnimation ? 'transparent' : 'blur'}
       disableAnimation={disableAnimation}
-      classNames={{ 
+      classNames={createSecondaryModalClassNames({
         backdrop: 'bg-black/40 backdrop-blur-sm',
         wrapper: 'z-[9999]',
-        base: 'bg-background/60 dark:bg-default-100/50 backdrop-blur-xl border border-default-200/50 shadow-2xl max-h-[90vh]'
-      }}
+        base: 'bg-background/60 dark:bg-default-100/50 max-h-[90vh]'
+      })}
       size="5xl"
       hideCloseButton
       isOpen={true}
@@ -119,15 +120,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
           {/* Close Button - Absolute Positioned */}
-          <Button 
-             isIconOnly 
-             size="sm" 
-             variant="light" 
-             onPress={onClose}
-             className="absolute right-4 top-4 z-50"
-          >
-             <IoClose size={20} />
-          </Button>
+          <SecondaryModalCloseButton onPress={onClose} className="absolute right-4 top-4 z-50" />
 
           {/* 标题栏 */}
           <div className="flex justify-between items-start px-2 pt-2 pb-2 z-10">

@@ -11,9 +11,6 @@ import {
 import '@xyflow/react/dist/style.css'
 import dagre from 'dagre'
 import { useConnections } from '@renderer/hooks/use-connections'
-import { mihomoProxies } from '@renderer/utils/ipc'
-import { Button } from '@heroui/react'
-import { IoRefresh } from 'react-icons/io5'
 
 import { nodeTypes } from './connections/topology/CustomNodes'
 import { edgeTypes } from './connections/topology/AnimatedEdge'
@@ -118,25 +115,8 @@ interface TopologyNodeData {
 
 const TopologyMapInner = () => {
     const { connections } = useConnections()
-    const [proxies, setProxies] = useState<ControllerProxies['proxies']>({})
-    const [manualRefreshTrigger, setManualRefreshTrigger] = useState(0)
-
-
     const [nodes, setNodes] = useState<Node[]>([])
     const [edges, setEdges] = useState<Edge[]>([])
-
-    const fetchProxies = async () => {
-        try {
-            const data = await mihomoProxies()
-            setProxies(data.proxies)
-        } catch (e) {
-            console.error("Failed to fetch proxies for topology", e)
-        }
-    }
-
-    useEffect(() => {
-        fetchProxies()
-    }, [manualRefreshTrigger])
 
     // Construct React Flow Data
     useEffect(() => {
@@ -328,24 +308,11 @@ const TopologyMapInner = () => {
         })
         setEdges(layoutedEdges)
 
-    }, [connections, proxies, setEdges, setNodes]) 
+    }, [connections, setEdges, setNodes]) 
     // Intentionally omit setNodes, setEdges inner deps handling if stable, to manage layout nicely
 
     return (
         <div className="h-full w-full relative">
-            <div className="absolute top-4 right-4 z-10 flex gap-2">
-                <Button 
-                    isIconOnly 
-                    size="sm" 
-                    variant="flat" 
-                    className="opacity-50 hover:opacity-100 transition-opacity bg-background dark:bg-default-100 backdrop-blur-md border border-default-200"
-                    onPress={() => setManualRefreshTrigger(prev => prev + 1)}
-                    title="刷新"
-                >
-                    <IoRefresh size={18} />
-                </Button>
-            </div>
-
             {connections.length === 0 ? (
                 <div className="flex flex-col justify-center items-center h-full text-default-400 gap-3 opacity-60">
                     <div className="text-4xl grayscale">🕸️</div>

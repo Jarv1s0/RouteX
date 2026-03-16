@@ -12,11 +12,16 @@ import {
   Switch
 } from '@heroui/react'
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { IoClose, IoTrash, IoAdd, IoEye, IoPencil } from 'react-icons/io5'
+import { IoTrash, IoAdd, IoEye, IoPencil } from 'react-icons/io5'
 import ChainPreviewModal from './chain-preview-modal'
 import { MdLink, MdLinkOff } from 'react-icons/md'
 import { getAllChains, addChainItem, updateChainItem, removeChainItem, restartCore } from '@renderer/utils/ipc'
 import { useGroups } from '@renderer/hooks/use-groups'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 
 
 interface Props {
@@ -154,7 +159,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
   return (
     <Modal
       backdrop="blur"
-      classNames={{ backdrop: 'top-[48px]' }}
+      classNames={createSecondaryModalClassNames()}
       size="2xl"
       hideCloseButton
       isOpen={true}
@@ -162,11 +167,9 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
       scrollBehavior="inside"
     >
       <ModalContent>
-        <ModalHeader className="flex justify-between items-center pr-4">
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>{isEditing ? (editingChain ? '编辑代理链' : '新建代理链') : '代理链管理'}</span>
-          <Button isIconOnly size="sm" variant="light" onPress={isEditing ? closeEditor : onClose}>
-            <IoClose className="text-lg" />
-          </Button>
+          <SecondaryModalCloseButton onPress={isEditing ? closeEditor : onClose} />
         </ModalHeader>
         <ModalBody className="py-2 pb-6">
 

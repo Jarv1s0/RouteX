@@ -5,6 +5,11 @@ import { getFileStr, setFileStr, convertMrsRuleset } from '@renderer/utils/ipc'
 import yaml from 'js-yaml'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { Spinner } from '@heroui/react'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
 
 interface Props {
@@ -87,10 +92,9 @@ const Viewer: React.FC<Props> = (props) => {
     <Modal
       backdrop={disableAnimation ? 'transparent' : 'blur'}
       disableAnimation={disableAnimation}
-      classNames={{
-        base: 'max-w-none w-full',
-        backdrop: 'top-[48px]'
-      }}
+      classNames={createSecondaryModalClassNames({
+        base: 'max-w-none w-full'
+      })}
       size="5xl"
       hideCloseButton
       isOpen={true}
@@ -98,7 +102,10 @@ const Viewer: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent className="h-full w-[calc(100%-100px)]">
-        <ModalHeader className="flex pb-0 app-drag">{title}</ModalHeader>
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
+          <span>{title}</span>
+          <SecondaryModalCloseButton onPress={onClose} />
+        </ModalHeader>
         <ModalBody className="h-full">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-full gap-4">

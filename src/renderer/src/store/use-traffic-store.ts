@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { getTrafficStats, getProviderStats, getProfileConfig, triggerProviderSnapshot, startMonitor } from '@renderer/utils/ipc'
+import { getTrafficStats, getProviderStats, getProfileConfig, triggerProviderSnapshot } from '@renderer/utils/ipc'
 import throttle from 'lodash/throttle'
 
 interface TrafficDataPoint {
@@ -79,9 +79,6 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
   ruleHitDetails: new Map(),
 
   initializeListeners: () => {
-    // Attempt to start monitor (legacy behavior restoration)
-    startMonitor().catch(() => {})
-
     // Clean up any existing listeners first using stored references
     unregisterTrafficHandlers()
 

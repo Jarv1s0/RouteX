@@ -1,4 +1,5 @@
 import { TitleBarOverlayOptions } from 'electron'
+import { notifyError } from './notify'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ipcErrorWrapper(response: any): any {
@@ -614,6 +615,14 @@ export async function fetchIpInfo(): Promise<{
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchIpInfo'))
 }
 
+export async function getMapGeoLocation(): Promise<{
+  countryCode: string
+  lat: number
+  lon: number
+} | null> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getMapGeoLocation'))
+}
+
 interface IpInfoQuery {
   query: string
   lang?: string
@@ -726,13 +735,7 @@ export async function copyEnv(type: 'bash' | 'cmd' | 'powershell' | 'nushell'): 
 }
 
 async function alert<T>(msg: T): Promise<void> {
-  const msgStr = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)
-  // 直接触发前端事件，不再绕行主进程
-  // 这样能立即响应，且样式统一
-  const event = new CustomEvent('show-global-error', { 
-    detail: { title: '提示', content: msgStr } 
-  })
-  window.dispatchEvent(event)
+  notifyError(msg, { title: '提示' })
 }
 
 window.alert = alert

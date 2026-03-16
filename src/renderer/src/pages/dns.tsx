@@ -17,7 +17,7 @@ import {
 import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
 
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { toast } from 'sonner'
+import { notifyError } from '@renderer/utils/notify'
 
 const DNS: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -105,7 +105,7 @@ const DNS: React.FC = () => {
       await patchControledMihomoConfig(patch)
       await restartCore()
     } catch (e) {
-      toast.error(String(e))
+      notifyError(e)
     }
   }
 

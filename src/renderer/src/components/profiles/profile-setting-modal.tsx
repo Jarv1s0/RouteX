@@ -11,13 +11,17 @@ import {
   Tooltip
 } from '@heroui/react'
 import React, { useState, useEffect, useRef } from 'react'
-import { IoClose } from 'react-icons/io5'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getGistUrl, getUserAgent } from '@renderer/utils/ipc'
 import debounce from '@renderer/utils/debounce'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { BiCopy } from 'react-icons/bi'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 
 interface Props {
   onClose: () => void
@@ -58,7 +62,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
   return (
     <Modal
       backdrop="blur"
-      classNames={{ backdrop: 'top-[48px]' }}
+      classNames={createSecondaryModalClassNames()}
       size="md"
       hideCloseButton
       isOpen={true}
@@ -66,16 +70,9 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent className="flag-emoji">
-        <ModalHeader className="flex justify-between items-center pl-6 pr-4 py-3 pb-1">
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>订阅设置</span>
-          <Button
-            isIconOnly
-            size="sm"
-            variant="light"
-            onPress={onClose}
-          >
-            <IoClose className="text-lg" />
-          </Button>
+          <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="px-6 py-2 gap-1 pb-4 pt-0">
           <SettingItem title="显示日期" divider>

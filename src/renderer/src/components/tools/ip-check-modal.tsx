@@ -13,6 +13,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { testRuleMatch, mihomoChangeProxy } from '@renderer/utils/ipc'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { IoOpenOutline, IoReload } from 'react-icons/io5'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 
 interface Props {
   isOpen: boolean
@@ -136,10 +137,10 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
       onOpenChange={(open) => !open && onClose()}
       size="5xl" 
       scrollBehavior="inside"
-      classNames={{
-        body: "p-0 overflow-hidden",
-        base: "h-[90vh]"
-      }}
+      classNames={createSecondaryModalClassNames({
+        body: 'p-0 overflow-hidden',
+        base: 'h-[90vh]'
+      })}
     >
       <ModalContent>
         <ModalHeader className="flex flex-col gap-3 py-4 border-b border-default-100 pr-10">

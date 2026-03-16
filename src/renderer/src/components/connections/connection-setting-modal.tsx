@@ -6,11 +6,9 @@ import {
   ModalBody,
   Input,
   Chip,
-  Divider,
-  Button
+  Divider
 } from '@heroui/react'
 import React, { useState, useEffect, useMemo } from 'react'
-import { IoClose } from 'react-icons/io5'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { restartMihomoConnections } from '@renderer/utils/ipc'
@@ -34,6 +32,11 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { MdDragIndicator } from 'react-icons/md'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 
 // 所有可用的表格列
 const ALL_COLUMNS = [
@@ -180,7 +183,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
   return (
     <Modal
       backdrop="blur"
-      classNames={{ backdrop: 'top-[48px]' }}
+      classNames={createSecondaryModalClassNames()}
       size="lg"
       isOpen={true}
       onOpenChange={onClose}
@@ -188,16 +191,9 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
       hideCloseButton
     >
       <ModalContent>
-        <ModalHeader className="flex justify-between items-center pl-6 pr-4 py-3 pb-1">
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span className="text-lg font-semibold">连接设置</span>
-          <Button
-            isIconOnly
-            size="sm"
-            variant="light"
-            onPress={onClose}
-          >
-            <IoClose className="text-lg" />
-          </Button>
+          <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="px-6 gap-4 pb-4 pt-0">
           <div className="space-y-1">

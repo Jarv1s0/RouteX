@@ -40,7 +40,7 @@ import SubStoreIcon from '@renderer/components/base/substore-icon'
 import ProfileSettingModal from '@renderer/components/profiles/profile-setting-modal'
 import useSWR from 'swr'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
+import { notifyError } from '@renderer/utils/notify'
 
 const emptyItems: ProfileItem[] = []
 
@@ -122,7 +122,7 @@ const Profiles: React.FC = () => {
       await mihomoUpdateProxyProviders(name)
       mutateProviders()
     } catch (e) {
-      toast.error(`${name} 更新失败\n${e}`)
+      notifyError(`${name} 更新失败\n${e}`)
     } finally {
       setProviderUpdating((prev) => {
         const next = [...prev]
@@ -281,10 +281,10 @@ const Profiles: React.FC = () => {
             const content = await readTextFile(path)
             await addProfileItem({ name: file.name, type: 'local', file: content })
           } catch (e) {
-            toast.error('文件导入失败' + e)
+            notifyError(`文件导入失败${e}`)
           }
         } else {
-          toast.error('不支持的文件类型')
+          notifyError('不支持的文件类型')
         }
       }
       setFileOver(false)
@@ -431,7 +431,7 @@ const Profiles: React.FC = () => {
                         useProxy
                       })
                     } catch (e) {
-                      toast.error(String(e))
+                      notifyError(e)
                     } finally {
                       setSubStoreImporting(false)
                     }
@@ -452,7 +452,7 @@ const Profiles: React.FC = () => {
                         useProxy
                       })
                     } catch (e) {
-                      toast.error(String(e))
+                      notifyError(e)
                     } finally {
                       setSubStoreImporting(false)
                     }
@@ -485,7 +485,7 @@ const Profiles: React.FC = () => {
                         await addProfileItem({ name: fileName, type: 'local', file: content })
                       }
                     } catch (e) {
-                      toast.error(String(e))
+                      notifyError(e)
                     }
                     break
                   }

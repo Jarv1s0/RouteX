@@ -20,6 +20,11 @@ import {
   revokeCorePermission
 } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 
 interface Props {
   onChange: (open: boolean) => void
@@ -117,14 +122,14 @@ const PermissionModal: React.FC<Props> = (props) => {
       size="5xl"
       onOpenChange={onChange}
       scrollBehavior="inside"
-      classNames={{
-        base: 'max-w-none w-full',
-        backdrop: 'top-[48px]'
-      }}
+      classNames={createSecondaryModalClassNames({
+        base: 'max-w-none w-full'
+      })}
     >
       <ModalContent className="w-[450px]">
-        <ModalHeader className="flex flex-col gap-1">
-          {isWindows ? '任务计划管理' : '内核授权管理'}
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
+          <span>{isWindows ? '任务计划管理' : '内核授权管理'}</span>
+          <SecondaryModalCloseButton onPress={() => onChange(false)} />
         </ModalHeader>
         <ModalBody>
           <div className="space-y-4">

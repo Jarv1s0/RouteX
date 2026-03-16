@@ -10,6 +10,7 @@ import React, { Key, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { primaryInputClassNames, primaryNumberInputClassNames } from '@renderer/components/settings/advanced-settings'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { notifyError } from '@renderer/utils/notify'
 
 const Tun: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -100,7 +101,7 @@ const Tun: React.FC = () => {
                     new Notification('防火墙重设成功')
                     await restartCore()
                   } catch (e) {
-                    alert(e)
+                    notifyError(e, { title: '重设防火墙失败' })
                   } finally {
                     setLoading(false)
                   }

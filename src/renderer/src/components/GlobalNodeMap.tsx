@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
-import { fetchBatchIpInfo, getCurrentProfileStr, IpInfoResult } from '@renderer/utils/ipc'
+import { fetchBatchIpInfo, getCurrentProfileStr, getMapGeoLocation, IpInfoResult } from '@renderer/utils/ipc'
 import { useTheme } from 'next-themes'
 import YAML from 'yaml'
 
@@ -33,32 +33,17 @@ const GlobalNodeMap: React.FC = () => {
     })
 
     useEffect(() => {
+        let cancelled = false
+
         const detectLocation = async () => {
             try {
-                // 1. Detect Local Location (Async, Non-blocking)
-                const res = await fetch('https://ipapi.co/json/')
-                if (res.ok) {
-                    const data = await res.json()
-                    if (data.latitude && data.longitude) {
-                        setCenterNode({
-                            name: data.country_code || 'CN',
-                            coord: [data.longitude, data.latitude]
-                        })
-                        return // Success
-                    }
-                }
-                
-                // Fallback to ip-api if ipapi.co fails
-                const res2 = await fetch('http://ip-api.com/json')
-                if (res2.ok) {
-                    const data2 = await res2.json()
-                    if (data2.lat && data2.lon) {
-                        setCenterNode({
-                            name: data2.countryCode || 'CN',
-                            coord: [data2.lon, data2.lat]
-                        })
-                    }
-                }
+                const location = await getMapGeoLocation()
+                if (!location || cancelled) return
+
+                setCenterNode({
+                    name: location.countryCode || 'CN',
+                    coord: [location.lon, location.lat]
+                })
             } catch (e) {
                 console.warn("Failed to detect local location, using default.", e)
             }
@@ -243,16 +228,22 @@ const GlobalNodeMap: React.FC = () => {
                     })
                 })
 
+                if (cancelled) return
+
                 setNodes(finalNodes)
                 setLoading(false)
             } catch (err: unknown) {
                 const errMsg = (err as Error).message || "Failed to load map"
                 console.error("Failed to load map data", err)
+                if (cancelled) return
                 setError(errMsg)
                 setLoading(false)
             }
         }
         initMap()
+        return () => {
+            cancelled = true
+        }
     }, [])
 
     const getOption = () => {

@@ -10,8 +10,8 @@ import React, { Key, useEffect, useState } from 'react'
 import ByPassEditorModal from '@renderer/components/sysproxy/bypass-editor-modal'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
-import { toast } from 'sonner'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { notifyError } from '@renderer/utils/notify'
 
 const defaultPacScript = `
 function FindProxyForURL(url, host) {
@@ -99,7 +99,7 @@ const Sysproxy: React.FC = () => {
       try {
         await triggerSysProxy(values.enable, onlyActiveDevice)
       } catch (e) {
-        toast.error(String(e))
+        notifyError(e)
         await patchAppConfig({ sysProxy: { enable: false } })
       }
     }

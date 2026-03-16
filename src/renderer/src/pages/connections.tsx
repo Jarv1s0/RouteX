@@ -26,6 +26,9 @@ import { CustomContextMenu } from '@renderer/components/ui/custom-context-menu'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useResourceQueue } from '@renderer/hooks/use-resource-queue'
 
+const RESOURCE_PRELOAD_BUFFER = 20
+const INITIAL_VISIBLE_RANGE = { startIndex: 0, endIndex: 39 }
+
 const Connections: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { 'find-process-mode': findProcessMode = 'always' } = controledMihomoConfig || {}
@@ -55,6 +58,7 @@ const Connections: React.FC = () => {
   const [tab, setTab] = useState('active')
   const [viewMode, setViewMode] = useState<'list' | 'group' | 'table'>('list')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [visibleRange, setVisibleRange] = useState(INITIAL_VISIBLE_RANGE)
   
   // Local deleted IDs just for UI feedback if needed, strictly not required if store handles it immediately.
   // usage: filteredConnections checking deletedIds.
@@ -258,53 +262,58 @@ const Connections: React.FC = () => {
   )
 
   useEffect(() => {
-    if (!displayIcon || findProcessMode === 'off') return
+    setVisibleRange(INITIAL_VISIBLE_RANGE)
+  }, [tab, viewMode, deferredFilter, deferredOrder, deferredDirection])
 
-    const visiblePaths = new Set<string>()
-    const otherPaths = new Set<string>()
+  const resourcePaths = useMemo(() => {
+    const paths = new Set<string>()
 
-    const visibleConnections = filteredConnections.slice(0, 20)
-    visibleConnections.forEach((c) => {
-      const path = c.metadata.processPath || ''
-      visiblePaths.add(path)
-    })
-
-    const collectPaths = (connections: ControllerConnectionDetail[]) => {
-      for (const c of connections) {
-        const path = c.metadata.processPath || ''
-        if (!visiblePaths.has(path)) {
-          otherPaths.add(path)
+    if (viewMode === 'group') {
+      groupedConnections.forEach((group) => {
+        if (group.processPath) {
+          paths.add(group.processPath)
         }
-      }
+      })
+      return Array.from(paths)
     }
 
-    collectPaths(activeConnections)
-    collectPaths(closedConnections)
+    const startIndex = Math.max(0, visibleRange.startIndex - RESOURCE_PRELOAD_BUFFER)
+    const endIndex = Math.min(filteredConnections.length, visibleRange.endIndex + RESOURCE_PRELOAD_BUFFER + 1)
 
-    visiblePaths.forEach((path) => {
-      loadIcon(path, true)
-      if (displayAppName) loadAppName(path)
+    filteredConnections.slice(startIndex, endIndex).forEach((connection) => {
+      const path = connection.metadata.processPath || ''
+      if (path) {
+        paths.add(path)
+      }
     })
 
-    if (otherPaths.size > 0) {
-      const loadOtherPaths = () => {
-        otherPaths.forEach((path) => {
-          loadIcon(path, false)
-          if (displayAppName) loadAppName(path)
-        })
-      }
+    return Array.from(paths)
+  }, [viewMode, groupedConnections, visibleRange, filteredConnections])
 
-      setTimeout(loadOtherPaths, 100)
-    }
+  useEffect(() => {
+    const canLoadIcons = displayIcon && findProcessMode !== 'off'
+    if (!canLoadIcons && !displayAppName) return
+
+    const firstVisiblePath = filteredConnections[visibleRange.startIndex]?.metadata?.processPath
+
+    resourcePaths.forEach((path) => {
+      if (!path) return
+      if (canLoadIcons) {
+        loadIcon(path, path === firstVisiblePath)
+      }
+      if (displayAppName) {
+        loadAppName(path)
+      }
+    })
   }, [
-    activeConnections,
-    closedConnections,
     displayIcon,
-    filteredConnections,
-    loadIcon,
-    loadAppName,
     displayAppName,
-    findProcessMode
+    findProcessMode,
+    filteredConnections,
+    visibleRange,
+    resourcePaths,
+    loadIcon,
+    loadAppName
   ])
 
   // 统一时间刷新定时器（每60秒触发一次，替代每个卡片的独立定时器）
@@ -317,6 +326,10 @@ const Connections: React.FC = () => {
 
   const handleTabChange = useCallback((key: Key) => {
     setTab(key as string)
+  }, [])
+
+  const handleVisibleRangeChange = useCallback((range: { startIndex: number; endIndex: number }) => {
+    setVisibleRange(range)
   }, [])
 
   const handleOrderByChange = useCallback(
@@ -623,7 +636,7 @@ const Connections: React.FC = () => {
             description="连接信息将在这里显示"
           />
         ) : viewMode === 'table' ? (
-            <ConnectionTable
+          <ConnectionTable
             connections={filteredConnections}
             selected={selected}
             setSelected={setSelected}
@@ -663,9 +676,14 @@ const Connections: React.FC = () => {
               }
             }}
             onContextMenu={handleContextMenu}
+            onVisibleRangeChange={handleVisibleRangeChange}
           />
         ) : viewMode === 'list' ? (
-          <Virtuoso data={filteredConnections} itemContent={renderConnectionItem} />
+          <Virtuoso
+            data={filteredConnections}
+            itemContent={renderConnectionItem}
+            rangeChanged={handleVisibleRangeChange}
+          />
         ) : (
           <ConnectionsGroupView
             groupedConnections={groupedConnections}

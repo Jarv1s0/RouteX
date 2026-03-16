@@ -8,6 +8,7 @@ import {
   updateProfileItem as update,
   changeCurrentProfile as change
 } from '@renderer/utils/ipc'
+import { notifyError } from '@renderer/utils/notify'
 
 interface ProfileConfigContextType {
   profileConfig: ProfileConfig | undefined
@@ -30,7 +31,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await set(config)
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: '保存订阅配置失败' })
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -41,7 +42,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await add(item)
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: '新增订阅失败' })
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -52,7 +53,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await remove(id)
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: '删除订阅失败' })
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -63,7 +64,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await update(item)
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: '更新订阅失败' })
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -74,7 +75,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await change(id)
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: '切换订阅失败' })
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')

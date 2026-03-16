@@ -5,6 +5,7 @@ import { webdavBackup, listWebdavBackups } from '@renderer/utils/ipc'
 import { toast } from 'sonner'
 import debounce from '@renderer/utils/debounce'
 import WebdavRestoreModal from './webdav-restore-modal'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 
 interface Props {
   isOpen: boolean
@@ -99,12 +100,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
         size="2xl" 
         backdrop="blur"
         scrollBehavior="inside"
-        classNames={{
-          base: "bg-background/80 backdrop-blur-xl border border-white/10 shadow-2xl",
-          header: "border-b border-default-100",
-          footer: "border-t border-default-100",
-          closeButton: "hover:bg-danger hover:text-white active:bg-danger/90 text-default-500 transition-colors z-50"
-        }}
+        classNames={createSecondaryModalClassNames()}
       >
         <ModalContent>
           {(onClose) => (

@@ -13,6 +13,11 @@ import { TbPlugConnected, TbServer } from 'react-icons/tb'
 import { motion } from 'framer-motion'
 import { MdLink } from 'react-icons/md'
 import { useGroups } from '@renderer/hooks/use-groups'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME,
+  SECONDARY_MODAL_ICON_CLOSE_BUTTON_CLASSNAME
+} from '@renderer/utils/modal-styles'
 
 interface Props {
   chains: ChainItem[]
@@ -253,14 +258,14 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
   return (
     <Modal
       backdrop="blur"
-      classNames={{ backdrop: 'top-[48px]' }}
+      classNames={createSecondaryModalClassNames()}
       size="5xl"
       hideCloseButton
       isOpen={true}
       onOpenChange={onClose}
     >
       <ModalContent className="bg-background/90 dark:bg-content1/80 border border-default-200 dark:border-white/10 shadow-2xl">
-        <ModalHeader className="flex justify-between items-center pr-4 border-b border-default-200/50 dark:border-white/5 pb-3">
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-center gap-2">
             <MdLink className="text-xl text-primary" />
             <span className="font-bold">链路预览</span>
@@ -268,7 +273,14 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
               节点总数: {chains.length}
             </span>
           </div>
-          <Button isIconOnly size="sm" variant="light" color="danger" onPress={onClose}>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="light"
+            aria-label="关闭"
+            className={SECONDARY_MODAL_ICON_CLOSE_BUTTON_CLASSNAME}
+            onPress={onClose}
+          >
             <IoClose className="text-lg" />
           </Button>
         </ModalHeader>

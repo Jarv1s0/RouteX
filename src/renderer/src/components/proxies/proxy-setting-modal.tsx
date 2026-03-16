@@ -12,12 +12,12 @@ import {
   Tabs
 } from '@heroui/react'
 import React, { useState, useEffect, useMemo } from 'react'
-import { IoClose } from 'react-icons/io5'
 import { MdRefresh, MdSort } from 'react-icons/md'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useGroups } from '@renderer/hooks/use-groups'
 import debounce from '@renderer/utils/debounce'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 
 
 import { secondaryInputClassNames, numberInputClassNames } from '../settings/advanced-settings'
@@ -36,6 +36,10 @@ import {
   arrayMove
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 
 interface Props {
   onClose: () => void
@@ -84,7 +88,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
     <>
       <Modal
         backdrop="blur"
-        classNames={{ backdrop: 'top-[48px]' }}
+        classNames={createSecondaryModalClassNames()}
         size="xl"
         hideCloseButton
         isOpen={true}
@@ -92,16 +96,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
         scrollBehavior="inside"
       >
         <ModalContent>
-          <ModalHeader className="flex justify-between items-center pr-4 py-3 pb-1">
+          <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
             <span>代理组设置</span>
-            <Button
-              isIconOnly
-              size="sm"
-              variant="light"
-              onPress={onClose}
-            >
-              <IoClose className="text-lg" />
-            </Button>
+            <SecondaryModalCloseButton onPress={onClose} />
           </ModalHeader>
           <ModalBody className="py-2 gap-1 pb-2 px-6">
             <SettingItem title="代理节点展示列数" divider>
@@ -340,7 +337,7 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
   return (
     <Modal
       backdrop="blur"
-      classNames={{ backdrop: 'top-[48px]' }}
+      classNames={createSecondaryModalClassNames()}
       size="sm"
       hideCloseButton
       isOpen={true}
@@ -348,19 +345,12 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
       scrollBehavior="inside"
     >
       <ModalContent>
-        <ModalHeader className="flex justify-between items-center pr-4 py-3 pb-1">
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-end gap-2">
             <span>调整代理组顺序</span>
             <span className="text-xs text-foreground-500 font-normal mb-0.5">拖拽调整顺序</span>
           </div>
-          <Button
-            isIconOnly
-            size="sm"
-            variant="light"
-            onPress={onClose}
-          >
-            <IoClose className="text-lg" />
-          </Button>
+          <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="pb-2 pt-0 px-6">
           <DndContext

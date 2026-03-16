@@ -7,6 +7,7 @@ import {
   removeOverrideItem as remove,
   updateOverrideItem as update
 } from '@renderer/utils/ipc'
+import { notifyError } from '@renderer/utils/notify'
 
 interface OverrideConfigContextType {
   overrideConfig: OverrideConfig | undefined
@@ -28,7 +29,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await set(config)
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: '保存覆写配置失败' })
     } finally {
       mutateOverrideConfig()
     }
@@ -38,7 +39,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await add(item)
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: '新增覆写失败' })
     } finally {
       mutateOverrideConfig()
     }
@@ -48,7 +49,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await remove(id)
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: '删除覆写失败' })
     } finally {
       mutateOverrideConfig()
     }
@@ -58,7 +59,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await update(item)
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: '更新覆写失败' })
     } finally {
       mutateOverrideConfig()
     }

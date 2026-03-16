@@ -7,7 +7,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { restartCore } from '@renderer/utils/ipc'
 import React, { useState } from 'react'
 import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
-import { toast } from 'sonner'
+import { notifyError } from '@renderer/utils/notify'
 
 const Sniffer: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -61,7 +61,7 @@ const Sniffer: React.FC = () => {
       await patchControledMihomoConfig(patch)
       await restartCore()
     } catch (e) {
-      toast.error(String(e))
+      notifyError(e)
     }
   }
 

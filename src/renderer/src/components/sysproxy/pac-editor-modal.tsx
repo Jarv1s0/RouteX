@@ -2,6 +2,11 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from
 import { BaseEditor } from '@renderer/components/base/base-editor-lazy'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import React, { useState } from 'react'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 interface Props {
   script: string
   onCancel: () => void
@@ -16,10 +21,9 @@ const PacEditorModal: React.FC<Props> = (props) => {
     <Modal
       backdrop={disableAnimation ? 'transparent' : 'blur'}
       disableAnimation={disableAnimation}
-      classNames={{
-        base: 'max-w-none w-full',
-        backdrop: 'top-[48px]'
-      }}
+      classNames={createSecondaryModalClassNames({
+        base: 'max-w-none w-full'
+      })}
       size="5xl"
       hideCloseButton
       isOpen={true}
@@ -27,7 +31,10 @@ const PacEditorModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent className="h-full w-[calc(100%-100px)]">
-        <ModalHeader className="flex pb-0 app-drag">编辑 PAC 脚本</ModalHeader>
+        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
+          <span>编辑 PAC 脚本</span>
+          <SecondaryModalCloseButton onPress={onCancel} />
+        </ModalHeader>
         <ModalBody className="h-full">
           <BaseEditor
             language="javascript"

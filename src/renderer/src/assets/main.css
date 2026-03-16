@@ -91,10 +91,29 @@ pre,
   user-select: text !important;
 }
 
-*:focus {
+:where(
+    button,
+    a,
+    summary,
+    [role='button'],
+    [role='tab'],
+    [role='switch'],
+    [tabindex]:not([tabindex='-1'])
+  ):focus {
   outline: none;
-  outline-width: 0;
-  outline-color: transparent;
+}
+
+:where(
+    button,
+    a,
+    summary,
+    [role='button'],
+    [role='tab'],
+    [role='switch'],
+    [tabindex]:not([tabindex='-1'])
+  ):focus-visible {
+  outline: 2px solid hsl(var(--heroui-primary));
+  outline-offset: 2px;
 }
 
 .flag-emoji {
@@ -138,6 +157,55 @@ pre,
 /* 输入框聚焦效果 */
 [data-slot="input-wrapper"] {
   transition: all 0.2s ease;
+}
+
+[data-slot="input-wrapper"],
+[data-slot="inner-wrapper"],
+[data-slot="input"],
+[data-slot="input"]::placeholder,
+input,
+input::placeholder,
+select,
+textarea,
+textarea::placeholder {
+  outline: none !important;
+  outline-style: none !important;
+  outline-width: 0 !important;
+  outline-color: transparent !important;
+}
+
+[data-slot="input"],
+input,
+select,
+textarea {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+[data-slot="input-wrapper"]:focus,
+[data-slot="input-wrapper"]:focus-visible,
+[data-slot="inner-wrapper"]:focus,
+[data-slot="inner-wrapper"]:focus-visible,
+[data-slot="input"]:focus,
+[data-slot="input"]:focus-visible,
+[data-slot="input"]:active,
+input:focus,
+input:focus-visible,
+input:active,
+select:focus,
+select:focus-visible,
+select:active,
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+  outline-style: none !important;
+  outline-width: 0 !important;
+  outline-color: transparent !important;
+  -webkit-focus-ring-color: transparent !important;
+  border: none !important;
 }
 
 [data-slot="input-wrapper"]:focus-within {

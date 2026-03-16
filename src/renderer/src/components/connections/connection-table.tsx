@@ -46,6 +46,7 @@ interface Props {
   sortDirection?: 'asc' | 'desc'
   onSort?: (column: string) => void
   onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
+  onVisibleRangeChange?: (range: { startIndex: number; endIndex: number }) => void
 }
 
 // ... (existing code)
@@ -126,7 +127,8 @@ const ConnectionTableComponent: React.FC<Props> = ({
   sortBy,
   sortDirection,
   onSort,
-  onContextMenu
+  onContextMenu,
+  onVisibleRangeChange
 }) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const { 
@@ -258,6 +260,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
           data={connections}
           itemContent={renderRow}
           overscan={10}
+          rangeChanged={onVisibleRangeChange}
         />
       </div>
     </div>
