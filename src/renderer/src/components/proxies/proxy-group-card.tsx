@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/ipc'

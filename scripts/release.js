@@ -2,7 +2,6 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
-const path = require('path');
 
 // 获取命令行参数
 const args = process.argv.slice(2);
@@ -61,7 +60,7 @@ function main() {
     // Check if working directory is clean
     try {
       execSync('git diff-index --quiet HEAD --', { stdio: 'pipe' });
-    } catch (error) {
+    } catch {
       console.error('❌ Working directory is not clean, please commit or stash changes');
       process.exit(1);
     }
