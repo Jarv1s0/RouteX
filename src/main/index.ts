@@ -31,6 +31,7 @@ import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
 import { getAppConfigSync } from './config/app'
 import { getUserAgent } from './utils/userAgent'
+import { registerRendererCsp } from './utils/csp'
 import { loadTrafficStats, saveTrafficStats } from './resolve/trafficStats'
 import {
   loadProviderStats,
@@ -49,6 +50,26 @@ let createWindowPromiseResolve: (() => void) | null = null
 let createWindowPromise: Promise<void> | null = null
 let mainWindowDidFinishLoad = false
 let shutdownPromise: Promise<void> | null = null
+
+const IGNORED_RENDERER_MESSAGES = [
+  "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+  'Download the React DevTools for a better development experience:',
+  'Slow network is detected.',
+  '[vite] connecting...',
+  '[vite] connected.',
+  'WARN: A component changed from uncontrolled to controlled.',
+  'WARN: A component changed from controlled to uncontrolled.',
+  'In HTML, %s cannot be a descendant of <%s>.',
+  '<%s> cannot contain a nested %s.'
+]
+
+function shouldReportRendererConsoleMessage(level: number, message: string): boolean {
+  if (level < 3) {
+    return false
+  }
+
+  return !IGNORED_RENDERER_MESSAGES.some((ignored) => message.includes(ignored))
+}
 
 async function scheduleLightweightMode(): Promise<void> {
   const {
@@ -292,6 +313,7 @@ function showDialog(type: 'info' | 'error' | 'warning' | 'success', title: strin
 app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('routex.app')
+  registerRendererCsp()
   
   // Async Elevation Check
   if (
@@ -662,14 +684,16 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       frame: useWindowFrame,
       fullscreenable: false,
       titleBarStyle: useWindowFrame ? 'default' : 'hidden',
-      titleBarOverlay: false,
+      titleBarOverlay: !useWindowFrame && process.platform !== 'darwin',
       autoHideMenuBar: true,
       ...(process.platform === 'linux' ? { icon: getIconPath('icon.png') } : 
          process.platform === 'win32' ? { icon: getIconPath('icon.ico') } : {}),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         spellcheck: false,
-        sandbox: false,
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
         webviewTag: true
       }
     })
@@ -696,6 +720,40 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
     mainWindow.webContents.on('did-fail-load', () => {
       reloadMainWindowRenderer()
     })
+    mainWindow.webContents.on('console-message', (_event, ...args: any[]) => {
+      const details =
+        args.length === 1 && args[0] && typeof args[0] === 'object'
+          ? args[0]
+          : {
+              level: args[0],
+              message: args[1],
+              lineNumber: args[2],
+              sourceId: args[3]
+            }
+
+      const level = typeof details.level === 'number' ? details.level : 0
+      const message = typeof details.message === 'string' ? details.message : String(details.message ?? '')
+      const lineNumber = typeof details.lineNumber === 'number' ? details.lineNumber : 0
+      const sourceId = typeof details.sourceId === 'string' ? details.sourceId : 'unknown'
+      const prefix = `[renderer:${level}] ${sourceId}:${lineNumber}`
+
+      if (!shouldReportRendererConsoleMessage(level, message)) {
+        return
+      }
+
+      console.error(prefix, message)
+    })
+    mainWindow.webContents.on(
+      'did-fail-load',
+      (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+        console.error('[renderer] did-fail-load', {
+          errorCode,
+          errorDescription,
+          validatedURL,
+          isMainFrame
+        })
+      }
+    )
 
     // 处理渲染进程崩溃
     mainWindow.webContents.on('render-process-gone', (_event, details) => {

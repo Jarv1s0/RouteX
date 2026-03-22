@@ -14,7 +14,13 @@ import { getVersion } from './ipc'
 //   originWarn.call(console, args)
 // }
 
-export const platform: NodeJS.Platform = window.api.platform
+const platformFromBridge = window.api?.platform ?? window.electron?.process?.platform
+
+if (!platformFromBridge) {
+  throw new Error('Preload bridge is unavailable: window.api.platform is missing')
+}
+
+export const platform: NodeJS.Platform = platformFromBridge
 export let version: string = ''
 
 export async function init(): Promise<void> {

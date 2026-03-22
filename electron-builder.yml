@@ -94,7 +94,7 @@ rpm:
   afterInstall: 'build/linux/postinst'
 npmRebuild: true
 releaseInfo:
-  releaseNotesFile: changelog.md
+  releaseNotesFile: release-notes.md
 publish:
   provider: github
   owner: Jarv1s0

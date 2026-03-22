@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Card, CardBody, Tabs, Tab } from '@heroui/react'
-import { Area, ResponsiveContainer, XAxis, YAxis, Tooltip, Bar, BarChart, Legend, ComposedChart, CartesianGrid } from 'recharts'
+import ReactECharts from 'echarts-for-react'
+import type { EChartsOption } from 'echarts'
 import { IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
@@ -17,7 +18,13 @@ interface TrafficChartProps {
   dailyData: { date: string; upload: number; download: number }[]
 }
 
-// Y轴显示整数的流量格式化
+interface TooltipSeriesParam {
+  axisValueLabel?: string
+  color: string
+  seriesName: string
+  value: number | string | [string | number, number]
+}
+
 const calcTrafficInt = (byte: number): string => {
   if (byte < 1024) return `${Math.round(byte)} B`
   byte /= 1024
@@ -28,42 +35,6 @@ const calcTrafficInt = (byte: number): string => {
   if (byte < 1024) return `${Math.round(byte)} GB`
   byte /= 1024
   return `${Math.round(byte)} TB`
-}
-
-interface TooltipPayloadEntry {
-  color?: string
-  fill?: string
-  name: string
-  value: number
-}
-
-const CustomTooltip = ({ active, payload, label }: { active?: boolean, payload?: TooltipPayloadEntry[], label?: string }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className={`
-        ${CARD_STYLES.GLASS_CARD}
-        !border-default-200/50
-        px-3 py-2 rounded-xl shadow-xl backdrop-blur-md
-      `}>
-        <p className="text-xs font-semibold mb-1 text-foreground-500">{label}</p>
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center gap-2 text-xs">
-            <span 
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: entry.color || entry.fill }}
-            />
-            <span className="text-foreground-500">{entry.name}:</span>
-            <span className="font-mono font-medium" style={{ color: entry.color || entry.fill }}>
-              {entry.name.includes('速度') 
-                ? `${calcTraffic(entry.value as number)}/s` 
-                : calcTraffic(entry.value as number)}
-            </span>
-          </div>
-        ))}
-      </div>
-    )
-  }
-  return null
 }
 
 const TrafficChart: React.FC<TrafficChartProps> = ({
@@ -87,43 +58,263 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
   }
 
   const formattedHourlyData = useMemo(() => {
-    return (hourlyData || []).map(item => ({
+    return (hourlyData || []).map((item) => ({
       ...item,
       label: formatHourLabel(item.hour)
     }))
   }, [hourlyData])
 
   const formattedDailyData = useMemo(() => {
-    return (dailyData || []).slice(-7).map(item => ({
+    return (dailyData || []).slice(-7).map((item) => ({
       ...item,
       label: formatDateLabel(item.date)
     }))
   }, [dailyData])
 
   const formattedMonthlyData = useMemo(() => {
-    return (dailyData || []).map(item => ({
+    return (dailyData || []).map((item) => ({
       ...item,
       label: formatDateLabel(item.date)
     }))
   }, [dailyData])
 
-  // 计算总流量（7天）
   const totalUpload7d = (dailyData || []).slice(-7).reduce((sum, d) => sum + d.upload, 0)
   const totalDownload7d = (dailyData || []).slice(-7).reduce((sum, d) => sum + d.download, 0)
-  
-  // 计算总流量（30天）
   const totalUpload = (dailyData || []).reduce((sum, d) => sum + d.upload, 0)
   const totalDownload = (dailyData || []).reduce((sum, d) => sum + d.download, 0)
+
+  const chartOption = useMemo(() => {
+    const axisLabelColor = '#94a3b8'
+    const splitLineColor = 'rgba(148, 163, 184, 0.16)'
+    const uploadColor = '#06b6d4'
+    const downloadColor = '#a855f7'
+
+    const createTooltipFormatter = (speed = false) => (params: unknown) => {
+      const tooltipParams = (Array.isArray(params) ? params : [params]) as TooltipSeriesParam[]
+      const rows = tooltipParams
+        .map((entry) => {
+          const rawValue = Array.isArray(entry.value) ? entry.value[1] : entry.value
+          const value = Number(rawValue)
+          return `
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;margin-top:4px;">
+              <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;"></span>
+              <span style="color:#64748b;">${entry.seriesName}:</span>
+              <span style="color:${entry.color};font-weight:600;font-family:monospace;">${speed ? `${calcTraffic(value)}/s` : calcTraffic(value)}</span>
+            </div>
+          `
+        })
+        .join('')
+
+      const label = tooltipParams[0]?.axisValueLabel ?? ''
+      return `
+        <div style="padding:4px 0;">
+          <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:${rows ? '4px' : '0'};">${label}</div>
+          ${rows}
+        </div>
+      `
+    }
+
+    const baseOption = {
+      animation: false,
+      grid: {
+        top: 36,
+        right: 12,
+        bottom: 8,
+        left: 48,
+        containLabel: true
+      },
+      legend: {
+        top: 0,
+        textStyle: {
+          color: '#64748b',
+          fontSize: 12
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.88)',
+        borderColor: 'rgba(148,163,184,0.18)',
+        textStyle: {
+          color: '#0f172a'
+        }
+      },
+      xAxis: {
+        type: 'category' as const,
+        axisLine: {
+          show: false
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          color: axisLabelColor,
+          fontSize: 10
+        }
+      },
+      yAxis: {
+        type: 'value' as const,
+        axisLine: {
+          show: false
+        },
+        axisTick: {
+          show: false
+        },
+        splitLine: {
+          lineStyle: {
+            color: splitLineColor,
+            type: 'dashed' as const
+          }
+        },
+        axisLabel: {
+          color: axisLabelColor,
+          fontSize: 10,
+          formatter: (value: number) => calcTrafficInt(value)
+        }
+      }
+    }
+
+    if (historyTab === 'realtime') {
+      return {
+        ...baseOption,
+        tooltip: {
+          ...baseOption.tooltip,
+          axisPointer: {
+            type: 'line',
+            lineStyle: {
+              color: 'rgba(148, 163, 184, 0.28)',
+              type: 'dashed'
+            }
+          },
+          formatter: createTooltipFormatter(true)
+        },
+        xAxis: {
+          ...baseOption.xAxis,
+          data: trafficHistory.map((item) => item.time),
+          axisLabel: {
+            color: axisLabelColor,
+            fontSize: 10,
+            interval: Math.max(Math.floor(trafficHistory.length / 4), 12),
+            formatter: (value: string | number) => {
+              const label = String(value)
+              return label.length >= 5 ? label.substring(0, 5) : label
+            }
+          }
+        },
+        series: [
+          {
+            name: '上传速度',
+            type: 'line',
+            smooth: true,
+            symbol: 'none',
+            data: trafficHistory.map((item) => item.upload),
+            lineStyle: {
+              color: uploadColor,
+              width: 2
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(6,182,212,0.40)' },
+                  { offset: 1, color: 'rgba(6,182,212,0.05)' }
+                ]
+              }
+            }
+          },
+          {
+            name: '下载速度',
+            type: 'line',
+            smooth: true,
+            symbol: 'none',
+            data: trafficHistory.map((item) => item.download),
+            lineStyle: {
+              color: downloadColor,
+              width: 2
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(168,85,247,0.40)' },
+                  { offset: 1, color: 'rgba(168,85,247,0.05)' }
+                ]
+              }
+            }
+          }
+        ]
+      } as EChartsOption
+    }
+
+    const chartData =
+      historyTab === 'hourly'
+        ? formattedHourlyData
+        : historyTab === 'daily'
+          ? formattedDailyData
+          : formattedMonthlyData
+
+    return {
+      ...baseOption,
+      tooltip: {
+        ...baseOption.tooltip,
+        axisPointer: {
+          type: 'shadow',
+          shadowStyle: {
+            color: 'rgba(148, 163, 184, 0.12)'
+          }
+        },
+        formatter: createTooltipFormatter(false)
+      },
+      xAxis: {
+        ...baseOption.xAxis,
+        data: chartData.map((item) => item.label),
+        axisLabel: {
+          color: axisLabelColor,
+          fontSize: 10,
+          interval: historyTab === 'hourly' ? 2 : historyTab === 'monthly' ? 4 : 0
+        }
+      },
+      series: [
+        {
+          name: '上传',
+          type: 'bar',
+          barMaxWidth: 18,
+          itemStyle: {
+            color: uploadColor,
+            borderRadius: [4, 4, 0, 0]
+          },
+          data: chartData.map((item) => item.upload)
+        },
+        {
+          name: '下载',
+          type: 'bar',
+          barMaxWidth: 18,
+          itemStyle: {
+            color: downloadColor,
+            borderRadius: [4, 4, 0, 0]
+          },
+          data: chartData.map((item) => item.download)
+        }
+      ]
+    } as EChartsOption
+  }, [formattedDailyData, formattedHourlyData, formattedMonthlyData, historyTab, trafficHistory])
 
   return (
     <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}>
       <CardBody className="p-4">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
-            <Tabs 
+            <Tabs
               size="sm"
-              classNames={CARD_STYLES.GLASS_TABS} 
-              selectedKey={historyTab} 
+              classNames={CARD_STYLES.GLASS_TABS}
+              selectedKey={historyTab}
               onSelectionChange={(key) => setHistoryTab(key as 'realtime' | 'hourly' | 'daily' | 'monthly')}
             >
               <Tab key="realtime" title="实时" />
@@ -161,216 +352,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         </div>
 
         <div className="h-[200px] w-full">
-          {/* 图表区域 */}
-          {historyTab === 'realtime' ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={trafficHistory} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="uploadGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.05} />
-                      </linearGradient>
-                      <linearGradient id="downloadGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#a855f7" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#a855f7" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke="currentColor" 
-                      className="text-default-200/50" 
-                      vertical={false} 
-                    />
-                    <XAxis 
-                      dataKey="time" 
-                      tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
-                      axisLine={false}
-                      tickLine={false}
-                      interval={Math.max(Math.floor(trafficHistory.length / 4), 12)}
-                      tickFormatter={(value) => {
-                        if (typeof value === 'string' && value.length >= 5) {
-                          return value.substring(0, 5)
-                        }
-                        return value
-                      }}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
-                      tickFormatter={(v) => calcTrafficInt(v)} 
-                      width={55}
-                      axisLine={false}
-                      tickLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'currentColor', strokeWidth: 1, strokeOpacity: 0.2, strokeDasharray: '5 5' }} />
-                    <Area 
-                      type="basis" 
-                      dataKey="upload" 
-                      name="上传速度" 
-                      stroke="#06b6d4" 
-                      strokeWidth={2} 
-                      fill="url(#uploadGradient)"
-                      isAnimationActive={false}
-                    />
-                    <Area 
-                      type="basis" 
-                      dataKey="download" 
-                      name="下载速度" 
-                      stroke="#a855f7" 
-                      strokeWidth={2} 
-                      fill="url(#downloadGradient)"
-                      isAnimationActive={false}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              ) : historyTab === 'hourly' ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={formattedHourlyData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke="currentColor" 
-                      className="text-default-200/50" 
-                      vertical={false} 
-                    />
-                    <XAxis 
-                      dataKey="label" 
-                      tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }}
-                      axisLine={false}
-                      tickLine={false}
-                      interval={2}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
-                      tickFormatter={(v) => calcTrafficInt(v)} 
-                      width={55}
-                      axisLine={false}
-                      tickLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/50' }} />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={30}
-                      wrapperStyle={{ fontSize: '12px' }}
-                      formatter={(value) => <span className="text-default-500">{value}</span>}
-                    />
-                    <Bar 
-                      dataKey="upload" 
-                      name="上传" 
-                      fill="#06b6d4" 
-                      radius={[4, 4, 0, 0]}
-                      isAnimationActive={true} 
-                      animationDuration={800}
-                    />
-                    <Bar 
-                      dataKey="download" 
-                      name="下载" 
-                      fill="#a855f7" 
-                      radius={[4, 4, 0, 0]}
-                      isAnimationActive={true} 
-                      animationDuration={800}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : historyTab === 'daily' ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={formattedDailyData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke="currentColor" 
-                      className="text-default-200/50" 
-                      vertical={false} 
-                    />
-                    <XAxis 
-                      dataKey="label" 
-                      tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
-                      tickFormatter={(v) => calcTrafficInt(v)} 
-                      width={55}
-                      axisLine={false}
-                      tickLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/50' }} />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={30}
-                      wrapperStyle={{ fontSize: '12px' }}
-                      formatter={(value) => <span className="text-default-500">{value}</span>}
-                    />
-                    <Bar 
-                      dataKey="upload" 
-                      name="上传" 
-                      fill="#06b6d4" 
-                      radius={[4, 4, 0, 0]} 
-                      isAnimationActive={true} 
-                      animationDuration={800}
-                    />
-                    <Bar 
-                      dataKey="download" 
-                      name="下载" 
-                      fill="#a855f7" 
-                      radius={[4, 4, 0, 0]}
-                      isAnimationActive={true} 
-                      animationDuration={800} 
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : historyTab === 'monthly' ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={formattedMonthlyData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke="currentColor" 
-                      className="text-default-200/50" 
-                      vertical={false} 
-                    />
-                    <XAxis 
-                      dataKey="label" 
-                      tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
-                      axisLine={false}
-                      tickLine={false}
-                      interval={4}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fill: 'currentColor', className: 'text-default-400' }} 
-                      tickFormatter={(v) => calcTrafficInt(v)} 
-                      width={55}
-                      axisLine={false}
-                      tickLine={false}
-                      allowDecimals={false}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'currentColor', className: 'text-default-100/50' }} />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={30}
-                      wrapperStyle={{ fontSize: '12px' }}
-                      formatter={(value) => <span className="text-default-500">{value}</span>}
-                    />
-                    <Bar 
-                      dataKey="upload" 
-                      name="上传" 
-                      fill="#06b6d4" 
-                      radius={[4, 4, 0, 0]}
-                      isAnimationActive={true} 
-                      animationDuration={800} 
-                    />
-                    <Bar 
-                      dataKey="download" 
-                      name="下载" 
-                      fill="#a855f7" 
-                      radius={[4, 4, 0, 0]}
-                      isAnimationActive={true} 
-                      animationDuration={800}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : null
-            }
+          <ReactECharts option={chartOption} notMerge lazyUpdate style={{ width: '100%', height: '100%' }} />
         </div>
       </CardBody>
     </Card>

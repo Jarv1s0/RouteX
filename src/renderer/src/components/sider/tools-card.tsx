@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
@@ -79,16 +80,11 @@ const ToolsCard: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <Button
-              isIconOnly
-              className="bg-transparent pointer-events-none"
-              variant="light"
-              color="default"
-            >
+            <SiderCardIcon>
               <LuWrench
                 className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
               />
-            </Button>
+            </SiderCardIcon>
           </div>
         </CardBody>
         <CardFooter className="pt-1 relative z-10">

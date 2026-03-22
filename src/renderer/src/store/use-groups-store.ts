@@ -15,6 +15,15 @@ interface GroupsState {
 let updateTimer: NodeJS.Timeout | null = null
 let hasInitialTestRun = false
 
+function isExpectedMihomoUnavailableError(error: unknown): boolean {
+  const message = `${error ?? ''}`
+  return (
+    message.includes('connect ENOENT \\\\.\\pipe\\RouteX\\mihomo') ||
+    message.includes('connect ENOENT \\\\.\\pipe\\Sparkle\\mihomo') ||
+    message.includes('socket hang up')
+  )
+}
+
 // 精确的监听器引用，避免使用 removeAllListeners
 let currentGroupsHandler: (() => void) | null = null
 let currentCoreStartedHandler: (() => void) | null = null
@@ -39,7 +48,10 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
       const groups = await mihomoGroups()
       set({ groups, isLoading: false })
     } catch (e) {
-      console.error('Failed to fetch groups', e)
+      set({ isLoading: false })
+      if (!isExpectedMihomoUnavailableError(e)) {
+        console.error('Failed to fetch groups', e)
+      }
     }
   },
 
@@ -97,7 +109,9 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
     hasInitialTestRun = true
     const promises = currentGroups.map((g) => 
       mihomoGroupDelay(g.name, g.testUrl).catch((e) => {
-        console.error(`[AutoDelay] Failed for group ${g.name}:`, e)
+        if (!isExpectedMihomoUnavailableError(e)) {
+          console.error(`[AutoDelay] Failed for group ${g.name}:`, e)
+        }
       })
     )
     await Promise.allSettled(promises)

@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react'
 import { HashRouter } from 'react-router-dom'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { HeroUIProvider } from '@heroui/react'
-import BaseErrorBoundary from './base/base-error-boundary'
+import ErrorBoundary from './base/error-boundary'
 
 import { AppConfigProvider } from '@renderer/hooks/use-app-config'
 import { ControledMihomoConfigProvider } from '@renderer/hooks/use-controled-mihomo-config'
@@ -20,7 +20,7 @@ const Providers: React.FC<ProvidersProps> = ({ children }) => {
     <HeroUIProvider>
       <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
         <Toaster richColors position="bottom-right" toastOptions={{ className: '!z-[99999]', style: { zIndex: 99999 } }} style={{ zIndex: 99999 }} />
-        <BaseErrorBoundary>
+        <ErrorBoundary>
           <HashRouter>
 
             <AppConfigProvider>
@@ -36,7 +36,7 @@ const Providers: React.FC<ProvidersProps> = ({ children }) => {
             </AppConfigProvider>
 
           </HashRouter>
-        </BaseErrorBoundary>
+        </ErrorBoundary>
       </NextThemesProvider>
     </HeroUIProvider>
   )

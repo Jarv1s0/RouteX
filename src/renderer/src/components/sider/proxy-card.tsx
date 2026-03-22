@@ -11,6 +11,7 @@ import { addFlag, removeFlag } from '@renderer/utils/flags'
 import React, { useMemo, useEffect, useState } from 'react'
 import { mihomoProxies } from '@renderer/utils/ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
@@ -136,17 +137,11 @@ const ProxyCard: React.FC<Props> = (props) => {
             >
               {currentGroupName}
             </h3>
-            <Button
-              isIconOnly
-              size="sm"
-              variant="light"
-              className="pointer-events-none"
-              color="default"
-            >
+            <SiderCardIcon>
               <LuGroup
                 className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
               />
-            </Button>
+            </SiderCardIcon>
           </div>
         </CardBody>
         <CardFooter className="pt-1">

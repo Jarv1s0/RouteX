@@ -14,7 +14,7 @@
     <img src="https://img.shields.io/github/v/release/Jarv1s0/RouteX?style=flat-square&color=007AFF&label=Release" alt="Release">
   </a>
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-333333?style=flat-square" alt="Platform">
-  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License">
+  <img src="https://img.shields.io/github/license/Jarv1s0/RouteX?style=flat-square" alt="License">
 </p>
 
 ---
@@ -67,4 +67,4 @@
 
 ## 📄 许可证
 
-本项目遵循 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
+本项目遵循 GPL-3.0 许可证，并与上游 [Sparkle](https://github.com/xishang0128/sparkle) 保持一致。详见 [LICENSE](LICENSE) 文件。

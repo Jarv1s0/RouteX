@@ -1,6 +1,6 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import BorderSwitch from '@renderer/components/base/border-swtich'
+import BorderSwitch from '@renderer/components/base/border-switch'
 import { LuServer } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { patchMihomoConfig } from '@renderer/utils/ipc'

@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import BorderSwitch from '@renderer/components/base/border-swtich'
+import BorderSwitch from '@renderer/components/base/border-switch'
 import { RiScan2Fill } from 'react-icons/ri'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { patchMihomoConfig } from '@renderer/utils/ipc'
