@@ -8,7 +8,25 @@ interface Props {
   onOpenChange: (isOpen: boolean) => void
 }
 
-const titleMap = {
+type SiderCardStatusKey =
+  | 'sysproxyCardStatus'
+  | 'tunCardStatus'
+  | 'profileCardStatus'
+  | 'proxyCardStatus'
+  | 'ruleCardStatus'
+  | 'resourceCardStatus'
+  | 'overrideCardStatus'
+  | 'connectionCardStatus'
+  | 'mihomoCoreCardStatus'
+  | 'dnsCardStatus'
+  | 'sniffCardStatus'
+  | 'logCardStatus'
+  | 'mapCardStatus'
+  | 'substoreCardStatus'
+  | 'statsCardStatus'
+  | 'toolsCardStatus'
+
+const titleMap: Record<SiderCardStatusKey, string> = {
   sysproxyCardStatus: '系统代理',
   tunCardStatus: '虚拟网卡',
   profileCardStatus: '订阅管理',
@@ -49,7 +67,7 @@ const SiderConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     toolsCardStatus = 'col-span-1'
   } = appConfig || {}
 
-  const cardStatus = {
+  const cardStatus: Record<SiderCardStatusKey, CardStatus> = {
     sysproxyCardStatus,
     tunCardStatus,
     profileCardStatus,
@@ -90,7 +108,7 @@ const SiderConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
             </ModalHeader>
             <ModalBody className="py-2 px-4">
               <div className="grid grid-cols-2 gap-2">
-                {Object.keys(cardStatus).map((key) => (
+                {(Object.keys(cardStatus) as SiderCardStatusKey[]).map((key) => (
                   <div 
                     key={key} 
                     className="group flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-content1/50 hover:bg-content1 border border-default-100 hover:border-default-200 transition-all duration-300 shadow-sm hover:shadow-md"
@@ -103,7 +121,7 @@ const SiderConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                       size="sm"
                       value={cardStatus[key]}
                       onValueChange={(v) => {
-                        patchAppConfig({ [key]: v as any })
+                        patchAppConfig({ [key]: v as CardStatus } as Partial<AppConfig>)
                       }}
                       classNames={{
                         wrapper: "gap-2"

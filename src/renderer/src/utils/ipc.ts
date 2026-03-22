@@ -655,7 +655,11 @@ export async function fetchIpInfoQuery(query: string): Promise<IpInfoResult> {
 }
 
 export async function testRuleMatch(domain: string): Promise<{ rule: string; rulePayload: string; proxy: string } | null> {
-  const result = await window.electron.ipcRenderer.invoke('testRuleMatch', domain)
+  const result = await window.electron.ipcRenderer.invoke<{
+    rule: string
+    rulePayload: string
+    proxy: string
+  } | null>('testRuleMatch', domain)
   if (result && typeof result === 'object' && 'invokeError' in result) {
     throw result.invokeError
   }

@@ -23,7 +23,7 @@ const keyMap = {
 const ShortcutInput: React.FC<{
   value: string
   action: string
-  patchAppConfig: (value: any) => Promise<void>
+  patchAppConfig: (value: Partial<AppConfig>) => Promise<void>
 }> = (props) => {
   const { value, action, patchAppConfig } = props
   const [inputValue, setInputValue] = useState(value)
@@ -68,7 +68,7 @@ const ShortcutInput: React.FC<{
     <div className="relative w-full group">
       <Input
         placeholder="未设置"
-        onKeyDown={(e: any) => parseShortcut(e, setInputValue)}
+        onKeyDown={(e) => parseShortcut(e, setInputValue)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         size="sm"

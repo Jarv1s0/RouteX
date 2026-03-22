@@ -96,8 +96,20 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     profile['proxy-groups'] = []
   }
 
-  const proxies = profile.proxies as Record<string, unknown>[]
-  const proxyGroups = profile['proxy-groups'] as Record<string, unknown>[]
+  type ProxyNode = Record<string, unknown> & {
+    name?: string
+    'dialer-proxy'?: string
+  }
+  type ProxyGroupNode = Record<string, unknown> & {
+    name?: string
+    proxies?: string[]
+    filter?: string
+    _filter?: string
+    'exclude-filter'?: string
+  }
+
+  const proxies = profile.proxies as ProxyNode[]
+  const proxyGroups = profile['proxy-groups'] as ProxyGroupNode[]
 
   // --- 环路检测 (Loop Detection) ---
   const dependencyGraph = new Map<string, Set<string>>()
@@ -143,7 +155,7 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
 
     for (const group of proxyGroups) {
       // 只有带 filter 的组才需要处理排除逻辑 (url-test, select, fallback 等都可能带 filter)
-      if (group.filter || (group as any)._filter) { // 兼容性检查，通常只有 filter 字段
+      if (group.filter || group._filter) { // 兼容性检查，通常只有 filter 字段
         const currentExclude = (group['exclude-filter'] as string) || ''
         
         // 直接拼接名称，不使用锚点 (^$)，以提高兼容性防止正则引擎解析异常
@@ -252,8 +264,8 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
 
     // 简单检查 targets
     const targetExists =
-      (profile.proxies as any[])?.some((p) => p.name === chain.targetProxy) ||
-      (profile['proxy-groups'] as any[])?.some((g) => g.name === chain.targetProxy)
+      proxies.some((p) => p.name === chain.targetProxy) ||
+      proxyGroups.some((g) => g.name === chain.targetProxy)
 
     // 落地节点必须存在
     if (!targetExists) {
@@ -263,8 +275,8 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     // 检查 dialer-proxy 是否存在
     const dialerExists =
       ['DIRECT', 'REJECT', 'COMPATIBLE'].includes(chain.dialerProxy) ||
-      (profile.proxies as any[])?.some((p) => p.name === chain.dialerProxy) ||
-      (profile['proxy-groups'] as any[])?.some((g) => g.name === chain.dialerProxy)
+      proxies.some((p) => p.name === chain.dialerProxy) ||
+      proxyGroups.some((g) => g.name === chain.dialerProxy)
 
     if (!dialerExists) {
       console.warn(

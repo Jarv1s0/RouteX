@@ -34,7 +34,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [autoMatchGroup, setAutoMatchGroup] = useState<string>('') // The group matched by rule
   const [selectedGroup, setSelectedGroup] = useState<string>('') // The group user is currently controlling
   const [loadingMatch, setLoadingMatch] = useState(false)
-  const iframeRef = useRef<any>(null)
+  const iframeRef = useRef<Electron.WebviewTag | null>(null)
 
   const sites = [
     { name: 'Ping0 (IP纯净度)', url: 'https://ping0.cc/' },

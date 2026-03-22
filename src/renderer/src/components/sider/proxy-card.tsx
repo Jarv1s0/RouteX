@@ -27,7 +27,9 @@ const ProxyCard: React.FC<Props> = (props) => {
   const navigate = useNavigate()
   const match = location.pathname.includes('/proxies')
   const { groups = [] } = useGroups()
-  const [allProxies, setAllProxies] = useState<Record<string, any>>({})
+  const [allProxies, setAllProxies] = useState<
+    Record<string, ControllerProxiesDetail | ControllerGroupDetail>
+  >({})
   
   const {
     attributes,

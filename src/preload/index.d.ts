@@ -1,17 +1,23 @@
 import { IpcRendererEvent, webUtils } from 'electron'
 
-type IpcRendererListener = (event: IpcRendererEvent, ...args: any[]) => void
+type IpcRendererListener<Args extends unknown[] = unknown[]> = (
+  event: IpcRendererEvent,
+  ...args: Args
+) => void
 
 interface IpcRendererBridge {
-  on(channel: string, listener: IpcRendererListener): () => void
-  once(channel: string, listener: IpcRendererListener): () => void
+  on<Args extends unknown[]>(channel: string, listener: IpcRendererListener<Args>): () => void
+  once<Args extends unknown[]>(channel: string, listener: IpcRendererListener<Args>): () => void
   removeAllListeners(channel: string): void
-  removeListener(channel: string, listener: IpcRendererListener): IpcRendererBridge
-  send(channel: string, ...args: any[]): void
-  invoke(channel: string, ...args: any[]): Promise<any>
-  postMessage(channel: string, message: any, transfer?: MessagePort[]): void
-  sendSync(channel: string, ...args: any[]): any
-  sendToHost(channel: string, ...args: any[]): void
+  removeListener<Args extends unknown[]>(
+    channel: string,
+    listener: IpcRendererListener<Args>
+  ): IpcRendererBridge
+  send(channel: string, ...args: unknown[]): void
+  invoke<T>(channel: string, ...args: unknown[]): Promise<T>
+  postMessage(channel: string, message: unknown, transfer?: MessagePort[]): void
+  sendSync<T>(channel: string, ...args: unknown[]): T
+  sendToHost(channel: string, ...args: unknown[]): void
 }
 
 interface WebFrameBridge {

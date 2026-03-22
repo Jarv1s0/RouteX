@@ -306,7 +306,10 @@ function showDialog(type: 'info' | 'error' | 'warning' | 'success', title: strin
     mainWindow.focus()
   } else {
     if (type === 'error') dialog.showErrorBox(title, content)
-    else dialog.showMessageBox({ type: type as any, title, message: title, detail: content })
+    else {
+      const dialogType: 'info' | 'warning' = type === 'success' ? 'info' : type
+      dialog.showMessageBox({ type: dialogType, title, message: title, detail: content })
+    }
   }
 }
 
@@ -720,10 +723,10 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
     mainWindow.webContents.on('did-fail-load', () => {
       reloadMainWindowRenderer()
     })
-    mainWindow.webContents.on('console-message', (_event, ...args: any[]) => {
+    mainWindow.webContents.on('console-message', (_event, ...args: unknown[]) => {
       const details =
         args.length === 1 && args[0] && typeof args[0] === 'object'
-          ? args[0]
+          ? (args[0] as Record<string, unknown>)
           : {
               level: args[0],
               message: args[1],

@@ -2,6 +2,7 @@ import { Avatar, Button, Card, Chip } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import dayjs from 'dayjs'
 import React, { memo, useCallback, useMemo } from 'react'
+import type { PressEvent } from '@react-types/shared'
 import { CgClose, CgTrash } from 'react-icons/cg'
 import { IoEyeOff, IoEye } from 'react-icons/io5'
 
@@ -59,15 +60,11 @@ const ConnectionItemComponent: React.FC<Props> = ({
     setIsDetailModalOpen?.(true)
   }, [setSelected, setIsDetailModalOpen, info])
 
-  const handleClose = useCallback((e: any) => {
-    e.stopPropagation?.()
-    e.preventDefault?.()
+  const handleClose = useCallback((_e: PressEvent) => {
     close?.(info.id)
   }, [close, info.id])
 
-  const handleHide = useCallback((e: any) => {
-    e.stopPropagation?.()
-    e.preventDefault?.()
+  const handleHide = useCallback((_e: PressEvent) => {
     const id = info.id
     if (isHidden) {
       unhide?.(id)
