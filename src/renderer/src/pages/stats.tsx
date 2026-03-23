@@ -26,7 +26,6 @@ const Stats: React.FC = () => {
     currentProviders,
     ruleStats,
     ruleHitDetails,
-    refreshProviderStats,
     clearStats
   } = useTrafficStore()
   
@@ -49,11 +48,6 @@ const Stats: React.FC = () => {
       setShowClearConfirm(false)
     }
   }, [clearStats])
-
-  // 刷新订阅数据
-  const handleRefreshProviderStats = useCallback(async () => {
-    await refreshProviderStats()
-  }, [refreshProviderStats])
 
   const now = new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -114,7 +108,6 @@ const Stats: React.FC = () => {
           <ProviderUsage 
             providerData={providerData}
             currentProviders={currentProviders}
-            onRefresh={handleRefreshProviderStats}
           />
         </div>
 

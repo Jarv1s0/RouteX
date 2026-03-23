@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { getTrafficStats, getProviderStats, getProfileConfig, triggerProviderSnapshot } from '@renderer/utils/ipc'
+import { getTrafficStats, getProviderStats, getProfileConfig } from '@renderer/utils/ipc'
 import throttle from 'lodash/throttle'
 
 interface TrafficDataPoint {
@@ -34,7 +34,6 @@ interface TrafficState {
   initializeListeners: () => void
   cleanupListeners: () => void
   fetchInitialStats: () => Promise<void>
-  refreshProviderStats: () => Promise<void>
   clearStats: () => void
 }
 
@@ -274,23 +273,6 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       } catch (e) {
           console.error('Failed to fetch initial stats', e)
       }
-  },
-
-  refreshProviderStats: async () => {
-    try {
-      const pStats = await triggerProviderSnapshot()
-      const profileConfig = await getProfileConfig()
-      const providers = (profileConfig.items || [])
-        .filter(item => item.extra)
-        .map(item => ({ name: item.name || item.id, resetDay: item.resetDay }))
-        
-      set({
-          providerData: pStats.snapshots || [],
-          currentProviders: providers
-      })
-    } catch (e) {
-      console.error('Failed to refresh provider stats', e)
-    }
   },
 
   clearStats: () => {

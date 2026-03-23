@@ -20,6 +20,57 @@ interface TrafficRankingProps {
   onSelectRule: (rule: string) => void
 }
 
+const RANKING_PALETTE = [
+  {
+    badge: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
+    bar: 'linear-gradient(90deg, #0f766e 0%, #22d3ee 100%)',
+    glow: 'rgba(34, 211, 238, 0.22)',
+    track: 'rgba(15, 118, 110, 0.08)'
+  },
+  {
+    badge: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)',
+    bar: 'linear-gradient(90deg, #2563eb 0%, #7dd3fc 100%)',
+    glow: 'rgba(96, 165, 250, 0.2)',
+    track: 'rgba(37, 99, 235, 0.08)'
+  },
+  {
+    badge: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)',
+    bar: 'linear-gradient(90deg, #7c3aed 0%, #c4b5fd 100%)',
+    glow: 'rgba(167, 139, 250, 0.2)',
+    track: 'rgba(124, 58, 237, 0.08)'
+  },
+  {
+    badge: 'linear-gradient(135deg, #be123c 0%, #fb7185 100%)',
+    bar: 'linear-gradient(90deg, #e11d48 0%, #fda4af 100%)',
+    glow: 'rgba(251, 113, 133, 0.18)',
+    track: 'rgba(225, 29, 72, 0.08)'
+  },
+  {
+    badge: 'linear-gradient(135deg, #c2410c 0%, #fb923c 100%)',
+    bar: 'linear-gradient(90deg, #ea580c 0%, #fdba74 100%)',
+    glow: 'rgba(251, 146, 60, 0.18)',
+    track: 'rgba(234, 88, 12, 0.08)'
+  },
+  {
+    badge: 'linear-gradient(135deg, #a16207 0%, #facc15 100%)',
+    bar: 'linear-gradient(90deg, #ca8a04 0%, #fde047 100%)',
+    glow: 'rgba(250, 204, 21, 0.18)',
+    track: 'rgba(202, 138, 4, 0.08)'
+  },
+  {
+    badge: 'linear-gradient(135deg, #166534 0%, #4ade80 100%)',
+    bar: 'linear-gradient(90deg, #16a34a 0%, #86efac 100%)',
+    glow: 'rgba(74, 222, 128, 0.18)',
+    track: 'rgba(22, 163, 74, 0.08)'
+  },
+  {
+    badge: 'linear-gradient(135deg, #0f766e 0%, #67e8f9 100%)',
+    bar: 'linear-gradient(90deg, #0891b2 0%, #a5f3fc 100%)',
+    glow: 'rgba(103, 232, 249, 0.18)',
+    track: 'rgba(8, 145, 178, 0.08)'
+  }
+] as const
+
 const TrafficRanking: React.FC<TrafficRankingProps> = ({
   session,
   today,
@@ -176,10 +227,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                         </div>
                     ) : (
                         currentRanking.map((item, index) => {
-                             const barColors = [
-                                '#06B6D4', '#3B82F6', '#8B5CF6', '#F43F5E', '#F97316', '#EAB308', '#22C55E'
-                              ]
-                              const barColor = barColors[index % barColors.length]
+                              const palette = RANKING_PALETTE[index % RANKING_PALETTE.length]
                               // Rule tab: max is max hits, others: max traffic
                               const maxMetric = rankingTab === 'rule' 
                                 ? (currentRanking[0] as { hits?: number }).hits || 1
@@ -200,14 +248,21 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                                   </div>
                                   <span 
                                     className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                                    style={{ backgroundColor: barColor }}
+                                    style={{
+                                      background: palette.badge,
+                                      boxShadow: `0 6px 18px ${palette.glow}`
+                                    }}
                                   >
                                     {index + 1}
                                   </span>
-                                  <div className="flex-1 h-2.5 bg-default-100 rounded-full overflow-hidden">
+                                  <div className="flex-1 h-2.5 rounded-full overflow-visible">
                                      <div 
-                                        className="h-full rounded-full"
-                                        style={{ width: `${percentage}%`, backgroundColor: barColor }}
+                                        className="h-full rounded-full shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
+                                        style={{
+                                          width: `${percentage}%`,
+                                          background: palette.bar,
+                                          boxShadow: `0 8px 18px ${palette.glow}`
+                                        }}
                                      />
                                   </div>
                                   <div className="text-sm font-medium tabular-nums whitespace-nowrap flex-shrink-0 w-[90px] text-right">

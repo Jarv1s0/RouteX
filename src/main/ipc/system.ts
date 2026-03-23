@@ -79,7 +79,7 @@ import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../res
 import { getAppName } from '../utils/appName'
 import { getUserAgent } from '../utils/userAgent'
 import { getTrafficStats, clearTrafficStats, getProcessTrafficRanking } from '../resolve/trafficStats'
-import { getProviderStats, clearProviderStats, triggerSnapshot } from '../resolve/providerStats'
+import { getProviderStats, clearProviderStats } from '../resolve/providerStats'
 import { startNetworkHealthMonitor, stopNetworkHealthMonitor, getNetworkHealthStats } from '../resolve/networkHealth'
 import { ipcErrorWrapper } from '../utils/ipc'
 
@@ -196,10 +196,6 @@ export function registerSystemHandlers(): void {
   ipcMain.handle('getProcessTrafficRanking', (_e, type: 'session' | 'today', sortBy: 'upload' | 'download') => getProcessTrafficRanking(type, sortBy))
   ipcMain.handle('getProviderStats', () => getProviderStats())
   ipcMain.handle('clearProviderStats', () => clearProviderStats())
-  ipcMain.handle('triggerProviderSnapshot', async () => {
-    await triggerSnapshot()
-    return getProviderStats()
-  })
   // 主题
   ipcMain.handle('resolveThemes', () => ipcErrorWrapper(resolveThemes)())
   ipcMain.handle('fetchThemes', () => ipcErrorWrapper(fetchThemes)())

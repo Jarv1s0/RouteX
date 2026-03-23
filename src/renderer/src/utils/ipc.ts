@@ -588,13 +588,6 @@ export async function clearProviderStats(): Promise<void> {
   return await window.electron.ipcRenderer.invoke('clearProviderStats')
 }
 
-export async function triggerProviderSnapshot(): Promise<{
-  snapshots: { date: string; provider: string; used: number }[]
-  lastUpdate: number
-}> {
-  return await window.electron.ipcRenderer.invoke('triggerProviderSnapshot')
-}
-
 export async function fetchIpInfo(): Promise<{
   status: string
   message?: string

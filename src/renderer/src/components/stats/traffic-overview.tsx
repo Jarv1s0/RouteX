@@ -11,6 +11,17 @@ interface TrafficOverviewProps {
   todayDownload: number
 }
 
+const UPLOAD_COLOR = '#06b6d4'
+const UPLOAD_COLOR_SOFT = 'rgba(6, 182, 212, 0.10)'
+const UPLOAD_COLOR_BORDER = 'rgba(6, 182, 212, 0.22)'
+const UPLOAD_COLOR_MUTED = 'rgba(6, 182, 212, 0.72)'
+const UPLOAD_GLOW = 'rgba(6, 182, 212, 0.42)'
+
+const DOWNLOAD_COLOR = '#a855f7'
+const DOWNLOAD_COLOR_SOFT = 'rgba(168, 85, 247, 0.10)'
+const DOWNLOAD_COLOR_BORDER = 'rgba(168, 85, 247, 0.22)'
+const DOWNLOAD_COLOR_MUTED = 'rgba(168, 85, 247, 0.72)'
+
 const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   sessionUpload,
   sessionDownload,
@@ -51,17 +62,28 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
         >
           {/* 本次上传 */}
           <div className="flex flex-col items-end w-full">
-            <div className="flex items-center gap-1.5 mb-1.5 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
-              <IoArrowUp className="text-cyan-500 text-[clamp(12px,4cqi,16px)]" />
-              <span className="font-bold text-cyan-600 dark:text-cyan-400 whitespace-nowrap tracking-wide" style={{ fontSize: 'clamp(11px, 4cqi, 14px)' }}>
+            <div
+              className="flex items-center gap-1.5 mb-1.5 px-2 py-0.5 rounded-full border"
+              style={{ backgroundColor: UPLOAD_COLOR_SOFT, borderColor: UPLOAD_COLOR_BORDER }}
+            >
+              <IoArrowUp className="text-[clamp(12px,4cqi,16px)]" style={{ color: UPLOAD_COLOR }} />
+              <span
+                className="font-bold whitespace-nowrap tracking-wide"
+                style={{ fontSize: 'clamp(11px, 4cqi, 14px)', color: UPLOAD_COLOR }}
+              >
                 本次上传
               </span>
             </div>
             <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
-              <span className="font-extrabold text-cyan-500 font-mono tracking-tight leading-none">
+              <span className="font-extrabold font-mono tracking-tight leading-none" style={{ color: UPLOAD_COLOR }}>
                 <CountUp end={sessionUploadFormatted.val} decimals={sessionUploadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
               </span>
-              <span className="text-cyan-500/70 font-semibold tracking-wider translate-y-[-1px]" style={{ fontSize: 'clamp(11px, 4cqi, 16px)' }}>{sessionUploadFormatted.unit}</span>
+              <span
+                className="font-semibold tracking-wider translate-y-[-1px]"
+                style={{ fontSize: 'clamp(11px, 4cqi, 16px)', color: UPLOAD_COLOR_MUTED }}
+              >
+                {sessionUploadFormatted.unit}
+              </span>
             </div>
           </div>
           
@@ -96,9 +118,9 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
               cy="50"
               r="46"
               fill="transparent"
-              stroke="#a855f7"
+              stroke={DOWNLOAD_COLOR}
               strokeWidth="4"
-              strokeOpacity="0.4"
+              strokeOpacity="0.38"
             />
             {/* Foreground Ring (Cyan - Upload Ratio) */}
             <motion.circle
@@ -106,7 +128,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
               cy="50"
               r="46"
               fill="transparent"
-              stroke="#06b6d4"
+              stroke={UPLOAD_COLOR}
               strokeWidth="4"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 46}
@@ -114,7 +136,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
               animate={{ strokeDashoffset: (2 * Math.PI * 46) * (1 - uploadRatio) }}
               transition={{ duration: 1.5, ease: "easeOut" }}
               style={{
-                filter: isHovered ? 'drop-shadow(0px 0px 8px rgba(6,182,212,0.6))' : 'none'
+                filter: isHovered ? `drop-shadow(0px 0px 8px ${UPLOAD_GLOW})` : 'none'
               }}
             />
           </svg>
@@ -145,17 +167,28 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
         >
           {/* 本次下载 */}
           <div className="flex flex-col items-start w-full">
-            <div className="flex items-center gap-1.5 mb-1.5 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
-              <IoArrowDown className="text-purple-500 text-[clamp(12px,4cqi,16px)]" />
-              <span className="font-bold text-purple-600 dark:text-purple-400 whitespace-nowrap tracking-wide" style={{ fontSize: 'clamp(11px, 4cqi, 14px)' }}>
+            <div
+              className="flex items-center gap-1.5 mb-1.5 px-2 py-0.5 rounded-full border"
+              style={{ backgroundColor: DOWNLOAD_COLOR_SOFT, borderColor: DOWNLOAD_COLOR_BORDER }}
+            >
+              <IoArrowDown className="text-[clamp(12px,4cqi,16px)]" style={{ color: DOWNLOAD_COLOR }} />
+              <span
+                className="font-bold whitespace-nowrap tracking-wide"
+                style={{ fontSize: 'clamp(11px, 4cqi, 14px)', color: DOWNLOAD_COLOR }}
+              >
                 本次下载
               </span>
             </div>
             <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
-              <span className="font-extrabold text-purple-500 font-mono tracking-tight leading-none">
+              <span className="font-extrabold font-mono tracking-tight leading-none" style={{ color: DOWNLOAD_COLOR }}>
                 <CountUp end={sessionDownloadFormatted.val} decimals={sessionDownloadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
               </span>
-              <span className="text-purple-500/70 font-semibold tracking-wider translate-y-[-1px]" style={{ fontSize: 'clamp(11px, 4cqi, 16px)' }}>{sessionDownloadFormatted.unit}</span>
+              <span
+                className="font-semibold tracking-wider translate-y-[-1px]"
+                style={{ fontSize: 'clamp(11px, 4cqi, 16px)', color: DOWNLOAD_COLOR_MUTED }}
+              >
+                {sessionDownloadFormatted.unit}
+              </span>
             </div>
           </div>
           

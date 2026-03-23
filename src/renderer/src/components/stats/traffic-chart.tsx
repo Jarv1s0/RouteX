@@ -185,6 +185,8 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
       },
       tooltip: {
         trigger: 'axis',
+        transitionDuration: 0,
+        hideDelay: 120,
         backgroundColor: 'rgba(255,255,255,0.88)',
         borderColor: 'rgba(148,163,184,0.18)',
         textStyle: {
@@ -428,7 +430,6 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         <div className="h-[200px] w-full">
           <ReactECharts
             option={chartOption}
-            notMerge
             lazyUpdate
             opts={{ renderer: 'svg' }}
             style={{ width: '100%', height: '100%' }}
