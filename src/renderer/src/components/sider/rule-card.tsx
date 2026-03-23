@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useEffect, useMemo } from 'react'
-import { mihomoRuleProviders } from '@renderer/utils/ipc'
+import { getRuntimeConfig, mihomoRuleProviders } from '@renderer/utils/ipc'
 import useSWR from 'swr'
 
 interface Props {
@@ -20,16 +20,28 @@ const RuleCard: React.FC<Props> = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/rules')
-  
-  const { data, mutate } = useSWR('mihomoRuleProviders', mihomoRuleProviders, {
-    errorRetryInterval: 200,
-    errorRetryCount: 10,
-    refreshInterval: 30000
-  })
-  
+  const { data, mutate } = useSWR(
+    'ruleCardStats',
+    async () => {
+      const [providers, runtimeConfig] = await Promise.all([mihomoRuleProviders(), getRuntimeConfig()])
+      return { providers, runtimeConfig }
+    },
+    {
+      errorRetryInterval: 200,
+      errorRetryCount: 10,
+      refreshInterval: 30000
+    }
+  )
+
   const ruleCount = useMemo(() => {
-    if (!data?.providers) return 0
-    return Object.values(data.providers).reduce((total, provider) => total + (provider.ruleCount || 0), 0)
+    const providerCount = data?.providers?.providers
+      ? Object.values(data.providers.providers).reduce(
+          (total, provider) => total + (provider.ruleCount || 0),
+          0
+        )
+      : 0
+    const manualRuleCount = Array.isArray(data?.runtimeConfig?.rules) ? data.runtimeConfig.rules.length : 0
+    return providerCount + manualRuleCount
   }, [data])
   
   useEffect(() => {
@@ -38,10 +50,16 @@ const RuleCard: React.FC<Props> = (props) => {
     }
     window.electron.ipcRenderer.on('core-started', handleRefresh)
     window.electron.ipcRenderer.on('rulesUpdated', handleRefresh)
+    window.electron.ipcRenderer.on('profileConfigUpdated', handleRefresh)
+    window.electron.ipcRenderer.on('overrideConfigUpdated', handleRefresh)
+    window.electron.ipcRenderer.on('controledMihomoConfigUpdated', handleRefresh)
     
     return (): void => {
       window.electron.ipcRenderer.removeListener('core-started', handleRefresh)
       window.electron.ipcRenderer.removeListener('rulesUpdated', handleRefresh)
+      window.electron.ipcRenderer.removeListener('profileConfigUpdated', handleRefresh)
+      window.electron.ipcRenderer.removeListener('overrideConfigUpdated', handleRefresh)
+      window.electron.ipcRenderer.removeListener('controledMihomoConfigUpdated', handleRefresh)
     }
   }, [mutate])
   

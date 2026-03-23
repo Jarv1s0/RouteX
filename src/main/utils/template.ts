@@ -17,8 +17,11 @@ export const defaultConfig: AppConfig = {
   proxyDisplayOrder: 'default',
   autoCheckUpdate: false,
   autoCloseConnection: true,
+  autoDelayTestOnShow: false,
   controlDns: true,
   controlSniff: true,
+  delayTestConcurrency: 8,
+  delayTestTimeout: 5000,
   hosts: [],
   siderOrder: [
     'sysproxy',

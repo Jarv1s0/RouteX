@@ -25,6 +25,45 @@ interface TooltipSeriesParam {
   value: number | string | [string | number, number]
 }
 
+function splitTrafficText(value: number, speed: boolean): { amount: string; unit: string } {
+  const formatted = calcTraffic(value)
+  const parts = formatted.split(' ')
+  const amount = parts[0] || '0'
+  const unit = `${parts[1] || 'B'}${speed ? '/s' : ''}`
+  return { amount, unit }
+}
+
+function buildDenseCurveSeries(
+  values: number[],
+  labels: string[],
+  density: number
+): { values: number[]; labels: string[] } {
+  if (values.length <= 1 || density <= 1) {
+    return { values, labels }
+  }
+
+  const denseValues: number[] = []
+  const denseLabels: string[] = []
+
+  const interpolate = (start: number, end: number, t: number): number => {
+    const easedT = (1 - Math.cos(Math.PI * t)) / 2
+    return start * (1 - easedT) + end * easedT
+  }
+
+  for (let index = 0; index < values.length - 1; index += 1) {
+    for (let step = 0; step < density; step += 1) {
+      const t = step / density
+      denseValues.push(interpolate(values[index], values[index + 1], t))
+      denseLabels.push(labels[index])
+    }
+  }
+
+  denseValues.push(values[values.length - 1])
+  denseLabels.push(labels[labels.length - 1])
+
+  return { values: denseValues, labels: denseLabels }
+}
+
 const calcTrafficInt = (byte: number): string => {
   if (byte < 1024) return `${Math.round(byte)} B`
   byte /= 1024
@@ -83,6 +122,14 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
   const totalUpload = (dailyData || []).reduce((sum, d) => sum + d.upload, 0)
   const totalDownload = (dailyData || []).reduce((sum, d) => sum + d.download, 0)
 
+  const denseRealtimeSeries = useMemo(() => {
+    const labels = trafficHistory.map((item) => item.time)
+    return {
+      upload: buildDenseCurveSeries(trafficHistory.map((item) => item.upload), labels, 5),
+      download: buildDenseCurveSeries(trafficHistory.map((item) => item.download), labels, 5)
+    }
+  }, [trafficHistory])
+
   const chartOption = useMemo(() => {
     const axisLabelColor = '#94a3b8'
     const splitLineColor = 'rgba(148, 163, 184, 0.16)'
@@ -95,11 +142,17 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         .map((entry) => {
           const rawValue = Array.isArray(entry.value) ? entry.value[1] : entry.value
           const value = Number(rawValue)
+          const { amount, unit } = splitTrafficText(value, speed)
           return `
-            <div style="display:flex;align-items:center;gap:8px;font-size:12px;margin-top:4px;">
-              <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;"></span>
-              <span style="color:#64748b;">${entry.seriesName}:</span>
-              <span style="color:${entry.color};font-weight:600;font-family:monospace;">${speed ? `${calcTraffic(value)}/s` : calcTraffic(value)}</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;flex:none;"></span>
+                <span style="color:#64748b;font-size:12px;white-space:nowrap;">${entry.seriesName}</span>
+              </div>
+              <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:6px;min-width:0;flex:none;">
+                <span style="color:${entry.color};font-weight:700;font-size:13px;line-height:1;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;">${amount}</span>
+                <span style="color:#94a3b8;font-weight:600;font-size:11px;line-height:1;white-space:nowrap;">${unit}</span>
+              </div>
             </div>
           `
         })
@@ -107,8 +160,8 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
 
       const label = tooltipParams[0]?.axisValueLabel ?? ''
       return `
-        <div style="padding:4px 0;">
-          <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:${rows ? '4px' : '0'};">${label}</div>
+        <div style="padding:2px 0;min-width:148px;">
+          <div style="font-size:12px;font-weight:700;line-height:1.1;color:#475569;margin-bottom:${rows ? '8px' : '0'};">${label}</div>
           ${rows}
         </div>
       `
@@ -189,11 +242,11 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         },
         xAxis: {
           ...baseOption.xAxis,
-          data: trafficHistory.map((item) => item.time),
+          data: denseRealtimeSeries.upload.labels,
           axisLabel: {
             color: axisLabelColor,
             fontSize: 10,
-            interval: Math.max(Math.floor(trafficHistory.length / 4), 12),
+            interval: Math.max(Math.floor(denseRealtimeSeries.upload.labels.length / 4), 12),
             formatter: (value: string | number) => {
               const label = String(value)
               return label.length >= 5 ? label.substring(0, 5) : label
@@ -204,12 +257,16 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
           {
             name: '上传速度',
             type: 'line',
+            color: uploadColor,
             smooth: true,
             symbol: 'none',
-            data: trafficHistory.map((item) => item.upload),
+            data: denseRealtimeSeries.upload.values,
             lineStyle: {
               color: uploadColor,
-              width: 2
+              width: 2.25,
+              opacity: 1,
+              cap: 'round',
+              join: 'round'
             },
             areaStyle: {
               color: {
@@ -223,17 +280,24 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
                   { offset: 1, color: 'rgba(6,182,212,0.05)' }
                 ]
               }
+            },
+            emphasis: {
+              disabled: true
             }
           },
           {
             name: '下载速度',
             type: 'line',
+            color: downloadColor,
             smooth: true,
             symbol: 'none',
-            data: trafficHistory.map((item) => item.download),
+            data: denseRealtimeSeries.download.values,
             lineStyle: {
               color: downloadColor,
-              width: 2
+              width: 2.25,
+              opacity: 1,
+              cap: 'round',
+              join: 'round'
             },
             areaStyle: {
               color: {
@@ -247,6 +311,9 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
                   { offset: 1, color: 'rgba(168,85,247,0.05)' }
                 ]
               }
+            },
+            emphasis: {
+              disabled: true
             }
           }
         ]
@@ -304,7 +371,14 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         }
       ]
     } as EChartsOption
-  }, [formattedDailyData, formattedHourlyData, formattedMonthlyData, historyTab, trafficHistory])
+  }, [
+    formattedDailyData,
+    formattedHourlyData,
+    formattedMonthlyData,
+    denseRealtimeSeries,
+    historyTab,
+    trafficHistory
+  ])
 
   return (
     <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}>
@@ -352,7 +426,13 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         </div>
 
         <div className="h-[200px] w-full">
-          <ReactECharts option={chartOption} notMerge lazyUpdate style={{ width: '100%', height: '100%' }} />
+          <ReactECharts
+            option={chartOption}
+            notMerge
+            lazyUpdate
+            opts={{ renderer: 'svg' }}
+            style={{ width: '100%', height: '100%' }}
+          />
         </div>
       </CardBody>
     </Card>

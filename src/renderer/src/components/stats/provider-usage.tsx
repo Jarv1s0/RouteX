@@ -241,10 +241,11 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
               x2: 0,
               y2: 1,
               colorStops: [
-                { offset: 0, color: `${baseColor}E6` },
-                { offset: 1, color: `${baseColor}66` }
+                { offset: 0, color: `${baseColor}B8` },
+                { offset: 1, color: `${baseColor}5C` }
               ]
-            }
+            },
+            opacity: 0.82
           },
           emphasis: {
             focus: 'series'
@@ -359,7 +360,13 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
               <div className="text-xs text-foreground-500">订阅流量数据将在每日自动记录</div>
             </div>
           ) : (
-            <ReactECharts option={chartOption} notMerge lazyUpdate style={{ width: '100%', height: '100%' }} />
+            <ReactECharts
+              option={chartOption}
+              notMerge
+              lazyUpdate
+              opts={{ renderer: 'svg' }}
+              style={{ width: '100%', height: '100%' }}
+            />
           )}
         </div>
       </CardBody>

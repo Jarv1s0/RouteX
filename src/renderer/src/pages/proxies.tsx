@@ -106,6 +106,31 @@ const ProxyRowChunk = memo(
 
 ProxyRowChunk.displayName = 'ProxyRowChunk'
 
+async function runWithConcurrency(
+  tasks: Array<() => Promise<void>>,
+  concurrency: number
+): Promise<void> {
+  let currentIndex = 0
+
+  const worker = async (): Promise<void> => {
+    while (true) {
+      const taskIndex = currentIndex
+      currentIndex += 1
+      if (taskIndex >= tasks.length) return
+      await tasks[taskIndex]()
+    }
+  }
+
+  const workerCount = Math.min(concurrency, tasks.length)
+  await Promise.all(Array.from({ length: workerCount }, () => worker()))
+}
+
+function normalizeDelayTestConcurrency(value?: number): number {
+  const parsed = Number.parseInt(String(value ?? 8), 10)
+  if (!Number.isFinite(parsed)) return 8
+  return Math.min(12, Math.max(1, parsed))
+}
+
 const Proxies: React.FC = () => {
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { mode = 'rule' } = controledMihomoConfig || {}
@@ -116,7 +141,9 @@ const Proxies: React.FC = () => {
     proxyDisplayOrder = 'default',
     autoCloseConnection = true,
     proxyCols = 'auto',
-    groupOrder = []
+    groupOrder = [],
+    autoDelayTestOnShow = false,
+    delayTestConcurrency = 8
   } = appConfig || {}
 
   // 根据模式过滤显示的组
@@ -248,25 +275,28 @@ const Proxies: React.FC = () => {
   useEffect(() => {
     if (groups.length === 0) return
     if (hasInitialTestRef.current) return
+    if (!autoDelayTestOnShow) return
     
     hasInitialTestRef.current = true
     
     const doAutoDelayTest = async (): Promise<void> => {
-      const promises = groups.map((group) => {
+      const tasks = groups.map((group) => {
         if (includesIgnoreCase(group.name, 'proxy') || includesIgnoreCase(group.name, 'compatible')) {
-          return Promise.resolve()
+          return async (): Promise<void> => {}
         }
-        return mihomoGroupDelay(group.name, group.testUrl)
+        return async (): Promise<void> => {
+          await mihomoGroupDelay(group.name, group.testUrl)
           .then(() => mutate()) // 每个组完成后立即更新 UI
           .catch(() => {})
+        }
       })
       
-      await Promise.allSettled(promises)
+      await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrency))
       mutate()
     }
     
     doAutoDelayTest()
-  }, [groups, mutate])
+  }, [groups, mutate, autoDelayTestOnShow, delayTestConcurrency])
 
   // 获取节点延迟颜色
   const getDelayColor = useCallback((proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {

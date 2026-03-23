@@ -615,14 +615,6 @@ export async function fetchIpInfo(): Promise<{
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchIpInfo'))
 }
 
-export async function getMapGeoLocation(): Promise<{
-  countryCode: string
-  lat: number
-  lon: number
-} | null> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getMapGeoLocation'))
-}
-
 interface IpInfoQuery {
   query: string
   lang?: string

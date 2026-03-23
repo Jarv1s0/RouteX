@@ -48,7 +48,7 @@ const ConnCard: React.FC<Props> = (props) => {
     id: 'connection'
   })
   const [trafficData, setTrafficData] = useState(() =>
-    Array(10)
+    Array(16)
       .fill(0)
       .map((_, i) => ({ upload: 0, download: 0, index: i }))
   )

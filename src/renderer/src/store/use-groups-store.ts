@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { mihomoGroups, mihomoGroupDelay } from '@renderer/utils/ipc'
+import { mihomoGroups } from '@renderer/utils/ipc'
 
 interface GroupsState {
   groups: ControllerMixedGroup[] | undefined
@@ -9,11 +9,9 @@ interface GroupsState {
   fetchGroups: () => Promise<void>
   initializeListeners: () => void
   cleanupListeners: () => void
-  runInitialTest: () => Promise<void>
 }
 
 let updateTimer: NodeJS.Timeout | null = null
-let hasInitialTestRun = false
 
 function isExpectedMihomoUnavailableError(error: unknown): boolean {
   const message = `${error ?? ''}`
@@ -78,9 +76,6 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
       // 窗口不可见时跳过轮询
       if (!document.hidden) get().fetchGroups()
     }, 30000) // 30s 足够，代理组变化已由事件驱动
-
-    // Initial speed test check
-    get().runInitialTest()
   },
 
   cleanupListeners: () => {
@@ -89,33 +84,5 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
       clearInterval(updateTimer)
       updateTimer = null
     }
-  },
-
-  runInitialTest: async () => {
-    if (hasInitialTestRun) return
-
-    let currentGroups = get().groups
-    if (!currentGroups || currentGroups.length === 0) {
-      try {
-        currentGroups = await mihomoGroups()
-        set({ groups: currentGroups, isLoading: false })
-      } catch {
-        return
-      }
-    }
-
-    if (!currentGroups || currentGroups.length === 0) return
-
-    hasInitialTestRun = true
-    const promises = currentGroups.map((g) => 
-      mihomoGroupDelay(g.name, g.testUrl).catch((e) => {
-        if (!isExpectedMihomoUnavailableError(e)) {
-          console.error(`[AutoDelay] Failed for group ${g.name}:`, e)
-        }
-      })
-    )
-    await Promise.allSettled(promises)
-    // Fetch again to update delay info
-    get().fetchGroups()
   }
 }))

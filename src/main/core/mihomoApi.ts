@@ -23,6 +23,44 @@ let logsRetry = 10
 let mihomoConnectionsWs: WebSocket | null = null
 let connectionsRetry = 10
 
+const DEFAULT_DELAY_TEST_URL = 'http://cp.cloudflare.com/generate_204'
+const DEFAULT_DELAY_TEST_TIMEOUT = 5000
+const MIN_DELAY_TEST_TIMEOUT = 1000
+const MAX_DELAY_TEST_TIMEOUT = 15000
+
+function normalizeDelayTestTimeout(value?: number): number {
+  const parsed = Number.parseInt(String(value ?? DEFAULT_DELAY_TEST_TIMEOUT), 10)
+  if (!Number.isFinite(parsed)) return DEFAULT_DELAY_TEST_TIMEOUT
+  return Math.min(MAX_DELAY_TEST_TIMEOUT, Math.max(MIN_DELAY_TEST_TIMEOUT, parsed))
+}
+
+async function resolveDelayTestOptions(url?: string): Promise<{
+  finalUrl: string
+  timeoutVal: number
+}> {
+  const appConfig = await getAppConfig()
+  const { delayTestUrl, delayTestTimeout } = appConfig
+  return {
+    finalUrl: (url && url.length > 0) ? url : (delayTestUrl || DEFAULT_DELAY_TEST_URL),
+    timeoutVal: normalizeDelayTestTimeout(delayTestTimeout)
+  }
+}
+
+async function mihomoProxyDelayWithOptions(
+  proxy: string,
+  finalUrl: string,
+  timeoutVal: number,
+  instance?: AxiosInstance
+): Promise<ControllerProxiesDelay> {
+  const axiosInstance = instance || await getAxios()
+  return await axiosInstance.get(`/proxies/${encodeURIComponent(proxy)}/delay`, {
+    params: {
+      url: finalUrl,
+      timeout: timeoutVal
+    }
+  })
+}
+
 export const getAxios = async (force: boolean = false): Promise<AxiosInstance> => {
   const currentSocketPath = mihomoIpcPath()
 
@@ -203,36 +241,17 @@ export const mihomoProxyDelay = async (
   proxy: string,
   url?: string
 ): Promise<ControllerProxiesDelay> => {
-  const appConfig = await getAppConfig()
-  const { delayTestUrl, delayTestTimeout } = appConfig
+  const { finalUrl, timeoutVal } = await resolveDelayTestOptions(url)
   const instance = await getAxios()
-  // 优先使用传入的 URL，如果没有则使用全局配置，最后兜底默认值
-  const finalUrl = (url && url.length > 0) ? url : (delayTestUrl || 'http://cp.cloudflare.com/generate_204')
-  
-  const timeoutVal = parseInt(String(delayTestTimeout || 5000))
-
-
-  return await instance.get(`/proxies/${encodeURIComponent(proxy)}/delay`, {
-    params: {
-      url: finalUrl,
-      timeout: timeoutVal
-    }
-  })
+  return await mihomoProxyDelayWithOptions(proxy, finalUrl, timeoutVal, instance)
 }
 
 export const mihomoGroupDelay = async (
   group: string,
   url?: string
 ): Promise<ControllerGroupDelay> => {
-  const appConfig = await getAppConfig()
-  const { delayTestUrl, delayTestTimeout } = appConfig
+  const { finalUrl, timeoutVal } = await resolveDelayTestOptions(url)
   const instance = await getAxios()
-  // 优先使用传入的 URL，如果没有则使用全局配置，最后兜底默认值
-  const finalUrl = (url && url.length > 0) ? url : (delayTestUrl || 'http://cp.cloudflare.com/generate_204')
-
-  const timeoutVal = parseInt(String(delayTestTimeout || 5000))
-
-
   return await instance.get(`/group/${encodeURIComponent(group)}/delay`, {
     params: {
       url: finalUrl,

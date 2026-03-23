@@ -41,6 +41,9 @@ import {
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
+const DEFAULT_DELAY_TEST_CONCURRENCY = 8
+const DEFAULT_DELAY_TEST_TIMEOUT = 5000
+
 interface Props {
   onClose: () => void
 }
@@ -173,7 +176,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               title={
                 <>
                   延迟测试并发数量
-                  <span className="text-xs text-foreground-400 font-normal ml-1">(推荐值 5)</span>
+                  <span className="text-xs text-foreground-400 font-normal ml-1">
+                    (默认 8，建议 6-10)
+                  </span>
                 </>
               }
               divider
@@ -184,9 +189,12 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 className="w-[120px]"
                 classNames={numberInputClassNames}
                 value={delayTestConcurrency?.toString()}
-                placeholder="默认 50"
+                placeholder={`默认 ${DEFAULT_DELAY_TEST_CONCURRENCY}`}
                 onValueChange={(v) => {
-                  patchAppConfig({ delayTestConcurrency: parseInt(v) })
+                  const parsed = Number.parseInt(v, 10)
+                  patchAppConfig({
+                    delayTestConcurrency: Number.isFinite(parsed) ? parsed : DEFAULT_DELAY_TEST_CONCURRENCY
+                  })
                 }}
               />
             </SettingItem>
@@ -195,7 +203,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 <>
                   延迟测试超时时间
                   <span className="text-xs text-foreground-400 font-normal ml-1">
-                    (推荐值 3000，单位 ms)
+                    (默认 5000，建议 4000-6000 ms)
                   </span>
                 </>
               }
@@ -207,9 +215,12 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 className="w-[120px]"
                 classNames={numberInputClassNames}
                 value={delayTestTimeout?.toString()}
-                placeholder="默认 10000"
+                placeholder={`默认 ${DEFAULT_DELAY_TEST_TIMEOUT}`}
                 onValueChange={(v) => {
-                  patchAppConfig({ delayTestTimeout: parseInt(v) })
+                  const parsed = Number.parseInt(v, 10)
+                  patchAppConfig({
+                    delayTestTimeout: Number.isFinite(parsed) ? parsed : DEFAULT_DELAY_TEST_TIMEOUT
+                  })
                 }}
               />
             </SettingItem>
