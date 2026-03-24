@@ -2,7 +2,7 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { LuGroup } from 'react-icons/lu'
+import { LuRocket } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
@@ -99,7 +99,7 @@ const ProxyCard: React.FC<Props> = (props) => {
             variant={match ? 'solid' : 'light'}
             onPress={handleCardClick}
           >
-            <LuGroup className="text-[20px]" />
+            <LuRocket className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -139,10 +139,8 @@ const ProxyCard: React.FC<Props> = (props) => {
             >
               {currentGroupName}
             </h3>
-            <SiderCardIcon>
-              <LuGroup
-                className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              />
+            <SiderCardIcon isActive={match}>
+              <LuRocket className="text-[18px]" />
             </SiderCardIcon>
           </div>
         </CardBody>

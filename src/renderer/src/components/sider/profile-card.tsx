@@ -3,8 +3,7 @@ import TrafficProgress from '@renderer/components/base/traffic-progress'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { calcTraffic, calcPercent } from '@renderer/utils/calc'
-import { CgLoadbarDoc } from 'react-icons/cg'
-import { IoMdRefresh } from 'react-icons/io'
+import { LuFileCode, LuRotateCw, LuRss } from 'react-icons/lu'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -14,7 +13,8 @@ import React, { useState } from 'react'
 import ConfigViewer from './config-viewer'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { TiFolder } from 'react-icons/ti'
+
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -72,7 +72,7 @@ const ProfileCard: React.FC<Props> = (props) => {
               navigate('/profiles')
             }}
           >
-            <TiFolder className="text-[20px]" />
+            <LuRss className="text-[17px]" />
           </Button>
         </Tooltip>
       </div>
@@ -133,8 +133,8 @@ const ProfileCard: React.FC<Props> = (props) => {
                     setShowRuntimeConfig(true)
                   }}
                 >
-                  <CgLoadbarDoc
-                    className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+                  <LuFileCode
+                    className={`text-[18px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
                   />
                 </Button>
                 {info.type === 'remote' && (
@@ -151,8 +151,8 @@ const ProfileCard: React.FC<Props> = (props) => {
                         setUpdating(false)
                       }}
                     >
-                      <IoMdRefresh
-                        className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'} ${updating ? 'animate-spin' : ''}`}
+                      <LuRotateCw
+                        className={`text-[18px] ${match ? 'text-primary-foreground' : 'text-foreground'} ${updating ? 'animate-spin' : ''}`}
                       />
                     </Button>
                   </Tooltip>
@@ -245,17 +245,9 @@ const ProfileCard: React.FC<Props> = (props) => {
         >
           <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
             <div className="flex justify-between">
-              <Button
-                isIconOnly
-                className="bg-transparent pointer-events-none"
-                variant="flat"
-                color="default"
-              >
-                <TiFolder
-                  color="default"
-                  className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
-                />
-              </Button>
+              <SiderCardIcon isActive={match}>
+                <LuRss className="text-[17px]" />
+              </SiderCardIcon>
               <Button
                 isIconOnly
                 className="bg-transparent"
@@ -266,8 +258,8 @@ const ProfileCard: React.FC<Props> = (props) => {
                   setShowRuntimeConfig(true)
                 }}
               >
-                <CgLoadbarDoc
-                  className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+                <LuFileCode
+                  className={`text-[18px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
                 />
               </Button>
             </div>

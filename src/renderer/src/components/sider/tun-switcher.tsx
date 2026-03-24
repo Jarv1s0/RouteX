@@ -1,7 +1,7 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import BorderSwitch from '@renderer/components/base/border-switch'
-import { TbDeviceIpadHorizontalBolt } from 'react-icons/tb'
+import { LuCable } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { restartCore } from '@renderer/utils/ipc'
 import { useSortable } from '@dnd-kit/sortable'
@@ -10,6 +10,7 @@ import React from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { toast } from 'sonner'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
@@ -81,7 +82,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
               navigate('/tun')
             }}
           >
-            <TbDeviceIpadHorizontalBolt className="text-[20px]" />
+            <LuCable className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -118,16 +119,9 @@ const TunSwitcher: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <Button
-              isIconOnly
-              className="bg-transparent pointer-events-none"
-              variant="light"
-              color="default"
-            >
-              <TbDeviceIpadHorizontalBolt
-                className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              />
-            </Button>
+            <SiderCardIcon isActive={match}>
+              <LuCable className="text-[18px]" />
+            </SiderCardIcon>
             <BorderSwitch
               isShowBorder={match && enable}
               isSelected={enable}

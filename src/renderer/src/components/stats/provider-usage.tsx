@@ -427,12 +427,12 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
 
   const summaryItems = [
     { label: '本期累计', value: calcTraffic(totalTraffic), tone: 'text-foreground' },
-    { label: '今日用量', value: calcTraffic(todayTraffic), tone: 'text-blue-600' },
+    { label: '今日用量', value: calcTraffic(todayTraffic), tone: 'text-primary' },
     { label: '活跃日均', value: calcTraffic(averageTraffic), tone: 'text-foreground' },
     {
       label: '峰值日',
       value: peakDay && peakDay.value > 0 ? `${formatShortDate(peakDay.date)} · ${calcTraffic(peakDay.value)}` : '暂无',
-      tone: 'text-fuchsia-600'
+      tone: 'text-warning'
     }
   ]
 
@@ -540,11 +540,11 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center gap-3 text-[11px] text-foreground-400">
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-fuchsia-500" />
+                    <span className="w-2 h-2 rounded-full bg-warning" />
                     峰值日
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="w-2 h-2 rounded-full bg-primary" />
                     今日
                   </span>
                 </div>
@@ -553,12 +553,12 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
                 <svg viewBox={`0 0 ${chartWidth} ${CHART_HEIGHT}`} className="w-full h-[180px] overflow-visible">
                   <defs>
                     <linearGradient id="provider-usage-area" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgba(59,130,246,0.26)" />
-                      <stop offset="100%" stopColor="rgba(59,130,246,0.02)" />
+                      <stop offset="0%" stopColor="hsl(var(--heroui-primary) / 0.26)" />
+                      <stop offset="100%" stopColor="hsl(var(--heroui-primary) / 0.02)" />
                     </linearGradient>
                     <linearGradient id="provider-usage-line" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#7dd3fc" />
-                      <stop offset="100%" stopColor="#3b82f6" />
+                      <stop offset="0%" stopColor="hsl(var(--heroui-primary) / 0.4)" />
+                      <stop offset="100%" stopColor="hsl(var(--heroui-primary))" />
                     </linearGradient>
                   </defs>
 
@@ -623,11 +623,11 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
                         y1={peakPoint.y}
                         x2={peakPoint.x}
                         y2={chartData.baselineY}
-                        stroke="rgba(217,70,239,0.28)"
+                        stroke="hsl(var(--heroui-warning) / 0.28)"
                         strokeDasharray="4 5"
                       />
-                      <circle cx={peakPoint.x} cy={peakPoint.y} r="6" fill="#d946ef" />
-                      <circle cx={peakPoint.x} cy={peakPoint.y} r="12" fill="rgba(217,70,239,0.3)">
+                      <circle cx={peakPoint.x} cy={peakPoint.y} r="6" fill="hsl(var(--heroui-warning))" />
+                      <circle cx={peakPoint.x} cy={peakPoint.y} r="12" fill="hsl(var(--heroui-warning) / 0.3)">
                         <animate attributeName="opacity" values="0.95;0.18;0.95" dur="1.2s" repeatCount="indefinite" />
                       </circle>
                     </>
@@ -635,8 +635,8 @@ const ProviderUsage: React.FC<ProviderUsageProps> = ({
 
                   {todayPoint && (
                     <>
-                      <circle cx={todayPoint.x} cy={todayPoint.y} r="4.5" fill="#2563eb" />
-                      <circle cx={todayPoint.x} cy={todayPoint.y} r="9" fill="rgba(37,99,235,0.14)" />
+                      <circle cx={todayPoint.x} cy={todayPoint.y} r="4.5" fill="hsl(var(--heroui-primary))" />
+                      <circle cx={todayPoint.x} cy={todayPoint.y} r="9" fill="hsl(var(--heroui-primary) / 0.14)" />
                     </>
                   )}
 

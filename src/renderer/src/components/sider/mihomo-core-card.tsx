@@ -4,7 +4,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { mihomoVersion, restartCore, checkMihomoLatestVersion } from '@renderer/utils/ipc'
 import { toast } from 'sonner'
 import React, { useEffect, useState } from 'react'
-import { IoMdRefresh } from 'react-icons/io'
+import { LuRotateCw } from 'react-icons/lu'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -12,6 +12,7 @@ import PubSub from 'pubsub-js'
 import useSWR from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { LuCpu } from 'react-icons/lu'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
@@ -101,7 +102,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
               navigate('/mihomo')
             }}
           >
-            <LuCpu className="text-[20px]" />
+            <LuCpu className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -169,8 +170,8 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
                   }
                 }}
               >
-                <IoMdRefresh
-                  className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'} ${restarting ? 'animate-spin' : ''}`}
+                <LuRotateCw
+                  className={`text-[18px] ${match ? 'text-primary-foreground' : 'text-foreground'} ${restarting ? 'animate-spin' : ''}`}
                 />
               </Button>
             </div>
@@ -203,17 +204,9 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
           >
             <CardBody className="overflow-visible flex flex-col justify-between h-full">
               <div className="flex justify-between">
-                 <Button
-                   isIconOnly
-                   size="sm"
-                   className="bg-transparent pointer-events-none"
-                   variant="light"
-                   color="default"
-                 >
-                   <LuCpu
-                     className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-                   />
-                 </Button>
+                <SiderCardIcon isActive={match}>
+                  <LuCpu className="text-[18px]" />
+                </SiderCardIcon>
               </div>
             </CardBody>
             <CardFooter className="pt-1">

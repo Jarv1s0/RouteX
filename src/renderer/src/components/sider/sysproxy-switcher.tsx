@@ -5,10 +5,11 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { triggerSysProxy } from '@renderer/utils/ipc'
-import { AiOutlineGlobal } from 'react-icons/ai'
+import { LuGlobe } from 'react-icons/lu'
 import React from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
@@ -67,7 +68,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
               navigate('/sysproxy')
             }}
           >
-            <AiOutlineGlobal className="text-[20px]" />
+            <LuGlobe className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -104,16 +105,9 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <Button
-              isIconOnly
-              className="bg-transparent pointer-events-none"
-              variant="light"
-              color="default"
-            >
-              <AiOutlineGlobal
-                className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              />
-            </Button>
+            <SiderCardIcon isActive={match}>
+              <LuGlobe className="text-[18px]" />
+            </SiderCardIcon>
             <BorderSwitch
                isShowBorder={match && enable}
                isSelected={!(mode != 'auto' && disabled) && enable}

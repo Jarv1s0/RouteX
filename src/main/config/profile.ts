@@ -155,6 +155,7 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
     interval: item.interval || 0,
     override: item.override || [],
     useProxy: item.useProxy || false,
+    resetDay: item.resetDay,
     updated: new Date().getTime()
   } as ProfileItem
   switch (newItem.type) {

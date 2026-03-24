@@ -1,11 +1,12 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import { IoJournalOutline } from 'react-icons/io5'
+import { LuFileText } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
@@ -43,7 +44,7 @@ const LogCard: React.FC<Props> = (props) => {
               navigate('/logs')
             }}
           >
-            <IoJournalOutline className="text-[20px]" />
+            <LuFileText className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -57,7 +58,7 @@ const LogCard: React.FC<Props> = (props) => {
         transition,
         zIndex: isDragging ? 'calc(infinity)' : undefined
       }}
-      className={logCardStatus}
+      className={`${logCardStatus} log-card`}
     >
       <Card
         fullWidth
@@ -79,17 +80,9 @@ const LogCard: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <Button
-              isIconOnly
-              className="bg-transparent pointer-events-none"
-              variant="flat"
-              color="default"
-            >
-              <IoJournalOutline
-                color="default"
-                className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] font-bold`}
-              />
-            </Button>
+            <SiderCardIcon isActive={match}>
+              <LuFileText className="text-[18px]" />
+            </SiderCardIcon>
           </div>
         </CardBody>
         <CardFooter className="pt-1 relative z-10">

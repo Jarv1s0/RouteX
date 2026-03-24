@@ -1,6 +1,6 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import BorderSwitch from '@renderer/components/base/border-switch'
-import { RiScan2Fill } from 'react-icons/ri'
+import { LuScanSearch } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { patchMihomoConfig } from '@renderer/utils/ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -9,6 +9,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
@@ -56,7 +57,7 @@ const SniffCard: React.FC<Props> = (props) => {
               navigate('/sniffer')
             }}
           >
-            <RiScan2Fill className="text-[20px]" />
+            <LuScanSearch className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -92,16 +93,9 @@ const SniffCard: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 overflow-visible relative z-10">
           <div className="flex justify-between">
-            <Button
-              isIconOnly
-              className="bg-transparent pointer-events-none"
-              variant="light"
-              color="default"
-            >
-              <RiScan2Fill
-                className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
-              />
-            </Button>
+            <SiderCardIcon isActive={match}>
+              <LuScanSearch className="text-[18px]" />
+            </SiderCardIcon>
             <BorderSwitch
               isShowBorder={match && enable}
               isSelected={enable}

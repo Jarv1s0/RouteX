@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import { IoEarth } from 'react-icons/io5'
+import { LuNetwork } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -44,7 +44,7 @@ const MapCard: React.FC<Props> = (props) => {
               navigate('/map')
             }}
           >
-            <IoEarth className="text-[20px]" />
+            <LuNetwork className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -81,10 +81,8 @@ const MapCard: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <SiderCardIcon>
-              <IoEarth
-                className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              />
+            <SiderCardIcon isActive={match}>
+              <LuNetwork className="text-[18px]" />
             </SiderCardIcon>
           </div>
         </CardBody>

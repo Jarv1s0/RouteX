@@ -1,15 +1,16 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import { FaCircleArrowDown, FaCircleArrowUp } from 'react-icons/fa6'
+import { LuCircleArrowDown, LuCircleArrowUp } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useEffect, useState, useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { IoLink } from 'react-icons/io5'
+import { LuPlug } from 'react-icons/lu'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import TrafficChart from './traffic-chart'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 let currentUpload: number | undefined = undefined
 let currentDownload: number | undefined = undefined
@@ -120,7 +121,7 @@ const ConnCard: React.FC<Props> = (props) => {
               navigate('/connections')
             }}
           >
-            <IoLink className="text-[20px]" />
+            <LuPlug className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -158,19 +159,11 @@ const ConnCard: React.FC<Props> = (props) => {
             shadow="none"
           >
             <CardBody className="pb-1 pt-0 px-0 overflow-y-visible relative z-10">
-              <div className="flex justify-between items-center">
-                <Button
-                  isIconOnly
-                  className="bg-transparent pointer-events-none"
-                  variant="flat"
-                  color="default"
-                >
-                  <IoLink
-                    color="default"
-                    className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[28px] drop-shadow-sm`}
-                  />
-                </Button>
-                <div className="p-1 w-full pl-4 space-y-2">
+              <div className="flex justify-between items-start">
+                <SiderCardIcon isActive={match} className="shrink-0">
+                  <LuPlug className="text-[18px]" />
+                </SiderCardIcon>
+                <div className="p-1 flex-1 pl-4 space-y-2 overflow-hidden">
                   {/* Upload Row */}
                   <div className="flex justify-end items-center gap-2">
                     <div className="flex items-baseline gap-0.5">
@@ -182,7 +175,7 @@ const ConnCard: React.FC<Props> = (props) => {
                       </span>
                     </div>
                     <div className={`p-1 rounded-full ${match ? 'bg-white/20' : 'bg-cyan-500/10'}`}>
-                      <FaCircleArrowUp
+                      <LuCircleArrowUp
                         className={`text-xs ${match ? 'text-white' : 'text-cyan-500'}`}
                       />
                     </div>
@@ -199,7 +192,7 @@ const ConnCard: React.FC<Props> = (props) => {
                       </span>
                     </div>
                     <div className={`p-1 rounded-full ${match ? 'bg-white/20' : 'bg-purple-500/10'}`}>
-                      <FaCircleArrowDown
+                      <LuCircleArrowDown
                         className={`text-xs ${match ? 'text-white' : 'text-purple-500'}`}
                       />
                     </div>
@@ -240,17 +233,9 @@ const ConnCard: React.FC<Props> = (props) => {
         >
           <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
             <div className="flex justify-between">
-              <Button
-                isIconOnly
-                className="bg-transparent pointer-events-none"
-                variant="flat"
-                color="default"
-              >
-                <IoLink
-                  color="default"
-                  className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px] font-bold`}
-                />
-              </Button>
+              <SiderCardIcon isActive={match}>
+                <LuPlug className="text-[18px]" />
+              </SiderCardIcon>
             </div>
           </CardBody>
           <CardFooter className="pt-1">

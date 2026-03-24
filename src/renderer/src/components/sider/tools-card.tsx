@@ -42,7 +42,7 @@ const ToolsCard: React.FC<Props> = (props) => {
             variant={match ? 'solid' : 'light'}
             onPress={() => navigate('/tools')}
           >
-            <LuWrench className="text-[20px]" />
+            <LuWrench className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -80,10 +80,8 @@ const ToolsCard: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <SiderCardIcon>
-              <LuWrench
-                className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              />
+            <SiderCardIcon isActive={match}>
+              <LuWrench className="text-[18px]" />
             </SiderCardIcon>
           </div>
         </CardBody>

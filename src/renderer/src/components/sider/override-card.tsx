@@ -1,11 +1,12 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import React from 'react'
-import { MdFormatOverline } from 'react-icons/md'
+import { LuSlidersHorizontal } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
@@ -42,7 +43,7 @@ const OverrideCard: React.FC<Props> = (props) => {
               navigate('/override')
             }}
           >
-            <MdFormatOverline className="text-[20px]" />
+            <LuSlidersHorizontal className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -78,16 +79,9 @@ const OverrideCard: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <Button
-              isIconOnly
-              className="bg-transparent pointer-events-none"
-              variant="light"
-              color="default"
-            >
-              <MdFormatOverline
-                className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              />
-            </Button>
+            <SiderCardIcon isActive={match}>
+              <LuSlidersHorizontal className="text-[18px]" />
+            </SiderCardIcon>
           </div>
         </CardBody>
         <CardFooter className="pt-1 relative z-10">

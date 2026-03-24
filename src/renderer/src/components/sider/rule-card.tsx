@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import { TbStack2 } from 'react-icons/tb'
+import { LuGitBranch } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -8,6 +8,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useEffect, useMemo } from 'react'
 import { getRuntimeConfig, mihomoRuleProviders } from '@renderer/utils/ipc'
 import useSWR from 'swr'
+import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
@@ -88,7 +89,7 @@ const RuleCard: React.FC<Props> = (props) => {
               navigate('/rules')
             }}
           >
-            <TbStack2 className="text-[20px]" />
+            <LuGitBranch className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -125,16 +126,9 @@ const RuleCard: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <Button
-              isIconOnly
-              className="bg-transparent pointer-events-none"
-              variant="light"
-              color="default"
-            >
-              <TbStack2
-                className={`${match ? 'text-primary-foreground' : 'text-foreground'} text-[24px]`}
-              />
-            </Button>
+            <SiderCardIcon isActive={match}>
+              <LuGitBranch className="text-[18px]" />
+            </SiderCardIcon>
           </div>
         </CardBody>
         <CardFooter className="pt-1 relative z-10">

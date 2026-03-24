@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import { IoStatsChart } from 'react-icons/io5'
+import { LuChartColumn } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -44,7 +44,7 @@ const StatsCard: React.FC<Props> = (props) => {
               navigate('/stats')
             }}
           >
-            <IoStatsChart className="text-[20px]" />
+            <LuChartColumn className="text-[17px]" />
           </Button>
         </Tooltip>
       </div>
@@ -81,10 +81,8 @@ const StatsCard: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <SiderCardIcon>
-              <IoStatsChart
-                className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              />
+            <SiderCardIcon isActive={match}>
+              <LuChartColumn className="text-[17px]" />
             </SiderCardIcon>
           </div>
         </CardBody>

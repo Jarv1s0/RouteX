@@ -48,7 +48,7 @@ const SubStoreCard: React.FC<Props> = (props) => {
               navigate('/substore')
             }}
           >
-            <SubStoreIcon className="text-[20px]" />
+            <SubStoreIcon className="text-[18px]" />
           </Button>
         </Tooltip>
       </div>
@@ -85,10 +85,8 @@ const SubStoreCard: React.FC<Props> = (props) => {
       >
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
-            <SiderCardIcon>
-              <SubStoreIcon
-                className={`text-[24px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              />
+            <SiderCardIcon isActive={match}>
+              <SubStoreIcon className="text-[18px]" />
             </SiderCardIcon>
           </div>
         </CardBody>
