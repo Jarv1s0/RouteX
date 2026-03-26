@@ -6,10 +6,11 @@ const [, , sourceArg = 'changelog.md', outputArg] = process.argv
 const sourcePath = path.resolve(sourceArg)
 const raw = fs.readFileSync(sourcePath, 'utf8').replace(/\r\n/g, '\n').trim()
 
-const headingMatches = [...raw.matchAll(/^##\s+.+$/gm)]
+const versionHeadingPattern = /^(#{2,6})\s+v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\s*$/gm
+const headingMatches = [...raw.matchAll(versionHeadingPattern)]
 
 if (headingMatches.length === 0) {
-  throw new Error(`No level-2 section found in ${sourceArg}`)
+  throw new Error(`No version section found in ${sourceArg}`)
 }
 
 const latestStart = headingMatches[0].index ?? 0
