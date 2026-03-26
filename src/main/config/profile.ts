@@ -1,5 +1,11 @@
 import { getControledMihomoConfig } from './controledMihomo'
-import { mihomoProfileWorkDir, mihomoWorkDir, profileConfigPath, profilePath } from '../utils/dirs'
+import {
+  mihomoCorePath,
+  mihomoProfileWorkDir,
+  mihomoWorkDir,
+  profileConfigPath,
+  profilePath
+} from '../utils/dirs'
 import { addProfileUpdater, delProfileUpdater } from '../core/profileUpdater'
 import { readFile, writeFile, rm, mkdir } from 'fs/promises'
 import { restartCore } from '../core/manager'
@@ -399,8 +405,6 @@ export async function convertMrsRuleset(filePath: string, behavior: string): Pro
   const { exec } = await import('child_process')
   const { promisify } = await import('util')
   const execAsync = promisify(exec)
-  const { mihomoCorePath } = await import('../utils/dirs')
-  const { getAppConfig } = await import('./app')
   const { tmpdir } = await import('os')
   const { randomBytes } = await import('crypto')
   const { unlink } = await import('fs/promises')

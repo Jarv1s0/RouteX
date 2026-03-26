@@ -70,13 +70,13 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-            command: npx electron-builder --win --publish never
+            command: npx electron-builder --config electron-builder.config.cjs --win --publish never
           - os: ubuntu-latest
             platform: linux
-            command: npx electron-builder --linux --publish never
+            command: npx electron-builder --config electron-builder.config.cjs --linux --publish never
           - os: macos-latest
             platform: macos
-            command: npx electron-builder --mac --publish never
+            command: npx electron-builder --config electron-builder.config.cjs --mac --publish never
 
     permissions:
       contents: write
@@ -122,8 +122,8 @@ jobs:
       - name: Build Application
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROUTEX_AUTO_BUILD: 'true'
         run: |
-          node scripts/patch-autobuild.mjs
           npm run build
           ${{ matrix.command }}
 

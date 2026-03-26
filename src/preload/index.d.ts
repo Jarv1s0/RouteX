@@ -1,4 +1,5 @@
 import { IpcRendererEvent, webUtils } from 'electron'
+import type { IpcInvokeChannel } from '../shared/ipc'
 
 type IpcRendererListener<Args extends unknown[] = unknown[]> = (
   event: IpcRendererEvent,
@@ -14,7 +15,7 @@ interface IpcRendererBridge {
     listener: IpcRendererListener<Args>
   ): IpcRendererBridge
   send(channel: string, ...args: unknown[]): void
-  invoke<T>(channel: string, ...args: unknown[]): Promise<T>
+  invoke<T>(channel: IpcInvokeChannel, ...args: unknown[]): Promise<T>
   postMessage(channel: string, message: unknown, transfer?: MessagePort[]): void
   sendSync<T>(channel: string, ...args: unknown[]): T
   sendToHost(channel: string, ...args: unknown[]): void
@@ -33,7 +34,6 @@ interface WebUtilsBridge {
 interface ProcessBridge {
   readonly platform: NodeJS.Platform
   readonly versions: NodeJS.ProcessVersions
-  readonly env: NodeJS.ProcessEnv
 }
 
 interface ElectronAPI {

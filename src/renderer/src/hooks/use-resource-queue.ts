@@ -3,12 +3,98 @@ import { getAppName, getIconDataURL } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import { cropAndPadTransparent } from '@renderer/utils/image'
 
+const ICON_CACHE_PREFIX = 'routex:icon:'
+const ICON_CACHE_INDEX_KEY = 'routex:icon:index'
+const MAX_ICON_CACHE_ENTRIES = 120
+
 interface UseResourceQueueResult {
   iconMap: Record<string, string>
   appNameCache: Record<string, string>
   firstItemRefreshTrigger: number
   loadIcon: (path: string, isVisible?: boolean) => void
   loadAppName: (path: string) => void
+}
+
+function getIconCacheKey(path: string): string {
+  return `${ICON_CACHE_PREFIX}${path}`
+}
+
+function readIconCacheIndex(): string[] {
+  try {
+    const raw = localStorage.getItem(ICON_CACHE_INDEX_KEY)
+    if (!raw) return []
+
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function writeIconCacheIndex(index: string[]): void {
+  localStorage.setItem(ICON_CACHE_INDEX_KEY, JSON.stringify(index))
+}
+
+function evictIconCacheEntries(index: string[], maxEntries: number): string[] {
+  const nextIndex = [...index]
+
+  while (nextIndex.length > maxEntries) {
+    const evictedPath = nextIndex.pop()
+    if (evictedPath) {
+      localStorage.removeItem(getIconCacheKey(evictedPath))
+    }
+  }
+
+  return nextIndex
+}
+
+function rememberCachedIcon(path: string): void {
+  const nextIndex = [path, ...readIconCacheIndex().filter((cachedPath) => cachedPath !== path)]
+  writeIconCacheIndex(evictIconCacheEntries(nextIndex, MAX_ICON_CACHE_ENTRIES))
+}
+
+function readCachedIcon(path: string): string | null {
+  const cacheKey = getIconCacheKey(path)
+  const cachedIcon = localStorage.getItem(cacheKey)
+
+  if (cachedIcon) {
+    rememberCachedIcon(path)
+    return cachedIcon
+  }
+
+  const legacyCachedIcon = localStorage.getItem(path)
+  if (!legacyCachedIcon) {
+    return null
+  }
+
+  try {
+    localStorage.removeItem(path)
+    writeCachedIcon(path, legacyCachedIcon)
+  } catch {
+    // ignore migration failure
+  }
+
+  return legacyCachedIcon
+}
+
+function writeCachedIcon(path: string, dataUrl: string): void {
+  const cacheKey = getIconCacheKey(path)
+
+  try {
+    localStorage.setItem(cacheKey, dataUrl)
+    rememberCachedIcon(path)
+    return
+  } catch {
+    const evictedIndex = evictIconCacheEntries(readIconCacheIndex(), Math.max(0, MAX_ICON_CACHE_ENTRIES - 10))
+
+    try {
+      writeIconCacheIndex(evictedIndex)
+      localStorage.setItem(cacheKey, dataUrl)
+      rememberCachedIcon(path)
+    } catch {
+      // ignore cache write failure
+    }
+  }
 }
 
 export function useResourceQueue(
@@ -82,7 +168,7 @@ export function useResourceQueue(
         }
 
         try {
-          localStorage.setItem(path, processedDataURL)
+          writeCachedIcon(path, processedDataURL)
         } catch {
           // ignore
         }
@@ -145,7 +231,7 @@ export function useResourceQueue(
   const loadIcon = useCallback((path: string, isVisible: boolean = false): void => {
     if (iconMap[path] || processingIcons.current.has(path)) return
 
-    const fromStorage = localStorage.getItem(path)
+    const fromStorage = readCachedIcon(path)
     if (fromStorage) {
       setIconMap((prev) => ({ ...prev, [path]: fromStorage }))
       if (isVisible && filteredConnectionsFirstPath === path) {

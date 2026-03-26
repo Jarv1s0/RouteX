@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain } from 'electron'
+import { app, dialog } from 'electron'
 import {
   manualGrantCorePermition,
   quitWithoutCore,
@@ -81,165 +81,157 @@ import { getUserAgent } from '../utils/userAgent'
 import { getTrafficStats, clearTrafficStats, getProcessTrafficRanking } from '../resolve/trafficStats'
 import { getProviderStats, clearProviderStats } from '../resolve/providerStats'
 import { startNetworkHealthMonitor, stopNetworkHealthMonitor, getNetworkHealthStats } from '../resolve/networkHealth'
-import { ipcErrorWrapper } from '../utils/ipc'
+import { ipcErrorWrapper, registerIpcInvokeHandlers } from '../utils/ipc'
+import { IPC_INVOKE_CHANNELS } from '../../shared/ipc'
+import { getDisplayVersion } from '../utils/version'
 
 // 系统、服务、窗口、主题及杂项 IPC 处理器
 export function registerSystemHandlers(): void {
-  ipcMain.handle('restartCore', ipcErrorWrapper(restartCore))
-  ipcMain.handle('startMonitor', (_e, detached) => ipcErrorWrapper(startMonitor)(detached))
-  ipcMain.handle('triggerSysProxy', (_e, enable, onlyActiveDevice) =>
-    ipcErrorWrapper(triggerSysProxy)(enable, onlyActiveDevice)
-  )
-  ipcMain.handle('manualGrantCorePermition', (_e, cores?: ('mihomo' | 'mihomo-alpha')[]) =>
-    ipcErrorWrapper(manualGrantCorePermition)(cores)
-  )
-  ipcMain.handle('checkCorePermission', () => ipcErrorWrapper(checkCorePermission)())
-  ipcMain.handle('revokeCorePermission', (_e, cores?: ('mihomo' | 'mihomo-alpha')[]) =>
-    ipcErrorWrapper(revokeCorePermission)(cores)
-  )
-  ipcMain.handle('checkElevateTask', () => ipcErrorWrapper(checkElevateTask)())
-  ipcMain.handle('deleteElevateTask', () => ipcErrorWrapper(deleteElevateTask)())
-  ipcMain.handle('serviceStatus', () => ipcErrorWrapper(serviceStatus)())
-  ipcMain.handle('testServiceConnection', () => ipcErrorWrapper(testServiceConnection)())
-  ipcMain.handle('initService', () => ipcErrorWrapper(initService)())
-  ipcMain.handle('installService', () => ipcErrorWrapper(installService)())
-  ipcMain.handle('uninstallService', () => ipcErrorWrapper(uninstallService)())
-  ipcMain.handle('startService', () => ipcErrorWrapper(startService)())
-  ipcMain.handle('restartService', () => ipcErrorWrapper(restartService)())
-  ipcMain.handle('stopService', () => ipcErrorWrapper(stopService)())
-  ipcMain.handle('findSystemMihomo', () => findSystemMihomo())
-  ipcMain.handle('getFilePath', (_e, ext) => getFilePath(ext))
-  ipcMain.handle('saveFile', (_e, content, defaultName, ext) => saveFile(content, defaultName, ext))
-  ipcMain.handle('readTextFile', (_e, filePath) => ipcErrorWrapper(readTextFile)(filePath))
-  ipcMain.handle('getRuntimeConfigStr', ipcErrorWrapper(getRuntimeConfigStr))
-  ipcMain.handle('getRawProfileStr', ipcErrorWrapper(getRawProfileStr))
-  ipcMain.handle('getCurrentProfileStr', ipcErrorWrapper(getCurrentProfileStr))
-  ipcMain.handle('getOverrideProfileStr', ipcErrorWrapper(getOverrideProfileStr))
-  ipcMain.handle('getRuntimeConfig', ipcErrorWrapper(getRuntimeConfig))
-  ipcMain.handle('downloadAndInstallUpdate', (_e, version) =>
-    ipcErrorWrapper(downloadAndInstallUpdate)(version)
-  )
-  ipcMain.handle('checkUpdate', ipcErrorWrapper(checkUpdate))
-  ipcMain.handle('cancelUpdate', ipcErrorWrapper(cancelUpdate))
-  ipcMain.handle('getVersion', () => app.getVersion())
-  ipcMain.handle('platform', () => process.platform)
-  ipcMain.handle('openUWPTool', ipcErrorWrapper(openUWPTool))
-  ipcMain.handle('setupFirewall', ipcErrorWrapper(setupFirewall))
-  ipcMain.handle('getInterfaces', getInterfaces)
-  ipcMain.handle('webdavBackup', ipcErrorWrapper(webdavBackup))
-  ipcMain.handle('webdavRestore', (_e, filename) => ipcErrorWrapper(webdavRestore)(filename))
-  ipcMain.handle('listWebdavBackups', ipcErrorWrapper(listWebdavBackups))
-  ipcMain.handle('webdavDelete', (_e, filename) => ipcErrorWrapper(webdavDelete)(filename))
-  ipcMain.handle('registerShortcut', (_e, oldShortcut, newShortcut, action) =>
-    ipcErrorWrapper(registerShortcut)(oldShortcut, newShortcut, action)
-  )
-  ipcMain.handle('startSubStoreFrontendServer', () =>
-    ipcErrorWrapper(startSubStoreFrontendServer)()
-  )
-  ipcMain.handle('stopSubStoreFrontendServer', () => ipcErrorWrapper(stopSubStoreFrontendServer)())
-  ipcMain.handle('startSubStoreBackendServer', () => ipcErrorWrapper(startSubStoreBackendServer)())
-  ipcMain.handle('stopSubStoreBackendServer', () => ipcErrorWrapper(stopSubStoreBackendServer)())
-  ipcMain.handle('downloadSubStore', () => ipcErrorWrapper(downloadSubStore)())
-  ipcMain.handle('subStorePort', () => subStorePort)
-  ipcMain.handle('subStoreFrontendPort', () => subStoreFrontendPort)
-  ipcMain.handle('subStoreSubs', () => ipcErrorWrapper(subStoreSubs)())
-  ipcMain.handle('subStoreCollections', () => ipcErrorWrapper(subStoreCollections)())
-  ipcMain.handle('getGistUrl', ipcErrorWrapper(getGistUrl))
-  ipcMain.handle('setNativeTheme', (_e, theme) => {
-    setNativeTheme(theme)
-  })
-  ipcMain.handle('setTitleBarOverlay', (_e, overlay) =>
-    ipcErrorWrapper(async (overlay): Promise<void> => {
-      if (typeof mainWindow?.setTitleBarOverlay === 'function') {
-        mainWindow.setTitleBarOverlay(overlay)
+  const C = IPC_INVOKE_CHANNELS
+
+  registerIpcInvokeHandlers({
+    [C.restartCore]: ipcErrorWrapper(restartCore),
+    [C.startMonitor]: (_e, detached) => ipcErrorWrapper(startMonitor)(detached),
+    [C.triggerSysProxy]: (_e, enable, onlyActiveDevice) =>
+      ipcErrorWrapper(triggerSysProxy)(enable, onlyActiveDevice),
+    [C.manualGrantCorePermition]: (_e, cores?: ('mihomo' | 'mihomo-alpha')[]) =>
+      ipcErrorWrapper(manualGrantCorePermition)(cores),
+    [C.checkCorePermission]: () => ipcErrorWrapper(checkCorePermission)(),
+    [C.revokeCorePermission]: (_e, cores?: ('mihomo' | 'mihomo-alpha')[]) =>
+      ipcErrorWrapper(revokeCorePermission)(cores),
+    [C.checkElevateTask]: () => ipcErrorWrapper(checkElevateTask)(),
+    [C.deleteElevateTask]: () => ipcErrorWrapper(deleteElevateTask)(),
+    [C.serviceStatus]: () => ipcErrorWrapper(serviceStatus)(),
+    [C.testServiceConnection]: () => ipcErrorWrapper(testServiceConnection)(),
+    [C.initService]: () => ipcErrorWrapper(initService)(),
+    [C.installService]: () => ipcErrorWrapper(installService)(),
+    [C.uninstallService]: () => ipcErrorWrapper(uninstallService)(),
+    [C.startService]: () => ipcErrorWrapper(startService)(),
+    [C.restartService]: () => ipcErrorWrapper(restartService)(),
+    [C.stopService]: () => ipcErrorWrapper(stopService)(),
+    [C.findSystemMihomo]: () => findSystemMihomo(),
+    [C.getFilePath]: (_e, ext) => getFilePath(ext),
+    [C.saveFile]: (_e, content, defaultName, ext) => saveFile(content, defaultName, ext),
+    [C.readTextFile]: (_e, filePath) => ipcErrorWrapper(readTextFile)(filePath),
+    [C.getRuntimeConfigStr]: ipcErrorWrapper(getRuntimeConfigStr),
+    [C.getRawProfileStr]: ipcErrorWrapper(getRawProfileStr),
+    [C.getCurrentProfileStr]: ipcErrorWrapper(getCurrentProfileStr),
+    [C.getOverrideProfileStr]: ipcErrorWrapper(getOverrideProfileStr),
+    [C.getRuntimeConfig]: ipcErrorWrapper(getRuntimeConfig),
+    [C.downloadAndInstallUpdate]: (_e, version) => ipcErrorWrapper(downloadAndInstallUpdate)(version),
+    [C.checkUpdate]: ipcErrorWrapper(checkUpdate),
+    [C.cancelUpdate]: ipcErrorWrapper(cancelUpdate),
+    [C.getVersion]: () => getDisplayVersion(),
+    [C.platform]: () => process.platform,
+    [C.openUWPTool]: ipcErrorWrapper(openUWPTool),
+    [C.setupFirewall]: ipcErrorWrapper(setupFirewall),
+    [C.getInterfaces]: getInterfaces,
+    [C.webdavBackup]: ipcErrorWrapper(webdavBackup),
+    [C.webdavRestore]: (_e, filename) => ipcErrorWrapper(webdavRestore)(filename),
+    [C.listWebdavBackups]: ipcErrorWrapper(listWebdavBackups),
+    [C.webdavDelete]: (_e, filename) => ipcErrorWrapper(webdavDelete)(filename),
+    [C.registerShortcut]: (_e, oldShortcut, newShortcut, action) =>
+      ipcErrorWrapper(registerShortcut)(oldShortcut, newShortcut, action),
+    [C.startSubStoreFrontendServer]: () => ipcErrorWrapper(startSubStoreFrontendServer)(),
+    [C.stopSubStoreFrontendServer]: () => ipcErrorWrapper(stopSubStoreFrontendServer)(),
+    [C.startSubStoreBackendServer]: () => ipcErrorWrapper(startSubStoreBackendServer)(),
+    [C.stopSubStoreBackendServer]: () => ipcErrorWrapper(stopSubStoreBackendServer)(),
+    [C.downloadSubStore]: () => ipcErrorWrapper(downloadSubStore)(),
+    [C.subStorePort]: () => subStorePort,
+    [C.subStoreFrontendPort]: () => subStoreFrontendPort,
+    [C.subStoreSubs]: () => ipcErrorWrapper(subStoreSubs)(),
+    [C.subStoreCollections]: () => ipcErrorWrapper(subStoreCollections)(),
+    [C.getGistUrl]: ipcErrorWrapper(getGistUrl),
+    [C.setNativeTheme]: (_e, theme) => {
+      setNativeTheme(theme)
+    },
+    [C.setTitleBarOverlay]: (_e, overlay) =>
+      ipcErrorWrapper(async (overlay): Promise<void> => {
+        if (typeof mainWindow?.setTitleBarOverlay === 'function') {
+          mainWindow.setTitleBarOverlay(overlay)
+        }
+      })(overlay),
+    [C.setAlwaysOnTop]: (_e, alwaysOnTop) => {
+      mainWindow?.setAlwaysOnTop(alwaysOnTop)
+    },
+    [C.isAlwaysOnTop]: () => mainWindow?.isAlwaysOnTop(),
+    [C.showTrayIcon]: () => ipcErrorWrapper(showTrayIcon)(),
+    [C.closeTrayIcon]: () => ipcErrorWrapper(closeTrayIcon)(),
+    [C.setDockVisible]: (_e, visible: boolean) => setDockVisible(visible),
+    [C.showMainWindow]: showMainWindow,
+    [C.closeMainWindow]: closeMainWindow,
+    [C.windowMin]: () => {
+      mainWindow?.minimize()
+    },
+    [C.windowMax]: () => {
+      if (mainWindow?.isMaximized()) {
+        mainWindow.unmaximize()
+      } else {
+        mainWindow?.maximize()
       }
-    })(overlay)
-  )
-  ipcMain.handle('setAlwaysOnTop', (_e, alwaysOnTop) => {
-    mainWindow?.setAlwaysOnTop(alwaysOnTop)
-  })
-  ipcMain.handle('isAlwaysOnTop', () => {
-    return mainWindow?.isAlwaysOnTop()
-  })
-  ipcMain.handle('showTrayIcon', () => ipcErrorWrapper(showTrayIcon)())
-  ipcMain.handle('closeTrayIcon', () => ipcErrorWrapper(closeTrayIcon)())
-  ipcMain.handle('setDockVisible', (_e, visible: boolean) => setDockVisible(visible))
-  ipcMain.handle('showMainWindow', showMainWindow)
-  ipcMain.handle('closeMainWindow', closeMainWindow)
-  ipcMain.handle('windowMin', () => {
-    mainWindow?.minimize()
-  })
-  ipcMain.handle('windowMax', () => {
-    if (mainWindow?.isMaximized()) {
-      mainWindow.unmaximize()
-    } else {
-      mainWindow?.maximize()
+    },
+    [C.triggerMainWindow]: triggerMainWindow,
+    [C.showFloatingWindow]: () => ipcErrorWrapper(showFloatingWindow)(),
+    [C.closeFloatingWindow]: () => ipcErrorWrapper(closeFloatingWindow)(),
+    [C.showContextMenu]: () => ipcErrorWrapper(showContextMenu)(),
+    [C.openFile]: (_e, type, id, ext) => openFile(type, id, ext),
+    [C.openDevTools]: () => {
+      mainWindow?.webContents.openDevTools()
+    },
+    [C.createHeapSnapshot]: () => {
+      v8.writeHeapSnapshot(path.join(logDir(), `${Date.now()}.heapsnapshot`))
+    },
+    [C.getUserAgent]: () => ipcErrorWrapper(getUserAgent)(),
+    [C.getAppName]: (_e, appPath) => ipcErrorWrapper(getAppName)(appPath),
+    [C.getImageDataURL]: (_e, url) => ipcErrorWrapper(getImageDataURL)(url),
+    [C.getIconDataURL]: (_e, appPath) => ipcErrorWrapper(getIconDataURL)(appPath),
+    [C.getTrafficStats]: () => getTrafficStats(),
+    [C.clearTrafficStats]: () => clearTrafficStats(),
+    [C.getProcessTrafficRanking]: (_e, type: 'session' | 'today', sortBy: 'upload' | 'download') =>
+      getProcessTrafficRanking(type, sortBy),
+    [C.getProviderStats]: () => getProviderStats(),
+    [C.clearProviderStats]: () => clearProviderStats(),
+    [C.resolveThemes]: () => ipcErrorWrapper(resolveThemes)(),
+    [C.fetchThemes]: () => ipcErrorWrapper(fetchThemes)(),
+    [C.importThemes]: (_e, file) => ipcErrorWrapper(importThemes)(file),
+    [C.readTheme]: (_e, theme) => ipcErrorWrapper(readTheme)(theme),
+    [C.writeTheme]: (_e, theme, css) => ipcErrorWrapper(writeTheme)(theme, css),
+    [C.applyTheme]: (_e, theme) => ipcErrorWrapper(applyTheme)(theme),
+    [C.copyEnv]: (_e, type) => ipcErrorWrapper(copyEnv)(type),
+    [C.alert]: (_e, msg) => {
+      if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+        mainWindow.webContents.send('show-dialog-modal', 'warning', '提示', msg)
+        if (mainWindow.isMinimized()) mainWindow.restore()
+        mainWindow.focus()
+      } else {
+        dialog.showErrorBox('RouteX', msg)
+      }
+    },
+    [C.resetAppConfig]: resetAppConfig,
+    [C.relaunchApp]: () => {
+      setNotQuitDialog()
+      app.relaunch()
+      app.exit(0)
+    },
+    [C.quitWithoutCore]: ipcErrorWrapper(quitWithoutCore),
+    [C.startNetworkDetection]: ipcErrorWrapper(startNetworkDetection),
+    [C.stopNetworkDetection]: ipcErrorWrapper(stopNetworkDetection),
+    [C.quitApp]: () => app.quit(),
+    [C.notDialogQuit]: () => {
+      setNotQuitDialog()
+      app.quit()
+    },
+    [C.startNetworkHealthMonitor]: () => {
+      startNetworkHealthMonitor()
+    },
+    [C.stopNetworkHealthMonitor]: () => {
+      stopNetworkHealthMonitor()
+    },
+    [C.getNetworkHealthStats]: () => getNetworkHealthStats(),
+    [C.getAppUptime]: () => process.uptime(),
+    [C.getAppMemory]: async () => {
+      const metrics = await process.getProcessMemoryInfo()
+      return metrics.private
     }
-  })
-  ipcMain.handle('triggerMainWindow', triggerMainWindow)
-  ipcMain.handle('showFloatingWindow', () => ipcErrorWrapper(showFloatingWindow)())
-  ipcMain.handle('closeFloatingWindow', () => ipcErrorWrapper(closeFloatingWindow)())
-  ipcMain.handle('showContextMenu', () => ipcErrorWrapper(showContextMenu)())
-  ipcMain.handle('openFile', (_e, type, id, ext) => openFile(type, id, ext))
-  ipcMain.handle('openDevTools', () => {
-    mainWindow?.webContents.openDevTools()
-  })
-  ipcMain.handle('createHeapSnapshot', () => {
-    v8.writeHeapSnapshot(path.join(logDir(), `${Date.now()}.heapsnapshot`))
-  })
-  ipcMain.handle('getUserAgent', () => ipcErrorWrapper(getUserAgent)())
-  ipcMain.handle('getAppName', (_e, appPath) => ipcErrorWrapper(getAppName)(appPath))
-  ipcMain.handle('getImageDataURL', (_e, url) => ipcErrorWrapper(getImageDataURL)(url))
-  ipcMain.handle('getIconDataURL', (_e, appPath) => ipcErrorWrapper(getIconDataURL)(appPath))
-  ipcMain.handle('getTrafficStats', () => getTrafficStats())
-  ipcMain.handle('clearTrafficStats', () => clearTrafficStats())
-  ipcMain.handle('getProcessTrafficRanking', (_e, type: 'session' | 'today', sortBy: 'upload' | 'download') => getProcessTrafficRanking(type, sortBy))
-  ipcMain.handle('getProviderStats', () => getProviderStats())
-  ipcMain.handle('clearProviderStats', () => clearProviderStats())
-  // 主题
-  ipcMain.handle('resolveThemes', () => ipcErrorWrapper(resolveThemes)())
-  ipcMain.handle('fetchThemes', () => ipcErrorWrapper(fetchThemes)())
-  ipcMain.handle('importThemes', (_e, file) => ipcErrorWrapper(importThemes)(file))
-  ipcMain.handle('readTheme', (_e, theme) => ipcErrorWrapper(readTheme)(theme))
-  ipcMain.handle('writeTheme', (_e, theme, css) => ipcErrorWrapper(writeTheme)(theme, css))
-  ipcMain.handle('applyTheme', (_e, theme) => ipcErrorWrapper(applyTheme)(theme))
-  ipcMain.handle('copyEnv', (_e, type) => ipcErrorWrapper(copyEnv)(type))
-  ipcMain.handle('alert', (_e, msg) => {
-    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
-      mainWindow.webContents.send('show-dialog-modal', 'warning', '提示', msg)
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
-    } else {
-      dialog.showErrorBox('RouteX', msg)
-    }
-  })
-  ipcMain.handle('resetAppConfig', resetAppConfig)
-  ipcMain.handle('relaunchApp', () => {
-    setNotQuitDialog()
-    app.relaunch()
-    app.exit(0)
-  })
-  ipcMain.handle('quitWithoutCore', ipcErrorWrapper(quitWithoutCore))
-  ipcMain.handle('startNetworkDetection', ipcErrorWrapper(startNetworkDetection))
-  ipcMain.handle('stopNetworkDetection', ipcErrorWrapper(stopNetworkDetection))
-  ipcMain.handle('quitApp', () => app.quit())
-  ipcMain.handle('notDialogQuit', () => {
-    setNotQuitDialog()
-    app.quit()
-  })
-  // 网络健康监控
-  ipcMain.handle('startNetworkHealthMonitor', () => {
-    startNetworkHealthMonitor()
-  })
-  ipcMain.handle('stopNetworkHealthMonitor', () => {
-    stopNetworkHealthMonitor()
-  })
-  ipcMain.handle('getNetworkHealthStats', () => {
-    return getNetworkHealthStats()
-  })
-  ipcMain.handle('getAppUptime', () => process.uptime())
-  ipcMain.handle('getAppMemory', async () => {
-    const metrics = await process.getProcessMemoryInfo()
-    return metrics.private
   })
 }

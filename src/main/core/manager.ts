@@ -52,6 +52,14 @@ class UserCancelledError extends Error {
   }
 }
 
+function hasElevatedPermissionFlag(permissions: string): boolean {
+  return permissions.includes('s') || permissions.includes('S')
+}
+
+function parseLsPermissions(stdout: string): string {
+  return stdout.trim().split(/\s+/)[0] || ''
+}
+
 function isUserCancelledError(error: unknown): boolean {
   if (error instanceof UserCancelledError) {
     return true
@@ -557,8 +565,7 @@ export function checkCorePermissionSync(coreName: 'mihomo' | 'mihomo-alpha'): bo
   try {
     const corePath = mihomoCorePath(coreName)
     const stdout = execFileSync('ls', ['-l', corePath], { encoding: 'utf8' })
-    const permissions = stdout.trim().split(/\s+/)[0]
-    return permissions.includes('s') || permissions.includes('S')
+    return hasElevatedPermissionFlag(parseLsPermissions(stdout))
   } catch {
     return false
   }
@@ -571,9 +578,8 @@ export async function checkCorePermission(): Promise<{ mihomo: boolean; 'mihomo-
     try {
       const corePath = mihomoCorePath(coreName)
       const { stdout } = await execFilePromise('ls', ['-l', corePath])
-      const permissions = stdout.trim().split(/\s+/)[0]
-      return permissions.includes('s') || permissions.includes('S')
-    } catch (error) {
+      return hasElevatedPermissionFlag(parseLsPermissions(stdout))
+    } catch {
       return false
     }
   }

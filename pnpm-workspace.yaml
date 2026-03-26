@@ -1,0 +1,7 @@
+packages:
+  - .
+
+shamefullyHoist: true
+virtualStoreDirMaxLength: 80
+publicHoistPattern:
+  - '*@heroui/*'

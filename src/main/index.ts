@@ -3,34 +3,22 @@ import { registerIpcMainHandlers } from './utils/ipc'
 import windowStateKeeper from 'electron-window-state'
 import {
   app,
-  shell,
   BrowserWindow,
-  Menu,
-  dialog,
-  Notification,
-  powerMonitor,
-  ipcMain,
-  nativeImage,
-  screen
+  Menu
 } from 'electron'
-import { addOverrideItem, addProfileItem, getAppConfig, patchControledMihomoConfig } from './config'
+import { getAppConfig, patchControledMihomoConfig } from './config'
 import { quitWithoutCore, startCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
-import { createTray, tray } from './resolve/tray'
+import { createTray } from './resolve/tray'
 import { createApplicationMenu } from './resolve/menu'
 import { init } from './utils/init'
 import { join } from 'path'
 import { initShortcut } from './resolve/shortcut'
-import { spawn } from 'child_process'
-import { createElevateTask } from './sys/misc'
 import { initProfileUpdater } from './core/profileUpdater'
-import { copyFileSync, existsSync, writeFileSync } from 'fs'
-import { exePath, resourcesFilesDir, taskDir, getIconPath } from './utils/dirs'
-import path from 'path'
+import { exePath, getIconPath } from './utils/dirs'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
 import { getAppConfigSync } from './config/app'
-import { getUserAgent } from './utils/userAgent'
 import { registerRendererCsp } from './utils/csp'
 import { loadTrafficStats, saveTrafficStats } from './resolve/trafficStats'
 import {
@@ -40,65 +28,19 @@ import {
   saveProviderStats,
   stopMapUpdateTimer
 } from './resolve/providerStats'
-
-
-let quitTimeout: NodeJS.Timeout | null = null
+import { customRelaunch as relaunchProcess } from './utils/relaunch'
+import { ensureElevatedStartup } from './bootstrap/elevation'
+import { runAppStartup } from './bootstrap/startup'
+import { registerTaskbarIconHandler } from './resolve/taskbarIcon'
+import { createShutdownController } from './bootstrap/shutdown'
+import { createDeepLinkHandler } from './resolve/deepLink'
+import { createMainWindowController, registerMainWindowLifecycleHandlers } from './resolve/mainWindow'
 export let mainWindow: BrowserWindow | null = null
 let isCreatingWindow = false
 let windowShown = false
 let createWindowPromiseResolve: (() => void) | null = null
 let createWindowPromise: Promise<void> | null = null
 let mainWindowDidFinishLoad = false
-let shutdownPromise: Promise<void> | null = null
-
-const IGNORED_RENDERER_MESSAGES = [
-  "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
-  'Download the React DevTools for a better development experience:',
-  'Slow network is detected.',
-  '[vite] connecting...',
-  '[vite] connected.',
-  'WARN: A component changed from uncontrolled to controlled.',
-  'WARN: A component changed from controlled to uncontrolled.',
-  'In HTML, %s cannot be a descendant of <%s>.',
-  '<%s> cannot contain a nested %s.'
-]
-
-function shouldReportRendererConsoleMessage(level: number, message: string): boolean {
-  if (level < 3) {
-    return false
-  }
-
-  return !IGNORED_RENDERER_MESSAGES.some((ignored) => message.includes(ignored))
-}
-
-async function scheduleLightweightMode(): Promise<void> {
-  const {
-    autoLightweight = false,
-    autoLightweightDelay = 60,
-    autoLightweightMode = 'core'
-  } = await getAppConfig()
-
-  if (!autoLightweight) return
-
-  if (quitTimeout) {
-    clearTimeout(quitTimeout)
-  }
-
-  const enterLightweightMode = async (): Promise<void> => {
-    if (autoLightweightMode === 'core') {
-      await quitWithoutCore()
-    } else if (autoLightweightMode === 'tray') {
-      if (mainWindow && !mainWindow.isVisible()) {
-        mainWindow.destroy()
-        if (process.platform === 'darwin' && app.dock) {
-          app.dock.hide()
-        }
-      }
-    }
-  }
-
-  quitTimeout = setTimeout(enterLightweightMode, autoLightweightDelay * 1000)
-}
 
 const syncConfig = getAppConfigSync()
 
@@ -113,17 +55,11 @@ if (!gotTheLock) {
 }
 
 export function customRelaunch(): void {
-  const script = `while kill -0 ${process.pid} 2>/dev/null; do
-  sleep 0.1
-done
-${process.argv.join(' ')} & disown
-exit
-`
-  spawn('sh', ['-c', `"${script}"`], {
-    shell: true,
-    detached: true,
-    stdio: 'ignore'
-  })
+  customRelaunchImpl()
+}
+
+function customRelaunchImpl(): void {
+  relaunchProcess(process.pid, process.argv)
 }
 
 if (process.platform === 'linux') {
@@ -137,10 +73,6 @@ if (process.platform === 'win32' && !exePath().startsWith('C')) {
 
 // 内存优化：限制 V8 堆内存大小，减少主进程内存占用 (默认通常过大)
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256')
-
-// 禁用站点隔离，减少渲染进程数量 (以此节省内存，作为本地应用通常安全)
-app.commandLine.appendSwitch('disable-site-isolation-trials')
-
 
 const initPromise = init()
 
@@ -161,493 +93,85 @@ app.on('open-url', async (_event, url) => {
   await handleDeepLink(url)
 })
 
-let isQuitting = false,
-  notQuitDialog = false
-
-let lastQuitAttempt = 0
-
-export function setNotQuitDialog(): void {
-  notQuitDialog = true
-}
-
-function reloadMainWindowRenderer(): void {
-  if (!mainWindow || mainWindow.isDestroyed()) return
-  mainWindowDidFinishLoad = false
-  mainWindow.webContents.reload()
-}
-
-function ensureMainWindowRendererReady(): void {
-  if (!mainWindow || mainWindow.isDestroyed()) return
-  if (mainWindow.webContents.isCrashed()) {
-    reloadMainWindowRenderer()
-    return
+const {
+  reloadMainWindowRenderer,
+  ensureMainWindowRendererReady,
+  focusMainWindow,
+  showDialog,
+  showQuitConfirmDialog,
+  showWindow
+} = createMainWindowController({
+  getMainWindow: () => mainWindow,
+  getMainWindowDidFinishLoad: () => mainWindowDidFinishLoad,
+  setMainWindowDidFinishLoad: (value) => {
+    mainWindowDidFinishLoad = value
   }
-  if (!mainWindowDidFinishLoad && !mainWindow.webContents.isLoadingMainFrame()) {
-    reloadMainWindowRenderer()
-  }
-}
+})
 
-function focusMainWindow(): void {
-  if (!mainWindow || mainWindow.isDestroyed()) return
-  mainWindow.focusOnWebView()
-  mainWindow.setAlwaysOnTop(true, 'pop-up-menu')
-  mainWindow.focus()
-  mainWindow.setAlwaysOnTop(false)
-}
+const handleDeepLink = createDeepLinkHandler({
+  createWindow: () => createWindow(),
+  getMainWindow: () => mainWindow,
+  showWindow
+})
 
-function showWindow(): number {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) {
-      mainWindow.restore()
-    } else if (!mainWindow.isVisible()) {
-      mainWindow.show()
-    }
-    focusMainWindow()
-    ensureMainWindowRendererReady()
+const shutdownController = createShutdownController({
+  getMainWindow: () => mainWindow,
+  getAppConfig,
+  quitWithoutCore,
+  stopMapUpdateTimer,
+  saveTrafficStats,
+  saveProviderStats,
+  triggerSysProxy,
+  stopCore,
+  showQuitConfirmDialog
+})
 
-    if (!mainWindow.isMinimized()) {
-      return 100
-    }
-  }
-  return 500
-}
+const {
+  clearQuitTimeout,
+  registerHooks: registerShutdownHooks,
+  scheduleLightweightMode,
+  setNotQuitDialog
+} = shutdownController
 
-async function performAppShutdown(): Promise<void> {
-  if (shutdownPromise) {
-    await shutdownPromise
-    return
-  }
-
-  shutdownPromise = (async () => {
-    stopMapUpdateTimer()
-    await Promise.allSettled([saveTrafficStats(), saveProviderStats(), triggerSysProxy(false, false)])
-    await stopCore()
-  })()
-
-  await shutdownPromise
-}
-
-function showQuitConfirmDialog(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (!mainWindow) {
-      resolve(true)
-      return
-    }
-
-    const delay = showWindow()
-    setTimeout(() => {
-      mainWindow?.webContents.send('show-quit-confirm')
-      const handleQuitConfirm = (_event: Electron.IpcMainEvent, confirmed: boolean): void => {
-        ipcMain.off('quit-confirm-result', handleQuitConfirm)
-        resolve(confirmed)
-      }
-      ipcMain.once('quit-confirm-result', handleQuitConfirm)
-    }, delay)
-  })
-}
+export { setNotQuitDialog }
 
 app.on('window-all-closed', () => {
   // Don't quit app when all windows are closed
 })
 
-app.on('before-quit', async (e) => {
-  if (!isQuitting && !notQuitDialog) {
-    e.preventDefault()
-
-    const now = Date.now()
-    if (now - lastQuitAttempt < 500) {
-      isQuitting = true
-      if (quitTimeout) {
-        clearTimeout(quitTimeout)
-        quitTimeout = null
-      }
-      await performAppShutdown()
-      app.exit()
-      return
-    }
-    lastQuitAttempt = now
-
-    const confirmed = await showQuitConfirmDialog()
-
-    if (confirmed) {
-      isQuitting = true
-      if (quitTimeout) {
-        clearTimeout(quitTimeout)
-        quitTimeout = null
-      }
-      await performAppShutdown()
-      app.exit()
-    }
-  } else if (notQuitDialog) {
-    isQuitting = true
-    if (quitTimeout) {
-      clearTimeout(quitTimeout)
-      quitTimeout = null
-    }
-    await performAppShutdown()
-    app.exit()
-  }
-})
-
-powerMonitor.on('shutdown', async () => {
-  if (quitTimeout) {
-    clearTimeout(quitTimeout)
-    quitTimeout = null
-  }
-  await performAppShutdown()
-  app.exit()
-})
-
-// 辅助函数：通用弹窗
-function showDialog(type: 'info' | 'error' | 'warning' | 'success', title: string, content: string) {
-  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
-    mainWindow.webContents.send('show-dialog-modal', type, title, content)
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    mainWindow.focus()
-  } else {
-    if (type === 'error') dialog.showErrorBox(title, content)
-    else {
-      const dialogType: 'info' | 'warning' = type === 'success' ? 'info' : type
-      dialog.showMessageBox({ type: dialogType, title, message: title, detail: content })
-    }
-  }
-}
+registerShutdownHooks()
 
 app.whenReady().then(async () => {
-  // Set app user model id for windows
-  electronApp.setAppUserModelId('routex.app')
-  registerRendererCsp()
-  
-  // Async Elevation Check
-  if (
-    process.platform === 'win32' &&
-    !is.dev &&
-    !process.argv.includes('noadmin') &&
-    syncConfig.corePermissionMode !== 'service'
-  ) {
-    try {
-      await createElevateTask()
-    } catch (createError) {
-      // 检查计划任务是否已存在
-      let taskExists = false
-      try {
-        const { promisify } = await import('util')
-        const { exec } = await import('child_process')
-        const execPromise = promisify(exec)
-        
-        await execPromise('%SystemRoot%\\System32\\schtasks.exe /query /tn "sparkle-run"')
-        taskExists = true
-      } catch {
-        // 计划任务不存在
-      }
-
-      if (taskExists) {
-        // 计划任务已存在，尝试运行
-        try {
-          const { promisify } = await import('util')
-          const { exec } = await import('child_process')
-          const execPromise = promisify(exec)
-
-          if (process.argv.slice(1).length > 0) {
-            writeFileSync(path.join(taskDir(), 'param.txt'), process.argv.slice(1).join(' '))
-          } else {
-            writeFileSync(path.join(taskDir(), 'param.txt'), 'empty')
-          }
-          // 确保 sparkle-run.exe 存在
-          const sparkleRunDest = path.join(taskDir(), 'sparkle-run.exe')
-          if (!existsSync(sparkleRunDest)) {
-            const sparkleRunSrc = path.join(resourcesFilesDir(), 'sparkle-run.exe')
-            if (existsSync(sparkleRunSrc)) {
-              copyFileSync(sparkleRunSrc, sparkleRunDest)
-            }
-          }
-          await execPromise('%SystemRoot%\\System32\\schtasks.exe /run /tn "sparkle-run"')
-          app.exit()
-          return // Stop initialization
-        } catch (e) {
-          const createErrorStr = `${createError}`
-          const eStr = `${e}`
-          try {
-            // Buffer/Iconv logic... simplified for async?
-            // If exec throws, e.stderr is available.
-            // keeping it simple for now, relying on error string
-          } catch {
-             // ignore
-          }
-          dialog.showErrorBox(
-            '启动失败',
-            `无法启动应用\n${createErrorStr}\n${eStr}`
-          )
-          app.exit()
-          return
-        }
-      } else {
-        // First run, need admin
-        const errorMsg = '首次启动需要管理员权限来创建系统任务。\n\n请右键点击应用图标，选择"以管理员身份运行"。'
-        dialog.showErrorBox('需要管理员权限', errorMsg)
-        app.exit()
-        return
-      }
-    }
-  }
-
-  // Ensure TUN is disabled in development mode on Windows
-  if (process.platform === 'win32' && is.dev) {
-    await patchControledMihomoConfig({ tun: { enable: false } })
-  }
-
-  try {
-    await initPromise
-  } catch (e) {
-    showDialog('error', '应用初始化失败', `${e}`)
-    app.quit()
-  }
-
-  // 加载流量统计数据
-  loadTrafficStats()
-  
-  // 加载订阅统计数据
-  loadProviderStats()
-  startMapUpdateTimer()
-
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
-  const appConfig = await getAppConfig()
-  const { showFloatingWindow: showFloating = false, disableTray = false } = appConfig
-  registerIpcMainHandlers()
-
-  // 显式设置 AUMID，确保 Windows 任务栏能正确识别应用身份
-  // 这对于“固定”在任务栏的应用图标更新至关重要
   electronApp.setAppUserModelId('routex.app')
 
-  ipcMain.on('update-taskbar-icon', (_event, type: 'default' | 'proxy' | 'tun') => {
-    try {
-      if (process.platform !== 'win32') return
-      
-      let iconName = 'icon.ico'
-      if (type === 'proxy') iconName = 'icon_proxy.ico'
-      if (type === 'tun') iconName = 'icon_tun.ico'
-      
-      const iconPath = getIconPath(iconName)
-      // console.log(`[IconUpdate] Updating taskbar icon to: ${iconPath}`)
-
-      const nativeIcon = nativeImage.createFromPath(iconPath)
-      
-      if (nativeIcon.isEmpty()) {
-        console.warn(`[IconUpdate] Failed to load icon from path: ${iconPath}`)
-        return
-      }
-
-      // 更新任务栏图标
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        // 尝试直接设置主图标 (注意：如果应用被固定在任务栏，Windows 可能忽略此调用且只显示固定图标)
-        mainWindow.setIcon(nativeIcon)
-      }
-      
-      // 同时更新托盘图标（根据 DPI 缩放 resize，确保清晰）
-      if (tray) {
-        const scaleFactor = screen.getPrimaryDisplay().scaleFactor
-        const traySize = Math.round(16 * scaleFactor)
-        const trayIcon = nativeIcon.resize({ width: traySize, height: traySize })
-        tray.setImage(trayIcon)
-      }
-    } catch (e) {
-      console.error('Failed to update icons:', e)
-    }
-  })
-
-  const createWindowPromise = createWindow(appConfig)
-
-  let coreStarted = false
-
-  const coreStartPromise = (async (): Promise<void> => {
-    try {
-      const [startPromise] = await startCore()
-      startPromise.then(async () => {
-        await initProfileUpdater()
-      })
-      coreStarted = true
-    } catch (e) {
-      showDialog('error', '内核启动出错', `${e}`)
-    }
-  })()
-
-  const monitorPromise = (async (): Promise<void> => {
-    try {
-      await startMonitor()
-    } catch {
-      // ignore
-    }
-  })()
-
-  await createWindowPromise
-
-  const uiTasks: Promise<void>[] = [initShortcut()]
-
-  if (showFloating) {
-    uiTasks.push(Promise.resolve(showFloatingWindow()))
-  }
-  if (!disableTray) {
-    uiTasks.push(createTray())
-  }
-
-  await Promise.all(uiTasks)
-
-  await Promise.all([coreStartPromise, monitorPromise])
-
-  if (coreStarted) {
-    mainWindow?.webContents.send('core-started')
-    // 内核启动完成，开始记录订阅统计
-    onCoreStarted()
-  }
-
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    showMainWindow()
+  await runAppStartup({
+    isDev: is.dev,
+    argv: process.argv,
+    syncConfig,
+    initPromise,
+    registerRendererCsp,
+    showDialog,
+    ensureElevatedStartup,
+    patchControledMihomoConfig,
+    loadTrafficStats,
+    loadProviderStats,
+    startMapUpdateTimer,
+    watchWindowShortcuts: optimizer.watchWindowShortcuts,
+    getAppConfig,
+    registerIpcMainHandlers,
+    registerTaskbarIconHandler,
+    getMainWindow: () => mainWindow,
+    createWindow,
+    startCore,
+    initProfileUpdater,
+    startMonitor,
+    initShortcut,
+    showFloatingWindow,
+    createTray,
+    onCoreStarted,
+    showMainWindow
   })
 })
-
-async function handleDeepLink(url: string): Promise<void> {
-  if (!url.startsWith('clash://') && !url.startsWith('mihomo://') && !url.startsWith('routex://'))
-    return
-
-  const urlObj = new URL(url)
-  switch (urlObj.host) {
-    case 'install-config': {
-      try {
-        const profileUrl = urlObj.searchParams.get('url')
-        const profileName = urlObj.searchParams.get('name')
-        if (!profileUrl) {
-          throw new Error('缺少参数 url')
-        }
-
-        const confirmed = await showProfileInstallConfirm(profileUrl, profileName)
-
-        if (confirmed) {
-          await addProfileItem({
-            type: 'remote',
-            name: profileName ?? undefined,
-            url: profileUrl
-          })
-          mainWindow?.webContents.send('profileConfigUpdated')
-          new Notification({ title: '订阅导入成功' }).show()
-        }
-      } catch (e) {
-        dialog.showErrorBox('订阅导入失败', `${url}\n${e}`)
-      }
-      break
-    }
-    case 'install-override': {
-      try {
-        const urlParam = urlObj.searchParams.get('url')
-        const profileName = urlObj.searchParams.get('name')
-        if (!urlParam) {
-          throw new Error('缺少参数 url')
-        }
-
-        const confirmed = await showOverrideInstallConfirm(urlParam, profileName)
-
-        if (confirmed) {
-          const url = new URL(urlParam)
-          const name = url.pathname.split('/').pop()
-          await addOverrideItem({
-            type: 'remote',
-            name: profileName ?? (name ? decodeURIComponent(name) : undefined),
-            url: urlParam,
-            ext: url.pathname.endsWith('.js') ? 'js' : 'yaml'
-          })
-          mainWindow?.webContents.send('overrideConfigUpdated')
-          new Notification({ title: '覆写导入成功' }).show()
-        }
-      } catch (e) {
-        dialog.showErrorBox('覆写导入失败', `${url}\n${e}`)
-      }
-      break
-    }
-  }
-}
-
-async function showProfileInstallConfirm(url: string, name?: string | null): Promise<boolean> {
-  if (!mainWindow) {
-    await createWindow()
-  }
-  let extractedName = name
-
-  if (!extractedName) {
-    try {
-      const axios = (await import('axios')).default
-      const response = await axios.head(url, {
-        headers: {
-          'User-Agent': await getUserAgent()
-        },
-        timeout: 5000
-      })
-
-      if (response.headers['content-disposition']) {
-        extractedName = parseFilename(response.headers['content-disposition'])
-      }
-    } catch (error) {
-      // ignore
-    }
-  }
-
-  return new Promise((resolve) => {
-    const delay = showWindow()
-    setTimeout(() => {
-      mainWindow?.webContents.send('show-profile-install-confirm', {
-        url,
-        name: extractedName || name
-      })
-      const handleConfirm = (_event: Electron.IpcMainEvent, confirmed: boolean): void => {
-        ipcMain.off('profile-install-confirm-result', handleConfirm)
-        resolve(confirmed)
-      }
-      ipcMain.once('profile-install-confirm-result', handleConfirm)
-    }, delay)
-  })
-}
-
-function parseFilename(str: string): string {
-  if (str.match(/filename\*=.*''/)) {
-    const filename = decodeURIComponent(str.split(/filename\*=.*''/)[1])
-    return filename
-  } else {
-    const filename = str.split('filename=')[1]
-    return filename?.replace(/"/g, '') || ''
-  }
-}
-
-async function showOverrideInstallConfirm(url: string, name?: string | null): Promise<boolean> {
-  if (!mainWindow) {
-    await createWindow()
-  }
-  return new Promise((resolve) => {
-    let finalName = name
-    if (!finalName) {
-      const urlObj = new URL(url)
-      const pathName = urlObj.pathname.split('/').pop()
-      finalName = pathName ? decodeURIComponent(pathName) : undefined
-    }
-
-    const delay = showWindow()
-    setTimeout(() => {
-      mainWindow?.webContents.send('show-override-install-confirm', {
-        url,
-        name: finalName
-      })
-      const handleConfirm = (_event: Electron.IpcMainEvent, confirmed: boolean): void => {
-        ipcMain.off('override-install-confirm-result', handleConfirm)
-        resolve(confirmed)
-      }
-      ipcMain.once('override-install-confirm-result', handleConfirm)
-    }, delay)
-  })
-}
 
 export async function createWindow(appConfig?: AppConfig): Promise<void> {
   if (isCreatingWindow) {
@@ -697,126 +221,31 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
-        webviewTag: true
+        webviewTag: false
       }
     })
     mainWindowState.manage(mainWindow)
-    mainWindow.on('ready-to-show', async () => {
-      const { silentStart = false } = await getAppConfig()
-      if (!silentStart) {
-        if (quitTimeout) {
-          clearTimeout(quitTimeout)
-        }
+    registerMainWindowLifecycleHandlers({
+      mainWindow,
+      mainWindowState,
+      getAppConfig,
+      clearQuitTimeout,
+      scheduleLightweightMode,
+      getWindowShown: () => windowShown,
+      markWindowShown: () => {
         windowShown = true
-        mainWindow?.show()
-        mainWindow?.focusOnWebView()
-      } else {
-        await scheduleLightweightMode()
-      }
+      },
+      resetMainWindow: () => {
+        mainWindowDidFinishLoad = false
+        mainWindow = null
+      },
+      reloadMainWindowRenderer,
+      setMainWindowDidFinishLoad: (value) => {
+        mainWindowDidFinishLoad = value
+      },
+      triggerSysProxy,
+      stopCore
     })
-    mainWindow.webContents.on('did-start-loading', () => {
-      mainWindowDidFinishLoad = false
-    })
-    mainWindow.webContents.on('did-finish-load', () => {
-      mainWindowDidFinishLoad = true
-    })
-    mainWindow.webContents.on('did-fail-load', () => {
-      reloadMainWindowRenderer()
-    })
-    mainWindow.webContents.on('console-message', (_event, ...args: unknown[]) => {
-      const details =
-        args.length === 1 && args[0] && typeof args[0] === 'object'
-          ? (args[0] as Record<string, unknown>)
-          : {
-              level: args[0],
-              message: args[1],
-              lineNumber: args[2],
-              sourceId: args[3]
-            }
-
-      const level = typeof details.level === 'number' ? details.level : 0
-      const message = typeof details.message === 'string' ? details.message : String(details.message ?? '')
-      const lineNumber = typeof details.lineNumber === 'number' ? details.lineNumber : 0
-      const sourceId = typeof details.sourceId === 'string' ? details.sourceId : 'unknown'
-      const prefix = `[renderer:${level}] ${sourceId}:${lineNumber}`
-
-      if (!shouldReportRendererConsoleMessage(level, message)) {
-        return
-      }
-
-      console.error(prefix, message)
-    })
-    mainWindow.webContents.on(
-      'did-fail-load',
-      (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-        console.error('[renderer] did-fail-load', {
-          errorCode,
-          errorDescription,
-          validatedURL,
-          isMainFrame
-        })
-      }
-    )
-
-    // 处理渲染进程崩溃
-    mainWindow.webContents.on('render-process-gone', (_event, details) => {
-      console.error('Renderer process crashed:', details)
-      reloadMainWindowRenderer()
-    })
-
-    // 处理渲染进程无响应
-    mainWindow.on('unresponsive', () => {
-      console.warn('Main window became unresponsive')
-      reloadMainWindowRenderer()
-    })
-
-    // 处理渲染进程恢复响应
-    mainWindow.on('responsive', () => {
-      console.log('Main window became responsive again')
-    })
-
-    mainWindow.on('close', async (event) => {
-      event.preventDefault()
-      mainWindow?.hide()
-      if (windowShown) {
-        await scheduleLightweightMode()
-      }
-    })
-
-    mainWindow.on('closed', () => {
-      mainWindowDidFinishLoad = false
-      mainWindow = null
-    })
-
-    mainWindow.on('resized', () => {
-      if (mainWindow) mainWindowState.saveState(mainWindow)
-    })
-
-    mainWindow.on('unmaximize', () => {
-      if (mainWindow) mainWindowState.saveState(mainWindow)
-    })
-
-    mainWindow.on('move', () => {
-      if (mainWindow) mainWindowState.saveState(mainWindow)
-    })
-
-    mainWindow.on('session-end', async () => {
-      triggerSysProxy(false, false)
-      await stopCore()
-    })
-
-    mainWindow.webContents.setWindowOpenHandler((details) => {
-      shell.openExternal(details.url)
-      return { action: 'deny' }
-    })
-    mainWindowDidFinishLoad = false
-    // HMR for renderer base on electron-vite cli.
-    // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-      mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-    } else {
-      mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-    }
   } finally {
     isCreatingWindow = false
     if (createWindowPromiseResolve) {
@@ -836,9 +265,7 @@ export async function triggerMainWindow(): Promise<void> {
 }
 
 export async function showMainWindow(): Promise<void> {
-  if (quitTimeout) {
-    clearTimeout(quitTimeout)
-  }
+  clearQuitTimeout()
   if (process.platform === 'darwin' && app.dock) {
     const { useDockIcon = true } = await getAppConfig()
     if (!useDockIcon) {

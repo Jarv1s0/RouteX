@@ -28,7 +28,9 @@ export {
   createOverride,
   getOverride,
   setOverride,
-  updateOverrideItem
+  updateOverrideItem,
+  canRollbackOverride,
+  rollbackOverride
 } from './override'
 export {
   getChainsConfig,
@@ -39,4 +41,3 @@ export {
   removeChainItem,
   getAllChains
 } from './chains'
-

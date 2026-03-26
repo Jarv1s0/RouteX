@@ -63,9 +63,6 @@ const electronAPI = {
     },
     get versions() {
       return process.versions
-    },
-    get env() {
-      return { ...process.env }
     }
   }
 }

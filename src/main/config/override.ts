@@ -1,4 +1,4 @@
-import { overrideConfigPath, overridePath } from '../utils/dirs'
+import { overrideConfigPath, overridePath, overrideRollbackPath } from '../utils/dirs'
 import { getControledMihomoConfig } from './controledMihomo'
 import { readFile, writeFile, rm } from 'fs/promises'
 import { existsSync } from 'fs'
@@ -58,6 +58,7 @@ export async function removeOverrideItem(id: string): Promise<void> {
   config.items = config.items?.filter((item) => item.id !== id)
   await setOverrideConfig(config)
   await rm(overridePath(id, item?.ext || 'js'))
+  await rm(overrideRollbackPath(id, item?.ext || 'js'), { force: true })
 }
 
 export async function createOverride(item: Partial<OverrideItem>): Promise<OverrideItem> {
@@ -173,6 +174,34 @@ export async function getOverride(id: string, ext: 'js' | 'yaml' | 'log'): Promi
   return await readFile(overridePath(id, ext), 'utf-8')
 }
 
+export async function canRollbackOverride(id: string, ext: 'js' | 'yaml'): Promise<boolean> {
+  return existsSync(overrideRollbackPath(id, ext))
+}
+
 export async function setOverride(id: string, ext: 'js' | 'yaml', content: string): Promise<void> {
-  await writeFile(overridePath(id, ext), content, 'utf-8')
+  const targetPath = overridePath(id, ext)
+  if (existsSync(targetPath)) {
+    const previousContent = await readFile(targetPath, 'utf-8')
+    if (previousContent !== content) {
+      await writeFile(overrideRollbackPath(id, ext), previousContent, 'utf-8')
+    }
+  }
+  await writeFile(targetPath, content, 'utf-8')
+}
+
+export async function rollbackOverride(id: string, ext: 'js' | 'yaml'): Promise<void> {
+  const targetPath = overridePath(id, ext)
+  const rollbackPath = overrideRollbackPath(id, ext)
+
+  if (!existsSync(rollbackPath)) {
+    throw new Error('当前覆写没有可回滚的上次内容')
+  }
+
+  const rollbackContent = await readFile(rollbackPath, 'utf-8')
+  if (existsSync(targetPath)) {
+    const currentContent = await readFile(targetPath, 'utf-8')
+    await writeFile(rollbackPath, currentContent, 'utf-8')
+  }
+
+  await writeFile(targetPath, rollbackContent, 'utf-8')
 }

@@ -51,8 +51,11 @@ let visibilityChangeHandler: (() => void) | null = null
 // Module-level handler references for robust cleanup
 let currentTrafficHandler: ((e: unknown, traffic: { up: number; down: number }) => void) | null = null
 let currentConnectionsHandler: ((e: unknown, data: { connections?: ControllerConnectionDetail[] }) => void) | null = null
+let currentConnectionsThrottle: { cancel: () => void } | null = null
 
 function unregisterTrafficHandlers() {
+    currentConnectionsThrottle?.cancel()
+    currentConnectionsThrottle = null
     if (currentTrafficHandler) {
         window.electron.ipcRenderer.removeListener('mihomoTraffic', currentTrafficHandler)
         currentTrafficHandler = null
@@ -215,6 +218,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
     try {
         currentTrafficHandler = handleTraffic
         currentConnectionsHandler = handleConnections
+        currentConnectionsThrottle = handleConnections
         window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
         window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
     } catch(e) {

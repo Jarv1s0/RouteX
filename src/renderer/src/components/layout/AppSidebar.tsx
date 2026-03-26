@@ -160,7 +160,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
       return (
         <div
           ref={ref}
-          style={{ width: `${width}px` }}
+          style={{ width: 'var(--sider-width)' }}
           className="side h-full flex flex-col bg-default-100/50 backdrop-blur-2xl border-r border-default-200/50 dark:border-white/5 transition-all duration-300"
         >
           <div className="app-drag flex justify-center items-center z-40 bg-transparent h-[49px] shrink-0">
@@ -198,7 +198,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
     return (
       <div
         ref={ref}
-        style={{ width: `${width}px` }}
+        style={{ width: 'var(--sider-width)' }}
         className="side h-full overflow-y-auto no-scrollbar bg-default-100/50 backdrop-blur-2xl border-r border-default-200/50 dark:border-white/5 transition-all duration-300"
       >
         <div

@@ -27,64 +27,47 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     getProfileConfig()
   )
 
-  const setProfileConfig = async (config: ProfileConfig): Promise<void> => {
-    try {
-      await set(config)
-    } catch (e) {
-      notifyError(e, { title: '保存订阅配置失败' })
-    } finally {
-      mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
-  }
+  const syncProfileConfig = React.useCallback((): void => {
+    void mutateProfileConfig()
+    window.electron.ipcRenderer.send('updateTrayMenu')
+  }, [mutateProfileConfig])
 
-  const addProfileItem = async (item: Partial<ProfileItem>): Promise<void> => {
-    try {
-      await add(item)
-    } catch (e) {
-      notifyError(e, { title: '新增订阅失败' })
-    } finally {
-      mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
-  }
+  const runProfileMutation = React.useCallback(
+    async (action: () => Promise<void>, errorTitle: string): Promise<void> => {
+      try {
+        await action()
+      } catch (e) {
+        notifyError(e, { title: errorTitle })
+      } finally {
+        syncProfileConfig()
+      }
+    },
+    [syncProfileConfig]
+  )
 
-  const removeProfileItem = async (id: string): Promise<void> => {
-    try {
-      await remove(id)
-    } catch (e) {
-      notifyError(e, { title: '删除订阅失败' })
-    } finally {
-      mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
-  }
+  const setProfileConfig = React.useCallback(async (config: ProfileConfig): Promise<void> => {
+    await runProfileMutation(() => set(config), '保存订阅配置失败')
+  }, [runProfileMutation])
 
-  const updateProfileItem = async (item: ProfileItem): Promise<void> => {
-    try {
-      await update(item)
-    } catch (e) {
-      notifyError(e, { title: '更新订阅失败' })
-    } finally {
-      mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
-  }
+  const addProfileItem = React.useCallback(async (item: Partial<ProfileItem>): Promise<void> => {
+    await runProfileMutation(() => add(item), '新增订阅失败')
+  }, [runProfileMutation])
 
-  const changeCurrentProfile = async (id: string): Promise<void> => {
-    try {
-      await change(id)
-    } catch (e) {
-      notifyError(e, { title: '切换订阅失败' })
-    } finally {
-      mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
-  }
+  const removeProfileItem = React.useCallback(async (id: string): Promise<void> => {
+    await runProfileMutation(() => remove(id), '删除订阅失败')
+  }, [runProfileMutation])
+
+  const updateProfileItem = React.useCallback(async (item: ProfileItem): Promise<void> => {
+    await runProfileMutation(() => update(item), '更新订阅失败')
+  }, [runProfileMutation])
+
+  const changeCurrentProfile = React.useCallback(async (id: string): Promise<void> => {
+    await runProfileMutation(() => change(id), '切换订阅失败')
+  }, [runProfileMutation])
 
   useEffect(() => {
     const handleProfileConfigUpdated = (): void => {
-      mutateProfileConfig()
+      void mutateProfileConfig()
     }
     window.electron.ipcRenderer.on('profileConfigUpdated', handleProfileConfigUpdated)
     return (): void => {
@@ -96,13 +79,21 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     () => ({
       profileConfig,
       setProfileConfig,
-      mutateProfileConfig,
+      mutateProfileConfig: syncProfileConfig,
       addProfileItem,
       removeProfileItem,
       updateProfileItem,
       changeCurrentProfile
     }),
-    [profileConfig, mutateProfileConfig] // functions inside rely on stale closures if not careful, but they use mutate/set so it's fine
+    [
+      addProfileItem,
+      changeCurrentProfile,
+      profileConfig,
+      removeProfileItem,
+      setProfileConfig,
+      syncProfileConfig,
+      updateProfileItem
+    ]
   )
 
   return (

@@ -1,12 +1,24 @@
-import { ipcMain, net } from 'electron'
+import { net } from 'electron'
 import { mihomoGetConnections, mihomoCloseConnection, mihomoDnsQuery } from '../core/mihomoApi'
-import { ipcErrorWrapper } from '../utils/ipc'
+import { ipcErrorWrapper, registerIpcInvokeHandlers } from '../utils/ipc'
+import { IPC_INVOKE_CHANNELS } from '../../shared/ipc'
 
 // 流媒体解锁检测
 export interface StreamingResult {
   status: 'unlocked' | 'locked' | 'error'
   region?: string
   error?: string
+}
+
+interface IpInfoQuery {
+  query: string
+  lang?: string
+  originalQuery?: string
+}
+
+interface IpInfoResult {
+  query?: string
+  [key: string]: unknown
 }
 
 export async function checkStreamingService(service: string): Promise<StreamingResult> {
@@ -251,97 +263,96 @@ const resolveToIp = async (query: string): Promise<string> => {
 }
 
 export function registerNetworkHandlers(): void {
-  ipcMain.handle('fetchIpInfo', ipcErrorWrapper(async () => {
-    return new Promise((resolve, reject) => {
-      const request = net.request('http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query')
-      let data = ''
-      request.on('response', (response) => {
-        response.on('data', (chunk) => { data += chunk.toString() })
-        response.on('end', () => {
-          try { resolve(JSON.parse(data)) } catch { reject(new Error('解析失败')) }
+  const C = IPC_INVOKE_CHANNELS
+
+  registerIpcInvokeHandlers({
+    [C.fetchIpInfo]: ipcErrorWrapper(async () => {
+      return new Promise((resolve, reject) => {
+        const request = net.request('http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query')
+        let data = ''
+        request.on('response', (response) => {
+          response.on('data', (chunk) => { data += chunk.toString() })
+          response.on('end', () => {
+            try { resolve(JSON.parse(data)) } catch { reject(new Error('解析失败')) }
+          })
         })
+        request.on('error', (error) => { reject(error) })
+        request.end()
       })
-      request.on('error', (error) => { reject(error) })
-      request.end()
-    })
-  }))
-
-  ipcMain.handle('fetchIpInfoQuery', ipcErrorWrapper(async (_e, query: string) => {
-    const ip = await resolveToIp(query)
-    return new Promise((resolve, reject) => {
-      const request = net.request(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`)
-      let data = ''
-      request.on('response', (response) => {
-        response.on('data', (chunk) => { data += chunk.toString() })
-        response.on('end', () => {
-          try {
-            const json = JSON.parse(data)
-            if (json.query !== query) json.query = query 
-            resolve(json)
-          } catch { reject(new Error('解析失败')) }
-        })
-      })
-      request.on('error', (error) => { reject(error) })
-      request.end()
-    })
-  }))
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ipcMain.handle('fetchBatchIpInfo', ipcErrorWrapper(async (_e, queries: any[]) => {
-    const resolvedQueries = await Promise.all(queries.map(async (q) => {
-        if (q.query) {
-            const ip = await resolveToIp(q.query)
-            return { ...q, query: ip, originalQuery: q.query }
-        }
-        return q
-    }))
-
-    return new Promise((resolve, reject) => {
-      try {
-        const request = net.request({ url: 'http://ip-api.com/batch', method: 'POST' })
-        request.setHeader('Content-Type', 'application/json')
-        request.write(JSON.stringify(resolvedQueries))
-        
+    }),
+    [C.fetchIpInfoQuery]: ipcErrorWrapper(async (_e, query: string) => {
+      const ip = await resolveToIp(query)
+      return new Promise((resolve, reject) => {
+        const request = net.request(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`)
         let data = ''
         request.on('response', (response) => {
           response.on('data', (chunk) => { data += chunk.toString() })
           response.on('end', () => {
             try {
               const json = JSON.parse(data)
-              if (Array.isArray(json)) {
-                  json.forEach((item, index) => {
-                      if (resolvedQueries[index].originalQuery) {
-                          item.query = resolvedQueries[index].originalQuery
-                      }
-                  })
-              }
+              if (json.query !== query) json.query = query
               resolve(json)
             } catch { reject(new Error('解析失败')) }
           })
         })
         request.on('error', (error) => { reject(error) })
         request.end()
-      } catch (e) {
-        reject(e)
-      }
-    })
-  }))
-
-  ipcMain.handle('testRuleMatch', async (_e, domain: string) => {
-    try {
-      return await new Promise((resolve) => {
-        const url = `http://${domain}/`
-        const resolveResult = async () => {
-            try {
-                await new Promise(r => setTimeout(r, 500))
-                const result = await findConnectionByHost(domain)
-                resolve(result)
-            } catch (e) {
-                resolve(null)
-            }
+      })
+    }),
+    [C.fetchBatchIpInfo]: ipcErrorWrapper(async (_e, queries: IpInfoQuery[]) => {
+      const resolvedQueries = await Promise.all(queries.map(async (q) => {
+        if (q.query) {
+          const ip = await resolveToIp(q.query)
+          return { ...q, query: ip, originalQuery: q.query }
         }
+        return q
+      }))
 
+      return new Promise((resolve, reject) => {
         try {
+          const request = net.request({ url: 'http://ip-api.com/batch', method: 'POST' })
+          request.setHeader('Content-Type', 'application/json')
+          request.write(JSON.stringify(resolvedQueries))
+
+          let data = ''
+          request.on('response', (response) => {
+            response.on('data', (chunk) => { data += chunk.toString() })
+            response.on('end', () => {
+              try {
+                const json = JSON.parse(data) as IpInfoResult[]
+                if (Array.isArray(json)) {
+                  json.forEach((item, index) => {
+                    if (resolvedQueries[index].originalQuery) {
+                      item.query = resolvedQueries[index].originalQuery
+                    }
+                  })
+                }
+                resolve(json)
+              } catch { reject(new Error('解析失败')) }
+            })
+          })
+          request.on('error', (error) => { reject(error) })
+          request.end()
+        } catch (e) {
+          reject(e)
+        }
+      })
+    }),
+    [C.testRuleMatch]: async (_e, domain: string) => {
+      try {
+        return await new Promise((resolve) => {
+          const url = `http://${domain}/`
+          const resolveResult = async () => {
+            try {
+              await new Promise((r) => setTimeout(r, 500))
+              const result = await findConnectionByHost(domain)
+              resolve(result)
+            } catch {
+              resolve(null)
+            }
+          }
+
+          try {
             const request = net.request({ url, method: 'HEAD' })
             const timeout = setTimeout(() => {
               try { request.abort() } catch { /* ignore */ }
@@ -357,73 +368,70 @@ export function registerNetworkHandlers(): void {
               resolveResult()
             })
             request.end()
-        } catch (e) {
+          } catch {
             resolveResult()
-        }
-      })
-    } catch (e) {
-      return { invokeError: e instanceof Error ? e.message : String(e) }
-    }
-  })
-
-  ipcMain.handle('testConnectivity', async (_e, url: string, timeout: number = 5000) => {
-    try {
-      return await new Promise((resolve) => {
-        const startTime = Date.now()
-        const request = net.request({ url, method: 'GET' })
-        
-        const timer = setTimeout(() => {
-          request.abort()
-          resolve({ success: false, latency: -1, error: '超时' })
-        }, timeout)
-        
-        request.on('response', (response) => {
-          clearTimeout(timer)
-          const latency = Date.now() - startTime
-          request.abort()
-          resolve({ success: response.statusCode < 400, latency, status: response.statusCode })
+          }
         })
-        
-        request.on('error', (error) => {
-          clearTimeout(timer)
-          resolve({ success: false, latency: -1, error: error.message })
-        })
-        
-        request.end()
-      })
-    } catch (e) {
-      return { success: false, latency: -1, error: e instanceof Error ? e.message : String(e) }
-    }
-  })
-
-  ipcMain.handle('httpGet', async (_e, url: string, timeout: number = 5000) => {
-    try {
-      return await httpGet(url, timeout)
-    } catch (e) {
-      return { status: 500, data: '', headers: {}, error: e instanceof Error ? e.message : String(e) }
-    }
-  })
-
-  ipcMain.handle('checkStreamingUnlock', async (_e, service: string) => {
-    try {
-      return await checkStreamingService(service)
-    } catch (e) {
-      return { status: 'error', region: '', error: e instanceof Error ? e.message : String(e) }
-    }
-  })
-
-  ipcMain.handle('testDNSLatency', async (_e, domain: string) => {
-    const start = Date.now()
-    try {
-      await mihomoDnsQuery(domain, 'A')
-      return Math.max(1, Date.now() - start)
-    } catch {
+      } catch (e) {
+        return { invokeError: e instanceof Error ? e.message : String(e) }
+      }
+    },
+    [C.testConnectivity]: async (_e, url: string, timeout: number = 5000) => {
       try {
-        const dns = await import('dns')
-        await dns.promises.resolve(domain)
+        return await new Promise((resolve) => {
+          const startTime = Date.now()
+          const request = net.request({ url, method: 'GET' })
+
+          const timer = setTimeout(() => {
+            request.abort()
+            resolve({ success: false, latency: -1, error: '超时' })
+          }, timeout)
+
+          request.on('response', (response) => {
+            clearTimeout(timer)
+            const latency = Date.now() - startTime
+            request.abort()
+            resolve({ success: response.statusCode < 400, latency, status: response.statusCode })
+          })
+
+          request.on('error', (error) => {
+            clearTimeout(timer)
+            resolve({ success: false, latency: -1, error: error.message })
+          })
+
+          request.end()
+        })
+      } catch (e) {
+        return { success: false, latency: -1, error: e instanceof Error ? e.message : String(e) }
+      }
+    },
+    [C.httpGet]: async (_e, url: string, timeout: number = 5000) => {
+      try {
+        return await httpGet(url, timeout)
+      } catch (e) {
+        return { status: 500, data: '', headers: {}, error: e instanceof Error ? e.message : String(e) }
+      }
+    },
+    [C.checkStreamingUnlock]: async (_e, service: string) => {
+      try {
+        return await checkStreamingService(service)
+      } catch (e) {
+        return { status: 'error', region: '', error: e instanceof Error ? e.message : String(e) }
+      }
+    },
+    [C.testDNSLatency]: async (_e, domain: string) => {
+      const start = Date.now()
+      try {
+        await mihomoDnsQuery(domain, 'A')
         return Math.max(1, Date.now() - start)
       } catch {
-        return -1
+        try {
+          const dns = await import('dns')
+          await dns.promises.resolve(domain)
+          return Math.max(1, Date.now() - start)
+        } catch {
+          return -1
+        }
       }
     }
   })

@@ -16,6 +16,9 @@ const isObjectWithDefaultFunction = (
 const monacoEditorPlugin = isObjectWithDefaultFunction(monacoEditorPluginModule)
   ? monacoEditorPluginModule.default
   : monacoEditorPluginModule
+const routexBuildDefines = {
+  __ROUTEX_AUTO_BUILD__: JSON.stringify(process.env.ROUTEX_AUTO_BUILD === 'true')
+}
 
 const rendererCspMetaPlugin = {
   name: 'renderer-csp-meta',
@@ -27,12 +30,15 @@ const rendererCspMetaPlugin = {
 
 export default defineConfig({
   main: {
+    define: routexBuildDefines,
     plugins: [externalizeDepsPlugin()]
   },
   preload: {
+    define: routexBuildDefines,
     plugins: [externalizeDepsPlugin()]
   },
   renderer: {
+    define: routexBuildDefines,
     build: {
       rollupOptions: {
         input: {

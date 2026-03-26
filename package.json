@@ -1,6 +1,6 @@
 {
   "name": "routex",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "RouteX",
   "main": "./out/main/index.js",
   "scripts": {
@@ -9,15 +9,15 @@
     "lint:ci": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-    "typecheck": "pnpm run typecheck:node && pnpm run typecheck:web",
+    "typecheck": "corepack pnpm run typecheck:node && corepack pnpm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
-    "build": "pnpm run typecheck && electron-vite build",
+    "build": "corepack pnpm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "pnpm run build && electron-builder --dir",
-    "build:win": "pnpm run build && electron-builder --win --publish always",
-    "build:mac": "pnpm run build && electron-builder --mac --publish always",
-    "build:linux": "pnpm run build && electron-builder --linux --publish always"
+    "build:unpack": "corepack pnpm run build && electron-builder --config electron-builder.config.cjs --dir",
+    "build:win": "corepack pnpm run build && electron-builder --config electron-builder.config.cjs --win --publish always",
+    "build:mac": "corepack pnpm run build && electron-builder --config electron-builder.config.cjs --mac --publish always",
+    "build:linux": "corepack pnpm run build && electron-builder --config electron-builder.config.cjs --linux --publish always"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

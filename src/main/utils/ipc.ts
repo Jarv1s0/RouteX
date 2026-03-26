@@ -1,7 +1,9 @@
+import { ipcMain } from 'electron'
 import { registerMihomoHandlers } from '../ipc/mihomo'
 import { registerConfigHandlers } from '../ipc/config'
 import { registerSystemHandlers } from '../ipc/system'
 import { registerNetworkHandlers } from '../ipc/network'
+import type { IpcInvokeChannel } from '../../shared/ipc'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function ipcErrorWrapper<T>(
@@ -24,6 +26,18 @@ export function ipcErrorWrapper<T>(
       return { invokeError: 'Unknown Error' }
     }
   }
+}
+
+type IpcInvokeHandler = Parameters<typeof ipcMain.handle>[1]
+
+export function registerIpcInvokeHandlers(
+  handlers: Partial<Record<IpcInvokeChannel, IpcInvokeHandler>>
+): void {
+  Object.entries(handlers).forEach(([channel, handler]) => {
+    if (handler) {
+      ipcMain.handle(channel, handler)
+    }
+  })
 }
 
 // 统一注册所有 IPC 处理器

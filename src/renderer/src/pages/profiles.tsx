@@ -253,17 +253,22 @@ const Profiles: React.FC = () => {
   )
 
   useEffect(() => {
-    pageRef.current?.addEventListener('dragover', (e) => {
+    const pageElement = pageRef.current
+    if (!pageElement) return
+
+    const handleDragOver = (e: DragEvent): void => {
       e.preventDefault()
       e.stopPropagation()
       setFileOver(true)
-    })
-    pageRef.current?.addEventListener('dragleave', (e) => {
+    }
+
+    const handleDragLeave = (e: DragEvent): void => {
       e.preventDefault()
       e.stopPropagation()
       setFileOver(false)
-    })
-    pageRef.current?.addEventListener('drop', async (event) => {
+    }
+
+    const handleDrop = async (event: DragEvent): Promise<void> => {
       event.preventDefault()
       event.stopPropagation()
       if (event.dataTransfer?.files) {
@@ -288,13 +293,18 @@ const Profiles: React.FC = () => {
         }
       }
       setFileOver(false)
-    })
-    return (): void => {
-      pageRef.current?.removeEventListener('dragover', () => {})
-      pageRef.current?.removeEventListener('dragleave', () => {})
-      pageRef.current?.removeEventListener('drop', () => {})
     }
-  }, [])
+
+    pageElement.addEventListener('dragover', handleDragOver)
+    pageElement.addEventListener('dragleave', handleDragLeave)
+    pageElement.addEventListener('drop', handleDrop)
+
+    return (): void => {
+      pageElement.removeEventListener('dragover', handleDragOver)
+      pageElement.removeEventListener('dragleave', handleDragLeave)
+      pageElement.removeEventListener('drop', handleDrop)
+    }
+  }, [addProfileItem])
 
   useEffect(() => {
     setSortedItems(itemsArray)

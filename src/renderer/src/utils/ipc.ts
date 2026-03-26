@@ -1,5 +1,6 @@
 import { TitleBarOverlayOptions } from 'electron'
 import { notifyError } from './notify'
+import { IPC_INVOKE_CHANNELS, type IpcInvokeChannel } from '../../../shared/ipc'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ipcErrorWrapper(response: any): any {
@@ -10,520 +11,520 @@ function ipcErrorWrapper(response: any): any {
   }
 }
 
+const C = IPC_INVOKE_CHANNELS
+
+async function invokeSafe<T>(channel: IpcInvokeChannel, ...args: unknown[]): Promise<T> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke<T>(channel, ...args))
+}
+
+async function invokeRaw<T>(channel: IpcInvokeChannel, ...args: unknown[]): Promise<T> {
+  return window.electron.ipcRenderer.invoke<T>(channel, ...args)
+}
+
 export async function mihomoVersion(): Promise<ControllerVersion> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoVersion'))
+  return invokeSafe(C.mihomoVersion)
 }
 
 export async function mihomoConfig(): Promise<ControllerConfigs> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoConfig'))
+  return invokeSafe(C.mihomoConfig)
 }
 
 export async function mihomoCloseConnection(id: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoCloseConnection', id))
+  return invokeSafe(C.mihomoCloseConnection, id)
 }
 
 export async function mihomoCloseAllConnections(name?: string): Promise<void> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('mihomoCloseAllConnections', name)
-  )
+  return invokeSafe(C.mihomoCloseAllConnections, name)
 }
 
 export async function mihomoRules(): Promise<ControllerRules> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoRules'))
+  return invokeSafe(C.mihomoRules)
 }
 
 export async function mihomoToggleRuleDisabled(data: Record<number, boolean>): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoToggleRuleDisabled', data))
+  return invokeSafe(C.mihomoToggleRuleDisabled, data)
 }
 
 export async function mihomoProxies(): Promise<ControllerProxies> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoProxies'))
+  return invokeSafe(C.mihomoProxies)
 }
 
 export async function mihomoGroups(): Promise<ControllerMixedGroup[]> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoGroups'))
+  return invokeSafe(C.mihomoGroups)
 }
 
 export async function mihomoProxyProviders(): Promise<ControllerProxyProviders> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoProxyProviders'))
+  return invokeSafe(C.mihomoProxyProviders)
 }
 
 export async function mihomoUpdateProxyProviders(name: string): Promise<void> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('mihomoUpdateProxyProviders', name)
-  )
+  return invokeSafe(C.mihomoUpdateProxyProviders, name)
 }
 
 export async function mihomoRuleProviders(): Promise<ControllerRuleProviders> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoRuleProviders'))
+  return invokeSafe(C.mihomoRuleProviders)
 }
 
 export async function mihomoUpdateRuleProviders(name: string): Promise<void> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('mihomoUpdateRuleProviders', name)
-  )
+  return invokeSafe(C.mihomoUpdateRuleProviders, name)
 }
 
 export async function mihomoChangeProxy(
   group: string,
   proxy: string
 ): Promise<ControllerProxiesDetail> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('mihomoChangeProxy', group, proxy)
-  )
+  return invokeSafe(C.mihomoChangeProxy, group, proxy)
 }
 
 export async function mihomoUnfixedProxy(group: string): Promise<ControllerProxiesDetail> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUnfixedProxy', group))
+  return invokeSafe(C.mihomoUnfixedProxy, group)
 }
 
 export async function mihomoUpgradeGeo(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUpgradeGeo'))
+  return invokeSafe(C.mihomoUpgradeGeo)
 }
 
 export async function mihomoUpgradeUI(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUpgradeUI'))
+  return invokeSafe(C.mihomoUpgradeUI)
 }
 
 export async function mihomoDnsQuery(name: string, type: string): Promise<{ Answer?: { data: string }[] }> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoDnsQuery', name, type))
+  return invokeSafe(C.mihomoDnsQuery, name, type)
 }
 
 export async function mihomoUpgrade(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUpgrade'))
+  return invokeSafe(C.mihomoUpgrade)
 }
 
 export async function checkMihomoLatestVersion(isAlpha: boolean): Promise<string | null> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkMihomoLatestVersion', isAlpha))
+  return invokeSafe(C.checkMihomoLatestVersion, isAlpha)
 }
 
 export async function mihomoProxyDelay(
   proxy: string,
   url?: string
 ): Promise<ControllerProxiesDelay> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoProxyDelay', proxy, url))
+  return invokeSafe(C.mihomoProxyDelay, proxy, url)
 }
 
 export async function mihomoGroupDelay(group: string, url?: string): Promise<ControllerGroupDelay> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoGroupDelay', group, url))
+  return invokeSafe(C.mihomoGroupDelay, group, url)
 }
 
 export async function patchMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('patchMihomoConfig', patch))
+  return invokeSafe(C.patchMihomoConfig, patch)
 }
 
 export async function checkAutoRun(): Promise<boolean> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkAutoRun'))
+  return invokeSafe(C.checkAutoRun)
 }
 
 export async function enableAutoRun(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('enableAutoRun'))
+  return invokeSafe(C.enableAutoRun)
 }
 
 export async function disableAutoRun(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('disableAutoRun'))
+  return invokeSafe(C.disableAutoRun)
 }
 
 export async function getAppConfig(force = false): Promise<AppConfig> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAppConfig', force))
+  return invokeSafe(C.getAppConfig, force)
 }
 
 export async function patchAppConfig(patch: Partial<AppConfig>): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('patchAppConfig', patch))
+  return invokeSafe(C.patchAppConfig, patch)
 }
 
 export async function getControledMihomoConfig(force = false): Promise<Partial<MihomoConfig>> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('getControledMihomoConfig', force)
-  )
+  return invokeSafe(C.getControledMihomoConfig, force)
 }
 
 export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('patchControledMihomoConfig', patch)
-  )
+  return invokeSafe(C.patchControledMihomoConfig, patch)
 }
 
 export async function getProfileConfig(force = false): Promise<ProfileConfig> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getProfileConfig', force))
+  return invokeSafe(C.getProfileConfig, force)
 }
 
 export async function setProfileConfig(config: ProfileConfig): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setProfileConfig', config))
+  return invokeSafe(C.setProfileConfig, config)
 }
 
 export async function getCurrentProfileItem(): Promise<ProfileItem> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getCurrentProfileItem'))
+  return invokeSafe(C.getCurrentProfileItem)
 }
 
 export async function getProfileItem(id: string | undefined): Promise<ProfileItem> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getProfileItem', id))
+  return invokeSafe(C.getProfileItem, id)
 }
 
 export async function changeCurrentProfile(id: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('changeCurrentProfile', id))
+  return invokeSafe(C.changeCurrentProfile, id)
 }
 
 export async function addProfileItem(item: Partial<ProfileItem>): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('addProfileItem', item))
+  return invokeSafe(C.addProfileItem, item)
 }
 
 export async function removeProfileItem(id: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('removeProfileItem', id))
+  return invokeSafe(C.removeProfileItem, id)
 }
 
 export async function updateProfileItem(item: ProfileItem): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('updateProfileItem', item))
+  return invokeSafe(C.updateProfileItem, item)
 }
 
 export async function getProfileStr(id: string): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getProfileStr', id))
+  return invokeSafe(C.getProfileStr, id)
 }
 
 export async function getFileStr(id: string): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getFileStr', id))
+  return invokeSafe(C.getFileStr, id)
 }
 
 export async function setFileStr(id: string, str: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setFileStr', id, str))
+  return invokeSafe(C.setFileStr, id, str)
 }
 
 export async function setProfileStr(id: string, str: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setProfileStr', id, str))
+  return invokeSafe(C.setProfileStr, id, str)
 }
 
 export async function convertMrsRuleset(path: string, behavior: string): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('convertMrsRuleset', path, behavior))
+  return invokeSafe(C.convertMrsRuleset, path, behavior)
 }
 
 export async function getOverrideConfig(force = false): Promise<OverrideConfig> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getOverrideConfig', force))
+  return invokeSafe(C.getOverrideConfig, force)
 }
 
 export async function setOverrideConfig(config: OverrideConfig): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setOverrideConfig', config))
+  return invokeSafe(C.setOverrideConfig, config)
 }
 
 export async function getOverrideItem(id: string): Promise<OverrideItem | undefined> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getOverrideItem', id))
+  return invokeSafe(C.getOverrideItem, id)
 }
 
 export async function addOverrideItem(item: Partial<OverrideItem>): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('addOverrideItem', item))
+  return invokeSafe(C.addOverrideItem, item)
 }
 
 export async function removeOverrideItem(id: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('removeOverrideItem', id))
+  return invokeSafe(C.removeOverrideItem, id)
 }
 
 export async function updateOverrideItem(item: OverrideItem): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('updateOverrideItem', item))
+  return invokeSafe(C.updateOverrideItem, item)
 }
 
 export async function getOverride(id: string, ext: 'js' | 'yaml' | 'log'): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getOverride', id, ext))
+  return invokeSafe(C.getOverride, id, ext)
+}
+
+export async function canRollbackOverride(id: string, ext: 'js' | 'yaml'): Promise<boolean> {
+  return invokeSafe(C.canRollbackOverride, id, ext)
+}
+
+export async function rollbackOverride(id: string, ext: 'js' | 'yaml'): Promise<void> {
+  return invokeSafe(C.rollbackOverride, id, ext)
 }
 
 export async function setOverride(id: string, ext: 'js' | 'yaml', str: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setOverride', id, ext, str))
+  return invokeSafe(C.setOverride, id, ext, str)
 }
 
 // 代理链 IPC
 export async function getChainsConfig(force = false): Promise<ChainsConfig> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getChainsConfig', force))
+  return invokeSafe(C.getChainsConfig, force)
 }
 
 export async function getAllChains(): Promise<ChainItem[]> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAllChains'))
+  return invokeSafe(C.getAllChains)
 }
 
 export async function addChainItem(item: Partial<ChainItem>): Promise<ChainItem> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('addChainItem', item))
+  return invokeSafe(C.addChainItem, item)
 }
 
 export async function updateChainItem(item: ChainItem): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('updateChainItem', item))
+  return invokeSafe(C.updateChainItem, item)
 }
 
 export async function removeChainItem(id: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('removeChainItem', id))
+  return invokeSafe(C.removeChainItem, id)
 }
 
 export async function restartCore(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartCore'))
+  return invokeSafe(C.restartCore)
 }
 
 export async function restartMihomoConnections(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartMihomoConnections'))
+  return invokeSafe(C.restartMihomoConnections)
 }
 
 export async function startMonitor(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('startMonitor'))
+  return invokeSafe(C.startMonitor)
 }
 
 export async function triggerSysProxy(enable: boolean, onlyActiveDevice: boolean): Promise<void> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('triggerSysProxy', enable, onlyActiveDevice)
-  )
+  return invokeSafe(C.triggerSysProxy, enable, onlyActiveDevice)
 }
 
 export async function manualGrantCorePermition(
   cores?: ('mihomo' | 'mihomo-alpha')[]
 ): Promise<void> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('manualGrantCorePermition', cores)
-  )
+  return invokeSafe(C.manualGrantCorePermition, cores)
 }
 
 export async function checkCorePermission(): Promise<{ mihomo: boolean; 'mihomo-alpha': boolean }> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkCorePermission'))
+  return invokeSafe(C.checkCorePermission)
 }
 
 export async function checkElevateTask(): Promise<boolean> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkElevateTask'))
+  return invokeSafe(C.checkElevateTask)
 }
 
 export async function deleteElevateTask(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('deleteElevateTask'))
+  return invokeSafe(C.deleteElevateTask)
 }
 
 export async function revokeCorePermission(cores?: ('mihomo' | 'mihomo-alpha')[]): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('revokeCorePermission', cores))
+  return invokeSafe(C.revokeCorePermission, cores)
 }
 
 export async function serviceStatus(): Promise<
   'running' | 'stopped' | 'not-installed' | 'unknown'
 > {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('serviceStatus'))
+  return invokeSafe(C.serviceStatus)
 }
 
 export async function testServiceConnection(): Promise<boolean> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('testServiceConnection'))
+  return invokeSafe(C.testServiceConnection)
 }
 
 export async function initService(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('initService'))
+  return invokeSafe(C.initService)
 }
 
 export async function installService(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('installService'))
+  return invokeSafe(C.installService)
 }
 
 export async function uninstallService(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('uninstallService'))
+  return invokeSafe(C.uninstallService)
 }
 
 export async function startService(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('startService'))
+  return invokeSafe(C.startService)
 }
 
 export async function restartService(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartService'))
+  return invokeSafe(C.restartService)
 }
 
 export async function stopService(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('stopService'))
+  return invokeSafe(C.stopService)
 }
 
 export async function findSystemMihomo(): Promise<string[]> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('findSystemMihomo'))
+  return invokeSafe(C.findSystemMihomo)
 }
 
 export async function getFilePath(ext: string[]): Promise<string[] | undefined> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getFilePath', ext))
+  return invokeSafe(C.getFilePath, ext)
 }
 
 export async function saveFile(content: string, defaultName: string, ext: string): Promise<boolean> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('saveFile', content, defaultName, ext))
+  return invokeSafe(C.saveFile, content, defaultName, ext)
 }
 
 export async function readTextFile(filePath: string): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('readTextFile', filePath))
+  return invokeSafe(C.readTextFile, filePath)
 }
 
 export async function getRuntimeConfigStr(): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getRuntimeConfigStr'))
+  return invokeSafe(C.getRuntimeConfigStr)
 }
 
 export async function getRawProfileStr(): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getRawProfileStr'))
+  return invokeSafe(C.getRawProfileStr)
 }
 
 export async function getCurrentProfileStr(): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getCurrentProfileStr'))
+  return invokeSafe(C.getCurrentProfileStr)
 }
 
 export async function getOverrideProfileStr(): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getOverrideProfileStr'))
+  return invokeSafe(C.getOverrideProfileStr)
 }
 
 export async function getRuntimeConfig(): Promise<MihomoConfig> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getRuntimeConfig'))
+  return invokeSafe(C.getRuntimeConfig)
 }
 
 export async function checkUpdate(): Promise<AppVersion | undefined> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkUpdate'))
+  return invokeSafe(C.checkUpdate)
 }
 
 export async function downloadAndInstallUpdate(version: string): Promise<void> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('downloadAndInstallUpdate', version)
-  )
+  return invokeSafe(C.downloadAndInstallUpdate, version)
 }
 
 export async function cancelUpdate(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('cancelUpdate'))
+  return invokeSafe(C.cancelUpdate)
 }
 
 export async function getVersion(): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getVersion'))
+  return invokeSafe(C.getVersion)
 }
 
 export async function getPlatform(): Promise<NodeJS.Platform> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('platform'))
+  return invokeSafe(C.platform)
 }
 
 export async function openUWPTool(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('openUWPTool'))
+  return invokeSafe(C.openUWPTool)
 }
 
 export async function setupFirewall(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setupFirewall'))
+  return invokeSafe(C.setupFirewall)
 }
 
 export async function getInterfaces(): Promise<Record<string, NetworkInterfaceInfo[]>> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getInterfaces'))
+  return invokeSafe(C.getInterfaces)
 }
 
 export async function webdavBackup(): Promise<boolean> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('webdavBackup'))
+  return invokeSafe(C.webdavBackup)
 }
 
 export async function webdavRestore(filename: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('webdavRestore', filename))
+  return invokeSafe(C.webdavRestore, filename)
 }
 
 export async function listWebdavBackups(): Promise<string[]> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('listWebdavBackups'))
+  return invokeSafe(C.listWebdavBackups)
 }
 
 export async function webdavDelete(filename: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('webdavDelete', filename))
+  return invokeSafe(C.webdavDelete, filename)
 }
 
 export async function setTitleBarOverlay(overlay: TitleBarOverlayOptions): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setTitleBarOverlay', overlay))
+  return invokeSafe(C.setTitleBarOverlay, overlay)
 }
 
 export async function setAlwaysOnTop(alwaysOnTop: boolean): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setAlwaysOnTop', alwaysOnTop))
+  return invokeSafe(C.setAlwaysOnTop, alwaysOnTop)
 }
 
 export async function isAlwaysOnTop(): Promise<boolean> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('isAlwaysOnTop'))
+  return invokeSafe(C.isAlwaysOnTop)
 }
 
 export async function relaunchApp(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('relaunchApp'))
+  return invokeSafe(C.relaunchApp)
 }
 
 export async function quitWithoutCore(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('quitWithoutCore'))
+  return invokeSafe(C.quitWithoutCore)
 }
 
 export async function quitApp(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('quitApp'))
+  return invokeSafe(C.quitApp)
 }
 
 export async function notDialogQuit(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('notDialogQuit'))
+  return invokeSafe(C.notDialogQuit)
 }
 
 export async function setNativeTheme(theme: 'system' | 'light' | 'dark'): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setNativeTheme', theme))
+  return invokeSafe(C.setNativeTheme, theme)
 }
 
 export async function getGistUrl(): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getGistUrl'))
+  return invokeSafe(C.getGistUrl)
 }
 
 export async function startSubStoreFrontendServer(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('startSubStoreFrontendServer'))
+  return invokeSafe(C.startSubStoreFrontendServer)
 }
 
 export async function stopSubStoreFrontendServer(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('stopSubStoreFrontendServer'))
+  return invokeSafe(C.stopSubStoreFrontendServer)
 }
 
 export async function startSubStoreBackendServer(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('startSubStoreBackendServer'))
+  return invokeSafe(C.startSubStoreBackendServer)
 }
 
 export async function stopSubStoreBackendServer(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('stopSubStoreBackendServer'))
+  return invokeSafe(C.stopSubStoreBackendServer)
 }
 export async function downloadSubStore(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('downloadSubStore'))
+  return invokeSafe(C.downloadSubStore)
 }
 
 export async function subStorePort(): Promise<number> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('subStorePort'))
+  return invokeSafe(C.subStorePort)
 }
 
 export async function subStoreFrontendPort(): Promise<number> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('subStoreFrontendPort'))
+  return invokeSafe(C.subStoreFrontendPort)
 }
 
 export async function subStoreSubs(): Promise<SubStoreSub[]> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('subStoreSubs'))
+  return invokeSafe(C.subStoreSubs)
 }
 
 export async function subStoreCollections(): Promise<SubStoreSub[]> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('subStoreCollections'))
+  return invokeSafe(C.subStoreCollections)
 }
 
 export async function showTrayIcon(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showTrayIcon'))
+  return invokeSafe(C.showTrayIcon)
 }
 
 export async function closeTrayIcon(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('closeTrayIcon'))
+  return invokeSafe(C.closeTrayIcon)
 }
 
 export async function setDockVisible(visible: boolean): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setDockVisible', visible))
+  return invokeSafe(C.setDockVisible, visible)
 }
 
 export async function showMainWindow(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showMainWindow'))
+  return invokeSafe(C.showMainWindow)
 }
 
 export async function closeMainWindow(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('closeMainWindow'))
+  return invokeSafe(C.closeMainWindow)
 }
 
 export async function windowMin(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('windowMin'))
+  return invokeSafe(C.windowMin)
 }
 
 export async function windowMax(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('windowMax'))
+  return invokeSafe(C.windowMax)
 }
 
 export async function triggerMainWindow(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('triggerMainWindow'))
+  return invokeSafe(C.triggerMainWindow)
 }
 
 export async function showFloatingWindow(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showFloatingWindow'))
+  return invokeSafe(C.showFloatingWindow)
 }
 
 export async function closeFloatingWindow(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('closeFloatingWindow'))
+  return invokeSafe(C.closeFloatingWindow)
 }
 
 export async function showContextMenu(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showContextMenu'))
+  return invokeSafe(C.showContextMenu)
 }
 
 export async function openFile(
@@ -531,27 +532,27 @@ export async function openFile(
   id: string,
   ext?: 'yaml' | 'js'
 ): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('openFile', type, id, ext))
+  return invokeSafe(C.openFile, type, id, ext)
 }
 
 export async function openDevTools(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('openDevTools'))
+  return invokeSafe(C.openDevTools)
 }
 
 export async function resetAppConfig(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('resetAppConfig'))
+  return invokeSafe(C.resetAppConfig)
 }
 
 export async function createHeapSnapshot(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('createHeapSnapshot'))
+  return invokeSafe(C.createHeapSnapshot)
 }
 
 export async function getUserAgent(): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getUserAgent'))
+  return invokeSafe(C.getUserAgent)
 }
 
 export async function getAppName(appPath: string): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAppName', appPath))
+  return invokeSafe(C.getAppName, appPath)
 }
 
 export async function getTrafficStats(): Promise<{
@@ -561,11 +562,11 @@ export async function getTrafficStats(): Promise<{
   sessionUpload: number
   sessionDownload: number
 }> {
-  return await window.electron.ipcRenderer.invoke('getTrafficStats')
+  return invokeRaw(C.getTrafficStats)
 }
 
 export async function clearTrafficStats(): Promise<void> {
-  return await window.electron.ipcRenderer.invoke('clearTrafficStats')
+  return invokeRaw(C.clearTrafficStats)
 }
 
 export async function getProcessTrafficRanking(type: 'session' | 'today', sortBy: 'upload' | 'download'): Promise<{
@@ -574,18 +575,18 @@ export async function getProcessTrafficRanking(type: 'session' | 'today', sortBy
   upload: number
   download: number
 }[]> {
-  return await window.electron.ipcRenderer.invoke('getProcessTrafficRanking', type, sortBy)
+  return invokeRaw(C.getProcessTrafficRanking, type, sortBy)
 }
 
 export async function getProviderStats(): Promise<{
   snapshots: { date: string; provider: string; used: number }[]
   lastUpdate: number
 }> {
-  return await window.electron.ipcRenderer.invoke('getProviderStats')
+  return invokeRaw(C.getProviderStats)
 }
 
 export async function clearProviderStats(): Promise<void> {
-  return await window.electron.ipcRenderer.invoke('clearProviderStats')
+  return invokeRaw(C.clearProviderStats)
 }
 
 export async function fetchIpInfo(): Promise<{
@@ -605,7 +606,7 @@ export async function fetchIpInfo(): Promise<{
   org?: string
   as?: string
 }> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchIpInfo'))
+  return invokeSafe(C.fetchIpInfo)
 }
 
 interface IpInfoQuery {
@@ -632,63 +633,55 @@ export interface IpInfoResult {
 }
 
 export async function fetchBatchIpInfo(queries: IpInfoQuery[]): Promise<IpInfoResult[]> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchBatchIpInfo', queries))
+  return invokeSafe(C.fetchBatchIpInfo, queries)
 }
 
 export async function fetchIpInfoQuery(query: string): Promise<IpInfoResult> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchIpInfoQuery', query))
+  return invokeSafe(C.fetchIpInfoQuery, query)
 }
 
 export async function testRuleMatch(domain: string): Promise<{ rule: string; rulePayload: string; proxy: string } | null> {
-  const result = await window.electron.ipcRenderer.invoke<{
-    rule: string
-    rulePayload: string
-    proxy: string
-  } | null>('testRuleMatch', domain)
-  if (result && typeof result === 'object' && 'invokeError' in result) {
-    throw result.invokeError
-  }
-  return result
+  return invokeSafe(C.testRuleMatch, domain)
 }
 
 export async function testConnectivity(url: string, timeout?: number): Promise<{ success: boolean; latency: number; status?: number; error?: string }> {
-  return await window.electron.ipcRenderer.invoke('testConnectivity', url, timeout)
+  return invokeRaw(C.testConnectivity, url, timeout)
 }
 
 export async function getImageDataURL(url: string): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getImageDataURL', url))
+  return invokeSafe(C.getImageDataURL, url)
 }
 
 export async function getIconDataURL(appPath: string): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getIconDataURL', appPath))
+  return invokeSafe(C.getIconDataURL, appPath)
 }
 
 export async function resolveThemes(): Promise<{ key: string; label: string; content: string }[]> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('resolveThemes'))
+  return invokeSafe(C.resolveThemes)
 }
 
 export async function fetchThemes(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('fetchThemes'))
+  return invokeSafe(C.fetchThemes)
 }
 
 export async function importThemes(files: string[]): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('importThemes', files))
+  return invokeSafe(C.importThemes, files)
 }
 
 export async function readTheme(theme: string): Promise<string> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('readTheme', theme))
+  return invokeSafe(C.readTheme, theme)
 }
 
 export async function writeTheme(theme: string, css: string): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('writeTheme', theme, css))
+  return invokeSafe(C.writeTheme, theme, css)
 }
 
 export async function startNetworkDetection(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('startNetworkDetection'))
+  return invokeSafe(C.startNetworkDetection)
 }
 
 export async function stopNetworkDetection(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('stopNetworkDetection'))
+  return invokeSafe(C.stopNetworkDetection)
 }
 
 let applyThemeRunning = false
@@ -700,7 +693,7 @@ export async function applyTheme(theme: string): Promise<void> {
   }
   applyThemeRunning = true
   try {
-    return await ipcErrorWrapper(window.electron.ipcRenderer.invoke('applyTheme', theme))
+    return await invokeSafe(C.applyTheme, theme)
   } finally {
     applyThemeRunning = false
     if (waitList.length > 0) {
@@ -714,13 +707,11 @@ export async function registerShortcut(
   newShortcut: string,
   action: string
 ): Promise<boolean> {
-  return ipcErrorWrapper(
-    await window.electron.ipcRenderer.invoke('registerShortcut', oldShortcut, newShortcut, action)
-  )
+  return invokeSafe(C.registerShortcut, oldShortcut, newShortcut, action)
 }
 
 export async function copyEnv(type: 'bash' | 'cmd' | 'powershell' | 'nushell'): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('copyEnv', type))
+  return invokeSafe(C.copyEnv, type)
 }
 
 async function alert<T>(msg: T): Promise<void> {
@@ -735,21 +726,21 @@ export async function checkStreamingUnlock(service: string): Promise<{
   region?: string
   error?: string
 }> {
-  return await window.electron.ipcRenderer.invoke('checkStreamingUnlock', service)
+  return invokeRaw(C.checkStreamingUnlock, service)
 }
 
 export async function getAppUptime(): Promise<number> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAppUptime'))
+  return invokeSafe(C.getAppUptime)
 }
 
 export async function getAppMemory(): Promise<number> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAppMemory'))
+  return invokeSafe(C.getAppMemory)
 }
 
 export async function testDNSLatency(domain: string = 'google.com'): Promise<number> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('testDNSLatency', domain))
+  return invokeSafe(C.testDNSLatency, domain)
 }
 
 export async function httpGet(url: string, timeout?: number): Promise<{ status: number; data: string; headers: Record<string, string>; error?: string }> {
-  return await window.electron.ipcRenderer.invoke('httpGet', url, timeout)
+  return invokeRaw(C.httpGet, url, timeout)
 }

@@ -175,6 +175,10 @@ export function overridePath(id: string, ext: 'js' | 'yaml' | 'log'): string {
   return path.join(overrideDir(), `${id}.${ext}`)
 }
 
+export function overrideRollbackPath(id: string, ext: 'js' | 'yaml'): string {
+  return path.join(overrideDir(), `${id}.rollback.${ext}`)
+}
+
 export function mihomoWorkDir(): string {
   return path.join(dataDir(), 'work')
 }

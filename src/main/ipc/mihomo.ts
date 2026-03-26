@@ -1,4 +1,3 @@
-import { ipcMain } from 'electron'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -24,45 +23,36 @@ import {
   checkMihomoLatestVersion
 } from '../core/mihomoApi'
 import { upgradeMihomo } from '../core/updater'
-import { ipcErrorWrapper } from '../utils/ipc'
+import { ipcErrorWrapper, registerIpcInvokeHandlers } from '../utils/ipc'
+import { IPC_INVOKE_CHANNELS } from '../../shared/ipc'
 
 // Mihomo 内核相关 IPC 处理器
 export function registerMihomoHandlers(): void {
-  ipcMain.handle('mihomoVersion', ipcErrorWrapper(mihomoVersion))
-  ipcMain.handle('mihomoConfig', ipcErrorWrapper(mihomoConfig))
-  ipcMain.handle('mihomoCloseConnection', (_e, id) => ipcErrorWrapper(mihomoCloseConnection)(id))
-  ipcMain.handle('mihomoCloseAllConnections', (_e, name) =>
-    ipcErrorWrapper(mihomoCloseAllConnections)(name)
-  )
-  ipcMain.handle('mihomoRules', ipcErrorWrapper(mihomoRules))
-  ipcMain.handle('mihomoToggleRuleDisabled', (_e, data) =>
-    ipcErrorWrapper(mihomoToggleRuleDisabled)(data)
-  )
-  ipcMain.handle('mihomoProxies', ipcErrorWrapper(mihomoProxies))
-  ipcMain.handle('mihomoGroups', ipcErrorWrapper(mihomoGroups))
-  ipcMain.handle('mihomoProxyProviders', ipcErrorWrapper(mihomoProxyProviders))
-  ipcMain.handle('mihomoUpdateProxyProviders', (_e, name) =>
-    ipcErrorWrapper(mihomoUpdateProxyProviders)(name)
-  )
-  ipcMain.handle('mihomoRuleProviders', ipcErrorWrapper(mihomoRuleProviders))
-  ipcMain.handle('mihomoUpdateRuleProviders', (_e, name) =>
-    ipcErrorWrapper(mihomoUpdateRuleProviders)(name)
-  )
-  ipcMain.handle('mihomoChangeProxy', (_e, group, proxy) =>
-    ipcErrorWrapper(mihomoChangeProxy)(group, proxy)
-  )
-  ipcMain.handle('mihomoUnfixedProxy', (_e, group) => ipcErrorWrapper(mihomoUnfixedProxy)(group))
-  ipcMain.handle('mihomoUpgradeGeo', ipcErrorWrapper(mihomoUpgradeGeo))
-  ipcMain.handle('mihomoUpgradeUI', ipcErrorWrapper(mihomoUpgradeUI))
-  ipcMain.handle('mihomoDnsQuery', (_e, name, type) => ipcErrorWrapper(mihomoDnsQuery)(name, type))
-  ipcMain.handle('mihomoUpgrade', ipcErrorWrapper(upgradeMihomo))
-  ipcMain.handle('checkMihomoLatestVersion', (_e, isAlpha) => ipcErrorWrapper(checkMihomoLatestVersion)(isAlpha))
-  ipcMain.handle('mihomoProxyDelay', (_e, proxy, url) =>
-    ipcErrorWrapper(mihomoProxyDelay)(proxy, url)
-  )
-  ipcMain.handle('mihomoGroupDelay', (_e, group, url) =>
-    ipcErrorWrapper(mihomoGroupDelay)(group, url)
-  )
-  ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoConfig)(patch))
-  ipcMain.handle('restartMihomoConnections', ipcErrorWrapper(restartMihomoConnections))
+  const C = IPC_INVOKE_CHANNELS
+
+  registerIpcInvokeHandlers({
+    [C.mihomoVersion]: ipcErrorWrapper(mihomoVersion),
+    [C.mihomoConfig]: ipcErrorWrapper(mihomoConfig),
+    [C.mihomoCloseConnection]: (_e, id) => ipcErrorWrapper(mihomoCloseConnection)(id),
+    [C.mihomoCloseAllConnections]: (_e, name) => ipcErrorWrapper(mihomoCloseAllConnections)(name),
+    [C.mihomoRules]: ipcErrorWrapper(mihomoRules),
+    [C.mihomoToggleRuleDisabled]: (_e, data) => ipcErrorWrapper(mihomoToggleRuleDisabled)(data),
+    [C.mihomoProxies]: ipcErrorWrapper(mihomoProxies),
+    [C.mihomoGroups]: ipcErrorWrapper(mihomoGroups),
+    [C.mihomoProxyProviders]: ipcErrorWrapper(mihomoProxyProviders),
+    [C.mihomoUpdateProxyProviders]: (_e, name) => ipcErrorWrapper(mihomoUpdateProxyProviders)(name),
+    [C.mihomoRuleProviders]: ipcErrorWrapper(mihomoRuleProviders),
+    [C.mihomoUpdateRuleProviders]: (_e, name) => ipcErrorWrapper(mihomoUpdateRuleProviders)(name),
+    [C.mihomoChangeProxy]: (_e, group, proxy) => ipcErrorWrapper(mihomoChangeProxy)(group, proxy),
+    [C.mihomoUnfixedProxy]: (_e, group) => ipcErrorWrapper(mihomoUnfixedProxy)(group),
+    [C.mihomoUpgradeGeo]: ipcErrorWrapper(mihomoUpgradeGeo),
+    [C.mihomoUpgradeUI]: ipcErrorWrapper(mihomoUpgradeUI),
+    [C.mihomoDnsQuery]: (_e, name, type) => ipcErrorWrapper(mihomoDnsQuery)(name, type),
+    [C.mihomoUpgrade]: ipcErrorWrapper(upgradeMihomo),
+    [C.checkMihomoLatestVersion]: (_e, isAlpha) => ipcErrorWrapper(checkMihomoLatestVersion)(isAlpha),
+    [C.mihomoProxyDelay]: (_e, proxy, url) => ipcErrorWrapper(mihomoProxyDelay)(proxy, url),
+    [C.mihomoGroupDelay]: (_e, group, url) => ipcErrorWrapper(mihomoGroupDelay)(group, url),
+    [C.patchMihomoConfig]: (_e, patch) => ipcErrorWrapper(patchMihomoConfig)(patch),
+    [C.restartMihomoConnections]: ipcErrorWrapper(restartMihomoConnections)
+  })
 }

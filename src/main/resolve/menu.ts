@@ -3,6 +3,7 @@ import { mainWindow } from '..'
 import { getAppConfig } from '../config'
 import { quitWithoutCore } from '../core/manager'
 import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
+import { getDisplayVersion } from '../utils/version'
 
 export async function createApplicationMenu(): Promise<void> {
   if (process.platform !== 'darwin') {
@@ -189,14 +190,14 @@ export async function createApplicationMenu(): Promise<void> {
                     'show-dialog-modal', 
                     'info', 
                     '关于 RouteX', 
-                    `版本：${app.getVersion()}\n一个基于 Electron 的代理工具`
+                    `版本：${getDisplayVersion()}\n一个基于 Electron 的代理工具`
                 )
             } else {
                 dialog.showMessageBox(mainWindow!, {
                     type: 'info',
                     title: '关于 RouteX',
                     message: 'RouteX',
-                    detail: `版本：${app.getVersion()}\n一个基于 Electron 的代理工具`,
+                    detail: `版本：${getDisplayVersion()}\n一个基于 Electron 的代理工具`,
                     buttons: ['确定']
                 })
             }

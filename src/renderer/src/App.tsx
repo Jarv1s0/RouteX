@@ -26,6 +26,7 @@ import { LogsSkeleton } from '@renderer/components/skeletons/LogsSkeleton'
 import { StatsSkeleton } from '@renderer/components/skeletons/StatsSkeleton'
 
 let navigate: NavigateFunction
+const SIDER_WIDTH_CSS_VAR = '--sider-width'
 
 const App: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -51,6 +52,9 @@ const App: React.FC = () => {
   const sideRef = useRef<HTMLDivElement>(null)
   const resizerRef = useRef<HTMLDivElement>(null)
   const mainRef = useRef<HTMLDivElement>(null)
+  const layoutRef = useRef<HTMLDivElement>(null)
+  const resizeFrameRef = useRef<number | null>(null)
+  const pendingWidthRef = useRef(siderWidth)
 
   const { setTheme, systemTheme } = useTheme()
   navigate = useNavigate()
@@ -88,6 +92,11 @@ const App: React.FC = () => {
     siderWidthValueRef.current = siderWidthValue
     resizingRef.current = resizing
   }, [siderWidthValue, resizing])
+
+  useEffect(() => {
+    pendingWidthRef.current = siderWidthValue
+    layoutRef.current?.style.setProperty(SIDER_WIDTH_CSS_VAR, `${siderWidthValue}px`)
+  }, [siderWidthValue])
 
   useEffect(() => {
     const tourShown = window.localStorage.getItem('tourShown')
@@ -139,6 +148,10 @@ const App: React.FC = () => {
     
     return (): void => {
       window.removeEventListener('mouseup', onResizeEnd)
+      if (resizeFrameRef.current !== null) {
+        window.cancelAnimationFrame(resizeFrameRef.current)
+        resizeFrameRef.current = null
+      }
       useConnectionsStore.getState().cleanupListeners()
       useGroupsStore.getState().cleanupListeners()
       useLogsStore.getState().cleanupListeners()
@@ -149,7 +162,8 @@ const App: React.FC = () => {
   const onResizeEnd = useCallback((): void => {
     if (resizingRef.current) {
       setResizing(false)
-      const finalWidth = siderWidthValueRef.current
+      const finalWidth = pendingWidthRef.current
+      siderWidthValueRef.current = finalWidth
       setSiderWidthValue(finalWidth)
       patchAppConfig({ siderWidth: finalWidth })
     }
@@ -184,6 +198,8 @@ const App: React.FC = () => {
       <GlobalDialogModal />
       
       <div
+        ref={layoutRef}
+        style={{ [SIDER_WIDTH_CSS_VAR]: `${siderWidthValue}px` } as React.CSSProperties}
 // ... rest of the file ...
         onMouseMove={(e) => {
           if (!resizing) return
@@ -198,17 +214,18 @@ const App: React.FC = () => {
             newWidth = 400
           }
 
-          if (sideRef.current) {
-            sideRef.current.style.width = `${newWidth}px`
-          }
-          if (resizerRef.current) {
-            resizerRef.current.style.left = `${newWidth - 2}px`
-          }
-          if (mainRef.current) {
-            mainRef.current.style.width = `calc(100% - ${newWidth + 1}px)`
-          }
-          
+          pendingWidthRef.current = newWidth
           siderWidthValueRef.current = newWidth
+
+          if (resizeFrameRef.current === null) {
+            resizeFrameRef.current = window.requestAnimationFrame(() => {
+              layoutRef.current?.style.setProperty(
+                SIDER_WIDTH_CSS_VAR,
+                `${pendingWidthRef.current}px`
+              )
+              resizeFrameRef.current = null
+            })
+          }
         }}
         className={`w-full h-screen flex ${resizing ? 'cursor-ew-resize select-none' : ''}`}
       >
@@ -227,7 +244,7 @@ const App: React.FC = () => {
           style={{
             position: 'fixed',
             zIndex: 50,
-            left: `${siderWidthValue - 2}px`,
+            left: `calc(var(${SIDER_WIDTH_CSS_VAR}) - 2px)`,
             width: '5px',
             height: '100vh',
             cursor: 'ew-resize'
@@ -237,7 +254,7 @@ const App: React.FC = () => {
         
         <div
           ref={mainRef}
-          style={{ width: `calc(100% - ${siderWidthValue + 1}px)` }}
+          style={{ width: `calc(100% - var(${SIDER_WIDTH_CSS_VAR}) - 1px)` }}
           className="main grow h-full overflow-y-auto"
         >
           <ErrorBoundary>

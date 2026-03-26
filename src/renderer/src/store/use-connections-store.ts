@@ -132,7 +132,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     }
 
     // Register Listeners (registerHandlers handles cleanup of old ones)
-    registerHandlers(handleConnections, handleMemory)
+    registerHandlers(handleConnections, handleMemory, handleConnections)
   },
 
   cleanupListeners: () => {
@@ -140,17 +140,8 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   },
 
   closeConnection: (_id: string) => {
-    // Optimistic update?
-    // Real logic is IPC call, allowing the backend to push update.
-    // But for "Closed" tab, we manage it locally.
-    // Actually, `connections.tsx` called IPC for active, local state for closed.
-    // We will handle that in the UI component or here?
-    // The previous component had `mihomoCloseConnection`.
-    // Let's keep side-effects (IPC calls) here for clean component.
-    // But wait, for active connections we call IPC.
-    // For closed connections, we just remove from history.
-    // We need to know which list it is in? 
-    // ID should be unique.
+    // 保持空实现，连接页当前直接调用 IPC / 本地状态更新。
+    // 这里后续若要再次收敛到 store，需要配合运行时验证逐步迁移。
   },
 
   trashClosedConnection: (id: string) => {
@@ -160,7 +151,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   },
 
   closeAllConnections: () => {
-     // IPC call for active?
+    // 保持空实现，连接页当前直接调用 IPC / 本地状态更新。
   },
   
   trashAllClosedConnections: () => {
@@ -171,19 +162,24 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
 // Helper for listener management
 let currentConnectionHandler: ((e: unknown, info: ControllerConnections) => void) | null = null
 let currentMemoryHandler: ((e: unknown, info: ControllerMemory) => void) | null = null
+let currentConnectionThrottle: { cancel: () => void } | null = null
 
 function registerHandlers(
     connHandler: (e: unknown, info: ControllerConnections) => void,
-    memHandler: (e: unknown, info: ControllerMemory) => void
+    memHandler: (e: unknown, info: ControllerMemory) => void,
+    connThrottle?: { cancel: () => void }
 ) {
     unregisterHandlers()
     currentConnectionHandler = connHandler
     currentMemoryHandler = memHandler
+    currentConnectionThrottle = connThrottle ?? null
     window.electron.ipcRenderer.on('mihomoConnections', currentConnectionHandler)
     window.electron.ipcRenderer.on('mihomoMemory', currentMemoryHandler)
 }
 
 function unregisterHandlers() {
+    currentConnectionThrottle?.cancel()
+    currentConnectionThrottle = null
     if (currentConnectionHandler) {
         window.electron.ipcRenderer.removeListener('mihomoConnections', currentConnectionHandler)
         currentConnectionHandler = null

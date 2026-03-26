@@ -16,7 +16,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import { Key, useEffect, useMemo, useState } from 'react'
 import EditInfoModal from './edit-info-modal'
 import EditFileModal from './edit-file-modal'
-import { openFile } from '@renderer/utils/ipc'
+import { canRollbackOverride, openFile, rollbackOverride } from '@renderer/utils/ipc'
 import ConfirmModal from '../base/base-confirm'
 import { restartCore } from '@renderer/utils/ipc'
 import ExecLogModal from './exec-log-modal'
@@ -40,7 +40,7 @@ interface MenuItem {
   key: string
   label: string
   showDivider: boolean
-  color: 'default' | 'danger'
+  color: 'default' | 'danger' | 'warning'
   className: string
 }
 
@@ -64,6 +64,8 @@ const OverrideItem: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const [disableOpen, setDisableOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [rollbackAvailable, setRollbackAvailable] = useState(false)
+  const [rollingBack, setRollingBack] = useState(false)
 
   const menuItems: MenuItem[] = useMemo(() => {
     const list: MenuItem[] = []
@@ -117,6 +119,13 @@ const OverrideItem: React.FC<Props> = (props) => {
         className: ''
       },
       {
+        key: 'rollback',
+        label: '回滚上次保存',
+        showDivider: true,
+        color: 'warning',
+        className: 'text-warning'
+      },
+      {
         key: 'delete',
         label: '删除',
         showDivider: false,
@@ -128,8 +137,12 @@ const OverrideItem: React.FC<Props> = (props) => {
       const execLogIndex = list.findIndex(i => i.key === 'exec-log')
       if (execLogIndex !== -1) list.splice(execLogIndex, 1)
     }
+    if (!rollbackAvailable) {
+      const rollbackIndex = list.findIndex((item) => item.key === 'rollback')
+      if (rollbackIndex !== -1) list.splice(rollbackIndex, 1)
+    }
     return list
-  }, [info, isActive])
+  }, [info, isActive, rollbackAvailable])
 
   const onMenuAction = async (key: Key): Promise<void> => {
     switch (key) {
@@ -170,6 +183,19 @@ const OverrideItem: React.FC<Props> = (props) => {
         setOpenLog(true)
         break
       }
+      case 'rollback': {
+        try {
+          setRollingBack(true)
+          await rollbackOverride(info.id, info.ext)
+          mutateOverrideConfig()
+          setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
+        } catch (e) {
+          alert(e)
+        } finally {
+          setRollingBack(false)
+        }
+        break
+      }
       case 'delete': {
         setConfirmOpen(true)
         break
@@ -188,6 +214,29 @@ const OverrideItem: React.FC<Props> = (props) => {
       }, 200)
     }
   }, [isDragging])
+
+  useEffect(() => {
+    let mounted = true
+
+    const syncRollbackState = async (): Promise<void> => {
+      try {
+        const available = await canRollbackOverride(info.id, info.ext)
+        if (mounted) {
+          setRollbackAvailable(available)
+        }
+      } catch {
+        if (mounted) {
+          setRollbackAvailable(false)
+        }
+      }
+    }
+
+    syncRollbackState()
+
+    return (): void => {
+      mounted = false
+    }
+  }, [info.ext, info.id, openFileEditor])
 
   return (
     <div
@@ -259,12 +308,13 @@ const OverrideItem: React.FC<Props> = (props) => {
                     size="sm"
                     variant="light"
                     color="default"
-                    disabled={updating}
+                    disabled={updating || rollingBack}
                     onPress={async () => {
                       setUpdating(true)
                       try {
                         await addOverrideItem(info)
                         await restartCore()
+                        setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
                       } catch (e) {
                         alert(e)
                       } finally {
