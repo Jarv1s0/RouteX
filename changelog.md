@@ -22,6 +22,7 @@
 - 修复统计页规则详情弹窗导致无限重渲染的问题。
 - 修复 Windows 自定义无边框窗口下右上角按钮点击冲突的问题。
 - 清理流量统计与网络 IPC 的类型和副作用问题，恢复 `typecheck` 与 `build` 验证链路。
+- 升级 `yaml` 并锁定 `brace-expansion`、`picomatch` 安全版本，清理 Dependabot 依赖告警。
 
 ## v2.2.3
 
