@@ -1,8 +1,10 @@
 import { net } from 'electron'
 import { mainWindow } from '../index'
+import dns from 'dns'
 
 interface NetworkHealthData {
   currentLatency: number
+  currentDnsLatency: number
   avgLatency: number
   maxLatency: number
   minLatency: number
@@ -17,6 +19,7 @@ const MAX_HISTORY = 60
 const TEST_INTERVAL = 15000 // 15秒
 
 let latencyHistory: number[] = []
+let dnsLatencyHistory: number[] = []
 let testCount = 0
 let failCount = 0
 let intervalId: NodeJS.Timeout | null = null
@@ -48,10 +51,23 @@ async function testLatency(): Promise<number> {
   })
 }
 
+async function testDNSLatency(domain = 'www.bing.com'): Promise<number> {
+  const startTime = Date.now()
+
+  try {
+    await dns.promises.resolve4(domain)
+    return Math.max(1, Date.now() - startTime)
+  } catch {
+    return -1
+  }
+}
+
 function calculateStats(): NetworkHealthData {
   const validLatencies = latencyHistory.filter(l => l > 0)
   
   const currentLatency = latencyHistory.length > 0 ? latencyHistory[latencyHistory.length - 1] : -1
+  const currentDnsLatency =
+    dnsLatencyHistory.length > 0 ? dnsLatencyHistory[dnsLatencyHistory.length - 1] : -1
   const avgLatency = validLatencies.length > 0 
     ? Math.round(validLatencies.reduce((a, b) => a + b, 0) / validLatencies.length) 
     : 0
@@ -73,6 +89,7 @@ function calculateStats(): NetworkHealthData {
   
   return {
     currentLatency,
+    currentDnsLatency,
     avgLatency,
     maxLatency,
     minLatency,
@@ -85,7 +102,7 @@ function calculateStats(): NetworkHealthData {
 }
 
 async function runTest(): Promise<void> {
-  const latency = await testLatency()
+  const [latency, dnsLatency] = await Promise.all([testLatency(), testDNSLatency()])
   testCount++
   
   if (latency < 0) {
@@ -98,6 +115,11 @@ async function runTest(): Promise<void> {
   // 保持历史记录在限制内
   if (latencyHistory.length > MAX_HISTORY) {
     latencyHistory = latencyHistory.slice(-MAX_HISTORY)
+  }
+
+  dnsLatencyHistory.push(dnsLatency)
+  if (dnsLatencyHistory.length > MAX_HISTORY) {
+    dnsLatencyHistory = dnsLatencyHistory.slice(-MAX_HISTORY)
   }
   
   // 发送数据到渲染进程

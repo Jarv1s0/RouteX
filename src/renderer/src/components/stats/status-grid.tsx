@@ -3,7 +3,12 @@ import { Card, CardBody } from '@heroui/react'
 import { IoTime, IoSwapHorizontal, IoServer, IoGlobe, IoTimer } from 'react-icons/io5'
 import { useConnections } from '@renderer/hooks/use-connections'
 import { calcTraffic } from '@renderer/utils/calc'
-import { getAppUptime, testDNSLatency, testConnectivity } from '@renderer/utils/ipc'
+import {
+  getAppUptime,
+  getNetworkHealthStats,
+  startNetworkHealthMonitor,
+  stopNetworkHealthMonitor
+} from '@renderer/utils/ipc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 const StatusGrid: React.FC = () => {
@@ -25,21 +30,14 @@ const StatusGrid: React.FC = () => {
       startTime = Date.now()
     })
 
-    const updateStats = async () => {
-      // DNS Latency
+    const syncNetworkHealth = async (): Promise<void> => {
       try {
-        const latency = await testDNSLatency('www.bing.com')
-        setDnsLatency(latency)
-      } catch {
-        setDnsLatency(-1)
-      }
-
-      // Network Latency
-      try {
-        const res = await testConnectivity('http://www.gstatic.com/generate_204', 2000)
-        setNetworkLatency(res.latency)
+        const stats = await getNetworkHealthStats()
+        setNetworkLatency(stats.currentLatency)
+        setDnsLatency(stats.currentDnsLatency)
       } catch {
         setNetworkLatency(-1)
+        setDnsLatency(-1)
       }
     }
 
@@ -62,15 +60,23 @@ const StatusGrid: React.FC = () => {
     const onMemoryUpdate = (_e: unknown, info: ControllerMemory) => {
       setMemory(info.inuse)
     }
+    const onNetworkHealthUpdate = (
+      _e: unknown,
+      info: { currentLatency: number; currentDnsLatency: number }
+    ) => {
+      setNetworkLatency(info.currentLatency)
+      setDnsLatency(info.currentDnsLatency)
+    }
     window.electron.ipcRenderer.on('mihomoMemory', onMemoryUpdate)
-
-    const pollInterval = setInterval(updateStats, 10000) // 10s 更新一次网络延迟
-    updateStats()
+    window.electron.ipcRenderer.on('networkHealth', onNetworkHealthUpdate)
+    void startNetworkHealthMonitor()
+    void syncNetworkHealth()
 
     return () => {
       clearInterval(interval)
-      clearInterval(pollInterval)
       window.electron.ipcRenderer.removeListener('mihomoMemory', onMemoryUpdate)
+      window.electron.ipcRenderer.removeListener('networkHealth', onNetworkHealthUpdate)
+      void stopNetworkHealthMonitor()
     }
   }, [])
 

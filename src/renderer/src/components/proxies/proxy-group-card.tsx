@@ -59,8 +59,8 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
 
   // Active Glow Style
   // Active Glow Style
-  const activeStyle = isOpen 
-    ? "bg-gradient-to-br from-default-100/90 to-default-50/90 backdrop-blur-2xl border-primary/30 shadow-[inset_0_-4px_10px_rgba(0,0,0,0.03),0_0_24px_rgba(var(--heroui-primary),0.12)] scale-[1.01] ring-1 ring-primary/20 relative" 
+  const activeStyle = isOpen
+    ? "bg-gradient-to-br from-default-100/95 to-default-50/90 backdrop-blur-2xl border-default-200/70 shadow-[inset_0_-1px_0_rgba(255,255,255,0.45),0_12px_28px_rgba(15,23,42,0.06)] scale-[1.005] relative"
     : "bg-default-50/40 dark:bg-default-50/20 backdrop-blur-md border-white/10 dark:border-white/5 shadow-sm hover:scale-[1.002] hover:bg-default-100/60 hover:shadow-md hover:border-default-200/40"
 
   return (
@@ -179,7 +179,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
 
         </CardBody>
         {isOpen && (
-           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+           <div className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full bg-gradient-to-r from-transparent via-primary/55 to-transparent" />
         )}
       </Card>
     </div>

@@ -6,6 +6,8 @@ import { mainWindow } from '..'
 import { ipcMain, net } from 'electron'
 import { getDefaultDevice } from '../core/manager'
 
+let ssidCheckTimer: NodeJS.Timeout | null = null
+
 export async function getCurrentSSID(): Promise<string | undefined> {
   if (process.platform === 'win32') {
     try {
@@ -32,12 +34,12 @@ export async function getCurrentSSID(): Promise<string | undefined> {
 }
 
 let lastSSID: string | undefined
-export async function checkSSID(): Promise<void> {
+export async function checkSSID(force = false): Promise<void> {
   try {
     const { pauseSSID = [] } = await getAppConfig()
     if (pauseSSID.length === 0) return
     const currentSSID = await getCurrentSSID()
-    if (currentSSID === lastSSID) return
+    if (!force && currentSSID === lastSSID) return
     lastSSID = currentSSID
     if (currentSSID && pauseSSID.includes(currentSSID)) {
       await patchControledMihomoConfig({ mode: 'direct' })
@@ -56,8 +58,39 @@ export async function checkSSID(): Promise<void> {
 }
 
 export async function startSSIDCheck(): Promise<void> {
-  await checkSSID()
-  setInterval(checkSSID, 30000)
+  if (ssidCheckTimer) return
+
+  const { pauseSSID = [] } = await getAppConfig()
+  if (pauseSSID.length === 0) return
+
+  await checkSSID(true)
+  ssidCheckTimer = setInterval(() => {
+    void checkSSID()
+  }, 30000)
+}
+
+export function stopSSIDCheck(): void {
+  if (ssidCheckTimer) {
+    clearInterval(ssidCheckTimer)
+    ssidCheckTimer = null
+  }
+  lastSSID = undefined
+}
+
+export async function refreshSSIDCheck(): Promise<void> {
+  const { pauseSSID = [] } = await getAppConfig()
+  if (pauseSSID.length === 0) {
+    stopSSIDCheck()
+    return
+  }
+
+  await checkSSID(true)
+
+  if (!ssidCheckTimer) {
+    ssidCheckTimer = setInterval(() => {
+      void checkSSID()
+    }, 30000)
+  }
 }
 
 async function getSSIDByAirport(): Promise<string | undefined> {

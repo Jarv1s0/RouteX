@@ -35,6 +35,7 @@ import {
 } from '../config'
 import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
 import { restartCore } from '../core/manager'
+import { refreshSSIDCheck } from '../sys/ssid'
 import { mainWindow } from '..'
 import { ipcErrorWrapper, registerIpcInvokeHandlers } from '../utils/ipc'
 import { IPC_INVOKE_CHANNELS } from '../../shared/ipc'
@@ -48,7 +49,11 @@ export function registerConfigHandlers(): void {
     [C.enableAutoRun]: ipcErrorWrapper(enableAutoRun),
     [C.disableAutoRun]: ipcErrorWrapper(disableAutoRun),
     [C.getAppConfig]: (_e, force) => ipcErrorWrapper(getAppConfig)(force),
-    [C.patchAppConfig]: (_e, config) => ipcErrorWrapper(patchAppConfig)(config),
+    [C.patchAppConfig]: (_e, config) =>
+      ipcErrorWrapper(async (patch: Partial<AppConfig>) => {
+        await patchAppConfig(patch)
+        await refreshSSIDCheck()
+      })(config),
     [C.getControledMihomoConfig]: (_e, force) => ipcErrorWrapper(getControledMihomoConfig)(force),
     [C.patchControledMihomoConfig]: (_e, config) =>
       ipcErrorWrapper(patchControledMihomoConfig)(config),

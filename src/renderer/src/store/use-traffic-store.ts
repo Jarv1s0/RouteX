@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { getTrafficStats, getProviderStats, getProfileConfig } from '@renderer/utils/ipc'
 import throttle from 'lodash/throttle'
+import { subscribeConnectionSnapshot } from './use-connections-store'
 
 interface TrafficDataPoint {
   time: string
@@ -50,19 +51,17 @@ let visibilityChangeHandler: (() => void) | null = null
 
 // Module-level handler references for robust cleanup
 let currentTrafficHandler: ((e: unknown, traffic: { up: number; down: number }) => void) | null = null
-let currentConnectionsHandler: ((e: unknown, data: { connections?: ControllerConnectionDetail[] }) => void) | null = null
 let currentConnectionsThrottle: { cancel: () => void } | null = null
+let currentConnectionsUnsubscribe: (() => void) | null = null
 
 function unregisterTrafficHandlers() {
     currentConnectionsThrottle?.cancel()
     currentConnectionsThrottle = null
+    currentConnectionsUnsubscribe?.()
+    currentConnectionsUnsubscribe = null
     if (currentTrafficHandler) {
         window.electron.ipcRenderer.removeListener('mihomoTraffic', currentTrafficHandler)
         currentTrafficHandler = null
-    }
-    if (currentConnectionsHandler) {
-        window.electron.ipcRenderer.removeListener('mihomoConnections', currentConnectionsHandler)
-        currentConnectionsHandler = null
     }
     if (visibilityChangeHandler) {
         document.removeEventListener('visibilitychange', visibilityChangeHandler)
@@ -117,22 +116,11 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       })
     }
 
-    const handleConnections = throttle((_e: unknown, dataStr: string | { connections?: ControllerConnectionDetail[] }): void => {
+    const handleConnections = throttle((snapshot: ControllerConnections): void => {
       // 窗口不可见时跳过规则统计处理，降低 CPU 占用
       if (document.hidden) return
-      
-      let data: { connections?: ControllerConnectionDetail[] }
-      if (typeof dataStr === 'string') {
-        try {
-          data = JSON.parse(dataStr)
-        } catch {
-          return
-        }
-      } else {
-        data = dataStr
-      }
-      
-      const connections = data.connections || []
+
+      const connections = snapshot.connections || []
       // Pre-calculate time string once
       const timeStr = new Date().toTimeString().split(' ')[0]
 
@@ -217,10 +205,9 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
     // Register Listeners
     try {
         currentTrafficHandler = handleTraffic
-        currentConnectionsHandler = handleConnections
         currentConnectionsThrottle = handleConnections
         window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
-        window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
+        currentConnectionsUnsubscribe = subscribeConnectionSnapshot(handleConnections)
     } catch(e) {
         console.error('Failed to register listeners:', e)
     }

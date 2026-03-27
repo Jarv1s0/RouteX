@@ -5,8 +5,7 @@
 </p>
 
 <p align="center">
-  <h1 align="center">RouteX</h1>
-  <p align="center">基于 <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a> 核心的现代跨平台代理客户端</p>
+  基于 <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a> 核心的现代跨平台代理客户端
 </p>
 
 <p align="center">
@@ -19,52 +18,112 @@
 
 ---
 
-**RouteX** 是一个功能强大且设计精美的跨平台代理客户端，基于 [Sparkle](https://github.com/xishang0128/sparkle) 修改而来。它采用了最新的前端技术栈，致力于提供极致的用户体验、流畅的交互动画和专业的视觉设计。
+## 项目简介
 
-### ✨ 核心特性
+RouteX 是一个面向桌面端的跨平台代理客户端，基于 [Sparkle](https://github.com/xishang0128/sparkle) 修改而来，并以内置的 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核为核心运行时。
 
-#### 🎨 极致视觉体验
-- **现代化设计**：全应用采用透明磨砂玻璃 (Mica) 效果，搭配 HeroUI 精致组件，支持深色模式。
-- **流畅交互**：精心调教的过渡动画，响应式双栏布局，确保在任何尺寸下都优雅易用。
+它聚焦于两件事：
 
-#### 🚀 强大的代理控制
-- **可视化链路追踪**：独创的连接详情面板，清晰展示从源进程到目标服务器的完整跳转路径。
-- **策略组管理**：支持拖拽排序、延迟测速、节点筛选，轻松管理复杂的代理分组。
-- **高性能核心**：内置最新版 Mihomo 内核，提供极低资源占用和毫秒级响应速度。
+- 提供更现代、顺滑、易读的代理管理体验
+- 为复杂代理配置提供更直观的可视化操作入口
 
-#### 🛠️ 专业级工具箱
-- **全能仪表盘**：实时监控上传/下载速率、内存占用、活跃连接数等关键指标。
-- **实用网络工具**：内置 DNS 查询、GeoIP 定位、流媒体解锁检测、真连接延迟测试。
-- **规则编辑器**：直观的规则管理界面，支持颜色编码和实时规则匹配测试。
+## 功能亮点
 
-### 🛠️ 技术栈
-- **核心框架**: Electron 37 + React 19
-- **UI 组件**: HeroUI (NextUI) v2.8
-- **样式引擎**: Tailwind CSS v4
-- **状态管理**: Zustand
-- **图表可视化**: ECharts
-- **构建工具**: Electron-Vite
+- **现代化界面**：支持透明磨砂玻璃风格、深色模式与响应式布局
+- **链路可视化**：展示从源进程到目标服务器的完整连接跳转路径
+- **策略组管理**：支持拖拽排序、延迟测速、节点筛选等常用操作
+- **实时仪表盘**：监控上传下载速率、内存占用与活跃连接数
+- **网络工具集**：内置 DNS 查询、GeoIP、流媒体检测与延迟测试
+- **规则编辑能力**：支持规则管理、颜色区分与实时匹配测试
 
-## 📥 下载与安装
+## 下载与安装
 
-请前往 [Releases](https://github.com/Jarv1s0/RouteX/releases) 页面下载对应系统的安装包。
+请前往 [Releases](https://github.com/Jarv1s0/RouteX/releases) 页面下载对应平台的安装包。
 
 | 平台 | 安装包格式 | 说明 |
 |------|------------|------|
-| **Windows** | `.exe` / `.7z` | 推荐使用 Setup 安装包，支持自动更新 |
-| **macOS** | `.dmg` / `.pkg` | 支持 Intel 和 Apple Silicon (M系列) |
-| **Linux** | `.deb` / `.AppImage` | 支持主流发行版 |
+| **Windows** | `.exe` / `.7z` | 推荐使用 Setup 安装包 |
+| **macOS** | `.dmg` / `.pkg` | 支持 Intel 与 Apple Silicon |
+| **Linux** | `.deb` / `.AppImage` | 适用于主流发行版 |
 
-## 🤝 致谢
+## 本地开发
 
-本项目离不开以下开源项目的贡献：
+### 环境准备
 
-- [Mihomo](https://github.com/MetaCubeX/mihomo) - 强大的核心引擎
-- [Sparkle](https://github.com/xishang0128/sparkle) - 项目起源
+- Node.js 开发环境
+- Corepack
+- `pnpm@10.15.0`（仓库当前使用的包管理器版本）
+
+### 安装依赖
+
+```powershell
+corepack enable
+pnpm install
+```
+
+### 启动开发环境
+
+```powershell
+pnpm dev
+```
+
+### 代码检查
+
+```powershell
+pnpm typecheck
+pnpm lint:ci
+```
+
+### 构建
+
+```powershell
+pnpm build
+pnpm build:unpack
+```
+
+说明：
+
+- `pnpm build` 会执行类型检查并构建 Electron 应用
+- `pnpm build:unpack` 会生成未打包目录，适合本地验证
+- `pnpm build:win`、`pnpm build:mac`、`pnpm build:linux` 为发布流程命令，默认包含 `--publish always`
+
+## 项目结构
+
+```text
+src/
+├─ main/       Electron 主进程
+├─ preload/    预加载层
+├─ renderer/   React 渲染层
+└─ shared/     共享类型与通用逻辑
+
+scripts/       构建与准备脚本
+resources/     图标与静态资源
+```
+
+## 技术栈
+
+- **桌面框架**：Electron 37
+- **前端框架**：React 19
+- **UI 组件**：HeroUI
+- **样式方案**：Tailwind CSS v4
+- **状态管理**：Zustand
+- **图表能力**：ECharts
+- **构建工具**：Electron-Vite
+
+## 更新记录
+
+版本更新说明见 `changelog.md`。
+
+## 致谢
+
+本项目离不开以下开源项目：
+
+- [Mihomo](https://github.com/MetaCubeX/mihomo)
+- [Sparkle](https://github.com/xishang0128/sparkle)
 - [Electron](https://www.electronjs.org/)
 - [React](https://react.dev/)
 - [HeroUI](https://www.heroui.com/)
 
-## 📄 许可证
+## 许可证
 
-本项目遵循 GPL-3.0 许可证，并与上游 [Sparkle](https://github.com/xishang0128/sparkle) 保持一致。详见 [LICENSE](LICENSE) 文件。
+本项目基于 GPL-3.0 许可证发布，并与上游 [Sparkle](https://github.com/xishang0128/sparkle) 保持一致。详见 [LICENSE](LICENSE)。

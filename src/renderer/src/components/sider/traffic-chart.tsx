@@ -7,37 +7,6 @@ export interface TrafficChartProps {
   isActive: boolean
 }
 
-function buildDenseCurveSeries(
-  values: number[],
-  labels: Array<string | number>,
-  density: number
-): { values: number[]; labels: Array<string | number> } {
-  if (values.length <= 1 || density <= 1) {
-    return { values, labels }
-  }
-
-  const denseValues: number[] = []
-  const denseLabels: Array<string | number> = []
-
-  const interpolate = (start: number, end: number, t: number): number => {
-    const easedT = (1 - Math.cos(Math.PI * t)) / 2
-    return start * (1 - easedT) + end * easedT
-  }
-
-  for (let index = 0; index < values.length - 1; index += 1) {
-    for (let step = 0; step < density; step += 1) {
-      const t = step / density
-      denseValues.push(interpolate(values[index], values[index + 1], t))
-      denseLabels.push(labels[index])
-    }
-  }
-
-  denseValues.push(values[values.length - 1])
-  denseLabels.push(labels[labels.length - 1])
-
-  return { values: denseValues, labels: denseLabels }
-}
-
 const TrafficChart: React.FC<TrafficChartProps> = (props) => {
   const { data, isActive } = props
 
@@ -49,14 +18,9 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
     }
     return data.slice()
   }, [data])
-
-  const denseData = useMemo(() => {
-    const labels = validData.map((item) => item.index)
-    return {
-      upload: buildDenseCurveSeries(validData.map((item) => item.upload), labels, 5),
-      download: buildDenseCurveSeries(validData.map((item) => item.download), labels, 5)
-    }
-  }, [validData])
+  const chartLabels = useMemo(() => validData.map((item) => item.index), [validData])
+  const uploadSeries = useMemo(() => validData.map((item) => item.upload), [validData])
+  const downloadSeries = useMemo(() => validData.map((item) => item.download), [validData])
 
   const uploadColor = isActive ? '#ffffff' : '#22d3ee'
   const downloadColor = isActive ? '#ffffffcc' : '#c084fc'
@@ -75,7 +39,7 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
         type: 'category',
         boundaryGap: false,
         show: false,
-        data: denseData.upload.labels
+        data: chartLabels
       },
       yAxis: {
         type: 'value',
@@ -90,7 +54,7 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
           color: uploadColor,
           smooth: true,
           symbol: 'none',
-          data: denseData.upload.values,
+          data: uploadSeries,
           lineStyle: {
             color: uploadColor,
             width: 2,
@@ -118,7 +82,7 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
           color: downloadColor,
           smooth: true,
           symbol: 'none',
-          data: denseData.download.values,
+          data: downloadSeries,
           lineStyle: {
             color: downloadColor,
             width: 2,
@@ -143,7 +107,7 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
         }
       ]
     }
-  }, [denseData, downloadColor, uploadColor])
+  }, [chartLabels, downloadColor, downloadSeries, uploadColor, uploadSeries])
 
   return (
     <div

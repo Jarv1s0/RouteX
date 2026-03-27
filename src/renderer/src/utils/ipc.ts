@@ -4,7 +4,7 @@ import { IPC_INVOKE_CHANNELS, type IpcInvokeChannel } from '../../../shared/ipc'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ipcErrorWrapper(response: any): any {
-  if (typeof response === 'object' && 'invokeError' in response) {
+  if (response !== null && typeof response === 'object' && 'invokeError' in response) {
     throw response.invokeError
   } else {
     return response
@@ -682,6 +682,29 @@ export async function startNetworkDetection(): Promise<void> {
 
 export async function stopNetworkDetection(): Promise<void> {
   return invokeSafe(C.stopNetworkDetection)
+}
+
+export async function startNetworkHealthMonitor(): Promise<void> {
+  return invokeSafe(C.startNetworkHealthMonitor)
+}
+
+export async function stopNetworkHealthMonitor(): Promise<void> {
+  return invokeSafe(C.stopNetworkHealthMonitor)
+}
+
+export async function getNetworkHealthStats(): Promise<{
+  currentLatency: number
+  currentDnsLatency: number
+  avgLatency: number
+  maxLatency: number
+  minLatency: number
+  jitter: number
+  packetLoss: number
+  uptime: number
+  testCount: number
+  failCount: number
+}> {
+  return invokeSafe(C.getNetworkHealthStats)
 }
 
 let applyThemeRunning = false

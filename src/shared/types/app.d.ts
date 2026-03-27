@@ -49,7 +49,6 @@ interface AppConfig {
   overrideCardStatus?: CardStatus
   profileCardStatus?: CardStatus
   proxyCardStatus?: CardStatus
-  resourceCardStatus?: CardStatus
   ruleCardStatus?: CardStatus
   sniffCardStatus?: CardStatus
   statsCardStatus?: CardStatus

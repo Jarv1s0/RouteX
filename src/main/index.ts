@@ -211,7 +211,8 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       frame: useWindowFrame,
       fullscreenable: false,
       titleBarStyle: useWindowFrame ? 'default' : 'hidden',
-      titleBarOverlay: !useWindowFrame && process.platform !== 'darwin',
+      // 保留自定义窗口按钮时，禁用系统标题栏覆盖区，避免点击区域冲突
+      titleBarOverlay: false,
       autoHideMenuBar: true,
       ...(process.platform === 'linux' ? { icon: getIconPath('icon.png') } : 
          process.platform === 'win32' ? { icon: getIconPath('icon.ico') } : {}),

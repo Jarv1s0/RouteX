@@ -29,6 +29,37 @@ interface ConnectionsState {
   trashAllClosedConnections: () => void
 }
 
+type ConnectionSnapshotListener = (snapshot: ControllerConnections) => void
+
+const connectionSnapshotListeners = new Set<ConnectionSnapshotListener>()
+let latestConnectionSnapshot: ControllerConnections | null = null
+
+function emitConnectionSnapshot(snapshot: ControllerConnections): void {
+  latestConnectionSnapshot = snapshot
+  connectionSnapshotListeners.forEach((listener) => {
+    try {
+      listener(snapshot)
+    } catch (error) {
+      console.error('Connection snapshot listener failed', error)
+    }
+  })
+}
+
+export function subscribeConnectionSnapshot(
+  listener: ConnectionSnapshotListener,
+  emitCurrent = true
+): () => void {
+  connectionSnapshotListeners.add(listener)
+
+  if (emitCurrent && latestConnectionSnapshot) {
+    listener(latestConnectionSnapshot)
+  }
+
+  return () => {
+    connectionSnapshotListeners.delete(listener)
+  }
+}
+
 export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   activeConnections: [],
   closedConnections: [],
@@ -41,11 +72,6 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
 
   initializeListeners: () => {
     const handleConnections = throttle((_e: unknown, infoStr: string | ControllerConnections): void => {
-      const { isPaused } = get()
-      if (isPaused) return
-      // 窗口不可见时跳过处理，降低后台 CPU 占用
-      if (document.hidden) return
-      
       let info: ControllerConnections
       if (typeof infoStr === 'string') {
         try {
@@ -58,6 +84,14 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       }
 
       if (!info || !info.connections) return
+
+      // 先把解析后的连接快照广播出去，供其他 store 复用，避免重复监听和重复 JSON.parse。
+      emitConnectionSnapshot(info)
+
+      const { isPaused } = get()
+      if (isPaused) return
+      // 窗口不可见时跳过列表衍生计算，降低后台 CPU 占用
+      if (document.hidden) return
       
       const { activeConnections: prevActive, closedConnections: prevClosed } = get()
       const prevActiveMap = new Map(prevActive.map((c) => [c.id, c]))

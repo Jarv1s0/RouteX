@@ -26,9 +26,7 @@ import { mkdir, writeFile, cp, rm, readdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 import {
-  startPacServer,
-  startSubStoreBackendServer,
-  startSubStoreFrontendServer
+  startPacServer
 } from '../resolve/server'
 import { triggerSysProxy } from '../sys/sysproxy'
 import {
@@ -38,7 +36,7 @@ import {
   patchControledMihomoConfig
 } from '../config'
 import { app } from 'electron'
-import { startSSIDCheck } from '../sys/ssid'
+import { refreshSSIDCheck } from '../sys/ssid'
 import { startNetworkDetection } from '../core/manager'
 import { initKeyManager } from '../service/manager'
 
@@ -107,9 +105,7 @@ async function initFiles(): Promise<void> {
     copy('geoip.metadb'),
     copy('geoip.dat'),
     copy('geosite.dat'),
-    copy('ASN.mmdb'),
-    copy('sub-store.bundle.js'),
-    copy('sub-store-frontend')
+    copy('ASN.mmdb')
   ])
 }
 
@@ -215,11 +211,7 @@ export async function init(): Promise<void> {
 
   const { sysProxy, onlyActiveDevice = false, networkDetection = false } = appConfig
 
-  const initTasks: Promise<void>[] = [
-    startSubStoreFrontendServer(),
-    startSubStoreBackendServer(),
-    startSSIDCheck()
-  ]
+  const initTasks: Promise<void>[] = [refreshSSIDCheck()]
 
   if (networkDetection) {
     initTasks.push(startNetworkDetection())

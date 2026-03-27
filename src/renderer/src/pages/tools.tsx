@@ -6,6 +6,7 @@ import { mihomoDnsQuery, testRuleMatch, testConnectivity, fetchIpInfo as fetchIp
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { IPCheckModal } from '@renderer/components/tools/ip-check-modal'
 import { IpCheckerPanel } from '@renderer/components/tools/ip-checker-panel'
+import { RemoteImage } from '@renderer/components/base/remote-image'
 
 interface CombinedTestTarget {
   id: string
@@ -68,6 +69,8 @@ const defaultTestTargets: CombinedTestTarget[] = [
     latency: -1 
   }))
 ]
+
+const TEST_ALL_CONCURRENCY = 4
 
 const Tools: React.FC = () => {
   // DNS 查询
@@ -204,10 +207,14 @@ const Tools: React.FC = () => {
   const testAll = async (): Promise<void> => {
     setAllTesting(true)
     setTestTargets(prev => prev.map(t => ({ ...t, status: 'testing', region: undefined, error: undefined })))
-    
-    await Promise.allSettled(
-      testTargetsRef.current.map((_, index) => testSingle(index))
-    )
+
+    for (let index = 0; index < testTargetsRef.current.length; index += TEST_ALL_CONCURRENCY) {
+      const batch = testTargetsRef.current
+        .slice(index, index + TEST_ALL_CONCURRENCY)
+        .map((_, batchIndex) => testSingle(index + batchIndex))
+
+      await Promise.allSettled(batch)
+    }
     
     setAllTesting(false)
   }
@@ -441,13 +448,10 @@ ASN: ${ipInfo.as}`
                   className={`${CARD_STYLES.GLASS_ITEM_CARD} ${target.status === 'testing' ? 'opacity-70 scale-[0.98]' : 'hover:scale-[1.05] hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:border-success/30'} transition-all duration-300 border-transparent`}
                 >
                   <CardBody className="p-3 text-center">
-                    <img 
+                    <RemoteImage
                       src={target.icon} 
                       alt={target.name} 
-                      className="w-6 h-6 mx-auto mb-1" 
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23888"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'
-                      }}
+                      className="w-6 h-6 mx-auto mb-1"
                     />
                     <div className="text-xs font-medium mb-2">{target.name}</div>
                     {target.status === 'testing' ? (

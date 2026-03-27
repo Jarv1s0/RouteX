@@ -101,7 +101,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
         ${fixed 
           ? 'bg-secondary/20 backdrop-blur-md border border-secondary/50' 
           : selected 
-            ? 'bg-primary/15 backdrop-blur-xl border border-primary/40 shadow-[0_0_15px_rgba(var(--heroui-primary),0.1)]' 
+            ? 'bg-primary/[0.085] dark:bg-primary/[0.12] backdrop-blur-xl border border-primary/24 shadow-[0_10px_24px_rgba(16,185,129,0.08)]' 
             : 'bg-default-100/60 dark:bg-default-50/30 backdrop-blur-md border border-default-200/60 dark:border-white/10 hover:bg-default-200/60 dark:hover:bg-default-100/40 hover:-translate-y-0.5 hover:shadow-md'
         } 
         ${displayDelay === 0 ? 'opacity-70 grayscale-[30%] hover:grayscale-0' : ''}

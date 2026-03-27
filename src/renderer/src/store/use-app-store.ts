@@ -27,6 +27,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const current = get().appConfig
       if (current) {
         set({ appConfig: merge({}, current, value) })
+        return
       }
       void get().fetchAppConfig()
     } catch (e) {
@@ -39,4 +40,3 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().fetchAppConfig()
   }
 }))
-

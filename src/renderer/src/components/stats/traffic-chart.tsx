@@ -33,37 +33,6 @@ function splitTrafficText(value: number, speed: boolean): { amount: string; unit
   return { amount, unit }
 }
 
-function buildDenseCurveSeries(
-  values: number[],
-  labels: string[],
-  density: number
-): { values: number[]; labels: string[] } {
-  if (values.length <= 1 || density <= 1) {
-    return { values, labels }
-  }
-
-  const denseValues: number[] = []
-  const denseLabels: string[] = []
-
-  const interpolate = (start: number, end: number, t: number): number => {
-    const easedT = (1 - Math.cos(Math.PI * t)) / 2
-    return start * (1 - easedT) + end * easedT
-  }
-
-  for (let index = 0; index < values.length - 1; index += 1) {
-    for (let step = 0; step < density; step += 1) {
-      const t = step / density
-      denseValues.push(interpolate(values[index], values[index + 1], t))
-      denseLabels.push(labels[index])
-    }
-  }
-
-  denseValues.push(values[values.length - 1])
-  denseLabels.push(labels[labels.length - 1])
-
-  return { values: denseValues, labels: denseLabels }
-}
-
 const calcTrafficInt = (byte: number): string => {
   if (byte < 1024) return `${Math.round(byte)} B`
   byte /= 1024
@@ -122,13 +91,9 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
   const totalUpload = (dailyData || []).reduce((sum, d) => sum + d.upload, 0)
   const totalDownload = (dailyData || []).reduce((sum, d) => sum + d.download, 0)
 
-  const denseRealtimeSeries = useMemo(() => {
-    const labels = trafficHistory.map((item) => item.time)
-    return {
-      upload: buildDenseCurveSeries(trafficHistory.map((item) => item.upload), labels, 5),
-      download: buildDenseCurveSeries(trafficHistory.map((item) => item.download), labels, 5)
-    }
-  }, [trafficHistory])
+  const realtimeLabels = useMemo(() => trafficHistory.map((item) => item.time), [trafficHistory])
+  const realtimeUpload = useMemo(() => trafficHistory.map((item) => item.upload), [trafficHistory])
+  const realtimeDownload = useMemo(() => trafficHistory.map((item) => item.download), [trafficHistory])
 
   const chartOption = useMemo(() => {
     const axisLabelColor = '#94a3b8'
@@ -244,11 +209,11 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         },
         xAxis: {
           ...baseOption.xAxis,
-          data: denseRealtimeSeries.upload.labels,
+          data: realtimeLabels,
           axisLabel: {
             color: axisLabelColor,
             fontSize: 10,
-            interval: Math.max(Math.floor(denseRealtimeSeries.upload.labels.length / 4), 12),
+            interval: Math.max(Math.floor(realtimeLabels.length / 4), 12),
             formatter: (value: string | number) => {
               const label = String(value)
               return label.length >= 5 ? label.substring(0, 5) : label
@@ -262,7 +227,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
             color: uploadColor,
             smooth: true,
             symbol: 'none',
-            data: denseRealtimeSeries.upload.values,
+            data: realtimeUpload,
             lineStyle: {
               color: uploadColor,
               width: 2.25,
@@ -293,7 +258,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
             color: downloadColor,
             smooth: true,
             symbol: 'none',
-            data: denseRealtimeSeries.download.values,
+            data: realtimeDownload,
             lineStyle: {
               color: downloadColor,
               width: 2.25,
@@ -377,9 +342,10 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
     formattedDailyData,
     formattedHourlyData,
     formattedMonthlyData,
-    denseRealtimeSeries,
     historyTab,
-    trafficHistory
+    realtimeDownload,
+    realtimeLabels,
+    realtimeUpload
   ])
 
   return (

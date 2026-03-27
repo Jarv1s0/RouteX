@@ -1,6 +1,6 @@
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { Worker } from 'worker_threads'
-import { mihomoWorkDir, subStoreDir, substoreLogPath } from '../utils/dirs'
+import { mihomoWorkDir, resourcesFilesDir, subStoreDir, substoreLogPath } from '../utils/dirs'
 import subStoreIcon from '../../../resources/subStoreIcon.png?asset'
 import { createWriteStream, existsSync, mkdirSync } from 'fs'
 import { writeFile, rm, cp, readFile } from 'fs/promises'
@@ -12,11 +12,14 @@ import express from 'express'
 import axios from 'axios'
 import AdmZip from 'adm-zip'
 
-export let pacPort: number
-export let subStorePort: number
-export let subStoreFrontendPort: number
-let subStoreFrontendServer: http.Server
-let subStoreBackendWorker: Worker
+export let pacPort = 0
+export let subStorePort = 0
+export let subStoreFrontendPort = 0
+let subStoreFrontendServer: http.Server | null = null
+let subStoreBackendWorker: Worker | null = null
+let ensureSubStoreRuntimeAssetsPromise: Promise<void> | null = null
+let startSubStoreFrontendPromise: Promise<void> | null = null
+let startSubStoreBackendPromise: Promise<void> | null = null
 
 const defaultPacScript = `
 function FindProxyForURL(url, host) {
@@ -51,6 +54,60 @@ async function loadSubStoreIndexHtml(frontendDir: string): Promise<string> {
     return indexHtml.replace('</head>', `${subStoreInjectedStyle}</head>`)
   }
   return `${subStoreInjectedStyle}${indexHtml}`
+}
+
+function getSubStoreFrontendDir(): string {
+  return path.join(mihomoWorkDir(), 'sub-store-frontend')
+}
+
+function getSubStoreBackendPath(): string {
+  return path.join(mihomoWorkDir(), 'sub-store.bundle.js')
+}
+
+function hasSubStoreFrontendAssets(frontendDir: string): boolean {
+  return existsSync(path.join(frontendDir, 'index.html'))
+}
+
+async function ensureSubStoreRuntimeAssets(): Promise<void> {
+  if (ensureSubStoreRuntimeAssetsPromise) {
+    await ensureSubStoreRuntimeAssetsPromise
+    return
+  }
+
+  ensureSubStoreRuntimeAssetsPromise = (async () => {
+    const frontendDir = getSubStoreFrontendDir()
+    const backendPath = getSubStoreBackendPath()
+
+    if (existsSync(backendPath) && hasSubStoreFrontendAssets(frontendDir)) {
+      return
+    }
+
+    const bundledBackendPath = path.join(resourcesFilesDir(), 'sub-store.bundle.js')
+    const bundledFrontendDir = path.join(resourcesFilesDir(), 'sub-store-frontend')
+    const hasBundledAssets =
+      existsSync(bundledBackendPath) && hasSubStoreFrontendAssets(bundledFrontendDir)
+
+    if (hasBundledAssets) {
+      if (!existsSync(backendPath)) {
+        await cp(bundledBackendPath, backendPath)
+      }
+      if (!hasSubStoreFrontendAssets(frontendDir)) {
+        if (existsSync(frontendDir)) {
+          await rm(frontendDir, { recursive: true, force: true })
+        }
+        await cp(bundledFrontendDir, frontendDir, { recursive: true })
+      }
+      return
+    }
+
+    await downloadSubStore()
+  })()
+
+  try {
+    await ensureSubStoreRuntimeAssetsPromise
+  } finally {
+    ensureSubStoreRuntimeAssetsPromise = null
+  }
 }
 
 export function findAvailablePort(startPort: number): Promise<number> {
@@ -103,27 +160,44 @@ export async function stopPacServer(): Promise<void> {
 export async function startSubStoreFrontendServer(): Promise<void> {
   const { useSubStore = true, subStoreHost = '127.0.0.1' } = await getAppConfig()
   if (!useSubStore) return
-  await stopSubStoreFrontendServer()
-  subStoreFrontendPort = await findAvailablePort(14122)
-  const app = express()
-  const frontendDir = path.join(mihomoWorkDir(), 'sub-store-frontend')
-  const injectedIndexHtml = await loadSubStoreIndexHtml(frontendDir)
+  if (subStoreFrontendServer) return
+  if (startSubStoreFrontendPromise) {
+    await startSubStoreFrontendPromise
+    return
+  }
 
-  app.get('/', (_req, res) => {
-    res.type('html').send(injectedIndexHtml)
-  })
+  startSubStoreFrontendPromise = (async () => {
+    await ensureSubStoreRuntimeAssets()
+    await stopSubStoreFrontendServer()
+    subStoreFrontendPort = await findAvailablePort(14122)
+    const app = express()
+    const frontendDir = getSubStoreFrontendDir()
+    const injectedIndexHtml = await loadSubStoreIndexHtml(frontendDir)
 
-  app.use(express.static(frontendDir))
-  app.use((_req, res) => {
-    res.type('html').send(injectedIndexHtml)
-  })
-  subStoreFrontendServer = app.listen(subStoreFrontendPort, subStoreHost)
+    app.get('/', (_req, res) => {
+      res.type('html').send(injectedIndexHtml)
+    })
+
+    app.use(express.static(frontendDir))
+    app.use((_req, res) => {
+      res.type('html').send(injectedIndexHtml)
+    })
+    subStoreFrontendServer = app.listen(subStoreFrontendPort, subStoreHost)
+  })()
+
+  try {
+    await startSubStoreFrontendPromise
+  } finally {
+    startSubStoreFrontendPromise = null
+  }
 }
 
 export async function stopSubStoreFrontendServer(): Promise<void> {
   if (subStoreFrontendServer) {
     subStoreFrontendServer.close()
+    subStoreFrontendServer = null
   }
+  subStoreFrontendPort = 0
 }
 
 export async function startSubStoreBackendServer(): Promise<void> {
@@ -138,7 +212,14 @@ export async function startSubStoreBackendServer(): Promise<void> {
   } = await getAppConfig()
   const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
   if (!useSubStore) return
-  if (!useCustomSubStore) {
+  if (useCustomSubStore || subStoreBackendWorker) return
+  if (startSubStoreBackendPromise) {
+    await startSubStoreBackendPromise
+    return
+  }
+
+  startSubStoreBackendPromise = (async () => {
+    await ensureSubStoreRuntimeAssets()
     await stopSubStoreBackendServer()
     subStorePort = await findAvailablePort(38324)
     const icon = nativeImage.createFromPath(subStoreIcon)
@@ -157,7 +238,7 @@ export async function startSubStoreBackendServer(): Promise<void> {
       SUB_STORE_MMDB_COUNTRY_PATH: path.join(mihomoWorkDir(), 'country.mmdb'),
       SUB_STORE_MMDB_ASN_PATH: path.join(mihomoWorkDir(), 'ASN.mmdb')
     }
-    subStoreBackendWorker = new Worker(path.join(mihomoWorkDir(), 'sub-store.bundle.js'), {
+    subStoreBackendWorker = new Worker(getSubStoreBackendPath(), {
       env: useProxyInSubStore
         ? {
             ...env,
@@ -169,19 +250,39 @@ export async function startSubStoreBackendServer(): Promise<void> {
     })
     subStoreBackendWorker.stdout.pipe(stdout)
     subStoreBackendWorker.stderr.pipe(stderr)
+  })()
+
+  try {
+    await startSubStoreBackendPromise
+  } finally {
+    startSubStoreBackendPromise = null
   }
 }
 
 export async function stopSubStoreBackendServer(): Promise<void> {
   if (subStoreBackendWorker) {
     subStoreBackendWorker.terminate()
+    subStoreBackendWorker = null
   }
+  subStorePort = 0
+}
+
+export async function ensureSubStoreFrontendServer(): Promise<void> {
+  const { useSubStore = true } = await getAppConfig()
+  if (!useSubStore || subStoreFrontendServer) return
+  await startSubStoreFrontendServer()
+}
+
+export async function ensureSubStoreBackendServer(): Promise<void> {
+  const { useSubStore = true, useCustomSubStore = false } = await getAppConfig()
+  if (!useSubStore || useCustomSubStore || subStoreBackendWorker) return
+  await startSubStoreBackendServer()
 }
 
 export async function downloadSubStore(): Promise<void> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-  const frontendDir = path.join(mihomoWorkDir(), 'sub-store-frontend')
-  const backendPath = path.join(mihomoWorkDir(), 'sub-store.bundle.js')
+  const frontendDir = getSubStoreFrontendDir()
+  const backendPath = getSubStoreBackendPath()
   const tempDir = path.join(mihomoWorkDir(), 'temp')
 
   try {

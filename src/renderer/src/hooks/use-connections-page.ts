@@ -4,7 +4,6 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { useResourceQueue } from '@renderer/hooks/use-resource-queue'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
-import dayjs from 'dayjs'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import {
   CONNECTION_TABLE_SORT_COLUMNS,
@@ -17,6 +16,48 @@ import {
   type ConnectionViewMode,
   type VisibleRange
 } from '@renderer/components/connections/shared'
+
+const connectionSearchCache = new WeakMap<ControllerConnectionDetail, string>()
+const connectionStartCache = new WeakMap<ControllerConnectionDetail, number>()
+const connectionTypeCache = new WeakMap<ControllerConnectionDetail, string>()
+
+function getConnectionSearchText(connection: ControllerConnectionDetail): string {
+  const cached = connectionSearchCache.get(connection)
+  if (cached) return cached
+
+  const searchableText = [
+    connection.metadata.process,
+    connection.metadata.host,
+    connection.metadata.destinationIP,
+    connection.metadata.sourceIP,
+    connection.chains?.[0],
+    connection.rule,
+    connection.rulePayload
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  connectionSearchCache.set(connection, searchableText)
+  return searchableText
+}
+
+function getConnectionStart(connection: ControllerConnectionDetail): number {
+  const cached = connectionStartCache.get(connection)
+  if (cached !== undefined) return cached
+
+  const next = Date.parse(connection.start || '') || 0
+  connectionStartCache.set(connection, next)
+  return next
+}
+
+function getConnectionType(connection: ControllerConnectionDetail): string {
+  const cached = connectionTypeCache.get(connection)
+  if (cached) return cached
+
+  const next = `${connection.metadata.type || ''}|${connection.metadata.network || ''}`
+  connectionTypeCache.set(connection, next)
+  return next
+}
 
 interface UseConnectionsPageResult {
   activeConnections: ControllerConnectionDetail[]
@@ -95,46 +136,35 @@ export function useConnectionsPage(): UseConnectionsPageResult {
   const deferredFilter = useDeferredValue(filter)
   const deferredOrder = useDeferredValue(connectionOrderBy)
   const deferredDirection = useDeferredValue(connectionDirection)
+  const sourceConnections = tab === 'active' ? activeConnections : closedConnections
 
-  const filteredConnections = useMemo(() => {
-    const sourceConnections = tab === 'active' ? activeConnections : closedConnections
-
-    let nextConnections = sourceConnections
-
-    if (!showHidden && hiddenRules.size > 0) {
-      nextConnections = nextConnections.filter((connection) => {
-        return !hiddenRules.has(getConnectionHideRule(connection))
-      })
+  const visibleConnections = useMemo(() => {
+    if (showHidden || hiddenRules.size === 0) {
+      return sourceConnections
     }
 
-    if (deferredFilter !== '') {
-      nextConnections = nextConnections.filter((connection) => {
-        const searchableFields = [
-          connection.metadata.process,
-          connection.metadata.host,
-          connection.metadata.destinationIP,
-          connection.metadata.sourceIP,
-          connection.chains?.[0],
-          connection.rule,
-          connection.rulePayload
-        ]
-          .filter(Boolean)
-          .join(' ')
+    return sourceConnections.filter((connection) => {
+      return !hiddenRules.has(getConnectionHideRule(connection))
+    })
+  }, [hiddenRules, showHidden, sourceConnections])
 
-        return includesIgnoreCase(searchableFields, deferredFilter)
+  const filteredConnections = useMemo(() => {
+    if (deferredFilter !== '') {
+      return visibleConnections.filter((connection) => {
+        return includesIgnoreCase(getConnectionSearchText(connection), deferredFilter)
       })
     }
 
     if (!deferredOrder) {
-      return nextConnections
+      return visibleConnections
     }
 
-    return [...nextConnections].sort((left, right) => {
+    return [...visibleConnections].sort((left, right) => {
       const directionFactor = deferredDirection === 'asc' ? 1 : -1
 
       switch (deferredOrder) {
         case 'time':
-          return directionFactor * (dayjs(right.start).unix() - dayjs(left.start).unix())
+          return directionFactor * (getConnectionStart(right) - getConnectionStart(left))
         case 'upload':
           return directionFactor * (left.upload - right.upload)
         case 'download':
@@ -146,9 +176,7 @@ export function useConnectionsPage(): UseConnectionsPageResult {
         case 'process':
           return directionFactor * (left.metadata.process || '').localeCompare(right.metadata.process || '')
         case 'type':
-          return directionFactor * `${left.metadata.type}|${left.metadata.network}`.localeCompare(
-            `${right.metadata.type}|${right.metadata.network}`
-          )
+          return directionFactor * getConnectionType(left).localeCompare(getConnectionType(right))
         case 'rule':
           return directionFactor * (left.rule || '').localeCompare(right.rule || '')
         default:
@@ -156,14 +184,10 @@ export function useConnectionsPage(): UseConnectionsPageResult {
       }
     })
   }, [
-    activeConnections,
-    closedConnections,
     deferredDirection,
     deferredFilter,
     deferredOrder,
-    hiddenRules,
-    showHidden,
-    tab
+    visibleConnections
   ])
 
   const groupedConnections = useMemo<ConnectionGroupData[]>(() => {

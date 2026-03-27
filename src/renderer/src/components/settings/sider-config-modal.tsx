@@ -14,7 +14,6 @@ type SiderCardStatusKey =
   | 'profileCardStatus'
   | 'proxyCardStatus'
   | 'ruleCardStatus'
-  | 'resourceCardStatus'
   | 'overrideCardStatus'
   | 'connectionCardStatus'
   | 'mihomoCoreCardStatus'
@@ -32,7 +31,6 @@ const titleMap: Record<SiderCardStatusKey, string> = {
   profileCardStatus: '订阅管理',
   proxyCardStatus: '代理组',
   ruleCardStatus: '规则',
-  resourceCardStatus: '外部资源',
   overrideCardStatus: '覆写',
   connectionCardStatus: '连接',
   mihomoCoreCardStatus: '内核',
@@ -54,7 +52,6 @@ const SiderConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     profileCardStatus = 'col-span-2',
     proxyCardStatus = 'col-span-2',
     ruleCardStatus = 'col-span-1',
-    resourceCardStatus = 'col-span-1',
     overrideCardStatus = 'col-span-1',
     connectionCardStatus = 'col-span-2',
     mihomoCoreCardStatus = 'col-span-2',
@@ -73,7 +70,6 @@ const SiderConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     profileCardStatus,
     proxyCardStatus,
     ruleCardStatus,
-    resourceCardStatus,
     overrideCardStatus,
     connectionCardStatus,
     mihomoCoreCardStatus,

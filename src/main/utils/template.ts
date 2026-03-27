@@ -33,7 +33,6 @@ export const defaultConfig: AppConfig = {
     'profile',
     'mihomo',
     'rule',
-    'resource',
     'override',
     'log',
     'substore',

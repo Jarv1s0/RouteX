@@ -41,6 +41,7 @@ import ProfileSettingModal from '@renderer/components/profiles/profile-setting-m
 import useSWR from 'swr'
 import { useNavigate } from 'react-router-dom'
 import { notifyError } from '@renderer/utils/notify'
+import { RemoteImage } from '@renderer/components/base/remote-image'
 
 const emptyItems: ProfileItem[] = []
 
@@ -139,6 +140,7 @@ const Profiles: React.FC = () => {
   }
   const [useProxy, setUseProxy] = useState(false)
   const [subStoreImporting, setSubStoreImporting] = useState(false)
+  const [shouldLoadSubStoreMenu, setShouldLoadSubStoreMenu] = useState(false)
   const [importing, setImporting] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [switching, setSwitching] = useState(false)
@@ -156,11 +158,11 @@ const Profiles: React.FC = () => {
     })
   )
   const { data: subs = [], mutate: mutateSubs } = useSWR(
-    useSubStore ? 'subStoreSubs' : undefined,
+    useSubStore && shouldLoadSubStoreMenu ? 'subStoreSubs' : undefined,
     useSubStore ? subStoreSubs : (): undefined => {}
   )
   const { data: collections = [], mutate: mutateCollections } = useSWR(
-    useSubStore ? 'subStoreCollections' : undefined,
+    useSubStore && shouldLoadSubStoreMenu ? 'subStoreCollections' : undefined,
     useSubStore ? subStoreCollections : (): undefined => {}
   )
   const subStoreMenuItems = useMemo(() => {
@@ -191,7 +193,7 @@ const Profiles: React.FC = () => {
               </div>
             </div>
           ),
-          icon: sub.icon ? <img src={sub.icon} className="h-[18px] w-[18px]" /> : null,
+          icon: sub.icon ? <RemoteImage src={sub.icon} alt={sub.displayName || sub.name} className="h-[18px] w-[18px]" /> : null,
           divider: index === subs.length - 1 && Boolean(collections) && collections.length > 0
         })
       })
@@ -214,7 +216,7 @@ const Profiles: React.FC = () => {
               </div>
             </div>
           ),
-          icon: sub.icon ? <img src={sub.icon} className="h-[18px] w-[18px]" /> : null,
+          icon: sub.icon ? <RemoteImage src={sub.icon} alt={sub.displayName || sub.name} className="h-[18px] w-[18px]" /> : null,
           divider: false
         })
       })
@@ -403,9 +405,11 @@ const Profiles: React.FC = () => {
           </Button>
           {useSubStore && (
             <Dropdown
-              onOpenChange={() => {
-                mutateSubs()
-                mutateCollections()
+              onOpenChange={(isOpen) => {
+                if (!isOpen) return
+                setShouldLoadSubStoreMenu(true)
+                void mutateSubs()
+                void mutateCollections()
               }}
             >
               <DropdownTrigger>

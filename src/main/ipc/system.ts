@@ -60,6 +60,8 @@ import {
   writeTheme
 } from '../resolve/theme'
 import {
+  ensureSubStoreBackendServer,
+  ensureSubStoreFrontendServer,
   startSubStoreFrontendServer,
   startSubStoreBackendServer,
   stopSubStoreFrontendServer,
@@ -137,8 +139,14 @@ export function registerSystemHandlers(): void {
     [C.startSubStoreBackendServer]: () => ipcErrorWrapper(startSubStoreBackendServer)(),
     [C.stopSubStoreBackendServer]: () => ipcErrorWrapper(stopSubStoreBackendServer)(),
     [C.downloadSubStore]: () => ipcErrorWrapper(downloadSubStore)(),
-    [C.subStorePort]: () => subStorePort,
-    [C.subStoreFrontendPort]: () => subStoreFrontendPort,
+    [C.subStorePort]: async () => {
+      await ensureSubStoreBackendServer()
+      return subStorePort
+    },
+    [C.subStoreFrontendPort]: async () => {
+      await ensureSubStoreFrontendServer()
+      return subStoreFrontendPort
+    },
     [C.subStoreSubs]: () => ipcErrorWrapper(subStoreSubs)(),
     [C.subStoreCollections]: () => ipcErrorWrapper(subStoreCollections)(),
     [C.getGistUrl]: ipcErrorWrapper(getGistUrl),
