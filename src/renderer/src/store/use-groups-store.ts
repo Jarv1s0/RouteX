@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { mihomoGroups } from '@renderer/utils/ipc'
+import { mihomoGroups } from '@renderer/utils/mihomo-ipc'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface GroupsState {
   groups: ControllerMixedGroup[] | undefined
@@ -23,18 +24,14 @@ function isExpectedMihomoUnavailableError(error: unknown): boolean {
 }
 
 // 精确的监听器引用，避免使用 removeAllListeners
-let currentGroupsHandler: (() => void) | null = null
-let currentCoreStartedHandler: (() => void) | null = null
+let currentGroupsCleanup: (() => void) | null = null
+let currentCoreStartedCleanup: (() => void) | null = null
 
 function unregisterGroupHandlers(): void {
-  if (currentGroupsHandler) {
-    window.electron.ipcRenderer.removeListener('groupsUpdated', currentGroupsHandler)
-    currentGroupsHandler = null
-  }
-  if (currentCoreStartedHandler) {
-    window.electron.ipcRenderer.removeListener('core-started', currentCoreStartedHandler)
-    currentCoreStartedHandler = null
-  }
+  currentGroupsCleanup?.()
+  currentGroupsCleanup = null
+  currentCoreStartedCleanup?.()
+  currentCoreStartedCleanup = null
 }
 
 export const useGroupsStore = create<GroupsState>((set, get) => ({
@@ -62,10 +59,8 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
     }
 
     // 保存引用并注册
-    currentGroupsHandler = handleUpdate
-    currentCoreStartedHandler = handleUpdate
-    window.electron.ipcRenderer.on('groupsUpdated', handleUpdate)
-    window.electron.ipcRenderer.on('core-started', handleUpdate)
+    currentGroupsCleanup = onIpc(ON.groupsUpdated, handleUpdate)
+    currentCoreStartedCleanup = onIpc(ON.coreStarted, handleUpdate)
     
     // Initial fetch
     get().fetchGroups()

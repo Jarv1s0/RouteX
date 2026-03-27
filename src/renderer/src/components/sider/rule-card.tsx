@@ -5,8 +5,9 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import React, { useEffect, useMemo } from 'react'
-import { getRuntimeConfig, mihomoRuleProviders } from '@renderer/utils/ipc'
+import { getRuntimeConfig, mihomoRuleProviders } from '@renderer/utils/mihomo-ipc'
 import useSWR from 'swr'
 import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
@@ -49,18 +50,18 @@ const RuleCard: React.FC<Props> = (props) => {
     const handleRefresh = (): void => {
       mutate()
     }
-    window.electron.ipcRenderer.on('core-started', handleRefresh)
-    window.electron.ipcRenderer.on('rulesUpdated', handleRefresh)
-    window.electron.ipcRenderer.on('profileConfigUpdated', handleRefresh)
-    window.electron.ipcRenderer.on('overrideConfigUpdated', handleRefresh)
-    window.electron.ipcRenderer.on('controledMihomoConfigUpdated', handleRefresh)
+    const offCoreStarted = onIpc(ON.coreStarted, handleRefresh)
+    const offRulesUpdated = onIpc(ON.rulesUpdated, handleRefresh)
+    const offProfileConfigUpdated = onIpc(ON.profileConfigUpdated, handleRefresh)
+    const offOverrideConfigUpdated = onIpc(ON.overrideConfigUpdated, handleRefresh)
+    const offControledConfigUpdated = onIpc(ON.controledMihomoConfigUpdated, handleRefresh)
     
     return (): void => {
-      window.electron.ipcRenderer.removeListener('core-started', handleRefresh)
-      window.electron.ipcRenderer.removeListener('rulesUpdated', handleRefresh)
-      window.electron.ipcRenderer.removeListener('profileConfigUpdated', handleRefresh)
-      window.electron.ipcRenderer.removeListener('overrideConfigUpdated', handleRefresh)
-      window.electron.ipcRenderer.removeListener('controledMihomoConfigUpdated', handleRefresh)
+      offCoreStarted()
+      offRulesUpdated()
+      offProfileConfigUpdated()
+      offOverrideConfigUpdated()
+      offControledConfigUpdated()
     }
   }, [mutate])
   

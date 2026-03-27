@@ -1,8 +1,11 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { mihomoVersion, restartCore, checkMihomoLatestVersion } from '@renderer/utils/ipc'
-import { toast } from 'sonner'
+import {
+  mihomoVersion,
+  restartCore,
+  checkMihomoLatestVersion
+} from '@renderer/utils/mihomo-ipc'
 import React, { useEffect, useState } from 'react'
 import { LuRotateCw } from 'react-icons/lu'
 import { useSortable } from '@dnd-kit/sortable'
@@ -13,9 +16,15 @@ import useSWR from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { LuCpu } from 'react-icons/lu'
 import SiderCardIcon from '@renderer/components/base/sider-card-icon'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface Props {
   iconOnly?: boolean
+}
+
+async function showToastError(message: string): Promise<void> {
+  const { toast } = await import('sonner')
+  toast.error(message)
 }
 
 const MihomoCoreCard: React.FC<Props> = (props) => {
@@ -80,12 +89,12 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
     const handleCoreStarted = (): void => {
       mutate()
     }
-    window.electron.ipcRenderer.on('mihomoMemory', handleMemory)
-    window.electron.ipcRenderer.on('core-started', handleCoreStarted)
+    const offMemory = onIpc(ON.mihomoMemory, handleMemory)
+    const offCoreStarted = onIpc(ON.coreStarted, handleCoreStarted)
     return (): void => {
       PubSub.unsubscribe(token)
-      window.electron.ipcRenderer.removeListener('mihomoMemory', handleMemory)
-      window.electron.ipcRenderer.removeListener('core-started', handleCoreStarted)
+      offMemory()
+      offCoreStarted()
     }
   }, [])
 
@@ -164,7 +173,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
                     await new Promise((resolve) => setTimeout(resolve, 2000))
                     setRestarting(false)
                   } catch (e) {
-                    toast.error(String(e))
+                    await showToastError(String(e))
                   } finally {
                     mutate()
                   }

@@ -1,7 +1,8 @@
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { mihomoCloseAllConnections, patchMihomoConfig } from '@renderer/utils/ipc'
+import { mihomoCloseAllConnections, patchMihomoConfig } from '@renderer/utils/mihomo-ipc'
+import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { MdOutlineAltRoute } from 'react-icons/md'
 import { TbWorld, TbBolt } from 'react-icons/tb'
@@ -28,7 +29,7 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
       await mihomoCloseAllConnections()
     }
     mutateGroups()
-    window.electron.ipcRenderer.send('updateTrayMenu')
+    sendIpc(SEND.updateTrayMenu)
   }
 
   if (!mode) return null

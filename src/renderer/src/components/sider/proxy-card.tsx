@@ -9,7 +9,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { addFlag, removeFlag } from '@renderer/utils/flags'
 import React, { useMemo, useEffect, useState } from 'react'
-import { mihomoProxies } from '@renderer/utils/ipc'
+import { mihomoProxies } from '@renderer/utils/mihomo-ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 

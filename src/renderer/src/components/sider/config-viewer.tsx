@@ -9,13 +9,9 @@ import {
 } from '@heroui/react'
 import React, { useEffect, useState, useCallback } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
-import {
-  getProfileConfig,
-  getRawProfileStr,
-  getRuntimeConfigStr,
-  getCurrentProfileStr,
-  getOverrideProfileStr
-} from '@renderer/utils/ipc'
+import { getRuntimeConfigStr } from '@renderer/utils/mihomo-ipc'
+import { getOverrideProfileStr } from '@renderer/utils/override-ipc'
+import { getProfileConfig, getRawProfileStr, getCurrentProfileStr } from '@renderer/utils/profile-ipc'
 import useSWR from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 

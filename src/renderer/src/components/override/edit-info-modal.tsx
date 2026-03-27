@@ -14,8 +14,7 @@ import {
 import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { restartCore } from '@renderer/utils/ipc'
-
+import { restartCore } from '@renderer/utils/mihomo-ipc'
 interface Props {
   item: OverrideItem
   updateOverrideItem: (item: OverrideItem) => Promise<void>

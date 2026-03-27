@@ -14,16 +14,9 @@ import {
 } from '@heroui/react'
 import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
-import {
-  addOverrideItem,
-  restartCore,
-  getCurrentProfileItem,
-  updateProfileItem,
-  getOverrideConfig,
-  getOverride,
-  setOverride
-} from '@renderer/utils/ipc'
-
+import { restartCore } from '@renderer/utils/mihomo-ipc'
+import { addOverrideItem, getOverrideConfig, getOverride, setOverride } from '@renderer/utils/override-ipc'
+import { getCurrentProfileItem, updateProfileItem } from '@renderer/utils/profile-ipc'
 interface Props {
   connection: ControllerConnectionDetail
   onClose: () => void

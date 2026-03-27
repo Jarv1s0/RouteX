@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import MihomoIcon from './components/base/mihomo-icon'
 import { calcTraffic } from './utils/calc'
-import { showContextMenu, triggerMainWindow } from './utils/ipc'
+import { showContextMenu, triggerMainWindow } from './utils/window-ipc'
+import { ON, onIpc } from './utils/ipc-channels'
 import { useAppConfig } from './hooks/use-app-config'
 import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
 
@@ -54,11 +55,7 @@ const FloatingApp: React.FC = () => {
       setDownload(info.down)
     }
 
-    window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
-
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('mihomoTraffic', handleTraffic)
-    }
+    return onIpc(ON.mihomoTraffic, handleTraffic)
   }, [])
 
   return (

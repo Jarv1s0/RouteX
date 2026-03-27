@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { triggerSysProxy } from '@renderer/utils/ipc'
+import { triggerSysProxy } from '@renderer/utils/mihomo-ipc'
+import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { LuGlobe } from 'react-icons/lu'
 import React from 'react'
 import { useSortable } from '@dnd-kit/sortable'
@@ -48,8 +49,8 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
     try {
       await triggerSysProxy(enable, onlyActiveDevice)
       await patchAppConfig({ sysProxy: { enable } })
-      window.electron.ipcRenderer.send('updateFloatingWindow')
-      window.electron.ipcRenderer.send('updateTrayMenu')
+      sendIpc(SEND.updateFloatingWindow)
+      sendIpc(SEND.updateTrayMenu)
     } catch (e) {
       alert(e)
     }

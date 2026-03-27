@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Select, SelectItem } from '@heroui/react'
-import { getInterfaces } from '@renderer/utils/ipc'
-
+import { getInterfaces } from '@renderer/utils/mihomo-ipc'
 const InterfaceSelect: React.FC<{
   value: string
   exclude?: string[]

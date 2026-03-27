@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { getImageDataURL } from '@renderer/utils/ipc'
-
+import { getImageDataURL } from '@renderer/utils/resource-ipc'
 const REMOTE_IMAGE_CACHE_PREFIX = 'routex:remote-image:'
 const memoryCache = new Map<string, string>()
 const pendingRequests = new Map<string, Promise<string>>()

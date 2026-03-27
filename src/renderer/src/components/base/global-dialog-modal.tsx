@@ -3,6 +3,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Code 
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { MdErrorOutline, MdInfoOutline, MdWarningAmber, MdCheckCircleOutline, MdContentCopy } from 'react-icons/md'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 type DialogType = 'info' | 'error' | 'warning' | 'success'
 
@@ -48,10 +49,12 @@ export const GlobalDialogModal: React.FC = () => {
         setIsOpen(true)
     }
 
+    const cleanups: Array<() => void> = []
+
     try {
-        window.electron.ipcRenderer.on('show-dialog-modal', handleIPC)
+        cleanups.push(onIpc(ON.showDialogModal, handleIPC))
         // 兼容旧的 show-error-modal，默认为 error
-        window.electron.ipcRenderer.on('show-error-modal', handleErrorModal)
+        cleanups.push(onIpc(ON.showErrorModal, handleErrorModal))
         
         window.addEventListener('show-global-dialog', handleCustom)
         // 兼容旧的 show-global-error，默认为 error
@@ -62,8 +65,7 @@ export const GlobalDialogModal: React.FC = () => {
 
     return (): void => {
       try {
-          window.electron.ipcRenderer.removeListener('show-dialog-modal', handleIPC)
-          window.electron.ipcRenderer.removeListener('show-error-modal', handleErrorModal)
+          cleanups.forEach((cleanup) => cleanup())
           window.removeEventListener('show-global-dialog', handleCustom)
           window.removeEventListener('show-global-error', handleGlobalError)
       } catch (e) {

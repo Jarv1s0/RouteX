@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import ConfirmModal from '@renderer/components/base/base-confirm'
 import { platform } from '@renderer/utils/init'
+import { ON, SEND, onIpc, sendIpc } from '@renderer/utils/ipc-channels'
 
 const GlobalConfirmModals: React.FC = () => {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)
@@ -34,33 +35,36 @@ const GlobalConfirmModals: React.FC = () => {
       setShowOverrideInstallConfirm(true)
     }
 
-    window.electron.ipcRenderer.on('show-quit-confirm', handleShowQuitConfirm)
-    window.electron.ipcRenderer.on('show-profile-install-confirm', handleShowProfileInstallConfirm)
-    window.electron.ipcRenderer.on(
-      'show-override-install-confirm',
+    const offQuitConfirm = onIpc(ON.showQuitConfirm, handleShowQuitConfirm)
+    const offProfileInstallConfirm = onIpc(
+      ON.showProfileInstallConfirm,
+      handleShowProfileInstallConfirm
+    )
+    const offOverrideInstallConfirm = onIpc(
+      ON.showOverrideInstallConfirm,
       handleShowOverrideInstallConfirm
     )
 
     return (): void => {
-      window.electron.ipcRenderer.removeListener('show-quit-confirm', handleShowQuitConfirm)
-      window.electron.ipcRenderer.removeListener('show-profile-install-confirm', handleShowProfileInstallConfirm)
-      window.electron.ipcRenderer.removeListener('show-override-install-confirm', handleShowOverrideInstallConfirm)
+      offQuitConfirm()
+      offProfileInstallConfirm()
+      offOverrideInstallConfirm()
     }
   }, [])
 
   const handleQuitConfirm = (confirmed: boolean): void => {
     setShowQuitConfirm(false)
-    window.electron.ipcRenderer.send('quit-confirm-result', confirmed)
+    sendIpc(SEND.quitConfirmResult, confirmed)
   }
 
   const handleProfileInstallConfirm = (confirmed: boolean): void => {
     setShowProfileInstallConfirm(false)
-    window.electron.ipcRenderer.send('profile-install-confirm-result', confirmed)
+    sendIpc(SEND.profileInstallConfirmResult, confirmed)
   }
 
   const handleOverrideInstallConfirm = (confirmed: boolean): void => {
     setShowOverrideInstallConfirm(false)
-    window.electron.ipcRenderer.send('override-install-confirm-result', confirmed)
+    sendIpc(SEND.overrideInstallConfirmResult, confirmed)
   }
 
   return (

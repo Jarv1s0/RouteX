@@ -139,13 +139,13 @@ resources/     图标与静态资源
 
 ## ⚙️ 技术栈
 
-- 🖥️ **桌面框架**：Electron 37
-- ⚛️ **前端框架**：React 19
-- 🧩 **UI 组件**：HeroUI
-- 🎨 **样式方案**：Tailwind CSS v4
-- 🗃️ **状态管理**：Zustand
-- 📈 **图表能力**：ECharts
-- 🔧 **构建工具**：Electron-Vite
+- **桌面框架**：Electron 37
+- **前端框架**：React 19
+- **UI 组件**：HeroUI
+- **样式方案**：Tailwind CSS v4
+- **状态管理**：Zustand
+- **图表能力**：ECharts
+- **构建工具**：Electron-Vite
 
 ## 📝 更新记录
 

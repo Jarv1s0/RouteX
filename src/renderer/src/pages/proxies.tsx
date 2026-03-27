@@ -2,12 +2,7 @@ import { Button } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import EmptyState from '@renderer/components/base/empty-state'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import {
-  mihomoChangeProxy,
-  mihomoCloseAllConnections,
-  mihomoProxyDelay,
-  mihomoGroupDelay
-} from '@renderer/utils/ipc'
+import { mihomoChangeProxy, mihomoCloseAllConnections, mihomoProxyDelay, mihomoGroupDelay } from '@renderer/utils/mihomo-ipc'
 import { useEffect, useMemo, useRef, useState, useCallback, useDeferredValue, memo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'

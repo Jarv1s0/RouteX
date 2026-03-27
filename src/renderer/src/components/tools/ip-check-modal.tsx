@@ -10,7 +10,8 @@ import {
   Input
 } from '@heroui/react'
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
-import { testRuleMatch, mihomoChangeProxy } from '@renderer/utils/ipc'
+import { mihomoChangeProxy } from '@renderer/utils/mihomo-ipc'
+import { testRuleMatch } from '@renderer/utils/tools-ipc'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { IoOpenOutline, IoReload } from 'react-icons/io5'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'

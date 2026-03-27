@@ -3,9 +3,9 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import React, { KeyboardEvent, useState, useEffect } from 'react'
+import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
-import { registerShortcut } from '@renderer/utils/ipc'
-
+import { registerShortcut } from '@renderer/utils/app-ipc'
 const keyMap = {
   Backquote: '`',
   Backslash: '\\',
@@ -212,7 +212,7 @@ const ShortcutInput: React.FC<{
             try {
               if (await registerShortcut(value, inputValue, action)) {
                 await patchAppConfig({ [action]: inputValue })
-                window.electron.ipcRenderer.send('updateTrayMenu')
+                sendIpc(SEND.updateTrayMenu)
               } else {
                 alert('快捷键注册失败')
               }

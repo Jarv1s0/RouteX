@@ -1,8 +1,4 @@
-import {
-  mihomoRuleProviders,
-  mihomoUpdateRuleProviders,
-  getRuntimeConfig
-} from '@renderer/utils/ipc'
+import { mihomoRuleProviders, mihomoUpdateRuleProviders, getRuntimeConfig } from '@renderer/utils/mihomo-ipc'
 import { getHash } from '@renderer/utils/hash'
 import Viewer from './viewer'
 import { useEffect, useMemo, useState } from 'react'
@@ -12,6 +8,7 @@ import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
 import { MdEditDocument } from 'react-icons/md'
 import dayjs from 'dayjs'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface Props {
   hideUpdateAll?: boolean
@@ -59,10 +56,7 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
     const handleCoreStarted = (): void => {
       mutate()
     }
-    window.electron.ipcRenderer.on('core-started', handleCoreStarted)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('core-started', handleCoreStarted)
-    }
+    return onIpc(ON.coreStarted, handleCoreStarted)
   }, [])
 
   const providers = useMemo(() => {

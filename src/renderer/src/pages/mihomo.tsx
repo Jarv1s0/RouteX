@@ -13,24 +13,9 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { platform } from '@renderer/utils/init'
 import { IoMdCloudDownload } from 'react-icons/io'
 import PubSub from 'pubsub-js'
-import {
-  manualGrantCorePermition,
-  mihomoUpgrade,
-  mihomoVersion,
-  restartCore,
-  revokeCorePermission,
-  deleteElevateTask,
-  checkElevateTask,
-  relaunchApp,
-  notDialogQuit,
-  installService,
-  uninstallService,
-  startService,
-  stopService,
-  initService,
-  restartService,
-  checkMihomoLatestVersion
-} from '@renderer/utils/ipc'
+import { relaunchApp, notDialogQuit } from '@renderer/utils/app-ipc'
+import { mihomoUpgrade, mihomoVersion, restartCore, checkMihomoLatestVersion } from '@renderer/utils/mihomo-ipc'
+import { manualGrantCorePermition, revokeCorePermission, deleteElevateTask, checkElevateTask, installService, uninstallService, startService, stopService, initService, restartService } from '@renderer/utils/service-ipc'
 import React, { useState, useEffect } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'

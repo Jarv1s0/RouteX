@@ -6,7 +6,7 @@ import {
   Divider
 } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
-import { getOverride } from '@renderer/utils/ipc'
+import { getOverride } from '@renderer/utils/override-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {

@@ -1,8 +1,4 @@
-import {
-  mihomoProxyProviders,
-  mihomoUpdateProxyProviders,
-  getRuntimeConfig
-} from '@renderer/utils/ipc'
+import { mihomoProxyProviders, mihomoUpdateProxyProviders, getRuntimeConfig } from '@renderer/utils/mihomo-ipc'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import Viewer from './viewer'
 import useSWR from 'swr'
@@ -15,6 +11,7 @@ import { MdEditDocument } from 'react-icons/md'
 import dayjs from 'dayjs'
 import { calcTraffic } from '@renderer/utils/calc'
 import { getHash } from '@renderer/utils/hash'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 const ProxyProvider: React.FC = () => {
   const [showDetails, setShowDetails] = useState({
@@ -54,10 +51,7 @@ const ProxyProvider: React.FC = () => {
     const handleCoreStarted = (): void => {
       mutate()
     }
-    window.electron.ipcRenderer.on('core-started', handleCoreStarted)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('core-started', handleCoreStarted)
-    }
+    return onIpc(ON.coreStarted, handleCoreStarted)
   }, [])
 
   const providers = useMemo(() => {

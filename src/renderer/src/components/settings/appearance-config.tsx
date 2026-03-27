@@ -3,22 +3,11 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Select, SelectItem, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
 import { BiSolidFileImport } from 'react-icons/bi'
-import {
-  applyTheme,
-  closeFloatingWindow,
-  closeTrayIcon,
-  fetchThemes,
-  getFilePath,
-  importThemes,
-
-  resolveThemes,
-  setDockVisible,
-  showFloatingWindow,
-  showTrayIcon,
-  startMonitor,
-  writeTheme
-} from '@renderer/utils/ipc'
+import { getFilePath } from '@renderer/utils/file-ipc'
+import { applyTheme, fetchThemes, importThemes, resolveThemes, writeTheme } from '@renderer/utils/theme-ipc'
+import { closeFloatingWindow, closeTrayIcon, setDockVisible, showFloatingWindow, showTrayIcon, startMonitor } from '@renderer/utils/window-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
 import { useTheme } from 'next-themes'
 import { IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
@@ -150,7 +139,7 @@ const AppearanceConfig: React.FC = () => {
                 isSelected={spinFloatingIcon}
                 onValueChange={async (v) => {
                   await patchAppConfig({ spinFloatingIcon: v })
-                  window.electron.ipcRenderer.send('updateFloatingWindow')
+                  sendIpc(SEND.updateFloatingWindow)
                 }}
               />
             </SettingItem>

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import throttle from 'lodash/throttle'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface LogsState {
   logs: ControllerLog[]
@@ -37,6 +38,8 @@ const handleLog = (_e: unknown, log: ControllerLog) => {
     }
 }
 
+let currentLogsCleanup: (() => void) | null = null
+
 export const useLogsStore = create<LogsState>((set) => ({
   logs: [],
   paused: false,
@@ -61,11 +64,12 @@ export const useLogsStore = create<LogsState>((set) => ({
   },
 
   initializeListeners: () => {
-    window.electron.ipcRenderer.removeListener('mihomoLogs', handleLog)
-    window.electron.ipcRenderer.on('mihomoLogs', handleLog)
+    currentLogsCleanup?.()
+    currentLogsCleanup = onIpc(ON.mihomoLogs, handleLog)
   },
 
   cleanupListeners: () => {
-    window.electron.ipcRenderer.removeListener('mihomoLogs', handleLog)
+    currentLogsCleanup?.()
+    currentLogsCleanup = null
   }
 }))

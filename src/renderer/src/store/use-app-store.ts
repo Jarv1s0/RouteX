@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { getAppConfig, patchAppConfig as patch } from '@renderer/utils/ipc'
+import { getAppConfig, patchAppConfig as patch } from '@renderer/utils/app-ipc'
 import merge from 'lodash/merge'
 
 interface AppState {

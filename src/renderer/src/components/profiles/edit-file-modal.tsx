@@ -9,7 +9,7 @@ import {
 } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
-import { getProfileStr, setProfileStr } from '@renderer/utils/ipc'
+import { getProfileStr, setProfileStr } from '@renderer/utils/profile-ipc'
 import { useNavigate } from 'react-router-dom'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import ConfirmModal from '../base/base-confirm'

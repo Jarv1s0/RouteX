@@ -17,7 +17,13 @@ import Viewer from '@renderer/components/resources/viewer'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getFilePath, readTextFile, subStoreCollections, subStoreSubs, mihomoProxyProviders, mihomoUpdateProxyProviders, getRuntimeConfig } from '@renderer/utils/ipc'
+import { getFilePath, readTextFile } from '@renderer/utils/file-ipc'
+import {
+  getRuntimeConfig,
+  mihomoProxyProviders,
+  mihomoUpdateProxyProviders
+} from '@renderer/utils/mihomo-ipc'
+import { subStoreCollections, subStoreSubs } from '@renderer/utils/substore-ipc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getHash } from '@renderer/utils/hash'
 import { Virtuoso } from 'react-virtuoso'
@@ -42,10 +48,11 @@ import useSWR from 'swr'
 import { useNavigate } from 'react-router-dom'
 import { notifyError } from '@renderer/utils/notify'
 import { RemoteImage } from '@renderer/components/base/remote-image'
+import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
 
 const emptyItems: ProfileItem[] = []
 
-const Profiles: React.FC = () => {
+const ProfilesPage: React.FC = () => {
   const {
     profileConfig,
     setProfileConfig,
@@ -646,6 +653,14 @@ const Profiles: React.FC = () => {
         </div>
       )}
     </BasePage>
+  )
+}
+
+const Profiles: React.FC = () => {
+  return (
+    <OverrideConfigProvider>
+      <ProfilesPage />
+    </OverrideConfigProvider>
   )
 }
 

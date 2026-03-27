@@ -1,7 +1,7 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
-import { getFileStr, setFileStr, convertMrsRuleset } from '@renderer/utils/ipc'
+import { getFileStr, setFileStr, convertMrsRuleset } from '@renderer/utils/file-ipc'
 import yaml from 'js-yaml'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { Spinner } from '@heroui/react'

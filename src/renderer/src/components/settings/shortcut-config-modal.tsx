@@ -1,8 +1,9 @@
 import React, { useState, useEffect, KeyboardEvent } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
-import { registerShortcut } from '@renderer/utils/ipc'
+import { registerShortcut } from '@renderer/utils/app-ipc'
 import { MdCheck, MdKeyboard, MdRestore } from 'react-icons/md'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 
@@ -60,7 +61,7 @@ const ShortcutInput: React.FC<{
   const handleSave = async () => {
     if (await registerShortcut(value, inputValue, action)) {
       await patchAppConfig({ [action]: inputValue })
-      window.electron.ipcRenderer.send('updateTrayMenu')
+      sendIpc(SEND.updateTrayMenu)
     }
   }
 

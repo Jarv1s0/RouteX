@@ -2,7 +2,12 @@ import { useEffect, useState, useMemo } from 'react'
 import { Button, ScrollShadow, Chip, Accordion, AccordionItem } from '@heroui/react'
 import { IoRefresh, IoClose, IoCheckmarkCircle } from 'react-icons/io5'
 import { useGroups } from './hooks/use-groups'
-import { mihomoChangeProxy, mihomoGroupDelay, mihomoCloseAllConnections } from './utils/ipc'
+import {
+  mihomoChangeProxy,
+  mihomoGroupDelay,
+  mihomoCloseAllConnections
+} from './utils/mihomo-ipc'
+import { ON, SEND, onIpc, sendIpc } from './utils/ipc-channels'
 import { useAppConfig } from './hooks/use-app-config'
 import { calcTraffic } from './utils/calc'
 
@@ -24,15 +29,11 @@ const TrayMenuApp: React.FC = () => {
       setTraffic(info)
     }
 
-    window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
-
-    return () => {
-      window.electron.ipcRenderer.removeListener('mihomoTraffic', handleTraffic)
-    }
+    return onIpc(ON.mihomoTraffic, handleTraffic)
   }, [])
 
   const handleClose = (): void => {
-    window.electron.ipcRenderer.send('customTray:close')
+    sendIpc(SEND.customTrayClose)
   }
 
   const handleRefresh = (): void => {

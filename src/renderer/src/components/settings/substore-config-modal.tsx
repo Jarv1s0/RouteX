@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Switch } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { startSubStoreFrontendServer, startSubStoreBackendServer, stopSubStoreBackendServer, stopSubStoreFrontendServer } from '@renderer/utils/ipc'
+import { startSubStoreFrontendServer, startSubStoreBackendServer, stopSubStoreBackendServer, stopSubStoreFrontendServer } from '@renderer/utils/substore-ipc'
 import debounce from '@renderer/utils/debounce'
 import { isValidCron } from 'cron-validator'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'

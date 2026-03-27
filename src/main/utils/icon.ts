@@ -3,11 +3,19 @@ import { getControledMihomoConfig } from '../config'
 import fs, { existsSync } from 'fs'
 import path from 'path'
 import { getIcon } from 'file-icon-info'
-import { windowsDefaultIcon, darwinDefaultIcon, otherDevicesIcon } from './defaultIcon'
 import { app } from 'electron'
 import os from 'os'
 import crypto from 'crypto'
 import { exec } from 'child_process'
+
+let defaultIconsPromise: Promise<typeof import('./defaultIcon')> | null = null
+
+async function getDefaultIcons(): Promise<typeof import('./defaultIcon')> {
+  if (!defaultIconsPromise) {
+    defaultIconsPromise = import('./defaultIcon')
+  }
+  return defaultIconsPromise
+}
 
 export function isIOSApp(appPath: string): boolean {
   const appDir = appPath.endsWith('.app')
@@ -172,6 +180,7 @@ function resolveIconPath(iconName: string): string | null {
 
 export async function getIconDataURL(appPath: string): Promise<string> {
   if (!appPath) {
+    const { otherDevicesIcon } = await getDefaultIcons()
     return otherDevicesIcon
   }
   if (appPath === 'mihomo') {
@@ -179,6 +188,7 @@ export async function getIconDataURL(appPath: string): Promise<string> {
   }
 
   if (process.platform === 'darwin') {
+    const { darwinDefaultIcon } = await getDefaultIcons()
     if (!appPath.includes('.app') && !appPath.includes('.xpc')) {
       return darwinDefaultIcon
     }
@@ -193,6 +203,7 @@ export async function getIconDataURL(appPath: string): Promise<string> {
   }
 
   if (process.platform === 'win32') {
+    const { windowsDefaultIcon } = await getDefaultIcons()
     if (fs.existsSync(appPath) && /\.(exe|dll)$/i.test(appPath)) {
       try {
         let targetPath = appPath
@@ -238,6 +249,7 @@ export async function getIconDataURL(appPath: string): Promise<string> {
       return windowsDefaultIcon
     }
   } else if (process.platform === 'linux') {
+    const { darwinDefaultIcon } = await getDefaultIcons()
     const desktopFile = await findDesktopFile(appPath)
     if (desktopFile) {
       const content = await fs.promises.readFile(desktopFile, 'utf-8')

@@ -5,17 +5,14 @@ import { AnimatePresence } from 'framer-motion'
 import PageTransition from '@renderer/components/base/page-transition'
 import routes from '@renderer/routes'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { applyTheme, checkUpdate, setNativeTheme } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useGroupsStore } from '@renderer/store/use-groups-store'
 import { useLogsStore } from '@renderer/store/use-logs-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
+import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 
-import AppSidebar from '@renderer/components/layout/AppSidebar'
-import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
-import { GlobalDialogModal } from '@renderer/components/base/global-dialog-modal'
 import ErrorBoundary from '@renderer/components/base/error-boundary'
 import { ConnectionsSkeleton } from '@renderer/components/skeletons/ConnectionsSkeleton'
 import { ProxiesSkeleton } from '@renderer/components/skeletons/ProxiesSkeleton'
@@ -25,6 +22,28 @@ import { StatsSkeleton } from '@renderer/components/skeletons/StatsSkeleton'
 
 let navigate: NavigateFunction
 const SIDER_WIDTH_CSS_VAR = '--sider-width'
+const AppSidebar = React.lazy(() => import('@renderer/components/layout/AppSidebar'))
+const GlobalConfirmModals = React.lazy(() => import('@renderer/components/base/GlobalConfirmModals'))
+const GlobalDialogModal = React.lazy(() =>
+  import('@renderer/components/base/global-dialog-modal').then((module) => ({
+    default: module.GlobalDialogModal
+  }))
+)
+
+async function checkUpdateSafely(): Promise<AppVersion | undefined> {
+  const { checkUpdate } = await import('@renderer/utils/app-ipc')
+  return checkUpdate()
+}
+
+async function setNativeThemeSafely(theme: 'system' | 'light' | 'dark'): Promise<void> {
+  const { setNativeTheme } = await import('@renderer/utils/app-ipc')
+  await setNativeTheme(theme)
+}
+
+async function applyThemeSafely(theme: string): Promise<void> {
+  const { applyTheme } = await import('@renderer/utils/theme-ipc')
+  await applyTheme(theme)
+}
 
 const App: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -83,7 +102,7 @@ const App: React.FC = () => {
       lastUpdateCheckAtRef.current = now
 
       try {
-        const nextLatest = await checkUpdate()
+        const nextLatest = await checkUpdateSafely()
         if (!cancelled) {
           setLatest(nextLatest)
         }
@@ -135,12 +154,12 @@ const App: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    setNativeTheme(appTheme)
+    void setNativeThemeSafely(appTheme)
     setTheme(appTheme)
   }, [appTheme, systemTheme])
 
   useEffect(() => {
-    void applyTheme(customTheme || 'default.css')
+    void applyThemeSafely(customTheme || 'default.css')
   }, [customTheme])
 
   useEffect(() => {
@@ -152,11 +171,11 @@ const App: React.FC = () => {
     if (!appConfig || !controledMihomoConfig) return
 
     if (tunEnabled) {
-      window.electron.ipcRenderer.send('update-taskbar-icon', 'tun')
+      sendIpc(SEND.updateTaskbarIcon, 'tun')
     } else if (sysProxyEnabled) {
-      window.electron.ipcRenderer.send('update-taskbar-icon', 'proxy')
+      sendIpc(SEND.updateTaskbarIcon, 'proxy')
     } else {
-      window.electron.ipcRenderer.send('update-taskbar-icon', 'default')
+      sendIpc(SEND.updateTaskbarIcon, 'default')
     }
   }, [controledMihomoConfig?.tun?.enable, sysProxy?.enable])
 
@@ -261,8 +280,10 @@ const App: React.FC = () => {
 
   return (
     <>
-      <GlobalConfirmModals />
-      <GlobalDialogModal />
+      <React.Suspense fallback={null}>
+        <GlobalConfirmModals />
+        <GlobalDialogModal />
+      </React.Suspense>
       
       <div
         ref={layoutRef}
@@ -296,12 +317,21 @@ const App: React.FC = () => {
         }}
         className={`w-full h-screen flex ${resizing ? 'cursor-ew-resize select-none' : ''}`}
       >
-        <AppSidebar 
-          ref={sideRef}
-          width={siderWidthValue}
-          narrowWidth={narrowWidth}
-          latest={latest}
-        />
+        <React.Suspense
+          fallback={
+            <div
+              style={{ width: 'var(--sider-width)' }}
+              className="side h-full bg-default-100/50 border-r border-default-200/50 dark:border-white/5"
+            />
+          }
+        >
+          <AppSidebar
+            ref={sideRef}
+            width={siderWidthValue}
+            narrowWidth={narrowWidth}
+            latest={latest}
+          />
+        </React.Suspense>
 
         <div
           ref={resizerRef}

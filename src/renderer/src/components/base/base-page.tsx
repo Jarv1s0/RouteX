@@ -7,7 +7,7 @@ import {
   setAlwaysOnTop,
   windowMax,
   windowMin
-} from '@renderer/utils/ipc'
+} from '@renderer/utils/window-ipc'
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { LuPin } from 'react-icons/lu'
 import { VscChromeClose, VscChromeMaximize, VscChromeMinimize } from 'react-icons/vsc'

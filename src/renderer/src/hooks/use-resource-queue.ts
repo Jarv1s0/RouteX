@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getAppName, getIconDataURL } from '@renderer/utils/ipc'
+import { getAppName, getIconDataURL } from '@renderer/utils/resource-ipc'
 import { platform } from '@renderer/utils/init'
 import { cropAndPadTransparent } from '@renderer/utils/image'
 

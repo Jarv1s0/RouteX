@@ -28,10 +28,11 @@ export function ipcErrorWrapper<T>(
   }
 }
 
-type IpcInvokeHandler = Parameters<typeof ipcMain.handle>[1]
+export type IpcInvokeHandler = Parameters<typeof ipcMain.handle>[1]
+export type IpcInvokeHandlerMap = Partial<Record<IpcInvokeChannel, IpcInvokeHandler>>
 
 export function registerIpcInvokeHandlers(
-  handlers: Partial<Record<IpcInvokeChannel, IpcInvokeHandler>>
+  handlers: IpcInvokeHandlerMap
 ): void {
   Object.entries(handlers).forEach(([channel, handler]) => {
     if (handler) {

@@ -9,7 +9,8 @@ import {
 } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
-import { getOverride, restartCore, setOverride } from '@renderer/utils/ipc'
+import { restartCore } from '@renderer/utils/mihomo-ipc'
+import { getOverride, setOverride } from '@renderer/utils/override-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import ConfirmModal from '../base/base-confirm'
 

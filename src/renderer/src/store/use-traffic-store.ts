@@ -1,5 +1,7 @@
 import { create } from 'zustand'
-import { getTrafficStats, getProviderStats, getProfileConfig } from '@renderer/utils/ipc'
+import { getProfileConfig } from '@renderer/utils/profile-ipc'
+import { getProviderStats, getTrafficStats } from '@renderer/utils/stats-ipc'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import throttle from 'lodash/throttle'
 import { subscribeConnectionSnapshot } from './use-connections-store'
 
@@ -51,6 +53,7 @@ let visibilityChangeHandler: (() => void) | null = null
 
 // Module-level handler references for robust cleanup
 let currentTrafficHandler: ((e: unknown, traffic: { up: number; down: number }) => void) | null = null
+let currentTrafficUnsubscribe: (() => void) | null = null
 let currentConnectionsThrottle: { cancel: () => void } | null = null
 let currentConnectionsUnsubscribe: (() => void) | null = null
 
@@ -60,7 +63,8 @@ function unregisterTrafficHandlers() {
     currentConnectionsUnsubscribe?.()
     currentConnectionsUnsubscribe = null
     if (currentTrafficHandler) {
-        window.electron.ipcRenderer.removeListener('mihomoTraffic', currentTrafficHandler)
+        currentTrafficUnsubscribe?.()
+        currentTrafficUnsubscribe = null
         currentTrafficHandler = null
     }
     if (visibilityChangeHandler) {
@@ -205,8 +209,8 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
     // Register Listeners
     try {
         currentTrafficHandler = handleTraffic
+        currentTrafficUnsubscribe = onIpc(ON.mihomoTraffic, handleTraffic)
         currentConnectionsThrottle = handleConnections
-        window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
         currentConnectionsUnsubscribe = subscribeConnectionSnapshot(handleConnections)
     } catch(e) {
         console.error('Failed to register listeners:', e)

@@ -22,11 +22,41 @@ let mihomoLogsWs: WebSocket | null = null
 let logsRetry = 10
 let mihomoConnectionsWs: WebSocket | null = null
 let connectionsRetry = 10
+let latestConnectionsSnapshot: ControllerConnections | null = null
+let connectionsBroadcastTimer: NodeJS.Timeout | null = null
+let lastConnectionsBroadcastAt = 0
 
 const DEFAULT_DELAY_TEST_URL = 'http://cp.cloudflare.com/generate_204'
 const DEFAULT_DELAY_TEST_TIMEOUT = 5000
 const MIN_DELAY_TEST_TIMEOUT = 1000
 const MAX_DELAY_TEST_TIMEOUT = 15000
+const CONNECTION_RENDER_PUSH_INTERVAL = 1000
+
+function flushConnectionsSnapshot(): void {
+  if (!latestConnectionsSnapshot) return
+  lastConnectionsBroadcastAt = Date.now()
+  mainWindow?.webContents.send('mihomoConnections', latestConnectionsSnapshot)
+  latestConnectionsSnapshot = null
+}
+
+function scheduleConnectionsBroadcast(): void {
+  const elapsed = Date.now() - lastConnectionsBroadcastAt
+  if (elapsed >= CONNECTION_RENDER_PUSH_INTERVAL) {
+    if (connectionsBroadcastTimer) {
+      clearTimeout(connectionsBroadcastTimer)
+      connectionsBroadcastTimer = null
+    }
+    flushConnectionsSnapshot()
+    return
+  }
+
+  if (connectionsBroadcastTimer) return
+
+  connectionsBroadcastTimer = setTimeout(() => {
+    connectionsBroadcastTimer = null
+    flushConnectionsSnapshot()
+  }, CONNECTION_RENDER_PUSH_INTERVAL - elapsed)
+}
 
 function normalizeDelayTestTimeout(value?: number): number {
   const parsed = Number.parseInt(String(value ?? DEFAULT_DELAY_TEST_TIMEOUT), 10)
@@ -474,6 +504,13 @@ export const startMihomoConnections = async (): Promise<void> => {
 }
 
 export const stopMihomoConnections = (): void => {
+  if (connectionsBroadcastTimer) {
+    clearTimeout(connectionsBroadcastTimer)
+    connectionsBroadcastTimer = null
+  }
+  latestConnectionsSnapshot = null
+  lastConnectionsBroadcastAt = 0
+
   if (mihomoConnectionsWs) {
     mihomoConnectionsWs.removeAllListeners()
     if (mihomoConnectionsWs.readyState === WebSocket.OPEN) {
@@ -498,18 +535,16 @@ const mihomoConnections = async (): Promise<void> => {
     const data = e.data as string
     connectionsRetry = 10
     try {
-      // 优化：不再对整个庞大的 connections 字符串进行全量深拷贝解析
-      // 主进程只做最基础的正则/轻量提取用于 updateProcessTraffic
       const connectionsData = JSON.parse(data) as ControllerConnections
-      
-      // 发送原始 JSON 字符串到渲染进程，由渲染进程的 Web Worker 或主线程解析
-      // 避免 Electron IPC 在主进程进行极度浪费 CPU 的对象序列化
-      mainWindow?.webContents.send('mihomoConnections', data)
-      
-      // 更新进程流量统计 (主进程仍需要对象，但我们未来可以优化这一步)
+
       if (connectionsData.connections) {
         updateProcessTraffic(connectionsData.connections)
       }
+
+      // 连接页和统计页实际只按 1s 粒度消费快照，这里在主进程合并推送，
+      // 避免高频大包 IPC 和渲染层重复 JSON.parse。
+      latestConnectionsSnapshot = connectionsData
+      scheduleConnectionsBroadcast()
     } catch {
       // ignore
     }

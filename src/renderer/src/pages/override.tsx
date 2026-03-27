@@ -8,7 +8,9 @@ import {
 } from '@heroui/react'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import BasePage from '@renderer/components/base/base-page'
-import { getFilePath, readTextFile, updateProfileItem, restartCore } from '@renderer/utils/ipc'
+import { getFilePath, readTextFile } from '@renderer/utils/file-ipc'
+import { updateProfileItem } from '@renderer/utils/profile-ipc'
+import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { useEffect, useRef, useState } from 'react'
 import { MdContentPaste } from 'react-icons/md'
 import {
@@ -28,10 +30,11 @@ import { LuFileText } from 'react-icons/lu'
 import { FaGithub } from 'react-icons/fa6'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { notifyError } from '@renderer/utils/notify'
+import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
 
 const emptyItems: OverrideItem[] = []
 
-const Override: React.FC = () => {
+const OverridePage: React.FC = () => {
   const {
     overrideConfig,
     setOverrideConfig,
@@ -343,6 +346,14 @@ const Override: React.FC = () => {
         />
       )}
     </BasePage>
+  )
+}
+
+const Override: React.FC = () => {
+  return (
+    <OverrideConfigProvider>
+      <OverridePage />
+    </OverrideConfigProvider>
   )
 }
 

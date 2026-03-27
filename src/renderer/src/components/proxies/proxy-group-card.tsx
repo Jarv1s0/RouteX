@@ -1,6 +1,6 @@
 import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
-import { getImageDataURL } from '@renderer/utils/ipc'
+import { getImageDataURL } from '@renderer/utils/resource-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useEffect, memo } from 'react'
 import { addFlag } from '@renderer/utils/flags'

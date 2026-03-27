@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Chip, Skeleton } from '@heroui/react'
 import { IoGlobe, IoRefreshCircle, IoCopy } from 'react-icons/io5'
-import { httpGet } from '@renderer/utils/ipc'
-
+import { httpGet } from '@renderer/utils/tools-ipc'
 interface ProviderResult {
   ip: string
   location: string

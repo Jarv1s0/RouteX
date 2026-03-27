@@ -1,12 +1,7 @@
 import React, { createContext, useContext, ReactNode, useEffect } from 'react'
 import useSWR from 'swr'
-import {
-  getOverrideConfig,
-  setOverrideConfig as set,
-  addOverrideItem as add,
-  removeOverrideItem as remove,
-  updateOverrideItem as update
-} from '@renderer/utils/ipc'
+import { getOverrideConfig, setOverrideConfig as set, addOverrideItem as add, removeOverrideItem as remove, updateOverrideItem as update } from '@renderer/utils/override-ipc'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { notifyError } from '@renderer/utils/notify'
 
 interface OverrideConfigContextType {
@@ -69,10 +64,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     const handleOverrideConfigUpdated = (): void => {
       mutateOverrideConfig()
     }
-    window.electron.ipcRenderer.on('overrideConfigUpdated', handleOverrideConfigUpdated)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('overrideConfigUpdated', handleOverrideConfigUpdated)
-    }
+    return onIpc(ON.overrideConfigUpdated, handleOverrideConfigUpdated)
   }, [mutateOverrideConfig])
 
   const contextValue = React.useMemo(

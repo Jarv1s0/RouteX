@@ -3,17 +3,22 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import BorderSwitch from '@renderer/components/base/border-switch'
 import { LuCable } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { restartCore } from '@renderer/utils/ipc'
+import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import React from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { toast } from 'sonner'
+import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
+}
+
+async function showToastError(title: string, description: string): Promise<void> {
+  const { toast } = await import('sonner')
+  toast.error(title, { description })
 }
 
 const TunSwitcher: React.FC<Props> = (props) => {
@@ -45,24 +50,21 @@ const TunSwitcher: React.FC<Props> = (props) => {
         await patchControledMihomoConfig({ tun: { enable } })
       }
       await restartCore()
-      window.electron.ipcRenderer.send('updateFloatingWindow')
-      window.electron.ipcRenderer.send('updateTrayMenu')
+      sendIpc(SEND.updateFloatingWindow)
+      sendIpc(SEND.updateTrayMenu)
     } catch (error) {
       // 显示友好的错误提示
       const errorMessage = error instanceof Error ? error.message : String(error)
       
       if (enable && (errorMessage.includes('permission') || errorMessage.includes('权限') || errorMessage.includes('access'))) {
-        toast.error('TUN模式启动失败', {
-          description: '请以管理员身份运行RouteX以使用TUN模式'
-        })
+        await showToastError('TUN模式启动失败', '请以管理员身份运行RouteX以使用TUN模式')
       } else if (enable) {
-        toast.error('TUN模式启动失败', {
-          description: 'TUN模式需要管理员权限，请重新以管理员身份启动应用'
-        })
+        await showToastError(
+          'TUN模式启动失败',
+          'TUN模式需要管理员权限，请重新以管理员身份启动应用'
+        )
       } else {
-        toast.error('TUN模式关闭失败', {
-          description: errorMessage
-        })
+        await showToastError('TUN模式关闭失败', errorMessage)
       }
       
       console.error('TUN切换失败:', error)

@@ -1,5 +1,5 @@
-import { IpcRendererEvent, webUtils } from 'electron'
-import type { IpcInvokeChannel } from '../shared/ipc'
+import { IpcRendererEvent } from 'electron'
+import type { IpcInvokeChannel, IpcOnChannel, IpcSendChannel } from '../shared/ipc'
 
 type IpcRendererListener<Args extends unknown[] = unknown[]> = (
   event: IpcRendererEvent,
@@ -7,45 +7,30 @@ type IpcRendererListener<Args extends unknown[] = unknown[]> = (
 ) => void
 
 interface IpcRendererBridge {
-  on<Args extends unknown[]>(channel: string, listener: IpcRendererListener<Args>): () => void
-  once<Args extends unknown[]>(channel: string, listener: IpcRendererListener<Args>): () => void
-  removeAllListeners(channel: string): void
+  on<Args extends unknown[]>(channel: IpcOnChannel, listener: IpcRendererListener<Args>): () => void
+  once<Args extends unknown[]>(channel: IpcOnChannel, listener: IpcRendererListener<Args>): () => void
   removeListener<Args extends unknown[]>(
-    channel: string,
+    channel: IpcOnChannel,
     listener: IpcRendererListener<Args>
   ): IpcRendererBridge
-  send(channel: string, ...args: unknown[]): void
+  send(channel: IpcSendChannel, ...args: unknown[]): void
   invoke<T>(channel: IpcInvokeChannel, ...args: unknown[]): Promise<T>
-  postMessage(channel: string, message: unknown, transfer?: MessagePort[]): void
-  sendSync<T>(channel: string, ...args: unknown[]): T
-  sendToHost(channel: string, ...args: unknown[]): void
-}
-
-interface WebFrameBridge {
-  insertCSS(css: string): Promise<string> | string
-  setZoomFactor(factor: number): void
-  setZoomLevel(level: number): void
-}
-
-interface WebUtilsBridge {
-  getPathForFile(file: File): string
-}
-
-interface ProcessBridge {
-  readonly platform: NodeJS.Platform
-  readonly versions: NodeJS.ProcessVersions
 }
 
 interface ElectronAPI {
   ipcRenderer: IpcRendererBridge
-  webFrame: WebFrameBridge
-  webUtils: WebUtilsBridge
-  process: ProcessBridge
+}
+
+interface RendererApiBridge {
+  webUtils: {
+    getPathForFile(file: File): string
+  }
+  platform: NodeJS.Platform
 }
 
 declare global {
   interface Window {
     electron: ElectronAPI
-    api: { webUtils: typeof webUtils; platform: NodeJS.Platform }
+    api: RendererApiBridge
   }
 }

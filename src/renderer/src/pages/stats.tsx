@@ -1,8 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { Button, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
-import { clearTrafficStats, clearProviderStats } from '@renderer/utils/ipc'
-
+import { clearTrafficStats, clearProviderStats } from '@renderer/utils/stats-ipc'
 import { IoClose } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import ConfirmModal from '@renderer/components/base/base-confirm'

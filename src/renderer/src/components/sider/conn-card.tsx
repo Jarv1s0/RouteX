@@ -8,6 +8,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { LuPlug } from 'react-icons/lu'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { ON, SEND, onIpc, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
 import TrafficChart from './traffic-chart'
 import SiderCardIcon from '@renderer/components/base/sider-card-icon'
@@ -96,16 +97,12 @@ const ConnCard: React.FC<Props> = (props) => {
         }
       } else {
         if (!hasShowTraffic) return
-        window.electron.ipcRenderer.send('trayIconUpdate', trayIconBase64)
+        sendIpc(SEND.trayIconUpdate, trayIconBase64)
         hasShowTraffic = false
       }
     }
 
-    window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
-
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('mihomoTraffic', handleTraffic)
-    }
+    return onIpc(ON.mihomoTraffic, handleTraffic)
   }, [])
 
   if (iconOnly) {
@@ -261,7 +258,7 @@ const drawSvg = async (upload: number, download: number): Promise<void> => {
   currentDownload = download
   const svg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 36"><image height="36" width="36" href="${trayIconBase64}"/><text x="140" y="15" font-size="18" font-family="PingFang SC" font-weight="bold" text-anchor="end">${calcTraffic(upload)}/s</text><text x="140" y="34" font-size="18" font-family="PingFang SC" font-weight="bold" text-anchor="end">${calcTraffic(download)}/s</text></svg>`
   const image = await loadImage(svg)
-  window.electron.ipcRenderer.send('trayIconUpdate', image)
+  sendIpc(SEND.trayIconUpdate, image)
 }
 
 const loadImage = (url: string): Promise<string> => {

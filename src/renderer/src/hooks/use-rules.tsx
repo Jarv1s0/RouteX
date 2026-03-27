@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react'
 import useSWR from 'swr'
-import { mihomoRules } from '@renderer/utils/ipc'
+import { mihomoRules } from '@renderer/utils/mihomo-ipc'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface RulesContextType {
   rules: ControllerRules | undefined
@@ -24,11 +25,13 @@ export const RulesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const handleCoreStarted = (): void => {
       mutate()
     }
-    window.electron.ipcRenderer.on('rulesUpdated', handleRulesUpdated)
-    window.electron.ipcRenderer.on('core-started', handleCoreStarted)
+
+    const offRulesUpdated = onIpc(ON.rulesUpdated, handleRulesUpdated)
+    const offCoreStarted = onIpc(ON.coreStarted, handleCoreStarted)
+
     return (): void => {
-      window.electron.ipcRenderer.removeListener('rulesUpdated', handleRulesUpdated)
-      window.electron.ipcRenderer.removeListener('core-started', handleCoreStarted)
+      offRulesUpdated()
+      offCoreStarted()
     }
   }, [])
 

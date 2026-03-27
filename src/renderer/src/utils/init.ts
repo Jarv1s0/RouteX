@@ -1,4 +1,4 @@
-import { getVersion } from './ipc'
+import { getVersion } from './app-ipc'
 // const originError = console.error
 // const originWarn = console.warn
 // console.error = function (...args: any[]): void {
@@ -14,7 +14,7 @@ import { getVersion } from './ipc'
 //   originWarn.call(console, args)
 // }
 
-const platformFromBridge = window.api?.platform ?? window.electron?.process?.platform
+const platformFromBridge = window.api?.platform
 
 if (!platformFromBridge) {
   throw new Error('Preload bridge is unavailable: window.api.platform is missing')

@@ -1,6 +1,7 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { relaunchApp, webdavDelete, webdavRestore } from '@renderer/utils/ipc'
+import { relaunchApp } from '@renderer/utils/app-ipc'
+import { webdavDelete, webdavRestore } from '@renderer/utils/webdav-ipc'
 import React, { useState } from 'react'
 import { MdDeleteForever } from 'react-icons/md'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'

@@ -1,6 +1,4 @@
 import React, { useMemo } from 'react'
-import ReactECharts from 'echarts-for-react'
-import type { EChartsOption } from 'echarts'
 
 export interface TrafficChartProps {
   data: Array<{ upload: number; download: number; index: number }>
@@ -18,109 +16,137 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
     }
     return data.slice()
   }, [data])
-  const chartLabels = useMemo(() => validData.map((item) => item.index), [validData])
   const uploadSeries = useMemo(() => validData.map((item) => item.upload), [validData])
   const downloadSeries = useMemo(() => validData.map((item) => item.download), [validData])
 
   const uploadColor = isActive ? '#ffffff' : '#22d3ee'
   const downloadColor = isActive ? '#ffffffcc' : '#c084fc'
 
-  const option = useMemo<EChartsOption>(() => {
-    return {
-      animation: false,
-      grid: {
-        top: 6,
-        right: 0,
-        bottom: 0,
-        left: 0,
-        containLabel: false
-      },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        show: false,
-        data: chartLabels
-      },
-      yAxis: {
-        type: 'value',
-        show: false
-      },
-      tooltip: {
-        show: false
-      },
-      series: [
-        {
-          type: 'line',
-          color: uploadColor,
-          smooth: true,
-          symbol: 'none',
-          data: uploadSeries,
-          lineStyle: {
-            color: uploadColor,
-            width: 2,
-            opacity: 1,
-            cap: 'round',
-            join: 'round'
-          },
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: uploadColor },
-                { offset: 1, color: 'rgba(255,255,255,0.05)' }
-              ]
-            },
-            opacity: 0.12
-          }
-        },
-        {
-          type: 'line',
-          color: downloadColor,
-          smooth: true,
-          symbol: 'none',
-          data: downloadSeries,
-          lineStyle: {
-            color: downloadColor,
-            width: 2,
-            opacity: 1,
-            cap: 'round',
-            join: 'round'
-          },
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: downloadColor },
-                { offset: 1, color: 'rgba(255,255,255,0.04)' }
-              ]
-            },
-            opacity: 0.1
-          }
-        }
-      ]
+  const chartGeometry = useMemo(() => {
+    const width = 100
+    const height = 100
+    const paddingX = 2
+    const paddingY = 8
+    const bottomY = height - paddingY
+    const topY = paddingY
+    const innerHeight = bottomY - topY
+    const maxValue = Math.max(...uploadSeries, ...downloadSeries, 1)
+    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
+
+    const createPoints = (series: number[]) => {
+      const step = series.length > 1 ? (width - paddingX * 2) / (series.length - 1) : 0
+      return series.map((value, index) => {
+        const x = paddingX + step * index
+        const normalized = value / maxValue
+        const y = bottomY - normalized * innerHeight
+        return { x, y }
+      })
     }
-  }, [chartLabels, downloadColor, downloadSeries, uploadColor, uploadSeries])
+
+    const createSmoothLinePath = (points: { x: number; y: number }[]) => {
+      if (points.length === 0) {
+        return ''
+      }
+
+      if (points.length === 1) {
+        return `M ${points[0].x} ${points[0].y}`
+      }
+
+      let path = `M ${points[0].x} ${points[0].y}`
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const current = points[i]
+        const next = points[i + 1]
+        const previous = points[i - 1] ?? current
+        const afterNext = points[i + 2] ?? next
+
+        const controlPoint1X = clamp(current.x + (next.x - previous.x) / 6, paddingX, width - paddingX)
+        const controlPoint1Y = clamp(current.y + (next.y - previous.y) / 6, topY, bottomY)
+        const controlPoint2X = clamp(next.x - (afterNext.x - current.x) / 6, paddingX, width - paddingX)
+        const controlPoint2Y = clamp(next.y - (afterNext.y - current.y) / 6, topY, bottomY)
+
+        path += ` C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${next.x} ${next.y}`
+      }
+
+      return path
+    }
+
+    const createAreaPath = (points: { x: number; y: number }[]) => {
+      if (points.length === 0) {
+        return ''
+      }
+
+      const linePath = createSmoothLinePath(points)
+      const firstPoint = points[0]
+      const lastPoint = points[points.length - 1]
+      return `${linePath} L ${lastPoint.x} ${bottomY} L ${firstPoint.x} ${bottomY} Z`
+    }
+
+    const uploadPoints = createPoints(uploadSeries)
+    const downloadPoints = createPoints(downloadSeries)
+
+    return {
+      chartClipId: isActive ? 'conn-chart-clip-active' : 'conn-chart-clip',
+      uploadAreaPath: createAreaPath(uploadPoints),
+      uploadLinePath: createSmoothLinePath(uploadPoints),
+      downloadAreaPath: createAreaPath(downloadPoints),
+      downloadLinePath: createSmoothLinePath(downloadPoints)
+    }
+  }, [downloadSeries, isActive, uploadSeries])
 
   return (
     <div
       className="absolute top-0 left-0 pointer-events-none rounded-[14px]"
       style={{ height: '100%', width: '100%', minWidth: 1, minHeight: 1 }}
     >
-      <ReactECharts
-        option={option}
-        notMerge
-        lazyUpdate
-        opts={{ renderer: 'svg' }}
-        style={{ height: '100%', width: '100%' }}
-      />
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        className="h-full w-full"
+      >
+        <defs>
+          <clipPath id={chartGeometry.chartClipId}>
+            <rect x="0" y="0" width="100" height="100" rx="14" ry="14" />
+          </clipPath>
+          <linearGradient id={isActive ? 'conn-upload-active' : 'conn-upload'} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={uploadColor} stopOpacity={0.4} />
+            <stop offset="100%" stopColor={uploadColor} stopOpacity={0.05} />
+          </linearGradient>
+          <linearGradient id={isActive ? 'conn-download-active' : 'conn-download'} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={downloadColor} stopOpacity={0.4} />
+            <stop offset="100%" stopColor={downloadColor} stopOpacity={0.04} />
+          </linearGradient>
+        </defs>
+        <g clipPath={`url(#${chartGeometry.chartClipId})`}>
+          <path
+            d={chartGeometry.uploadAreaPath}
+            fill={`url(#${isActive ? 'conn-upload-active' : 'conn-upload'})`}
+          />
+          <path
+            d={chartGeometry.uploadLinePath}
+            fill="none"
+            stroke={uploadColor}
+            strokeWidth="2.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={chartGeometry.downloadAreaPath}
+            fill={`url(#${isActive ? 'conn-download-active' : 'conn-download'})`}
+          />
+          <path
+            d={chartGeometry.downloadLinePath}
+            fill="none"
+            stroke={downloadColor}
+            strokeWidth="2.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </g>
+      </svg>
     </div>
   )
 }

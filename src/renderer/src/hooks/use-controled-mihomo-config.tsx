@@ -1,7 +1,10 @@
 import React, { createContext, useContext, ReactNode } from 'react'
 import useSWR from 'swr'
-import { getControledMihomoConfig, patchControledMihomoConfig as patch } from '@renderer/utils/ipc'
-import { notifyError } from '@renderer/utils/notify'
+import {
+  getControledMihomoConfig,
+  patchControledMihomoConfig as patch
+} from '@renderer/utils/mihomo-ipc'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface ControledMihomoConfigContextType {
   controledMihomoConfig: Partial<MihomoConfig> | undefined
@@ -23,6 +26,7 @@ export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = 
     try {
       await patch(value)
     } catch (e) {
+      const { notifyError } = await import('@renderer/utils/notify')
       notifyError(e, { title: '更新配置失败' })
     } finally {
       mutateControledMihomoConfig()
@@ -33,10 +37,7 @@ export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = 
     const handleConfigUpdated = (): void => {
       mutateControledMihomoConfig()
     }
-    window.electron.ipcRenderer.on('controledMihomoConfigUpdated', handleConfigUpdated)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('controledMihomoConfigUpdated', handleConfigUpdated)
-    }
+    return onIpc(ON.controledMihomoConfigUpdated, handleConfigUpdated)
   }, [mutateControledMihomoConfig])
 
   const contextValue = React.useMemo(

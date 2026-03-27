@@ -11,7 +11,7 @@ import {
 import React, { useState, useEffect, useMemo } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { restartMihomoConnections } from '@renderer/utils/ipc'
+import { restartMihomoConnections } from '@renderer/utils/mihomo-ipc'
 import debounce from '@renderer/utils/debounce'
 import { secondaryInputClassNames } from '../settings/advanced-settings'
 import {

@@ -6,7 +6,7 @@ import EditableList from '@renderer/components/base/base-list-editor'
 import AdvancedDnsSetting from '@renderer/components/dns/advanced-dns-setting'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { restartCore } from '@renderer/utils/ipc'
+import { restartCore } from '@renderer/utils/mihomo-ipc'
 import React, { Key, useState } from 'react'
 import {
   isValidIPv4Cidr,

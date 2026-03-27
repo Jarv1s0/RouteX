@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import throttle from 'lodash/throttle'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 export interface ExtendedConnection extends ControllerConnectionDetail {
   isActive: boolean
@@ -71,18 +71,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   setPaused: (paused: boolean) => set({ isPaused: paused }),
 
   initializeListeners: () => {
-    const handleConnections = throttle((_e: unknown, infoStr: string | ControllerConnections): void => {
-      let info: ControllerConnections
-      if (typeof infoStr === 'string') {
-        try {
-          info = JSON.parse(infoStr)
-        } catch {
-          return
-        }
-      } else {
-        info = infoStr
-      }
-
+    const handleConnections = (_e: unknown, info: ControllerConnections): void => {
       if (!info || !info.connections) return
 
       // 先把解析后的连接快照广播出去，供其他 store 复用，避免重复监听和重复 JSON.parse。
@@ -157,7 +146,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
         connectionCount: newActive.length,
         loading: false
       })
-    }, 1000, { leading: true, trailing: true })
+    }
 
     const handleMemory = (_e: unknown, info: ControllerMemory): void => {
       if (info && typeof info.inuse === 'number') {
@@ -166,7 +155,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     }
 
     // Register Listeners (registerHandlers handles cleanup of old ones)
-    registerHandlers(handleConnections, handleMemory, handleConnections)
+    registerHandlers(handleConnections, handleMemory)
   },
 
   cleanupListeners: () => {
@@ -196,30 +185,29 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
 // Helper for listener management
 let currentConnectionHandler: ((e: unknown, info: ControllerConnections) => void) | null = null
 let currentMemoryHandler: ((e: unknown, info: ControllerMemory) => void) | null = null
-let currentConnectionThrottle: { cancel: () => void } | null = null
+let currentConnectionUnsubscribe: (() => void) | null = null
+let currentMemoryUnsubscribe: (() => void) | null = null
 
 function registerHandlers(
     connHandler: (e: unknown, info: ControllerConnections) => void,
-    memHandler: (e: unknown, info: ControllerMemory) => void,
-    connThrottle?: { cancel: () => void }
+    memHandler: (e: unknown, info: ControllerMemory) => void
 ) {
     unregisterHandlers()
     currentConnectionHandler = connHandler
     currentMemoryHandler = memHandler
-    currentConnectionThrottle = connThrottle ?? null
-    window.electron.ipcRenderer.on('mihomoConnections', currentConnectionHandler)
-    window.electron.ipcRenderer.on('mihomoMemory', currentMemoryHandler)
+    currentConnectionUnsubscribe = onIpc(ON.mihomoConnections, currentConnectionHandler)
+    currentMemoryUnsubscribe = onIpc(ON.mihomoMemory, currentMemoryHandler)
 }
 
 function unregisterHandlers() {
-    currentConnectionThrottle?.cancel()
-    currentConnectionThrottle = null
     if (currentConnectionHandler) {
-        window.electron.ipcRenderer.removeListener('mihomoConnections', currentConnectionHandler)
+        currentConnectionUnsubscribe?.()
+        currentConnectionUnsubscribe = null
         currentConnectionHandler = null
     }
     if (currentMemoryHandler) {
-        window.electron.ipcRenderer.removeListener('mihomoMemory', currentMemoryHandler)
+        currentMemoryUnsubscribe?.()
+        currentMemoryUnsubscribe = null
         currentMemoryHandler = null
     }
 }

@@ -13,7 +13,7 @@ import {
   Divider
 } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { serviceStatus, testServiceConnection } from '@renderer/utils/ipc'
+import { serviceStatus, testServiceConnection } from '@renderer/utils/service-ipc'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,

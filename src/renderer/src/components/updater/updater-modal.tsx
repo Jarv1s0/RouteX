@@ -10,7 +10,7 @@ import {
 } from '@heroui/react'
 import ReactMarkdown from 'react-markdown'
 import React, { useState } from 'react'
-import { downloadAndInstallUpdate } from '@renderer/utils/ipc'
+import { downloadAndInstallUpdate } from '@renderer/utils/app-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { FiX, FiDownload } from 'react-icons/fi'
 

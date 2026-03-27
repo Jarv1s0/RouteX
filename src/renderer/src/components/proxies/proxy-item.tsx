@@ -1,5 +1,5 @@
 import { Button, Card, CardBody } from '@heroui/react'
-import { mihomoUnfixedProxy } from '@renderer/utils/ipc'
+import { mihomoUnfixedProxy } from '@renderer/utils/mihomo-ipc'
 import React, { useMemo, useState, memo } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'

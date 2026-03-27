@@ -13,12 +13,7 @@ import {
   Divider
 } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import {
-  checkCorePermission,
-  checkElevateTask,
-  manualGrantCorePermition,
-  revokeCorePermission
-} from '@renderer/utils/ipc'
+import { checkCorePermission, checkElevateTask, manualGrantCorePermition, revokeCorePermission } from '@renderer/utils/service-ipc'
 import { platform } from '@renderer/utils/init'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {

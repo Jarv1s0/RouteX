@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react'
 import { useAppStore } from '@renderer/store/use-app-store'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 // Backward compatibility interface
 interface AppConfigContextType {
@@ -18,11 +19,8 @@ export const AppConfigProvider: React.FC<{ children: ReactNode }> = ({ children 
     const handler = (): void => {
       fetchAppConfig()
     }
-    
-    window.electron.ipcRenderer.on('appConfigUpdated', handler)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('appConfigUpdated', handler)
-    }
+
+    return onIpc(ON.appConfigUpdated, handler)
   }, [fetchAppConfig])
 
   return <>{children}</>
@@ -40,4 +38,3 @@ export const useAppConfig = (): AppConfigContextType => {
     patchAppConfig
   }
 }
-

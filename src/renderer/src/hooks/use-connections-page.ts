@@ -3,7 +3,7 @@ import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useResourceQueue } from '@renderer/hooks/use-resource-queue'
 import { includesIgnoreCase } from '@renderer/utils/includes'
-import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
+import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/mihomo-ipc'
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import {
   CONNECTION_TABLE_SORT_COLUMNS,

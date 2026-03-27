@@ -9,13 +9,19 @@ import { Button, Input, Tab, Tabs } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
 import { useRules } from '@renderer/hooks/use-rules'
 import { includesIgnoreCase } from '@renderer/utils/includes'
-import { mihomoRuleProviders, mihomoUpdateRuleProviders, getRuntimeConfig, mihomoToggleRuleDisabled } from '@renderer/utils/ipc'
+import {
+  getRuntimeConfig,
+  mihomoRuleProviders,
+  mihomoToggleRuleDisabled,
+  mihomoUpdateRuleProviders
+} from '@renderer/utils/mihomo-ipc'
 import { getHash } from '@renderer/utils/hash'
 import useSWR from 'swr'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useRulesStore } from '@renderer/store/use-rules-store'
+import { RulesProvider } from '@renderer/hooks/use-rules'
 
-const Rules: React.FC = () => {
+const RulesPage: React.FC = () => {
   const { rules } = useRules()
   const [filter, setFilter] = useState('')
   const deferredFilter = useDeferredValue(filter)
@@ -297,6 +303,14 @@ const Rules: React.FC = () => {
         </div>
       )}
     </BasePage>
+  )
+}
+
+const Rules: React.FC = () => {
+  return (
+    <RulesProvider>
+      <RulesPage />
+    </RulesProvider>
   )
 }
 

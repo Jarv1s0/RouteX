@@ -1,0 +1,20 @@
+export const IPC_ON_CHANNELS = {
+  appConfigUpdated: 'appConfigUpdated',
+  controledMihomoConfigUpdated: 'controledMihomoConfigUpdated',
+  coreStarted: 'core-started',
+  groupsUpdated: 'groupsUpdated',
+  mihomoConnections: 'mihomoConnections',
+  mihomoLogs: 'mihomoLogs',
+  mihomoMemory: 'mihomoMemory',
+  mihomoTraffic: 'mihomoTraffic',
+  networkHealth: 'networkHealth',
+  overrideConfigUpdated: 'overrideConfigUpdated',
+  profileConfigUpdated: 'profileConfigUpdated',
+  rulesUpdated: 'rulesUpdated',
+  showDialogModal: 'show-dialog-modal',
+  showErrorModal: 'show-error-modal',
+  showOverrideInstallConfirm: 'show-override-install-confirm',
+  showProfileInstallConfirm: 'show-profile-install-confirm',
+  showQuitConfirm: 'show-quit-confirm',
+  updateStatus: 'update-status'
+} as const

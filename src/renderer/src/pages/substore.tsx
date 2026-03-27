@@ -1,15 +1,7 @@
 import { Button } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import {
-  subStoreFrontendPort,
-  subStorePort,
-  startSubStoreFrontendServer,
-  startSubStoreBackendServer,
-  stopSubStoreFrontendServer,
-  stopSubStoreBackendServer,
-  downloadSubStore
-} from '@renderer/utils/ipc'
+import { subStoreFrontendPort, subStorePort, startSubStoreFrontendServer, startSubStoreBackendServer, stopSubStoreFrontendServer, stopSubStoreBackendServer, downloadSubStore } from '@renderer/utils/substore-ipc'
 import React, { useEffect, useState } from 'react'
 import { HiExternalLink } from 'react-icons/hi'
 import { IoMdCloudDownload } from 'react-icons/io'

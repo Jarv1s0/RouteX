@@ -7,8 +7,8 @@ import {
   removeProfileItem as remove,
   updateProfileItem as update,
   changeCurrentProfile as change
-} from '@renderer/utils/ipc'
-import { notifyError } from '@renderer/utils/notify'
+} from '@renderer/utils/profile-ipc'
+import { ON, SEND, onIpc, sendIpc } from '@renderer/utils/ipc-channels'
 
 interface ProfileConfigContextType {
   profileConfig: ProfileConfig | undefined
@@ -29,7 +29,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
 
   const syncProfileConfig = React.useCallback((): void => {
     void mutateProfileConfig()
-    window.electron.ipcRenderer.send('updateTrayMenu')
+    sendIpc(SEND.updateTrayMenu)
   }, [mutateProfileConfig])
 
   const runProfileMutation = React.useCallback(
@@ -37,6 +37,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
       try {
         await action()
       } catch (e) {
+        const { notifyError } = await import('@renderer/utils/notify')
         notifyError(e, { title: errorTitle })
       } finally {
         syncProfileConfig()
@@ -69,10 +70,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     const handleProfileConfigUpdated = (): void => {
       void mutateProfileConfig()
     }
-    window.electron.ipcRenderer.on('profileConfigUpdated', handleProfileConfigUpdated)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('profileConfigUpdated', handleProfileConfigUpdated)
-    }
+    return onIpc(ON.profileConfigUpdated, handleProfileConfigUpdated)
   }, [mutateProfileConfig])
 
   const contextValue = React.useMemo(

@@ -3,24 +3,15 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Switch, Tooltip, Tabs, Tab, Input } from '@heroui/react'
 import useSWR from 'swr'
-import { 
-  checkAutoRun, 
-  disableAutoRun, 
-  enableAutoRun, 
-  relaunchApp, 
-  checkUpdate, 
-  cancelUpdate, 
-  copyEnv, 
-  openUWPTool, 
-  patchControledMihomoConfig, 
-  restartCore
-} from '@renderer/utils/ipc'
+import { checkAutoRun, disableAutoRun, enableAutoRun, relaunchApp, checkUpdate, cancelUpdate, copyEnv, openUWPTool } from '@renderer/utils/app-ipc'
+import { patchControledMihomoConfig, restartCore } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoIosHelpCircle } from 'react-icons/io'
 import ConfirmModal from '../base/base-confirm'
 import UpdaterModal from '../updater/updater-modal'
 import { toast } from 'sonner'
 import { platform } from '@renderer/utils/init'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 import SubStoreConfigModal from './substore-config-modal'
 import WebdavConfigModal from './webdav-config-modal'
@@ -74,10 +65,7 @@ const GeneralConfig: React.FC = () => {
     ): void => {
       setUpdateStatus(status)
     }
-    window.electron.ipcRenderer.on('update-status', handleUpdateStatus)
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('update-status', handleUpdateStatus)
-    }
+    return onIpc(ON.updateStatus, handleUpdateStatus)
   }, [])
 
   const handleCancelUpdate = async (): Promise<void> => {

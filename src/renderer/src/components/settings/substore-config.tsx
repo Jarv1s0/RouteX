@@ -2,12 +2,7 @@ import React, { useState, useEffect } from 'react'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { Button, Input, Switch } from '@heroui/react'
-import {
-  startSubStoreFrontendServer,
-  startSubStoreBackendServer,
-  stopSubStoreFrontendServer,
-  stopSubStoreBackendServer
-} from '@renderer/utils/ipc'
+import { startSubStoreFrontendServer, startSubStoreBackendServer, stopSubStoreFrontendServer, stopSubStoreBackendServer } from '@renderer/utils/substore-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import debounce from '@renderer/utils/debounce'
 import { isValidCron } from 'cron-validator'

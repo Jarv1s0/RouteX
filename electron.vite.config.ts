@@ -48,6 +48,8 @@ export default defineConfig({
         },
         output: {
             manualChunks: {
+              // React runtime 与主题基础能力
+              'vendor-react': ['react', 'react-dom', 'next-themes'],
               // UI 组件库（最大的单一依赖）
               'vendor-ui': ['@heroui/react', 'framer-motion'],
               // 图表库

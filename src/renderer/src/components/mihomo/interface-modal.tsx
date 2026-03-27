@@ -6,7 +6,7 @@ import {
   Snippet
 } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
-import { getInterfaces } from '@renderer/utils/ipc'
+import { getInterfaces } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {

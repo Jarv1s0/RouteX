@@ -3,12 +3,8 @@ import { Card, CardBody } from '@heroui/react'
 import { IoTime, IoSwapHorizontal, IoServer, IoGlobe, IoTimer } from 'react-icons/io5'
 import { useConnections } from '@renderer/hooks/use-connections'
 import { calcTraffic } from '@renderer/utils/calc'
-import {
-  getAppUptime,
-  getNetworkHealthStats,
-  startNetworkHealthMonitor,
-  stopNetworkHealthMonitor
-} from '@renderer/utils/ipc'
+import { getAppUptime, getNetworkHealthStats, startNetworkHealthMonitor, stopNetworkHealthMonitor } from '@renderer/utils/stats-ipc'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 const StatusGrid: React.FC = () => {
@@ -67,15 +63,15 @@ const StatusGrid: React.FC = () => {
       setNetworkLatency(info.currentLatency)
       setDnsLatency(info.currentDnsLatency)
     }
-    window.electron.ipcRenderer.on('mihomoMemory', onMemoryUpdate)
-    window.electron.ipcRenderer.on('networkHealth', onNetworkHealthUpdate)
+    const offMemory = onIpc(ON.mihomoMemory, onMemoryUpdate)
+    const offNetworkHealth = onIpc(ON.networkHealth, onNetworkHealthUpdate)
     void startNetworkHealthMonitor()
     void syncNetworkHealth()
 
     return () => {
       clearInterval(interval)
-      window.electron.ipcRenderer.removeListener('mihomoMemory', onMemoryUpdate)
-      window.electron.ipcRenderer.removeListener('networkHealth', onNetworkHealthUpdate)
+      offMemory()
+      offNetworkHealth()
       void stopNetworkHealthMonitor()
     }
   }, [])
