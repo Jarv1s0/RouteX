@@ -26,8 +26,6 @@
 
 RouteX 是一个桌面端跨平台代理客户端，基于 [Sparkle](https://github.com/xishang0128/sparkle) 修改而来，并以内置的 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核为核心运行时。
 
-它的目标不是只把代理“开起来”，而是把以下几件事做得更好：
-
 - 🚀 让代理切换、策略选择与系统代理控制更直观
 - 🔍 让连接、规则、流量与节点状态更容易观察和排查
 - 🧩 让订阅、覆写、配置编辑与多来源管理更顺手
@@ -74,21 +72,6 @@ RouteX 是一个桌面端跨平台代理客户端，基于 [Sparkle](https://git
 - **按页面启停监听**：减少无效后台事件处理，降低资源消耗
 - **远程图标本地缓存**：减轻工具页和订阅页的图标闪烁与重复加载
 
-## 🗂️ 页面一览
-
-| 页面 | 作用 |
-|------|------|
-| `Proxies` | 管理策略组、切换节点、执行测速 |
-| `Profiles` | 管理配置文件、订阅与 Proxy Provider |
-| `Override` | 编辑覆写内容并处理回滚恢复 |
-| `Connections` | 查看当前连接、关闭连接、生成规则 |
-| `Map` | 查看网络拓扑与连接关系 |
-| `Stats` | 查看实时流量、排行、规则命中与账期统计 |
-| `Tools` | 执行 DNS、规则测试、连通性与流媒体检测 |
-| `Rules` | 查看和管理规则数据 |
-| `Logs` | 查看运行日志 |
-| `SubStore` | 处理 SubStore 相关订阅与集合 |
-| `Mihomo / SysProxy / TUN / DNS / Sniffer / Settings` | 提供运行时控制、网络调试与应用配置入口 |
 
 ## 📥 下载与安装
 
@@ -102,33 +85,33 @@ RouteX 是一个桌面端跨平台代理客户端，基于 [Sparkle](https://git
 
 ## 🛠️ 本地开发
 
-### 📋 环境要求
+### 环境要求
 
 - Node.js
 - Corepack
 - `pnpm@10.15.0`
 
-### 📦 安装依赖
+### 安装依赖
 
 ```powershell
 corepack enable
 pnpm install
 ```
 
-### ▶️ 启动开发环境
+### 启动开发环境
 
 ```powershell
 pnpm dev
 ```
 
-### ✅ 代码检查
+### 代码检查
 
 ```powershell
 pnpm typecheck
 pnpm lint:ci
 ```
 
-### 🏗️ 构建
+### 构建
 
 ```powershell
 pnpm build
