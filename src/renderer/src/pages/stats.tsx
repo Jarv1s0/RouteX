@@ -28,7 +28,7 @@ interface RuleHitDetail {
 
 const EMPTY_RULE_HIT_DETAILS: RuleHitDetail[] = []
 
-const TrafficChartSection = React.memo(() => {
+const TrafficChartSection = React.memo(function TrafficChartSection() {
   const trafficHistory = useTrafficStore((state) => state.trafficHistory)
   const hourlyData = useTrafficStore((state) => state.hourlyData)
   const dailyData = useTrafficStore((state) => state.dailyData)
@@ -42,7 +42,11 @@ const TrafficChartSection = React.memo(() => {
   )
 })
 
-const TrafficRankingSection = React.memo(({ onSelectRule }: { onSelectRule: (rule: string) => void }) => {
+const TrafficRankingSection = React.memo(function TrafficRankingSection({
+  onSelectRule
+}: {
+  onSelectRule: (rule: string) => void
+}) {
   const sessionStats = useTrafficStore((state) => state.sessionStats)
   const dailyData = useTrafficStore((state) => state.dailyData)
   const ruleStats = useTrafficStore((state) => state.ruleStats)
@@ -65,7 +69,7 @@ const TrafficRankingSection = React.memo(({ onSelectRule }: { onSelectRule: (rul
   )
 })
 
-const ProviderUsageSection = React.memo(() => {
+const ProviderUsageSection = React.memo(function ProviderUsageSection() {
   const providerData = useTrafficStore((state) => state.providerData)
   const currentProviders = useTrafficStore((state) => state.currentProviders)
 
@@ -73,7 +77,13 @@ const ProviderUsageSection = React.memo(() => {
 })
 
 const RuleDetailsModalSection = React.memo(
-  ({ selectedRule, onClose }: { selectedRule: string | null; onClose: () => void }) => {
+  function RuleDetailsModalSection({
+    selectedRule,
+    onClose
+  }: {
+    selectedRule: string | null
+    onClose: () => void
+  }) {
     const details = useTrafficStore((state) =>
       selectedRule ? (state.ruleHitDetails.get(selectedRule) ?? EMPTY_RULE_HIT_DETAILS) : EMPTY_RULE_HIT_DETAILS
     ) as RuleHitDetail[]
