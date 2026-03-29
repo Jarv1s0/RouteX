@@ -560,9 +560,9 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           
           {/* 延迟显示 */}
           {delay !== undefined && (
-            <div className="flex w-[88px] items-center justify-end gap-1 font-mono tabular-nums">
+            <div className="flex w-[88px] items-center justify-end gap-[2px] font-mono tabular-nums">
                <div className={clsx("w-1.5 h-1.5 shrink-0 rounded-full", delayColorClass?.replace('text-', 'bg-'))} />
-               <span className={clsx("inline-block w-[64px] text-right text-xs font-mono font-bold tabular-nums", delayColorClass)}>
+               <span className={clsx("inline-block w-[48px] text-right text-xs font-mono font-bold tabular-nums", delayColorClass)}>
                  {delay === 0 ? 'Timeout' : `${delay}ms`}
                </span>
             </div>
