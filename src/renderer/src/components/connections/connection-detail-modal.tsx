@@ -506,6 +506,7 @@ interface TimelineNodeProps {
 const TimelineNode: React.FC<TimelineNodeProps> = ({ 
   type, title, subtitle, time, delay, delayColorClass, isLast, isGroup, groupType, icon, tagLabel, tagClassName
 }) => {
+  const nonGroupInsetClass = isGroup ? '' : 'px-3'
   
   return (
     <div className="relative pl-9 pb-4 last:pb-0 group">
@@ -531,15 +532,15 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
       </div>
 
       {/* 内容主体 */}
-      <div className={clsx(
-        "relative rounded-xl border p-3 transition-all",
-        isGroup 
-          ? "bg-content1/80 dark:bg-default-100/80 border-default-300/60 dark:border-white/10 hover:border-primary/40 shadow-sm hover:shadow-md backdrop-blur-sm" 
-          : "bg-transparent border-transparent px-0 py-0" 
-      )}>
-        {/* 顶部标签行 */}
-        <div className="grid grid-cols-[minmax(0,1fr)_88px] items-center gap-2 mb-1">
-          <div className="flex min-w-0 items-center gap-1.5">
+        <div className={clsx(
+          "relative rounded-xl border p-3 transition-all",
+          isGroup 
+            ? "bg-content1/80 dark:bg-default-100/80 border-default-300/60 dark:border-white/10 hover:border-primary/40 shadow-sm hover:shadow-md backdrop-blur-sm" 
+            : "bg-transparent border-transparent px-0 py-0" 
+        )}>
+          {/* 顶部标签行 */}
+        <div className={clsx("grid grid-cols-[minmax(0,1fr)_88px] items-center gap-2 mb-1", nonGroupInsetClass)}>
+            <div className="flex min-w-0 items-center gap-1.5">
             {type === 'source' && <span className="text-[10px] font-bold text-green-500 uppercase bg-green-500/10 px-1.5 rounded">起点</span>}
             {type === 'destination' && <span className="text-[10px] font-bold text-purple-500 uppercase bg-purple-500/10 px-1.5 rounded">终点</span>}
             {tagLabel && !isGroup && type !== 'source' && type !== 'destination' && (
@@ -572,22 +573,22 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
         </div>
         
         {/* 标题 */}
-        <div className="flex items-center gap-2 min-w-0">
-          {icon && <img src={icon} className="w-3.5 h-3.5 object-contain opacity-80" alt="" />}
-          <span className={clsx(
-            "text-sm font-medium truncate pr-2",
-            isGroup ? "text-foreground" : "text-default-700"
-          )} title={title}>
-            {title}
-          </span>
-        </div>
-        
-        {/* 只有 Group 节点显示具体的节点选择 */}
-        {subtitle && (
-          <div className="mt-1.5 flex items-center gap-1.5 text-xs text-default-500 bg-content2/50 p-1.5 rounded-md border border-default-200/50">
-            <IoArrowForward className="text-[10px] shrink-0 text-primary" />
-            <span className="font-mono truncate font-bold text-primary" title={subtitle}>{subtitle}</span>
+          <div className={clsx("flex items-center gap-2 min-w-0", nonGroupInsetClass)}>
+            {icon && <img src={icon} className="w-3.5 h-3.5 object-contain opacity-80" alt="" />}
+            <span className={clsx(
+              "text-sm font-medium truncate pr-2",
+              isGroup ? "text-foreground" : "text-default-700"
+            )} title={title}>
+              {title}
+            </span>
           </div>
+          
+          {/* 只有 Group 节点显示具体的节点选择 */}
+          {subtitle && (
+            <div className={clsx("mt-1.5 flex items-center gap-1.5 text-xs text-default-500 bg-content2/50 p-1.5 rounded-md border border-default-200/50", nonGroupInsetClass)}>
+              <IoArrowForward className="text-[10px] shrink-0 text-primary" />
+              <span className="font-mono truncate font-bold text-primary" title={subtitle}>{subtitle}</span>
+            </div>
         )}
       </div>
     </div>
