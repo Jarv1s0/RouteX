@@ -7,7 +7,7 @@ import ConnectionsToolbar from '@renderer/components/connections/connections-too
 import { CustomContextMenu } from '@renderer/components/ui/custom-context-menu'
 import { useConnectionsPage } from '@renderer/hooks/use-connections-page'
 import { Button } from '@heroui/react'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { MdTune } from 'react-icons/md'
 import { IoAddCircleOutline, IoPause } from 'react-icons/io5'
 
@@ -75,6 +75,17 @@ const Connections: React.FC = () => {
     setCreateRuleConnection(connection)
     setIsCreateRuleModalOpen(true)
   }, [])
+
+  useEffect(() => {
+    if (!selected) return
+
+    const latestSelected = activeConnections.find((connection) => connection.id === selected.id)
+      || closedConnections.find((connection) => connection.id === selected.id)
+
+    if (latestSelected && latestSelected !== selected) {
+      setSelected(latestSelected)
+    }
+  }, [activeConnections, closedConnections, selected])
 
   return (
     <BasePage

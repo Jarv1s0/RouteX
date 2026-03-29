@@ -526,9 +526,10 @@ export const restartMihomoConnections = async (): Promise<void> => {
 }
 
 const mihomoConnections = async (): Promise<void> => {
-  const { connectionInterval = 500 } = await getAppConfig()
+  const { connectionInterval = 1000 } = await getAppConfig()
+  const normalizedConnectionInterval = Math.max(1000, connectionInterval || 1000)
   mihomoConnectionsWs = new WebSocket(
-    `ws+unix:${mihomoIpcPath()}:/connections?interval=${connectionInterval}`
+    `ws+unix:${mihomoIpcPath()}:/connections?interval=${normalizedConnectionInterval}`
   )
 
   mihomoConnectionsWs.onmessage = (e): void => {

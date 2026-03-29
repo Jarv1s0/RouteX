@@ -69,6 +69,11 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
 
   const processName = connection.metadata.process || 'Unknown Process'
   const processPath = connection.metadata.processPath
+  const sniffSummary = connection.metadata.sniffHost
+    ? '已嗅探'
+    : connection.metadata.host
+      ? '域名'
+      : 'IP'
 
   // 1. Duration Timer Logic
   const [duration, setDuration] = React.useState('')
@@ -124,7 +129,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
 
           {/* 标题栏 */}
           <div className="flex justify-between items-start px-2 pt-2 pb-2 z-10">
-            <div className="flex items-start gap-6">
+            <div className="flex items-start gap-6 min-w-0 flex-1 pr-14">
               {/* 进程图标 */}
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-default-100 to-default-50 border border-white/20 shadow-lg flex items-center justify-center shrink-0">
                 {localStorage.getItem(processPath || '') ? (
@@ -141,11 +146,11 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
               </div>
               
               {/* 标题信息 */}
-              <div className="flex flex-col pt-1">
+              <div className="flex flex-col pt-1 min-w-0 flex-1">
                 <Tooltip content={processPath || 'Unknown Path'} placement="bottom" showArrow={true} classNames={{ base: "before:bg-default-200 after:bg-default-200", content: "bg-content1 text-default-500 font-mono text-xs px-2 py-1 shadow-sm border border-default-200" }}>
                   <h2 className="text-2xl font-bold text-foreground tracking-tight mb-2 cursor-help decoration-dashed decoration-default-300 underline-offset-4 w-fit">{processName}</h2>
                 </Tooltip>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Chip size="sm" variant="flat" color="primary" className="h-6 px-1 bg-primary/10 text-primary font-medium border border-primary/20">
                     {connection.metadata.network.toUpperCase()}
                   </Chip>
@@ -156,39 +161,17 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                     {duration}
                   </Chip>
                   {connection.rule && (
-                     <Chip size="sm" variant="flat" color="warning" className="h-6 px-1 bg-warning/10 text-warning font-medium border border-warning/20 max-w-[200px]">
+                     <Chip size="sm" variant="flat" color="warning" className="h-6 px-1 bg-warning/10 text-warning font-medium border border-warning/20 max-w-[180px] opacity-85">
                       <span className="truncate">{connection.rule}</span>
                      </Chip>
                   )}
-                  {/* 紧凑型流量统计 - 移动到此处 */}
-                  <div className="hidden sm:flex items-center gap-4 bg-default-100/50 backdrop-blur-md border border-white/10 px-4 py-1 rounded-2xl shadow-sm ml-2 h-7">
-                     {/* 下载 */}
-                     <div className="flex items-center gap-2">
-                        <IoSwapVertical className="text-lg text-[#c084fc] rotate-180"/>
-                        <div className="flex items-center leading-none gap-2">
-                          <span className="font-mono font-bold text-sm text-foreground">{calcTraffic(connection.download)}</span>
-                          <span className="text-[10px] text-default-400 font-mono">{calcTraffic(connection.downloadSpeed || 0)}/s</span>
-                        </div>
-                     </div>
-                     {/* 分隔线 */}
-                     <div className="w-px h-4 bg-default-300/30" />
-                     {/* 上传 */}
-                     <div className="flex items-center gap-2">
-                        <div className="flex items-center leading-none gap-2">
-                          <span className="font-mono font-bold text-sm text-foreground">{calcTraffic(connection.upload)}</span>
-                          <span className="text-[10px] text-default-400 font-mono">{calcTraffic(connection.uploadSpeed || 0)}/s</span>
-                        </div>
-                        <IoSwapVertical className="text-lg text-[#22d3ee]"/>
-                     </div>
-                   </div>
-                  {/* 断开连接按钮 - 放在流量卡片后面 */}
                   {onDisconnect && (
                     <Button
                       size="sm"
                       variant="flat"
                       color="danger"
-                      className="ml-2 h-7 min-w-0 px-2"
-                      startContent={<IoUnlink className="text-base" />}
+                      className="h-6 min-w-0 rounded-md px-2 text-xs font-medium"
+                      startContent={<IoUnlink className="text-sm" />}
                       onPress={() => onDisconnect(connection.id)}
                     >
                       断开
@@ -204,10 +187,42 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
           
           {/* 左侧：详细信息 */}
           <ScrollShadow className="flex-1 p-2 pr-2 flex flex-col gap-2">
+            <div className="overflow-x-auto rounded-xl bg-default-50/60 dark:bg-content1/10 backdrop-blur-md border border-default-200/50 dark:border-white/5 shadow-sm px-4 py-2">
+              <div className="flex min-w-max items-center justify-between gap-6 whitespace-nowrap">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <IoSwapVertical className="text-lg text-[#c084fc] rotate-180" />
+                    <div className="flex items-center leading-none gap-2">
+                      <span className="font-mono font-bold text-sm text-foreground">
+                        {calcTraffic(connection.download)}
+                      </span>
+                      <span className="text-[10px] text-default-400 font-mono">
+                        {calcTraffic(connection.downloadSpeed || 0)}/s
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-4 w-px bg-default-300/30" />
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center leading-none gap-2">
+                      <span className="font-mono font-bold text-sm text-foreground">
+                        {calcTraffic(connection.upload)}
+                      </span>
+                      <span className="text-[10px] text-default-400 font-mono">
+                        {calcTraffic(connection.uploadSpeed || 0)}/s
+                      </span>
+                    </div>
+                    <IoSwapVertical className="text-lg text-[#22d3ee]" />
+                  </div>
+                </div>
+                <div className="ml-auto">
+                  <InlineSummary label="嗅探" value={sniffSummary} tone="warning" />
+                </div>
+              </div>
+            </div>
             
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               {/* 目标地址卡片 */}
-              <div className="p-4 rounded-xl bg-default-50/60 dark:bg-content1/10 backdrop-blur-md border border-default-200/50 dark:border-white/5 shadow-sm hover:border-default-300/60 transition-colors group relative">
+              <div className="h-full p-4 rounded-xl bg-default-50/60 dark:bg-content1/10 backdrop-blur-md border border-default-200/50 dark:border-white/5 shadow-sm hover:border-default-300/60 transition-colors group relative">
                 <div className="flex items-center gap-2.5 mb-3 opacity-80 group-hover:opacity-100 transition-opacity">
                   <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-500">
                     <FaNetworkWired className="text-sm" />
@@ -249,12 +264,18 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
             </div>
             
             {/* 辅助信息网格 */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               <InfoCard 
                 icon={<IoShieldCheckmark />} 
                 label="规则" 
-                value={connection.rulePayload || connection.rule} 
-                subValue={connection.rulePayload ? connection.rule : undefined}
+                value={connection.rule || 'N/A'} 
+                subValue={
+                  connection.rulePayload
+                    ? `命中值: ${connection.rulePayload}`
+                    : connection.rule
+                      ? '无规则值'
+                      : undefined
+                }
                 theme="purple"
               />
               <InfoCard 
@@ -315,6 +336,17 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                   time={dayjs(connection.start).format('HH:mm:ss')}
                 />
 
+                {/* 规则节点 */}
+                {(connection.rule || connection.rulePayload) && (
+                  <TimelineNode
+                    type="proxy"
+                    title={connection.rule || '规则'}
+                    subtitle={connection.rulePayload ? `命中值: ${connection.rulePayload}` : undefined}
+                    tagLabel="规则"
+                    tagClassName="text-warning bg-warning/10"
+                  />
+                )}
+
                 {/* 代理链节点 */}
                 {chainGroups.map((item, index) => {
                   const { name, group, leafProxy } = item
@@ -326,11 +358,11 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                     return null
                   }
                   
-                  let delay = 0
+                  let delay: number | undefined
                   if (group) {
-                    delay = group.all?.find(p => p.name === group.now)?.history?.at(-1)?.delay || 0
+                    delay = group.all?.find(p => p.name === group.now)?.history?.at(-1)?.delay
                   } else if (leafProxy) {
-                    delay = leafProxy.history?.at(-1)?.delay || 0
+                    delay = leafProxy.history?.at(-1)?.delay
                   }
 
                   return (
@@ -338,9 +370,9 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                       key={index}
                       type={'proxy'}
                       title={name}
-                      subtitle={group?.now}
+                      subtitle={group?.now ? `当前: ${group.now}` : undefined}
                       delay={delay}
-                      delayColorClass={getDelayColorClass(delay)}
+                      delayColorClass={delay === undefined ? undefined : getDelayColorClass(delay)}
                       isGroup={!!group}
                       icon={group?.icon}
                       groupType={group?.type}
@@ -351,7 +383,12 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                 {/* 目标节点 */}
                 <TimelineNode 
                   type="destination"
-                  title={destination}
+                  title={connection.metadata.host || connection.metadata.destinationIP || destination}
+                  subtitle={
+                    connection.metadata.destinationPort
+                      ? `端口 ${connection.metadata.destinationPort}`
+                      : undefined
+                  }
                   isLast
                 />
               </div>
@@ -381,6 +418,12 @@ interface InfoCardProps {
   iconWrapperClassName?: string
 }
 
+interface InlineSummaryProps {
+  label: string
+  value: string
+  tone: 'primary' | 'success' | 'warning'
+}
+
 const NEUTRAL_CARD = 'bg-default-50/60 dark:bg-content1/10 border-default-200/50 dark:border-white/5 hover:border-default-300/60'
 
 const THEME_MAP = {
@@ -391,12 +434,36 @@ const THEME_MAP = {
   default: { icon: 'bg-default-100 text-default-500',  label: 'text-default-500',   value: 'text-foreground'  },
 } as const
 
+const INLINE_SUMMARY_TONE = {
+  primary: 'bg-primary/10 text-primary',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning'
+} as const
+
+const InlineSummary: React.FC<InlineSummaryProps> = ({ label, value, tone }) => {
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-default-200/60 bg-default-100/60 px-2.5 py-1.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.35)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+      <span
+        className={clsx(
+          'rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em]',
+          INLINE_SUMMARY_TONE[tone]
+        )}
+      >
+        {label}
+      </span>
+      <span className="max-w-[72px] truncate text-xs font-semibold text-foreground" title={value}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
 const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value, subValue, theme = 'default' }) => {
   const t = THEME_MAP[theme]
   const handleCopy = () => { if (value) navigator.clipboard.writeText(value) }
 
   return (
-    <div className={`p-4 rounded-xl backdrop-blur-md border shadow-sm transition-colors group relative ${NEUTRAL_CARD}`}>
+    <div className={`h-full p-4 rounded-xl backdrop-blur-md border shadow-sm transition-colors group relative ${NEUTRAL_CARD}`}>
       <div className="flex items-center gap-2.5 mb-2 opacity-80 group-hover:opacity-100 transition-opacity">
         <div className={clsx('p-1.5 rounded-lg text-sm', t.icon)}>{icon}</div>
         <span className={`text-xs font-bold uppercase tracking-wide ${t.label}`}>{label}</span>
@@ -432,10 +499,12 @@ interface TimelineNodeProps {
   isGroup?: boolean
   groupType?: string
   icon?: string
+  tagLabel?: string
+  tagClassName?: string
 }
 
 const TimelineNode: React.FC<TimelineNodeProps> = ({ 
-  type, title, subtitle, time, delay, delayColorClass, isLast, isGroup, groupType, icon 
+  type, title, subtitle, time, delay, delayColorClass, isLast, isGroup, groupType, icon, tagLabel, tagClassName
 }) => {
   
   return (
@@ -448,7 +517,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
       {/* 节点图标/圆点 */}
       <div className={clsx(
         "absolute left-[6px] top-1 w-5 h-5 rounded-full border-[3px] z-10 flex items-center justify-center transition-all bg-content1",
-        type === 'source' ? "border-success w-5 h-5 shadow-[0_0_0_2px_rgba(23,201,100,0.2)]" :
+        type === 'source' ? "border-success/60 w-5 h-5 shadow-[0_0_0_2px_rgba(23,201,100,0.12)]" :
         type === 'destination' ? "border-secondary w-5 h-5 shadow-[0_0_0_2px_rgba(151,80,221,0.2)]" :
         "border-default-300 group-hover:border-primary group-hover:w-5 group-hover:h-5 w-4 h-4 left-[8px] top-1.5"
       )}>
@@ -456,7 +525,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
         {(type === 'source' || type === 'destination') && (
            <div className={clsx(
              "w-1.5 h-1.5 rounded-full",
-             type === 'source' ? "bg-success" : "bg-secondary"
+             type === 'source' ? "bg-success/70" : "bg-secondary"
            )} />
         )}
       </div>
@@ -469,10 +538,15 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           : "bg-transparent border-transparent px-0 py-0" 
       )}>
         {/* 顶部标签行 */}
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <div className="flex items-center gap-1.5">
+        <div className="grid grid-cols-[minmax(0,1fr)_88px] items-center gap-2 mb-1">
+          <div className="flex min-w-0 items-center gap-1.5">
             {type === 'source' && <span className="text-[10px] font-bold text-green-500 uppercase bg-green-500/10 px-1.5 rounded">起点</span>}
             {type === 'destination' && <span className="text-[10px] font-bold text-purple-500 uppercase bg-purple-500/10 px-1.5 rounded">终点</span>}
+            {tagLabel && !isGroup && type !== 'source' && type !== 'destination' && (
+              <span className={clsx("text-[10px] font-bold uppercase px-1.5 rounded", tagClassName || "text-default-400 bg-default-100")}>
+                {tagLabel}
+              </span>
+            )}
             {isGroup && (
                <span className="text-[10px] font-bold text-primary uppercase bg-primary/10 px-1.5 rounded">
                  {groupType || '策略组'}
@@ -484,16 +558,16 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           </div>
           
           {/* 延迟显示 */}
-          {delay !== undefined && delay > 0 && (
-            <div className="flex items-center gap-1">
-               <div className={clsx("w-1.5 h-1.5 rounded-full", delayColorClass?.replace('text-', 'bg-'))} />
-               <span className={clsx("text-xs font-mono font-bold", delayColorClass)}>
-                 {delay}ms
+          {delay !== undefined && (
+            <div className="flex w-[88px] items-center justify-end gap-1 font-mono tabular-nums">
+               <div className={clsx("w-1.5 h-1.5 shrink-0 rounded-full", delayColorClass?.replace('text-', 'bg-'))} />
+               <span className={clsx("inline-block w-[64px] text-right text-xs font-mono font-bold tabular-nums", delayColorClass)}>
+                 {delay === 0 ? 'Timeout' : `${delay}ms`}
                </span>
             </div>
           )}
           {time && (
-            <span className="text-[10px] font-mono text-default-400">{time}</span>
+            <span className="w-[88px] justify-self-end text-right text-[10px] font-mono tabular-nums text-default-400">{time}</span>
           )}
         </div>
         

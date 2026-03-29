@@ -121,12 +121,18 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
   const { onClose } = props
   const { appConfig, patchAppConfig } = useAppConfig()
 
+  const normalizeConnectionInterval = (value?: number) => {
+    if (!value || Number.isNaN(value)) return 1000
+    return Math.max(1000, value)
+  }
+
   const { 
     displayIcon = true, 
     displayAppName = true, 
-    connectionInterval = 500,
+    connectionInterval: rawConnectionInterval = 1000,
     connectionTableColumns = DEFAULT_COLUMNS
   } = appConfig || {}
+  const connectionInterval = normalizeConnectionInterval(rawConnectionInterval)
 
   const [interval, setInterval] = useState(connectionInterval?.toString() ?? '')
 
@@ -136,8 +142,8 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
 
   const updateInterval = useMemo(() => debounce(async (v: string) => {
     let num = parseInt(v)
-    if (isNaN(num)) num = 500
-    if (num < 100) num = 100
+    if (isNaN(num)) num = 1000
+    if (num < 1000) num = 1000
     await patchAppConfig({ connectionInterval: num })
     await restartMihomoConnections()
   }, 1000), [patchAppConfig])
@@ -230,7 +236,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                 className="w-[120px]"
                 classNames={secondaryInputClassNames}
                 value={interval}
-                placeholder="默认 500"
+                placeholder="默认 1000"
                 onValueChange={(v) => {
                   // 允许空值以便用户删除
                   if (v === '') {
