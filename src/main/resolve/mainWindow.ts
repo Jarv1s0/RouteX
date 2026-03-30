@@ -194,6 +194,12 @@ export function registerMainWindowLifecycleHandlers(
 
   mainWindow.webContents.on('did-finish-load', () => {
     setMainWindowDidFinishLoad(true)
+    // Re-apply custom theme after page reload — insertCSS is cleared on navigation
+    getAppConfig().then(({ customTheme }) => {
+      if (customTheme) {
+        import('./theme').then(({ applyTheme }) => applyTheme(customTheme)).catch(() => {})
+      }
+    }).catch(() => {})
   })
 
   mainWindow.webContents.on('did-fail-load', () => {
