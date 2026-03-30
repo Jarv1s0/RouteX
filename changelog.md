@@ -22,6 +22,13 @@
 - ESLint 增加防回退限制，禁止重新导入旧 IPC 入口和直接访问 `ipcRenderer`。
 
 ### 🛠 修复
+- 修复零参数 IPC handler 直接传入 `ipcErrorWrapper` 导致 event 对象泄漏到底层实现函数的问题。
+- 修复 `isValidListenAddress` 中端口校验永远通过的 Bug（`!isValidPort()` 对对象永远为 false）。
+- 修复 `processedConnIds` 仅在超过 2000 条时才清理，改为每次连接快照后即时回收已关闭连接 ID。
+- 修复 `mihomoConnections` IPC 通道名硬编码绕过类型系统，统一改用 `IPC_ON_CHANNELS` 常量。
+- 修复 `factory` 中链注入失败被静默丢弃，现改为输出警告日志便于排查。
+- 替换 `generateProfile` 与 `injectChainProxies` 中三处 `JSON.parse/stringify` 深拷贝为 `structuredClone`。
+- 删除混入 `utils/` 目录的手工测试文件，避免其被打包进产物。
 - 修复 IPC 错误包装器在返回 `null` 时触发告警的问题。
 - 修复统计页规则详情弹窗导致无限重渲染的问题。
 - 修复 Windows 自定义无边框窗口下右上角按钮点击冲突的问题。
