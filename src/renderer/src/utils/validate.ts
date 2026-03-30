@@ -63,7 +63,7 @@ export const isValidListenAddress = (s: string | undefined): ValidationResult =>
   if (idx === -1) return { ok: false, error: '应包含端口号' }
   const host = v.slice(0, idx)
   const port = v.slice(idx + 1)
-  if (!isValidPort(port)) return { ok: false, error: '端口号不合法' }
+  if (!isValidPort(port).ok) return { ok: false, error: '端口号不合法' }
   if (host.startsWith('[') && host.endsWith(']')) {
     const inner = host.slice(1, -1)
     return isIPv6(inner)

@@ -194,11 +194,9 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
         
         // Garbage collect processedConnIds: remove IDs no longer in current connections
         const currentIds = new Set(connections.map((c: ControllerConnectionDetail) => c.id))
-        if (processedConnIds.size > 2000) {
-            for (const id of processedConnIds) {
-                if (!currentIds.has(id)) {
-                    processedConnIds.delete(id)
-                }
+        for (const id of processedConnIds) {
+            if (!currentIds.has(id)) {
+                processedConnIds.delete(id)
             }
         }
 

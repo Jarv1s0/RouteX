@@ -39,7 +39,7 @@ export async function generateProfile(): Promise<void> {
   overrideProfileStr = stringifyYaml(currentProfile)
   const controledMihomoConfig = await getControledMihomoConfig()
 
-  const configToMerge = JSON.parse(JSON.stringify(controledMihomoConfig))
+  const configToMerge = structuredClone(controledMihomoConfig)
   if (!controlDns) {
     delete configToMerge.dns
     delete configToMerge.hosts
@@ -48,13 +48,13 @@ export async function generateProfile(): Promise<void> {
     delete configToMerge.sniffer
   }
 
-  const profile = deepMerge(JSON.parse(JSON.stringify(currentProfile)), configToMerge)
+  const profile = deepMerge(structuredClone(currentProfile), configToMerge)
 
   // 注入代理链虚拟节点 (安全包装，防止影响正常配置生成)
   try {
     await injectChainProxies(profile)
   } catch (e) {
-    // ignore
+    console.warn('[factory] injectChainProxies failed, skipping:', e)
   }
 
   await cleanProfile(profile, controlDns, controlSniff)
@@ -286,7 +286,7 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
     }
 
     // 克隆落地节点，创建代理链虚拟节点
-    const chainProxy = JSON.parse(JSON.stringify(targetProxyConfig)) as Record<string, unknown>
+    const chainProxy = structuredClone(targetProxyConfig) as Record<string, unknown>
     chainProxy.name = chain.name
 
     // 设置 dialer-proxy 为前置节点/组

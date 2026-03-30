@@ -8,6 +8,7 @@ import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
 import { mihomoIpcPath } from '../utils/dirs'
 import { updateTrafficStats, updateProcessTraffic, resetTrafficDelta } from '../resolve/trafficStats'
+import { IPC_ON_CHANNELS } from '../../shared/ipc'
 import { writeFile } from 'fs/promises'
 import { logPath } from '../utils/dirs'
 
@@ -35,7 +36,7 @@ const CONNECTION_RENDER_PUSH_INTERVAL = 1000
 function flushConnectionsSnapshot(): void {
   if (!latestConnectionsSnapshot) return
   lastConnectionsBroadcastAt = Date.now()
-  mainWindow?.webContents.send('mihomoConnections', latestConnectionsSnapshot)
+  mainWindow?.webContents.send(IPC_ON_CHANNELS.mihomoConnections, latestConnectionsSnapshot)
   latestConnectionsSnapshot = null
 }
 
