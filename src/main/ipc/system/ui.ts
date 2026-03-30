@@ -31,8 +31,8 @@ export function createUiHandlers(): IpcInvokeHandlerMap {
 
   return {
     [C.downloadAndInstallUpdate]: (_e, version) => ipcErrorWrapper(downloadAndInstallUpdate)(version),
-    [C.checkUpdate]: ipcErrorWrapper(checkUpdate),
-    [C.cancelUpdate]: ipcErrorWrapper(cancelUpdate),
+    [C.checkUpdate]: () => ipcErrorWrapper(checkUpdate)(),
+    [C.cancelUpdate]: () => ipcErrorWrapper(cancelUpdate)(),
     [C.getVersion]: () => getDisplayVersion(),
     [C.platform]: () => process.platform,
     [C.registerShortcut]: (_e, oldShortcut, newShortcut, action) =>

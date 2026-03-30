@@ -34,7 +34,7 @@ export function createRuntimeHandlers(): IpcInvokeHandlerMap {
   const C = IPC_INVOKE_CHANNELS
 
   return {
-    [C.restartCore]: ipcErrorWrapper(restartCore),
+    [C.restartCore]: () => ipcErrorWrapper(restartCore)(),
     [C.startMonitor]: (_e, detached) => ipcErrorWrapper(startMonitor)(detached),
     [C.triggerSysProxy]: (_e, enable, onlyActiveDevice) =>
       ipcErrorWrapper(triggerSysProxy)(enable, onlyActiveDevice),
@@ -54,8 +54,8 @@ export function createRuntimeHandlers(): IpcInvokeHandlerMap {
     [C.restartService]: () => ipcErrorWrapper(restartService)(),
     [C.stopService]: () => ipcErrorWrapper(stopService)(),
     [C.findSystemMihomo]: () => findSystemMihomo(),
-    [C.openUWPTool]: ipcErrorWrapper(openUWPTool),
-    [C.setupFirewall]: ipcErrorWrapper(setupFirewall),
+    [C.openUWPTool]: () => ipcErrorWrapper(openUWPTool)(),
+    [C.setupFirewall]: () => ipcErrorWrapper(setupFirewall)(),
     [C.getInterfaces]: getInterfaces,
     [C.quitWithoutCore]: ipcErrorWrapper(quitWithoutCore),
     [C.startNetworkDetection]: ipcErrorWrapper(startNetworkDetection),

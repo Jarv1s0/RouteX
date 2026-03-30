@@ -28,12 +28,12 @@ export function createFileHandlers(): IpcInvokeHandlerMap {
     [C.getFilePath]: (_e, ext) => getFilePath(ext),
     [C.saveFile]: (_e, content, defaultName, ext) => saveFile(content, defaultName, ext),
     [C.readTextFile]: (_e, filePath) => ipcErrorWrapper(readTextFile)(filePath),
-    [C.getRuntimeConfigStr]: ipcErrorWrapper(getRuntimeConfigStr),
-    [C.getRawProfileStr]: ipcErrorWrapper(getRawProfileStr),
-    [C.getCurrentProfileStr]: ipcErrorWrapper(getCurrentProfileStr),
-    [C.getOverrideProfileStr]: ipcErrorWrapper(getOverrideProfileStr),
-    [C.getRuntimeConfig]: ipcErrorWrapper(getRuntimeConfig),
-    [C.getGistUrl]: ipcErrorWrapper(getGistUrl),
+    [C.getRuntimeConfigStr]: () => ipcErrorWrapper(getRuntimeConfigStr)(),
+    [C.getRawProfileStr]: () => ipcErrorWrapper(getRawProfileStr)(),
+    [C.getCurrentProfileStr]: () => ipcErrorWrapper(getCurrentProfileStr)(),
+    [C.getOverrideProfileStr]: () => ipcErrorWrapper(getOverrideProfileStr)(),
+    [C.getRuntimeConfig]: () => ipcErrorWrapper(getRuntimeConfig)(),
+    [C.getGistUrl]: () => ipcErrorWrapper(getGistUrl)(),
     [C.openFile]: (_e, type, id, ext) => openFile(type, id, ext),
     [C.createHeapSnapshot]: () => {
       v8.writeHeapSnapshot(path.join(logDir(), `${Date.now()}.heapsnapshot`))

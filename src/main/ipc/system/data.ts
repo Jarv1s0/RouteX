@@ -25,7 +25,7 @@ export function createDataHandlers(): IpcInvokeHandlerMap {
   const C = IPC_INVOKE_CHANNELS
 
   return {
-    [C.webdavBackup]: ipcErrorWrapper(webdavBackup),
+    [C.webdavBackup]: () => ipcErrorWrapper(webdavBackup)(),
     [C.webdavRestore]: (_e, filename) => ipcErrorWrapper(webdavRestore)(filename),
     [C.listWebdavBackups]: ipcErrorWrapper(listWebdavBackups),
     [C.webdavDelete]: (_e, filename) => ipcErrorWrapper(webdavDelete)(filename),
