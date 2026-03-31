@@ -1,50 +1,42 @@
-import { motion, Variants } from 'framer-motion'
-import React from 'react'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
+import React, { useEffect, useState } from 'react'
 
 interface Props {
   children: React.ReactNode
 }
 
-const pageVariants: Variants = {
-  initial: {
-    opacity: 0,
-    y: 8,
-    scale: 0.99,
-    filter: 'blur(2px)'
-  },
-  enter: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    filter: 'blur(0px)',
-    transition: {
-      duration: 0.25,
-      ease: [0.25, 0.1, 0.25, 1] // Smoother easeOut curve matching native OS feel
-    }
-  },
-  exit: {
-    opacity: 0,
-    y: -8,
-    scale: 0.99,
-    filter: 'blur(2px)',
-    transition: {
-      duration: 0.2,
-      ease: [0.4, 0, 1, 1]
-    }
-  }
-}
-
 const PageTransition: React.FC<Props> = ({ children }) => {
+  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const [entered, setEntered] = useState(disableAnimation)
+
+  useEffect(() => {
+    if (disableAnimation) {
+      setEntered(true)
+      return
+    }
+
+    setEntered(false)
+    const frameId = window.requestAnimationFrame(() => {
+      setEntered(true)
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [disableAnimation])
+
   return (
-    <motion.div
-      initial="initial"
-      animate="enter"
-      exit="exit"
-      variants={pageVariants}
-      className="h-full w-full"
+    <div
+      className={`h-full w-full transition-all ease-out ${
+        disableAnimation
+          ? ''
+          : entered
+            ? 'opacity-100 translate-y-0 scale-100 blur-0 duration-200'
+            : 'opacity-0 translate-y-2 scale-[0.99] blur-[2px] duration-0'
+      }`}
     >
       {children}
-    </motion.div>
+    </div>
   )
 }
 

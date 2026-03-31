@@ -13,7 +13,11 @@ import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { useLogsStore } from '@renderer/store/use-logs-store'
+import {
+  releaseLogsListeners,
+  retainLogsListeners,
+  useLogsStore
+} from '@renderer/store/use-logs-store'
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
 
@@ -54,6 +58,13 @@ const Logs: React.FC = () => {
     const defaultName = `routex-logs-${new Date().toISOString().slice(0, 10)}.txt`
     await saveFile(content, defaultName, 'txt')
   }
+
+  useEffect(() => {
+    retainLogsListeners()
+    return () => {
+      releaseLogsListeners()
+    }
+  }, [])
 
   useEffect(() => {
     if (paused) return

@@ -6,7 +6,6 @@ import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { MdOutlineAltRoute } from 'react-icons/md'
 import { TbWorld, TbBolt } from 'react-icons/tb'
-import { motion } from 'framer-motion'
 import clsx from 'clsx'
 
 interface Props {
@@ -77,22 +76,12 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
               key={m.key}
               onClick={() => onChangeMode(m.key as OutboundMode)}
               className={clsx(
-                'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm font-medium transition-colors duration-200 focus:outline-none rounded-large z-10',
-                isActive ? m.activeClass : 'text-default-500 hover:text-default-600'
+                'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none rounded-large z-10',
+                isActive
+                  ? `${m.activeClass} ${m.activeBg} ${m.shadow}`
+                  : 'text-default-500 hover:text-default-600 hover:bg-default-100/70'
               )}
             >
-              {isActive && (
-                <motion.div
-                  layoutId="outbound-mode-pill"
-                  className={clsx(
-                    "absolute inset-0 rounded-large -z-10",
-                    m.activeBg,
-                    m.shadow
-                  )}
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
               <span className="flex items-center gap-1.5">
                 <m.icon className="text-base" />
                 {m.label}

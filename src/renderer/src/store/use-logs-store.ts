@@ -39,6 +39,7 @@ const handleLog = (_e: unknown, log: ControllerLog) => {
 }
 
 let currentLogsCleanup: (() => void) | null = null
+let logsListenerRefCount = 0
 
 export const useLogsStore = create<LogsState>((set) => ({
   logs: [],
@@ -73,3 +74,21 @@ export const useLogsStore = create<LogsState>((set) => ({
     currentLogsCleanup = null
   }
 }))
+
+export function retainLogsListeners(): void {
+  logsListenerRefCount += 1
+  if (logsListenerRefCount === 1) {
+    useLogsStore.getState().initializeListeners()
+  }
+}
+
+export function releaseLogsListeners(): void {
+  if (logsListenerRefCount === 0) {
+    return
+  }
+
+  logsListenerRefCount -= 1
+  if (logsListenerRefCount === 0) {
+    useLogsStore.getState().cleanupListeners()
+  }
+}

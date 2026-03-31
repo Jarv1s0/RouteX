@@ -13,6 +13,7 @@ interface GroupsState {
 }
 
 let updateTimer: NodeJS.Timeout | null = null
+let groupsListenerRefCount = 0
 
 function isExpectedMihomoUnavailableError(error: unknown): boolean {
   const message = `${error ?? ''}`
@@ -81,3 +82,21 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
     }
   }
 }))
+
+export function retainGroupsListeners(): void {
+  groupsListenerRefCount += 1
+  if (groupsListenerRefCount === 1) {
+    useGroupsStore.getState().initializeListeners()
+  }
+}
+
+export function releaseGroupsListeners(): void {
+  if (groupsListenerRefCount === 0) {
+    return
+  }
+
+  groupsListenerRefCount -= 1
+  if (groupsListenerRefCount === 0) {
+    useGroupsStore.getState().cleanupListeners()
+  }
+}

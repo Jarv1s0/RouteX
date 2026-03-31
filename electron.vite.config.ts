@@ -51,11 +51,13 @@ export default defineConfig({
               // React runtime 与主题基础能力
               'vendor-react': ['react', 'react-dom', 'next-themes'],
               // UI 组件库（最大的单一依赖）
-              'vendor-ui': ['@heroui/react', 'framer-motion'],
+              'vendor-ui': ['@heroui/react'],
+              // 页面转场与少数高级动效组件
+              'vendor-motion': ['framer-motion'],
               // 图表库
               'vendor-chart': ['echarts', 'echarts-for-react'],
               // 编辑器（仅 override 页面使用）
-              'vendor-editor': ['react-monaco-editor', 'monaco-yaml'],
+              'vendor-editor': ['monaco-editor', 'react-monaco-editor', 'monaco-yaml'],
             // 拓扑图（仅 map 页面使用）
             'vendor-flow': ['@xyflow/react', 'dagre'],
             // 路由和状态管理

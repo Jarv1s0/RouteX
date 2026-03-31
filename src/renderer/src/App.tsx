@@ -1,14 +1,11 @@
 import { useTheme } from 'next-themes'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
-import { AnimatePresence } from 'framer-motion'
 import PageTransition from '@renderer/components/base/page-transition'
 import routes from '@renderer/routes'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
-import { useGroupsStore } from '@renderer/store/use-groups-store'
-import { useLogsStore } from '@renderer/store/use-logs-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
@@ -77,9 +74,7 @@ const App: React.FC = () => {
   const location = useLocation()
   const page = useRoutes(routes)
   const connectionsListenerActiveRef = useRef(false)
-  const logsListenerActiveRef = useRef(false)
   const trafficListenerActiveRef = useRef(false)
-  const groupsListenerActiveRef = useRef(false)
   const lastUpdateCheckAtRef = useRef(0)
   const [latest, setLatest] = useState<AppVersion | undefined>()
 
@@ -221,17 +216,6 @@ const App: React.FC = () => {
   useEffect(() => {
     window.addEventListener('mouseup', onResizeEnd)
 
-    // 代理组数据被侧边栏和多个全局组件长期依赖，因此保留全局监听。
-    if (!groupsListenerActiveRef.current) {
-      useGroupsStore.getState().initializeListeners()
-      groupsListenerActiveRef.current = true
-    }
-    // 日志页通常需要跨页面保留会话内日志，因此维持全局监听。
-    if (!logsListenerActiveRef.current) {
-      useLogsStore.getState().initializeListeners()
-      logsListenerActiveRef.current = true
-    }
-
     return (): void => {
       window.removeEventListener('mouseup', onResizeEnd)
       if (resizeFrameRef.current !== null) {
@@ -242,17 +226,9 @@ const App: React.FC = () => {
         useConnectionsStore.getState().cleanupListeners()
         connectionsListenerActiveRef.current = false
       }
-      if (logsListenerActiveRef.current) {
-        useLogsStore.getState().cleanupListeners()
-        logsListenerActiveRef.current = false
-      }
       if (trafficListenerActiveRef.current) {
         useTrafficStore.getState().cleanupListeners()
         trafficListenerActiveRef.current = false
-      }
-      if (groupsListenerActiveRef.current) {
-        useGroupsStore.getState().cleanupListeners()
-        groupsListenerActiveRef.current = false
       }
     }
   }, [onResizeEnd])
@@ -361,11 +337,9 @@ const App: React.FC = () => {
           className="main grow h-full overflow-y-auto"
         >
           <ErrorBoundary>
-            <AnimatePresence mode="wait">
-              <React.Suspense fallback={getFallback(location.pathname)}>
-                <PageTransition key={location.pathname}>{page}</PageTransition>
-              </React.Suspense>
-            </AnimatePresence>
+            <React.Suspense fallback={getFallback(location.pathname)}>
+              <PageTransition key={location.pathname}>{page}</PageTransition>
+            </React.Suspense>
           </ErrorBoundary>
         </div>
       </div>
