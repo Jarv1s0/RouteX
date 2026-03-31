@@ -36,6 +36,7 @@
 - 清理流量统计与网络 IPC 的类型和副作用问题，恢复 `typecheck` 与 `build` 验证链路。
 - 升级 `yaml` 并锁定 `brace-expansion`、`picomatch` 安全版本，清理 Dependabot 依赖告警。
 - 收紧 preload 暴露面并对白名单通道执行 `send/on/invoke` 访问校验，阻断未授权 IPC 通道调用。
+- 修复 Windows 下切页后最小化并从托盘恢复时误触发整窗 reload，导致全屏白屏和主题样式闪动的问题。
 
 ## v2.2.3
 

@@ -35,6 +35,7 @@ import { registerTaskbarIconHandler } from './resolve/taskbarIcon'
 import { createShutdownController } from './bootstrap/shutdown'
 import { createDeepLinkHandler } from './resolve/deepLink'
 import { createMainWindowController, registerMainWindowLifecycleHandlers } from './resolve/mainWindow'
+import { syncLatestConnectionsSnapshotToWindow } from './core/mihomoApi'
 export let mainWindow: BrowserWindow | null = null
 let isCreatingWindow = false
 let windowShown = false
@@ -95,8 +96,7 @@ app.on('open-url', async (_event, url) => {
 
 const {
   reloadMainWindowRenderer,
-  ensureMainWindowRendererReady,
-  focusMainWindow,
+  showPendingWindowIfNeeded,
   showDialog,
   showQuitConfirmDialog,
   showWindow
@@ -105,7 +105,8 @@ const {
   getMainWindowDidFinishLoad: () => mainWindowDidFinishLoad,
   setMainWindowDidFinishLoad: (value) => {
     mainWindowDidFinishLoad = value
-  }
+  },
+  syncLatestConnectionsSnapshot: syncLatestConnectionsSnapshotToWindow
 })
 
 const handleDeepLink = createDeepLinkHandler({
@@ -244,6 +245,8 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       setMainWindowDidFinishLoad: (value) => {
         mainWindowDidFinishLoad = value
       },
+      showPendingWindowIfNeeded,
+      syncLatestConnectionsSnapshot: syncLatestConnectionsSnapshotToWindow,
       triggerSysProxy,
       stopCore
     })
@@ -275,16 +278,12 @@ export async function showMainWindow(): Promise<void> {
   }
   if (mainWindow) {
     windowShown = true
-    mainWindow.show()
-    focusMainWindow()
-    ensureMainWindowRendererReady()
+    showWindow()
   } else {
     await createWindow()
     if (mainWindow !== null) {
       windowShown = true
-      ;(mainWindow as BrowserWindow).show()
-      focusMainWindow()
-      ensureMainWindowRendererReady()
+      showWindow()
     }
   }
 }

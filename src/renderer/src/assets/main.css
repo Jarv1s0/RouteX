@@ -12,6 +12,15 @@
 html {
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 15px;
+  width: 100%;
+  height: 100%;
+}
+
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
 }
 
 code,

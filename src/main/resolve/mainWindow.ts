@@ -9,6 +9,7 @@ interface MainWindowControllerOptions {
   getMainWindow: () => BrowserWindow | null
   getMainWindowDidFinishLoad: () => boolean
   setMainWindowDidFinishLoad: (value: boolean) => void
+  syncLatestConnectionsSnapshot: () => void
 }
 
 interface RegisterMainWindowLifecycleHandlersOptions {
@@ -24,6 +25,8 @@ interface RegisterMainWindowLifecycleHandlersOptions {
   resetMainWindow: () => void
   reloadMainWindowRenderer: () => void
   setMainWindowDidFinishLoad: (value: boolean) => void
+  showPendingWindowIfNeeded: () => void
+  syncLatestConnectionsSnapshot: () => void
   triggerSysProxy: typeof import('../sys/sysproxy').triggerSysProxy
   stopCore: typeof import('../core/manager').stopCore
 }
@@ -61,6 +64,8 @@ function logRendererConsoleMessage(args: unknown[]): void {
 }
 
 export function createMainWindowController(options: MainWindowControllerOptions) {
+  let pendingShowAfterLoad = false
+
   function reloadMainWindowRenderer(): void {
     const mainWindow = getActiveMainWindow(options.getMainWindow)
     if (!mainWindow) return
@@ -83,6 +88,29 @@ export function createMainWindowController(options: MainWindowControllerOptions)
     }
   }
 
+  function revealMainWindow(): void {
+    const mainWindow = getActiveMainWindow(options.getMainWindow)
+    if (!mainWindow) return
+
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore()
+    } else if (!mainWindow.isVisible()) {
+      mainWindow.show()
+    }
+
+    focusMainWindow()
+    options.syncLatestConnectionsSnapshot()
+  }
+
+  function showPendingWindowIfNeeded(): void {
+    if (!pendingShowAfterLoad) {
+      return
+    }
+
+    pendingShowAfterLoad = false
+    revealMainWindow()
+  }
+
   function focusMainWindow(): void {
     const mainWindow = getActiveMainWindow(options.getMainWindow)
     if (!mainWindow) return
@@ -99,16 +127,17 @@ export function createMainWindowController(options: MainWindowControllerOptions)
       return 500
     }
 
-    if (mainWindow.isMinimized()) {
-      mainWindow.restore()
-    } else if (!mainWindow.isVisible()) {
-      mainWindow.show()
+    const rendererReady =
+      options.getMainWindowDidFinishLoad() && !mainWindow.webContents.isLoadingMainFrame()
+
+    if (!rendererReady || mainWindow.webContents.isCrashed()) {
+      pendingShowAfterLoad = true
+      ensureMainWindowRendererReady()
+      return 500
     }
 
-    focusMainWindow()
-    ensureMainWindowRendererReady()
-
-    return mainWindow.isMinimized() ? 500 : 100
+    revealMainWindow()
+    return 100
   }
 
   function showDialog(type: WindowDialogType, title: string, content: string): void {
@@ -152,6 +181,7 @@ export function createMainWindowController(options: MainWindowControllerOptions)
     ensureMainWindowRendererReady,
     focusMainWindow,
     reloadMainWindowRenderer,
+    showPendingWindowIfNeeded,
     showDialog,
     showQuitConfirmDialog,
     showWindow
@@ -172,6 +202,8 @@ export function registerMainWindowLifecycleHandlers(
     resetMainWindow,
     reloadMainWindowRenderer,
     setMainWindowDidFinishLoad,
+    showPendingWindowIfNeeded,
+    syncLatestConnectionsSnapshot,
     triggerSysProxy,
     stopCore
   } = options
@@ -189,17 +221,36 @@ export function registerMainWindowLifecycleHandlers(
   })
 
   mainWindow.webContents.on('did-start-loading', () => {
-    setMainWindowDidFinishLoad(false)
+    // HashRouter 的页签切换不应被当作主页面重载，否则托盘恢复时会误触发 renderer reload。
+    if (mainWindow.webContents.isLoadingMainFrame()) {
+      setMainWindowDidFinishLoad(false)
+    }
   })
 
   mainWindow.webContents.on('did-finish-load', () => {
     setMainWindowDidFinishLoad(true)
     // Re-apply custom theme after page reload — insertCSS is cleared on navigation
-    getAppConfig().then(({ customTheme }) => {
-      if (customTheme) {
-        import('./theme').then(({ applyTheme }) => applyTheme(customTheme)).catch(() => {})
-      }
-    }).catch(() => {})
+    getAppConfig()
+      .then(async ({ customTheme }) => {
+        if (customTheme) {
+          await import('./theme').then(({ applyTheme }) => applyTheme(customTheme))
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        syncLatestConnectionsSnapshot()
+        showPendingWindowIfNeeded()
+      })
+  })
+
+  mainWindow.webContents.on('did-stop-loading', () => {
+    if (!mainWindow.webContents.isLoadingMainFrame()) {
+      setMainWindowDidFinishLoad(true)
+    }
+  })
+
+  mainWindow.webContents.on('did-navigate-in-page', () => {
+    setMainWindowDidFinishLoad(true)
   })
 
   mainWindow.webContents.on('did-fail-load', () => {

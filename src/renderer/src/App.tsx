@@ -154,13 +154,19 @@ const App: React.FC = () => {
   }, [])
 
   useEffect(() => {
+    if (!appConfig) {
+      return
+    }
     void setNativeThemeSafely(appTheme)
     setTheme(appTheme)
-  }, [appTheme, systemTheme])
+  }, [appConfig, appTheme, setTheme, systemTheme])
 
   useEffect(() => {
+    if (!appConfig) {
+      return
+    }
     void applyThemeSafely(customTheme || 'default.css')
-  }, [customTheme])
+  }, [appConfig, customTheme])
 
   useEffect(() => {
     // Sync Taskbar Icon

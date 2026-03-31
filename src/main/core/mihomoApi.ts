@@ -37,7 +37,16 @@ function flushConnectionsSnapshot(): void {
   if (!latestConnectionsSnapshot) return
   lastConnectionsBroadcastAt = Date.now()
   mainWindow?.webContents.send(IPC_ON_CHANNELS.mihomoConnections, latestConnectionsSnapshot)
-  latestConnectionsSnapshot = null
+}
+
+export function syncLatestConnectionsSnapshotToWindow(): void {
+  if (!latestConnectionsSnapshot) return
+  if (connectionsBroadcastTimer) {
+    clearTimeout(connectionsBroadcastTimer)
+    connectionsBroadcastTimer = null
+  }
+  lastConnectionsBroadcastAt = Date.now()
+  mainWindow?.webContents.send(IPC_ON_CHANNELS.mihomoConnections, latestConnectionsSnapshot)
 }
 
 function scheduleConnectionsBroadcast(): void {
