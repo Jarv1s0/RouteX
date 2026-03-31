@@ -2,6 +2,7 @@ import React, { ReactNode, Suspense } from 'react'
 import { HashRouter } from 'react-router-dom'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { HeroUIProvider } from '@heroui/react'
+import { SWRConfig } from 'swr'
 import ErrorBoundary from './base/error-boundary'
 
 import { AppConfigProvider } from '@renderer/hooks/use-app-config'
@@ -16,26 +17,28 @@ interface ProvidersProps {
 
 const Providers: React.FC<ProvidersProps> = ({ children }) => {
   return (
-    <HeroUIProvider>
-      <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
-        <Suspense fallback={null}>
-          <AppToaster />
-        </Suspense>
-        <ErrorBoundary>
-          <HashRouter>
+    <SWRConfig value={{ revalidateOnFocus: false }}>
+      <HeroUIProvider>
+        <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
+          <Suspense fallback={null}>
+            <AppToaster />
+          </Suspense>
+          <ErrorBoundary>
+            <HashRouter>
 
-            <AppConfigProvider>
-              <ControledMihomoConfigProvider>
-                <ProfileConfigProvider>
-                  {children}
-                </ProfileConfigProvider>
-              </ControledMihomoConfigProvider>
-            </AppConfigProvider>
+              <AppConfigProvider>
+                <ControledMihomoConfigProvider>
+                  <ProfileConfigProvider>
+                    {children}
+                  </ProfileConfigProvider>
+                </ControledMihomoConfigProvider>
+              </AppConfigProvider>
 
-          </HashRouter>
-        </ErrorBoundary>
-      </NextThemesProvider>
-    </HeroUIProvider>
+            </HashRouter>
+          </ErrorBoundary>
+        </NextThemesProvider>
+      </HeroUIProvider>
+    </SWRConfig>
   )
 }
 
