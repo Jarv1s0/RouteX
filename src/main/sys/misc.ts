@@ -13,6 +13,11 @@ import {
   resourcesFilesDir,
   taskDir
 } from '../utils/dirs'
+import {
+  ROUTEX_RUN_BINARY,
+  ROUTEX_RUN_TASK_NAME,
+  ROUTEX_RUN_XML
+} from '../utils/routex-run'
 import { copyFileSync, writeFileSync } from 'fs'
 
 const execPromise = promisify(exec)
@@ -112,7 +117,7 @@ const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"${path.join(taskDir(), `sparkle-run.exe`)}"</Command>
+      <Command>"${path.join(taskDir(), ROUTEX_RUN_BINARY)}"</Command>
       <Arguments>"${exePath()}"</Arguments>
     </Exec>
   </Actions>
@@ -120,32 +125,32 @@ const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
 `
 
 export function createElevateTaskSync(): void {
-  const taskFilePath = path.join(taskDir(), `sparkle-run.xml`)
+  const taskFilePath = path.join(taskDir(), ROUTEX_RUN_XML)
   writeFileSync(taskFilePath, Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le'))
   copyFileSync(
-    path.join(resourcesFilesDir(), 'sparkle-run.exe'),
-    path.join(taskDir(), 'sparkle-run.exe')
+    path.join(resourcesFilesDir(), ROUTEX_RUN_BINARY),
+    path.join(taskDir(), ROUTEX_RUN_BINARY)
   )
   execSync(
-    `%SystemRoot%\\System32\\schtasks.exe /create /tn "sparkle-run" /xml "${taskFilePath}" /f`
+    `%SystemRoot%\\System32\\schtasks.exe /create /tn "${ROUTEX_RUN_TASK_NAME}" /xml "${taskFilePath}" /f`
   )
 }
 
 export async function createElevateTask(): Promise<void> {
-  const taskFilePath = path.join(taskDir(), `sparkle-run.xml`)
+  const taskFilePath = path.join(taskDir(), ROUTEX_RUN_XML)
   await writeFile(taskFilePath, Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le'))
   await copyFile(
-    path.join(resourcesFilesDir(), 'sparkle-run.exe'),
-    path.join(taskDir(), 'sparkle-run.exe')
+    path.join(resourcesFilesDir(), ROUTEX_RUN_BINARY),
+    path.join(taskDir(), ROUTEX_RUN_BINARY)
   )
   await execPromise(
-    `%SystemRoot%\\System32\\schtasks.exe /create /tn "sparkle-run" /xml "${taskFilePath}" /f`
+    `%SystemRoot%\\System32\\schtasks.exe /create /tn "${ROUTEX_RUN_TASK_NAME}" /xml "${taskFilePath}" /f`
   )
 }
 
 export async function deleteElevateTask(): Promise<void> {
   try {
-    await execPromise(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "sparkle-run" /f`)
+    await execPromise(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "${ROUTEX_RUN_TASK_NAME}" /f`)
   } catch {
     // ignore
   }
@@ -153,8 +158,7 @@ export async function deleteElevateTask(): Promise<void> {
 
 export async function checkElevateTask(): Promise<boolean> {
   try {
-    // Use execPromise instead of execSync for non-blocking check
-    await execPromise(`%SystemRoot%\\System32\\schtasks.exe /query /tn "sparkle-run"`)
+    await execPromise(`%SystemRoot%\\System32\\schtasks.exe /query /tn "${ROUTEX_RUN_TASK_NAME}"`)
     return true
   } catch {
     return false

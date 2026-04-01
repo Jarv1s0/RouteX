@@ -5,6 +5,7 @@ import { execFile } from 'child_process'
 import { existsSync } from 'fs'
 import { promisify } from 'util'
 import path from 'path'
+import { ROUTEX_RUN_BINARY } from '../utils/routex-run'
 
 const appName = 'routex'
 
@@ -43,7 +44,7 @@ const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"${path.join(taskDir(), `sparkle-run.exe`)}"</Command>
+      <Command>"${path.join(taskDir(), ROUTEX_RUN_BINARY)}"</Command>
       <Arguments>"${exePath()}"</Arguments>
     </Exec>
   </Actions>
