@@ -122,7 +122,8 @@
       "picomatch": "^4.0.4",
       "rollup": ">=4.59.0",
       "minimatch": ">=10.2.4",
-      "path-to-regexp": ">=8.4.0"
+      "path-to-regexp": ">=8.4.0",
+      "@xmldom/xmldom": "0.8.12"
     },
     "auditConfig": {
       "ignoreCves": [

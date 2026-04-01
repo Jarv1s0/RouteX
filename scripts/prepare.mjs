@@ -24,6 +24,7 @@ const ROUTEX_RUN_ASSETS = {
   ia32: 'routex-run-windows-386.exe',
   arm64: 'routex-run-windows-arm64.exe'
 }
+const TRAFFIC_MONITOR_REPO = 'zhongyang219/TrafficMonitor'
 let arch = process.arch
 const platform = process.platform
 if (process.argv.slice(2).length !== 0) {
@@ -168,18 +169,66 @@ function findExecutableEntry(entries, name) {
 }
 
 async function fetchReleaseAssets(tag) {
-  const response = await fetch(
+  return fetchGitHubReleaseAssets(
     `https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/${encodeURIComponent(tag)}`,
-    {
-      method: 'GET',
-      headers: createGitHubJsonHeaders()
-    }
+    'mihomo release assets'
   )
+}
+
+async function fetchGitHubReleaseAssets(url, label) {
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: createGitHubJsonHeaders()
+  })
   if (!response.ok) {
-    throw new Error(`failed to fetch mihomo release assets: ${response.status}`)
+    throw new Error(`failed to fetch ${label}: ${response.status}`)
   }
   const json = await response.json()
   return json.assets || []
+}
+
+async function fetchLatestGitHubReleaseAssets(repo) {
+  return fetchGitHubReleaseAssets(
+    `https://api.github.com/repos/${repo}/releases/latest`,
+    `${repo} latest release assets`
+  )
+}
+
+function scoreTrafficMonitorAssetName(name) {
+  let value = 0
+  if (name.includes('lite')) value += 10
+  if (name.includes('portable')) value += 1
+  return value
+}
+
+function pickTrafficMonitorAsset(assets, arch) {
+  const archPatterns = {
+    x64: [/(^|[-_. ])x64($|[-_. ])/, /amd64/],
+    ia32: [/(^|[-_. ])x86($|[-_. ])/, /(^|[-_. ])386($|[-_. ])/],
+    arm64: [/arm64ec/, /(^|[-_. ])arm64($|[-_. ])/]
+  }
+
+  const patterns = archPatterns[arch]
+  if (!patterns) {
+    throw new Error(`unsupported monitor arch "${arch}"`)
+  }
+
+  const candidates = assets
+    .map((asset) => ({
+      asset,
+      normalizedName: asset.name.toLowerCase()
+    }))
+    .filter(({ normalizedName }) => normalizedName.endsWith('.zip'))
+    .filter(({ normalizedName }) => normalizedName.includes('trafficmonitor'))
+    .filter(({ normalizedName }) => patterns.some((pattern) => pattern.test(normalizedName)))
+    .sort((a, b) => scoreTrafficMonitorAssetName(a.normalizedName) - scoreTrafficMonitorAssetName(b.normalizedName))
+    .map(({ asset }) => asset)
+
+  if (candidates.length === 0) {
+    throw new Error(`No matched TrafficMonitor asset found for ${arch}`)
+  }
+
+  return candidates[0]
 }
 
 function buildFallbackReleaseAsset(version, isAlpha, prefixes) {
@@ -432,15 +481,12 @@ const resolveRunner = () => {
 }
 
 const resolveMonitor = async () => {
+  const assets = await fetchLatestGitHubReleaseAssets(TRAFFIC_MONITOR_REPO)
+  const asset = pickTrafficMonitorAsset(assets, arch)
   const tempDir = path.join(TEMP_DIR, 'TrafficMonitor')
   const tempZip = path.join(tempDir, `${arch}.zip`)
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true })
-  }
-  await downloadFile(
-    `https://github.com/xishang0128/sparkle-run/releases/download/monitor/${arch}.zip`,
-    tempZip
-  )
+  fs.mkdirSync(tempDir, { recursive: true })
+  await downloadFile(asset.browser_download_url, tempZip)
   const zip = new AdmZip(tempZip)
   const resDir = path.join(cwd, 'extra', 'files')
   const targetPath = path.join(resDir, 'TrafficMonitor')
