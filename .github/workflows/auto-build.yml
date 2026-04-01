@@ -2,9 +2,8 @@ name: Auto Build
 
 on:
   push:
-    branches: 
-      - main
-      - master
+    branches:
+      - develop
   workflow_dispatch:
 
 concurrency:
@@ -139,3 +138,4 @@ jobs:
           elif [ "${{ matrix.platform }}" == "macos" ]; then
              gh release upload autobuild dist/*.pkg dist/*.dmg --clobber || true
           fi
+
