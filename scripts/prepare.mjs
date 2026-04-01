@@ -65,6 +65,16 @@ const GITHUB_JSON_HEADERS = {
   'User-Agent': 'RouteX'
 }
 
+function createGitHubJsonHeaders() {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_API_TOKEN
+  return token
+    ? {
+        ...GITHUB_JSON_HEADERS,
+        Authorization: `Bearer ${token}`
+      }
+    : GITHUB_JSON_HEADERS
+}
+
 function getAssetPrefixCandidates(platform, arch) {
   const key = `${platform}-${arch}`
   switch (key) {
@@ -109,7 +119,12 @@ function matchAssetName(assetName, version, isAlpha, ext, prefixes) {
     if (!assetName.startsWith(prefix)) return false
     const middle = assetName.slice(prefix.length, assetName.length - suffix.length)
     if (isAlpha) {
-      return middle === '-alpha' || /^-alpha-go\d+$/.test(middle) || /^-alpha-[\w.-]+$/.test(middle)
+      return (
+        middle === '' ||
+        middle === '-alpha' ||
+        /^-alpha-go\d+$/.test(middle) ||
+        /^-alpha-[\w.-]+$/.test(middle)
+      )
     }
     return middle === '' || /^-go\d+$/.test(middle)
   })
@@ -157,7 +172,7 @@ async function fetchReleaseAssets(tag) {
     `https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/${encodeURIComponent(tag)}`,
     {
       method: 'GET',
-      headers: GITHUB_JSON_HEADERS
+      headers: createGitHubJsonHeaders()
     }
   )
   if (!response.ok) {
@@ -167,12 +182,31 @@ async function fetchReleaseAssets(tag) {
   return json.assets || []
 }
 
+function buildFallbackReleaseAsset(version, isAlpha, prefixes) {
+  const prefix = prefixes[0]
+  const ext = platform === 'win32' ? '.zip' : '.gz'
+  const fileName = `${prefix}-${version}${ext}`
+  const tag = isAlpha ? 'Prerelease-Alpha' : version
+
+  return {
+    name: fileName,
+    browser_download_url: `https://github.com/MetaCubeX/mihomo/releases/download/${tag}/${fileName}`
+  }
+}
+
 async function resolveReleaseAsset(version, isAlpha) {
   const ext = platform === 'win32' ? '.zip' : '.gz'
   const prefixes = getAssetPrefixCandidates(platform, arch)
   const tag = isAlpha ? 'Prerelease-Alpha' : version
-  const assets = await fetchReleaseAssets(tag)
-  return pickBestReleaseAsset(assets, version, isAlpha, ext, prefixes)
+  try {
+    const assets = await fetchReleaseAssets(tag)
+    return pickBestReleaseAsset(assets, version, isAlpha, ext, prefixes)
+  } catch (error) {
+    console.warn(
+      `[WARN]: failed to resolve mihomo asset from release API, falling back to legacy naming: ${error.message}`
+    )
+    return buildFallbackReleaseAsset(version, isAlpha, prefixes)
+  }
 }
 
 // Fetch the latest release version from the version.txt file
