@@ -22,7 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.1
         with:
-          ref: develop
           fetch-depth: 0
 
       - uses: actions/setup-node@v6.1.0
@@ -83,8 +82,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6.0.1
-        with:
-          ref: develop
 
       - name: Setup Node.js
         uses: actions/setup-node@v6.1.0
