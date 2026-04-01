@@ -14,7 +14,6 @@ type SiderCardStatusKey =
   | 'profileCardStatus'
   | 'proxyCardStatus'
   | 'ruleCardStatus'
-  | 'overrideCardStatus'
   | 'connectionCardStatus'
   | 'mihomoCoreCardStatus'
   | 'dnsCardStatus'
@@ -31,7 +30,6 @@ const titleMap: Record<SiderCardStatusKey, string> = {
   profileCardStatus: '订阅管理',
   proxyCardStatus: '代理组',
   ruleCardStatus: '规则',
-  overrideCardStatus: '覆写',
   connectionCardStatus: '连接',
   mihomoCoreCardStatus: '内核',
   dnsCardStatus: 'DNS',
@@ -52,7 +50,6 @@ const SiderConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     profileCardStatus = 'col-span-2',
     proxyCardStatus = 'col-span-2',
     ruleCardStatus = 'col-span-1',
-    overrideCardStatus = 'col-span-1',
     connectionCardStatus = 'col-span-2',
     mihomoCoreCardStatus = 'col-span-2',
     dnsCardStatus = 'col-span-1',
@@ -70,7 +67,6 @@ const SiderConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     profileCardStatus,
     proxyCardStatus,
     ruleCardStatus,
-    overrideCardStatus,
     connectionCardStatus,
     mihomoCoreCardStatus,
     dnsCardStatus,

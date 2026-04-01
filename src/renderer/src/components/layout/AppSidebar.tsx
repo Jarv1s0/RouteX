@@ -21,7 +21,6 @@ import ProxyCard from '@renderer/components/sider/proxy-card'
 import RuleCard from '@renderer/components/sider/rule-card'
 import DNSCard from '@renderer/components/sider/dns-card'
 import SniffCard from '@renderer/components/sider/sniff-card'
-import OverrideCard from '@renderer/components/sider/override-card'
 import ConnCard from '@renderer/components/sider/conn-card'
 import LogCard from '@renderer/components/sider/log-card'
 import MihomoCoreCard from '@renderer/components/sider/mihomo-core-card'
@@ -45,7 +44,6 @@ const defaultSiderOrder = [
   'profile',
   'mihomo',
   'rule',
-  'override',
   'log',
   'substore',
   'stats',
@@ -64,7 +62,6 @@ const navigateMap = {
   sniff: 'sniffer',
   log: 'logs',
   rule: 'rules',
-  override: 'override',
   substore: 'substore',
   stats: 'stats',
   tools: 'tools',
@@ -82,7 +79,6 @@ const componentMap = {
   sniff: SniffCard,
   log: LogCard,
   rule: RuleCard,
-  override: OverrideCard,
   substore: SubStoreCard,
   stats: StatsCard,
   tools: ToolsCard,
@@ -114,7 +110,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
 
     const siderOrderArray = siderOrder ?? defaultSiderOrder
     const mergedSiderOrder = useMemo(() => {
-      let result = siderOrderArray
+      let result = siderOrderArray.filter((key) => key !== 'override')
       if (!result.includes('stats')) {
         result = [...result, 'stats']
       }
