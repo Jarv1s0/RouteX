@@ -1,22 +1,18 @@
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
+import { Button, Tooltip } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import {
   mihomoVersion,
   restartCore,
   checkMihomoLatestVersion
 } from '@renderer/utils/mihomo-ipc'
 import React, { useEffect, useState } from 'react'
-import { LuRotateCw } from 'react-icons/lu'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
+import { LuRotateCw, LuCpu } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import PubSub from 'pubsub-js'
 import useSWR from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { LuCpu } from 'react-icons/lu'
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   iconOnly?: boolean
@@ -30,7 +26,7 @@ async function showToastError(message: string): Promise<void> {
 const MihomoCoreCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { mihomoCoreCardStatus = 'col-span-2', disableAnimation = false, core = 'mihomo' } = appConfig || {}
+  const { core = 'mihomo' } = appConfig || {}
   const { data: version, mutate } = useSWR('mihomoVersion', mihomoVersion, {
     errorRetryInterval: 200,
     errorRetryCount: 10
@@ -39,22 +35,11 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/mihomo')
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'mihomo'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
+  
   const [mem, setMem] = useState(0)
   const [restarting, setRestarting] = useState(false)
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
 
-  // 检查最新版本
   useEffect(() => {
     const checkLatest = async () => {
       try {
@@ -62,13 +47,12 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
         const latest = await checkMihomoLatestVersion(isAlpha)
         setLatestVersion(latest)
       } catch {
-        // 忽略错误
+        // ignore
       }
     }
-    checkLatest()
+    void checkLatest()
   }, [core])
 
-  // 判断是否有新版本
   const hasNewVersion = (): boolean => {
     if (!version?.version || !latestVersion) return false
     if (core === 'mihomo-alpha') {
@@ -80,15 +64,10 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   }
 
   useEffect(() => {
-    const token = PubSub.subscribe('mihomo-core-changed', () => {
-      mutate()
-    })
-    const handleMemory = (_e: unknown, info: ControllerMemory): void => {
-      setMem(info.inuse)
-    }
-    const handleCoreStarted = (): void => {
-      mutate()
-    }
+    const token = PubSub.subscribe('mihomo-core-changed', () => mutate())
+    const handleMemory = (_e: unknown, info: ControllerMemory): void => setMem(info.inuse)
+    const handleCoreStarted = (): void => { void mutate() }
+    
     const offMemory = onIpc(ON.mihomoMemory, handleMemory)
     const offCoreStarted = onIpc(ON.coreStarted, handleCoreStarted)
     return (): void => {
@@ -100,18 +79,16 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
 
   if (iconOnly) {
     return (
-      <div className={`${mihomoCoreCardStatus} flex justify-center`}>
+      <div className={`flex justify-center`}>
         <Tooltip content="内核设置" placement="right">
           <Button
             size="sm"
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant="flat"
-            onPress={() => {
-              navigate('/mihomo')
-            }}
+            onPress={() => navigate('/mihomo')}
           >
-            <LuCpu className="text-[18px]" />
+            <LuCpu className="text-[16px]" />
           </Button>
         </Tooltip>
       </div>
@@ -119,113 +96,57 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   }
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${mihomoCoreCardStatus} mihomo-core-card`}
+    <div 
+      className={`mihomo-core-card flex flex-col gap-1.5 p-2 px-3 rounded-xl cursor-pointer transition-all group ${
+        match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+      }`}
+      onClick={() => navigate('/mihomo')}
     >
-        {mihomoCoreCardStatus === 'col-span-2' ? (
-          <Card
-            fullWidth
-            ref={setNodeRef}
-            {...attributes}
-            {...listeners}
-            className={`
-              ${CARD_STYLES.BASE}
-              ${
-                match
-                  ? CARD_STYLES.ACTIVE
-                  : CARD_STYLES.INACTIVE
+      <div className="flex items-center justify-between h-7">
+        <div className="flex items-center gap-1.5 flex-1">
+          <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+            <LuCpu className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
+          </span>
+          <h3 className={`text-sm font-semibold transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}>
+            内核设置
+          </h3>
+        </div>
+        <div className="flex shrink-0 items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          <Button
+            isIconOnly
+            size="sm"
+            className="w-6 h-6 min-w-0"
+            variant="light"
+            disabled={restarting}
+            onPress={async () => {
+              try {
+                setRestarting(true)
+                await restartCore()
+                await new Promise((resolve) => setTimeout(resolve, 2000))
+                setRestarting(false)
+              } catch (e) {
+                await showToastError(String(e))
+              } finally {
+                mutate()
               }
-              ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-              cursor-pointer
-            `}
+            }}
           >
-            <CardBody>
-            <div
-              className="flex justify-between h-[32px]"
-            >
-              <h3
-                className={`text-md font-bold leading-[32px] ${match ? 'text-primary-foreground' : 'text-foreground'} `}
-              >
-                {version?.version ?? '-'}
-                {hasNewVersion() && (
-                  <Tooltip content={`新版本 ${latestVersion}`} placement="top">
-                    <span className={`inline-block ml-1.5 w-2 h-2 rounded-full animate-pulse align-middle ${match ? 'bg-primary-foreground' : 'bg-success'}`} />
-                  </Tooltip>
-                )}
-              </h3>
-
-              <Button
-                isIconOnly
-                size="sm"
-                variant="light"
-                disabled={restarting}
-                color="default"
-                onPress={async () => {
-                  try {
-                    setRestarting(true)
-                    await restartCore()
-                    await new Promise((resolve) => setTimeout(resolve, 2000))
-                    setRestarting(false)
-                  } catch (e) {
-                    await showToastError(String(e))
-                  } finally {
-                    mutate()
-                  }
-                }}
-              >
-                <LuRotateCw
-                  className={`text-[18px] ${match ? 'text-primary-foreground' : 'text-foreground'} ${restarting ? 'animate-spin' : ''}`}
-                />
-              </Button>
-            </div>
-          </CardBody>
-          <CardFooter className="pt-1">
-            <div
-              className={`flex justify-between w-full text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-            >
-              <h4>内核设置</h4>
-              <h4>{calcTraffic(mem)}</h4>
-            </div>
-          </CardFooter>
-          </Card>
-        ) : (
-          <Card
-            fullWidth
-            ref={setNodeRef}
-            {...attributes}
-            {...listeners}
-            className={`
-              ${CARD_STYLES.BASE}
-              ${
-                match
-                  ? CARD_STYLES.ACTIVE
-                  : CARD_STYLES.INACTIVE
-              }
-              ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-              cursor-pointer
-            `}
-          >
-            <CardBody className="overflow-visible flex flex-col justify-between h-full">
-              <div className="flex justify-between">
-                <SiderCardIcon isActive={match}>
-                  <LuCpu className="text-[18px]" />
-                </SiderCardIcon>
-              </div>
-            </CardBody>
-            <CardFooter className="pt-1">
-                <h3 className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}>
-                  内核设置
-                </h3>
-            </CardFooter>
-          </Card>
-        )}
+            <LuRotateCw className={`text-[14px] ${restarting ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
+      <div className="flex justify-between items-center text-[11px] text-foreground/70 dark:text-foreground/65 px-0.5">
+        <div className="flex items-center">
+          {version?.version ?? '-'}
+          {hasNewVersion() && (
+            <Tooltip content={`新版本 ${latestVersion}`} placement="top">
+              <span className={`inline-block ml-1.5 w-2 h-2 rounded-full animate-pulse align-middle bg-success`} />
+            </Tooltip>
+          )}
+        </div>
+        <span>{calcTraffic(mem)}</span>
+      </div>
+    </div>
   )
 }
 

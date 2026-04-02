@@ -1,19 +1,14 @@
-import { Button, Card, CardBody, CardFooter, Chip, Tooltip } from '@heroui/react'
-import TrafficProgress from '@renderer/components/base/traffic-progress'
+import { Button, Tooltip } from '@heroui/react'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { calcTraffic, calcPercent } from '@renderer/utils/calc'
-import { LuFileCode, LuRotateCw, LuRss } from 'react-icons/lu'
+import { calcTraffic } from '@renderer/utils/calc'
+import { LuCloud, LuFileCode, LuRotateCw, LuRss } from 'react-icons/lu'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import 'dayjs/locale/zh-cn'
 import dayjs from 'dayjs'
 import React, { Suspense, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 const ConfigViewer = React.lazy(() => import('./config-viewer'))
 
@@ -27,11 +22,7 @@ interface Props {
 const ProfileCard: React.FC<Props> = (props) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const { iconOnly } = props
-  const {
-    profileCardStatus = 'col-span-2',
-    profileDisplayDate = 'expire',
-    disableAnimation = false
-  } = appConfig || {}
+  const { profileDisplayDate = 'expire' } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/profiles')
@@ -39,17 +30,7 @@ const ProfileCard: React.FC<Props> = (props) => {
   const [showRuntimeConfig, setShowRuntimeConfig] = useState(false)
   const { profileConfig, addProfileItem } = useProfileConfig()
   const { current, items } = profileConfig ?? {}
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'profile'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
+  
   const info = items?.find((item) => item.id === current) ?? {
     id: 'default',
     type: 'local',
@@ -62,16 +43,14 @@ const ProfileCard: React.FC<Props> = (props) => {
 
   if (iconOnly) {
     return (
-      <div className={`${profileCardStatus} flex justify-center`}>
+      <div className={`flex justify-center`}>
         <Tooltip content="订阅管理" placement="right">
           <Button
             size="sm"
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => {
-              navigate('/profiles')
-            }}
+            onPress={() => navigate('/profiles')}
           >
             <LuRss className="text-[17px]" />
           </Button>
@@ -81,202 +60,88 @@ const ProfileCard: React.FC<Props> = (props) => {
   }
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${profileCardStatus} profile-card`}
+    <div 
+      className={`profile-card flex flex-col gap-1.5 p-2 px-3 rounded-xl cursor-pointer transition-all group ${
+        match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+      }`}
+      onClick={() => navigate('/profiles')}
     >
       {showRuntimeConfig && (
         <Suspense fallback={null}>
           <ConfigViewer onClose={() => setShowRuntimeConfig(false)} />
         </Suspense>
       )}
-      {profileCardStatus === 'col-span-2' ? (
-        <Card
-          fullWidth
-          ref={setNodeRef}
-          {...attributes}
-          {...listeners}
-          className={`
-            ${CARD_STYLES.BASE}
-            ${
-              match
-                ? CARD_STYLES.ACTIVE
-                : CARD_STYLES.INACTIVE
-            }
-            ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-            cursor-pointer
-          `}
-          radius="lg"
-          shadow="none"
-        >
-          <CardBody className="pb-1">
-            <div
-              ref={setNodeRef}
-              {...attributes}
-              {...listeners}
-              className="flex justify-between h-[32px]"
-            >
-              <h3
-                title={info?.name}
-                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] ${match ? 'text-primary-foreground' : 'text-foreground'} `}
-              >
-                {info?.name}
-              </h3>
-              <div className="flex">
-                <Button
-                  isIconOnly
-                  size="sm"
-                  title="查看当前运行时配置"
-                  variant="light"
-                  color="default"
-                  onPress={() => {
-                    setShowRuntimeConfig(true)
-                  }}
-                >
-                  <LuFileCode
-                    className={`text-[18px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-                  />
-                </Button>
-                {info.type === 'remote' && (
-                  <Tooltip delay={300} placement="left" content={dayjs(info.updated).fromNow()}>
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      disabled={updating}
-                      variant="light"
-                      color="default"
-                      onPress={async () => {
-                        setUpdating(true)
-                        await addProfileItem(info)
-                        setUpdating(false)
-                      }}
-                    >
-                      <LuRotateCw
-                        className={`text-[18px] ${match ? 'text-primary-foreground' : 'text-foreground'} ${updating ? 'animate-spin' : ''}`}
-                      />
-                    </Button>
-                  </Tooltip>
-                )}
-              </div>
-            </div>
-            {info.type === 'remote' && extra && (
-              <div
-                className={`mt-2 flex justify-between ${match ? 'text-primary-foreground' : 'text-foreground'} `}
-              >
-                <small>{`${calcTraffic(usage)}/${calcTraffic(total)}`}</small>
-                {profileDisplayDate === 'expire' ? (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    className={`h-[20px] p-1 m-0 ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-                    onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'update' })
-                    }}
-                  >
-                    {extra.expire ? dayjs.unix(extra.expire).format('YYYY-MM-DD') : '长期有效'}
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="light"
-                    className={`h-[20px] p-1 m-0 ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-                    onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'expire' })
-                    }}
-                  >
-                    {dayjs(info.updated).fromNow()}
-                  </Button>
-                )}
-              </div>
-            )}
-          </CardBody>
-          <CardFooter className="pt-0 relative z-10 px-3 pb-3">
-            {info.type === 'remote' && !extra && (
-              <div
-                className={`w-full mt-2 flex justify-between ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              >
-                <Chip
-                  size="sm"
-                  variant="bordered"
-                  className={`${match ? 'text-primary-foreground border-primary-foreground' : 'border-primary text-primary'}`}
-                >
-                  远程
-                </Chip>
-                <small>{dayjs(info.updated).fromNow()}</small>
-              </div>
-            )}
-            {info.type === 'local' && (
-              <div
-                className={`mt-2 flex justify-between ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-              >
-                <Chip
-                  size="sm"
-                  variant="bordered"
-                  className={`${match ? 'text-primary-foreground border-primary-foreground' : 'border-primary text-primary'}`}
-                >
-                  本地
-                </Chip>
-              </div>
-            )}
-            {extra && (
-              <TrafficProgress
-                value={calcPercent(extra?.upload, extra?.download, extra?.total)}
-                isActive={match}
-              />
-            )}
-          </CardFooter>
-        </Card>
-      ) : (
-        <Card
-          fullWidth
-          ref={setNodeRef}
-          {...attributes}
-          {...listeners}
-          className={`
-            relative overflow-hidden transition-all duration-300 border
-            ${
-              match
-                ? 'bg-gradient-to-br from-primary/90 to-primary-600/90 border-primary/50 shadow-lg shadow-primary/20'
-                : 'bg-gradient-to-br from-default-100/80 to-default-100/50 hover:from-default-200/60 hover:to-default-100/60 border-default-200/60 hover:border-default-300 backdrop-blur-2xl shadow-md hover:shadow-2xl hover:shadow-black/10 hover:scale-[1.02]'
-            }
-            ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-            cursor-pointer
-          `}
-        >
-          <CardBody className="pb-1 pt-0 px-0 overflow-y-visible">
-            <div className="flex justify-between">
-              <SiderCardIcon isActive={match}>
-                <LuRss className="text-[17px]" />
-              </SiderCardIcon>
+      
+      <div className="flex items-center justify-between h-7">
+        <div className="flex items-center gap-1.5 overflow-hidden flex-1">
+          <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+            <LuCloud className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
+          </span>
+          <h3 className={`text-sm font-semibold truncate transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`} title={info.name}>
+            {info.name}
+          </h3>
+        </div>
+        <div className="flex shrink-0 items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          <Button
+            isIconOnly
+            size="sm"
+            className="w-6 h-6 min-w-0"
+            title="查看当前运行时配置"
+            variant="light"
+            onPress={() => setShowRuntimeConfig(true)}
+          >
+            <LuFileCode className="text-[14px]" />
+          </Button>
+          {info.type === 'remote' && (
+            <Tooltip delay={300} placement="left" content={dayjs(info.updated).fromNow()}>
               <Button
                 isIconOnly
-                className="bg-transparent"
-                variant="flat"
-                color="default"
-                title="查看当前运行时配置"
-                onPress={() => {
-                  setShowRuntimeConfig(true)
+                size="sm"
+                className="w-6 h-6 min-w-0"
+                disabled={updating}
+                variant="light"
+                onPress={async () => {
+                  setUpdating(true)
+                  await addProfileItem(info)
+                  setUpdating(false)
                 }}
               >
-                <LuFileCode
-                  className={`text-[18px] ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-                />
+                <LuRotateCw className={`text-[14px] ${updating ? 'animate-spin' : ''}`} />
               </Button>
-            </div>
-          </CardBody>
-          <CardFooter className="pt-1">
-            <h3
-              className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+            </Tooltip>
+          )}
+        </div>
+      </div>
+
+      {info.type === 'remote' && extra && (
+        <>
+          <div className="flex justify-between items-center text-[11px] text-foreground/75 dark:text-foreground/70 px-0.5">
+            <span>{calcTraffic(usage)} / {calcTraffic(total)}</span>
+            <span 
+              className="cursor-pointer hover:text-primary transition-colors hover:underline"
+              onClick={(e) => {
+                e.stopPropagation()
+                patchAppConfig({ profileDisplayDate: profileDisplayDate === 'expire' ? 'update' : 'expire' })
+              }}
             >
-              订阅管理
-            </h3>
-          </CardFooter>
-        </Card>
+              {profileDisplayDate === 'expire' 
+                ? (extra.expire ? dayjs.unix(extra.expire).format('YY/MM/DD') : '长期') 
+                : dayjs(info.updated).fromNow()}
+            </span>
+          </div>
+        </>
+      )}
+
+      {info.type === 'remote' && !extra && (
+        <div className="flex justify-between items-center text-[11px] text-foreground/70 dark:text-foreground/65 px-0.5">
+          <span>远程配置</span>
+          <span>{dayjs(info.updated).fromNow()}</span>
+        </div>
+      )}
+      {info.type === 'local' && (
+        <div className="flex justify-between items-center text-[11px] text-foreground/70 dark:text-foreground/65 px-0.5">
+          <span>本地配置</span>
+        </div>
       )}
     </div>
   )

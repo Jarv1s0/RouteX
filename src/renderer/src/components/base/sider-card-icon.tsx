@@ -16,7 +16,7 @@ const SiderCardIcon: React.FC<SiderCardIconProps> = ({
       aria-hidden="true"
       className={`inline-flex h-8 w-8 items-center justify-center rounded-2xl pointer-events-none transition-all duration-300 ${
         isActive
-          ? 'text-primary-foreground drop-shadow-[0_1px_8px_rgba(255,255,255,0.18)]'
+          ? 'text-foreground/80 dark:text-foreground/70'
           : 'text-foreground'
       } ${className}`.trim()}
     >

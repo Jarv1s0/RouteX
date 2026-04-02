@@ -1,27 +1,22 @@
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
+import { Button, Tooltip } from '@heroui/react'
 import { LuGitBranch } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useEffect, useMemo } from 'react'
 import { getRuntimeConfig, mihomoRuleProviders } from '@renderer/utils/mihomo-ipc'
 import useSWR from 'swr'
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
 }
 
 const RuleCard: React.FC<Props> = (props) => {
-  const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { ruleCardStatus = 'col-span-1', disableAnimation = false } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/rules')
+  
   const { data, mutate } = useSWR(
     'ruleCardStats',
     async () => {
@@ -65,82 +60,46 @@ const RuleCard: React.FC<Props> = (props) => {
     }
   }, [mutate])
   
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'rule'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
-
   if (iconOnly) {
     return (
-      <div className={`${ruleCardStatus} flex justify-center`}>
+      <div className={`flex justify-center`}>
         <Tooltip content="规则" placement="right">
           <Button
             size="sm"
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => {
-              navigate('/rules')
-            }}
+            onPress={() => navigate('/rules')}
           >
-            <LuGitBranch className="text-[18px]" />
+            <LuGitBranch className="text-[16px]" />
           </Button>
         </Tooltip>
       </div>
     )
   }
-  return (
-    <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${ruleCardStatus} rule-card`}
-    >
 
-      <Card
-        fullWidth
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        className={`
-          ${CARD_STYLES.BASE}
-          ${
-            match
-              ? CARD_STYLES.ACTIVE
-              : CARD_STYLES.INACTIVE
-          }
-          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-          cursor-pointer
-        `}
-        radius="lg"
-        shadow="none"
-      >
-        <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
-          <div className="flex justify-between">
-            <SiderCardIcon isActive={match}>
-              <LuGitBranch className="text-[18px]" />
-            </SiderCardIcon>
-          </div>
-        </CardBody>
-        <CardFooter className="pt-1 relative z-10">
-          <div
-            className={`flex justify-between w-full text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-          >
-            <h3>规则</h3>
-            {ruleCount > 0 && <h3>{ruleCount.toLocaleString()}</h3>}
-          </div>
-        </CardFooter>
-      </Card>
+  return (
+    <div 
+      className={`rule-card flex flex-col p-2 px-3 rounded-xl cursor-pointer transition-all group ${
+        match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+      }`}
+      onClick={() => navigate('/rules')}
+    >
+      <div className="flex items-center justify-between h-7">
+        <div className="flex items-center gap-1.5 flex-1">
+          <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+            <LuGitBranch className={`text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-foreground/80`} />
+          </span>
+          <h3 className={`text-sm font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>
+            路由规则
+          </h3>
+        </div>
+        <div className="flex items-center">
+          <span className={`text-xs font-semibold transition-colors text-foreground/50 dark:text-foreground/40 group-hover:text-foreground/70`}>
+            {ruleCount > 0 ? ruleCount.toLocaleString() : '-'}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }

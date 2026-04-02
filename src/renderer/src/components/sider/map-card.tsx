@@ -1,99 +1,50 @@
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import { LuNetwork } from 'react-icons/lu'
+import { Button, Tooltip } from '@heroui/react'
+import { LuMap } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   iconOnly?: boolean
 }
 
 const MapCard: React.FC<Props> = (props) => {
-  const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { mapCardStatus = 'col-span-1', disableAnimation = false } = appConfig || {}
-  const location = useLocation()
   const navigate = useNavigate()
+  const location = useLocation()
   const match = location.pathname.includes('/map')
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'map'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
 
   if (iconOnly) {
     return (
-      <div className={`${mapCardStatus} flex justify-center`}>
-        <Tooltip content="网络拓扑" placement="right">
+      <div className={`flex justify-center`}>
+        <Tooltip content="拓扑" placement="right">
           <Button
             size="sm"
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => {
-              navigate('/map')
-            }}
+            onPress={() => navigate('/map')}
           >
-            <LuNetwork className="text-[18px]" />
+            <LuMap className="text-[16px]" />
           </Button>
         </Tooltip>
       </div>
     )
   }
+
   return (
     <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${mapCardStatus} map-card`}
+      className={`map-card flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-all group ${
+        match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+      }`}
+      onClick={() => navigate('/map')}
     >
-      <Card
-        fullWidth
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        className={`
-          ${CARD_STYLES.BASE}
-          ${
-            match
-              ? CARD_STYLES.ACTIVE
-              : CARD_STYLES.INACTIVE
-          }
-          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-        `}
-        isPressable
-        onPress={() => navigate('/map')}
-        radius="lg"
-        shadow="none"
-      >
-        <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
-          <div className="flex justify-between">
-            <SiderCardIcon isActive={match}>
-              <LuNetwork className="text-[18px]" />
-            </SiderCardIcon>
-          </div>
-        </CardBody>
-        <CardFooter className="pt-1 relative z-10">
-          <h3
-             className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-          >
-             网络拓扑
-          </h3>
-        </CardFooter>
-      </Card>
+      <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+        <LuMap className={`text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-primary`} />
+      </span>
+      <span className={`text-sm font-medium transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>
+        拓扑
+      </span>
     </div>
   )
 }

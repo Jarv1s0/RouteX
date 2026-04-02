@@ -1,17 +1,8 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import {
-  DndContext,
-  closestCorners,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent
-} from '@dnd-kit/core'
-import { SortableContext } from '@dnd-kit/sortable'
 import { Button } from '@heroui/react'
 import { IoSettings } from 'react-icons/io5'
-
+import clsx from 'clsx'
 
 import OutboundModeSwitcher from '@renderer/components/sider/outbound-mode-switcher'
 import SysproxySwitcher from '@renderer/components/sider/sysproxy-switcher'
@@ -19,8 +10,6 @@ import TunSwitcher from '@renderer/components/sider/tun-switcher'
 import ProfileCard from '@renderer/components/sider/profile-card'
 import ProxyCard from '@renderer/components/sider/proxy-card'
 import RuleCard from '@renderer/components/sider/rule-card'
-import DNSCard from '@renderer/components/sider/dns-card'
-import SniffCard from '@renderer/components/sider/sniff-card'
 import ConnCard from '@renderer/components/sider/conn-card'
 import LogCard from '@renderer/components/sider/log-card'
 import MihomoCoreCard from '@renderer/components/sider/mihomo-core-card'
@@ -29,61 +18,11 @@ import StatsCard from '@renderer/components/sider/stats-card'
 import ToolsCard from '@renderer/components/sider/tools-card'
 import MapCard from '@renderer/components/sider/map-card'
 import UpdaterButton from '@renderer/components/updater/updater-button'
-import MihomoIcon from '../base/mihomo-icon'
+import MihomoIcon from '@renderer/components/base/mihomo-icon'
 
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
-
-const defaultSiderOrder = [
-  'sysproxy',
-  'tun',
-  'dns',
-  'sniff',
-  'proxy',
-  'connection',
-  'profile',
-  'mihomo',
-  'rule',
-  'log',
-  'substore',
-  'stats',
-  'map',
-  'tools'
-]
-
-const navigateMap = {
-  sysproxy: 'sysproxy',
-  tun: 'tun',
-  profile: 'profiles',
-  proxy: 'proxies',
-  mihomo: 'mihomo',
-  connection: 'connections',
-  dns: 'dns',
-  sniff: 'sniffer',
-  log: 'logs',
-  rule: 'rules',
-  substore: 'substore',
-  stats: 'stats',
-  tools: 'tools',
-  map: 'map'
-}
-
-const componentMap = {
-  sysproxy: SysproxySwitcher,
-  tun: TunSwitcher,
-  profile: ProfileCard,
-  proxy: ProxyCard,
-  mihomo: MihomoCoreCard,
-  connection: ConnCard,
-  dns: DNSCard,
-  sniff: SniffCard,
-  log: LogCard,
-  rule: RuleCard,
-  substore: SubStoreCard,
-  stats: StatsCard,
-  tools: ToolsCard,
-  map: MapCard
-}
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface LatestVersion {
   version: string
@@ -101,54 +40,13 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
   ({ width, narrowWidth, latest }, ref) => {
     const navigate = useNavigate()
     const location = useLocation()
-    const { appConfig, patchAppConfig } = useAppConfig()
+    const { appConfig } = useAppConfig()
     const {
-      siderOrder,
       useWindowFrame = false,
-      disableAnimation = false
+      disableAnimation = false,
+      useSubStore = true
     } = appConfig || {}
 
-    const siderOrderArray = siderOrder ?? defaultSiderOrder
-    const mergedSiderOrder = useMemo(() => {
-      let result = siderOrderArray.filter((key) => key !== 'override')
-      if (!result.includes('stats')) {
-        result = [...result, 'stats']
-      }
-      if (!result.includes('tools')) {
-        result = [...result, 'tools']
-      }
-      if (!result.includes('substore')) {
-        result = [...result, 'substore']
-      }
-      if (!result.includes('map')) {
-        result = [...result, 'map']
-      }
-      return result
-    }, [siderOrderArray])
-
-    const [order, setOrder] = useState(mergedSiderOrder)
-    const sensors = useSensors(useSensor(PointerSensor))
-
-    useEffect(() => {
-      setOrder(mergedSiderOrder)
-    }, [mergedSiderOrder])
-
-    const onDragEnd = async (event: DragEndEvent): Promise<void> => {
-      const { active, over } = event
-      if (over) {
-        if (active.id !== over.id) {
-          const newOrder = order.slice()
-          const activeIndex = newOrder.indexOf(active.id as string)
-          const overIndex = newOrder.indexOf(over.id as string)
-          newOrder.splice(activeIndex, 1)
-          newOrder.splice(overIndex, 0, active.id as string)
-          setOrder(newOrder)
-          await patchAppConfig({ siderOrder: newOrder })
-          return
-        }
-      }
-      navigate(navigateMap[active.id as string])
-    }
 
     const isNarrow = width === narrowWidth
 
@@ -166,11 +64,18 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           </div>
           <div className="flex-1 overflow-y-auto no-scrollbar px-1">
             <div className="flex flex-col gap-2 py-1">
-              {order.map((key: string) => {
-                const Component = componentMap[key]
-                if (!Component) return null
-                return <Component key={key} iconOnly={true} />
-              })}
+              <SysproxySwitcher iconOnly />
+              <TunSwitcher iconOnly />
+              <ProxyCard iconOnly />
+              <ConnCard iconOnly />
+              <ProfileCard iconOnly />
+              <MihomoCoreCard iconOnly />
+              <RuleCard iconOnly />
+              <StatsCard iconOnly />
+              <ToolsCard iconOnly />
+              <LogCard iconOnly />
+              <MapCard iconOnly />
+              <SubStoreCard iconOnly />
             </div>
           </div>
           <div className="p-2 flex flex-col items-center gap-2 shrink-0 border-t border-divider">
@@ -195,10 +100,10 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
       <div
         ref={ref}
         style={{ width: 'var(--sider-width)' }}
-        className="side h-full overflow-y-auto no-scrollbar bg-default-100/50 backdrop-blur-2xl border-r border-default-200/50 dark:border-white/5 transition-all duration-300"
+        className="side h-full overflow-y-auto no-scrollbar bg-default-100/50 backdrop-blur-2xl border-r border-default-200/50 dark:border-white/5 transition-all duration-300 flex flex-col"
       >
         <div
-          className={`app-drag sticky top-0 z-40 ${disableAnimation ? 'bg-background/95 backdrop-blur-sm' : 'bg-transparent backdrop-blur'} h-[49px]`}
+          className={`app-drag sticky top-0 z-40 ${disableAnimation ? 'bg-background/95 backdrop-blur-sm' : 'bg-transparent backdrop-blur'} h-[49px] shrink-0`}
           style={{ width: '100%' }}
         >
           <div
@@ -225,21 +130,39 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
             </Button>
           </div>
         </div>
-        <div className="mt-0 mx-2">
-          <OutboundModeSwitcher />
-        </div>
-        <div style={{ overflowX: 'clip' }}>
-          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
-            <div className="grid grid-cols-2 gap-2 m-2">
-              <SortableContext items={order}>
-                {order.map((key: string) => {
-                  const Component = componentMap[key]
-                  if (!Component) return null
-                  return <Component key={key} />
-                })}
-              </SortableContext>
+        
+        <div className="flex flex-col gap-2 p-2 flex-1">
+          {/* Main Control Center */}
+          <div className={clsx("flex flex-col gap-2 p-2.5", CARD_STYLES.ROUNDED, CARD_STYLES.INACTIVE)}>
+            <OutboundModeSwitcher isMinimal />
+            <div className="h-[1px] mx-2 my-0.5 bg-default-200/55 dark:bg-white/10" />
+            <div className="flex h-[100px] flex-col gap-1.5">
+              <SysproxySwitcher compact />
+              <TunSwitcher compact />
             </div>
-          </DndContext>
+          </div>
+
+          {/* Core State Area */}
+          <div className="flex flex-col gap-2">
+            <ProxyCard />
+            <ConnCard />
+          </div>
+
+          {/* Configuration Area */}
+          <div className={`flex flex-col gap-2 p-2.5 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
+            <ProfileCard />
+            <MihomoCoreCard />
+            <RuleCard />
+          </div>
+
+          {/* Navigation Menu Area */}
+          <div className={`flex flex-col gap-2 p-2.5 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
+            <StatsCard />
+            <ToolsCard />
+            <LogCard />
+            <MapCard />
+            {useSubStore && <SubStoreCard />}
+          </div>
         </div>
       </div>
     )

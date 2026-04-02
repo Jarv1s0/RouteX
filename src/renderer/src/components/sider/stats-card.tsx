@@ -1,48 +1,29 @@
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
+import { Button, Tooltip } from '@heroui/react'
 import { LuChartColumn } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   iconOnly?: boolean
 }
 
 const StatsCard: React.FC<Props> = (props) => {
-  const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { statsCardStatus = 'col-span-1', disableAnimation = false } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/stats')
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'stats'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
 
   if (iconOnly) {
     return (
-      <div className={`${statsCardStatus} flex justify-center`}>
+      <div className={`flex justify-center`}>
         <Tooltip content="统计" placement="right">
           <Button
             size="sm"
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => {
-              navigate('/stats')
-            }}
+            onPress={() => navigate('/stats')}
           >
             <LuChartColumn className="text-[17px]" />
           </Button>
@@ -50,50 +31,20 @@ const StatsCard: React.FC<Props> = (props) => {
       </div>
     )
   }
+
   return (
     <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${statsCardStatus} stats-card`}
+      className={`stats-card flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-all group ${
+        match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+      }`}
+      onClick={() => navigate('/stats')}
     >
-      <Card
-        fullWidth
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        className={`
-          ${CARD_STYLES.BASE}
-          ${
-            match
-              ? CARD_STYLES.ACTIVE
-              : CARD_STYLES.INACTIVE
-          }
-          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-        `}
-        isPressable
-        onPress={() => navigate('/stats')}
-        radius="lg"
-        shadow="none"
-      >
-        <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
-          <div className="flex justify-between">
-            <SiderCardIcon isActive={match}>
-              <LuChartColumn className="text-[17px]" />
-            </SiderCardIcon>
-          </div>
-        </CardBody>
-        <CardFooter className="pt-1 relative z-10">
-          <h3
-             className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-          >
-             统计
-          </h3>
-        </CardFooter>
-      </Card>
+      <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+        <LuChartColumn className={`text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-primary`} />
+      </span>
+      <span className={`text-sm font-medium transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>
+        统计
+      </span>
     </div>
   )
 }

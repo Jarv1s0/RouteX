@@ -9,6 +9,7 @@ import { DEFAULT_COLUMNS } from './connection-setting-modal'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
 import { Virtuoso } from 'react-virtuoso'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { getConnectionHideRule } from './shared'
 
 
 // 列配置 - 默认宽度
@@ -47,6 +48,7 @@ interface Props {
   onSort?: (column: string) => void
   onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
   onVisibleRangeChange?: (range: { startIndex: number; endIndex: number }) => void
+  hiddenRules?: Set<string>
 }
 
 // ... (existing code)
@@ -128,7 +130,8 @@ const ConnectionTableComponent: React.FC<Props> = ({
   sortDirection,
   onSort,
   onContextMenu,
-  onVisibleRangeChange
+  onVisibleRangeChange,
+  hiddenRules
 }) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const { 
@@ -220,6 +223,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
       displayIcon={displayIcon}
       displayAppName={displayAppName}
       onContextMenu={onContextMenu}
+      hiddenRules={hiddenRules}
     />
   ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName, onContextMenu])
 
@@ -280,6 +284,7 @@ interface RowProps {
   displayIcon: boolean
   displayAppName: boolean
   onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
+  hiddenRules?: Set<string>
 }
 
 const ConnectionRowComponent: React.FC<RowProps> = ({
@@ -293,8 +298,13 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
   appNameCache,
   displayIcon,
   displayAppName,
-  onContextMenu
+  onContextMenu,
+  hiddenRules
 }) => {
+  const isHidden = useMemo(() => {
+    if (!hiddenRules) return false
+    return hiddenRules.has(getConnectionHideRule(conn))
+  }, [hiddenRules, conn])
   const processPath = conn.metadata.processPath || ''
   const iconUrl = displayIcon ? iconMap[processPath] || '' : ''
   const appName = displayAppName && processPath ? appNameCache[processPath] : undefined
@@ -368,7 +378,12 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
               className="bg-transparent w-6 h-6 min-w-6 flex-shrink-0"
             />
           )}
-          <span className="truncate" title={processName}>{processName}</span>
+          <span className="truncate flex items-center gap-1.5" title={processName}>
+            {processName}
+            {isHidden && <span className="text-default-400 opacity-50" title="该连接已被隐藏">
+              <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="12px" width="12px" xmlns="http://www.w3.org/2000/svg"><path d="M256 128a113.84 113.84 0 00-111.94 90.11c-.13.52-.25 1.05-.36 1.58a112.51 112.51 0 001.32 50 114.7 114.7 0 0013.9 33.68l42.6-42.6A63.85 63.85 0 01192 256v-.06a64 64 0 01103.11-51.11L332 168.06A113.59 113.59 0 00256 128zM315.65 244.35l42.6-42.6a113.62 113.62 0 0116.07 101.44 115.35 115.35 0 01-11.95 24.31l-42.6-42.6a64.31 64.31 0 00-4.12-40.55zm-143.24 64h.14L114.61 366.3a256.78 256.78 0 01-38.62-31.54C34.72 297.43 16 256 16 256s18.72-41.43 51.3-71.8a257.65 257.65 0 0153.11-37.58l45 45a64 64 0 007 86.73zM512 256s-18.72 41.43-51.3 71.8a257.65 257.65 0 01-53.11 37.58L362.59 320.4a64.09 64.09 0 00-7-86.73h-.14l57.94-57.94a256.78 256.78 0 0138.62 31.54C477.28 214.57 496 256 496 256s-18.73 41.43-51.31 71.8a256.88 256.88 0 01-32.9 26.65l38.42 38.42a420.9 420.9 0 0041.52-38C496 323.23 512 284 512 256zM80 64l368 384"></path></svg>
+            </span>}
+          </span>
         </div>
       )
     }

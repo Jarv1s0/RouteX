@@ -1,39 +1,22 @@
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
+import { Button, Tooltip } from '@heroui/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { LuWrench } from 'react-icons/lu'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   iconOnly?: boolean
 }
 
 const ToolsCard: React.FC<Props> = (props) => {
-  const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { toolsCardStatus = 'col-span-1', disableAnimation = false } = appConfig || {}
   const navigate = useNavigate()
   const location = useLocation()
   const match = location.pathname.includes('/tools')
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'tools'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
 
   if (iconOnly) {
     return (
-      <div className={`${toolsCardStatus} flex justify-center`}>
+      <div className={`flex justify-center`}>
         <Tooltip content="工具" placement="right">
           <Button
             size="sm"
@@ -42,7 +25,7 @@ const ToolsCard: React.FC<Props> = (props) => {
             variant={match ? 'solid' : 'light'}
             onPress={() => navigate('/tools')}
           >
-            <LuWrench className="text-[18px]" />
+            <LuWrench className="text-[16px]" />
           </Button>
         </Tooltip>
       </div>
@@ -51,48 +34,17 @@ const ToolsCard: React.FC<Props> = (props) => {
 
   return (
     <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${toolsCardStatus} tools-card`}
+      className={`tools-card flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-all group ${
+        match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+      }`}
+      onClick={() => navigate('/tools')}
     >
-      <Card
-        fullWidth
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        className={`
-          ${CARD_STYLES.BASE}
-          ${
-            match
-              ? CARD_STYLES.ACTIVE
-              : CARD_STYLES.INACTIVE
-          }
-          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-        `}
-        isPressable
-        onPress={() => navigate('/tools')}
-        radius="lg"
-
-      >
-        <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
-          <div className="flex justify-between">
-            <SiderCardIcon isActive={match}>
-              <LuWrench className="text-[18px]" />
-            </SiderCardIcon>
-          </div>
-        </CardBody>
-        <CardFooter className="pt-1 relative z-10">
-          <h3
-             className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-          >
-             工具
-          </h3>
-        </CardFooter>
-      </Card>
+      <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+        <LuWrench className={`text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-primary`} />
+      </span>
+      <span className={`text-sm font-medium transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>
+        工具
+      </span>
     </div>
   )
 }

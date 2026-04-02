@@ -3,11 +3,10 @@ export const CARD_STYLES = {
   ROUNDED: "rounded-2xl",
   BASE: "relative overflow-hidden transition-all duration-300 border antialiased",
   
-  // Active state: Dynamic Theme Gradient (Primary -> Primary-600)
-  ACTIVE: "bg-primary/85 dark:bg-primary/90 backdrop-blur-md border border-white/20 shadow-[0_4px_20px_rgba(var(--heroui-primary),0.4)]",
+  // Active state: Lightweight Glass Selection (Brand-tinted)
+  ACTIVE: "bg-primary/30 dark:bg-primary/30 backdrop-blur-md shadow-md shadow-primary/5 border-transparent",
   
   // Inactive state: iOS 26 Liquid Glass
-  // Features: High blur (3xl), Specular Highlight (from-white/20), Inset Shadow (Glass thickness), Saturation post-process
   INACTIVE: "bg-gradient-to-b from-white/20 to-white/5 dark:from-white/5 dark:to-transparent border-white/20 dark:border-white/10 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-3xl backdrop-saturate-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_15px_40px_0_rgba(0,0,0,0.2)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]",
   
   // Toolbar style: Same as INACTIVE but without scale and tuned for toolbar
@@ -30,6 +29,13 @@ export const CARD_STYLES = {
 
   // Small item cards (like tools connectivity check)
   GLASS_ITEM_CARD: "bg-default-100/50 dark:bg-default-100/10 border border-default-200/50 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200",
+
+  // Sidebar row hover state: clearer than the default gray strip
+  SIDEBAR_ITEM: "hover:bg-primary/10 dark:hover:bg-primary/20",
+  
+  // Sidebar active state: Match mode switcher active pill
+  SIDEBAR_ACTIVE:
+    "bg-primary/30 dark:bg-primary/30 backdrop-blur-md border-transparent shadow-sm",
 
   // Glass card style (used for tooltips etc)
   GLASS_CARD: "bg-background/80 dark:bg-default-100/80 border border-default-200/50 dark:border-white/10 shadow-xl backdrop-blur-md",

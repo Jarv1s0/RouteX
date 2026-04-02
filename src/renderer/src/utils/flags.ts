@@ -75,20 +75,15 @@ const flagMap: Record<string, string> = {
  * @returns 国旗 emoji，如果没有匹配则返回空字符串
  */
 export function getFlag(name: string): string {
-  // 先检查名称中是否已经包含国旗 emoji
-  const flagEmojis = Object.values(flagMap)
-  for (const emoji of flagEmojis) {
-    if (name.includes(emoji)) {
-      return ''
-    }
-  }
-
-  const upperName = name.toUpperCase()
+  // 先移除可能存在的不可见 flag emoji，再进行解析
+  const cleanedName = removeFlag(name)
+  const upperName = cleanedName.toUpperCase()
   
-  // 遍历映射表查找匹配
-  for (const [key, flag] of Object.entries(flagMap)) {
-    // 简单包含匹配
-    if (name.includes(key) || upperName.includes(key.toUpperCase())) {
+  // 按 key 长度降序排列，确保 "USA" 优先于 "SA"、"United States" 优先于 "US" 等
+  const sortedEntries = Object.entries(flagMap).sort((a, b) => b[0].length - a[0].length)
+  
+  for (const [key, flag] of sortedEntries) {
+    if (cleanedName.includes(key) || upperName.includes(key.toUpperCase())) {
       return flag
     }
   }
@@ -118,4 +113,17 @@ export function removeFlag(name: string): string {
     result = result.replace(emoji, '').trim()
   }
   return result
+}
+
+/**
+ * 移除节点名称中冗余的英文代码前缀（如 HK香港 -> 香港, HKG香港02 -> 香港02）
+ * @param name 节点名称
+ * @returns 精简后的节点名称
+ */
+export function cleanNodeName(name: string): string {
+  // 先移除可能存在的不可见 flag emoji 字符
+  let cleaned = removeFlag(name)
+  // 再匹配并移除英文/数字前缀（如 HK香港 -> 香港, USA美国02 -> 美国02）
+  cleaned = cleaned.replace(/^[A-Za-z0-9\s\-_]+(?=[\u4e00-\u9fa5])/g, '').trim()
+  return cleaned || name // 如果清理后为空，返回原始名称
 }

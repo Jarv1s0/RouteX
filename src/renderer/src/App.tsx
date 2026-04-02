@@ -43,31 +43,28 @@ async function applyThemeSafely(theme: string): Promise<void> {
 }
 
 const App: React.FC = () => {
-  const { appConfig, patchAppConfig } = useAppConfig()
+  const { appConfig } = useAppConfig()
   const {
     appTheme = 'system',
     customTheme,
-    siderWidth = 250,
     autoCheckUpdate,
     updateChannel = 'stable',
-    sysProxy
+    sysProxy,
+    collapseSidebar = false
   } = appConfig || {}
   const { controledMihomoConfig } = useControledMihomoConfig()
 
   const narrowWidth = platform === 'darwin' ? 70 : 60
   
-  // 初始值固定为 250，避免闪烁
-  const [siderWidthValue, setSiderWidthValue] = useState(siderWidth)
-  const siderWidthValueRef = useRef(siderWidthValue)
-  const [resizing, setResizing] = useState(false)
-  const resizingRef = useRef(resizing)
+  // 宽度根据“折叠侧边栏”设置自动切换
+  const siderWidthValue = collapseSidebar ? narrowWidth : 250
+  const resizing = false
   
   const sideRef = useRef<HTMLDivElement>(null)
-  const resizerRef = useRef<HTMLDivElement>(null)
   const mainRef = useRef<HTMLDivElement>(null)
   const layoutRef = useRef<HTMLDivElement>(null)
   const resizeFrameRef = useRef<number | null>(null)
-  const pendingWidthRef = useRef(siderWidth)
+
 
   const { setTheme, systemTheme } = useTheme()
   navigate = useNavigate()
@@ -124,17 +121,9 @@ const App: React.FC = () => {
     }
   }, [autoCheckUpdate, updateChannel])
 
-  useEffect(() => {
-    setSiderWidthValue(siderWidth)
-  }, [siderWidth])
+
 
   useEffect(() => {
-    siderWidthValueRef.current = siderWidthValue
-    resizingRef.current = resizing
-  }, [siderWidthValue, resizing])
-
-  useEffect(() => {
-    pendingWidthRef.current = siderWidthValue
     layoutRef.current?.style.setProperty(SIDER_WIDTH_CSS_VAR, `${siderWidthValue}px`)
   }, [siderWidthValue])
 
@@ -203,21 +192,13 @@ const App: React.FC = () => {
     }
   }, [location.pathname])
 
-  const onResizeEnd = useCallback((): void => {
-    if (resizingRef.current) {
-      setResizing(false)
-      const finalWidth = pendingWidthRef.current
-      siderWidthValueRef.current = finalWidth
-      setSiderWidthValue(finalWidth)
-      patchAppConfig({ siderWidth: finalWidth })
-    }
-  }, [patchAppConfig])
+
 
   useEffect(() => {
-    window.addEventListener('mouseup', onResizeEnd)
+    // window.addEventListener('mouseup', onResizeEnd)
 
     return (): void => {
-      window.removeEventListener('mouseup', onResizeEnd)
+      // window.removeEventListener('mouseup', onResizeEnd)
       if (resizeFrameRef.current !== null) {
         window.cancelAnimationFrame(resizeFrameRef.current)
         resizeFrameRef.current = null
@@ -231,7 +212,7 @@ const App: React.FC = () => {
         trafficListenerActiveRef.current = false
       }
     }
-  }, [onResizeEnd])
+  }, [])
 
   useEffect(() => {
     syncStoreListeners()
@@ -271,31 +252,8 @@ const App: React.FC = () => {
         ref={layoutRef}
         style={{ [SIDER_WIDTH_CSS_VAR]: `${siderWidthValue}px` } as React.CSSProperties}
 // ... rest of the file ...
-        onMouseMove={(e) => {
-          if (!resizing) return
-          e.preventDefault()
-          let newWidth = e.clientX
-
-          if (newWidth <= 150) {
-            newWidth = narrowWidth
-          } else if (newWidth <= 250) {
-            newWidth = 250
-          } else if (newWidth >= 400) {
-            newWidth = 400
-          }
-
-          pendingWidthRef.current = newWidth
-          siderWidthValueRef.current = newWidth
-
-          if (resizeFrameRef.current === null) {
-            resizeFrameRef.current = window.requestAnimationFrame(() => {
-              layoutRef.current?.style.setProperty(
-                SIDER_WIDTH_CSS_VAR,
-                `${pendingWidthRef.current}px`
-              )
-              resizeFrameRef.current = null
-            })
-          }
+        onMouseMove={() => {
+          // 禁止拖拽
         }}
         className={`w-full h-screen flex ${resizing ? 'cursor-ew-resize select-none' : ''}`}
       >
@@ -315,21 +273,7 @@ const App: React.FC = () => {
           />
         </React.Suspense>
 
-        <div
-          ref={resizerRef}
-          onMouseDown={() => {
-            setResizing(true)
-          }}
-          style={{
-            position: 'fixed',
-            zIndex: 50,
-            left: `calc(var(${SIDER_WIDTH_CSS_VAR}) - 2px)`,
-            width: '5px',
-            height: '100vh',
-            cursor: 'ew-resize'
-          }}
-          className={`transition-colors duration-200 hover:bg-primary/50 ${resizing ? 'bg-primary' : ''}`}
-        />
+
         
         <div
           ref={mainRef}
