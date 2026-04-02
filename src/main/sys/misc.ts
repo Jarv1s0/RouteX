@@ -10,7 +10,7 @@ import {
   overridePath,
   profilePath,
   resourcesDir,
-  resourcesFilesDir,
+  routexRunPath,
   taskDir
 } from '../utils/dirs'
 import {
@@ -21,6 +21,18 @@ import {
 import { copyFileSync, writeFileSync } from 'fs'
 
 const execPromise = promisify(exec)
+
+function routexRunBinaryTaskPath(): string {
+  return path.join(taskDir(), ROUTEX_RUN_BINARY)
+}
+
+function routexRunTaskXmlPath(): string {
+  return path.join(taskDir(), ROUTEX_RUN_XML)
+}
+
+function routexRunTaskXmlBuffer(): Buffer {
+  return Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le')
+}
 
 export function getFilePath(ext: string[]): string[] | undefined {
   return dialog.showOpenDialogSync({
@@ -50,8 +62,7 @@ export async function readTextFile(filePath: string): Promise<string> {
 export function openFile(type: 'profile' | 'override', id: string, ext?: 'yaml' | 'js'): void {
   if (type === 'profile') {
     shell.openPath(profilePath(id))
-  }
-  if (type === 'override') {
+  } else if (type === 'override') {
     shell.openPath(overridePath(id, ext || 'js'))
   }
 }
@@ -125,24 +136,18 @@ const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
 `
 
 export function createElevateTaskSync(): void {
-  const taskFilePath = path.join(taskDir(), ROUTEX_RUN_XML)
-  writeFileSync(taskFilePath, Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le'))
-  copyFileSync(
-    path.join(resourcesFilesDir(), ROUTEX_RUN_BINARY),
-    path.join(taskDir(), ROUTEX_RUN_BINARY)
-  )
+  const taskFilePath = routexRunTaskXmlPath()
+  writeFileSync(taskFilePath, routexRunTaskXmlBuffer())
+  copyFileSync(routexRunPath(), routexRunBinaryTaskPath())
   execSync(
     `%SystemRoot%\\System32\\schtasks.exe /create /tn "${ROUTEX_RUN_TASK_NAME}" /xml "${taskFilePath}" /f`
   )
 }
 
 export async function createElevateTask(): Promise<void> {
-  const taskFilePath = path.join(taskDir(), ROUTEX_RUN_XML)
-  await writeFile(taskFilePath, Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le'))
-  await copyFile(
-    path.join(resourcesFilesDir(), ROUTEX_RUN_BINARY),
-    path.join(taskDir(), ROUTEX_RUN_BINARY)
-  )
+  const taskFilePath = routexRunTaskXmlPath()
+  await writeFile(taskFilePath, routexRunTaskXmlBuffer())
+  await copyFile(routexRunPath(), routexRunBinaryTaskPath())
   await execPromise(
     `%SystemRoot%\\System32\\schtasks.exe /create /tn "${ROUTEX_RUN_TASK_NAME}" /xml "${taskFilePath}" /f`
   )

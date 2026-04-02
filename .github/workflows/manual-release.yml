@@ -82,9 +82,6 @@ jobs:
       - name: Generate Release Notes
         run: node scripts/extract-latest-changelog.mjs changelog.md release-notes.md
 
-      - name: Prepare resources
-        run: node scripts/prepare.mjs
-
       - name: Set SHORT_COMMIT
         shell: bash
         run: |

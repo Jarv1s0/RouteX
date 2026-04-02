@@ -25,10 +25,32 @@ const ROUTEX_RUN_ASSETS = {
   arm64: 'routex-run-windows-arm64.exe'
 }
 const TRAFFIC_MONITOR_REPO = 'zhongyang219/TrafficMonitor'
+const DEFAULT_TASK_RETRY = 5
 let arch = process.arch
 const platform = process.platform
 if (process.argv.slice(2).length !== 0) {
   arch = process.argv.slice(2)[0].replace('--', '')
+}
+
+function isLockedFileError(error) {
+  return platform === 'win32' && (error?.code === 'EPERM' || error?.code === 'EACCES')
+}
+
+function tryRemoveExisting(targetPath, label) {
+  if (!fs.existsSync(targetPath)) {
+    return true
+  }
+
+  try {
+    fs.rmSync(targetPath, { recursive: true, force: true })
+    return true
+  } catch (error) {
+    if (isLockedFileError(error)) {
+      console.warn(`[WARN]: skip updating ${label}, file is locked: ${targetPath}`)
+      return false
+    }
+    throw error
+  }
 }
 
 if (process.env.SKIP_PREPARE === '1') {
@@ -36,30 +58,10 @@ if (process.env.SKIP_PREPARE === '1') {
   process.exit(0)
 }
 
-/* ======= mihomo alpha======= */
 const MIHOMO_ALPHA_VERSION_URL =
   'https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt'
-let MIHOMO_ALPHA_VERSION
-
-// Fetch the latest alpha release version from the version.txt file
-async function getLatestAlphaVersion() {
-  try {
-    const response = await fetch(MIHOMO_ALPHA_VERSION_URL, {
-      method: 'GET'
-    })
-    let v = await response.text()
-    MIHOMO_ALPHA_VERSION = v.trim() // Trim to remove extra whitespaces
-    console.log(`Latest alpha version: ${MIHOMO_ALPHA_VERSION}`)
-  } catch (error) {
-    console.error('Error fetching latest alpha version:', error.message)
-    process.exit(1)
-  }
-}
-
-/* ======= mihomo release ======= */
 const MIHOMO_VERSION_URL =
   'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
-let MIHOMO_VERSION
 
 const GITHUB_JSON_HEADERS = {
   Accept: 'application/vnd.github+json',
@@ -258,17 +260,16 @@ async function resolveReleaseAsset(version, isAlpha) {
   }
 }
 
-// Fetch the latest release version from the version.txt file
-async function getLatestReleaseVersion() {
+async function getLatestVersion(url, label) {
   try {
-    const response = await fetch(MIHOMO_VERSION_URL, {
+    const response = await fetch(url, {
       method: 'GET'
     })
-    let v = await response.text()
-    MIHOMO_VERSION = v.trim() // Trim to remove extra whitespaces
-    console.log(`Latest release version: ${MIHOMO_VERSION}`)
+    const version = (await response.text()).trim()
+    console.log(`Latest ${label} version: ${version}`)
+    return version
   } catch (error) {
-    console.error('Error fetching latest release version:', error.message)
+    console.error(`Error fetching latest ${label} version:`, error.message)
     process.exit(1)
   }
 }
@@ -281,25 +282,14 @@ getAssetPrefixCandidates(platform, arch)
 /**
  * core info
  */
-async function MihomoAlpha() {
+async function createMihomoBinaryInfo(name, versionUrl, isAlpha) {
   const isWin = platform === 'win32'
-  const asset = await resolveReleaseAsset(MIHOMO_ALPHA_VERSION, true)
+  const version = await getLatestVersion(versionUrl, isAlpha ? 'alpha' : 'release')
+  const asset = await resolveReleaseAsset(version, isAlpha)
 
   return {
-    name: 'mihomo-alpha',
-    targetFile: `mihomo-alpha${isWin ? '.exe' : ''}`,
-    zipFile: asset.name,
-    downloadURL: asset.browser_download_url
-  }
-}
-
-async function mihomo() {
-  const isWin = platform === 'win32'
-  const asset = await resolveReleaseAsset(MIHOMO_VERSION, false)
-
-  return {
-    name: 'mihomo',
-    targetFile: `mihomo${isWin ? '.exe' : ''}`,
+    name,
+    targetFile: `${name}${isWin ? '.exe' : ''}`,
     zipFile: asset.name,
     downloadURL: asset.browser_download_url
   }
@@ -314,8 +304,8 @@ async function resolveSidecar(binInfo) {
   const sidecarPath = path.join(sidecarDir, targetFile)
 
   fs.mkdirSync(sidecarDir, { recursive: true })
-  if (fs.existsSync(sidecarPath)) {
-    fs.rmSync(sidecarPath)
+  if (!tryRemoveExisting(sidecarPath, name)) {
+    return
   }
   const tempDir = path.join(TEMP_DIR, name)
   const tempZip = path.join(tempDir, zipFile)
@@ -394,8 +384,8 @@ async function resolveResource(binInfo) {
   const resDir = path.join(cwd, 'extra', 'files')
   const targetPath = path.join(resDir, file)
 
-  if (fs.existsSync(targetPath)) {
-    fs.rmSync(targetPath)
+  if (!tryRemoveExisting(targetPath, file)) {
+    return
   }
 
   fs.mkdirSync(resDir, { recursive: true })
@@ -417,6 +407,11 @@ async function downloadFile(url, path) {
     method: 'GET',
     headers: { 'Content-Type': 'application/octet-stream' }
   })
+
+  if (!response.ok) {
+    throw new Error(`download failed "${url}": HTTP ${response.status}`)
+  }
+
   const buffer = await response.arrayBuffer()
   fs.writeFileSync(path, new Uint8Array(buffer))
 
@@ -571,82 +566,85 @@ const resolveFont = async () => {
 const tasks = [
   {
     name: 'mihomo-alpha',
-    func: () => getLatestAlphaVersion().then(() => MihomoAlpha().then(resolveSidecar)),
-    retry: 5
+    func: async () =>
+      resolveSidecar(await createMihomoBinaryInfo('mihomo-alpha', MIHOMO_ALPHA_VERSION_URL, true)),
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: 'mihomo',
-    func: () => getLatestReleaseVersion().then(() => mihomo().then(resolveSidecar)),
-    retry: 5
+    func: async () =>
+      resolveSidecar(await createMihomoBinaryInfo('mihomo', MIHOMO_VERSION_URL, false)),
+    retry: DEFAULT_TASK_RETRY
   },
-  { name: 'mmdb', func: resolveMmdb, retry: 5 },
-  { name: 'metadb', func: resolveMetadb, retry: 5 },
-  { name: 'geosite', func: resolveGeosite, retry: 5 },
-  { name: 'geoip', func: resolveGeoIP, retry: 5 },
-  { name: 'asn', func: resolveASN, retry: 5 },
+  { name: 'mmdb', func: resolveMmdb, retry: DEFAULT_TASK_RETRY },
+  { name: 'metadb', func: resolveMetadb, retry: DEFAULT_TASK_RETRY },
+  { name: 'geosite', func: resolveGeosite, retry: DEFAULT_TASK_RETRY },
+  { name: 'geoip', func: resolveGeoIP, retry: DEFAULT_TASK_RETRY },
+  { name: 'asn', func: resolveASN, retry: DEFAULT_TASK_RETRY },
   {
     name: 'font',
     func: resolveFont,
-    retry: 5
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: 'enableLoopback',
     func: resolveEnableLoopback,
-    retry: 5,
+    retry: DEFAULT_TASK_RETRY,
     winOnly: true
   },
   {
     name: 'routex-service',
     func: resolveRoutexService,
-    retry: 5
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: 'runner',
     func: resolveRunner,
-    retry: 5,
+    retry: DEFAULT_TASK_RETRY,
     winOnly: true
   },
   {
     name: 'monitor',
     func: resolveMonitor,
-    retry: 5,
+    retry: DEFAULT_TASK_RETRY,
     winOnly: true
   },
   {
     name: 'substore',
     func: resolveSubstore,
-    retry: 5
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: 'substorefrontend',
     func: resolveSubstoreFrontend,
-    retry: 5
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: '7zip',
     func: resolve7zip,
-    retry: 5,
+    retry: DEFAULT_TASK_RETRY,
     winOnly: true
   }
 ]
 
 async function runTask() {
-  const task = tasks.shift()
-  if (!task) return
-  if (task.winOnly && platform !== 'win32') return runTask()
-  if (task.linuxOnly && platform !== 'linux') return runTask()
-  if (task.unixOnly && platform === 'win32') return runTask()
+  while (true) {
+    const task = tasks.shift()
+    if (!task) return
+    if (task.winOnly && platform !== 'win32') continue
+    if (task.linuxOnly && platform !== 'linux') continue
+    if (task.unixOnly && platform === 'win32') continue
 
-  for (let i = 0; i < task.retry; i++) {
-    try {
-      await task.func()
-      break
-    } catch (err) {
-      console.error(`[ERROR]: task::${task.name} try ${i} ==`, err.message)
-      if (i === task.retry - 1) throw err
+    for (let i = 0; i < task.retry; i++) {
+      try {
+        await task.func()
+        break
+      } catch (err) {
+        console.error(`[ERROR]: task::${task.name} try ${i} ==`, err.message)
+        if (i === task.retry - 1) throw err
+      }
     }
   }
-  return runTask()
 }
 
 runTask()

@@ -1,7 +1,7 @@
 import { app, dialog } from 'electron'
 import { createElevateTask } from '../sys/misc'
 import { copyFileSync, existsSync, writeFileSync } from 'fs'
-import { resourcesFilesDir, taskDir } from '../utils/dirs'
+import { routexRunPath, taskDir } from '../utils/dirs'
 import { ROUTEX_RUN_BINARY, ROUTEX_RUN_TASK_NAME } from '../utils/routex-run'
 import path from 'path'
 
@@ -32,10 +32,7 @@ function ensureRoutexRunBinary(): void {
     return
   }
 
-  const routexRunSrc = path.join(resourcesFilesDir(), ROUTEX_RUN_BINARY)
-  if (existsSync(routexRunSrc)) {
-    copyFileSync(routexRunSrc, routexRunDest)
-  }
+  copyFileSync(routexRunPath(), routexRunDest)
 }
 
 interface EnsureElevationOptions {
