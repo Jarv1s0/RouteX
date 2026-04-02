@@ -1,0 +1,43 @@
+pkgname=routex
+pkgver=2.2.4
+pkgrel=1
+pkgdesc="Modern Mihomo GUI."
+arch=('x86_64' 'aarch64')
+url="https://github.com/Jarv1s0/RouteX"
+license=('GPL3')
+conflicts=("$pkgname-git" "$pkgname-bin" "$pkgname-electron" "$pkgname-electron-bin" "$pkgname-electron-git")
+depends=('gtk3' 'libnotify' 'nss' 'libxss' 'libxtst' 'xdg-utils' 'at-spi2-core' 'util-linux-libs' 'libsecret')
+optdepends=('libappindicator-gtk3: Allow RouteX to extend a menu via Ayatana indicators in Unity, KDE or Systray (GTK+ 3 library).')
+makedepends=('nodejs' 'pnpm' 'libxcrypt-compat')
+install=$pkgname.install
+source=(
+    "${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz"
+    "${pkgname}.sh"
+)
+sha256sums=('SKIP'
+'SKIP')
+options=('!lto')
+
+prepare(){
+    cd $srcdir/${pkgname}-${pkgver}
+    corepack pnpm install
+}
+
+build(){
+    cd $srcdir/${pkgname}-${pkgver}
+    corepack pnpm run build && electron-builder --config electron-builder.config.cjs --linux deb --publish never
+}
+
+package() {
+	cd $srcdir/${pkgname}-${pkgver}/dist
+    bsdtar -xf RouteX-${pkgver}-linux-*.deb
+    bsdtar -xf data.tar.xz -C "${pkgdir}/"
+    chmod +x ${pkgdir}/opt/RouteX/routex
+    chmod +x ${pkgdir}/opt/RouteX/resources/files/routex-service
+    chmod +sx ${pkgdir}/opt/RouteX/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/RouteX/resources/sidecar/mihomo-alpha
+    install -Dm755 "${srcdir}/../${pkgname}.sh" "${pkgdir}/usr/bin/${pkgname}"
+    sed -i 's!/opt/RouteX/routex!routex!' "${pkgdir}/usr/share/applications/${pkgname}.desktop"
+
+    chown -R root:root ${pkgdir}
+}

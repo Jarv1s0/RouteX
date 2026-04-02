@@ -19,7 +19,6 @@ function isExpectedMihomoUnavailableError(error: unknown): boolean {
   const message = `${error ?? ''}`
   return (
     message.includes('connect ENOENT \\\\.\\pipe\\RouteX\\mihomo') ||
-    message.includes('connect ENOENT \\\\.\\pipe\\Sparkle\\mihomo') ||
     message.includes('socket hang up')
   )
 }
@@ -27,6 +26,15 @@ function isExpectedMihomoUnavailableError(error: unknown): boolean {
 // 精确的监听器引用，避免使用 removeAllListeners
 let currentGroupsCleanup: (() => void) | null = null
 let currentCoreStartedCleanup: (() => void) | null = null
+
+function clearUpdateTimer(): void {
+  if (!updateTimer) {
+    return
+  }
+
+  clearInterval(updateTimer)
+  updateTimer = null
+}
 
 function unregisterGroupHandlers(): void {
   currentGroupsCleanup?.()
@@ -54,32 +62,27 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
   initializeListeners: () => {
     // 先清理旧的监听器
     unregisterGroupHandlers()
+    clearUpdateTimer()
 
-    const handleUpdate = (): void => {
-      get().fetchGroups()
-    }
+    const fetchGroups = (): void => void get().fetchGroups()
 
     // 保存引用并注册
-    currentGroupsCleanup = onIpc(ON.groupsUpdated, handleUpdate)
-    currentCoreStartedCleanup = onIpc(ON.coreStarted, handleUpdate)
-    
+    currentGroupsCleanup = onIpc(ON.groupsUpdated, fetchGroups)
+    currentCoreStartedCleanup = onIpc(ON.coreStarted, fetchGroups)
+
     // Initial fetch
-    get().fetchGroups()
-    
+    fetchGroups()
+
     // Polling interval (matches original SWR logic: 10000ms)
-    if (updateTimer) clearInterval(updateTimer)
     updateTimer = setInterval(() => {
       // 窗口不可见时跳过轮询
-      if (!document.hidden) get().fetchGroups()
+      if (!document.hidden) fetchGroups()
     }, 30000) // 30s 足够，代理组变化已由事件驱动
   },
 
   cleanupListeners: () => {
     unregisterGroupHandlers()
-    if (updateTimer) {
-      clearInterval(updateTimer)
-      updateTimer = null
-    }
+    clearUpdateTimer()
   }
 }))
 

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=RouteX
+Exec=routex %U
+Terminal=false
+Type=Application
+Icon=routex
+StartupWMClass=RouteX
+MimeType=x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/routex;
+Comment=RouteX
+Categories=Utility;

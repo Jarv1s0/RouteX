@@ -1,0 +1,28 @@
+pkgname=routex-bin
+_pkgname=routex
+pkgver=2.2.4
+pkgrel=1
+pkgdesc="Modern Mihomo GUI."
+arch=('x86_64')
+url="https://github.com/Jarv1s0/RouteX"
+license=('GPL3')
+conflicts=("$_pkgname" "$_pkgname-git" "$_pkgname-electron" "$_pkgname-electron-bin" "$_pkgname-electron-git")
+depends=('gtk3' 'libnotify' 'nss' 'libxss' 'libxtst' 'xdg-utils' 'at-spi2-core' 'util-linux-libs' 'libsecret')
+optdepends=('libappindicator-gtk3: Allow RouteX to extend a menu via Ayatana indicators in Unity, KDE or Systray (GTK+ 3 library).')
+install=$_pkgname.install
+source=("${_pkgname}.sh")
+source_x86_64=("${_pkgname}-${pkgver}-x86_64.deb::${url}/releases/download/v${pkgver}/RouteX-${pkgver}-linux-amd64.deb")
+sha256sums=('SKIP')
+sha256sums_x86_64=('SKIP')
+
+package() {
+    bsdtar -xf data.tar.xz -C "${pkgdir}/"
+    chmod +x ${pkgdir}/opt/RouteX/routex
+    chmod +x ${pkgdir}/opt/RouteX/resources/files/routex-service
+    chmod +sx ${pkgdir}/opt/RouteX/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/RouteX/resources/sidecar/mihomo-alpha
+    install -Dm755 "${srcdir}/${_pkgname}.sh" "${pkgdir}/usr/bin/${_pkgname}"
+    sed -i 's!/opt/RouteX/routex!routex!' "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
+
+    chown -R root:root ${pkgdir}
+}
