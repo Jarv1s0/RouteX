@@ -107,36 +107,38 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           style={{ width: '100%' }}
         >
           <div
-            className={`flex justify-between items-center p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
+            className={`flex items-center justify-between p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
           >
-            <div className="flex ml-1 items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2 pl-1 justify-self-start">
               <h3 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-600 bg-clip-text text-transparent">
                 RouteX
               </h3>
             </div>
-            {latest && latest.version && <UpdaterButton latest={latest} />}
-            <Button
-              size="sm"
-              className="app-nodrag group"
-              isIconOnly
-              variant="light"
-              onPress={() => {
-                navigate('/settings')
-              }}
-            >
-              <IoSettings
-                className={`text-[20px] transition-all duration-300 group-hover:rotate-90 group-hover:text-primary group-hover:drop-shadow-[0_0_4px_rgba(0,112,243,0.4)] ${location.pathname.includes('/settings') ? 'text-primary' : 'text-slate-500'}`}
-              />
-            </Button>
+            <div className="flex items-center gap-1">
+              {latest && latest.version && <UpdaterButton latest={latest} />}
+              <Button
+                size="sm"
+                className="app-nodrag group"
+                isIconOnly
+                variant="light"
+                onPress={() => {
+                  navigate('/settings')
+                }}
+              >
+                <IoSettings
+                  className={`text-[20px] transition-all duration-300 group-hover:rotate-90 group-hover:text-primary group-hover:drop-shadow-[0_0_4px_rgba(0,112,243,0.4)] ${location.pathname.includes('/settings') ? 'text-primary' : 'text-slate-500'}`}
+                />
+              </Button>
+            </div>
           </div>
         </div>
         
         <div className="flex flex-col gap-2 p-2 flex-1">
           {/* Main Control Center */}
-          <div className={clsx("flex flex-col gap-2 p-2.5", CARD_STYLES.ROUNDED, CARD_STYLES.INACTIVE)}>
+          <div className={clsx("flex flex-col gap-1.5 p-2", CARD_STYLES.ROUNDED, CARD_STYLES.INACTIVE)}>
             <OutboundModeSwitcher isMinimal />
             <div className="h-[1px] mx-2 my-0.5 bg-default-200/55 dark:bg-white/10" />
-            <div className="flex h-[100px] flex-col gap-1.5">
+            <div className="flex h-[80px] flex-col gap-1.5">
               <SysproxySwitcher compact />
               <TunSwitcher compact />
             </div>
@@ -149,14 +151,14 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           </div>
 
           {/* Configuration Area */}
-          <div className={`flex flex-col gap-2 p-2.5 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
-            <ProfileCard />
-            <MihomoCoreCard />
-            <RuleCard />
+          <div className={`flex h-[180px] shrink-0 flex-col gap-1.5 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
+            <ProfileCard compact className="flex-1" />
+            <MihomoCoreCard compact className="flex-1" />
+            <RuleCard compact className="flex-1" />
           </div>
 
           {/* Navigation Menu Area */}
-          <div className={`flex flex-col gap-2 p-2.5 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
+          <div className={`flex flex-col gap-2 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
             <StatsCard />
             <ToolsCard />
             <LogCard />

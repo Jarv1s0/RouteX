@@ -7,6 +7,17 @@ import { CgClose, CgTrash } from 'react-icons/cg'
 import { IoEyeOff, IoEye, IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { getFlag, cleanNodeName } from '@renderer/utils/flags'
 
+const SELECTED_CARD_CLASS =
+  'bg-primary/[0.085] dark:bg-primary/[0.12] backdrop-blur-xl border border-primary/24 shadow-[0_10px_24px_rgba(16,185,129,0.08)] scale-[1.002]'
+
+const DEFAULT_CARD_CLASS =
+  'bg-default-100/60 dark:bg-default-50/30 backdrop-blur-md border border-default-200/60 dark:border-white/10 hover:bg-default-200/60 dark:hover:bg-default-100/40 hover:-translate-y-0.5 hover:shadow-md'
+
+const META_PILL_CLASS =
+  'bg-default-100/50 dark:bg-default-50/30 rounded-full border border-default-200/50 dark:border-white/10'
+
+const META_BADGE_CLASS = 'bg-default-100/50 dark:bg-default-50/30'
+
 interface Props {
   index: number
   info: ControllerConnectionDetail
@@ -86,11 +97,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
         isPressable
         shadow="sm"
         className={`w-full transition-all duration-300 border group
-          ${
-            info.id === selected?.id
-            ? "bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 backdrop-blur-3xl border-primary/40 shadow-[0_4px_24px_-4px_rgba(var(--heroui-primary),0.3)] scale-[1.002] ring-1 ring-primary/30"
-            : "bg-white/60 dark:bg-default-50/40 backdrop-blur-xl border-transparent hover:border-default-200/60 hover:bg-white/90 dark:hover:bg-default-100/60 hover:scale-[1.001] hover:shadow-lg"
-          }
+          ${info.id === selected?.id ? SELECTED_CARD_CLASS : DEFAULT_CARD_CLASS}
           data-[pressed=true]:scale-[0.99]
         `}
         radius="lg"
@@ -119,7 +126,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
               </div>
               
               <div className="flex items-center justify-end shrink-0 relative h-6 w-[60px] group/actions">
-                <span className={`font-mono text-[10px] text-foreground-400 font-medium bg-default-100/50 dark:bg-white/5 px-2 py-0.5 rounded-md transition-opacity ${isHidden ? 'opacity-0' : 'group-hover:opacity-0'}`}>
+                <span className={`font-mono text-[10px] text-foreground-400 font-medium ${META_BADGE_CLASS} px-2 py-0.5 rounded-md transition-opacity ${isHidden ? 'opacity-0' : 'group-hover:opacity-0'}`}>
                   {timeAgo}
                 </span>
 
@@ -154,7 +161,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
             {/* Meta Row - Contains Status, Node, and Speed */}
             <div className="flex items-center gap-2 flex-wrap relative">
               {/* Status Indicator */}
-              <div className="flex items-center gap-1.5 bg-default-100/50 dark:bg-white/5 px-2 py-0.5 rounded-full border border-default-200/50">
+              <div className={`flex items-center gap-1.5 px-2 py-0.5 ${META_PILL_CLASS}`}>
                 <span 
                   className={`w-1.5 h-1.5 rounded-full shadow-sm ${
                     !info.isActive ? 'bg-danger shadow-danger/50' :
@@ -181,12 +188,12 @@ const ConnectionItemComponent: React.FC<Props> = ({
 
               {/* Speed Indicators */}
               {hasSpeed && (
-                <div className="flex items-center gap-2 bg-default-100/50 dark:bg-white/5 px-2 py-0.5 rounded-full border border-default-200/50 ml-1 shrink-0">
+                <div className={`flex items-center gap-2 px-2 py-0.5 ml-1 shrink-0 ${META_PILL_CLASS}`}>
                   <div className="flex items-center gap-1 group/speed" style={{ color: 'rgb(14, 165, 233)' }}>
                     <IoArrowUp className="text-[10px] opacity-70 group-hover/speed:opacity-100 group-hover/speed:-translate-y-px transition-all" />
                     <span className="text-[10px] font-mono font-medium">{uploadSpeed || '0 B'}/s</span>
                   </div>
-                  <div className="w-[1px] h-2 bg-default-200/50 dark:bg-white/10" />
+                  <div className="w-[1px] h-2 bg-default-200/50 dark:bg-default-200/20" />
                   <div className="flex items-center gap-1 group/speed" style={{ color: 'rgb(168, 85, 247)' }}>
                     <IoArrowDown className="text-[10px] opacity-70 group-hover/speed:opacity-100 group-hover/speed:translate-y-px transition-all" />
                     <span className="text-[10px] font-mono font-medium">{downloadSpeed || '0 B'}/s</span>

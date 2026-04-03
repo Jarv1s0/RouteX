@@ -31,10 +31,10 @@ const LogItem: React.FC<Props> = (props) => {
         shadow="sm"
         radius="lg"
         className={`w-full transition-all duration-200 border group
-          bg-white/60 dark:bg-[#18181b]/60 backdrop-blur-md 
-          border-default-200/50 dark:border-white/5
-          hover:bg-default-100/80 hover:shadow-md hover:scale-[1.002]
-          data-[pressed=true]:scale-[0.98] data-[pressed=true]:bg-default-100/90
+          bg-default-100/60 dark:bg-default-50/30 backdrop-blur-md
+          border-default-200/60 dark:border-white/10
+          hover:bg-default-200/60 dark:hover:bg-default-100/40 hover:-translate-y-0.5 hover:shadow-md
+          data-[pressed=true]:scale-[0.98] data-[pressed=true]:bg-default-200/70 dark:data-[pressed=true]:bg-default-100/50
         `}
         onPress={handlePress}
       >

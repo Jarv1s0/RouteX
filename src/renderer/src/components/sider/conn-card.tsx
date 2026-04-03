@@ -120,7 +120,7 @@ const ConnCard: React.FC<Props> = (props) => {
           cursor-pointer
         `}
       >
-        <CardBody className="py-3 px-5 h-[100px] flex flex-col justify-between relative overflow-hidden z-10 w-full">
+        <CardBody className="py-3 px-5 h-[90px] flex flex-col justify-between relative overflow-hidden z-10 w-full">
           {/* Traffic Chart Layer (Pushed to bottom) */}
           <div className="absolute left-0 right-0 bottom-0 top-[20px] z-0 opacity-50 pointer-events-none">
               <TrafficChart data={trafficData} isActive={match} />

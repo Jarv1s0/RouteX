@@ -75,7 +75,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
 
              {/* Code Block */}
              <div className="relative group">
-                <div className="w-full bg-[#f5f5f5] dark:bg-[#111113] border border-default-200/50 dark:border-white/5 rounded-lg p-3 shadow-inner">
+                <div className="w-full bg-default-100/60 dark:bg-default-50/30 border border-default-200/60 dark:border-white/10 rounded-lg p-3 shadow-inner backdrop-blur-md">
                   <pre className="text-sm font-mono leading-relaxed whitespace-pre-wrap break-all select-text text-foreground/90 font-medium">
                     {log.payload}
                   </pre>

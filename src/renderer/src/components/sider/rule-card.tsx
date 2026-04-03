@@ -1,21 +1,24 @@
 import { Button, Tooltip } from '@heroui/react'
-import { LuGitBranch } from 'react-icons/lu'
+import { LuGitBranch, LuRotateCw } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import React, { useEffect, useMemo } from 'react'
-import { getRuntimeConfig, mihomoRuleProviders } from '@renderer/utils/mihomo-ipc'
-import useSWR from 'swr'
+import React, { useEffect, useMemo, useState } from 'react'
+import { getRuntimeConfig, mihomoRuleProviders, mihomoUpdateRuleProviders } from '@renderer/utils/mihomo-ipc'
+import useSWR, { mutate as globalMutate } from 'swr'
 
 interface Props {
   iconOnly?: boolean
+  compact?: boolean
+  className?: string
 }
 
 const RuleCard: React.FC<Props> = (props) => {
-  const { iconOnly } = props
+  const { iconOnly, compact, className = '' } = props
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/rules')
+  const [updating, setUpdating] = useState(false)
   
   const { data, mutate } = useSWR(
     'ruleCardStats',
@@ -40,6 +43,29 @@ const RuleCard: React.FC<Props> = (props) => {
     const manualRuleCount = Array.isArray(data?.runtimeConfig?.rules) ? data.runtimeConfig.rules.length : 0
     return providerCount + manualRuleCount
   }, [data])
+
+  const providerCount = useMemo(() => {
+    return data?.providers?.providers ? Object.keys(data.providers.providers).length : 0
+  }, [data])
+
+  const updateAll = async (): Promise<void> => {
+    if (updating) return
+    const providerNames = data?.providers?.providers ? Object.keys(data.providers.providers) : []
+    if (providerNames.length === 0) return
+
+    setUpdating(true)
+    try {
+      await Promise.all(providerNames.map((name) => mihomoUpdateRuleProviders(name)))
+      await Promise.all([
+        mutate(),
+        globalMutate('mihomoRuleProviders')
+      ])
+    } catch (e) {
+      new Notification(`规则集合更新失败\n${e}`)
+    } finally {
+      setUpdating(false)
+    }
+  }
   
   useEffect(() => {
     const handleRefresh = (): void => {
@@ -80,7 +106,7 @@ const RuleCard: React.FC<Props> = (props) => {
 
   return (
     <div 
-      className={`rule-card flex flex-col p-2 px-3 rounded-xl cursor-pointer transition-all group ${
+      className={`rule-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-all group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
       onClick={() => navigate('/rules')}
@@ -90,15 +116,26 @@ const RuleCard: React.FC<Props> = (props) => {
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <LuGitBranch className={`text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-foreground/80`} />
           </span>
-          <h3 className={`text-sm font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>
+          <h3 className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>
             路由规则
           </h3>
         </div>
-        <div className="flex items-center">
-          <span className={`text-xs font-semibold transition-colors text-foreground/50 dark:text-foreground/40 group-hover:text-foreground/70`}>
-            {ruleCount > 0 ? ruleCount.toLocaleString() : '-'}
-          </span>
+        <div className="flex shrink-0 items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+          <Button
+            isIconOnly
+            size="sm"
+            className={`${compact ? 'w-5 h-5' : 'w-6 h-6'} min-w-0`}
+            variant="light"
+            disabled={updating || providerCount === 0}
+            onPress={updateAll}
+          >
+            <LuRotateCw className={`${compact ? 'text-[13px]' : 'text-[14px]'} ${updating ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
+      </div>
+      <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
+        <span>{providerCount.toLocaleString()} 个规则集</span>
+        <span>{ruleCount.toLocaleString()} 条规则</span>
       </div>
     </div>
   )

@@ -17,11 +17,13 @@ dayjs.locale('zh-cn')
 
 interface Props {
   iconOnly?: boolean
+  compact?: boolean
+  className?: string
 }
 
 const ProfileCard: React.FC<Props> = (props) => {
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { iconOnly } = props
+  const { iconOnly, compact, className = '' } = props
   const { profileDisplayDate = 'expire' } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
@@ -61,7 +63,7 @@ const ProfileCard: React.FC<Props> = (props) => {
 
   return (
     <div 
-      className={`profile-card flex flex-col gap-1.5 p-2 px-3 rounded-xl cursor-pointer transition-all group ${
+      className={`profile-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-all group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
       onClick={() => navigate('/profiles')}
@@ -77,7 +79,7 @@ const ProfileCard: React.FC<Props> = (props) => {
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <LuCloud className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
           </span>
-          <h3 className={`text-sm font-semibold truncate transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`} title={info.name}>
+          <h3 className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold truncate transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`} title={info.name}>
             {info.name}
           </h3>
         </div>
@@ -85,19 +87,19 @@ const ProfileCard: React.FC<Props> = (props) => {
           <Button
             isIconOnly
             size="sm"
-            className="w-6 h-6 min-w-0"
+            className={`${compact ? 'w-5 h-5' : 'w-6 h-6'} min-w-0`}
             title="查看当前运行时配置"
             variant="light"
             onPress={() => setShowRuntimeConfig(true)}
           >
-            <LuFileCode className="text-[14px]" />
+            <LuFileCode className={compact ? 'text-[13px]' : 'text-[14px]'} />
           </Button>
           {info.type === 'remote' && (
             <Tooltip delay={300} placement="left" content={dayjs(info.updated).fromNow()}>
               <Button
                 isIconOnly
                 size="sm"
-                className="w-6 h-6 min-w-0"
+                className={`${compact ? 'w-5 h-5' : 'w-6 h-6'} min-w-0`}
                 disabled={updating}
                 variant="light"
                 onPress={async () => {
@@ -106,7 +108,7 @@ const ProfileCard: React.FC<Props> = (props) => {
                   setUpdating(false)
                 }}
               >
-                <LuRotateCw className={`text-[14px] ${updating ? 'animate-spin' : ''}`} />
+                <LuRotateCw className={`${compact ? 'text-[13px]' : 'text-[14px]'} ${updating ? 'animate-spin' : ''}`} />
               </Button>
             </Tooltip>
           )}
@@ -115,7 +117,7 @@ const ProfileCard: React.FC<Props> = (props) => {
 
       {info.type === 'remote' && extra && (
         <>
-          <div className="flex justify-between items-center text-[11px] text-foreground/75 dark:text-foreground/70 px-0.5">
+          <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 dark:text-foreground/70 px-0.5`}>
             <span>{calcTraffic(usage)} / {calcTraffic(total)}</span>
             <span 
               className="cursor-pointer hover:text-primary transition-colors hover:underline"
@@ -133,13 +135,13 @@ const ProfileCard: React.FC<Props> = (props) => {
       )}
 
       {info.type === 'remote' && !extra && (
-        <div className="flex justify-between items-center text-[11px] text-foreground/70 dark:text-foreground/65 px-0.5">
+        <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
           <span>远程配置</span>
           <span>{dayjs(info.updated).fromNow()}</span>
         </div>
       )}
       {info.type === 'local' && (
-        <div className="flex justify-between items-center text-[11px] text-foreground/70 dark:text-foreground/65 px-0.5">
+        <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
           <span>本地配置</span>
         </div>
       )}

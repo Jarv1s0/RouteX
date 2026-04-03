@@ -9,6 +9,10 @@ import { buildContextMenu, showTrayIcon } from './tray'
 export let floatingWindow: BrowserWindow | null = null
 let triggerTimeoutRef: NodeJS.Timeout | null = null
 
+function refreshTrayMenu(): void {
+  ipcMain.emit('updateTrayMenu')
+}
+
 function handleUpdateFloatingWindow(): void {
   if (!floatingWindow || floatingWindow.isDestroyed()) return
   floatingWindow.webContents.send('controledMihomoConfigUpdated')
@@ -73,6 +77,7 @@ async function createFloatingWindow(): Promise<void> {
     applyTheme(customTheme)
     floatingWindow?.show()
     floatingWindow?.setAlwaysOnTop(true, 'screen-saver')
+    refreshTrayMenu()
   })
   floatingWindow.on('moved', () => {
     if (floatingWindow) floatingWindowState.saveState(floatingWindow)
@@ -87,6 +92,7 @@ async function createFloatingWindow(): Promise<void> {
 export async function showFloatingWindow(): Promise<void> {
   if (floatingWindow) {
     floatingWindow.show()
+    refreshTrayMenu()
   } else {
     await createFloatingWindow()
   }
@@ -118,6 +124,7 @@ export async function closeFloatingWindow(): Promise<void> {
   }
   await showTrayIcon()
   await patchAppConfig({ disableTray: false })
+  refreshTrayMenu()
 }
 
 export async function showContextMenu(): Promise<void> {

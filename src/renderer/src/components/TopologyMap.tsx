@@ -460,7 +460,7 @@ const TopologyMapInner = () => {
           <Background color="transparent" gap={20} size={0} />
           <Controls
             showInteractive={false}
-            className="opacity-50 hover:opacity-100 border-none shadow-md overflow-hidden rounded-lg mx-4"
+            className="topology-controls opacity-50 hover:opacity-100 border-none shadow-md overflow-hidden rounded-lg mx-4"
           />
         </ReactFlow>
       )}

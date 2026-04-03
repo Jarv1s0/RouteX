@@ -16,6 +16,8 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   iconOnly?: boolean
+  compact?: boolean
+  className?: string
 }
 
 async function showToastError(message: string): Promise<void> {
@@ -25,7 +27,7 @@ async function showToastError(message: string): Promise<void> {
 
 const MihomoCoreCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
-  const { iconOnly } = props
+  const { iconOnly, compact, className = '' } = props
   const { core = 'mihomo' } = appConfig || {}
   const { data: version, mutate } = useSWR('mihomoVersion', mihomoVersion, {
     errorRetryInterval: 200,
@@ -97,7 +99,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
 
   return (
     <div 
-      className={`mihomo-core-card flex flex-col gap-1.5 p-2 px-3 rounded-xl cursor-pointer transition-all group ${
+      className={`mihomo-core-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-all group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
       onClick={() => navigate('/mihomo')}
@@ -107,7 +109,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <LuCpu className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
           </span>
-          <h3 className={`text-sm font-semibold transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}>
+          <h3 className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}>
             内核设置
           </h3>
         </div>
@@ -115,7 +117,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
           <Button
             isIconOnly
             size="sm"
-            className="w-6 h-6 min-w-0"
+            className={`${compact ? 'w-5 h-5' : 'w-6 h-6'} min-w-0`}
             variant="light"
             disabled={restarting}
             onPress={async () => {
@@ -131,11 +133,11 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
               }
             }}
           >
-            <LuRotateCw className={`text-[14px] ${restarting ? 'animate-spin' : ''}`} />
+            <LuRotateCw className={`${compact ? 'text-[13px]' : 'text-[14px]'} ${restarting ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
-      <div className="flex justify-between items-center text-[11px] text-foreground/70 dark:text-foreground/65 px-0.5">
+      <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
         <div className="flex items-center">
           {version?.version ?? '-'}
           {hasNewVersion() && (

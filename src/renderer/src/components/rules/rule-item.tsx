@@ -43,7 +43,7 @@ const RuleItem: React.FC<RuleItemProps> = (props) => {
       <Card
         shadow="sm"
         radius="lg"
-        className={`bg-white/50 dark:bg-default-100/50 backdrop-blur-md hover:bg-white/80 dark:hover:bg-default-100/80 transition-all border border-transparent hover:border-default-200/50 shadow-sm ${!enabled ? 'grayscale' : ''}`}
+        className={`bg-default-100/60 dark:bg-default-50/30 backdrop-blur-md border border-default-200/60 dark:border-white/10 hover:bg-default-200/60 dark:hover:bg-default-100/40 hover:-translate-y-0.5 hover:shadow-md transition-all ${!enabled ? 'grayscale' : ''}`}
       >
         <CardBody className="w-full py-2 px-3">
           <div className="flex items-center gap-2">
@@ -96,7 +96,7 @@ const RuleItem: React.FC<RuleItemProps> = (props) => {
                     size="sm"
                     variant="flat"
                     classNames={{ content: "text-xs flag-emoji" }}
-                    style={{ backgroundColor: 'rgba(5, 150, 105, 0.15)', color: 'rgb(5, 150, 105)' }}
+                    className="bg-primary/10 text-primary border border-primary/20"
                   >
                     {currentNode}
                   </Chip>

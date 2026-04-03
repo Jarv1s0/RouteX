@@ -55,7 +55,7 @@ const SubStoreCard: React.FC<Props> = (props) => {
 
   return (
     <div
-      className={`substore-card flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-all group ${
+      className={`substore-card flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
       onClick={() => navigate('/substore')}

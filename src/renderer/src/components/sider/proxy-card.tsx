@@ -1,5 +1,5 @@
 import { Button, Card, CardBody, Tooltip } from '@heroui/react'
-import { LuArrowRight, LuRocket } from 'react-icons/lu'
+import { LuChevronRight, LuRocket } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
@@ -98,7 +98,7 @@ const ProxyCard: React.FC<Props> = (props) => {
           cursor-pointer
         `}
       >
-          <CardBody className="py-3 px-5 h-[100px] flex flex-col justify-between">
+          <CardBody className="py-3 px-5 h-[90px] flex flex-col justify-between">
           <div className="flex items-center gap-1.5">
             <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
               <LuRocket className={`text-[16px] transition-colors text-foreground/80 dark:text-foreground/70`} />
@@ -111,12 +111,12 @@ const ProxyCard: React.FC<Props> = (props) => {
               {currentGroupFlag}
             </span>
             <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
-              <span className={`text-sm font-bold truncate shrink-0 max-w-[50%] text-foreground`}>
+              <span className={`text-sm font-normal truncate shrink-0 max-w-[50%] text-foreground`}>
                 {currentGroupLabel}
               </span>
               {finalNodeName && (
                 <>
-                  <LuArrowRight className={`text-[12px] shrink-0 text-default-500 dark:text-default-300`} />
+                  <LuChevronRight className={`text-[12px] shrink-0 text-default-500 dark:text-default-300`} />
                   <span className={`text-sm truncate font-medium min-w-0 text-default-700 dark:text-default-300 flag-emoji`}>
                     {finalNodeName}
                   </span>
