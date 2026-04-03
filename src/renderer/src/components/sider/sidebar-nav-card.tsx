@@ -48,7 +48,7 @@ const SidebarNavCard: React.FC<Props> = ({
 
   return (
     <div
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all group ${className} ${
+      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-all group ${className} ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
       onClick={() => navigate(path)}

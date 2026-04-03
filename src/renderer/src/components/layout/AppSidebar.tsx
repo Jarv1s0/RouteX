@@ -159,7 +159,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           </div>
 
           {/* Navigation Menu Area */}
-          <div className={`flex h-[180px] shrink-0 flex-col gap-1.5 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
+          <div className={`flex shrink-0 flex-col gap-1.5 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
             <StatsCard className={fillCardClassName} />
             <ToolsCard className={fillCardClassName} />
             <LogCard className={fillCardClassName} />
