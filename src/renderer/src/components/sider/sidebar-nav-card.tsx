@@ -3,7 +3,12 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-interface Props {
+export interface SidebarNavItemProps {
+  iconOnly?: boolean
+  className?: string
+}
+
+interface Props extends SidebarNavItemProps {
   iconOnly?: boolean
   label: string
   path: string
@@ -16,7 +21,8 @@ const SidebarNavCard: React.FC<Props> = ({
   label,
   path,
   icon: Icon,
-  iconOnlySizeClass = 'text-[16px]'
+  iconOnlySizeClass = 'text-[16px]',
+  className = ''
 }) => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -42,7 +48,7 @@ const SidebarNavCard: React.FC<Props> = ({
 
   return (
     <div
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all group ${
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all group ${className} ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
       onClick={() => navigate(path)}

@@ -1,12 +1,8 @@
 import { LuMap } from 'react-icons/lu'
 import React from 'react'
-import SidebarNavCard from './sidebar-nav-card'
+import SidebarNavCard, { type SidebarNavItemProps } from './sidebar-nav-card'
 
-interface Props {
-  iconOnly?: boolean
-}
-
-const MapCard: React.FC<Props> = (props) => {
+const MapCard: React.FC<SidebarNavItemProps> = (props) => {
   return <SidebarNavCard {...props} label="拓扑" path="/map" icon={LuMap} />
 }
 

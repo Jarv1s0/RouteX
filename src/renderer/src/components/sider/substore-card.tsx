@@ -8,11 +8,12 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 interface Props {
   iconOnly?: boolean
   isMinimal?: boolean
+  className?: string
 }
 
 const SubStoreCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
-  const { iconOnly, isMinimal } = props
+  const { iconOnly, isMinimal, className = '' } = props
   const { useSubStore = true } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
@@ -55,7 +56,7 @@ const SubStoreCard: React.FC<Props> = (props) => {
 
   return (
     <div
-      className={`substore-card flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all group ${
+      className={`substore-card flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all group ${className} ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
       onClick={() => navigate('/substore')}

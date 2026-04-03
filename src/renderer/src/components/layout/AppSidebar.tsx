@@ -38,6 +38,7 @@ interface AppSidebarProps {
 
 const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
   ({ width, narrowWidth, latest }, ref) => {
+    const fillCardClassName = 'flex-1'
     const navigate = useNavigate()
     const location = useLocation()
     const { appConfig } = useAppConfig()
@@ -158,12 +159,12 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           </div>
 
           {/* Navigation Menu Area */}
-          <div className={`flex flex-col gap-2 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
-            <StatsCard />
-            <ToolsCard />
-            <LogCard />
-            <MapCard />
-            {useSubStore && <SubStoreCard />}
+          <div className={`flex h-[180px] shrink-0 flex-col gap-1.5 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
+            <StatsCard className={fillCardClassName} />
+            <ToolsCard className={fillCardClassName} />
+            <LogCard className={fillCardClassName} />
+            <MapCard className={fillCardClassName} />
+            {useSubStore && <SubStoreCard className={fillCardClassName} />}
           </div>
         </div>
       </div>
