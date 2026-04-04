@@ -19,8 +19,8 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
   const uploadSeries = useMemo(() => validData.map((item) => item.upload), [validData])
   const downloadSeries = useMemo(() => validData.map((item) => item.download), [validData])
 
-  const uploadColor = isActive ? '#ffffff' : '#22d3ee'
-  const downloadColor = isActive ? '#ffffffcc' : '#c084fc'
+  const uploadColor = '#22d3ee'
+  const downloadColor = '#c084fc'
 
   const chartGeometry = useMemo(() => {
     const width = 100

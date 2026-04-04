@@ -1,19 +1,17 @@
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
+import { Button, Switch, Tooltip } from '@heroui/react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import BorderSwitch from '@renderer/components/base/border-switch'
-import { LuCable } from 'react-icons/lu'
+import { LuNetwork } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { restartCore } from '@renderer/utils/mihomo-ipc'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import React from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   iconOnly?: boolean
+  compact?: boolean
 }
 
 async function showToastError(title: string, description: string): Promise<void> {
@@ -22,26 +20,16 @@ async function showToastError(title: string, description: string): Promise<void>
 }
 
 const TunSwitcher: React.FC<Props> = (props) => {
-  const { iconOnly } = props
+  const { iconOnly, compact } = props
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/tun') || false
   const { appConfig } = useAppConfig()
-  const { tunCardStatus = 'col-span-1', disableAnimation = false } = appConfig || {}
+  const { tunCardStatus = '' } = appConfig || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { tun } = controledMihomoConfig || {}
   const { enable } = tun || {}
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'tun'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
+
   const onChange = async (enable: boolean): Promise<void> => {
     try {
       if (enable) {
@@ -53,7 +41,6 @@ const TunSwitcher: React.FC<Props> = (props) => {
       sendIpc(SEND.updateFloatingWindow)
       sendIpc(SEND.updateTrayMenu)
     } catch (error) {
-      // 显示友好的错误提示
       const errorMessage = error instanceof Error ? error.message : String(error)
       
       if (enable && (errorMessage.includes('permission') || errorMessage.includes('权限') || errorMessage.includes('access'))) {
@@ -73,7 +60,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
 
   if (iconOnly) {
     return (
-      <div className={`${tunCardStatus} flex justify-center`}>
+      <div className={`flex justify-center`}>
         <Tooltip content="虚拟网卡" placement="right">
           <Button
             size="sm"
@@ -84,61 +71,62 @@ const TunSwitcher: React.FC<Props> = (props) => {
               navigate('/tun')
             }}
           >
-            <LuCable className="text-[18px]" />
+            <LuNetwork className="text-[16px]" />
           </Button>
         </Tooltip>
       </div>
     )
   }
 
+  if (compact) {
+    return (
+      <div
+        onClick={() => navigate('/tun')}
+        className={`${tunCardStatus} tun-card flex h-full flex-1 items-center justify-between gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all group ${
+          match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+        }`}
+      >
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+            <LuNetwork className={`text-[15px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
+          </span>
+          <span className={`text-sm font-semibold whitespace-nowrap leading-none transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}>
+            虚拟网卡
+          </span>
+        </div>
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center pr-0 -mr-0.5">
+          <Switch
+            size="sm"
+            isSelected={enable}
+            onValueChange={onChange}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${tunCardStatus} tun-card`}
+      onClick={() => navigate('/tun')}
+      className={`${tunCardStatus} tun-card flex flex-1 items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${
+        match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+      }`}
     >
-      <Card
-        fullWidth
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        className={`
-          ${CARD_STYLES.BASE}
-          ${
-            match
-              ? CARD_STYLES.ACTIVE
-              : CARD_STYLES.INACTIVE
-          }
-          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-          cursor-pointer
-        `}
-        radius="lg"
-        shadow="none"
-      >
-        <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
-          <div className="flex justify-between">
-            <SiderCardIcon isActive={match}>
-              <LuCable className="text-[18px]" />
-            </SiderCardIcon>
-            <BorderSwitch
-              isShowBorder={match && enable}
-              isSelected={enable}
-              onValueChange={onChange}
-            />
-          </div>
-        </CardBody>
-        <CardFooter className="pt-1 relative z-10">
-          <h3
-             className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-          >
-             虚拟网卡
-          </h3>
-        </CardFooter>
-      </Card>
+      <div className="flex items-center gap-1.5">
+        <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+          <LuNetwork className={`text-[16px] transition-colors ${match ? 'text-primary' : 'text-default-500 group-hover:text-primary'}`} />
+        </span>
+        <h3 className={`text-sm font-semibold transition-colors ${match ? 'text-primary' : 'text-foreground/90 group-hover:text-primary'}`}>
+          虚拟网卡
+        </h3>
+      </div>
+      <div onClick={(e) => e.stopPropagation()}>
+        <BorderSwitch
+          isShowBorder={match && enable}
+          isSelected={enable}
+          onValueChange={onChange}
+        />
+      </div>
     </div>
   )
 }

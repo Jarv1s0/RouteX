@@ -2,9 +2,8 @@ name: Auto Build
 
 on:
   push:
-    branches: 
-      - main
-      - master
+    branches:
+      - develop
   workflow_dispatch:
 
 concurrency:
@@ -116,9 +115,6 @@ jobs:
       - name: Generate Release Notes
         run: node scripts/extract-latest-changelog.mjs changelog.md release-notes.md
 
-      - name: Prepare resources
-        run: node scripts/prepare.mjs
-
       - name: Build Application
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -139,3 +135,4 @@ jobs:
           elif [ "${{ matrix.platform }}" == "macos" ]; then
              gh release upload autobuild dist/*.pkg dist/*.dmg --clobber || true
           fi
+

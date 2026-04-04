@@ -73,8 +73,11 @@ export async function updateProfileItem(item: ProfileItem): Promise<void> {
     throw new Error('Profile not found')
   }
   config.items[index] = item
-  if (!item.autoUpdate) await delProfileUpdater(item.id)
+  await delProfileUpdater(item.id)
   await setProfileConfig(config)
+  if (item.autoUpdate !== false) {
+    await addProfileUpdater(item)
+  }
 }
 
 export async function addProfileItem(item: Partial<ProfileItem>): Promise<void> {

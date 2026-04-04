@@ -141,6 +141,7 @@ export default function ConnectionsContent({
           onSort={handleTableSort}
           onContextMenu={handleContextMenu}
           onVisibleRangeChange={handleVisibleRangeChange}
+          hiddenRules={hiddenRules}
         />
       ) : viewMode === 'list' ? (
         <Virtuoso

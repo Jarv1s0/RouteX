@@ -427,7 +427,7 @@ interface InlineSummaryProps {
 const NEUTRAL_CARD = 'bg-default-50/60 dark:bg-content1/10 border-default-200/50 dark:border-white/5 hover:border-default-300/60'
 
 const THEME_MAP = {
-  green:   { icon: 'bg-green-500/15 text-green-500',  label: 'text-green-500/80',  value: 'text-foreground'  },
+  green:   { icon: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400',  label: 'text-emerald-700/70 dark:text-emerald-300/75',  value: 'text-foreground'  },
   purple:  { icon: 'bg-purple-500/15 text-purple-500', label: 'text-purple-500/80', value: 'text-purple-500' },
   orange:  { icon: 'bg-warning/15 text-warning',       label: 'text-warning/80',    value: 'text-foreground'  },
   blue:    { icon: 'bg-blue-500/15 text-blue-500',     label: 'text-blue-500/80',   value: 'text-foreground'  },
@@ -518,7 +518,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
       {/* 节点图标/圆点 */}
       <div className={clsx(
         "absolute left-[6px] top-1 w-5 h-5 rounded-full border-[3px] z-10 flex items-center justify-center transition-all bg-content1",
-        type === 'source' ? "border-success/60 w-5 h-5 shadow-[0_0_0_2px_rgba(23,201,100,0.12)]" :
+        type === 'source' ? "border-emerald-500/50 w-5 h-5 shadow-[0_0_0_2px_rgba(16,185,129,0.1)]" :
         type === 'destination' ? "border-secondary w-5 h-5 shadow-[0_0_0_2px_rgba(151,80,221,0.2)]" :
         "border-default-300 group-hover:border-primary group-hover:w-5 group-hover:h-5 w-4 h-4 left-[8px] top-1.5"
       )}>
@@ -526,7 +526,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
         {(type === 'source' || type === 'destination') && (
            <div className={clsx(
              "w-1.5 h-1.5 rounded-full",
-             type === 'source' ? "bg-success/70" : "bg-secondary"
+             type === 'source' ? "bg-emerald-500/75" : "bg-secondary"
            )} />
         )}
       </div>
@@ -541,7 +541,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           {/* 顶部标签行 */}
         <div className={clsx("grid grid-cols-[minmax(0,1fr)_88px] items-center gap-2 mb-1", nonGroupInsetClass)}>
             <div className="flex min-w-0 items-center gap-1.5">
-            {type === 'source' && <span className="text-[10px] font-bold text-green-500 uppercase bg-green-500/10 px-1.5 rounded">起点</span>}
+            {type === 'source' && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-500/10 px-1.5 rounded">起点</span>}
             {type === 'destination' && <span className="text-[10px] font-bold text-purple-500 uppercase bg-purple-500/10 px-1.5 rounded">终点</span>}
             {tagLabel && !isGroup && type !== 'source' && type !== 'destination' && (
               <span className={clsx("text-[10px] font-bold uppercase px-1.5 rounded", tagClassName || "text-default-400 bg-default-100")}>

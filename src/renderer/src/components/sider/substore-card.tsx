@@ -1,103 +1,70 @@
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
+import { Button, Tooltip } from '@heroui/react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import SubStoreIcon from '../base/substore-icon'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   iconOnly?: boolean
+  isMinimal?: boolean
+  className?: string
 }
 
 const SubStoreCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
-  const { iconOnly } = props
-  const {
-    substoreCardStatus = 'col-span-1',
-    useSubStore = true,
-    disableAnimation = false
-  } = appConfig || {}
+  const { iconOnly, isMinimal, className = '' } = props
+  const { useSubStore = true } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/substore')
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'substore'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
+
+  if (!useSubStore) return null
 
   if (iconOnly) {
     return (
-      <div className={`${substoreCardStatus} ${!useSubStore ? 'hidden' : ''} flex justify-center`}>
+      <div className={`flex justify-center`}>
         <Tooltip content="Sub-Store" placement="right">
           <Button
             size="sm"
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => {
-              navigate('/substore')
-            }}
+            onPress={() => navigate('/substore')}
           >
-            <SubStoreIcon className="text-[18px]" />
+            <SubStoreIcon className="text-[16px]" />
           </Button>
         </Tooltip>
       </div>
     )
   }
 
+  if (isMinimal) {
+    return (
+      <Tooltip content="Sub-Store" placement="top">
+        <div
+          className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all ${
+            match ? CARD_STYLES.SIDEBAR_ACTIVE : `${CARD_STYLES.SIDEBAR_ITEM} text-foreground/80`
+          }`}
+          onClick={() => navigate('/substore')}
+        >
+          <SubStoreIcon className={`text-[16px] text-default-500 dark:text-default-400`} />
+        </div>
+      </Tooltip>
+    )
+  }
+
   return (
     <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${substoreCardStatus} ${!useSubStore ? 'hidden' : ''} substore-card`}
+      className={`substore-card flex items-center gap-1.5 px-3 py-1.5 rounded-xl cursor-pointer transition-all group ${className} ${
+        match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+      }`}
+      onClick={() => navigate('/substore')}
     >
-      <Card
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        fullWidth
-        className={`
-          ${CARD_STYLES.BASE}
-          ${
-            match
-              ? CARD_STYLES.ACTIVE
-              : CARD_STYLES.INACTIVE
-          }
-          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-          cursor-pointer
-        `}
-        isPressable
-        onPress={() => navigate('/substore')}
-      >
-        <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
-          <div className="flex justify-between">
-            <SiderCardIcon isActive={match}>
-              <SubStoreIcon className="text-[18px]" />
-            </SiderCardIcon>
-          </div>
-        </CardBody>
-        <CardFooter className="pt-1 relative z-10">
-          <h3
-             className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-          >
-             Sub-Store
-          </h3>
-        </CardFooter>
-      </Card>
+      <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+        <SubStoreIcon className={`text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-primary`} />
+      </span>
+      <span className={`text-sm font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>Sub-Store</span>
     </div>
   )
 }

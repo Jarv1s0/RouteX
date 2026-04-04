@@ -10,10 +10,11 @@ import clsx from 'clsx'
 
 interface Props {
   iconOnly?: boolean
+  isMinimal? : boolean
 }
 
 const OutboundModeSwitcher: React.FC<Props> = (props) => {
-  const { iconOnly } = props
+  const { iconOnly, isMinimal } = props
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { mutate: mutateGroups } = useGroups()
   const { appConfig } = useAppConfig()
@@ -34,62 +35,47 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
   if (!mode) return null
 
   const modes = [
-    { 
-      key: 'rule', 
-      label: '规则', 
-      icon: MdOutlineAltRoute, 
-      activeClass: 'text-white',
-      activeBg: 'bg-gradient-to-tr from-sky-400 to-blue-500',
-      shadow: 'shadow-lg shadow-sky-500/30'
-    },
-    { 
-      key: 'global', 
-      label: '全局', 
-      icon: TbWorld, 
-      activeClass: 'text-white',
-      activeBg: 'bg-gradient-to-tr from-pink-400 to-purple-500',
-      shadow: 'shadow-lg shadow-pink-500/30'
-    },
-    { 
-      key: 'direct', 
-      label: '直连', 
-      icon: TbBolt, 
-      activeClass: 'text-white',
-      activeBg: 'bg-gradient-to-tr from-teal-400 to-emerald-500',
-      shadow: 'shadow-lg shadow-teal-500/30'
-    }
+    { key: 'rule', label: '规则', icon: MdOutlineAltRoute },
+    { key: 'global', label: '全局', icon: TbWorld },
+    { key: 'direct', label: '直连', icon: TbBolt }
   ] as const
 
   if (iconOnly) {
-    // 简版图标模式（保留原有 Tabs 逻辑或简化）
-    // 这里简单保留逻辑，或者也用 framer-motion 重写
-    return null // 暂时忽略 iconOnly 模式，侧边栏似乎没用到
+    return null
+  }
+
+  const content = (
+    <div className="flex relative z-0 w-full gap-1">
+      {modes.map((m) => {
+        const isActive = mode === m.key
+        return (
+          <button
+            key={m.key}
+            onClick={() => onChangeMode(m.key as OutboundMode)}
+            className={clsx(
+              'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm transition-all duration-300 rounded-xl z-10 box-border',
+              isActive
+                ? 'text-foreground dark:text-foreground bg-primary/30 dark:bg-primary/30 backdrop-blur-md border-transparent shadow-sm font-semibold'
+                : 'text-default-700 dark:text-default-300 hover:text-foreground dark:hover:text-foreground hover:bg-primary/10 dark:hover:bg-primary/20 font-medium'
+            )}
+          >
+            <span className="flex items-center gap-1.5">
+              <m.icon className={clsx('text-base', isActive ? 'text-foreground/70 dark:text-foreground/60' : 'text-default-600 dark:text-default-300')} />
+              {m.label}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  if (isMinimal) {
+    return content
   }
 
   return (
     <div className={`p-1 rounded-2xl ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}>
-      <div className="flex relative z-0">
-        {modes.map((m) => {
-          const isActive = mode === m.key
-          return (
-            <button
-              key={m.key}
-              onClick={() => onChangeMode(m.key as OutboundMode)}
-              className={clsx(
-                'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none rounded-large z-10',
-                isActive
-                  ? `${m.activeClass} ${m.activeBg} ${m.shadow}`
-                  : 'text-default-500 hover:text-default-600 hover:bg-default-100/70'
-              )}
-            >
-              <span className="flex items-center gap-1.5">
-                <m.icon className="text-base" />
-                {m.label}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+      {content}
     </div>
   )
 }

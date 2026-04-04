@@ -1,26 +1,19 @@
-
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { LuRocket } from 'react-icons/lu'
+import { Button, Card, CardBody, Tooltip } from '@heroui/react'
+import { LuChevronRight, LuRocket } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { addFlag, removeFlag } from '@renderer/utils/flags'
+import { getFlag, removeFlag, cleanNodeName } from '@renderer/utils/flags'
 import React, { useMemo, useEffect, useState } from 'react'
 import { mihomoProxies } from '@renderer/utils/mihomo-ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
 
 interface Props {
   iconOnly?: boolean
 }
 
 const ProxyCard: React.FC<Props> = (props) => {
-  const { appConfig } = useAppConfig()
   const { iconOnly } = props
-  const { proxyCardStatus = 'col-span-2', disableAnimation = false } = appConfig || {}
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { mode } = controledMihomoConfig || {}
   const location = useLocation()
@@ -31,24 +24,10 @@ const ProxyCard: React.FC<Props> = (props) => {
     Record<string, ControllerProxiesDetail | ControllerGroupDetail>
   >({})
   
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'proxy'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
-
-  // 点击卡片时导航到代理组页面
   const handleCardClick = (): void => {
     navigate('/proxies')
   }
 
-  // 获取所有代理信息（包括隐藏的组）
   useEffect(() => {
     mihomoProxies().then(data => {
       setAllProxies(data.proxies)
@@ -57,20 +36,22 @@ const ProxyCard: React.FC<Props> = (props) => {
     })
   }, [groups])
 
-  // 缓存第一个非GLOBAL组
   const firstGroup = useMemo(() => {
     return mode === 'global' 
       ? groups.find((g) => g.name === 'GLOBAL') 
       : groups.find((g) => g.name !== 'GLOBAL')
   }, [groups, mode])
   
-  // 缓存当前选中的代理组名（带国旗）
-  const currentGroupName = useMemo(() => {
+  const currentGroupLabel = useMemo(() => {
     const groupName = firstGroup?.now
-    return groupName ? addFlag(groupName) : '代理组'
+    return groupName ? cleanNodeName(groupName) : '代理组'
   }, [firstGroup])
 
-  // 缓存最终节点名（递归查找，使用 allProxies）
+  const currentGroupFlag = useMemo(() => {
+    const groupName = firstGroup?.now
+    return groupName ? getFlag(groupName) : ''
+  }, [firstGroup])
+
   const finalNodeName = useMemo(() => {
     const findFinalNode = (nodeName: string | undefined): string | undefined => {
       if (!nodeName) return undefined
@@ -83,14 +64,14 @@ const ProxyCard: React.FC<Props> = (props) => {
     const groupName = firstGroup?.now
     const finalNode = findFinalNode(groupName)
     if (groupName && finalNode && groupName !== finalNode) {
-      return removeFlag(finalNode)
+      return cleanNodeName(removeFlag(finalNode))
     }
     return ''
   }, [allProxies, firstGroup])
 
   if (iconOnly) {
     return (
-      <div className={`${proxyCardStatus} flex justify-center`}>
+      <div className={`flex justify-center`}>
         <Tooltip content="代理组" placement="right">
           <Button
             size="sm"
@@ -99,60 +80,51 @@ const ProxyCard: React.FC<Props> = (props) => {
             variant={match ? 'solid' : 'light'}
             onPress={handleCardClick}
           >
-            <LuRocket className="text-[18px]" />
+            <LuRocket className="text-[16px]" />
           </Button>
         </Tooltip>
       </div>
     )
   }
   return (
-    <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${proxyCardStatus} proxy-card`}
-    >
+    <div className={`proxy-card`}>
       <Card
         fullWidth
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
         isPressable
         onPress={handleCardClick}
         className={`
           ${CARD_STYLES.BASE}
-          ${
-            match
-              ? CARD_STYLES.ACTIVE
-              : CARD_STYLES.INACTIVE
-          }
-          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
+          ${match ? CARD_STYLES.ACTIVE : CARD_STYLES.INACTIVE}
+          cursor-pointer
         `}
       >
-        <CardBody>
-          <div className="flex justify-between">
-            <h3
-              className={`text-md font-bold leading-[32px] flag-emoji ${match ? 'text-primary-foreground' : 'text-foreground'} truncate`}
-            >
-              {currentGroupName}
-            </h3>
-            <SiderCardIcon isActive={match}>
-              <LuRocket className="text-[18px]" />
-            </SiderCardIcon>
+          <CardBody className="py-3 px-5 h-[90px] flex flex-col justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+              <LuRocket className={`text-[16px] transition-colors text-foreground/80 dark:text-foreground/70`} />
+            </span>
+            <h3 className={`text-sm font-semibold text-foreground dark:text-foreground/90`}>代理组</h3>
+          </div>
+          
+          <div className="flex items-center gap-1.5 mt-auto max-w-full overflow-hidden">
+            <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-[13px] leading-none flag-emoji">
+              {currentGroupFlag}
+            </span>
+            <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+              <span className={`text-sm font-normal truncate shrink-0 max-w-[50%] text-foreground`}>
+                {currentGroupLabel}
+              </span>
+              {finalNodeName && (
+                <>
+                  <LuChevronRight className={`text-[12px] shrink-0 text-default-500 dark:text-default-300`} />
+                  <span className={`text-sm truncate font-medium min-w-0 text-default-700 dark:text-default-300 flag-emoji`}>
+                    {finalNodeName}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </CardBody>
-        <CardFooter className="pt-1">
-          <div
-            className={`flex justify-between w-full text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-          >
-            <h4 className={`text-xs ${match ? 'text-primary-foreground/70' : 'text-foreground-500'} truncate`}>
-              {finalNodeName}
-            </h4>
-          </div>
-        </CardFooter>
       </Card>
     </div>
   )

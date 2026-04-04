@@ -3,6 +3,7 @@ import { Card, CardHeader, CardFooter, Avatar, Chip } from '@heroui/react'
 import { IoApps } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
+import { getConnectionHideRule } from './shared'
 
 interface GroupData {
   process: string
@@ -139,7 +140,7 @@ const ConnectionsGroupView: React.FC<ConnectionsGroupViewProps> = ({
                       close={closeConnection}
                       hide={hideConnection}
                       unhide={unhideConnection}
-                      isHidden={hiddenRules.has(`${conn.metadata.process || 'unknown'}:${conn.metadata.host || conn.metadata.destinationIP || 'unknown'}`)}
+                      isHidden={hiddenRules.has(getConnectionHideRule(conn))}
                       index={i}
                       info={conn}
                       onContextMenu={handleContextMenu}

@@ -1,7 +1,8 @@
 import { app, dialog } from 'electron'
 import { createElevateTask } from '../sys/misc'
 import { copyFileSync, existsSync, writeFileSync } from 'fs'
-import { resourcesFilesDir, taskDir } from '../utils/dirs'
+import { routexRunPath, taskDir } from '../utils/dirs'
+import { ROUTEX_RUN_BINARY, ROUTEX_RUN_TASK_NAME } from '../utils/routex-run'
 import path from 'path'
 
 async function execSchtasks(command: string): Promise<void> {
@@ -11,9 +12,9 @@ async function execSchtasks(command: string): Promise<void> {
   await execPromise(command)
 }
 
-async function hasSparkleRunTask(): Promise<boolean> {
+async function hasRoutexRunTask(): Promise<boolean> {
   try {
-    await execSchtasks('%SystemRoot%\\System32\\schtasks.exe /query /tn "sparkle-run"')
+    await execSchtasks(`%SystemRoot%\\System32\\schtasks.exe /query /tn "${ROUTEX_RUN_TASK_NAME}"`)
     return true
   } catch {
     return false
@@ -25,16 +26,13 @@ function writeTaskParams(argv: string[]): void {
   writeFileSync(path.join(taskDir(), 'param.txt'), args.length > 0 ? args.join(' ') : 'empty')
 }
 
-function ensureSparkleRunBinary(): void {
-  const sparkleRunDest = path.join(taskDir(), 'sparkle-run.exe')
-  if (existsSync(sparkleRunDest)) {
+function ensureRoutexRunBinary(): void {
+  const routexRunDest = path.join(taskDir(), ROUTEX_RUN_BINARY)
+  if (existsSync(routexRunDest)) {
     return
   }
 
-  const sparkleRunSrc = path.join(resourcesFilesDir(), 'sparkle-run.exe')
-  if (existsSync(sparkleRunSrc)) {
-    copyFileSync(sparkleRunSrc, sparkleRunDest)
-  }
+  copyFileSync(routexRunPath(), routexRunDest)
 }
 
 interface EnsureElevationOptions {
@@ -59,9 +57,7 @@ export async function ensureElevatedStartup(options: EnsureElevationOptions): Pr
     await createElevateTask()
     return true
   } catch (createError) {
-    const taskExists = await hasSparkleRunTask()
-
-    if (!taskExists) {
+    if (!(await hasRoutexRunTask())) {
       dialog.showErrorBox(
         '需要管理员权限',
         '首次启动需要管理员权限来创建系统任务。\n\n请右键点击应用图标，选择"以管理员身份运行"。'
@@ -72,8 +68,8 @@ export async function ensureElevatedStartup(options: EnsureElevationOptions): Pr
 
     try {
       writeTaskParams(argv)
-      ensureSparkleRunBinary()
-      await execSchtasks('%SystemRoot%\\System32\\schtasks.exe /run /tn "sparkle-run"')
+      ensureRoutexRunBinary()
+      await execSchtasks(`%SystemRoot%\\System32\\schtasks.exe /run /tn "${ROUTEX_RUN_TASK_NAME}"`)
       app.exit()
       return false
     } catch (runError) {

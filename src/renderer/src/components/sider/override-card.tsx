@@ -43,7 +43,7 @@ const OverrideCard: React.FC<Props> = (props) => {
               navigate('/override')
             }}
           >
-            <LuSlidersHorizontal className="text-[18px]" />
+            <LuSlidersHorizontal className="text-[16px]" />
           </Button>
         </Tooltip>
       </div>
@@ -80,13 +80,13 @@ const OverrideCard: React.FC<Props> = (props) => {
         <CardBody className="pb-1 pt-0 px-0 relative z-10 overflow-visible">
           <div className="flex justify-between">
             <SiderCardIcon isActive={match}>
-              <LuSlidersHorizontal className="text-[18px]" />
+              <LuSlidersHorizontal className="text-[16px]" />
             </SiderCardIcon>
           </div>
         </CardBody>
         <CardFooter className="pt-1 relative z-10">
           <h3
-             className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
+             className="text-sm font-semibold text-foreground dark:text-foreground/90"
            >
              覆写
            </h3>

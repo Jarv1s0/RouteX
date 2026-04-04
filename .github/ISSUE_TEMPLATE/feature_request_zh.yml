@@ -27,6 +27,6 @@ body:
     type: textarea
     validations:
       required: true
-description: 请求 sparkle 未实现的功能
+description: 请求 RouteX 未实现的功能
 name: 功能请求
 title: '[Feature] '

@@ -12,6 +12,181 @@ import { stopCore, startCore } from './manager'
 import { mihomoCorePath } from '../utils/dirs'
 import { mainWindow } from '..'
 
+interface MihomoReleaseAsset {
+  name: string
+  browser_download_url: string
+}
+
+interface MihomoReleaseResponse {
+  assets?: MihomoReleaseAsset[]
+}
+
+const GITHUB_JSON_HEADERS = {
+  Accept: 'application/vnd.github+json',
+  'User-Agent': 'RouteX'
+}
+
+function createGitHubJsonHeaders(): Record<string, string> {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_API_TOKEN
+  return token
+    ? {
+        ...GITHUB_JSON_HEADERS,
+        Authorization: `Bearer ${token}`
+      }
+    : GITHUB_JSON_HEADERS
+}
+
+function getAssetPrefixCandidates(platform: NodeJS.Platform, arch: string): string[] {
+  const key = `${platform}-${arch}`
+  switch (key) {
+    case 'win32-x64':
+      return [
+        'mihomo-windows-amd64',
+        'mihomo-windows-amd64-compatible',
+        'mihomo-windows-amd64-v1',
+        'mihomo-windows-amd64-v2',
+        'mihomo-windows-amd64-v3'
+      ]
+    case 'win32-ia32':
+      return ['mihomo-windows-386']
+    case 'win32-arm64':
+      return ['mihomo-windows-arm64']
+    case 'darwin-x64':
+      return ['mihomo-darwin-amd64', 'mihomo-darwin-amd64-compatible', 'mihomo-darwin-amd64-v1']
+    case 'darwin-arm64':
+      return ['mihomo-darwin-arm64']
+    case 'linux-x64':
+      return [
+        'mihomo-linux-amd64',
+        'mihomo-linux-amd64-compatible',
+        'mihomo-linux-amd64-v1',
+        'mihomo-linux-amd64-v2',
+        'mihomo-linux-amd64-v3'
+      ]
+    case 'linux-arm64':
+      return ['mihomo-linux-arm64']
+    case 'linux-loong64':
+      return ['mihomo-linux-loong64', 'mihomo-linux-loong64-abi2']
+    default:
+      throw new Error(`Unsupported platform or arch: ${key}`)
+  }
+}
+
+function matchAssetName(
+  assetName: string,
+  version: string,
+  isAlpha: boolean,
+  ext: string,
+  prefixes: string[]
+): boolean {
+  const suffix = `-${version}${ext}`
+  if (!assetName.endsWith(suffix)) return false
+
+  return prefixes.some((prefix) => {
+    if (!assetName.startsWith(prefix)) return false
+    const middle = assetName.slice(prefix.length, assetName.length - suffix.length)
+    if (isAlpha) {
+      return (
+        middle === '' ||
+        middle === '-alpha' ||
+        /^-alpha-go\d+$/.test(middle) ||
+        /^-alpha-[\w.-]+$/.test(middle)
+      )
+    }
+    return middle === '' || /^-go\d+$/.test(middle)
+  })
+}
+
+function scoreAssetName(assetName: string, version: string, isAlpha: boolean, ext: string): number {
+  const suffix = `-${version}${ext}`
+  const middle = assetName.slice(0, assetName.length - suffix.length)
+  if (isAlpha) {
+    if (middle.endsWith('-alpha')) return 0
+    if (/-alpha-go\d+$/.test(middle)) return 1
+    return 2
+  }
+  if (!middle.includes('-go')) return 0
+  if (/-go\d+$/.test(middle)) return 1
+  return 2
+}
+
+function pickBestReleaseAsset(
+  assets: MihomoReleaseAsset[],
+  version: string,
+  isAlpha: boolean,
+  ext: string,
+  prefixes: string[]
+): MihomoReleaseAsset {
+  const matched = assets
+    .filter((asset) => matchAssetName(asset.name, version, isAlpha, ext, prefixes))
+    .sort((a, b) => {
+      const prefixIndexA = prefixes.findIndex((prefix) => a.name.startsWith(prefix))
+      const prefixIndexB = prefixes.findIndex((prefix) => b.name.startsWith(prefix))
+      if (prefixIndexA !== prefixIndexB) return prefixIndexA - prefixIndexB
+      return scoreAssetName(a.name, version, isAlpha, ext) - scoreAssetName(b.name, version, isAlpha, ext)
+    })
+
+  if (matched.length === 0) {
+    throw new Error(`No matched mihomo asset found for ${process.platform}-${process.arch} (${version})`)
+  }
+
+  return matched[0]
+}
+
+function findExecutableEntry(zipEntries: AdmZip.IZipEntry[]): AdmZip.IZipEntry | undefined {
+  return zipEntries.find(
+    (entry) => !entry.isDirectory && (entry.entryName.endsWith('.exe') || entry.entryName.includes('mihomo'))
+  )
+}
+
+async function fetchReleaseAssets(tag: string): Promise<MihomoReleaseAsset[]> {
+  const response = await axios.get<MihomoReleaseResponse>(
+    `https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/${encodeURIComponent(tag)}`,
+    {
+      timeout: 10000,
+      headers: createGitHubJsonHeaders()
+    }
+  )
+  return response.data.assets || []
+}
+
+function buildFallbackReleaseAsset(
+  version: string,
+  isAlpha: boolean,
+  platform: NodeJS.Platform,
+  prefixes: string[]
+): MihomoReleaseAsset {
+  const prefix = prefixes[0]
+  const ext = platform === 'win32' ? '.zip' : '.gz'
+  const fileName = `${prefix}-${version}${ext}`
+  const tag = isAlpha ? 'Prerelease-Alpha' : version
+
+  return {
+    name: fileName,
+    browser_download_url: `https://github.com/MetaCubeX/mihomo/releases/download/${tag}/${fileName}`
+  }
+}
+
+async function resolveAssetFromRelease(
+  version: string,
+  isAlpha: boolean,
+  platform: NodeJS.Platform,
+  arch: string
+): Promise<MihomoReleaseAsset> {
+  const ext = platform === 'win32' ? '.zip' : '.gz'
+  const prefixes = getAssetPrefixCandidates(platform, arch)
+  const tag = isAlpha ? 'Prerelease-Alpha' : version
+  try {
+    const assets = await fetchReleaseAssets(tag)
+    return pickBestReleaseAsset(assets, version, isAlpha, ext, prefixes)
+  } catch (error) {
+    console.warn(
+      `[Updater] failed to resolve mihomo asset from release API, falling back to legacy naming: ${String(error)}`
+    )
+    return buildFallbackReleaseAsset(version, isAlpha, platform, prefixes)
+  }
+}
+
 // 获取最新的 Release/Alpha 版本下载地址
 async function getDownloadUrl(isAlpha: boolean): Promise<{ url: string; version: string }> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
@@ -41,36 +216,10 @@ async function getDownloadUrl(isAlpha: boolean): Promise<{ url: string; version:
   }
 
   // 2. 构建下载 URL
-  // Alpha: mihomo-windows-amd64-alpha-{version}.zip
-  // Release: mihomo-windows-amd64-{version}.zip
-  // 注意：Release 版本通常是 v1.18.1 格式，文件名中不仅包含 v
-  
   const platform = os.platform()
   const arch = os.arch()
-  
-  let osStr = ''
-  if (platform === 'win32') osStr = 'windows'
-  else if (platform === 'linux') osStr = 'linux'
-  else if (platform === 'darwin') osStr = 'darwin'
-  else throw new Error(`Unsupported platform: ${platform}`)
-
-  let archStr = ''
-  if (arch === 'x64') archStr = 'amd64'
-  else if (arch === 'arm64') archStr = 'arm64'
-  else throw new Error(`Unsupported arch: ${arch}`)
-
-  const ext = platform === 'win32' ? '.zip' : '.gz'
-  
-  // Alpha 文件名示例: mihomo-windows-amd64-alpha-a1b2c3d.zip
-  // Release 文件名示例: mihomo-windows-amd64-v1.18.1.zip
-  
-  const filename = isAlpha
-    ? `mihomo-${osStr}-${archStr}-${version.startsWith('alpha-') ? version : 'alpha-' + version}${ext}`
-    : `mihomo-${osStr}-${archStr}-${version}${ext}`
-
-  const downloadUrl = isAlpha
-    ? `https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/${filename}`
-    : `https://github.com/MetaCubeX/mihomo/releases/download/${version}/${filename}`
+  const asset = await resolveAssetFromRelease(version, isAlpha, platform, arch)
+  const downloadUrl = asset.browser_download_url
 
   console.log(`[Updater] Target: ${downloadUrl}`)
   return { url: downloadUrl, version }
@@ -148,9 +297,7 @@ export async function upgradeMihomo(): Promise<void> {
     
     if (url.endsWith('.zip')) {
       const zip = new AdmZip(tempFile)
-      const zipEntries = zip.getEntries()
-      // 查找 .exe 文件，通常 zip 里只有 mihomo-windows-amd64.exe
-      const exeEntry = zipEntries.find(entry => entry.entryName.endsWith('.exe') || entry.entryName.includes('mihomo'))
+      const exeEntry = findExecutableEntry(zip.getEntries())
       
       if (!exeEntry) {
         throw new Error('Invalid Zip: No executable found')

@@ -1,7 +1,6 @@
 import React from 'react'
 import { Navigate } from 'react-router-dom'
 
-const Override = React.lazy(() => import('@renderer/pages/override'))
 const Proxies = React.lazy(() => import('@renderer/pages/proxies'))
 const Rules = React.lazy(() => import('@renderer/pages/rules'))
 const Settings = React.lazy(() => import('@renderer/pages/settings'))
@@ -59,7 +58,7 @@ const routes = [
   },
   {
     path: '/override',
-    element: <Override />
+    element: <Navigate to="/profiles?tab=overrides" replace />
   },
   {
     path: '/profiles',

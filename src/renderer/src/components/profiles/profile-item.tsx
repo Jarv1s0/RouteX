@@ -225,7 +225,7 @@ const ProfileItem: React.FC<Props> = (props) => {
             <div className="flex justify-between h-[32px]">
               <h3
                 title={info?.name}
-                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] text-foreground`}
               >
                 {info?.name}
               </h3>
@@ -246,7 +246,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                     >
                       <IoMdRefresh
                         color="default"
-                        className={`${isCurrent ? 'text-primary-foreground' : 'text-foreground'} text-[24px] ${updating ? 'animate-spin' : ''}`}
+                        className={`text-foreground text-[24px] ${updating ? 'animate-spin' : ''}`}
                       />
                     </Button>
                   </Tooltip>
@@ -257,7 +257,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                     <Button isIconOnly size="sm" variant="light" color="default">
                       <IoMdMore
                         color="default"
-                        className={`text-[24px] ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                        className={`text-[24px] text-foreground`}
                       />
                     </Button>
                   </DropdownTrigger>
@@ -278,14 +278,14 @@ const ProfileItem: React.FC<Props> = (props) => {
             </div>
             {info.type === 'remote' && extra && (
               <div
-                className={`mt-2 flex justify-between ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                className={`mt-2 flex justify-between text-foreground`}
               >
                 <small>{`${calcTraffic(usage)}/${calcTraffic(total)}`}</small>
                 {profileDisplayDate === 'expire' ? (
                   <Button
                     size="sm"
                     variant="light"
-                    className={`h-[20px] p-1 m-0 ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                    className={`h-[20px] p-1 m-0 text-foreground`}
                     onPress={async () => {
                       await patchAppConfig({ profileDisplayDate: 'update' })
                     }}
@@ -296,7 +296,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                   <Button
                     size="sm"
                     variant="light"
-                    className={`h-[20px] p-1 m-0 ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                    className={`h-[20px] p-1 m-0 text-foreground`}
                     onPress={async () => {
                       await patchAppConfig({ profileDisplayDate: 'expire' })
                     }}
@@ -310,12 +310,12 @@ const ProfileItem: React.FC<Props> = (props) => {
           <CardFooter className="pt-0">
             {info.type === 'remote' && !extra && (
               <div
-                className={`w-full mt-2 flex justify-between ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                className={`w-full mt-2 flex justify-between text-foreground`}
               >
                 <Chip
                   size="sm"
                   variant="bordered"
-                  className={`${isCurrent ? 'text-primary-foreground border-primary-foreground' : 'border-primary text-primary'}`}
+                  className={`border-primary text-primary`}
                 >
                   远程
                 </Chip>
@@ -324,12 +324,12 @@ const ProfileItem: React.FC<Props> = (props) => {
             )}
             {info.type === 'local' && (
               <div
-                className={`mt-2 flex justify-between ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
+                className={`mt-2 flex justify-between text-foreground`}
               >
                 <Chip
                   size="sm"
                   variant="bordered"
-                  className={`${isCurrent ? 'text-primary-foreground border-primary-foreground' : 'border-primary text-primary'}`}
+                  className={`border-primary text-primary`}
                 >
                   本地
                 </Chip>

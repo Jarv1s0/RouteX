@@ -4,7 +4,6 @@ import SettingItem from '../base/base-setting-item'
 import { Button, Switch, Tooltip, Tabs, Tab, Input } from '@heroui/react'
 import useSWR from 'swr'
 import { checkAutoRun, disableAutoRun, enableAutoRun, relaunchApp, checkUpdate, cancelUpdate, copyEnv, openUWPTool } from '@renderer/utils/app-ipc'
-import { patchControledMihomoConfig, restartCore } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoIosHelpCircle } from 'react-icons/io'
 import ConfirmModal from '../base/base-confirm'
@@ -15,8 +14,14 @@ import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 import SubStoreConfigModal from './substore-config-modal'
 import WebdavConfigModal from './webdav-config-modal'
+import DnsControlModal from './dns-control-modal'
+import SniffControlModal from './sniff-control-modal'
 
 const emptyArray: string[] = []
+const CONTROL_STATUS_TEXT: Record<'enabled' | 'disabled', string> = {
+  enabled: '正在接管',
+  disabled: '尚未接管'
+}
 
 const GeneralConfig: React.FC = () => {
   const { data: enable, mutate: mutateEnable } = useSWR('checkAutoRun', checkAutoRun)
@@ -29,7 +34,7 @@ const GeneralConfig: React.FC = () => {
     controlSniff = true,
     pauseSSID,
     autoLightweight = false,
-    autoLightweightMode = 'core',
+    autoLightweightMode = 'core'
   } = appConfig || {}
 
   const pauseSSIDArray = pauseSSID ?? emptyArray
@@ -37,6 +42,8 @@ const GeneralConfig: React.FC = () => {
 
   const [isSubStoreModalOpen, setIsSubStoreModalOpen] = useState(false)
   const [isWebdavModalOpen, setIsWebdavModalOpen] = useState(false)
+  const [isDnsModalOpen, setIsDnsModalOpen] = useState(false)
+  const [isSniffModalOpen, setIsSniffModalOpen] = useState(false)
 
   useEffect(() => {
     setPauseSSIDInput(pauseSSIDArray)
@@ -300,34 +307,24 @@ const GeneralConfig: React.FC = () => {
         )}
 
         <SettingItem title="接管 DNS 设置" divider>
-          <Switch
+          <Button
             size="sm"
-            isSelected={controlDns}
-            onValueChange={async (v) => {
-              try {
-                await patchAppConfig({ controlDns: v })
-                await patchControledMihomoConfig({})
-                await restartCore()
-              } catch (e) {
-                toast.error(String(e))
-              }
-            }}
-          />
+            variant="flat"
+            color={controlDns ? 'success' : 'default'}
+            onPress={() => setIsDnsModalOpen(true)}
+          >
+            {controlDns ? CONTROL_STATUS_TEXT.enabled : CONTROL_STATUS_TEXT.disabled}
+          </Button>
         </SettingItem>
         <SettingItem title="接管域名嗅探设置" divider>
-          <Switch
+          <Button
             size="sm"
-            isSelected={controlSniff}
-            onValueChange={async (v) => {
-              try {
-                await patchAppConfig({ controlSniff: v })
-                await patchControledMihomoConfig({})
-                await restartCore()
-              } catch (e) {
-                toast.error(String(e))
-              }
-            }}
-          />
+            variant="flat"
+            color={controlSniff ? 'success' : 'default'}
+            onPress={() => setIsSniffModalOpen(true)}
+          >
+            {controlSniff ? CONTROL_STATUS_TEXT.enabled : CONTROL_STATUS_TEXT.disabled}
+          </Button>
         </SettingItem>
         <SettingItem title="在特定的 WiFi SSID 下直连" divider>
           <div className="flex items-center gap-2">
@@ -367,6 +364,8 @@ const GeneralConfig: React.FC = () => {
             同步配置
           </Button>
         </SettingItem>
+        <DnsControlModal isOpen={isDnsModalOpen} onOpenChange={setIsDnsModalOpen} />
+        <SniffControlModal isOpen={isSniffModalOpen} onOpenChange={setIsSniffModalOpen} />
         <SubStoreConfigModal isOpen={isSubStoreModalOpen} onOpenChange={setIsSubStoreModalOpen} />
         <WebdavConfigModal isOpen={isWebdavModalOpen} onOpenChange={setIsWebdavModalOpen} />
       </SettingCard>

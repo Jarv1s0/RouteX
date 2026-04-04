@@ -24,7 +24,7 @@
 
 ## ✨ 项目简介
 
-RouteX 是一个桌面端跨平台代理客户端，基于 [Sparkle](https://github.com/xishang0128/sparkle) 修改而来，并以内置的 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核为核心运行时。
+RouteX 是一个桌面端跨平台代理客户端，以内置的 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核为核心运行时。
 
 - 🚀 让代理切换、策略选择与系统代理控制更直观
 - 🔍 让连接、规则、流量与节点状态更容易观察和排查
@@ -120,7 +120,7 @@ pnpm build:unpack
 
 补充说明：
 
-- `pnpm build` 会先执行类型检查，再构建 Electron 应用
+- `pnpm build` 会先准备运行时资源，再执行类型检查并构建 Electron 应用
 - `pnpm build:unpack` 会输出未打包目录，适合本地验证
 - `pnpm build:win`、`pnpm build:mac`、`pnpm build:linux` 默认包含 `--publish always`
 
@@ -156,11 +156,10 @@ resources/     图标与静态资源
 本项目离不开以下开源项目：
 
 - [Mihomo](https://github.com/MetaCubeX/mihomo)
-- [Sparkle](https://github.com/xishang0128/sparkle)
 - [Electron](https://www.electronjs.org/)
 - [React](https://react.dev/)
 - [HeroUI](https://www.heroui.com/)
 
 ## 📄 许可证
 
-本项目基于 GPL-3.0 许可证发布，并与上游 [Sparkle](https://github.com/xishang0128/sparkle) 保持一致。详见 [LICENSE](LICENSE)。
+本项目基于 GPL-3.0 许可证发布。详见 [LICENSE](LICENSE)。

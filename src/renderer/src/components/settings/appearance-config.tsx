@@ -12,25 +12,9 @@ import { platform } from '@renderer/utils/init'
 import { useTheme } from 'next-themes'
 import { IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
 import { MdEditDocument } from 'react-icons/md'
-import SiderConfigModal from './sider-config-modal'
 import ShortcutConfigModal from './shortcut-config-modal'
 import CSSEditorModal from './css-editor-modal'
 
-
-const SiderConfigContent: React.FC = () => {
-  const [isSiderModalOpen, setIsSiderModalOpen] = useState(false)
-
-  return (
-    <>
-      <SettingItem title="侧边栏设置" divider>
-        <Button size="sm" variant="flat" onPress={() => setIsSiderModalOpen(true)}>
-          配置
-        </Button>
-      </SettingItem>
-      <SiderConfigModal isOpen={isSiderModalOpen} onOpenChange={setIsSiderModalOpen} />
-    </>
-  )
-}
 
 const ShortcutConfigContent: React.FC = () => {
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false)
@@ -60,6 +44,7 @@ const AppearanceConfig: React.FC = () => {
     disableTray = false,
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
+    collapseSidebar = false,
 
     customTheme = 'default.css',
     appTheme = 'system'
@@ -198,7 +183,16 @@ const AppearanceConfig: React.FC = () => {
           </SettingItem>
         )}
 
-        <SiderConfigContent />
+
+        <SettingItem title="折叠侧边栏" divider>
+          <Switch
+            size="sm"
+            isSelected={collapseSidebar}
+            onValueChange={async (v) => {
+              await patchAppConfig({ collapseSidebar: v })
+            }}
+          />
+        </SettingItem>
         <ShortcutConfigContent />
         <SettingItem title="背景色" divider>
           <Tabs

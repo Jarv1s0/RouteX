@@ -37,6 +37,7 @@ interface TrafficState {
   initializeListeners: () => void
   cleanupListeners: () => void
   fetchInitialStats: () => Promise<void>
+  refreshCurrentProviders: () => Promise<void>
   clearStats: () => void
 }
 
@@ -52,21 +53,30 @@ let trafficStatsInterval: number | undefined
 let visibilityChangeHandler: (() => void) | null = null
 
 // Module-level handler references for robust cleanup
-let currentTrafficHandler: ((e: unknown, traffic: { up: number; down: number }) => void) | null = null
 let currentTrafficUnsubscribe: (() => void) | null = null
 let currentConnectionsThrottle: { cancel: () => void } | null = null
 let currentConnectionsUnsubscribe: (() => void) | null = null
+let currentProfileConfigUnsubscribe: (() => void) | null = null
+
+function getTimeKey(): string {
+  return new Date().toTimeString().split(' ')[0]
+}
+
+function clearTrafficStatsPolling() {
+  if (!trafficStatsInterval) return
+  clearInterval(trafficStatsInterval)
+  trafficStatsInterval = undefined
+}
 
 function unregisterTrafficHandlers() {
     currentConnectionsThrottle?.cancel()
     currentConnectionsThrottle = null
     currentConnectionsUnsubscribe?.()
     currentConnectionsUnsubscribe = null
-    if (currentTrafficHandler) {
-        currentTrafficUnsubscribe?.()
-        currentTrafficUnsubscribe = null
-        currentTrafficHandler = null
-    }
+    currentTrafficUnsubscribe?.()
+    currentTrafficUnsubscribe = null
+    currentProfileConfigUnsubscribe?.()
+    currentProfileConfigUnsubscribe = null
     if (visibilityChangeHandler) {
         document.removeEventListener('visibilitychange', visibilityChangeHandler)
         visibilityChangeHandler = null
@@ -86,17 +96,11 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
   initializeListeners: () => {
     // Clean up any existing listeners first using stored references
     unregisterTrafficHandlers()
-
-    if (trafficStatsInterval) {
-        clearInterval(trafficStatsInterval)
-        trafficStatsInterval = undefined
-    }
+    clearTrafficStatsPolling()
 
     // Traffic Listener Definition
     const handleTraffic = (_e: unknown, traffic: { up: number; down: number }): void => {
-      const now = new Date()
-      // Format time as HH:mm:ss
-      const timeStr = now.toTimeString().split(' ')[0]
+      const timeStr = getTimeKey()
       
       set(state => {
         const newPoint: TrafficDataPoint = {
@@ -125,8 +129,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       if (document.hidden) return
 
       const connections = snapshot.connections || []
-      // Pre-calculate time string once
-      const timeStr = new Date().toTimeString().split(' ')[0]
+      const timeStr = getTimeKey()
 
       set(state => {
         const newStats = new Map(state.ruleStats)
@@ -206,65 +209,67 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
     // Register Listeners
     try {
-        currentTrafficHandler = handleTraffic
         currentTrafficUnsubscribe = onIpc(ON.mihomoTraffic, handleTraffic)
         currentConnectionsThrottle = handleConnections
         currentConnectionsUnsubscribe = subscribeConnectionSnapshot(handleConnections)
+        currentProfileConfigUnsubscribe = onIpc(ON.profileConfigUpdated, () => {
+          void get().refreshCurrentProviders()
+        })
     } catch(e) {
         console.error('Failed to register listeners:', e)
     }
 
     // Initial fetch of static stats
-    get().fetchInitialStats()
+    void Promise.all([get().fetchInitialStats(), get().refreshCurrentProviders()])
+    const refreshVisibleStats = () => {
+      if (!document.hidden) {
+        void get().fetchInitialStats()
+      }
+    }
 
     // 每 30s 轮询一次静态历史数据（历史数据不需要高频更新）
     // 并且只在窗口可见时才轮询，避免后台无效 IPC 消耗
-    trafficStatsInterval = window.setInterval(() => {
-        if (!document.hidden) {
-            get().fetchInitialStats()
-        }
-    }, 30000)
+    trafficStatsInterval = window.setInterval(refreshVisibleStats, 30000)
 
     // 当用户从后台切换回前台时，立即补刷一次（防止数据陈旧）
-    visibilityChangeHandler = () => {
-        if (!document.hidden) {
-            get().fetchInitialStats()
-        }
-    }
+    visibilityChangeHandler = refreshVisibleStats
     document.addEventListener('visibilitychange', visibilityChangeHandler)
   },
 
   cleanupListeners: () => {
     unregisterTrafficHandlers()
-    
-    if (trafficStatsInterval) {
-        clearInterval(trafficStatsInterval)
-        trafficStatsInterval = undefined
-    }
+    clearTrafficStatsPolling()
   },
 
   fetchInitialStats: async () => {
       try {
         // 并发请求，减少串行等待时间
-        const [stats, pStats, profileConfig] = await Promise.all([
+        const [stats, pStats] = await Promise.all([
           getTrafficStats(),
-          getProviderStats(),
-          getProfileConfig()
+          getProviderStats()
         ])
-        
-        const providers = (profileConfig.items || [])
-          .filter(item => item.extra)
-          .map(item => ({ name: item.name || item.id, resetDay: item.resetDay }))
 
         set({
             hourlyData: (stats.hourly || []).slice(-24),
             dailyData: (stats.daily || []).slice(-30),
             sessionStats: { upload: stats.sessionUpload, download: stats.sessionDownload },
-            providerData: pStats.snapshots || [],
-            currentProviders: providers
+            providerData: pStats.snapshots || []
         })
       } catch (e) {
           console.error('Failed to fetch initial stats', e)
+      }
+  },
+
+  refreshCurrentProviders: async () => {
+      try {
+        const profileConfig = await getProfileConfig()
+        const providers = (profileConfig.items || [])
+          .filter(item => item.extra)
+          .map(item => ({ name: item.name || item.id, resetDay: item.resetDay }))
+
+        set({ currentProviders: providers })
+      } catch (e) {
+          console.error('Failed to refresh current providers', e)
       }
   },
 

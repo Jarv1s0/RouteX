@@ -225,8 +225,8 @@ export default function ConnectionsToolbar({
               color={showHidden ? 'primary' : 'default'}
               title={
                 showHidden
-                  ? `隐藏已隐藏的连接 (${hiddenRulesCount} 规则)`
-                  : `显示已隐藏的连接 (${hiddenRulesCount} 规则)`
+                  ? `隐藏已过滤项 (${hiddenRulesCount})`
+                  : `显示隐藏条目 (${hiddenRulesCount})`
               }
               onPress={() => setShowHidden(!showHidden)}
             >

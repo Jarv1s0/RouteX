@@ -1,0 +1,48 @@
+pkgname=routex-git
+_pkgname=${pkgname%-git}
+pkgver=2.2.4.r1.db8c6a0
+pkgrel=1
+pkgdesc="Modern Mihomo GUI."
+arch=('x86_64' 'aarch64')
+url="https://github.com/Jarv1s0/RouteX"
+license=('GPL3')
+conflicts=("$_pkgname" "$_pkgname-bin" "$_pkgname-electron" "$_pkgname-electron-bin" "$_pkgname-electron-git")
+depends=('gtk3' 'libnotify' 'nss' 'libxss' 'libxtst' 'xdg-utils' 'at-spi2-core' 'util-linux-libs' 'libsecret')
+optdepends=('libappindicator-gtk3: Allow RouteX to extend a menu via Ayatana indicators in Unity, KDE or Systray (GTK+ 3 library).')
+makedepends=('nodejs' 'pnpm' 'jq' 'libxcrypt-compat')
+install=$_pkgname.install
+source=("${_pkgname}.sh" "git+$url.git")
+sha256sums=('SKIP' 'SKIP')
+options=('!lto')
+
+pkgver() {
+    cd $srcdir/${_pkgname}
+    ( set -o pipefail
+        git describe --long 2>/dev/null | sed 's/\([^-]*-g\)/r\1/;s/-/./g' | tr -d 'v' ||
+        printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+    )
+}
+
+prepare(){
+    cd $srcdir/${_pkgname}
+    corepack pnpm install
+}
+
+build(){
+    cd $srcdir/${_pkgname}
+    corepack pnpm run build && electron-builder --config electron-builder.config.cjs --linux deb --publish never
+}
+
+package() {
+	cd $srcdir/${_pkgname}/dist
+    bsdtar -xf RouteX-$(jq '.version' $srcdir/${_pkgname}/package.json | tr -d 'v"')-linux-*.deb
+    bsdtar -xf data.tar.xz -C "${pkgdir}/"
+    chmod +x ${pkgdir}/opt/RouteX/routex
+    chmod +x ${pkgdir}/opt/RouteX/resources/files/routex-service
+    chmod +sx ${pkgdir}/opt/RouteX/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/RouteX/resources/sidecar/mihomo-alpha
+    install -Dm755 "${srcdir}/../${_pkgname}.sh" "${pkgdir}/usr/bin/${_pkgname}"
+    sed -i 's!/opt/RouteX/routex!routex!' "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
+
+    chown -R root:root ${pkgdir}
+}

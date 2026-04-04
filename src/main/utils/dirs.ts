@@ -5,6 +5,7 @@ import path from 'path'
 import { execSync } from 'child_process'
 import { getAppConfigSync } from '../config/app'
 import { checkCorePermissionSync } from '../core/manager'
+import { ROUTEX_RUN_BINARY } from './routex-run'
 
 export const homeDir = app.getPath('home')
 
@@ -15,9 +16,8 @@ export function isPortable(): boolean {
 export function dataDir(): string {
   if (isPortable()) {
     return path.join(exeDir(), 'data')
-  } else {
-    return app.getPath('userData')
   }
+  return app.getPath('userData')
 }
 
 export function taskDir(): string {
@@ -43,13 +43,11 @@ export function exePath(): string {
 export function resourcesDir(): string {
   if (is.dev) {
     return path.join(__dirname, '../../extra')
-  } else {
-    if (app.getAppPath().endsWith('asar')) {
-      return process.resourcesPath
-    } else {
-      return path.join(app.getAppPath(), 'resources')
-    }
   }
+  if (app.getAppPath().endsWith('asar')) {
+    return process.resourcesPath
+  }
+  return path.join(app.getAppPath(), 'resources')
 }
 
 export function resourcesFilesDir(): string {
@@ -136,7 +134,11 @@ function systemCorePath(): string {
 
 export function servicePath(): string {
   const isWin = process.platform === 'win32'
-  return path.join(resourcesFilesDir(), `sparkle-service${isWin ? '.exe' : ''}`)
+  return path.join(resourcesFilesDir(), `routex-service${isWin ? '.exe' : ''}`)
+}
+
+export function routexRunPath(): string {
+  return path.join(resourcesFilesDir(), ROUTEX_RUN_BINARY)
 }
 
 export function appConfigPath(): string {

@@ -1,116 +1,83 @@
-import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
+import { Button, Tooltip } from '@heroui/react'
 import BorderSwitch from '@renderer/components/base/border-switch'
 import { LuScanSearch } from 'react-icons/lu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { patchMihomoConfig } from '@renderer/utils/mihomo-ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
-import SiderCardIcon from '@renderer/components/base/sider-card-icon'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   iconOnly?: boolean
+  isMinimal?: boolean
 }
+
 const SniffCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
-  const { iconOnly } = props
-  const {
-    sniffCardStatus = 'col-span-1',
-    controlSniff = true,
-    disableAnimation = false
-  } = appConfig || {}
+  const { iconOnly, isMinimal } = props
+  const { controlSniff = true } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/sniffer')
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { sniffer } = controledMihomoConfig || {}
   const { enable } = sniffer || {}
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform: tf,
-    transition,
-    isDragging
-  } = useSortable({
-    id: 'sniff'
-  })
-  const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
+
   const onChange = async (enable: boolean): Promise<void> => {
     await patchControledMihomoConfig({ sniffer: { enable } })
     await patchMihomoConfig({ sniffer: { enable } })
   }
 
+  if (!controlSniff) return null
+
   if (iconOnly) {
     return (
-      <div className={`${sniffCardStatus} ${!controlSniff ? 'hidden' : ''} flex justify-center`}>
+      <div className={`flex justify-center`}>
         <Tooltip content="域名嗅探" placement="right">
           <Button
             size="sm"
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => {
-              navigate('/sniffer')
-            }}
+            onPress={() => navigate('/sniffer')}
           >
-            <LuScanSearch className="text-[18px]" />
+            <LuScanSearch className="text-[16px]" />
           </Button>
         </Tooltip>
       </div>
     )
   }
 
+  if (isMinimal) {
+    return (
+      <Tooltip content="域名嗅探配置" placement="top">
+        <div
+          className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all ${
+            match ? CARD_STYLES.SIDEBAR_ACTIVE : `${CARD_STYLES.SIDEBAR_ITEM} text-foreground/80`
+          }`}
+          onClick={() => navigate('/sniffer')}
+        >
+          <LuScanSearch className={`text-[16px] ${enable ? 'text-green-500' : 'text-default-400'}`} />
+        </div>
+      </Tooltip>
+    )
+  }
+
   return (
     <div
-      style={{
-        position: 'relative',
-        transform: CSS.Transform.toString(transform),
-        transition,
-        zIndex: isDragging ? 'calc(infinity)' : undefined
-      }}
-      className={`${sniffCardStatus} ${!controlSniff ? 'hidden' : ''} sniff-card`}
+      className={`sniff-card flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all group ${
+        match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
+      }`}
+      onClick={() => navigate('/sniffer')}
     >
-      <Card
-        fullWidth
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        className={`
-          ${CARD_STYLES.BASE}
-          ${
-            match
-              ? CARD_STYLES.ACTIVE
-              : CARD_STYLES.INACTIVE
-          }
-          ${isDragging ? `${disableAnimation ? '' : 'scale-[0.95]'} tap-highlight-transparent z-50` : ''}
-        `}
-        radius="lg"
-        shadow="none"
-      >
-        <CardBody className="pb-1 pt-0 px-0 overflow-visible relative z-10">
-          <div className="flex justify-between">
-            <SiderCardIcon isActive={match}>
-              <LuScanSearch className="text-[18px]" />
-            </SiderCardIcon>
-            <BorderSwitch
-              isShowBorder={match && enable}
-              isSelected={enable}
-              onValueChange={onChange}
-            />
-          </div>
-        </CardBody>
-        <CardFooter className="pt-1 relative z-10">
-          <h3
-             className={`text-md font-bold ${match ? 'text-primary-foreground' : 'text-foreground'}`}
-          >
-             域名嗅探
-          </h3>
-        </CardFooter>
-      </Card>
+      <div className="flex items-center gap-2">
+        <LuScanSearch className={`text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-primary`} />
+        <span className={`text-sm font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>域名嗅探</span>
+      </div>
+      <div onClick={(e) => e.stopPropagation()}>
+        <BorderSwitch isShowBorder={match && enable} isSelected={enable} onValueChange={onChange} />
+      </div>
     </div>
   )
 }

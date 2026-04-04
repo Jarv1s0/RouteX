@@ -74,6 +74,32 @@ function isUserCancelledError(error: unknown): boolean {
   )
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isControllerListenError(message: string): boolean {
+  return (
+    (process.platform !== 'win32' && message.includes('External controller unix listen error')) ||
+    (process.platform === 'win32' && message.includes('External controller pipe listen error'))
+  )
+}
+
+function isControllerReadyLog(message: string): boolean {
+  return (
+    (process.platform !== 'win32' && message.includes('RESTful API unix listening at')) ||
+    (process.platform === 'win32' && message.includes('RESTful API pipe listening at'))
+  )
+}
+
+function showCoreStartError(error: unknown): void {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+    mainWindow.webContents.send('show-error-modal', '内核启动出错', `${error}`)
+  } else {
+    dialog.showErrorBox('内核启动出错', `${error}`)
+  }
+}
+
 let setPublicDNSTimer: NodeJS.Timeout | null = null
 let recoverDNSTimer: NodeJS.Timeout | null = null
 let networkDetectionTimer: NodeJS.Timeout | null = null
@@ -81,6 +107,7 @@ let networkDownHandled = false
 
 let child: ChildProcess
 let retry = 10
+let restartCoreTask: Promise<void> | null = null
 
 export async function startCore(detached = false): Promise<Promise<void>[]> {
   const {
@@ -144,7 +171,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     PATH: process.env.PATH
   }
   let initialized = false
-  child = spawn(
+  const currentChild = spawn(
     corePath,
     [
       '-d',
@@ -158,19 +185,21 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
       env: env
     }
   )
-  if (process.platform === 'win32' && child.pid) {
-    os.setPriority(child.pid, os.constants.priority[mihomoCpuPriority])
+  child = currentChild
+  if (process.platform === 'win32' && currentChild.pid) {
+    os.setPriority(currentChild.pid, os.constants.priority[mihomoCpuPriority])
   }
   if (detached) {
-    child.unref()
-    return new Promise((resolve) => {
-      resolve([new Promise(() => {})])
-    })
+    currentChild.unref()
+    return [new Promise(() => {})]
   }
-  child.on('close', async (code, signal) => {
+  currentChild.on('close', async (code, signal) => {
     await writeFile(logPath(), `[Manager]: Core closed, code: ${code}, signal: ${signal}\n`, {
       flag: 'a'
     })
+    if (!initialized) {
+      return
+    }
     if (retry) {
       await writeFile(logPath(), `[Manager]: Try Restart Core\n`, { flag: 'a' })
       retry--
@@ -179,106 +208,174 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
       await stopCore()
     }
   })
-  child.stdout?.pipe(stdout)
-  child.stderr?.pipe(stderr)
+  currentChild.stdout?.pipe(stdout)
+  currentChild.stderr?.pipe(stderr)
   return new Promise((resolve, reject) => {
-    child.stdout?.on('data', async (data) => {
-      const str = data.toString()
-      if (
-        (process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
-        (process.platform === 'win32' && str.includes('External controller pipe listen error'))
-      ) {
-        reject(`控制器监听错误:\n${str}`)
-      }
+    let controllerReady = false
 
-      if (process.platform === 'win32' && str.includes('updater: finished')) {
-        try {
-          await stopCore(true)
-          const promises = await startCore()
-          await Promise.all(promises)
-        } catch (e) {
-          if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
-             mainWindow.webContents.send('show-error-modal', '内核启动出错', `${e}`)
-          } else {
-             dialog.showErrorBox('内核启动出错', `${e}`)
+    const cleanupStartupListeners = (): void => {
+      currentChild.stdout?.removeListener('data', handleStartupData)
+      currentChild.removeListener('close', handleStartupClose)
+      currentChild.removeListener('error', handleStartupError)
+    }
+
+    const rejectStartup = (error: unknown): void => {
+      cleanupStartupListeners()
+      reject(error)
+    }
+
+    const handleStartupClose = (code: number | null, signal: NodeJS.Signals | null): void => {
+      if (!controllerReady) {
+        rejectStartup(new Error(`内核在控制器就绪前退出，code: ${code}, signal: ${signal}`))
+      }
+    }
+
+    const handleStartupError = (error: Error): void => {
+      if (!controllerReady) {
+        rejectStartup(error)
+      }
+    }
+
+    const handleStartupData = (data: Buffer): void => {
+      void (async () => {
+        const str = data.toString()
+        if (isControllerListenError(str)) {
+          rejectStartup(`控制器监听错误:\n${str}`)
+          return
+        }
+
+        if (process.platform === 'win32' && str.includes('updater: finished')) {
+          try {
+            await stopCore(true)
+            const promises = await startCore()
+            await Promise.all(promises)
+          } catch (e) {
+            showCoreStartError(e)
           }
         }
-      }
 
-      if (
-        (process.platform !== 'win32' && str.includes('RESTful API unix listening at')) ||
-        (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
-      ) {
-        resolve([
-          new Promise((resolve, reject) => {
-            const handleProviderInitialization = async (logLine: string): Promise<void> => {
-              for (const match of logLine.matchAll(/Start initial provider ([^"]+)"/g)) {
-                const name = normalize(match[1])
-                if (providerNames.has(name)) {
-                  unmatchedProviders.delete(name)
-                }
+        if (isControllerReadyLog(str)) {
+          controllerReady = true
+          cleanupStartupListeners()
+          resolve([
+            new Promise((resolve, reject) => {
+              const cleanupProviderListeners = (): void => {
+                currentChild.stdout?.removeListener('data', handleProviderData)
+                currentChild.removeListener('close', handleProviderClose)
+                currentChild.removeListener('error', handleProviderError)
               }
 
-              if (
-                logLine.includes(
-                  'Start TUN listening error: configure tun interface: Connect: operation not permitted'
-                )
-              ) {
-                await patchControledMihomoConfig({ tun: { enable: false } })
-                mainWindow?.webContents.send('controledMihomoConfigUpdated')
-                ipcMain.emit('updateTrayMenu')
-                reject('虚拟网卡启动失败，前往内核设置页尝试手动授予内核权限')
+              const resolveProvider = (): void => {
+                cleanupProviderListeners()
+                resolve()
               }
 
-              const isDefaultProvider = logLine.includes(
-                'Start initial compatible provider default'
-              )
-              const isAllProvidersMatched = providerNames.size > 0 && unmatchedProviders.size === 0
+              const rejectProvider = (error: unknown): void => {
+                cleanupProviderListeners()
+                reject(error)
+              }
 
-              if ((providerNames.size === 0 && isDefaultProvider) || isAllProvidersMatched) {
-                const waitForMihomoReady = async (): Promise<void> => {
-                  const maxRetries = 30
-                  const retryInterval = 100
-
-                  for (let i = 0; i < maxRetries; i++) {
-                    try {
-                      await mihomoGroups()
-                      await mihomoRules()
-                      break
-                    } catch (error) {
-                      await new Promise((r) => setTimeout(r, retryInterval))
-                    }
+              const handleProviderInitialization = async (logLine: string): Promise<void> => {
+                for (const match of logLine.matchAll(/Start initial provider ([^"]+)"/g)) {
+                  const name = normalize(match[1])
+                  if (providerNames.has(name)) {
+                    unmatchedProviders.delete(name)
                   }
                 }
 
-                await waitForMihomoReady()
-                initialized = true
-                Promise.all([
-                  new Promise((r) => setTimeout(r, 100)).then(() => {
-                    mainWindow?.webContents.send('groupsUpdated')
-                    mainWindow?.webContents.send('rulesUpdated')
-                  }),
-                  uploadRuntimeConfig(),
-                  new Promise((r) => setTimeout(r, 100)).then(() =>
-                    patchMihomoConfig({ 'log-level': logLevel })
+                if (
+                  logLine.includes(
+                    'Start TUN listening error: configure tun interface: Connect: operation not permitted'
                   )
-                ]).then(() => resolve())
+                ) {
+                  await patchControledMihomoConfig({ tun: { enable: false } })
+                  mainWindow?.webContents.send('controledMihomoConfigUpdated')
+                  ipcMain.emit('updateTrayMenu')
+                  rejectProvider('虚拟网卡启动失败，前往内核设置页尝试手动授予内核权限')
+                  return
+                }
+
+                const isDefaultProvider = logLine.includes(
+                  'Start initial compatible provider default'
+                )
+                const isAllProvidersMatched =
+                  providerNames.size > 0 && unmatchedProviders.size === 0
+
+                if ((providerNames.size === 0 && isDefaultProvider) || isAllProvidersMatched) {
+                  const waitForMihomoReady = async (): Promise<void> => {
+                    const maxRetries = 30
+                    const retryInterval = 100
+
+                    for (let i = 0; i < maxRetries; i++) {
+                      try {
+                        await mihomoGroups()
+                        await mihomoRules()
+                        break
+                      } catch (error) {
+                        await sleep(retryInterval)
+                      }
+                    }
+                  }
+
+                  await waitForMihomoReady()
+                  initialized = true
+                  Promise.all([
+                    new Promise((r) => setTimeout(r, 100)).then(() => {
+                      mainWindow?.webContents.send('groupsUpdated')
+                      mainWindow?.webContents.send('rulesUpdated')
+                    }),
+                    uploadRuntimeConfig(),
+                    new Promise((r) => setTimeout(r, 100)).then(() =>
+                      patchMihomoConfig({ 'log-level': logLevel })
+                    )
+                  ])
+                    .then(() => resolveProvider())
+                    .catch((error) => rejectProvider(error))
+                }
               }
-            }
-            child.stdout?.on('data', (data) => {
-              if (!initialized) {
-                handleProviderInitialization(data.toString())
+
+              const handleProviderClose = (
+                code: number | null,
+                signal: NodeJS.Signals | null
+              ): void => {
+                if (!initialized) {
+                  rejectProvider(
+                    new Error(`内核在初始化完成前退出，code: ${code}, signal: ${signal}`)
+                  )
+                }
               }
+
+              const handleProviderError = (error: Error): void => {
+                if (!initialized) {
+                  rejectProvider(error)
+                }
+              }
+
+              const handleProviderData = (data: Buffer): void => {
+                if (!initialized) {
+                  void handleProviderInitialization(data.toString()).catch((error) =>
+                    rejectProvider(error)
+                  )
+                }
+              }
+
+              currentChild.stdout?.on('data', handleProviderData)
+              currentChild.on('close', handleProviderClose)
+              currentChild.on('error', handleProviderError)
             })
-          })
-        ])
-        await startMihomoTraffic()
-        await startMihomoConnections()
-        await startMihomoLogs()
-        await startMihomoMemory()
-        retry = 10
-      }
-    })
+          ])
+          await startMihomoTraffic()
+          await startMihomoConnections()
+          await startMihomoLogs()
+          await startMihomoMemory()
+          retry = 10
+        }
+      })().catch((error) => rejectStartup(error))
+    }
+
+    currentChild.stdout?.on('data', handleStartupData)
+    currentChild.on('close', handleStartupClose)
+    currentChild.on('error', handleStartupError)
   })
 }
 
@@ -418,12 +515,13 @@ async function killAllMihomoProcesses(): Promise<void> {
   }
 }
 
-export async function restartCore(): Promise<void> {
+async function restartCoreInternal(): Promise<void> {
   const maxRetries = 5
+  let lastError: unknown = new Error('重启内核失败')
   
   await stopCore()
   // Add a small delay to ensure the OS fully releases the named pipe resource
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  await sleep(500)
   
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -438,7 +536,7 @@ export async function restartCore(): Promise<void> {
             mainWindow?.webContents.send('groupsUpdated')
             return
           } catch {
-            await new Promise((r) => setTimeout(r, 200))
+            await sleep(200)
           }
         }
       })()
@@ -446,6 +544,7 @@ export async function restartCore(): Promise<void> {
       await Promise.all(promises)
       return
     } catch (e) {
+      lastError = e
       const errorMsg = String(e)
       // 如果是管道监听错误（通常是因为上一个进程未完全释放），且还有重试机会
       if (
@@ -457,23 +556,33 @@ export async function restartCore(): Promise<void> {
         // 尝试强力清理环境
         await killAllMihomoProcesses()
         
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        await sleep(2000)
         // 再次尝试停止，确保状态同步
         await stopCore(true) 
         // 再次等待
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await sleep(500)
         continue
       }
       
       // 其他错误或重试耗尽，显示错误弹窗
-      if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
-        mainWindow.webContents.send('show-error-modal', '内核启动出错', `${e}`)
-      } else {
-        dialog.showErrorBox('内核启动出错', `${e}`)
-      }
-      break // 停止重试
+      showCoreStartError(e)
+      throw e
     }
   }
+
+  throw lastError
+}
+
+export async function restartCore(): Promise<void> {
+  if (restartCoreTask) {
+    return restartCoreTask
+  }
+
+  restartCoreTask = restartCoreInternal().finally(() => {
+    restartCoreTask = null
+  })
+
+  return restartCoreTask
 }
 
 export async function keepCoreAlive(): Promise<void> {

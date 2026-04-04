@@ -1,4 +1,5 @@
-import { addProfileItem, getCurrentProfileItem, getProfileConfig } from '../config'
+import { addProfileItem, getCurrentProfileItem, getProfileConfig, getProfileItem } from '../config'
+import { createScheduledProfileRefresher, isRefreshableProfileItem } from './profileUpdater.shared'
 
 const intervalPool: Record<string, NodeJS.Timeout> = {}
 
@@ -19,43 +20,45 @@ function calculateUpdateDelay(item: ProfileItem): number {
   return intervalMs - timeSinceLastUpdate
 }
 
+const refreshScheduledProfile = createScheduledProfileRefresher({ addProfileItem, getProfileItem })
+
 async function scheduleProfileUpdate(item: ProfileItem, isCurrent: boolean = false): Promise<void> {
-  if (item.type !== 'remote' || !item.interval || item.autoUpdate === false) {
+  const latestItem = await getProfileItem(item.id)
+  if (!isRefreshableProfileItem(latestItem)) {
     return
   }
 
-  if (intervalPool[item.id]) {
-    clearTimeout(intervalPool[item.id])
+  if (intervalPool[latestItem.id]) {
+    clearTimeout(intervalPool[latestItem.id])
   }
 
-  const delay = calculateUpdateDelay(item)
+  const delay = calculateUpdateDelay(latestItem)
   if (delay === -1) {
     return
   }
 
-  const intervalMs = item.interval * 60 * 1000
+  const intervalMs = latestItem.interval * 60 * 1000
   const actualDelay = delay === 0 ? intervalMs : delay
   const finalDelay = isCurrent ? actualDelay + 10000 : actualDelay
 
-  // 如果需要立即更新
   if (delay === 0) {
     try {
-      await addProfileItem(item)
+      await refreshScheduledProfile(latestItem.id)
       return
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
 
-  // 设置下一次更新的定时器
-  intervalPool[item.id] = setTimeout(async () => {
+  intervalPool[latestItem.id] = setTimeout(async () => {
     try {
-      await addProfileItem(item)
-    } catch (e) {
-      // ignore
-      // 更新失败后重新调度下一次更新，避免死循环或任务丢失
-      const updatedItem = { ...item, updated: Date.now() }
-      await scheduleProfileUpdate(updatedItem, isCurrent)
+      await refreshScheduledProfile(latestItem.id)
+    } catch {
+      const nextItem = await getProfileItem(latestItem.id)
+      if (nextItem) {
+        const updatedItem = { ...nextItem, updated: Date.now() }
+        await scheduleProfileUpdate(updatedItem, isCurrent)
+      }
     }
   }, finalDelay)
 }

@@ -124,6 +124,7 @@ interface AppConfig {
   disableGPU: boolean
   disableAnimation?: boolean
   enableSiderConfig?: boolean
+  collapseSidebar?: boolean
   enableShortcutConfig?: boolean
   enableWebdavConfig?: boolean
 }

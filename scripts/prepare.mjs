@@ -7,10 +7,50 @@ import { execSync } from 'child_process'
 
 const cwd = process.cwd()
 const TEMP_DIR = path.join(cwd, 'node_modules/.temp')
+const ROUTEX_SERVICE_RELEASE_PREFIX =
+  'https://github.com/Jarv1s0/routex-service/releases/download/pre-release'
+const ROUTEX_SERVICE_ASSETS = {
+  'win32-x64': 'routex-service-windows-amd64-v3',
+  'win32-ia32': 'routex-service-windows-386',
+  'win32-arm64': 'routex-service-windows-arm64',
+  'darwin-x64': 'routex-service-darwin-amd64-v3',
+  'darwin-arm64': 'routex-service-darwin-arm64',
+  'linux-x64': 'routex-service-linux-amd64-v3',
+  'linux-arm64': 'routex-service-linux-arm64',
+  'linux-loong64': 'routex-service-linux-loong64-abi2'
+}
+const ROUTEX_RUN_ASSETS = {
+  x64: 'routex-run-windows-amd64-v3.exe',
+  ia32: 'routex-run-windows-386.exe',
+  arm64: 'routex-run-windows-arm64.exe'
+}
+const TRAFFIC_MONITOR_REPO = 'zhongyang219/TrafficMonitor'
+const DEFAULT_TASK_RETRY = 5
 let arch = process.arch
 const platform = process.platform
 if (process.argv.slice(2).length !== 0) {
   arch = process.argv.slice(2)[0].replace('--', '')
+}
+
+function isLockedFileError(error) {
+  return platform === 'win32' && (error?.code === 'EPERM' || error?.code === 'EACCES')
+}
+
+function tryRemoveExisting(targetPath, label) {
+  if (!fs.existsSync(targetPath)) {
+    return true
+  }
+
+  try {
+    fs.rmSync(targetPath, { recursive: true, force: true })
+    return true
+  } catch (error) {
+    if (isLockedFileError(error)) {
+      console.warn(`[WARN]: skip updating ${label}, file is locked: ${targetPath}`)
+      return false
+    }
+    throw error
+  }
 }
 
 if (process.env.SKIP_PREPARE === '1') {
@@ -18,66 +58,218 @@ if (process.env.SKIP_PREPARE === '1') {
   process.exit(0)
 }
 
-/* ======= mihomo alpha======= */
 const MIHOMO_ALPHA_VERSION_URL =
   'https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt'
-const MIHOMO_ALPHA_URL_PREFIX = `https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha`
-let MIHOMO_ALPHA_VERSION
+const MIHOMO_VERSION_URL =
+  'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
 
-const MIHOMO_ALPHA_MAP = {
-  'win32-x64': 'mihomo-windows-amd64-v3',
-  'win32-ia32': 'mihomo-windows-386',
-  'win32-arm64': 'mihomo-windows-arm64',
-  'darwin-x64': 'mihomo-darwin-amd64-v3',
-  'darwin-arm64': 'mihomo-darwin-arm64',
-  'linux-x64': 'mihomo-linux-amd64-v3',
-  'linux-arm64': 'mihomo-linux-arm64',
-  'linux-loong64': 'mihomo-linux-loong64-abi2'
+const GITHUB_JSON_HEADERS = {
+  Accept: 'application/vnd.github+json',
+  'User-Agent': 'RouteX'
 }
 
-// Fetch the latest alpha release version from the version.txt file
-async function getLatestAlphaVersion() {
-  try {
-    const response = await fetch(MIHOMO_ALPHA_VERSION_URL, {
-      method: 'GET'
-    })
-    let v = await response.text()
-    MIHOMO_ALPHA_VERSION = v.trim() // Trim to remove extra whitespaces
-    console.log(`Latest alpha version: ${MIHOMO_ALPHA_VERSION}`)
-  } catch (error) {
-    console.error('Error fetching latest alpha version:', error.message)
-    process.exit(1)
+function createGitHubJsonHeaders() {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.GITHUB_API_TOKEN
+  return token
+    ? {
+        ...GITHUB_JSON_HEADERS,
+        Authorization: `Bearer ${token}`
+      }
+    : GITHUB_JSON_HEADERS
+}
+
+function getAssetPrefixCandidates(platform, arch) {
+  const key = `${platform}-${arch}`
+  switch (key) {
+    case 'win32-x64':
+      return [
+        'mihomo-windows-amd64',
+        'mihomo-windows-amd64-compatible',
+        'mihomo-windows-amd64-v1',
+        'mihomo-windows-amd64-v2',
+        'mihomo-windows-amd64-v3'
+      ]
+    case 'win32-ia32':
+      return ['mihomo-windows-386']
+    case 'win32-arm64':
+      return ['mihomo-windows-arm64']
+    case 'darwin-x64':
+      return ['mihomo-darwin-amd64', 'mihomo-darwin-amd64-compatible', 'mihomo-darwin-amd64-v1']
+    case 'darwin-arm64':
+      return ['mihomo-darwin-arm64']
+    case 'linux-x64':
+      return [
+        'mihomo-linux-amd64',
+        'mihomo-linux-amd64-compatible',
+        'mihomo-linux-amd64-v1',
+        'mihomo-linux-amd64-v2',
+        'mihomo-linux-amd64-v3'
+      ]
+    case 'linux-arm64':
+      return ['mihomo-linux-arm64']
+    case 'linux-loong64':
+      return ['mihomo-linux-loong64', 'mihomo-linux-loong64-abi2']
+    default:
+      throw new Error(`unsupported platform "${key}"`)
   }
 }
 
-/* ======= mihomo release ======= */
-const MIHOMO_VERSION_URL =
-  'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
-const MIHOMO_URL_PREFIX = `https://github.com/MetaCubeX/mihomo/releases/download`
-let MIHOMO_VERSION
+function matchAssetName(assetName, version, isAlpha, ext, prefixes) {
+  const suffix = `-${version}${ext}`
+  if (!assetName.endsWith(suffix)) return false
 
-const MIHOMO_MAP = {
-  'win32-x64': 'mihomo-windows-amd64-v3',
-  'win32-ia32': 'mihomo-windows-386',
-  'win32-arm64': 'mihomo-windows-arm64',
-  'darwin-x64': 'mihomo-darwin-amd64-v3',
-  'darwin-arm64': 'mihomo-darwin-arm64',
-  'linux-x64': 'mihomo-linux-amd64-v3',
-  'linux-arm64': 'mihomo-linux-arm64',
-  'linux-loong64': 'mihomo-linux-loong64-abi2'
+  return prefixes.some((prefix) => {
+    if (!assetName.startsWith(prefix)) return false
+    const middle = assetName.slice(prefix.length, assetName.length - suffix.length)
+    if (isAlpha) {
+      return (
+        middle === '' ||
+        middle === '-alpha' ||
+        /^-alpha-go\d+$/.test(middle) ||
+        /^-alpha-[\w.-]+$/.test(middle)
+      )
+    }
+    return middle === '' || /^-go\d+$/.test(middle)
+  })
 }
 
-// Fetch the latest release version from the version.txt file
-async function getLatestReleaseVersion() {
+function scoreAssetName(assetName, version, isAlpha, ext) {
+  const suffix = `-${version}${ext}`
+  const middle = assetName.slice(0, assetName.length - suffix.length)
+  if (isAlpha) {
+    if (middle.endsWith('-alpha')) return 0
+    if (/-alpha-go\d+$/.test(middle)) return 1
+    return 2
+  }
+  if (!middle.includes('-go')) return 0
+  if (/-go\d+$/.test(middle)) return 1
+  return 2
+}
+
+function pickBestReleaseAsset(assets, version, isAlpha, ext, prefixes) {
+  const matched = assets
+    .filter((asset) => matchAssetName(asset.name, version, isAlpha, ext, prefixes))
+    .sort((a, b) => {
+      const prefixIndexA = prefixes.findIndex((prefix) => a.name.startsWith(prefix))
+      const prefixIndexB = prefixes.findIndex((prefix) => b.name.startsWith(prefix))
+      if (prefixIndexA !== prefixIndexB) return prefixIndexA - prefixIndexB
+      return scoreAssetName(a.name, version, isAlpha, ext) - scoreAssetName(b.name, version, isAlpha, ext)
+    })
+
+  if (matched.length === 0) {
+    throw new Error(`No matched mihomo asset found for ${platform}-${arch} (${version})`)
+  }
+
+  return matched[0]
+}
+
+function findExecutableEntry(entries, name) {
+  return entries.find((entry) => {
+    console.log(`[DEBUG]: "${name}" entry name`, entry.entryName)
+    return !entry.isDirectory && (entry.entryName.endsWith('.exe') || entry.entryName.includes('mihomo'))
+  })
+}
+
+async function fetchReleaseAssets(tag) {
+  return fetchGitHubReleaseAssets(
+    `https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/${encodeURIComponent(tag)}`,
+    'mihomo release assets'
+  )
+}
+
+async function fetchGitHubReleaseAssets(url, label) {
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: createGitHubJsonHeaders()
+  })
+  if (!response.ok) {
+    throw new Error(`failed to fetch ${label}: ${response.status}`)
+  }
+  const json = await response.json()
+  return json.assets || []
+}
+
+async function fetchLatestGitHubReleaseAssets(repo) {
+  return fetchGitHubReleaseAssets(
+    `https://api.github.com/repos/${repo}/releases/latest`,
+    `${repo} latest release assets`
+  )
+}
+
+function scoreTrafficMonitorAssetName(name) {
+  let value = 0
+  if (name.includes('lite')) value += 10
+  if (name.includes('portable')) value += 1
+  return value
+}
+
+function pickTrafficMonitorAsset(assets, arch) {
+  const archPatterns = {
+    x64: [/(^|[-_. ])x64($|[-_. ])/, /amd64/],
+    ia32: [/(^|[-_. ])x86($|[-_. ])/, /(^|[-_. ])386($|[-_. ])/],
+    arm64: [/arm64ec/, /(^|[-_. ])arm64($|[-_. ])/]
+  }
+
+  const patterns = archPatterns[arch]
+  if (!patterns) {
+    throw new Error(`unsupported monitor arch "${arch}"`)
+  }
+
+  const candidates = assets
+    .map((asset) => ({
+      asset,
+      normalizedName: asset.name.toLowerCase()
+    }))
+    .filter(({ normalizedName }) => normalizedName.endsWith('.zip'))
+    .filter(({ normalizedName }) => normalizedName.includes('trafficmonitor'))
+    .filter(({ normalizedName }) => patterns.some((pattern) => pattern.test(normalizedName)))
+    .sort((a, b) => scoreTrafficMonitorAssetName(a.normalizedName) - scoreTrafficMonitorAssetName(b.normalizedName))
+    .map(({ asset }) => asset)
+
+  if (candidates.length === 0) {
+    throw new Error(`No matched TrafficMonitor asset found for ${arch}`)
+  }
+
+  return candidates[0]
+}
+
+function buildFallbackReleaseAsset(version, isAlpha, prefixes) {
+  const prefix = prefixes[0]
+  const ext = platform === 'win32' ? '.zip' : '.gz'
+  const fileName = `${prefix}-${version}${ext}`
+  const tag = isAlpha ? 'Prerelease-Alpha' : version
+
+  return {
+    name: fileName,
+    browser_download_url: `https://github.com/MetaCubeX/mihomo/releases/download/${tag}/${fileName}`
+  }
+}
+
+async function resolveReleaseAsset(version, isAlpha) {
+  const ext = platform === 'win32' ? '.zip' : '.gz'
+  const prefixes = getAssetPrefixCandidates(platform, arch)
+  const tag = isAlpha ? 'Prerelease-Alpha' : version
   try {
-    const response = await fetch(MIHOMO_VERSION_URL, {
+    const assets = await fetchReleaseAssets(tag)
+    return pickBestReleaseAsset(assets, version, isAlpha, ext, prefixes)
+  } catch (error) {
+    console.warn(
+      `[WARN]: failed to resolve mihomo asset from release API, falling back to legacy naming: ${error.message}`
+    )
+    return buildFallbackReleaseAsset(version, isAlpha, prefixes)
+  }
+}
+
+async function getLatestVersion(url, label) {
+  try {
+    const response = await fetch(url, {
       method: 'GET'
     })
-    let v = await response.text()
-    MIHOMO_VERSION = v.trim() // Trim to remove extra whitespaces
-    console.log(`Latest release version: ${MIHOMO_VERSION}`)
+    const version = (await response.text()).trim()
+    console.log(`Latest ${label} version: ${version}`)
+    return version
   } catch (error) {
-    console.error('Error fetching latest release version:', error.message)
+    console.error(`Error fetching latest ${label} version:`, error.message)
     process.exit(1)
   }
 }
@@ -85,66 +277,38 @@ async function getLatestReleaseVersion() {
 /*
  * check available
  */
-if (!MIHOMO_MAP[`${platform}-${arch}`]) {
-  throw new Error(`unsupported platform "${platform}-${arch}"`)
-}
-
-if (!MIHOMO_ALPHA_MAP[`${platform}-${arch}`]) {
-  throw new Error(`unsupported platform "${platform}-${arch}"`)
-}
+getAssetPrefixCandidates(platform, arch)
 
 /**
  * core info
  */
-function MihomoAlpha() {
-  const name = MIHOMO_ALPHA_MAP[`${platform}-${arch}`]
+async function createMihomoBinaryInfo(name, versionUrl, isAlpha) {
   const isWin = platform === 'win32'
-  const urlExt = isWin ? 'zip' : 'gz'
-  const downloadURL = `${MIHOMO_ALPHA_URL_PREFIX}/${name}-${MIHOMO_ALPHA_VERSION}.${urlExt}`
-  const exeFile = `${name}${isWin ? '.exe' : ''}`
-  const zipFile = `${name}-${MIHOMO_ALPHA_VERSION}.${urlExt}`
+  const version = await getLatestVersion(versionUrl, isAlpha ? 'alpha' : 'release')
+  const asset = await resolveReleaseAsset(version, isAlpha)
 
   return {
-    name: 'mihomo-alpha',
-    targetFile: `mihomo-alpha${isWin ? '.exe' : ''}`,
-    exeFile,
-    zipFile,
-    downloadURL
-  }
-}
-
-function mihomo() {
-  const name = MIHOMO_MAP[`${platform}-${arch}`]
-  const isWin = platform === 'win32'
-  const urlExt = isWin ? 'zip' : 'gz'
-  const downloadURL = `${MIHOMO_URL_PREFIX}/${MIHOMO_VERSION}/${name}-${MIHOMO_VERSION}.${urlExt}`
-  const exeFile = `${name}${isWin ? '.exe' : ''}`
-  const zipFile = `${name}-${MIHOMO_VERSION}.${urlExt}`
-
-  return {
-    name: 'mihomo',
-    targetFile: `mihomo${isWin ? '.exe' : ''}`,
-    exeFile,
-    zipFile,
-    downloadURL
+    name,
+    targetFile: `${name}${isWin ? '.exe' : ''}`,
+    zipFile: asset.name,
+    downloadURL: asset.browser_download_url
   }
 }
 /**
  * download sidecar and rename
  */
 async function resolveSidecar(binInfo) {
-  const { name, targetFile, zipFile, exeFile, downloadURL } = binInfo
+  const { name, targetFile, zipFile, downloadURL } = binInfo
 
   const sidecarDir = path.join(cwd, 'extra', 'sidecar')
   const sidecarPath = path.join(sidecarDir, targetFile)
 
   fs.mkdirSync(sidecarDir, { recursive: true })
-  if (fs.existsSync(sidecarPath)) {
-    fs.rmSync(sidecarPath)
+  if (!tryRemoveExisting(sidecarPath, name)) {
+    return
   }
   const tempDir = path.join(TEMP_DIR, name)
   const tempZip = path.join(tempDir, zipFile)
-  const tempExe = path.join(tempDir, exeFile)
 
   fs.mkdirSync(tempDir, { recursive: true })
   try {
@@ -154,11 +318,13 @@ async function resolveSidecar(binInfo) {
 
     if (zipFile.endsWith('.zip')) {
       const zip = new AdmZip(tempZip)
-      zip.getEntries().forEach((entry) => {
-        console.log(`[DEBUG]: "${name}" entry name`, entry.entryName)
-      })
+      const exeEntry = findExecutableEntry(zip.getEntries(), name)
+      if (!exeEntry) {
+        throw new Error(`Expected executable not found in ${zipFile}`)
+      }
       zip.extractAllTo(tempDir, true)
-      fs.renameSync(tempExe, sidecarPath)
+      const extractedExe = path.join(tempDir, exeEntry.entryName)
+      fs.renameSync(extractedExe, sidecarPath)
       console.log(`[INFO]: "${name}" unzip finished`)
     } else if (zipFile.endsWith('.tgz')) {
       // tgz
@@ -218,8 +384,8 @@ async function resolveResource(binInfo) {
   const resDir = path.join(cwd, 'extra', 'files')
   const targetPath = path.join(resDir, file)
 
-  if (fs.existsSync(targetPath)) {
-    fs.rmSync(targetPath)
+  if (!tryRemoveExisting(targetPath, file)) {
+    return
   }
 
   fs.mkdirSync(resDir, { recursive: true })
@@ -241,10 +407,23 @@ async function downloadFile(url, path) {
     method: 'GET',
     headers: { 'Content-Type': 'application/octet-stream' }
   })
+
+  if (!response.ok) {
+    throw new Error(`download failed "${url}": HTTP ${response.status}`)
+  }
+
   const buffer = await response.arrayBuffer()
   fs.writeFileSync(path, new Uint8Array(buffer))
 
   console.log(`[INFO]: download finished "${url}"`)
+}
+
+function getMappedAsset(map, key, label) {
+  const asset = map[key]
+  if (!asset) {
+    throw new Error(`unsupported ${label} "${key}"`)
+  }
+  return asset
 }
 
 const resolveMmdb = () =>
@@ -277,45 +456,32 @@ const resolveEnableLoopback = () =>
     file: 'enableLoopback.exe',
     downloadURL: `https://github.com/Kuingsmile/uwp-tool/releases/download/latest/enableLoopback.exe`
   })
-const resolveSparkleService = () => {
-  const map = {
-    'win32-x64': 'sparkle-service-windows-amd64-v3',
-    'win32-ia32': 'sparkle-service-windows-386',
-    'win32-arm64': 'sparkle-service-windows-arm64',
-    'darwin-x64': 'sparkle-service-darwin-amd64-v3',
-    'darwin-arm64': 'sparkle-service-darwin-arm64',
-    'linux-x64': 'sparkle-service-linux-amd64-v3',
-    'linux-arm64': 'sparkle-service-linux-arm64',
-    'linux-loong64': 'sparkle-service-linux-loong64-abi2'
-  }
-  if (!map[`${platform}-${arch}`]) {
-    throw new Error(`unsupported platform "${platform}-${arch}"`)
-  }
-  const base = map[`${platform}-${arch}`]
+const resolveRoutexService = () => {
+  const key = `${platform}-${arch}`
+  const base = getMappedAsset(ROUTEX_SERVICE_ASSETS, key, 'platform')
   const ext = platform == 'win32' ? '.exe' : ''
 
   return resolveResource({
-    file: `sparkle-service${ext}`,
-    downloadURL: `https://github.com/xishang0128/sparkle-service/releases/download/pre-release/${base}${ext}`,
+    file: `routex-service${ext}`,
+    downloadURL: `${ROUTEX_SERVICE_RELEASE_PREFIX}/${base}${ext}`,
     needExecutable: true
   })
 }
-const resolveRunner = () =>
-  resolveResource({
-    file: 'sparkle-run.exe',
-    downloadURL: `https://github.com/xishang0128/sparkle-run/releases/download/${arch}/sparkle-run.exe`
+const resolveRunner = () => {
+  const asset = getMappedAsset(ROUTEX_RUN_ASSETS, arch, 'runner arch')
+  return resolveResource({
+    file: 'routex-run.exe',
+    downloadURL: `${ROUTEX_SERVICE_RELEASE_PREFIX}/${asset}`
   })
+}
 
 const resolveMonitor = async () => {
+  const assets = await fetchLatestGitHubReleaseAssets(TRAFFIC_MONITOR_REPO)
+  const asset = pickTrafficMonitorAsset(assets, arch)
   const tempDir = path.join(TEMP_DIR, 'TrafficMonitor')
   const tempZip = path.join(tempDir, `${arch}.zip`)
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true })
-  }
-  await downloadFile(
-    `https://github.com/xishang0128/sparkle-run/releases/download/monitor/${arch}.zip`,
-    tempZip
-  )
+  fs.mkdirSync(tempDir, { recursive: true })
+  await downloadFile(asset.browser_download_url, tempZip)
   const zip = new AdmZip(tempZip)
   const resDir = path.join(cwd, 'extra', 'files')
   const targetPath = path.join(resDir, 'TrafficMonitor')
@@ -400,82 +566,85 @@ const resolveFont = async () => {
 const tasks = [
   {
     name: 'mihomo-alpha',
-    func: () => getLatestAlphaVersion().then(() => resolveSidecar(MihomoAlpha())),
-    retry: 5
+    func: async () =>
+      resolveSidecar(await createMihomoBinaryInfo('mihomo-alpha', MIHOMO_ALPHA_VERSION_URL, true)),
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: 'mihomo',
-    func: () => getLatestReleaseVersion().then(() => resolveSidecar(mihomo())),
-    retry: 5
+    func: async () =>
+      resolveSidecar(await createMihomoBinaryInfo('mihomo', MIHOMO_VERSION_URL, false)),
+    retry: DEFAULT_TASK_RETRY
   },
-  { name: 'mmdb', func: resolveMmdb, retry: 5 },
-  { name: 'metadb', func: resolveMetadb, retry: 5 },
-  { name: 'geosite', func: resolveGeosite, retry: 5 },
-  { name: 'geoip', func: resolveGeoIP, retry: 5 },
-  { name: 'asn', func: resolveASN, retry: 5 },
+  { name: 'mmdb', func: resolveMmdb, retry: DEFAULT_TASK_RETRY },
+  { name: 'metadb', func: resolveMetadb, retry: DEFAULT_TASK_RETRY },
+  { name: 'geosite', func: resolveGeosite, retry: DEFAULT_TASK_RETRY },
+  { name: 'geoip', func: resolveGeoIP, retry: DEFAULT_TASK_RETRY },
+  { name: 'asn', func: resolveASN, retry: DEFAULT_TASK_RETRY },
   {
     name: 'font',
     func: resolveFont,
-    retry: 5
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: 'enableLoopback',
     func: resolveEnableLoopback,
-    retry: 5,
+    retry: DEFAULT_TASK_RETRY,
     winOnly: true
   },
   {
-    name: 'sparkle-service',
-    func: resolveSparkleService,
-    retry: 5
+    name: 'routex-service',
+    func: resolveRoutexService,
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: 'runner',
     func: resolveRunner,
-    retry: 5,
+    retry: DEFAULT_TASK_RETRY,
     winOnly: true
   },
   {
     name: 'monitor',
     func: resolveMonitor,
-    retry: 5,
+    retry: DEFAULT_TASK_RETRY,
     winOnly: true
   },
   {
     name: 'substore',
     func: resolveSubstore,
-    retry: 5
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: 'substorefrontend',
     func: resolveSubstoreFrontend,
-    retry: 5
+    retry: DEFAULT_TASK_RETRY
   },
   {
     name: '7zip',
     func: resolve7zip,
-    retry: 5,
+    retry: DEFAULT_TASK_RETRY,
     winOnly: true
   }
 ]
 
 async function runTask() {
-  const task = tasks.shift()
-  if (!task) return
-  if (task.winOnly && platform !== 'win32') return runTask()
-  if (task.linuxOnly && platform !== 'linux') return runTask()
-  if (task.unixOnly && platform === 'win32') return runTask()
+  while (true) {
+    const task = tasks.shift()
+    if (!task) return
+    if (task.winOnly && platform !== 'win32') continue
+    if (task.linuxOnly && platform !== 'linux') continue
+    if (task.unixOnly && platform === 'win32') continue
 
-  for (let i = 0; i < task.retry; i++) {
-    try {
-      await task.func()
-      break
-    } catch (err) {
-      console.error(`[ERROR]: task::${task.name} try ${i} ==`, err.message)
-      if (i === task.retry - 1) throw err
+    for (let i = 0; i < task.retry; i++) {
+      try {
+        await task.func()
+        break
+      } catch (err) {
+        console.error(`[ERROR]: task::${task.name} try ${i} ==`, err.message)
+        if (i === task.retry - 1) throw err
+      }
     }
   }
-  return runTask()
 }
 
 runTask()

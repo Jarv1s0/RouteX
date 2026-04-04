@@ -40,6 +40,26 @@ import { refreshSSIDCheck } from '../sys/ssid'
 import { startNetworkDetection } from '../core/manager'
 import { initKeyManager } from '../service/manager'
 
+const deprecatedSidebarCardStatusKeys = ['sysproxyCardStatus', 'tunCardStatus'] as const
+
+function buildAppConfigMigrationPatch(appConfig: AppConfig): Partial<AppConfig> {
+  const patch: Partial<AppConfig> = {}
+
+  for (const key in defaultConfig) {
+    if (!(key in appConfig) && defaultConfig[key as keyof AppConfig] !== undefined) {
+      ;(patch as Record<string, unknown>)[key] = defaultConfig[key as keyof AppConfig]
+    }
+  }
+
+  for (const key of deprecatedSidebarCardStatusKeys) {
+    if (key in appConfig) {
+      ;(patch as Record<string, unknown>)[key] = undefined
+    }
+  }
+
+  return patch
+}
+
 async function initDirs(): Promise<void> {
   if (!existsSync(dataDir())) {
     await mkdir(dataDir())
@@ -169,13 +189,7 @@ async function migration(): Promise<void> {
     await patchControledMihomoConfig(mihomoConfigPatch)
   }
 
-  const appConfigPatch: Partial<AppConfig> = {}
-
-  for (const key in defaultConfig) {
-    if (!(key in appConfig) && defaultConfig[key as keyof AppConfig] !== undefined) {
-      ;(appConfigPatch as Record<string, unknown>)[key] = defaultConfig[key as keyof AppConfig]
-    }
-  }
+  const appConfigPatch = buildAppConfigMigrationPatch(appConfig)
 
   if (Object.keys(appConfigPatch).length > 0) {
     await patchAppConfig(appConfigPatch)
