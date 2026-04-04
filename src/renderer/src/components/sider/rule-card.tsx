@@ -114,7 +114,7 @@ const RuleCard: React.FC<Props> = (props) => {
       <div className="flex items-center justify-between h-7">
         <div className="flex items-center gap-1.5 flex-1">
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-            <LuGitBranch className={`text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-foreground/80`} />
+            <LuGitBranch className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
           </span>
           <h3 className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>
             路由规则
