@@ -18,6 +18,7 @@ export const defaultConfig: AppConfig = {
   autoCheckUpdate: false,
   autoCloseConnection: true,
   autoDelayTestOnShow: false,
+  customTheme: 'CoolApk.css',
   controlDns: true,
   controlSniff: true,
   delayTestConcurrency: 8,

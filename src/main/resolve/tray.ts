@@ -95,7 +95,7 @@ function hideCustomTray(): void {
 }
 
 async function showCustomTray(): Promise<void> {
-  const { useCustomTrayMenu = false, customTheme = 'default.css' } = await getAppConfig()
+  const { useCustomTrayMenu = false, customTheme = 'CoolApk.css' } = await getAppConfig()
   if (!useCustomTrayMenu) {
     await updateTrayMenu()
     return
