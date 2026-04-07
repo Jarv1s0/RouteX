@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
@@ -36,7 +36,22 @@ interface TopologyGraph {
   edges: Edge[]
 }
 
+interface TopologyEdgeData {
+  weight: number
+  download: number
+  upload: number
+}
+
+interface TopologyConnectionMeta {
+  processName: string
+  iconUrl: string
+  displayIcon: boolean
+  ruleLabel: string
+  normalizedChain: string[]
+}
+
 const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 }
+const TOPOLOGY_TRAFFIC_REFRESH_INTERVAL = 250
 
 const EMPTY_GRAPH: TopologyGraph = {
   structureKey: '',
@@ -105,7 +120,11 @@ const LayoutHelper = ({
   return null
 }
 
-const getLayoutedElements = (nodes: Node<TopologyNodeData>[], edges: Edge[], direction = 'LR') => {
+function getLayoutedElements(
+  nodes: Node<TopologyNodeData>[],
+  edges: Edge[],
+  direction = 'LR'
+): TopologyGraph {
   const dagreGraph = new dagre.graphlib.Graph()
   dagreGraph.setDefaultEdgeLabel(() => ({}))
   dagreGraph.setGraph({ rankdir: direction, nodesep: 15, ranksep: 360, align: 'UL' })
@@ -133,15 +152,14 @@ const getLayoutedElements = (nodes: Node<TopologyNodeData>[], edges: Edge[], dir
   dagre.layout(dagreGraph)
 
   const columnSpacing = 450
-  const newNodes = nodes.map((node) => {
+  const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id)
-    const layerIdx = node.data.layerIndex || 1
-    const targetX = (layerIdx - 1) * columnSpacing
+    const layerIndex = node.data.layerIndex || 1
 
     return {
       ...node,
       position: {
-        x: targetX,
+        x: (layerIndex - 1) * columnSpacing,
         y: Math.round(nodeWithPosition.y - nodeWithPosition.height / 2)
       },
       draggable: false,
@@ -149,19 +167,102 @@ const getLayoutedElements = (nodes: Node<TopologyNodeData>[], edges: Edge[], dir
     }
   })
 
-  return { nodes: newNodes, edges }
+  return {
+    structureKey: '',
+    nodes: layoutedNodes,
+    edges
+  }
 }
 
-function buildTopologyGraph(connections: ControllerConnectionDetail[]): TopologyGraph {
-  if (!connections || connections.length === 0) {
+function normalizeConnectionChain(chain?: string[]): string[] {
+  if (!chain || chain.length === 0) {
+    return ['DIRECT', 'DIRECT']
+  }
+
+  const normalizedChain = [...chain].reverse().filter((item, index, items) => {
+    return index === 0 || item !== items[index - 1]
+  })
+
+  if (normalizedChain.length === 1) {
+    return [normalizedChain[0], normalizedChain[0]]
+  }
+
+  return normalizedChain
+}
+
+function getConnectionTopologyMeta(connection: ControllerConnectionDetail): TopologyConnectionMeta {
+  let processName = 'Unknown'
+  let iconUrl = ''
+  let displayIcon = false
+
+  if (connection.metadata.process) {
+    const parts = connection.metadata.process.replace(/\\/g, '/').split('/')
+    processName = parts[parts.length - 1]
+    iconUrl = connection.metadata.processPath
+      ? `http://127.0.0.1:3333/api/icon?path=${encodeURIComponent(connection.metadata.processPath)}`
+      : ''
+    displayIcon = !!iconUrl
+  }
+
+  let ruleLabel = connection.rulePayload ? connection.rulePayload : connection.rule
+  if (!ruleLabel) ruleLabel = 'Match'
+  if (ruleLabel.length > 25) ruleLabel = `${ruleLabel.substring(0, 23)}...`
+
+  return {
+    processName,
+    iconUrl,
+    displayIcon,
+    ruleLabel,
+    normalizedChain: normalizeConnectionChain(connection.chains)
+  }
+}
+
+function buildTopologyStructureKey(connections: ControllerConnectionDetail[]): string {
+  if (!connections.length) {
+    return ''
+  }
+
+  const nodeKeys = new Set<string>()
+  const edgeKeys = new Set<string>()
+  let maxLayerIndex = 0
+
+  connections.forEach((connection) => {
+    const { processName, ruleLabel, normalizedChain } = getConnectionTopologyMeta(connection)
+    const sourceNode = `${processName}__L1`
+    const ruleNode = `${ruleLabel}__L2`
+
+    nodeKeys.add(sourceNode)
+    nodeKeys.add(ruleNode)
+    edgeKeys.add(`${sourceNode}|${ruleNode}`)
+
+    let previousNode = ruleNode
+    normalizedChain.forEach((item, index) => {
+      const layerIndex = 3 + index
+      maxLayerIndex = Math.max(maxLayerIndex, layerIndex)
+
+      const currentNode = `${item}__L${layerIndex}`
+      nodeKeys.add(currentNode)
+      edgeKeys.add(`${previousNode}|${currentNode}`)
+      previousNode = currentNode
+    })
+  })
+
+  return `${maxLayerIndex}__${Array.from(nodeKeys).sort().join(',')}__${Array.from(edgeKeys).sort().join(',')}`
+}
+
+function buildTopologyGraph(
+  connections: ControllerConnectionDetail[],
+  structureKey: string
+): TopologyGraph {
+  if (!connections.length || !structureKey) {
     return EMPTY_GRAPH
   }
 
   const nodesMap = new Map<string, Node<TopologyNodeData>>()
-  const linksMap = new Map<string, { weight: number; download: number; upload: number }>()
+  const linksMap = new Map<string, TopologyEdgeData>()
   const nodeTraffic = new Map<string, { download: number; upload: number; count: number }>()
   const targetCounter = new Map<string, number>()
-  let maxLayerIndex = 0
+  const maxLayerIndex = Number.parseInt(structureKey.split('__', 1)[0] || '0', 10) || 0
 
   const addNode = (
     layerIndex: number,
@@ -218,28 +319,13 @@ function buildTopologyGraph(connections: ControllerConnectionDetail[]): Topology
     }
   }
 
-  connections.forEach((conn) => {
-    const uploadSpeed = conn.uploadSpeed || 0
-    const downloadSpeed = conn.downloadSpeed || 0
-
-    let processName = 'Unknown'
-    let iconUrl = ''
-    let displayIcon = false
-
-    if (conn.metadata.process) {
-      const parts = conn.metadata.process.replace(/\\/g, '/').split('/')
-      processName = parts[parts.length - 1]
-      iconUrl = conn.metadata.processPath
-        ? `http://127.0.0.1:3333/api/icon?path=${encodeURIComponent(conn.metadata.processPath)}`
-        : ''
-      displayIcon = !!iconUrl
-    }
+  connections.forEach((connection) => {
+    const { processName, iconUrl, displayIcon, ruleLabel, normalizedChain } =
+      getConnectionTopologyMeta(connection)
+    const uploadSpeed = connection.uploadSpeed || 0
+    const downloadSpeed = connection.downloadSpeed || 0
 
     const sourceNode = addNode(1, processName, iconUrl, displayIcon)
-
-    let ruleLabel = conn.rulePayload ? conn.rulePayload : conn.rule
-    if (!ruleLabel) ruleLabel = 'Match'
-    if (ruleLabel.length > 25) ruleLabel = `${ruleLabel.substring(0, 23)}...`
     const ruleNode = addNode(2, ruleLabel)
 
     addLink(sourceNode, ruleNode, uploadSpeed, downloadSpeed)
@@ -250,31 +336,12 @@ function buildTopologyGraph(connections: ControllerConnectionDetail[]): Topology
       ruleTraffic.download += downloadSpeed
     }
 
-    const chain = conn.chains
-    let normalizedChain: string[] = []
-
-    if (!chain || chain.length === 0) {
-      normalizedChain = ['DIRECT', 'DIRECT']
-    } else {
-      normalizedChain = [...chain].reverse()
-      normalizedChain = normalizedChain.filter((item, index) => {
-        return index === 0 || item !== normalizedChain[index - 1]
-      })
-      if (normalizedChain.length === 1) {
-        normalizedChain = [normalizedChain[0], normalizedChain[0]]
-      }
-    }
-
     let previousNode = ruleNode
     const rootPolicyGroup = normalizedChain[0]
 
     normalizedChain.forEach((item, index) => {
-      const currentLayer = 3 + index
-      if (currentLayer > maxLayerIndex) {
-        maxLayerIndex = currentLayer
-      }
-
-      const currentNode = addNode(currentLayer, item, undefined, undefined, rootPolicyGroup)
+      const layerIndex = 3 + index
+      const currentNode = addNode(layerIndex, item, undefined, undefined, rootPolicyGroup)
 
       addLink(previousNode, currentNode, uploadSpeed, downloadSpeed)
       targetCounter.set(currentNode, (targetCounter.get(currentNode) || 0) + 1)
@@ -288,7 +355,7 @@ function buildTopologyGraph(connections: ControllerConnectionDetail[]): Topology
     })
   })
 
-  const initialNodes: Node<TopologyNodeData>[] = []
+  const nodes: Node<TopologyNodeData>[] = []
   nodesMap.forEach((node, id) => {
     const traffic = nodeTraffic.get(id)
     node.data.uploadSpeed = traffic?.upload || 0
@@ -299,10 +366,10 @@ function buildTopologyGraph(connections: ControllerConnectionDetail[]): Topology
       node.type = 'exit'
     }
 
-    initialNodes.push(node)
+    nodes.push(node)
   })
 
-  initialNodes.sort((left, right) => {
+  nodes.sort((left, right) => {
     const leftName = left.data.name
     const rightName = right.data.name
 
@@ -314,10 +381,10 @@ function buildTopologyGraph(connections: ControllerConnectionDetail[]): Topology
     return leftName.localeCompare(rightName)
   })
 
-  const initialEdges: Edge[] = []
+  const edges: Edge[] = []
   linksMap.forEach((value, key) => {
     const [source, target] = key.split('|')
-    initialEdges.push({
+    edges.push({
       id: `e-${source}-${target}`,
       source,
       target,
@@ -330,114 +397,263 @@ function buildTopologyGraph(connections: ControllerConnectionDetail[]): Topology
     })
   })
 
-  initialEdges.sort((left, right) => left.id.localeCompare(right.id))
+  edges.sort((left, right) => left.id.localeCompare(right.id))
 
   return {
-    structureKey: `${initialNodes.map((node) => `${node.id}:${node.type}`).join(',')}__${initialEdges.map((edge) => edge.id).join(',')}`,
-    nodes: initialNodes,
-    edges: initialEdges
+    structureKey,
+    nodes,
+    edges
   }
+}
+
+function areSetsEqual(left: Set<string>, right: Set<string>): boolean {
+  if (left === right) return true
+  if (left.size !== right.size) return false
+
+  for (const value of left) {
+    if (!right.has(value)) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function hasSameNodeData(left: TopologyNodeData, right: TopologyNodeData): boolean {
+  return (
+    left.name === right.name &&
+    left.displayIcon === right.displayIcon &&
+    left.iconUrl === right.iconUrl &&
+    left.layerIndex === right.layerIndex &&
+    left.uploadSpeed === right.uploadSpeed &&
+    left.downloadSpeed === right.downloadSpeed &&
+    left.count === right.count &&
+    areSetsEqual(left.policyGroups, right.policyGroups)
+  )
+}
+
+function getEdgeData(edge: Edge): TopologyEdgeData {
+  const data = (edge.data ?? {}) as Partial<TopologyEdgeData>
+
+  return {
+    weight: data.weight ?? 0,
+    upload: data.upload ?? 0,
+    download: data.download ?? 0
+  }
+}
+
+function hasSameEdgeData(left: Edge, right: Edge): boolean {
+  const leftData = getEdgeData(left)
+  const rightData = getEdgeData(right)
+
+  return (
+    left.source === right.source &&
+    left.target === right.target &&
+    left.type === right.type &&
+    leftData.weight === rightData.weight &&
+    leftData.upload === rightData.upload &&
+    leftData.download === rightData.download
+  )
+}
+
+function mergeTopologyGraph(previousGraph: TopologyGraph, nextGraph: TopologyGraph): TopologyGraph {
+  const previousNodeMap = new Map(previousGraph.nodes.map((node) => [node.id, node]))
+  const previousEdgeMap = new Map(previousGraph.edges.map((edge) => [edge.id, edge]))
+
+  return {
+    structureKey: nextGraph.structureKey,
+    nodes: nextGraph.nodes.map((node) => {
+      const previousNode = previousNodeMap.get(node.id)
+      if (!previousNode) {
+        return node
+      }
+
+      if (previousNode.type === node.type && hasSameNodeData(previousNode.data, node.data)) {
+        return previousNode
+      }
+
+      return {
+        ...previousNode,
+        type: node.type,
+        data: node.data,
+        draggable: false,
+        selectable: false
+      }
+    }),
+    edges: nextGraph.edges.map((edge) => {
+      const previousEdge = previousEdgeMap.get(edge.id)
+      if (!previousEdge) {
+        return edge
+      }
+
+      if (hasSameEdgeData(previousEdge, edge)) {
+        return previousEdge
+      }
+
+      return {
+        ...previousEdge,
+        data: edge.data
+      }
+    })
+  }
+}
+
+function computeInitialViewport(
+  nodes: Node<TopologyNodeData>[],
+  container: HTMLDivElement | null
+): Viewport | null {
+  if (!nodes.length || !container) {
+    return null
+  }
+
+  const width = container.clientWidth
+  const height = container.clientHeight
+  if (width <= 0 || height <= 0) {
+    return null
+  }
+
+  const bounds = getNodesBounds(nodes)
+  return getViewportForBounds(bounds, width, height, 0.05, 4, 0.1)
 }
 
 const TopologyMapInner = () => {
   const { connections } = useConnections()
-  const topologyGraph = useMemo(() => buildTopologyGraph(connections), [connections])
+  const structureKey = useMemo(() => buildTopologyStructureKey(connections), [connections])
   const [renderedGraph, setRenderedGraph] = useState<TopologyGraph>(EMPTY_GRAPH)
   const [initialViewport, setInitialViewport] = useState<Viewport | null>(null)
   const graphCacheRef = useRef<TopologyGraph>(EMPTY_GRAPH)
   const containerRef = useRef<HTMLDivElement>(null)
+  const latestConnectionsRef = useRef<ControllerConnectionDetail[]>(connections)
+  const latestStructureKeyRef = useRef(structureKey)
+  const pendingTrafficTimeoutRef = useRef<number | null>(null)
+  const lastGraphCommitAtRef = useRef(0)
+  const viewportStructureKeyRef = useRef('')
 
-  useLayoutEffect(() => {
-    if (!topologyGraph.nodes.length) {
-      setInitialViewport(null)
+  const clearPendingTrafficUpdate = useCallback(() => {
+    if (pendingTrafficTimeoutRef.current !== null) {
+      window.clearTimeout(pendingTrafficTimeoutRef.current)
+      pendingTrafficTimeoutRef.current = null
+    }
+  }, [])
+
+  const applyGraph = useCallback(
+    (nextGraph: TopologyGraph, relayout: boolean) => {
+      if (!nextGraph.nodes.length) {
+        clearPendingTrafficUpdate()
+        graphCacheRef.current = EMPTY_GRAPH
+        lastGraphCommitAtRef.current = 0
+        setRenderedGraph(EMPTY_GRAPH)
+        return
+      }
+
+      const graphToRender = relayout
+        ? (() => {
+            const layoutedGraph = getLayoutedElements(nextGraph.nodes, nextGraph.edges)
+            return {
+              structureKey: nextGraph.structureKey,
+              nodes: layoutedGraph.nodes,
+              edges: layoutedGraph.edges
+            }
+          })()
+        : mergeTopologyGraph(graphCacheRef.current, nextGraph)
+
+      graphCacheRef.current = graphToRender
+      lastGraphCommitAtRef.current = Date.now()
+      setRenderedGraph(graphToRender)
+    },
+    [clearPendingTrafficUpdate]
+  )
+
+  const flushPendingTrafficUpdate = useCallback(() => {
+    if (pendingTrafficTimeoutRef.current !== null) {
+      window.clearTimeout(pendingTrafficTimeoutRef.current)
+      pendingTrafficTimeoutRef.current = null
+    }
+
+    const nextConnections = latestConnectionsRef.current
+    const nextStructureKey = latestStructureKeyRef.current
+    if (!nextConnections.length || !nextStructureKey) {
       return
     }
 
-    const container = containerRef.current
-    if (!container) {
-      return
-    }
-
-    const width = container.clientWidth
-    const height = container.clientHeight
-
-    if (width <= 0 || height <= 0) {
-      return
-    }
-
-    const bounds = getNodesBounds(topologyGraph.nodes)
-    const viewport = getViewportForBounds(bounds, width, height, 0.05, 4, 0.1)
-    setInitialViewport(viewport)
-  }, [topologyGraph.nodes])
+    applyGraph(buildTopologyGraph(nextConnections, nextStructureKey), false)
+  }, [applyGraph])
 
   useEffect(() => {
-    if (!topologyGraph.nodes.length) {
+    latestConnectionsRef.current = connections
+    latestStructureKeyRef.current = structureKey
+
+    if (!connections.length || !structureKey) {
+      clearPendingTrafficUpdate()
       graphCacheRef.current = EMPTY_GRAPH
+      lastGraphCommitAtRef.current = 0
       setRenderedGraph(EMPTY_GRAPH)
       return
     }
 
-    const previousGraph = graphCacheRef.current
+    const structureChanged = graphCacheRef.current.structureKey !== structureKey
 
-    if (previousGraph.structureKey !== topologyGraph.structureKey) {
-      const layoutedGraph = getLayoutedElements(topologyGraph.nodes, topologyGraph.edges)
-      const nextGraph = {
-        structureKey: topologyGraph.structureKey,
-        nodes: layoutedGraph.nodes,
-        edges: layoutedGraph.edges
-      }
-
-      graphCacheRef.current = nextGraph
-      setRenderedGraph(nextGraph)
+    if (structureChanged) {
+      clearPendingTrafficUpdate()
+      applyGraph(buildTopologyGraph(connections, structureKey), true)
       return
     }
 
-    const previousNodeMap = new Map(previousGraph.nodes.map((node) => [node.id, node]))
-    const previousEdgeMap = new Map(previousGraph.edges.map((edge) => [edge.id, edge]))
-
-    const nextGraph: TopologyGraph = {
-      structureKey: topologyGraph.structureKey,
-      nodes: topologyGraph.nodes.map((node) => {
-        const previousNode = previousNodeMap.get(node.id)
-        if (!previousNode) {
-          return node
-        }
-
-        return {
-          ...node,
-          type: previousNode.type,
-          position: previousNode.position,
-          draggable: false,
-          selectable: false
-        }
-      }),
-      edges: topologyGraph.edges.map((edge) => {
-        const previousEdge = previousEdgeMap.get(edge.id)
-        if (!previousEdge) {
-          return edge
-        }
-
-        return {
-          ...previousEdge,
-          data: edge.data
-        }
-      })
+    const elapsed = Date.now() - lastGraphCommitAtRef.current
+    if (elapsed >= TOPOLOGY_TRAFFIC_REFRESH_INTERVAL) {
+      flushPendingTrafficUpdate()
+      return
     }
 
-    graphCacheRef.current = nextGraph
-    setRenderedGraph(nextGraph)
-  }, [topologyGraph])
+    if (pendingTrafficTimeoutRef.current === null) {
+      pendingTrafficTimeoutRef.current = window.setTimeout(() => {
+        flushPendingTrafficUpdate()
+      }, TOPOLOGY_TRAFFIC_REFRESH_INTERVAL - elapsed)
+    }
+  }, [
+    applyGraph,
+    clearPendingTrafficUpdate,
+    connections,
+    flushPendingTrafficUpdate,
+    structureKey
+  ])
+
+  useEffect(() => {
+    return () => {
+      clearPendingTrafficUpdate()
+    }
+  }, [clearPendingTrafficUpdate])
+
+  useLayoutEffect(() => {
+    if (!renderedGraph.nodes.length) {
+      viewportStructureKeyRef.current = ''
+      setInitialViewport(null)
+      return
+    }
+
+    if (viewportStructureKeyRef.current === renderedGraph.structureKey) {
+      return
+    }
+
+    const viewport = computeInitialViewport(renderedGraph.nodes, containerRef.current)
+    if (!viewport) {
+      return
+    }
+
+    viewportStructureKeyRef.current = renderedGraph.structureKey
+    setInitialViewport(viewport)
+  }, [renderedGraph.nodes, renderedGraph.structureKey])
 
   return (
     <div ref={containerRef} className="h-full w-full relative">
       {connections.length === 0 ? (
         <div className="flex flex-col justify-center items-center h-full text-default-400 gap-3 opacity-60">
-          <div className="text-4xl grayscale">🕸️</div>
-          <div className="text-sm font-medium">暂无活动连接</div>
+          <div className="text-4xl grayscale">[]</div>
+          <div className="text-sm font-medium">No active connections</div>
         </div>
       ) : renderedGraph.nodes.length === 0 || !initialViewport ? (
         <div className="flex justify-center items-center h-full text-default-400 text-sm">
-          解析数据结构中...
+          Building topology...
         </div>
       ) : (
         <ReactFlow

@@ -46,7 +46,7 @@ const AppearanceConfig: React.FC = () => {
     spinFloatingIcon = true,
     collapseSidebar = false,
 
-    customTheme = 'default.css',
+    customTheme = 'CoolApk.css',
     appTheme = 'system'
   } = appConfig || {}
   const [localShowFloating, setLocalShowFloating] = useState(showFloating)

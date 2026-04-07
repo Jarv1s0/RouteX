@@ -9,7 +9,6 @@ import ConfirmModal from '@renderer/components/base/base-confirm'
 
 import StatusGrid from '@renderer/components/stats/status-grid'
 import TrafficChart from '@renderer/components/stats/traffic-chart'
-import ProviderUsage from '@renderer/components/stats/provider-usage'
 import TrafficRanking from '@renderer/components/stats/traffic-ranking'
 import RuleDetailList from '@renderer/components/stats/rule-detail-list'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
@@ -66,13 +65,6 @@ const TrafficRankingSection = React.memo(function TrafficRankingSection({
       onSelectRule={onSelectRule}
     />
   )
-})
-
-const ProviderUsageSection = React.memo(function ProviderUsageSection() {
-  const providerData = useTrafficStore((state) => state.providerData)
-  const currentProviders = useTrafficStore((state) => state.currentProviders)
-
-  return <ProviderUsage providerData={providerData} currentProviders={currentProviders} />
 })
 
 const RuleDetailsModalSection = React.memo(
@@ -193,9 +185,6 @@ const Stats: React.FC = () => {
           
           {/* Traffic Ranking (Merged) */}
           <TrafficRankingSection onSelectRule={setSelectedRule} />
-
-          {/* Provider Usage */}
-          <ProviderUsageSection />
         </div>
 
         {/* 规则命中详情弹窗 */}

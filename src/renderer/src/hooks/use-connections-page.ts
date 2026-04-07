@@ -20,6 +20,7 @@ import {
 const connectionSearchCache = new WeakMap<ControllerConnectionDetail, string>()
 const connectionStartCache = new WeakMap<ControllerConnectionDetail, number>()
 const connectionTypeCache = new WeakMap<ControllerConnectionDetail, string>()
+const EMPTY_GROUPED_CONNECTIONS: ConnectionGroupData[] = []
 
 function getConnectionSearchText(connection: ControllerConnectionDetail): string {
   const cached = connectionSearchCache.get(connection)
@@ -57,6 +58,69 @@ function getConnectionType(connection: ControllerConnectionDetail): string {
   const next = `${connection.metadata.type || ''}|${connection.metadata.network || ''}`
   connectionTypeCache.set(connection, next)
   return next
+}
+
+function sortConnections(
+  connections: ControllerConnectionDetail[],
+  orderBy: ConnectionOrderBy,
+  direction: 'asc' | 'desc'
+): ControllerConnectionDetail[] {
+  const directionFactor = direction === 'asc' ? 1 : -1
+
+  return [...connections].sort((left, right) => {
+    switch (orderBy) {
+      case 'time':
+        return directionFactor * (getConnectionStart(right) - getConnectionStart(left))
+      case 'upload':
+        return directionFactor * (left.upload - right.upload)
+      case 'download':
+        return directionFactor * (left.download - right.download)
+      case 'uploadSpeed':
+        return directionFactor * ((left.uploadSpeed || 0) - (right.uploadSpeed || 0))
+      case 'downloadSpeed':
+        return directionFactor * ((left.downloadSpeed || 0) - (right.downloadSpeed || 0))
+      case 'process':
+        return directionFactor * (left.metadata.process || '').localeCompare(right.metadata.process || '')
+      case 'type':
+        return directionFactor * getConnectionType(left).localeCompare(getConnectionType(right))
+      case 'rule':
+        return directionFactor * (left.rule || '').localeCompare(right.rule || '')
+      default:
+        return 0
+    }
+  })
+}
+
+function groupConnections(connections: ControllerConnectionDetail[]): ConnectionGroupData[] {
+  const groups = new Map<string, ConnectionGroupData>()
+
+  connections.forEach((connection) => {
+    const process = connection.metadata.process || 'Unknown Process'
+    const processPath = connection.metadata.processPath || ''
+
+    if (!groups.has(process)) {
+      groups.set(process, {
+        process,
+        processPath,
+        connections: [],
+        totalUpload: 0,
+        totalDownload: 0,
+        uploadSpeed: 0,
+        downloadSpeed: 0
+      })
+    }
+
+    const currentGroup = groups.get(process)!
+    currentGroup.connections.push(connection)
+    currentGroup.totalUpload += connection.upload
+    currentGroup.totalDownload += connection.download
+    currentGroup.uploadSpeed += connection.uploadSpeed || 0
+    currentGroup.downloadSpeed += connection.downloadSpeed || 0
+  })
+
+  return Array.from(groups.values()).sort((left, right) => {
+    return right.connections.length - left.connections.length
+  })
 }
 
 interface UseConnectionsPageResult {
@@ -137,90 +201,43 @@ export function useConnectionsPage(): UseConnectionsPageResult {
   const deferredOrder = useDeferredValue(connectionOrderBy)
   const deferredDirection = useDeferredValue(connectionDirection)
   const sourceConnections = tab === 'active' ? activeConnections : closedConnections
+  const deferredSourceConnections = useDeferredValue(sourceConnections)
 
   const visibleConnections = useMemo(() => {
     if (showHidden || hiddenRules.size === 0) {
-      return sourceConnections
+      return deferredSourceConnections
     }
 
-    return sourceConnections.filter((connection) => {
+    return deferredSourceConnections.filter((connection) => {
       return !hiddenRules.has(getConnectionHideRule(connection))
     })
-  }, [hiddenRules, showHidden, sourceConnections])
+  }, [deferredSourceConnections, hiddenRules, showHidden])
 
-  const filteredConnections = useMemo(() => {
-    if (deferredFilter !== '') {
-      return visibleConnections.filter((connection) => {
-        return includesIgnoreCase(getConnectionSearchText(connection), deferredFilter)
-      })
-    }
-
-    if (!deferredOrder) {
+  const searchedConnections = useMemo(() => {
+    if (deferredFilter === '') {
       return visibleConnections
     }
 
-    return [...visibleConnections].sort((left, right) => {
-      const directionFactor = deferredDirection === 'asc' ? 1 : -1
-
-      switch (deferredOrder) {
-        case 'time':
-          return directionFactor * (getConnectionStart(right) - getConnectionStart(left))
-        case 'upload':
-          return directionFactor * (left.upload - right.upload)
-        case 'download':
-          return directionFactor * (left.download - right.download)
-        case 'uploadSpeed':
-          return directionFactor * ((left.uploadSpeed || 0) - (right.uploadSpeed || 0))
-        case 'downloadSpeed':
-          return directionFactor * ((left.downloadSpeed || 0) - (right.downloadSpeed || 0))
-        case 'process':
-          return directionFactor * (left.metadata.process || '').localeCompare(right.metadata.process || '')
-        case 'type':
-          return directionFactor * getConnectionType(left).localeCompare(getConnectionType(right))
-        case 'rule':
-          return directionFactor * (left.rule || '').localeCompare(right.rule || '')
-        default:
-          return 0
-      }
+    return visibleConnections.filter((connection) => {
+      return includesIgnoreCase(getConnectionSearchText(connection), deferredFilter)
     })
-  }, [
-    deferredDirection,
-    deferredFilter,
-    deferredOrder,
-    visibleConnections
-  ])
+  }, [deferredFilter, visibleConnections])
+
+  const filteredConnections = useMemo(() => {
+    if (viewMode === 'group' || !deferredOrder || deferredFilter !== '') {
+      return searchedConnections
+    }
+
+    return sortConnections(searchedConnections, deferredOrder, deferredDirection)
+  }, [deferredDirection, deferredFilter, deferredOrder, searchedConnections, viewMode])
 
   const groupedConnections = useMemo<ConnectionGroupData[]>(() => {
-    const groups = new Map<string, ConnectionGroupData>()
+    if (viewMode !== 'group') {
+      return EMPTY_GROUPED_CONNECTIONS
+    }
 
-    filteredConnections.forEach((connection) => {
-      const process = connection.metadata.process || '未知进程'
-      const processPath = connection.metadata.processPath || ''
-
-      if (!groups.has(process)) {
-        groups.set(process, {
-          process,
-          processPath,
-          connections: [],
-          totalUpload: 0,
-          totalDownload: 0,
-          uploadSpeed: 0,
-          downloadSpeed: 0
-        })
-      }
-
-      const currentGroup = groups.get(process)!
-      currentGroup.connections.push(connection)
-      currentGroup.totalUpload += connection.upload
-      currentGroup.totalDownload += connection.download
-      currentGroup.uploadSpeed += connection.uploadSpeed || 0
-      currentGroup.downloadSpeed += connection.downloadSpeed || 0
-    })
-
-    return Array.from(groups.values()).sort((left, right) => {
-      return right.connections.length - left.connections.length
-    })
-  }, [filteredConnections])
+    return groupConnections(searchedConnections)
+  }, [searchedConnections, viewMode])
 
   const closeAllConnections = useCallback((): void => {
     if (tab === 'active') {

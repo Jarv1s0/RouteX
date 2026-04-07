@@ -48,7 +48,7 @@ async function createFloatingWindow(): Promise<void> {
   const floatingWindowState = windowStateKeeper({
     file: 'floating-window-state.json'
   })
-  const { customTheme = 'default.css' } = await getAppConfig()
+  const { customTheme = 'CoolApk.css' } = await getAppConfig()
   floatingWindow = new BrowserWindow({
     width: 120,
     height: 42,
