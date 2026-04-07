@@ -7,6 +7,8 @@ import { execSync } from 'child_process'
 
 const cwd = process.cwd()
 const TEMP_DIR = path.join(cwd, 'node_modules/.temp')
+const BUILD_DIR = path.join(cwd, 'build')
+const RESOURCES_DIR = path.join(cwd, 'resources')
 const ROUTEX_SERVICE_RELEASE_PREFIX =
   'https://github.com/Jarv1s0/routex-service/releases/download/pre-release'
 const ROUTEX_SERVICE_ASSETS = {
@@ -56,6 +58,25 @@ function tryRemoveExisting(targetPath, label) {
 if (process.env.SKIP_PREPARE === '1') {
   console.log('Skipping prepare script...')
   process.exit(0)
+}
+
+function syncBuildIcons() {
+  const iconFiles = ['icon.icns', 'icon.ico', 'icon.png', 'installerIcon.ico']
+
+  fs.mkdirSync(BUILD_DIR, { recursive: true })
+
+  for (const file of iconFiles) {
+    const sourcePath = path.join(RESOURCES_DIR, file)
+    const targetPath = path.join(BUILD_DIR, file)
+
+    if (!fs.existsSync(sourcePath)) {
+      throw new Error(`missing icon resource: ${sourcePath}`)
+    }
+
+    fs.copyFileSync(sourcePath, targetPath)
+  }
+
+  console.log('[INFO]: build icon assets synced')
 }
 
 const MIHOMO_ALPHA_VERSION_URL =
@@ -278,6 +299,7 @@ async function getLatestVersion(url, label) {
  * check available
  */
 getAssetPrefixCandidates(platform, arch)
+syncBuildIcons()
 
 /**
  * core info

@@ -1,7 +1,12 @@
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { Worker } from 'worker_threads'
-import { mihomoWorkDir, resourcesFilesDir, subStoreDir, substoreLogPath } from '../utils/dirs'
-import subStoreIcon from '../../../resources/subStoreIcon.png?asset'
+import {
+  getIconPath,
+  mihomoWorkDir,
+  resourcesFilesDir,
+  subStoreDir,
+  substoreLogPath
+} from '../utils/dirs'
 import { createWriteStream, existsSync, mkdirSync } from 'fs'
 import { writeFile, rm, cp, readFile } from 'fs/promises'
 import http from 'http'
@@ -222,7 +227,7 @@ export async function startSubStoreBackendServer(): Promise<void> {
     await ensureSubStoreRuntimeAssets()
     await stopSubStoreBackendServer()
     subStorePort = await findAvailablePort(38324)
-    const icon = nativeImage.createFromPath(subStoreIcon)
+    const icon = nativeImage.createFromPath(getIconPath('subStoreIcon.png'))
     icon.toDataURL()
     const stdout = createWriteStream(substoreLogPath(), { flags: 'a' })
     const stderr = createWriteStream(substoreLogPath(), { flags: 'a' })

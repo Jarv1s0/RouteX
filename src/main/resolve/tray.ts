@@ -7,9 +7,6 @@ import {
   patchControledMihomoConfig
 } from '../config'
 
-import pngIcon from '../../../resources/icon.png?asset'
-import templateIcon from '../../../resources/iconTemplate.png?asset'
-
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -465,12 +462,12 @@ export const buildContextMenu = async (): Promise<Menu> => {
 export async function createTray(): Promise<void> {
   const { useDockIcon = true } = await getAppConfig()
   if (process.platform === 'linux') {
-    tray = new Tray(pngIcon)
+    tray = new Tray(getIconPath('icon.png'))
     const menu = await buildContextMenu()
     tray.setContextMenu(menu)
   }
   if (process.platform === 'darwin') {
-    const icon = nativeImage.createFromPath(templateIcon).resize({ height: 16 })
+    const icon = nativeImage.createFromPath(getIconPath('iconTemplate.png')).resize({ height: 16 })
     icon.setTemplateImage(true)
     tray = new Tray(icon)
   }
