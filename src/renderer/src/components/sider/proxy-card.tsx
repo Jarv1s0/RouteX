@@ -69,6 +69,8 @@ const ProxyCard: React.FC<Props> = (props) => {
     return ''
   }, [allProxies, firstGroup])
 
+  const hasFinalNode = finalNodeName.length > 0
+
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
@@ -110,14 +112,18 @@ const ProxyCard: React.FC<Props> = (props) => {
             <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-[13px] leading-none flag-emoji">
               {currentGroupFlag}
             </span>
-            <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
-              <span className={`text-sm font-normal truncate shrink-0 max-w-[50%] text-foreground`}>
+            <div className="flex flex-1 min-w-0 items-center gap-1.5 overflow-hidden">
+              <span
+                className={`text-sm font-normal truncate min-w-0 text-foreground ${
+                  hasFinalNode ? 'max-w-[50%] shrink' : 'flex-1'
+                }`}
+              >
                 {currentGroupLabel}
               </span>
-              {finalNodeName && (
+              {hasFinalNode && (
                 <>
                   <LuChevronRight className={`text-[12px] shrink-0 text-default-500 dark:text-default-300`} />
-                  <span className={`text-sm truncate font-medium min-w-0 text-default-700 dark:text-default-300 flag-emoji`}>
+                  <span className={`text-sm truncate font-medium min-w-0 flex-1 text-default-700 dark:text-default-300 flag-emoji`}>
                     {finalNodeName}
                   </span>
                 </>
