@@ -93,6 +93,7 @@ jobs:
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROUTEX_USE_LOCAL_ELECTRON_DIST: 'true'
 
       - name: Build and Publish Linux
         if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
