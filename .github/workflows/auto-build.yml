@@ -119,6 +119,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROUTEX_AUTO_BUILD: 'true'
+          ROUTEX_USE_LOCAL_ELECTRON_DIST: ${{ matrix.platform == 'windows' && 'true' || 'false' }}
         run: |
           npm run build
           ${{ matrix.command }}
