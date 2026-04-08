@@ -26,10 +26,17 @@ const ROUTEX_RUN_ASSETS = {
   ia32: 'routex-run-windows-386.exe',
   arm64: 'routex-run-windows-arm64.exe'
 }
-const TRAFFIC_MONITOR_REPO = 'zhongyang219/TrafficMonitor'
 const DEFAULT_TASK_RETRY = 5
-let arch = process.arch
 const platform = process.platform
+const OPTIONAL_EXTRA_PATHS = [
+  path.join(cwd, 'extra', 'sidecar', platform === 'win32' ? 'mihomo-alpha.exe' : 'mihomo-alpha'),
+  path.join(cwd, 'extra', 'files', 'enableLoopback.exe'),
+  path.join(cwd, 'extra', 'files', 'TrafficMonitor'),
+  path.join(cwd, 'extra', 'files', '7za.exe'),
+  path.join(cwd, 'extra', 'files', 'sub-store.bundle.js'),
+  path.join(cwd, 'extra', 'files', 'sub-store-frontend')
+]
+let arch = process.arch
 if (process.argv.slice(2).length !== 0) {
   arch = process.argv.slice(2)[0].replace('--', '')
 }
@@ -79,8 +86,13 @@ function syncBuildIcons() {
   console.log('[INFO]: build icon assets synced')
 }
 
-const MIHOMO_ALPHA_VERSION_URL =
-  'https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt'
+function cleanupOptionalExtraResources() {
+  for (const targetPath of OPTIONAL_EXTRA_PATHS) {
+    const label = path.relative(cwd, targetPath) || targetPath
+    tryRemoveExisting(targetPath, label)
+  }
+  console.log('[INFO]: optional extra resources cleaned')
+}
 const MIHOMO_VERSION_URL =
   'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
 
@@ -210,50 +222,6 @@ async function fetchGitHubReleaseAssets(url, label) {
   return json.assets || []
 }
 
-async function fetchLatestGitHubReleaseAssets(repo) {
-  return fetchGitHubReleaseAssets(
-    `https://api.github.com/repos/${repo}/releases/latest`,
-    `${repo} latest release assets`
-  )
-}
-
-function scoreTrafficMonitorAssetName(name) {
-  let value = 0
-  if (name.includes('lite')) value += 10
-  if (name.includes('portable')) value += 1
-  return value
-}
-
-function pickTrafficMonitorAsset(assets, arch) {
-  const archPatterns = {
-    x64: [/(^|[-_. ])x64($|[-_. ])/, /amd64/],
-    ia32: [/(^|[-_. ])x86($|[-_. ])/, /(^|[-_. ])386($|[-_. ])/],
-    arm64: [/arm64ec/, /(^|[-_. ])arm64($|[-_. ])/]
-  }
-
-  const patterns = archPatterns[arch]
-  if (!patterns) {
-    throw new Error(`unsupported monitor arch "${arch}"`)
-  }
-
-  const candidates = assets
-    .map((asset) => ({
-      asset,
-      normalizedName: asset.name.toLowerCase()
-    }))
-    .filter(({ normalizedName }) => normalizedName.endsWith('.zip'))
-    .filter(({ normalizedName }) => normalizedName.includes('trafficmonitor'))
-    .filter(({ normalizedName }) => patterns.some((pattern) => pattern.test(normalizedName)))
-    .sort((a, b) => scoreTrafficMonitorAssetName(a.normalizedName) - scoreTrafficMonitorAssetName(b.normalizedName))
-    .map(({ asset }) => asset)
-
-  if (candidates.length === 0) {
-    throw new Error(`No matched TrafficMonitor asset found for ${arch}`)
-  }
-
-  return candidates[0]
-}
-
 function buildFallbackReleaseAsset(version, isAlpha, prefixes) {
   const prefix = prefixes[0]
   const ext = platform === 'win32' ? '.zip' : '.gz'
@@ -300,6 +268,7 @@ async function getLatestVersion(url, label) {
  */
 getAssetPrefixCandidates(platform, arch)
 syncBuildIcons()
+cleanupOptionalExtraResources()
 
 /**
  * core info
@@ -473,11 +442,6 @@ const resolveASN = () =>
     file: 'ASN.mmdb',
     downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb`
   })
-const resolveEnableLoopback = () =>
-  resolveResource({
-    file: 'enableLoopback.exe',
-    downloadURL: `https://github.com/Kuingsmile/uwp-tool/releases/download/latest/enableLoopback.exe`
-  })
 const resolveRoutexService = () => {
   const key = `${platform}-${arch}`
   const base = getMappedAsset(ROUTEX_SERVICE_ASSETS, key, 'platform')
@@ -495,79 +459,6 @@ const resolveRunner = () => {
     file: 'routex-run.exe',
     downloadURL: `${ROUTEX_SERVICE_RELEASE_PREFIX}/${asset}`
   })
-}
-
-const resolveMonitor = async () => {
-  const assets = await fetchLatestGitHubReleaseAssets(TRAFFIC_MONITOR_REPO)
-  const asset = pickTrafficMonitorAsset(assets, arch)
-  const tempDir = path.join(TEMP_DIR, 'TrafficMonitor')
-  const tempZip = path.join(tempDir, `${arch}.zip`)
-  fs.mkdirSync(tempDir, { recursive: true })
-  await downloadFile(asset.browser_download_url, tempZip)
-  const zip = new AdmZip(tempZip)
-  const resDir = path.join(cwd, 'extra', 'files')
-  const targetPath = path.join(resDir, 'TrafficMonitor')
-  if (fs.existsSync(targetPath)) {
-    fs.rmSync(targetPath, { recursive: true })
-  }
-  zip.extractAllTo(targetPath, true)
-
-  console.log(`[INFO]: TrafficMonitor finished`)
-}
-
-const resolve7zip = () =>
-  resolveResource({
-    file: '7za.exe',
-    downloadURL: `https://github.com/develar/7zip-bin/raw/master/win/${arch}/7za.exe`
-  })
-const resolveSubstore = () =>
-  resolveResource({
-    file: 'sub-store.bundle.js',
-    downloadURL:
-      'https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js'
-  })
-const resolveSubstoreFrontend = async () => {
-  const tempDir = path.join(TEMP_DIR, 'substore-frontend')
-  const tempZip = path.join(tempDir, 'dist.zip')
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true })
-  }
-  await downloadFile(
-    'https://github.com/sub-store-org/Sub-Store-Front-End/releases/latest/download/dist.zip',
-    tempZip
-  )
-  const zip = new AdmZip(tempZip)
-  const resDir = path.join(cwd, 'extra', 'files')
-  const targetPath = path.join(resDir, 'sub-store-frontend')
-  if (fs.existsSync(targetPath)) {
-    fs.rmSync(targetPath, { recursive: true })
-  }
-  zip.extractAllTo(resDir, true)
-  fs.renameSync(path.join(resDir, 'dist'), targetPath)
-
-  if (platform !== 'win32') {
-    try {
-      const fixPermissions = (dir) => {
-        const items = fs.readdirSync(dir, { withFileTypes: true })
-        for (const item of items) {
-          const fullPath = path.join(dir, item.name)
-          if (item.isDirectory()) {
-            fs.chmodSync(fullPath, 0o755)
-            fixPermissions(fullPath)
-          } else {
-            fs.chmodSync(fullPath, 0o644)
-          }
-        }
-      }
-      fs.chmodSync(targetPath, 0o755)
-      fixPermissions(targetPath)
-      console.log(`[INFO]: sub-store-frontend permissions fixed`)
-    } catch (error) {
-      console.warn(`[WARN]: Failed to fix permissions: ${error.message}`)
-    }
-  }
-
-  console.log(`[INFO]: sub-store-frontend finished`)
 }
 const resolveFont = async () => {
   // const targetPath = path.join(cwd, 'src', 'renderer', 'src', 'assets', 'NotoColorEmoji.ttf')
@@ -587,12 +478,6 @@ const resolveFont = async () => {
 
 const tasks = [
   {
-    name: 'mihomo-alpha',
-    func: async () =>
-      resolveSidecar(await createMihomoBinaryInfo('mihomo-alpha', MIHOMO_ALPHA_VERSION_URL, true)),
-    retry: DEFAULT_TASK_RETRY
-  },
-  {
     name: 'mihomo',
     func: async () =>
       resolveSidecar(await createMihomoBinaryInfo('mihomo', MIHOMO_VERSION_URL, false)),
@@ -609,12 +494,6 @@ const tasks = [
     retry: DEFAULT_TASK_RETRY
   },
   {
-    name: 'enableLoopback',
-    func: resolveEnableLoopback,
-    retry: DEFAULT_TASK_RETRY,
-    winOnly: true
-  },
-  {
     name: 'routex-service',
     func: resolveRoutexService,
     retry: DEFAULT_TASK_RETRY
@@ -622,28 +501,6 @@ const tasks = [
   {
     name: 'runner',
     func: resolveRunner,
-    retry: DEFAULT_TASK_RETRY,
-    winOnly: true
-  },
-  {
-    name: 'monitor',
-    func: resolveMonitor,
-    retry: DEFAULT_TASK_RETRY,
-    winOnly: true
-  },
-  {
-    name: 'substore',
-    func: resolveSubstore,
-    retry: DEFAULT_TASK_RETRY
-  },
-  {
-    name: 'substorefrontend',
-    func: resolveSubstoreFrontend,
-    retry: DEFAULT_TASK_RETRY
-  },
-  {
-    name: '7zip',
-    func: resolve7zip,
     retry: DEFAULT_TASK_RETRY,
     winOnly: true
   }

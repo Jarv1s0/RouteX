@@ -2,7 +2,7 @@ import axios, { AxiosRequestConfig, CancelTokenSource } from 'axios'
 import { parseYaml } from '../utils/yaml'
 import { app, shell } from 'electron'
 import { getAppConfig, getControledMihomoConfig } from '../config'
-import { dataDir, exeDir, exePath, isPortable, resourcesFilesDir } from '../utils/dirs'
+import { dataDir, exeDir, exePath, isPortable } from '../utils/dirs'
 import { copyFile, rm, writeFile, readFile } from 'fs/promises'
 import path from 'path'
 import { existsSync } from 'fs'
@@ -11,8 +11,36 @@ import { promisify } from 'util'
 import { createHash } from 'crypto'
 import { setNotQuitDialog, mainWindow } from '..'
 import { disableSysProxy } from '../sys/sysproxy'
+import { ensure7ZipPath } from '../utils/runtimeAssets'
 
 let downloadCancelToken: CancelTokenSource | null = null
+const releaseAssetsCache = new Map<
+  string,
+  Promise<Array<{ name: string; digest?: string }>>
+>()
+
+async function getReleaseAssets(
+  releaseTag: string,
+  requestConfig: AxiosRequestConfig
+): Promise<Array<{ name: string; digest?: string }>> {
+  const cached = releaseAssetsCache.get(releaseTag)
+  if (cached) {
+    return await cached
+  }
+
+  const assetsPromise = axios
+    .get(`https://api.github.com/repos/Jarv1s0/RouteX/releases/tags/${releaseTag}`, requestConfig)
+    .then((response) => {
+      return (response.data.assets || []) as Array<{ name: string; digest?: string }>
+    })
+    .catch((error) => {
+      releaseAssetsCache.delete(releaseTag)
+      throw error
+    })
+
+  releaseAssetsCache.set(releaseTag, assetsPromise)
+  return await assetsPromise
+}
 
 export async function checkUpdate(): Promise<AppVersion | undefined> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
@@ -79,7 +107,6 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
   }
   downloadCancelToken = axios.CancelToken.source()
 
-  const apiUrl = `https://api.github.com/repos/Jarv1s0/RouteX/releases/tags/${releaseTag}`
   const apiRequestConfig: AxiosRequestConfig = {
     headers: { Accept: 'application/vnd.github.v3+json' },
     ...(mixedPort != 0 && {
@@ -98,8 +125,7 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
       progress: 0
     })
 
-    const releaseRes = await axios.get(apiUrl, apiRequestConfig)
-    const assets: Array<{ name: string; digest?: string }> = releaseRes.data.assets || []
+    const assets = await getReleaseAssets(releaseTag, apiRequestConfig)
     const matchedAsset = assets.find((a) => a.name === file)
     if (!matchedAsset || !matchedAsset.digest) {
       throw new Error(`无法从 GitHub Release 中找到 "${file}" 对应的 SHA-256 信息`)
@@ -155,7 +181,7 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
       }).unref()
     }
     if (file.endsWith('.7z')) {
-      await copyFile(path.join(resourcesFilesDir(), '7za.exe'), path.join(dataDir(), '7za.exe'))
+      await copyFile(await ensure7ZipPath(), path.join(dataDir(), '7za.exe'))
       spawn(
         'cmd',
         [

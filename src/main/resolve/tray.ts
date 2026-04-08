@@ -33,9 +33,13 @@ import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { applyTheme } from './theme'
+import { getCachedNativeIcon } from '../utils/nativeIconCache'
 
 export let tray: Tray | null = null
 let customTrayWindow: BrowserWindow | null = null
+let updateTrayMenuTimer: NodeJS.Timeout | null = null
+let pendingTrayMenuResolvers: Array<() => void> = []
+const UPDATE_TRAY_MENU_DEBOUNCE_MS = 150
 
 async function handleTrayIconUpdate(_event: Electron.IpcMainEvent, png: string): Promise<void> {
   if (process.platform !== 'darwin' || !tray) return
@@ -45,7 +49,7 @@ async function handleTrayIconUpdate(_event: Electron.IpcMainEvent, png: string):
 }
 
 async function handleUpdateTrayMenu(): Promise<void> {
-  await updateTrayMenu()
+  await scheduleUpdateTrayMenu()
 }
 
 ipcMain.on('trayIconUpdate', handleTrayIconUpdate)
@@ -53,11 +57,10 @@ ipcMain.on('updateTrayMenu', handleUpdateTrayMenu)
 
 // 辅助函数：根据 DPI 缩放加载清晰的托盘图标
 function getTrayIcon(iconPath: string): Electron.NativeImage {
-  const icon = nativeImage.createFromPath(iconPath)
   // Windows 托盘图标基准尺寸为 16px，需根据显示器 DPI 缩放
   const scaleFactor = screen.getPrimaryDisplay().scaleFactor
   const size = Math.round(16 * scaleFactor)
-  return icon.resize({ width: size, height: size })
+  return getCachedNativeIcon(iconPath, size, size)
 }
 
 function formatDelayText(delay: number): string {
@@ -467,7 +470,7 @@ export async function createTray(): Promise<void> {
     tray.setContextMenu(menu)
   }
   if (process.platform === 'darwin') {
-    const icon = nativeImage.createFromPath(getIconPath('iconTemplate.png')).resize({ height: 16 })
+    const icon = getCachedNativeIcon(getIconPath('iconTemplate.png'), undefined, 16)
     icon.setTemplateImage(true)
     tray = new Tray(icon)
   }
@@ -540,6 +543,29 @@ async function updateTrayMenu(): Promise<void> {
   const menu = await buildContextMenu()
   tray?.setContextMenu(menu)
   await updateTrayIcon()
+}
+
+function scheduleUpdateTrayMenu(): Promise<void> {
+  return new Promise((resolve) => {
+    pendingTrayMenuResolvers.push(resolve)
+
+    if (updateTrayMenuTimer) {
+      clearTimeout(updateTrayMenuTimer)
+    }
+
+    updateTrayMenuTimer = setTimeout(() => {
+      updateTrayMenuTimer = null
+      void updateTrayMenu()
+        .catch(() => {
+          // ignore
+        })
+        .finally(() => {
+          const resolvers = pendingTrayMenuResolvers
+          pendingTrayMenuResolvers = []
+          resolvers.forEach((currentResolve) => currentResolve())
+        })
+    }, UPDATE_TRAY_MENU_DEBOUNCE_MS)
+  })
 }
 
 ipcMain.on('customTray:close', () => {

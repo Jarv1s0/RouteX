@@ -84,8 +84,6 @@ export async function runAppStartup(options: StartupOptions): Promise<void> {
   }
 
   loadTrafficStats()
-  loadProviderStats()
-  startMapUpdateTimer()
 
   app.on('browser-window-created', (_, window) => {
     watchWindowShortcuts(window)
@@ -123,6 +121,15 @@ export async function runAppStartup(options: StartupOptions): Promise<void> {
 
   await createWindowPromise
 
+  const providerStatsPromise = (async (): Promise<void> => {
+    try {
+      await loadProviderStats()
+      startMapUpdateTimer()
+    } catch {
+      // ignore
+    }
+  })()
+
   const uiTasks: Promise<void>[] = [initShortcut()]
   if (showFloating) {
     uiTasks.push(Promise.resolve(showFloatingWindow()))
@@ -132,7 +139,7 @@ export async function runAppStartup(options: StartupOptions): Promise<void> {
   }
 
   await Promise.all(uiTasks)
-  await Promise.all([coreStartPromise, monitorPromise])
+  await Promise.all([coreStartPromise, monitorPromise, providerStatsPromise])
 
   if (coreStarted) {
     getMainWindow()?.webContents.send('core-started')

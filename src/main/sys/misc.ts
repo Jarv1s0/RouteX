@@ -9,7 +9,6 @@ import {
   mihomoCorePath,
   overridePath,
   profilePath,
-  resourcesDir,
   routexRunPath,
   taskDir
 } from '../utils/dirs'
@@ -19,6 +18,7 @@ import {
   ROUTEX_RUN_XML
 } from '../utils/routex-run'
 import { copyFileSync, writeFileSync } from 'fs'
+import { ensureEnableLoopbackPath } from '../utils/runtimeAssets'
 
 const execPromise = promisify(exec)
 
@@ -69,7 +69,7 @@ export function openFile(type: 'profile' | 'override', id: string, ext?: 'yaml' 
 
 export async function openUWPTool(): Promise<void> {
   const execFilePromise = promisify(execFile)
-  const uwpToolPath = path.join(resourcesDir(), 'files', 'enableLoopback.exe')
+  const uwpToolPath = await ensureEnableLoopbackPath()
   await execFilePromise(uwpToolPath)
 }
 

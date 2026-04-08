@@ -2,6 +2,7 @@ import { is } from '@electron-toolkit/utils'
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join } from 'path'
 import { shouldReportRendererConsoleMessage } from '../utils/rendererConsole'
+import { applyTheme } from './theme'
 
 type WindowDialogType = 'info' | 'error' | 'warning' | 'success'
 
@@ -233,7 +234,7 @@ export function registerMainWindowLifecycleHandlers(
     getAppConfig()
       .then(async ({ customTheme }) => {
         if (customTheme) {
-          await import('./theme').then(({ applyTheme }) => applyTheme(customTheme))
+          await applyTheme(customTheme)
         }
       })
       .catch(() => {})

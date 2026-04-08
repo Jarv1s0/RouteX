@@ -1,9 +1,10 @@
 import { ChildProcess, spawn } from 'child_process'
 import { getAppConfig } from '../config'
-import { dataDir, resourcesFilesDir } from '../utils/dirs'
+import { dataDir } from '../utils/dirs'
 import path from 'path'
 import { existsSync } from 'fs'
 import { readFile, rm, writeFile } from 'fs/promises'
+import { ensureTrafficMonitorBinary } from '../utils/runtimeAssets'
 
 let child: ChildProcess
 
@@ -22,8 +23,9 @@ export async function startMonitor(detached = false): Promise<void> {
   await stopMonitor()
   const { showTraffic = false } = await getAppConfig()
   if (!showTraffic) return
-  child = spawn(path.join(resourcesFilesDir(), 'TrafficMonitor/TrafficMonitor.exe'), [], {
-    cwd: path.join(resourcesFilesDir(), 'TrafficMonitor'),
+  const { executablePath, cwd } = await ensureTrafficMonitorBinary()
+  child = spawn(executablePath, [], {
+    cwd,
     detached: detached,
     stdio: detached ? 'ignore' : undefined
   })

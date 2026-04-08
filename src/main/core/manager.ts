@@ -42,6 +42,7 @@ import { startMonitor } from '../resolve/trafficMonitor'
 import { disableSysProxy, triggerSysProxy } from '../sys/sysproxy'
 import { getAxios } from './mihomoApi'
 import { setSysDns } from '../service/api'
+import { ensureMihomoAlphaPath } from '../utils/runtimeAssets'
 
 const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix'
 
@@ -127,6 +128,9 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
 
   let corePath: string
   try {
+    if (core === 'mihomo-alpha') {
+      await ensureMihomoAlphaPath()
+    }
     corePath = mihomoCorePath(core)
   } catch (error) {
     if (core === 'system') {
@@ -604,6 +608,9 @@ export async function quitWithoutCore(): Promise<void> {
 
 async function checkProfile(): Promise<void> {
   const { core = 'mihomo', diffWorkDir = false, safePaths = [] } = await getAppConfig()
+  if (core === 'mihomo-alpha') {
+    await ensureMihomoAlphaPath()
+  }
   const { current } = await getProfileConfig()
   const corePath = mihomoCorePath(core)
   const execFilePromise = promisify(execFile)

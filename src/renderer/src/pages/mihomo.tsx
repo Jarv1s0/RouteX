@@ -14,7 +14,13 @@ import { platform } from '@renderer/utils/init'
 import { IoMdCloudDownload } from 'react-icons/io'
 import PubSub from 'pubsub-js'
 import { relaunchApp, notDialogQuit } from '@renderer/utils/app-ipc'
-import { mihomoUpgrade, mihomoVersion, restartCore, checkMihomoLatestVersion } from '@renderer/utils/mihomo-ipc'
+import {
+  checkMihomoLatestVersion,
+  ensureMihomoCoreAvailable,
+  mihomoUpgrade,
+  mihomoVersion,
+  restartCore
+} from '@renderer/utils/mihomo-ipc'
 import { manualGrantCorePermition, revokeCorePermission, deleteElevateTask, checkElevateTask, installService, uninstallService, startService, stopService, initService, restartService } from '@renderer/utils/service-ipc'
 import React, { useState, useEffect } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
@@ -96,7 +102,14 @@ const Mihomo: React.FC = () => {
   }
 
   const handleCoreChange = async (newCore: 'mihomo' | 'mihomo-alpha'): Promise<void> => {
-    handleConfigChangeWithRestart('core', newCore)
+    try {
+      if (newCore === 'mihomo-alpha') {
+        await ensureMihomoCoreAvailable(newCore)
+      }
+      await handleConfigChangeWithRestart('core', newCore)
+    } catch (e) {
+      notifyError(e)
+    }
   }
 
   const handlePermissionModeChange = async (key: string): Promise<void> => {

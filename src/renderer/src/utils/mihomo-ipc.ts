@@ -1,5 +1,9 @@
 import { C, invokeSafe } from './ipc-core'
 
+export async function ensureMihomoCoreAvailable(core: 'mihomo' | 'mihomo-alpha'): Promise<string> {
+  return invokeSafe(C.ensureMihomoCoreAvailable, core)
+}
+
 export async function mihomoVersion(): Promise<ControllerVersion> {
   return invokeSafe(C.mihomoVersion)
 }

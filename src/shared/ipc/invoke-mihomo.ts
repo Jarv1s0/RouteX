@@ -1,4 +1,5 @@
 export const MIHOMO_IPC_INVOKE_CHANNELS = {
+  ensureMihomoCoreAvailable: 'ensureMihomoCoreAvailable',
   checkMihomoLatestVersion: 'checkMihomoLatestVersion',
   mihomoChangeProxy: 'mihomoChangeProxy',
   mihomoCloseAllConnections: 'mihomoCloseAllConnections',

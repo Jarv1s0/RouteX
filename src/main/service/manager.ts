@@ -8,6 +8,14 @@ import { promisify } from 'util'
 
 let keyManager: KeyManager | null = null
 
+async function ensureServiceAPIReady(): Promise<void> {
+  if (keyManager) {
+    return
+  }
+
+  await initKeyManager()
+}
+
 export async function initKeyManager(): Promise<KeyManager> {
   if (keyManager) {
     return keyManager
@@ -185,6 +193,7 @@ export async function serviceStatus(): Promise<
       return 'not-installed'
     } else {
       try {
+        await ensureServiceAPIReady()
         await ping()
         try {
           const out = await test()
@@ -206,6 +215,7 @@ export async function serviceStatus(): Promise<
 
 export async function testServiceConnection(): Promise<boolean> {
   try {
+    await ensureServiceAPIReady()
     const out = await test()
     if (out && typeof out === 'object' && 'status' in out && out.status === 'error') {
       return false

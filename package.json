@@ -2,6 +2,7 @@
   "name": "routex",
   "version": "3.0.0",
   "description": "RouteX",
+  "author": "Jarv1s0",
   "main": "./out/main/index.js",
   "scripts": {
     "format": "prettier --write .",
