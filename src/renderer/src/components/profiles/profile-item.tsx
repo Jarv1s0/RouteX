@@ -3,7 +3,6 @@ import {
   Card,
   CardBody,
   CardFooter,
-  Checkbox,
   Chip,
   Dropdown,
   DropdownItem,
@@ -46,6 +45,8 @@ interface MenuItem {
   showDivider: boolean
   color: 'default' | 'danger'
   className: string
+  isDisabled?: boolean
+  description?: string
 }
 const ProfileItem: React.FC<Props> = (props) => {
   const {
@@ -83,7 +84,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const [disableSelect, setDisableSelect] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const statusLabel = isCurrent ? '主用' : isEnabled ? '已合并' : null
+  const mergeActionDisabled = switching || (!isCurrent && isEnabled && !canDisable)
 
   const menuItems: MenuItem[] = useMemo(() => {
     const list = [
@@ -125,11 +126,28 @@ const ProfileItem: React.FC<Props> = (props) => {
         className: ''
       } as MenuItem)
     }
+
+    if (!isCurrent) {
+      list.unshift({
+        key: 'toggle-merge',
+        label: isEnabled ? '移出合并' : '加入合并',
+        showDivider: true,
+        color: 'default',
+        className: '',
+        isDisabled: mergeActionDisabled,
+        description: (isEnabled && !canDisable) ? '至少保留一个启用订阅' : undefined
+      } as MenuItem)
+    }
+
     return list
-  }, [info])
+  }, [info, isCurrent, isEnabled, canDisable, mergeActionDisabled])
 
   const onMenuAction = async (key: Key): Promise<void> => {
     switch (key) {
+      case 'toggle-merge': {
+        void onToggleMerge(!isEnabled)
+        break
+      }
       case 'edit-info': {
         setOpenInfoEditor(true)
         break
@@ -165,6 +183,16 @@ const ProfileItem: React.FC<Props> = (props) => {
       }, 100)
     }
   }, [isDragging])
+
+  const onToggleMerge = async (nextEnabled: boolean): Promise<void> => {
+    if (mergeActionDisabled) return
+    setSelecting(true)
+    try {
+      await onToggleEnabled(nextEnabled)
+    } finally {
+      setSelecting(false)
+    }
+  }
 
   return (
     <div
@@ -232,43 +260,44 @@ const ProfileItem: React.FC<Props> = (props) => {
         )}
         <div ref={setNodeRef} {...attributes} {...listeners} className="w-full h-full">
           <CardBody className="pb-1 overflow-hidden">
-            <div className="flex justify-between h-[32px]">
-              <div className="flex min-w-0 items-center gap-2">
-                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <Tooltip content={isEnabled ? '取消合并此订阅' : '将此订阅并入当前运行配置'}>
-                    <Checkbox
-                      isSelected={isEnabled}
-                      size="sm"
-                      isDisabled={switching || (isEnabled && !canDisable)}
-                      onValueChange={(nextEnabled) => {
-                        setSelecting(true)
-                        onToggleEnabled(nextEnabled).finally(() => {
-                          setSelecting(false)
-                        })
-                      }}
-                    />
-                  </Tooltip>
-                </div>
-                <div className="flex min-w-0 items-center gap-2">
-                  <h3
-                    title={info?.name}
-                    className="text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] text-foreground"
-                  >
-                    {info?.name}
-                  </h3>
-                  {statusLabel && (
+            <div className="flex min-h-[32px] items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h3
+                  title={info?.name}
+                  className="text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] text-foreground"
+                >
+                  {info?.name}
+                </h3>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                {isCurrent && (
+                  <div className="flex h-8 items-center">
                     <Chip
                       size="sm"
-                      variant="flat"
-                      color={isCurrent ? 'primary' : 'default'}
-                      className="shrink-0"
+                      variant="solid"
+                      className="shrink-0 bg-yellow-400 text-black font-bold shadow-sm"
                     >
-                      {statusLabel}
+                      主用
                     </Chip>
-                  )}
-                </div>
-              </div>
-              <div className="flex" onClick={(e) => e.stopPropagation()}>
+                  </div>
+                )}
+                {!isCurrent && isEnabled && (
+                  <div className="flex h-8 items-center">
+                    <Tooltip content={canDisable ? '点击移出合并' : '至少保留一个启用订阅'}>
+                      <Button
+                        size="sm"
+                        disableRipple
+                        isDisabled={mergeActionDisabled}
+                        className="h-6 px-2.5 min-w-0 bg-primary/20 text-primary font-medium shadow-none text-[12px] rounded-full hover:bg-primary/30"
+                        onPress={() => {
+                          void onToggleMerge(!isEnabled)
+                        }}
+                      >
+                        已合并
+                      </Button>
+                    </Tooltip>
+                  </div>
+                )}
                 {info.type === 'remote' && (
                   <Tooltip placement="left" content={dayjs(info.updated).fromNow()}>
                     <Button
@@ -300,13 +329,17 @@ const ProfileItem: React.FC<Props> = (props) => {
                       />
                     </Button>
                   </DropdownTrigger>
-                  <DropdownMenu onAction={onMenuAction}>
+                  <DropdownMenu
+                    onAction={onMenuAction}
+                    disabledKeys={menuItems.filter(i => i.isDisabled).map(i => i.key)}
+                  >
                     {menuItems.map((item) => (
                       <DropdownItem
                         showDivider={item.showDivider}
                         key={item.key}
                         color={item.color}
                         className={item.className}
+                        description={item.description}
                       >
                         {item.label}
                       </DropdownItem>
