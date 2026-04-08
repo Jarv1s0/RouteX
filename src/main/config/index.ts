@@ -15,6 +15,7 @@ export {
   getProfileParseStr,
   setProfileStr,
   changeCurrentProfile,
+  setActiveProfiles,
   updateProfileItem,
   removeOverrideReference,
   convertMrsRuleset

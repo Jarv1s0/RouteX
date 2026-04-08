@@ -157,6 +157,7 @@ export const defaultControledMihomoConfig: Partial<MihomoConfig> = {
 }
 
 export const defaultProfileConfig: ProfileConfig = {
+  actives: [],
   items: []
 }
 

@@ -3,6 +3,7 @@ import {
   getAppConfig,
   getControledMihomoConfig,
   getProfileConfig,
+  setActiveProfiles,
   patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
@@ -234,7 +235,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
       // 避免出错时无法创建托盘菜单
     }
   }
-  const { current, items = [] } = await getProfileConfig()
+  const { current, items = [], actives = current ? [current] : [] } = await getProfileConfig()
 
   const contextMenu = [
     {
@@ -362,19 +363,45 @@ export const buildContextMenu = async (): Promise<Menu> => {
     {
       type: 'submenu',
       label: '订阅配置',
-      submenu: items.map((item) => {
-        return {
-          type: 'radio',
+      submenu: [
+        ...items.map((item) => ({
+          type: 'checkbox' as const,
           label: item.name,
-          checked: item.id === current,
-          click: async (): Promise<void> => {
-            if (item.id === current) return
-            await changeCurrentProfile(item.id)
+          checked: actives.includes(item.id),
+          click: async (menuItem): Promise<void> => {
+            const nextActives = menuItem.checked
+              ? Array.from(new Set([...actives, item.id]))
+              : actives.filter((activeId) => activeId !== item.id)
+            const nextCurrent = menuItem.checked
+              ? current
+              : current === item.id
+                ? nextActives[0]
+                : current
+
+            await setActiveProfiles(nextActives, nextCurrent)
             mainWindow?.webContents.send('profileConfigUpdated')
             ipcMain.emit('updateTrayMenu')
           }
+        })),
+        { type: 'separator' as const },
+        {
+          type: 'submenu' as const,
+          label: '主订阅',
+          submenu: items
+            .filter((item) => actives.includes(item.id))
+            .map((item) => ({
+              type: 'radio' as const,
+              label: item.name,
+              checked: item.id === current,
+              click: async (): Promise<void> => {
+                if (item.id === current) return
+                await changeCurrentProfile(item.id)
+                mainWindow?.webContents.send('profileConfigUpdated')
+                ipcMain.emit('updateTrayMenu')
+              }
+            }))
         }
-      })
+      ]
     },
     { type: 'separator' },
     {

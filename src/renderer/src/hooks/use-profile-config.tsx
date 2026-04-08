@@ -6,7 +6,8 @@ import {
   addProfileItem as add,
   removeProfileItem as remove,
   updateProfileItem as update,
-  changeCurrentProfile as change
+  changeCurrentProfile as change,
+  setActiveProfiles as activate
 } from '@renderer/utils/profile-ipc'
 import { ON, SEND, onIpc, sendIpc } from '@renderer/utils/ipc-channels'
 
@@ -18,6 +19,7 @@ interface ProfileConfigContextType {
   updateProfileItem: (item: ProfileItem) => Promise<void>
   removeProfileItem: (id: string) => Promise<void>
   changeCurrentProfile: (id: string) => Promise<void>
+  setActiveProfiles: (ids: string[], current?: string) => Promise<void>
 }
 
 const ProfileConfigContext = createContext<ProfileConfigContextType | undefined>(undefined)
@@ -66,6 +68,10 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     await runProfileMutation(() => change(id), '切换订阅失败')
   }, [runProfileMutation])
 
+  const setActiveProfiles = React.useCallback(async (ids: string[], current?: string): Promise<void> => {
+    await runProfileMutation(() => activate(ids, current), '更新启用订阅失败')
+  }, [runProfileMutation])
+
   useEffect(() => {
     const handleProfileConfigUpdated = (): void => {
       void mutateProfileConfig()
@@ -81,13 +87,15 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
       addProfileItem,
       removeProfileItem,
       updateProfileItem,
-      changeCurrentProfile
+      changeCurrentProfile,
+      setActiveProfiles
     }),
     [
       addProfileItem,
       changeCurrentProfile,
       profileConfig,
       removeProfileItem,
+      setActiveProfiles,
       setProfileConfig,
       syncProfileConfig,
       updateProfileItem

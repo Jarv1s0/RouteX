@@ -31,7 +31,9 @@ const ProfileCard: React.FC<Props> = (props) => {
   const [updating, setUpdating] = useState(false)
   const [showRuntimeConfig, setShowRuntimeConfig] = useState(false)
   const { profileConfig, addProfileItem } = useProfileConfig()
-  const { current, items } = profileConfig ?? {}
+  const { current, items, actives } = profileConfig ?? {}
+  const activeIds = actives && actives.length > 0 ? actives : current ? [current] : []
+  const activeCount = activeIds.length
   
   const info = items?.find((item) => item.id === current) ?? {
     id: 'default',
@@ -79,8 +81,11 @@ const ProfileCard: React.FC<Props> = (props) => {
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <LuCloud className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
           </span>
-          <h3 className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold truncate transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`} title={info.name}>
-            {info.name}
+          <h3
+            className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold truncate transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}
+            title={activeCount > 1 ? `${info.name} +${activeCount - 1}` : info.name}
+          >
+            {activeCount > 1 ? `${info.name} +${activeCount - 1}` : info.name}
           </h3>
         </div>
         <div className="flex shrink-0 items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>

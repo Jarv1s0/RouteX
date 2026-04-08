@@ -59,6 +59,22 @@ const emptyOverrideItems: OverrideItem[] = []
 
 type ManagementTab = 'profiles' | 'overrides' | 'providers'
 
+function dedupeProfileIds(ids: string[]): string[] {
+  return Array.from(new Set(ids))
+}
+
+function resolveNextCurrentProfile(
+  current: string | undefined,
+  id: string,
+  nextEnabled: boolean,
+  nextActives: string[]
+): string | undefined {
+  if (nextEnabled || current !== id) {
+    return current
+  }
+  return nextActives[0]
+}
+
 function normalizeManagementTab(tab: string | null): ManagementTab {
   if (tab === 'overrides' || tab === 'providers') {
     return tab
@@ -73,7 +89,7 @@ const ProfilesPage: React.FC = () => {
     addProfileItem,
     updateProfileItem: patchProfileItem,
     removeProfileItem,
-    changeCurrentProfile,
+    setActiveProfiles,
     mutateProfileConfig
   } = useProfileConfig()
   const {
@@ -86,8 +102,13 @@ const ProfilesPage: React.FC = () => {
   } = useOverrideConfig()
   const { appConfig } = useAppConfig()
   const { useSubStore = true, useCustomSubStore = false, customSubStoreUrl = '' } = appConfig || {}
-  const { current, items } = profileConfig || {}
+  const { current, items, actives } = profileConfig || {}
   const itemsArray = items ?? emptyProfileItems
+  const activeProfileIds = useMemo(
+    () => (actives && actives.length > 0 ? actives : current ? [current] : []),
+    [actives, current]
+  )
+  const activeProfileIdSet = useMemo(() => new Set(activeProfileIds), [activeProfileIds])
   const currentProfile = useMemo(
     () => itemsArray.find((item) => item.id === current),
     [current, itemsArray]
@@ -335,7 +356,7 @@ const ProfilesPage: React.FC = () => {
     newOrder.splice(activeIndex, 1)
     newOrder.splice(overIndex, 0, itemsArray[activeIndex])
     setSortedItems(newOrder)
-    await setProfileConfig({ current, items: newOrder })
+    await setProfileConfig({ current, actives: activeProfileIds, items: newOrder })
   }
 
   const onOverrideDragEnd = async (event: DragEndEvent): Promise<void> => {
@@ -357,6 +378,39 @@ const ProfilesPage: React.FC = () => {
       void handleImport((e.currentTarget as HTMLInputElement).value)
     },
     [isUrlEmpty]
+  )
+
+  const runSelectionMutation = useCallback(
+    async (nextActives: string[], nextCurrent?: string): Promise<void> => {
+      setSwitching(true)
+      try {
+        await setActiveProfiles(nextActives, nextCurrent)
+      } finally {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        setSwitching(false)
+      }
+    },
+    [setActiveProfiles]
+  )
+
+  const handleSetPrimaryProfile = useCallback(
+    async (id: string): Promise<void> => {
+      const nextActives = activeProfileIdSet.has(id) ? activeProfileIds : [...activeProfileIds, id]
+      await runSelectionMutation(nextActives, id)
+    },
+    [activeProfileIdSet, activeProfileIds, runSelectionMutation]
+  )
+
+  const handleToggleProfileActive = useCallback(
+    async (id: string, nextEnabled: boolean): Promise<void> => {
+      const nextActives = nextEnabled
+        ? dedupeProfileIds([...activeProfileIds, id])
+        : activeProfileIds.filter((activeId) => activeId !== id)
+      const nextCurrent = resolveNextCurrentProfile(current, id, nextEnabled, nextActives)
+
+      await runSelectionMutation(nextActives, nextCurrent)
+    },
+    [activeProfileIds, current, runSelectionMutation]
   )
 
   const handleOverrideInputKeyUp = useCallback(
@@ -872,18 +926,16 @@ const ProfilesPage: React.FC = () => {
                 <ProfileItem
                   key={item.id}
                   isCurrent={item.id === current}
+                  isEnabled={activeProfileIdSet.has(item.id)}
+                  canDisable={activeProfileIds.length > 1}
                   addProfileItem={addProfileItem}
                   removeProfileItem={removeProfileItem}
                   mutateProfileConfig={mutateProfileConfig}
                   updateProfileItem={patchProfileItem}
                   info={item}
                   switching={switching}
-                  onClick={async () => {
-                    setSwitching(true)
-                    await changeCurrentProfile(item.id)
-                    await new Promise((resolve) => setTimeout(resolve, 500))
-                    setSwitching(false)
-                  }}
+                  onClick={() => handleSetPrimaryProfile(item.id)}
+                  onToggleEnabled={(nextEnabled) => handleToggleProfileActive(item.id, nextEnabled)}
                 />
               ))}
             </SortableContext>

@@ -3,6 +3,7 @@ import {
   Card,
   CardBody,
   CardFooter,
+  Checkbox,
   Chip,
   Dropdown,
   DropdownItem,
@@ -33,7 +34,10 @@ interface Props {
   removeProfileItem: (id: string) => Promise<void>
   mutateProfileConfig: () => void
   onClick: () => Promise<void>
+  onToggleEnabled: (nextEnabled: boolean) => Promise<void>
   switching: boolean
+  isEnabled: boolean
+  canDisable: boolean
 }
 
 interface MenuItem {
@@ -52,7 +56,10 @@ const ProfileItem: React.FC<Props> = (props) => {
     updateProfileItem,
     onClick,
     isCurrent,
-    switching
+    switching,
+    onToggleEnabled,
+    isEnabled,
+    canDisable
   } = props
   const extra = info?.extra
   const usage = (extra?.upload ?? 0) + (extra?.download ?? 0)
@@ -76,6 +83,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const [disableSelect, setDisableSelect] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const statusLabel = isCurrent ? '主用' : isEnabled ? '已合并' : null
 
   const menuItems: MenuItem[] = useMemo(() => {
     const list = [
@@ -211,6 +219,8 @@ const ProfileItem: React.FC<Props> = (props) => {
           ${
             isCurrent
               ? CARD_STYLES.ACTIVE
+              : isEnabled
+                ? CARD_STYLES.ACTIVE_SECONDARY
               : CARD_STYLES.INACTIVE
           }
         `}
@@ -223,12 +233,41 @@ const ProfileItem: React.FC<Props> = (props) => {
         <div ref={setNodeRef} {...attributes} {...listeners} className="w-full h-full">
           <CardBody className="pb-1 overflow-hidden">
             <div className="flex justify-between h-[32px]">
-              <h3
-                title={info?.name}
-                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] text-foreground`}
-              >
-                {info?.name}
-              </h3>
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <Tooltip content={isEnabled ? '取消合并此订阅' : '将此订阅并入当前运行配置'}>
+                    <Checkbox
+                      isSelected={isEnabled}
+                      size="sm"
+                      isDisabled={switching || (isEnabled && !canDisable)}
+                      onValueChange={(nextEnabled) => {
+                        setSelecting(true)
+                        onToggleEnabled(nextEnabled).finally(() => {
+                          setSelecting(false)
+                        })
+                      }}
+                    />
+                  </Tooltip>
+                </div>
+                <div className="flex min-w-0 items-center gap-2">
+                  <h3
+                    title={info?.name}
+                    className="text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] text-foreground"
+                  >
+                    {info?.name}
+                  </h3>
+                  {statusLabel && (
+                    <Chip
+                      size="sm"
+                      variant="flat"
+                      color={isCurrent ? 'primary' : 'default'}
+                      className="shrink-0"
+                    >
+                      {statusLabel}
+                    </Chip>
+                  )}
+                </div>
+              </div>
               <div className="flex" onClick={(e) => e.stopPropagation()}>
                 {info.type === 'remote' && (
                   <Tooltip placement="left" content={dayjs(info.updated).fromNow()}>
@@ -338,7 +377,7 @@ const ProfileItem: React.FC<Props> = (props) => {
             {extra && (
               <TrafficProgress
                 value={calcPercent(extra?.upload, extra?.download, extra?.total)}
-                isActive={isCurrent}
+                isActive={isEnabled}
               />
             )}
           </CardFooter>

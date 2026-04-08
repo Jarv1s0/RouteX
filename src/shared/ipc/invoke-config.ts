@@ -26,6 +26,7 @@ export const CONFIG_IPC_INVOKE_CHANNELS = {
   removeOverrideItem: 'removeOverrideItem',
   removeProfileItem: 'removeProfileItem',
   rollbackOverride: 'rollbackOverride',
+  setActiveProfiles: 'setActiveProfiles',
   setFileStr: 'setFileStr',
   setOverride: 'setOverride',
   setOverrideConfig: 'setOverrideConfig',
