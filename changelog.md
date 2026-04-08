@@ -20,6 +20,7 @@
 - DNS 与域名嗅探页面改为复用统一编辑器与表单逻辑。
 - Windows 提权、自启、资源准备和 Linux 打包链路统一到 `routex` / `routex-service` / `routex-run` 命名。
 - Mihomo 更新、TrafficMonitor 下载和资源准备脚本统一改为按 release 资产自动匹配，`pnpm build` / `pnpm verify` 会自动准备运行时资源。
+- 升级 `meta-json-schema` 到 `1.19.22`，补齐 Mihomo `xhttp`、`grpc-opts` 与 `trusttunnel` 相关配置的编辑器校验与补全支持。
 - 统计页隐藏服务提供商用量面板，并避免首屏加载被配置读取阻塞。
 
 ### 🛠 修复
