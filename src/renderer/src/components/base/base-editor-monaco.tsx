@@ -12,6 +12,64 @@ import type { BaseEditorProps } from './base-editor.shared'
 let initialized = false
 let javascriptLibInitialized = false
 
+type SchemaRecord = Record<string, unknown>
+
+const getSchemaProperties = (
+  schema: SchemaRecord,
+  path: string[]
+): SchemaRecord | undefined => {
+  let current: unknown = schema
+
+  for (const segment of path) {
+    if (!current || typeof current !== 'object') return undefined
+    current = (current as SchemaRecord)[segment]
+  }
+
+  if (!current || typeof current !== 'object') return undefined
+  const properties = (current as SchemaRecord).properties
+  return properties && typeof properties === 'object'
+    ? (properties as SchemaRecord)
+    : undefined
+}
+
+const createPatchedMetaSchema = (): Record<string, unknown> => {
+  const schema = structuredClone(metaSchema) as SchemaRecord
+  const scMaxEachPostBytes = {
+    $ref: '#/definitions/proxies/definitions/shadowsocksr/definitions/compatible/integer',
+    title: '单次 POST 最大字节数',
+    description: '限制 xhttp 单次 POST 请求体的最大字节数，单位: bytes',
+    markdownDescription: '限制 `xhttp` 单次 `POST` 请求体的最大字节数，单位: `bytes`'
+  }
+
+  const xhttpClientProperties = getSchemaProperties(schema, [
+    'definitions',
+    'proxies',
+    'definitions',
+    'vless',
+    'definitions',
+    'xhttp-opts'
+  ])
+  if (xhttpClientProperties && !('sc-max-each-post-bytes' in xhttpClientProperties)) {
+    xhttpClientProperties['sc-max-each-post-bytes'] = scMaxEachPostBytes
+  }
+
+  const xhttpListenerProperties = getSchemaProperties(schema, [
+    'definitions',
+    'listeners',
+    'definitions',
+    'vless',
+    'definitions',
+    'xhttp-config'
+  ])
+  if (xhttpListenerProperties && !('sc-max-each-post-bytes' in xhttpListenerProperties)) {
+    xhttpListenerProperties['sc-max-each-post-bytes'] = scMaxEachPostBytes
+  }
+
+  return schema
+}
+
+const patchedMetaSchema = createPatchedMetaSchema()
+
 const monacoInitialization = (): void => {
   if (initialized) return
 
@@ -24,7 +82,7 @@ const monacoInitialization = (): void => {
         fileMatch: ['**/*.clash.yaml'],
         // @ts-ignore // type JSONSchema7
         schema: {
-          ...metaSchema,
+          ...patchedMetaSchema,
           patternProperties: {
             '\\+rules': {
               type: 'array',

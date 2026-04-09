@@ -6,7 +6,7 @@
 - 订阅管理支持同时启用多个订阅连接；运行时保留主订阅的策略组与规则来源，并合并其他已启用订阅的节点与代理提供者。
 
 ### ⚡ 优化
-- 升级 `meta-json-schema` 到 `1.19.22`，补齐 Mihomo `xhttp`、`grpc-opts` 与 `trusttunnel` 相关配置的编辑器校验与补全支持。
+- 升级 `meta-json-schema` 到 `1.19.23`，补齐 Mihomo `xhttp` 的 `reuse-settings`、`sc-stream-up-server-secs`、`no-sse-header`、`sc-max-each-post-bytes`，以及 `grpc-opts` / `trusttunnel` 的 `max-connections`、`min-streams`、`max-streams` 等配置项的编辑器校验与补全支持。
 - 侧边栏连接卡片改为按需读取托盘图标数据，移除渲染包中的大体积内联 `base64` 图标常量，减少前端包体积与首屏加载负担。
 - 安装包图标资源改为按需拷贝，移除未被运行时使用的冗余图片与备份压缩包，降低打包产物体积。
 - `mihomo-alpha`、`Sub-Store`、`TrafficMonitor`、`enableLoopback` 与 `7za.exe` 改为运行时按需下载，构建阶段不再默认打包这些可选资源，进一步收缩安装包体积。
