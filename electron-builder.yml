@@ -47,6 +47,7 @@ protocols:
 artifactName: RouteX-${version}-${os}-${arch}.${ext}
 
 win:
+  icon: resources/icon.ico
   target:
     - nsis
     - 7z
@@ -58,10 +59,15 @@ nsis:
   allowToChangeInstallationDirectory: true
   oneClick: false
   perMachine: true
+  installerIcon: resources/installerIcon.ico
+  uninstallerIcon: resources/installerIcon.ico
+  installerHeader: resources/installerHeader.bmp
+  installerSidebar: resources/installerSidebar.bmp
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: ${productName}
 mac:
+  icon: resources/icon.icns
   target:
     - pkg
     - dmg
@@ -77,6 +83,7 @@ pkg:
   allowAnywhere: false
   allowCurrentUserHome: false
 linux:
+  icon: resources/icon.png
   desktop:
     entry:
       Name: RouteX
