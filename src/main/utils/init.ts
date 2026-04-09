@@ -210,6 +210,13 @@ function initDeeplink(): void {
   }
 }
 
+function shouldInitServiceKeyManager(appConfig: AppConfig): boolean {
+  return (
+    appConfig.corePermissionMode === 'service' ||
+    appConfig.sysProxy?.settingMode === 'service'
+  )
+}
+
 export async function init(): Promise<void> {
   await initDirs()
   await Promise.all([initConfig(), initFiles()])
@@ -217,7 +224,6 @@ export async function init(): Promise<void> {
 
   const [appConfig] = await Promise.all([
     getAppConfig(),
-    initKeyManager(),
     cleanup().catch(() => {
       // ignore
     })
@@ -229,6 +235,18 @@ export async function init(): Promise<void> {
 
   if (networkDetection) {
     initTasks.push(startNetworkDetection())
+  }
+
+  if (shouldInitServiceKeyManager(appConfig)) {
+    initTasks.push(
+      (async (): Promise<void> => {
+        try {
+          await initKeyManager()
+        } catch {
+          // ignore
+        }
+      })()
+    )
   }
 
   initTasks.push(

@@ -17,6 +17,7 @@ interface ProviderStatsData {
 
 const STATS_FILE = 'provider-stats.json'
 const MAX_DAYS = 90 // 保留90天数据
+const PERSIST_DEBOUNCE_MS = 1500
 
 let statsData: ProviderStatsData = {
   snapshots: [],
@@ -25,6 +26,7 @@ let statsData: ProviderStatsData = {
 
 let snapshotTimer: NodeJS.Timeout | null = null
 let mutationQueue: Promise<void> = Promise.resolve()
+let persistTimer: NodeJS.Timeout | null = null
 
 function getStatsFilePath(): string {
   return path.join(dataDir(), STATS_FILE)
@@ -61,6 +63,26 @@ async function persistProviderStats(): Promise<void> {
   }
 }
 
+function schedulePersistProviderStats(): void {
+  if (persistTimer) {
+    clearTimeout(persistTimer)
+  }
+
+  persistTimer = setTimeout(() => {
+    persistTimer = null
+    void persistProviderStats()
+  }, PERSIST_DEBOUNCE_MS)
+}
+
+async function flushPersistProviderStats(): Promise<void> {
+  if (persistTimer) {
+    clearTimeout(persistTimer)
+    persistTimer = null
+  }
+
+  await persistProviderStats()
+}
+
 function queueMutation(operation: () => Promise<void>): Promise<void> {
   const task = mutationQueue.then(operation)
   mutationQueue = task.catch(() => undefined)
@@ -69,7 +91,7 @@ function queueMutation(operation: () => Promise<void>): Promise<void> {
 
 export async function saveProviderStats(): Promise<void> {
   await queueMutation(async () => {
-    await persistProviderStats()
+    await flushPersistProviderStats()
   })
 }
 
@@ -142,7 +164,7 @@ async function takeSnapshot(): Promise<void> {
     const cutoffDateStr = cutoffDate.toISOString().split('T')[0]
     statsData.snapshots = statsData.snapshots.filter(s => s.date >= cutoffDateStr)
     
-    await persistProviderStats()
+    schedulePersistProviderStats()
   } catch (e) {
     console.error('[ProviderStats] 记录快照失败:', e)
   }
@@ -188,6 +210,6 @@ export async function clearProviderStats(): Promise<void> {
       snapshots: [],
       lastUpdate: Date.now()
     }
-    await persistProviderStats()
+    await flushPersistProviderStats()
   })
 }

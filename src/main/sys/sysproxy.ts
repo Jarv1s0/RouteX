@@ -8,23 +8,11 @@ import { disableProxy, setPac, setProxy } from '../service/api'
 
 let defaultBypass: string[]
 let triggerSysProxyTimer: NodeJS.Timeout | null = null
+let lastAppliedSysProxySignature: string | null = null
 
-export async function triggerSysProxy(enable: boolean, onlyActiveDevice: boolean): Promise<void> {
-  if (net.isOnline()) {
-    if (enable) {
-      await setSysProxy(onlyActiveDevice)
-    } else {
-      await disableSysProxy(onlyActiveDevice)
-    }
-  } else {
-    if (triggerSysProxyTimer) clearTimeout(triggerSysProxyTimer)
-    triggerSysProxyTimer = setTimeout(() => triggerSysProxy(enable, onlyActiveDevice), 5000)
-  }
-}
-
-async function setSysProxy(onlyActiveDevice: boolean): Promise<void> {
-  if (process.platform === 'linux')
-    defaultBypass = [
+function buildDefaultBypass(): string[] {
+  if (process.platform === 'linux') {
+    return [
       'localhost',
       '.local',
       '127.0.0.1/8',
@@ -33,8 +21,10 @@ async function setSysProxy(onlyActiveDevice: boolean): Promise<void> {
       '172.16.0.0/12',
       '::1'
     ]
-  if (process.platform === 'darwin')
-    defaultBypass = [
+  }
+
+  if (process.platform === 'darwin') {
+    return [
       '127.0.0.1/8',
       '192.168.0.0/16',
       '10.0.0.0/8',
@@ -44,30 +34,83 @@ async function setSysProxy(onlyActiveDevice: boolean): Promise<void> {
       '*.crashlytics.com',
       '<local>'
     ]
-  if (process.platform === 'win32')
-    defaultBypass = [
-      'localhost',
-      '127.*',
-      '192.168.*',
-      '10.*',
-      '172.16.*',
-      '172.17.*',
-      '172.18.*',
-      '172.19.*',
-      '172.20.*',
-      '172.21.*',
-      '172.22.*',
-      '172.23.*',
-      '172.24.*',
-      '172.25.*',
-      '172.26.*',
-      '172.27.*',
-      '172.28.*',
-      '172.29.*',
-      '172.30.*',
-      '172.31.*',
-      '<local>'
-    ]
+  }
+
+  return [
+    'localhost',
+    '127.*',
+    '192.168.*',
+    '10.*',
+    '172.16.*',
+    '172.17.*',
+    '172.18.*',
+    '172.19.*',
+    '172.20.*',
+    '172.21.*',
+    '172.22.*',
+    '172.23.*',
+    '172.24.*',
+    '172.25.*',
+    '172.26.*',
+    '172.27.*',
+    '172.28.*',
+    '172.29.*',
+    '172.30.*',
+    '172.31.*',
+    '<local>'
+  ]
+}
+
+async function buildSysProxySignature(enable: boolean, onlyActiveDevice: boolean): Promise<string> {
+  if (!enable) {
+    return JSON.stringify({
+      enable,
+      onlyActiveDevice
+    })
+  }
+
+  const { sysProxy } = await getAppConfig()
+  const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
+  const bypass = sysProxy.bypass || buildDefaultBypass()
+
+  return JSON.stringify({
+    enable,
+    onlyActiveDevice,
+    port,
+    mode: sysProxy.mode || 'manual',
+    host: sysProxy.host || '127.0.0.1',
+    settingMode: sysProxy.settingMode || 'exec',
+    bypass
+  })
+}
+
+export async function triggerSysProxy(enable: boolean, onlyActiveDevice: boolean): Promise<void> {
+  const nextSignature = await buildSysProxySignature(enable, onlyActiveDevice)
+  if (nextSignature === lastAppliedSysProxySignature) {
+    return
+  }
+
+  if (net.isOnline()) {
+    if (triggerSysProxyTimer) {
+      clearTimeout(triggerSysProxyTimer)
+      triggerSysProxyTimer = null
+    }
+
+    if (enable) {
+      await setSysProxy(onlyActiveDevice)
+    } else {
+      await disableSysProxy(onlyActiveDevice)
+    }
+
+    lastAppliedSysProxySignature = nextSignature
+  } else {
+    if (triggerSysProxyTimer) clearTimeout(triggerSysProxyTimer)
+    triggerSysProxyTimer = setTimeout(() => triggerSysProxy(enable, onlyActiveDevice), 5000)
+  }
+}
+
+async function setSysProxy(onlyActiveDevice: boolean): Promise<void> {
+  defaultBypass = buildDefaultBypass()
   await startPacServer()
   const { sysProxy } = await getAppConfig()
   const { mode, host, bypass = defaultBypass, settingMode = 'exec' } = sysProxy
@@ -132,4 +175,9 @@ export async function disableSysProxy(onlyActiveDevice: boolean): Promise<void> 
   } else {
     await execFilePromise(servicePath(), ['disable'])
   }
+
+  lastAppliedSysProxySignature = JSON.stringify({
+    enable: false,
+    onlyActiveDevice
+  })
 }

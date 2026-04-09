@@ -29,14 +29,260 @@ let runtimeConfigStr: string,
   overrideProfileStr: string,
   runtimeConfig: MihomoConfig
 
+type ProxyNode = Record<string, unknown> & {
+  name?: string
+  'dialer-proxy'?: string
+}
+
+type ProxyGroupNode = Record<string, unknown> & {
+  name?: string
+  type?: string
+  proxies?: string[]
+  use?: string[]
+  filter?: string
+  _filter?: string
+  'exclude-filter'?: string
+  'include-all'?: boolean
+}
+
+type ProxyProviderNode = Record<string, unknown> & {
+  path?: string
+}
+
+type LoadedProfileState = {
+  id: string
+  name: string
+  rawProfile: MihomoConfig
+  overriddenProfile: MihomoConfig
+}
+
+function getActiveProfileIds(config: ProfileConfig): string[] {
+  if (Array.isArray(config.actives) && config.actives.length > 0) {
+    return config.actives.filter((id): id is string => typeof id === 'string' && id.length > 0)
+  }
+  return typeof config.current === 'string' && config.current.length > 0 ? [config.current] : []
+}
+
+function getPrimaryProfileId(config: ProfileConfig, activeIds: string[]): string | undefined {
+  if (config.current && activeIds.includes(config.current)) {
+    return config.current
+  }
+  return activeIds[0]
+}
+
+function ensureProfileCollections(profile: MihomoConfig): {
+  proxies: ProxyNode[]
+  proxyGroups: ProxyGroupNode[]
+  proxyProviders: Record<string, ProxyProviderNode>
+} {
+  if (!Array.isArray(profile.proxies)) {
+    profile.proxies = []
+  }
+  if (!Array.isArray(profile['proxy-groups'])) {
+    profile['proxy-groups'] = []
+  }
+  if (
+    !profile['proxy-providers'] ||
+    typeof profile['proxy-providers'] !== 'object' ||
+    Array.isArray(profile['proxy-providers'])
+  ) {
+    profile['proxy-providers'] = {}
+  }
+  return {
+    proxies: profile.proxies as ProxyNode[],
+    proxyGroups: profile['proxy-groups'] as ProxyGroupNode[],
+    proxyProviders: profile['proxy-providers'] as Record<string, ProxyProviderNode>
+  }
+}
+
+function buildMergedName(prefix: string, name: string): string {
+  return `[${prefix}] ${name}`
+}
+
+function createUniqueName(base: string, taken: Set<string>, prefix: string): string {
+  if (!taken.has(base)) {
+    taken.add(base)
+    return base
+  }
+
+  let index = 1
+  let candidate = buildMergedName(prefix, base)
+  while (taken.has(candidate)) {
+    index += 1
+    candidate = `${buildMergedName(prefix, base)} (${index})`
+  }
+  taken.add(candidate)
+  return candidate
+}
+
+function mapNamedReference(
+  name: string,
+  proxyNameMap: Map<string, string>,
+  groupNameMap: Map<string, string>
+): string {
+  return proxyNameMap.get(name) || groupNameMap.get(name) || name
+}
+
+function isAbsoluteConfigPath(configPath: string): boolean {
+  return path.isAbsolute(configPath) || /^[a-zA-Z]:[\\/]/.test(configPath)
+}
+
+function rewriteProviderPath(provider: ProxyProviderNode, profileId: string): void {
+  if (typeof provider.path !== 'string' || provider.path.length === 0) {
+    return
+  }
+  if (isAbsoluteConfigPath(provider.path)) {
+    return
+  }
+  const normalizedPath = provider.path.replace(/\\/g, '/').replace(/^\.?\//, '')
+  provider.path = path.posix.join('merged-profiles', profileId, normalizedPath)
+}
+
+function mergeProfileNodes(
+  targetProfile: MihomoConfig,
+  sourceProfile: MihomoConfig,
+  profileMeta: Pick<LoadedProfileState, 'id' | 'name'>
+): void {
+  const { proxies: targetProxies, proxyGroups: targetProxyGroups, proxyProviders: targetProxyProviders } =
+    ensureProfileCollections(targetProfile)
+  const {
+    proxies: sourceProxies,
+    proxyGroups: sourceProxyGroups,
+    proxyProviders: sourceProxyProviders
+  } = ensureProfileCollections(structuredClone(sourceProfile))
+
+  const proxyNames = new Set(
+    targetProxies
+      .map((proxy) => proxy.name)
+      .filter((name): name is string => typeof name === 'string' && name.length > 0)
+  )
+  const targetGroupsByName = new Map(
+    targetProxyGroups
+      .filter((group) => typeof group.name === 'string' && group.name.length > 0)
+      .map((group) => [group.name as string, group])
+  )
+  const groupNames = new Set(targetGroupsByName.keys())
+  const providerNames = new Set(Object.keys(targetProxyProviders))
+  const builtinNames = new Set(['DIRECT', 'REJECT', 'COMPATIBLE', 'PASS'])
+
+  const providerNameMap = new Map<string, string>()
+  for (const [providerName, provider] of Object.entries(sourceProxyProviders)) {
+    const nextProviderName = createUniqueName(providerName, providerNames, profileMeta.name)
+    providerNameMap.set(providerName, nextProviderName)
+    const clonedProvider = structuredClone(provider)
+    rewriteProviderPath(clonedProvider, profileMeta.id)
+    targetProxyProviders[nextProviderName] = clonedProvider
+  }
+
+  const sourceGroupNames = new Set(
+    sourceProxyGroups
+      .map((group) => group.name)
+      .filter((name): name is string => typeof name === 'string' && name.length > 0)
+  )
+  const groupNameMap = new Map<string, string>()
+  for (const sourceGroupName of sourceGroupNames) {
+    if (targetGroupsByName.has(sourceGroupName)) {
+      groupNameMap.set(sourceGroupName, sourceGroupName)
+    }
+  }
+
+  const proxyNameMap = new Map<string, string>()
+  for (const proxy of sourceProxies) {
+    const sourceProxyName = typeof proxy.name === 'string' ? proxy.name : undefined
+    if (sourceProxyName) {
+      proxyNameMap.set(sourceProxyName, createUniqueName(sourceProxyName, proxyNames, profileMeta.name))
+    }
+  }
+
+  for (const proxy of sourceProxies) {
+    const clonedProxy = structuredClone(proxy)
+    if (typeof clonedProxy.name === 'string') {
+      clonedProxy.name = proxyNameMap.get(clonedProxy.name) || clonedProxy.name
+    }
+    if (typeof clonedProxy['dialer-proxy'] === 'string') {
+      const resolvedDialerProxy = mapNamedReference(
+        clonedProxy['dialer-proxy'],
+        proxyNameMap,
+        groupNameMap
+      )
+      if (
+        !builtinNames.has(resolvedDialerProxy) &&
+        !proxyNames.has(resolvedDialerProxy) &&
+        !groupNames.has(resolvedDialerProxy)
+      ) {
+        console.warn(
+          `[factory] skip proxy "${clonedProxy.name}" from profile "${profileMeta.name}" because dialer-proxy "${resolvedDialerProxy}" is unavailable after merge`
+        )
+        continue
+      }
+      clonedProxy['dialer-proxy'] = resolvedDialerProxy
+    }
+    targetProxies.push(clonedProxy)
+  }
+}
+
+function mergeActiveProfiles(
+  profiles: LoadedProfileState[],
+  current: string | undefined,
+  selector: keyof Pick<LoadedProfileState, 'rawProfile' | 'overriddenProfile'>
+): MihomoConfig {
+  if (profiles.length === 0) {
+    return {} as MihomoConfig
+  }
+
+  const primaryProfile =
+    profiles.find((profile) => profile.id === current) ||
+    profiles[0]
+  const mergedProfile = structuredClone(primaryProfile[selector])
+
+  for (const profile of profiles) {
+    if (profile.id === primaryProfile.id) {
+      continue
+    }
+    mergeProfileNodes(mergedProfile, profile[selector], profile)
+  }
+
+  return mergedProfile
+}
+
 export async function generateProfile(): Promise<void> {
-  const { current } = await getProfileConfig()
+  const profileConfig = await getProfileConfig()
+  const activeIds = getActiveProfileIds(profileConfig)
+  const current = getPrimaryProfileId(profileConfig, activeIds)
   const { diffWorkDir = false, controlDns = true, controlSniff = true } = await getAppConfig()
-  const currentProfileConfig = await getProfile(current)
-  rawProfileStr = await getProfileStr(current)
-  currentProfileStr = stringifyYaml(currentProfileConfig)
-  const currentProfile = await overrideProfile(current, currentProfileConfig)
-  overrideProfileStr = stringifyYaml(currentProfile)
+
+  let currentProfile: MihomoConfig
+  if (activeIds.length <= 1) {
+    const currentProfileConfig = await getProfile(current)
+    rawProfileStr = await getProfileStr(current)
+    currentProfileStr = stringifyYaml(currentProfileConfig)
+    currentProfile = await overrideProfile(current, currentProfileConfig)
+    overrideProfileStr = stringifyYaml(currentProfile)
+  } else {
+    const loadedProfiles = (
+      await Promise.all(
+        activeIds.map(async (id): Promise<LoadedProfileState | null> => {
+          const item = await getProfileItem(id)
+          if (!item) {
+            return null
+          }
+          const rawProfile = await getProfile(id)
+          return {
+            id,
+            name: item.name || id,
+            rawProfile,
+            overriddenProfile: await overrideProfile(id, structuredClone(rawProfile))
+          }
+        })
+      )
+    ).filter((profile): profile is LoadedProfileState => profile !== null)
+
+    const mergedRawProfile = mergeActiveProfiles(loadedProfiles, current, 'rawProfile')
+    rawProfileStr = stringifyYaml(mergedRawProfile)
+    currentProfileStr = stringifyYaml(mergedRawProfile)
+    currentProfile = mergeActiveProfiles(loadedProfiles, current, 'overriddenProfile')
+    overrideProfileStr = stringifyYaml(currentProfile)
+  }
   const controledMihomoConfig = await getControledMihomoConfig()
 
   const configToMerge = structuredClone(controledMihomoConfig)
@@ -94,18 +340,6 @@ async function injectChainProxies(profile: MihomoConfig): Promise<void> {
   }
   if (!Array.isArray(profile['proxy-groups'])) {
     profile['proxy-groups'] = []
-  }
-
-  type ProxyNode = Record<string, unknown> & {
-    name?: string
-    'dialer-proxy'?: string
-  }
-  type ProxyGroupNode = Record<string, unknown> & {
-    name?: string
-    proxies?: string[]
-    filter?: string
-    _filter?: string
-    'exclude-filter'?: string
   }
 
   const proxies = profile.proxies as ProxyNode[]

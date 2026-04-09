@@ -1,6 +1,7 @@
-import { BrowserWindow, ipcMain, nativeImage, screen } from 'electron'
+import { BrowserWindow, ipcMain, screen } from 'electron'
 import { tray } from './tray'
 import { getIconPath } from '../utils/dirs'
+import { getCachedNativeIcon } from '../utils/nativeIconCache'
 
 type TaskbarIconType = 'default' | 'proxy' | 'tun'
 
@@ -22,7 +23,7 @@ export function registerTaskbarIconHandler(getMainWindow: () => BrowserWindow | 
       if (type === 'tun') iconName = 'icon_tun.ico'
 
       const iconPath = getIconPath(iconName)
-      const nativeIcon = nativeImage.createFromPath(iconPath)
+      const nativeIcon = getCachedNativeIcon(iconPath)
 
       if (nativeIcon.isEmpty()) {
         console.warn(`[IconUpdate] Failed to load icon from path: ${iconPath}`)
@@ -37,7 +38,7 @@ export function registerTaskbarIconHandler(getMainWindow: () => BrowserWindow | 
       if (tray) {
         const scaleFactor = screen.getPrimaryDisplay().scaleFactor
         const traySize = Math.round(16 * scaleFactor)
-        const trayIcon = nativeIcon.resize({ width: traySize, height: traySize })
+        const trayIcon = getCachedNativeIcon(iconPath, traySize, traySize)
         tray.setImage(trayIcon)
       }
     } catch (error) {

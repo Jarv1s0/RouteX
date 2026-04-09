@@ -131,12 +131,14 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                     {proxy.name}
                   </span>
                 </div>
-                <div className="text-[12px] text-foreground-500 leading-none mt-0.5 flex items-center gap-2">
-                  <span>{proxy.type === 'Compatible' ? 'Direct' : proxy.type}</span>
+                <div className="leading-none mt-1 flex items-center gap-1.5">
+                  <span className="text-[9px] px-1.5 py-[2px] rounded-md bg-default-100/80 dark:bg-default-50/50 text-default-500 uppercase font-bold tracking-wider border border-default-200/50">
+                    {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
+                  </span>
                   {subGroupInfo && (
                     <>
-                      <span className="text-foreground-400">|</span>
-                      <span className="flag-emoji truncate text-foreground-600" title={subGroupInfo.now}>{subGroupInfo.now}</span>
+                      <span className="text-default-300 dark:text-default-600/50">|</span>
+                      <span className="flag-emoji truncate text-default-500 text-[11px]" title={subGroupInfo.now}>{subGroupInfo.now}</span>
                     </>
                   )}
                 </div>
@@ -190,14 +192,14 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   {proxy.name === 'COMPATIBLE' ? 'DIRECT' : proxy.name}
                 </span>
                 {proxyDisplayLayout === 'single' && (
-                  <span className="ml-2 text-foreground-500" title={proxy.type}>
+                  <span className="ml-2.5 text-[9px] px-1.5 py-[2px] rounded-md bg-default-100/80 dark:bg-default-50/50 text-default-500 uppercase font-bold tracking-wider border border-default-200/50" title={proxy.type}>
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
                   </span>
                 )}
                 {subGroupInfo && (
                   <>
-                    <span className="text-foreground-400 ml-1">|</span>
-                    <span className="ml-1 text-foreground-600 flag-emoji" title={subGroupInfo.now}>
+                    <span className="text-default-300 dark:text-default-600/50 ml-2">|</span>
+                    <span className="ml-1.5 text-[12px] text-default-500 flag-emoji truncate" title={subGroupInfo.now}>
                       {subGroupInfo.now}
                     </span>
                   </>

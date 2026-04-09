@@ -31,18 +31,64 @@ export function getCertFingerprint(cert: tls.PeerCertificate) {
   return crypto.createHash('sha256').update(cert.raw).digest('hex').toUpperCase()
 }
 
+function dedupeProfileIds(ids: Array<string | undefined | null>): string[] {
+  return Array.from(
+    new Set(ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0))
+  )
+}
+
+function pickFirstValidProfileId(ids: Array<string | undefined>, validIds: Set<string>): string | undefined {
+  return ids.find((id): id is string => Boolean(id && validIds.has(id)))
+}
+
+function hasSameProfileSelection(left: ProfileConfig, right: ProfileConfig): boolean {
+  const leftActives = getActiveProfileIdsFromConfig(left)
+  const rightActives = getActiveProfileIdsFromConfig(right)
+  return (
+    left.current === right.current &&
+    leftActives.length === rightActives.length &&
+    leftActives.every((id, index) => id === rightActives[index])
+  )
+}
+
+export function normalizeProfileConfig(config?: ProfileConfig): ProfileConfig {
+  const items = Array.isArray(config?.items) ? config.items : []
+  const validIds = new Set(items.map((item) => item.id))
+  let current = pickFirstValidProfileId([config?.current], validIds)
+  const seedActives = Array.isArray(config?.actives) ? config.actives : current ? [current] : []
+  const actives = dedupeProfileIds(seedActives).filter((id) => validIds.has(id))
+
+  if (current && !actives.includes(current)) {
+    actives.unshift(current)
+  }
+  if (!current && actives.length > 0) {
+    current = actives[0]
+  }
+
+  return {
+    ...config,
+    current,
+    actives,
+    items
+  }
+}
+
+export function getActiveProfileIdsFromConfig(config?: ProfileConfig): string[] {
+  return normalizeProfileConfig(config).actives || []
+}
+
 export async function getProfileConfig(force = false): Promise<ProfileConfig> {
   if (force || !profileConfig) {
     const data = await readFile(profileConfigPath(), 'utf-8')
-    profileConfig = parseYaml(data) || { items: [] }
+    profileConfig = normalizeProfileConfig(parseYaml(data) || { items: [] })
   }
-  if (typeof profileConfig !== 'object') profileConfig = { items: [] }
+  if (typeof profileConfig !== 'object') profileConfig = normalizeProfileConfig({ items: [] })
   return profileConfig
 }
 
 export async function setProfileConfig(config: ProfileConfig): Promise<void> {
-  profileConfig = config
-  await writeFile(profileConfigPath(), stringifyYaml(config), 'utf-8')
+  profileConfig = normalizeProfileConfig(config)
+  await writeFile(profileConfigPath(), stringifyYaml(profileConfig), 'utf-8')
 }
 
 export async function getProfileItem(id: string | undefined): Promise<ProfileItem | undefined> {
@@ -53,16 +99,39 @@ export async function getProfileItem(id: string | undefined): Promise<ProfileIte
 
 export async function changeCurrentProfile(id: string): Promise<void> {
   const config = await getProfileConfig()
-  const current = config.current
-  config.current = id
-  await setProfileConfig(config)
+  const actives = getActiveProfileIdsFromConfig(config)
+  const nextActives = actives.includes(id) ? actives : [id, ...actives]
+  await setActiveProfiles(nextActives, id)
+}
+
+export async function setActiveProfiles(ids: string[], nextCurrent?: string): Promise<void> {
+  const config = await getProfileConfig()
+  const previousConfig = structuredClone(config)
+  const validIds = new Set(config.items.map((item) => item.id))
+  let actives = dedupeProfileIds(ids).filter((id) => validIds.has(id))
+
+  if (actives.length === 0) {
+    const fallbackId = pickFirstValidProfileId([nextCurrent, config.current, config.items[0]?.id], validIds)
+    actives = fallbackId ? [fallbackId] : []
+  }
+
+  const current = pickFirstValidProfileId([nextCurrent, actives[0]], validIds)
+
+  const nextConfig = normalizeProfileConfig({
+    ...config,
+    current,
+    actives
+  })
+  if (hasSameProfileSelection(previousConfig, nextConfig)) {
+    return
+  }
+
+  await setProfileConfig(nextConfig)
   try {
     await restartCore()
-  } catch (e) {
-    config.current = current
-    throw e
-  } finally {
-    await setProfileConfig(config)
+  } catch (error) {
+    await setProfileConfig(previousConfig)
+    throw error
   }
 }
 
@@ -98,16 +167,13 @@ export async function addProfileItem(item: Partial<ProfileItem>): Promise<void> 
 
 export async function removeProfileItem(id: string): Promise<void> {
   const config = await getProfileConfig()
+  const activeIds = getActiveProfileIdsFromConfig(config)
   config.items = config.items?.filter((item) => item.id !== id)
-  let shouldRestart = false
+  const shouldRestart = activeIds.includes(id)
   if (config.current === id) {
-    shouldRestart = true
-    if (config.items.length > 0) {
-      config.current = config.items[0].id
-    } else {
-      config.current = undefined
-    }
+    config.current = activeIds.find((activeId) => activeId !== id) || config.items[0]?.id
   }
+  config.actives = activeIds.filter((activeId) => activeId !== id)
   await setProfileConfig(config)
   if (existsSync(profilePath(id))) {
     await rm(profilePath(id))
@@ -123,6 +189,7 @@ export async function removeProfileItem(id: string): Promise<void> {
 
 export async function removeOverrideReference(id: string): Promise<boolean> {
   const config = await getProfileConfig()
+  const activeIds = new Set(getActiveProfileIdsFromConfig(config))
   let currentProfileModified = false
   let anyProfileModified = false
 
@@ -131,7 +198,7 @@ export async function removeOverrideReference(id: string): Promise<boolean> {
       if (profile.override?.includes(id)) {
         profile.override = profile.override.filter((oid) => oid !== id)
         anyProfileModified = true
-        if (config.current === profile.id) {
+        if (activeIds.has(profile.id)) {
           currentProfileModified = true
         }
       }
@@ -335,9 +402,9 @@ export async function getProfileParseStr(id: string | undefined): Promise<string
 }
 
 export async function setProfileStr(id: string, content: string): Promise<void> {
-  const { current } = await getProfileConfig()
+  const config = await getProfileConfig()
   await writeFile(profilePath(id), content, 'utf-8')
-  if (current === id) await restartCore()
+  if (getActiveProfileIdsFromConfig(config).includes(id)) await restartCore()
 }
 
 export async function getProfile(id: string | undefined): Promise<MihomoConfig> {

@@ -6,6 +6,13 @@ import { execSync } from 'child_process'
 import { getAppConfigSync } from '../config/app'
 import { checkCorePermissionSync } from '../core/manager'
 import { ROUTEX_RUN_BINARY } from './routex-run'
+const FIND_SYSTEM_MIHOMO_CACHE_MS = 60 * 1000
+let systemMihomoCache:
+  | {
+      value: string[]
+      expiresAt: number
+    }
+  | null = null
 
 export const homeDir = app.getPath('home')
 
@@ -114,7 +121,11 @@ export function mihomoCoreDir(): string {
 export function mihomoCorePath(core: string): string {
   if (core === 'mihomo' || core === 'mihomo-alpha') {
     const isWin = process.platform === 'win32'
-    return path.join(mihomoCoreDir(), `${core}${isWin ? '.exe' : ''}`)
+    const bundledPath = path.join(mihomoCoreDir(), `${core}${isWin ? '.exe' : ''}`)
+    if (core === 'mihomo-alpha' && !existsSync(bundledPath)) {
+      return path.join(dataDir(), 'runtime-assets', 'sidecar', `mihomo-alpha${isWin ? '.exe' : ''}`)
+    }
+    return bundledPath
   }
   if (core === 'system') {
     const sysPath = systemCorePath()
@@ -229,6 +240,10 @@ function hasCommand(command: string): boolean {
 }
 
 export function findSystemMihomo(): string[] {
+  if (systemMihomoCache && systemMihomoCache.expiresAt > Date.now()) {
+    return systemMihomoCache.value
+  }
+
   const isWin = process.platform === 'win32'
   const isLinux = process.platform === 'linux'
   const isMac = process.platform === 'darwin'
@@ -385,5 +400,10 @@ export function findSystemMihomo(): string[] {
     }
   }
 
-  return Array.from(new Set(foundPaths)).sort()
+  const result = Array.from(new Set(foundPaths)).sort()
+  systemMihomoCache = {
+    value: result,
+    expiresAt: Date.now() + FIND_SYSTEM_MIHOMO_CACHE_MS
+  }
+  return result
 }

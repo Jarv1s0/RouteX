@@ -32,7 +32,7 @@ const flagMap: Record<string, string> = {
   '秘鲁': '🇵🇪', 'PE': '🇵🇪', 'Peru': '🇵🇪',
   
   // 欧洲
-  '英国': '🇬🇧', 'UK': '🇬🇧', 'GB': '🇬🇧', 'United Kingdom': '🇬🇧', '英': '🇬🇧',
+  '英国': '🇬🇧', 'UK': '🇬🇧', 'GB': '🇬🇧', 'GBR': '🇬🇧', 'United Kingdom': '🇬🇧', '英': '🇬🇧',
   '德国': '🇩🇪', 'DE': '🇩🇪', 'Germany': '🇩🇪', '德': '🇩🇪',
   '法国': '🇫🇷', 'FR': '🇫🇷', 'France': '🇫🇷', '法': '🇫🇷',
   '荷兰': '🇳🇱', 'NL': '🇳🇱', 'Netherlands': '🇳🇱', '荷': '🇳🇱',
@@ -69,21 +69,37 @@ const flagMap: Record<string, string> = {
   '肯尼亚': '🇰🇪', 'KE': '🇰🇪', 'Kenya': '🇰🇪',
 }
 
+const compactCodePattern = /^[A-Z0-9]{2,4}$/
+const sortedFlagEntries = Object.entries(flagMap).sort((a, b) => b[0].length - a[0].length)
+
+function isCompactCode(key: string): boolean {
+  return compactCodePattern.test(key.toUpperCase())
+}
+
 /**
  * 根据节点名称获取国旗 emoji
  * @param name 节点名称
  * @returns 国旗 emoji，如果没有匹配则返回空字符串
  */
 export function getFlag(name: string): string {
-  // 先移除可能存在的不可见 flag emoji，再进行解析
-  const cleanedName = removeFlag(name)
+  const cleanedName = removeFlag(name).trim()
   const upperName = cleanedName.toUpperCase()
-  
-  // 按 key 长度降序排列，确保 "USA" 优先于 "SA"、"United States" 优先于 "US" 等
-  const sortedEntries = Object.entries(flagMap).sort((a, b) => b[0].length - a[0].length)
-  
-  for (const [key, flag] of sortedEntries) {
-    if (cleanedName.includes(key) || upperName.includes(key.toUpperCase())) {
+  const upperTokens = upperName.split(/[^A-Z0-9\u4E00-\u9FFF]+/).filter(Boolean)
+  const tokenSet = new Set(upperTokens)
+
+  for (const [key, flag] of sortedFlagEntries) {
+    const upperKey = key.toUpperCase()
+    if (isCompactCode(key) && tokenSet.has(upperKey)) {
+      return flag
+    }
+  }
+
+  for (const [key, flag] of sortedFlagEntries) {
+    const upperKey = key.toUpperCase()
+    if (isCompactCode(key)) {
+      continue
+    }
+    if (cleanedName.includes(key) || upperName.includes(upperKey)) {
       return flag
     }
   }
@@ -97,8 +113,9 @@ export function getFlag(name: string): string {
  * @returns 带国旗的节点名称
  */
 export function addFlag(name: string): string {
-  const flag = getFlag(name)
-  return flag ? `${flag} ${name}` : name
+  const baseName = removeFlag(name).trim() || name
+  const flag = getFlag(baseName)
+  return flag ? `${flag} ${baseName}` : baseName
 }
 
 /**
@@ -121,9 +138,7 @@ export function removeFlag(name: string): string {
  * @returns 精简后的节点名称
  */
 export function cleanNodeName(name: string): string {
-  // 先移除可能存在的不可见 flag emoji 字符
   let cleaned = removeFlag(name)
-  // 再匹配并移除英文/数字前缀（如 HK香港 -> 香港, USA美国02 -> 美国02）
   cleaned = cleaned.replace(/^[A-Za-z0-9\s\-_]+(?=[\u4e00-\u9fa5])/g, '').trim()
-  return cleaned || name // 如果清理后为空，返回原始名称
+  return cleaned || name
 }

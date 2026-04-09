@@ -9,6 +9,7 @@ import {
   addProfileItem,
   removeProfileItem,
   changeCurrentProfile,
+  setActiveProfiles,
   getProfileStr,
   getFileStr,
   setFileStr,
@@ -72,6 +73,11 @@ export function registerConfigHandlers(): void {
         mainWindow?.webContents.send('profileConfigUpdated')
       })(item),
     [C.changeCurrentProfile]: (_e, id) => ipcErrorWrapper(changeCurrentProfile)(id),
+    [C.setActiveProfiles]: (_e, ids, current) =>
+      ipcErrorWrapper(async (ids: string[], current?: string) => {
+        await setActiveProfiles(ids, current)
+        mainWindow?.webContents.send('profileConfigUpdated')
+      })(ids, current),
     [C.addProfileItem]: (_e, item) =>
       ipcErrorWrapper(async (item: Partial<ProfileItem>) => {
         await addProfileItem(item)

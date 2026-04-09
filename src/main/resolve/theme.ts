@@ -15,6 +15,7 @@ const THEME_ZIP_URL = 'https://github.com/Jarv1s0/theme-hub/releases/download/la
 const DEFAULT_THEME = { key: 'default.css', label: '默认' }
 const THEME_DOWNLOAD_TIMEOUT_MS = 30000
 const THEME_ZIP_MAX_SIZE = 10 * 1024 * 1024
+let resolvedThemesCache: { key: string; label: string }[] | null = null
 
 function assertThemeFileName(theme: string): string {
   const fileName = path.basename(theme)
@@ -49,6 +50,10 @@ function getArchiveThemeEntries(zip: AdmZip) {
 }
 
 export async function resolveThemes(): Promise<{ key: string; label: string }[]> {
+  if (resolvedThemesCache) {
+    return resolvedThemesCache
+  }
+
   const files = await readdir(themesDir())
   const themes = await Promise.all(
     files
@@ -59,7 +64,10 @@ export async function resolveThemes(): Promise<{ key: string; label: string }[]>
       })
   )
 
-  return themes.some((theme) => theme.key === DEFAULT_THEME.key) ? themes : [DEFAULT_THEME, ...themes]
+  resolvedThemesCache = themes.some((theme) => theme.key === DEFAULT_THEME.key)
+    ? themes
+    : [DEFAULT_THEME, ...themes]
+  return resolvedThemesCache
 }
 
 export async function fetchThemes(): Promise<void> {
@@ -97,6 +105,7 @@ export async function fetchThemes(): Promise<void> {
       const fileName = assertThemeFileName(path.posix.basename(entry.entryName.replace(/\\/g, '/')))
       await copyFile(path.join(tempDir, fileName), getThemePath(fileName))
     }
+    resolvedThemesCache = null
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }
@@ -111,6 +120,7 @@ export async function importThemes(files: string[]): Promise<void> {
     const fileName = assertThemeFileName(path.basename(file))
     await copyFile(file, getThemePath(`${new Date().getTime().toString(16)}-${fileName}`))
   }
+  resolvedThemesCache = null
 }
 
 export async function readTheme(theme: string): Promise<string> {
@@ -121,6 +131,7 @@ export async function readTheme(theme: string): Promise<string> {
 
 export async function writeTheme(theme: string, css: string): Promise<void> {
   await writeFile(getThemePath(theme), css)
+  resolvedThemesCache = null
 }
 
 export async function applyTheme(theme: string): Promise<void> {

@@ -25,12 +25,14 @@ import {
 import { upgradeMihomo } from '../core/updater'
 import { ipcErrorWrapper, registerIpcInvokeHandlers } from '../utils/ipc'
 import { IPC_INVOKE_CHANNELS } from '../../shared/ipc'
+import { ensureMihomoCoreAvailable } from '../utils/runtimeAssets'
 
 // Mihomo 内核相关 IPC 处理器
 export function registerMihomoHandlers(): void {
   const C = IPC_INVOKE_CHANNELS
 
   registerIpcInvokeHandlers({
+    [C.ensureMihomoCoreAvailable]: (_e, core) => ipcErrorWrapper(ensureMihomoCoreAvailable)(core),
     [C.mihomoVersion]: ipcErrorWrapper(mihomoVersion),
     [C.mihomoConfig]: ipcErrorWrapper(mihomoConfig),
     [C.mihomoCloseConnection]: (_e, id) => ipcErrorWrapper(mihomoCloseConnection)(id),

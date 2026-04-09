@@ -131,6 +131,7 @@ interface AppConfig {
 
 interface ProfileConfig {
   current?: string
+  actives?: string[]
   items: ProfileItem[]
 }
 

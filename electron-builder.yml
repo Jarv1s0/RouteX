@@ -22,8 +22,20 @@ files:
 extraResources:
   - from: './extra/'
     to: ''
-  - from: './resources/'
-    to: 'icons'
+  - from: './resources/icon.icns'
+    to: 'icons/icon.icns'
+  - from: './resources/icon.ico'
+    to: 'icons/icon.ico'
+  - from: './resources/icon.png'
+    to: 'icons/icon.png'
+  - from: './resources/iconTemplate.png'
+    to: 'icons/iconTemplate.png'
+  - from: './resources/icon_proxy.ico'
+    to: 'icons/icon_proxy.ico'
+  - from: './resources/icon_tun.ico'
+    to: 'icons/icon_tun.ico'
+  - from: './resources/subStoreIcon.png'
+    to: 'icons/subStoreIcon.png'
 protocols:
   name: 'RouteX URI Scheme'
   schemes:
@@ -35,6 +47,7 @@ protocols:
 artifactName: RouteX-${version}-${os}-${arch}.${ext}
 
 win:
+  icon: resources/icon.ico
   target:
     - nsis
     - 7z
@@ -46,10 +59,15 @@ nsis:
   allowToChangeInstallationDirectory: true
   oneClick: false
   perMachine: true
+  installerIcon: resources/installerIcon.ico
+  uninstallerIcon: resources/installerIcon.ico
+  installerHeader: resources/installerHeader.bmp
+  installerSidebar: resources/installerSidebar.bmp
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: ${productName}
 mac:
+  icon: resources/icon.icns
   target:
     - pkg
     - dmg
@@ -65,6 +83,7 @@ pkg:
   allowAnywhere: false
   allowCurrentUserHome: false
 linux:
+  icon: resources/icon.png
   desktop:
     entry:
       Name: RouteX

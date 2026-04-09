@@ -20,6 +20,10 @@ export async function changeCurrentProfile(id: string): Promise<void> {
   return invokeSafe(C.changeCurrentProfile, id)
 }
 
+export async function setActiveProfiles(ids: string[], current?: string): Promise<void> {
+  return invokeSafe(C.setActiveProfiles, ids, current)
+}
+
 export async function addProfileItem(item: Partial<ProfileItem>): Promise<void> {
   return invokeSafe(C.addProfileItem, item)
 }
