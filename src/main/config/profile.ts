@@ -56,7 +56,7 @@ export function normalizeProfileConfig(config?: ProfileConfig): ProfileConfig {
   const validIds = new Set(items.map((item) => item.id))
   let current = pickFirstValidProfileId([config?.current], validIds)
   const seedActives = Array.isArray(config?.actives) ? config.actives : current ? [current] : []
-  let actives = dedupeProfileIds(seedActives).filter((id) => validIds.has(id))
+  const actives = dedupeProfileIds(seedActives).filter((id) => validIds.has(id))
 
   if (current && !actives.includes(current)) {
     actives.unshift(current)
@@ -169,7 +169,7 @@ export async function removeProfileItem(id: string): Promise<void> {
   const config = await getProfileConfig()
   const activeIds = getActiveProfileIdsFromConfig(config)
   config.items = config.items?.filter((item) => item.id !== id)
-  let shouldRestart = activeIds.includes(id)
+  const shouldRestart = activeIds.includes(id)
   if (config.current === id) {
     config.current = activeIds.find((activeId) => activeId !== id) || config.items[0]?.id
   }
