@@ -504,5 +504,4 @@ async function runTask() {
   }
 }
 
-runTask()
-runTask()
+await Promise.all([runTask(), runTask()])
