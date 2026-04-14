@@ -11,17 +11,20 @@ interface AppConfigContextType {
 
 // Provider responsible for initialization
 export const AppConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const appConfig = useAppStore((state) => state.appConfig)
   const fetchAppConfig = useAppStore((state) => state.fetchAppConfig)
 
   React.useEffect(() => {
-    fetchAppConfig()
-    
+    if (!appConfig) {
+      void fetchAppConfig()
+    }
+
     const handler = (): void => {
-      fetchAppConfig()
+      void fetchAppConfig()
     }
 
     return onIpc(ON.appConfigUpdated, handler)
-  }, [fetchAppConfig])
+  }, [appConfig, fetchAppConfig])
 
   return <>{children}</>
 }

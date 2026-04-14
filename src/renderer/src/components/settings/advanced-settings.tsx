@@ -3,7 +3,7 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Tooltip } from '@heroui/react'
 
-import { quitApp, quitWithoutCore, resetAppConfig } from '@renderer/utils/app-ipc'
+import { quitApp, quitWithoutCore, resetAppConfig } from '@renderer/api/app'
 import { version } from '@renderer/utils/init'
 import { IoIosHelpCircle } from 'react-icons/io'
 import ConfirmModal from '../base/base-confirm'
@@ -69,7 +69,7 @@ const AdvancedSettings: React.FC = () => {
       
 
       <SettingCard title="更多设置">
-        {/* WebDAV & SubStore Moved to GeneralConfig */}
+        {/* WebDAV moved to GeneralConfig */}
 
         <SettingItem
           title="重置软件"

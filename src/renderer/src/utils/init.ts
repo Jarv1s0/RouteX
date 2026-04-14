@@ -1,4 +1,5 @@
-import { getVersion } from './app-ipc'
+import { desktop } from '@renderer/api/desktop'
+import { getVersion } from '@renderer/api/app'
 // const originError = console.error
 // const originWarn = console.warn
 // console.error = function (...args: any[]): void {
@@ -14,13 +15,7 @@ import { getVersion } from './app-ipc'
 //   originWarn.call(console, args)
 // }
 
-const platformFromBridge = window.api?.platform
-
-if (!platformFromBridge) {
-  throw new Error('Preload bridge is unavailable: window.api.platform is missing')
-}
-
-export const platform: NodeJS.Platform = platformFromBridge
+export const platform: NodeJS.Platform = desktop.platform
 export let version: string = ''
 
 export async function init(): Promise<void> {

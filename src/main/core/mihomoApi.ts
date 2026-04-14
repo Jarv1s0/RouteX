@@ -31,7 +31,8 @@ const DEFAULT_DELAY_TEST_URL = 'http://cp.cloudflare.com/generate_204'
 const DEFAULT_DELAY_TEST_TIMEOUT = 5000
 const MIN_DELAY_TEST_TIMEOUT = 1000
 const MAX_DELAY_TEST_TIMEOUT = 15000
-const CONNECTION_RENDER_PUSH_INTERVAL = 1000
+const MIN_CONNECTION_INTERVAL = 250
+let connectionRenderPushInterval = MIN_CONNECTION_INTERVAL
 
 function flushConnectionsSnapshot(): void {
   if (!latestConnectionsSnapshot) return
@@ -51,7 +52,7 @@ export function syncLatestConnectionsSnapshotToWindow(): void {
 
 function scheduleConnectionsBroadcast(): void {
   const elapsed = Date.now() - lastConnectionsBroadcastAt
-  if (elapsed >= CONNECTION_RENDER_PUSH_INTERVAL) {
+  if (elapsed >= connectionRenderPushInterval) {
     if (connectionsBroadcastTimer) {
       clearTimeout(connectionsBroadcastTimer)
       connectionsBroadcastTimer = null
@@ -65,7 +66,7 @@ function scheduleConnectionsBroadcast(): void {
   connectionsBroadcastTimer = setTimeout(() => {
     connectionsBroadcastTimer = null
     flushConnectionsSnapshot()
-  }, CONNECTION_RENDER_PUSH_INTERVAL - elapsed)
+  }, connectionRenderPushInterval - elapsed)
 }
 
 function normalizeDelayTestTimeout(value?: number): number {
@@ -536,8 +537,12 @@ export const restartMihomoConnections = async (): Promise<void> => {
 }
 
 const mihomoConnections = async (): Promise<void> => {
-  const { connectionInterval = 1000 } = await getAppConfig()
-  const normalizedConnectionInterval = Math.max(1000, connectionInterval || 1000)
+  const { connectionInterval = MIN_CONNECTION_INTERVAL } = await getAppConfig()
+  const normalizedConnectionInterval = Math.max(
+    MIN_CONNECTION_INTERVAL,
+    connectionInterval || MIN_CONNECTION_INTERVAL
+  )
+  connectionRenderPushInterval = normalizedConnectionInterval
   mihomoConnectionsWs = new WebSocket(
     `ws+unix:${mihomoIpcPath()}:/connections?interval=${normalizedConnectionInterval}`
   )

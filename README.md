@@ -44,7 +44,6 @@ RouteX 是一个桌面端跨平台代理客户端，以内置的 [Mihomo](https:
 
 - **订阅配置管理**：支持多配置文件维护、切换、排序和编辑
 - **Proxy Provider 管理**：可查看 Provider 内容并执行更新
-- **SubStore 集成**：支持 SubStore 订阅与集合管理场景
 - **覆写能力**：支持覆写编辑、应用与异常时的回滚恢复
 - **规则与资源编辑**：提供直观的规则、配置与资源查看入口
 
@@ -79,17 +78,19 @@ RouteX 是一个桌面端跨平台代理客户端，以内置的 [Mihomo](https:
 
 | 平台 | 安装包格式 | 说明 |
 |------|------------|------|
-| **Windows** | `.exe` / `.7z` | 推荐优先使用 Setup 安装包 |
-| **macOS** | `.dmg` / `.pkg` | 支持 Intel 与 Apple Silicon |
-| **Linux** | `.deb` / `.AppImage` | 适用于主流发行版 |
+| **Windows** | `.exe` / `.msi` | 推荐优先使用 Setup 安装包 |
+| **macOS** | `.dmg` | 当前以 Tauri bundler 实际产物为准 |
+| **Linux** | `.deb` / `.rpm` / `.AppImage` | 适用于主流发行版 |
 
 ## 🛠️ 本地开发
 
 ### 环境要求
 
 - Node.js
+- Rust stable toolchain
 - Corepack
 - `pnpm@10.15.0`
+- 满足 Tauri 2 对应平台的系统依赖
 
 ### 安装依赖
 
@@ -104,10 +105,16 @@ pnpm install
 pnpm dev
 ```
 
+如果只需要单独调试前端构建产物：
+
+```powershell
+pnpm dev:tauri-web
+```
+
 ### 代码检查
 
 ```powershell
-pnpm typecheck
+pnpm verify
 pnpm lint:ci
 ```
 
@@ -115,37 +122,45 @@ pnpm lint:ci
 
 ```powershell
 pnpm build
-pnpm build:unpack
+pnpm build:win
+pnpm build:linux
+pnpm build:mac
 ```
 
 补充说明：
 
-- `pnpm build` 会先准备运行时资源，再执行类型检查并构建 Electron 应用
-- `pnpm build:unpack` 会输出未打包目录，适合本地验证
-- `pnpm build:win`、`pnpm build:mac`、`pnpm build:linux` 默认包含 `--publish always`
+- `pnpm dev` 默认启动 Tauri 宿主与前端联调
+- `pnpm verify` 会执行 TypeScript 检查、`cargo check` 和 Tauri 前端构建
+- `pnpm build` 会执行完整 Tauri 打包，产物位于 `src-tauri/target/release/bundle`
+- `pnpm build:win`、`pnpm build:linux`、`pnpm build:mac` 当前是平台别名，都会走同一套 Tauri 打包链
 
 ## 🧱 项目结构
 
 ```text
 src/
-├─ main/       Electron 主进程
-├─ preload/    预加载层
 ├─ renderer/   React 渲染层
 └─ shared/     共享类型与通用逻辑
+
+src-tauri/     Tauri Rust 宿主
+src/tauri-web/ Tauri 多入口前端壳层
 
 scripts/       构建与准备脚本
 resources/     图标与静态资源
 ```
 
+过渡说明：
+
+- `src/main`、`src/preload` 与 Electron 构建配置文件仍保留在仓库中，当前只作为迁移参考，不再参与默认开发、验证和发布路径。
+
 ## ⚙️ 技术栈
 
-- **桌面框架**：Electron 37
+- **桌面框架**：Tauri 2
 - **前端框架**：React 19
 - **UI 组件**：HeroUI
 - **样式方案**：Tailwind CSS v4
 - **状态管理**：Zustand
 - **图表能力**：ECharts
-- **构建工具**：Electron-Vite
+- **构建工具**：Vite 7
 
 ## 📝 更新记录
 
@@ -156,7 +171,7 @@ resources/     图标与静态资源
 本项目离不开以下开源项目：
 
 - [Mihomo](https://github.com/MetaCubeX/mihomo)
-- [Electron](https://www.electronjs.org/)
+- [Tauri](https://tauri.app/)
 - [React](https://react.dev/)
 - [HeroUI](https://www.heroui.com/)
 

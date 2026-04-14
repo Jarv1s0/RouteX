@@ -15,7 +15,9 @@ import TrafficProgress from '@renderer/components/base/traffic-progress'
 import { calcPercent, calcTraffic } from '@renderer/utils/calc'
 import { IoMdMore, IoMdRefresh } from 'react-icons/io'
 import dayjs from 'dayjs'
-import React, { Key, useEffect, useMemo, useState } from 'react'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/zh-cn'
+import React, { Key, useEffect, useMemo, useRef, useState } from 'react'
 import EditFileModal from './edit-file-modal'
 import EditInfoModal from './edit-info-modal'
 import { useSortable } from '@dnd-kit/sortable'
@@ -24,6 +26,9 @@ import { openFile } from '@renderer/utils/file-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import ConfirmModal from '../base/base-confirm'
+
+dayjs.extend(relativeTime)
+dayjs.locale('zh-cn')
 
 interface Props {
   info: ProfileItem
@@ -85,6 +90,8 @@ const ProfileItem: React.FC<Props> = (props) => {
   const [disableSelect, setDisableSelect] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const mergeActionDisabled = switching || (!isCurrent && isEnabled && !canDisable)
+  const dragReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wasDraggingRef = useRef(false)
 
   const menuItems: MenuItem[] = useMemo(() => {
     const list = [
@@ -173,14 +180,30 @@ const ProfileItem: React.FC<Props> = (props) => {
   }
 
   useEffect(() => {
+    if (dragReleaseTimerRef.current) {
+      clearTimeout(dragReleaseTimerRef.current)
+      dragReleaseTimerRef.current = null
+    }
+
     if (isDragging) {
-      setTimeout(() => {
-        setDisableSelect(true)
-      }, 100)
-    } else {
-      setTimeout(() => {
+      wasDraggingRef.current = true
+      setDisableSelect(true)
+      return
+    }
+
+    if (wasDraggingRef.current) {
+      dragReleaseTimerRef.current = setTimeout(() => {
         setDisableSelect(false)
+        dragReleaseTimerRef.current = null
       }, 100)
+      wasDraggingRef.current = false
+    }
+
+    return () => {
+      if (dragReleaseTimerRef.current) {
+        clearTimeout(dragReleaseTimerRef.current)
+        dragReleaseTimerRef.current = null
+      }
     }
   }, [isDragging])
 

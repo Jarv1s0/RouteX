@@ -5,7 +5,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import React, { KeyboardEvent, useState, useEffect } from 'react'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
-import { registerShortcut } from '@renderer/utils/app-ipc'
+import { registerShortcut } from '@renderer/api/app'
 const keyMap = {
   Backquote: '`',
   Backslash: '\\',

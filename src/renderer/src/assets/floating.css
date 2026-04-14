@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @plugin './hero.mjs';
 @source '../../../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
+@source '../**/*.{ts,tsx}';
 @custom-variant dark (&:is(.dark *));
 
 .floating-text {

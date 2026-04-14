@@ -1,0 +1,43 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "RouteX",
+  "version": "3.1.0",
+  "identifier": "com.jarv1s0.routex.tauri",
+  "build": {
+    "beforeDevCommand": "corepack pnpm run dev:tauri-web",
+    "beforeBuildCommand": "corepack pnpm run build:tauri-web",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist-tauri"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "RouteX",
+        "width": 1320,
+        "height": 860,
+        "minWidth": 1080,
+        "minHeight": 720,
+        "resizable": true,
+        "decorations": false,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "resources": [
+      "../extra/sidecar",
+      "../extra/files"
+    ],
+    "icon": [
+      "../resources/icon.png",
+      "../resources/icon.ico",
+      "../resources/icon.icns"
+    ]
+  }
+}

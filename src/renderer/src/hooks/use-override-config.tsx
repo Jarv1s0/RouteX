@@ -64,6 +64,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     const handleOverrideConfigUpdated = (): void => {
       mutateOverrideConfig()
     }
+
     return onIpc(ON.overrideConfigUpdated, handleOverrideConfigUpdated)
   }, [mutateOverrideConfig])
 

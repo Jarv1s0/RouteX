@@ -1,35 +1,15 @@
 import { Card, CardBody, Chip, Switch } from '@heroui/react'
 import React from 'react'
-import { useGroups } from '@renderer/hooks/use-groups'
 
 interface RuleItemProps extends ControllerRulesDetail {
   index: number
   enabled?: boolean
   onToggle?: () => void
+  currentNode?: string | null
 }
 
 const RuleItem: React.FC<RuleItemProps> = (props) => {
-  const { type, payload, proxy, index, enabled = true, onToggle } = props
-  const { groups = [] } = useGroups()
-
-  // 递归查找最终节点
-  const getFinalNode = (proxyName: string, visited: Set<string> = new Set()): string | null => {
-    if (visited.has(proxyName)) return null
-    visited.add(proxyName)
-    
-    const group = groups.find(g => g.name === proxyName)
-    if (!group || !group.now) return null
-    
-    // 检查 now 是否也是一个代理组
-    const subGroup = groups.find(g => g.name === group.now)
-    if (subGroup) {
-      return getFinalNode(group.now, visited)
-    }
-    
-    return group.now
-  }
-
-  const currentNode = getFinalNode(proxy)
+  const { type, payload, proxy, index, enabled = true, onToggle, currentNode } = props
 
   const getProxyColor = (proxy: string): 'danger' | 'default' | 'warning' | 'primary' => {
     if (proxy === 'REJECT') return 'danger'

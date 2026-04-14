@@ -37,6 +37,7 @@ export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = 
     const handleConfigUpdated = (): void => {
       mutateControledMihomoConfig()
     }
+
     return onIpc(ON.controledMihomoConfigUpdated, handleConfigUpdated)
   }, [mutateControledMihomoConfig])
 

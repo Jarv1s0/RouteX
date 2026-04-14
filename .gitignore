@@ -3,7 +3,9 @@ resources/files
 resources/sidecar
 extra
 dist
+dist-tauri
 out
+target
 .DS_Store
 *.log*
 .idea
@@ -12,5 +14,6 @@ out
 .agent/
 .shared/
 *.code-workspace
+.tmp-edge-profile/
 
 .mihomo/

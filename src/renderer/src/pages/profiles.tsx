@@ -1,7 +1,6 @@
 import {
   Button,
   Checkbox,
-  Chip,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -18,7 +17,6 @@ import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import OverrideEditInfoModal from '@renderer/components/override/edit-info-modal'
 import OverrideItemCard from '@renderer/components/override/override-item'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getFilePath, readTextFile } from '@renderer/utils/file-ipc'
 import { updateProfileItem } from '@renderer/utils/profile-ipc'
 import {
@@ -27,12 +25,11 @@ import {
   mihomoUpdateProxyProviders,
   restartCore
 } from '@renderer/utils/mihomo-ipc'
-import { subStoreCollections, subStoreSubs } from '@renderer/utils/substore-ipc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getHash } from '@renderer/utils/hash'
 import { Virtuoso } from 'react-virtuoso'
 import type { KeyboardEvent } from 'react'
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MdContentPaste, MdTune } from 'react-icons/md'
 import {
   DndContext,
@@ -46,13 +43,12 @@ import { SortableContext } from '@dnd-kit/sortable'
 import { FaGithub, FaPlus } from 'react-icons/fa6'
 import { IoMdRefresh } from 'react-icons/io'
 import { LuFileText } from 'react-icons/lu'
-import SubStoreIcon from '@renderer/components/base/substore-icon'
 import ProfileSettingModal from '@renderer/components/profiles/profile-setting-modal'
 import useSWR from 'swr'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { notifyError } from '@renderer/utils/notify'
-import { RemoteImage } from '@renderer/components/base/remote-image'
 import { OverrideConfigProvider, useOverrideConfig } from '@renderer/hooks/use-override-config'
+import { desktop } from '@renderer/api/desktop'
 
 const emptyProfileItems: ProfileItem[] = []
 const emptyOverrideItems: OverrideItem[] = []
@@ -100,8 +96,6 @@ const ProfilesPage: React.FC = () => {
     removeOverrideItem,
     mutateOverrideConfig
   } = useOverrideConfig()
-  const { appConfig } = useAppConfig()
-  const { useSubStore = true, useCustomSubStore = false, customSubStoreUrl = '' } = appConfig || {}
   const { current, items, actives } = profileConfig || {}
   const itemsArray = items ?? emptyProfileItems
   const activeProfileIds = useMemo(
@@ -129,10 +123,17 @@ const ProfilesPage: React.FC = () => {
     title: '',
     privderType: ''
   })
-  const { data: providersData, mutate: mutateProviders } = useSWR('mihomoProxyProviders', mihomoProxyProviders, {
-    errorRetryInterval: 200,
-    errorRetryCount: 10
-  })
+  const shouldLoadProxyProviders = activeTab === 'providers'
+  const { data: providersData, mutate: mutateProviders } = useSWR(
+    shouldLoadProxyProviders ? 'mihomoProxyProviders' : null,
+    mihomoProxyProviders,
+    {
+      errorRetryInterval: 200,
+      errorRetryCount: 10,
+      revalidateIfStale: false,
+      revalidateOnMount: true
+    }
+  )
   const proxyProviders = useMemo(() => {
     if (!providersData) return []
     return Object.values(providersData.providers)
@@ -196,8 +197,6 @@ const ProfilesPage: React.FC = () => {
   }
 
   const [useProxy, setUseProxy] = useState(false)
-  const [subStoreImporting, setSubStoreImporting] = useState(false)
-  const [shouldLoadSubStoreMenu, setShouldLoadSubStoreMenu] = useState(false)
   const [importing, setImporting] = useState(false)
   const [overrideImporting, setOverrideImporting] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -219,74 +218,6 @@ const ProfilesPage: React.FC = () => {
       }
     })
   )
-  const { data: subs = [], mutate: mutateSubs } = useSWR(
-    useSubStore && shouldLoadSubStoreMenu ? 'subStoreSubs' : undefined,
-    useSubStore ? subStoreSubs : (): undefined => {}
-  )
-  const { data: collections = [], mutate: mutateCollections } = useSWR(
-    useSubStore && shouldLoadSubStoreMenu ? 'subStoreCollections' : undefined,
-    useSubStore ? subStoreCollections : (): undefined => {}
-  )
-
-  const subStoreMenuItems = useMemo(() => {
-    const menuItems: { icon?: ReactNode; key: string; children: ReactNode; divider: boolean }[] = [
-      {
-        key: 'open-substore',
-        children: '访问 Sub-Store',
-        icon: <SubStoreIcon className="text-lg" />,
-        divider:
-          (Boolean(subs) && subs.length > 0) || (Boolean(collections) && collections.length > 0)
-      }
-    ]
-    if (subs) {
-      subs.forEach((sub, index) => {
-        menuItems.push({
-          key: `sub-${sub.name}`,
-          children: (
-            <div className="flex justify-between">
-              <div>{sub.displayName || sub.name}</div>
-              <div>
-                {sub.tag?.map((tag) => (
-                  <Chip key={tag} size="sm" className="ml-1" radius="sm">
-                    {tag}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          ),
-          icon: sub.icon ? (
-            <RemoteImage src={sub.icon} alt={sub.displayName || sub.name} className="h-[18px] w-[18px]" />
-          ) : null,
-          divider: index === subs.length - 1 && Boolean(collections) && collections.length > 0
-        })
-      })
-    }
-    if (collections) {
-      collections.forEach((sub) => {
-        menuItems.push({
-          key: `collection-${sub.name}`,
-          children: (
-            <div className="flex justify-between">
-              <div>{sub.displayName || sub.name}</div>
-              <div>
-                {sub.tag?.map((tag) => (
-                  <Chip key={tag} size="sm" className="ml-1" radius="sm">
-                    {tag}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          ),
-          icon: sub.icon ? (
-            <RemoteImage src={sub.icon} alt={sub.displayName || sub.name} className="h-[18px] w-[18px]" />
-          ) : null,
-          divider: false
-        })
-      })
-    }
-    return menuItems
-  }, [collections, subs])
-
   const handleTabChange = useCallback(
     (key: string) => {
       const nextTab = normalizeManagementTab(key)
@@ -457,7 +388,7 @@ const ProfilesPage: React.FC = () => {
             file.name.endsWith('.txt')
           ) {
             try {
-              const path = window.api.webUtils.getPathForFile(file)
+              const path = desktop.getPathForFile(file)
               const content = await readTextFile(path)
               await addOverrideItem({
                 name: file.name,
@@ -483,7 +414,7 @@ const ProfilesPage: React.FC = () => {
           file.name.endsWith('.txt')
         ) {
           try {
-            const path = window.api.webUtils.getPathForFile(file)
+            const path = desktop.getPathForFile(file)
             const content = await readTextFile(path)
             await addProfileItem({ name: file.name, type: 'local', file: content })
           } catch (e) {
@@ -651,81 +582,6 @@ const ProfilesPage: React.FC = () => {
               >
                 导入
               </Button>
-              {useSubStore && (
-                <Dropdown
-                  onOpenChange={(isOpen) => {
-                    if (!isOpen) return
-                    setShouldLoadSubStoreMenu(true)
-                    void mutateSubs()
-                    void mutateCollections()
-                  }}
-                >
-                  <DropdownTrigger>
-                    <Button
-                      isLoading={subStoreImporting}
-                      title="Sub-Store"
-                      className="ml-2 substore-import"
-                      size="sm"
-                      isIconOnly
-                      color="primary"
-                    >
-                      <SubStoreIcon className="text-lg" />
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    className="max-h-[calc(100vh-200px)] overflow-y-auto"
-                    onAction={async (key) => {
-                      if (key === 'open-substore') {
-                        navigate('/substore')
-                      } else if (key.toString().startsWith('sub-')) {
-                        setSubStoreImporting(true)
-                        try {
-                          const sub = subs.find((item) => item.name === key.toString().replace('sub-', ''))
-                          await addProfileItem({
-                            name: sub?.displayName || sub?.name || '',
-                            substore: !useCustomSubStore,
-                            type: 'remote',
-                            url: useCustomSubStore
-                              ? `${customSubStoreUrl}/download/${key.toString().replace('sub-', '')}?target=ClashMeta`
-                              : `/download/${key.toString().replace('sub-', '')}`,
-                            useProxy
-                          })
-                        } catch (e) {
-                          notifyError(e)
-                        } finally {
-                          setSubStoreImporting(false)
-                        }
-                      } else if (key.toString().startsWith('collection-')) {
-                        setSubStoreImporting(true)
-                        try {
-                          const collection = collections.find(
-                            (item) => item.name === key.toString().replace('collection-', '')
-                          )
-                          await addProfileItem({
-                            name: collection?.displayName || collection?.name || '',
-                            type: 'remote',
-                            substore: !useCustomSubStore,
-                            url: useCustomSubStore
-                              ? `${customSubStoreUrl}/download/collection/${key.toString().replace('collection-', '')}?target=ClashMeta`
-                              : `/download/collection/${key.toString().replace('collection-', '')}`,
-                            useProxy
-                          })
-                        } catch (e) {
-                          notifyError(e)
-                        } finally {
-                          setSubStoreImporting(false)
-                        }
-                      }
-                    }}
-                  >
-                    {subStoreMenuItems.map((item) => (
-                      <DropdownItem startContent={item.icon} key={item.key} showDivider={item.divider}>
-                        {item.children}
-                      </DropdownItem>
-                    ))}
-                  </DropdownMenu>
-                </Dropdown>
-              )}
               <Dropdown>
                 <DropdownTrigger>
                   <Button className="ml-2 new-profile" size="sm" isIconOnly color="primary">
@@ -825,7 +681,7 @@ const ProfilesPage: React.FC = () => {
                   onAction={async (key) => {
                     if (key === 'open') {
                       try {
-                        const files = await getFilePath(['js', 'yaml'])
+                        const files = await getFilePath(['yaml'])
                         if (files?.length) {
                           const content = await readTextFile(files[0])
                           const fileName = files[0].split('/').pop()?.split('\\').pop()
@@ -833,7 +689,7 @@ const ProfilesPage: React.FC = () => {
                             name: fileName,
                             type: 'local',
                             file: content,
-                            ext: fileName?.endsWith('.js') ? 'js' : 'yaml'
+                            ext: 'yaml'
                           })
                         }
                       } catch (e) {
@@ -845,14 +701,6 @@ const ProfilesPage: React.FC = () => {
                         type: 'local',
                         file: '# https://mihomo.party/docs/guide/override/yaml',
                         ext: 'yaml'
-                      })
-                    } else if (key === 'new-js') {
-                      await addOverrideItem({
-                        name: '新建 JS',
-                        type: 'local',
-                        file:
-                          '// https://mihomo.party/docs/guide/override/javascript\nfunction main(config) {\n  return config\n}',
-                        ext: 'js'
                       })
                     } else if (key === 'import') {
                       const newRemoteOverride: OverrideItem = {
@@ -871,7 +719,6 @@ const ProfilesPage: React.FC = () => {
                   <DropdownItem key="open">打开本地覆写</DropdownItem>
                   <DropdownItem key="import">导入远程覆写</DropdownItem>
                   <DropdownItem key="new-yaml">新建 YAML</DropdownItem>
-                  <DropdownItem key="new-js">新建 JavaScript</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </>

@@ -1,6 +1,6 @@
 import { Button, Tooltip } from '@heroui/react'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
 import { LuCloud, LuFileCode, LuRotateCw, LuRss } from 'react-icons/lu'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -9,6 +9,7 @@ import dayjs from 'dayjs'
 import React, { Suspense, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { navigateSidebarRoute } from '@renderer/routes'
 
 const ConfigViewer = React.lazy(() => import('./config-viewer'))
 
@@ -26,8 +27,10 @@ const ProfileCard: React.FC<Props> = (props) => {
   const { iconOnly, compact, className = '' } = props
   const { profileDisplayDate = 'expire' } = appConfig || {}
   const location = useLocation()
-  const navigate = useNavigate()
   const match = location.pathname.includes('/profiles')
+  const handleNavigate = (): void => {
+    navigateSidebarRoute('/profiles')
+  }
   const [updating, setUpdating] = useState(false)
   const [showRuntimeConfig, setShowRuntimeConfig] = useState(false)
   const { profileConfig, addProfileItem } = useProfileConfig()
@@ -54,7 +57,7 @@ const ProfileCard: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => navigate('/profiles')}
+            onPress={handleNavigate}
           >
             <LuRss className="text-[17px]" />
           </Button>
@@ -65,10 +68,10 @@ const ProfileCard: React.FC<Props> = (props) => {
 
   return (
     <div 
-      className={`profile-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-all group ${
+      className={`profile-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
-      onClick={() => navigate('/profiles')}
+      onClick={handleNavigate}
     >
       {showRuntimeConfig && (
         <Suspense fallback={null}>

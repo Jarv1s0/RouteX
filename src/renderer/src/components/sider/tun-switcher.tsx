@@ -2,12 +2,16 @@ import { Button, Switch, Tooltip } from '@heroui/react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import BorderSwitch from '@renderer/components/base/border-switch'
 import { LuNetwork } from 'react-icons/lu'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { restartCore } from '@renderer/utils/mihomo-ipc'
 import React from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { platform } from '@renderer/utils/init'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { navigateSidebarRoute } from '@renderer/routes'
+import { notifyError } from '@renderer/utils/notify'
+import { checkElevateTask } from '@renderer/utils/service-ipc'
 
 interface Props {
   iconOnly?: boolean
@@ -19,41 +23,69 @@ async function showToastError(title: string, description: string): Promise<void>
   toast.error(title, { description })
 }
 
+function isLikelyPermissionError(message: string): boolean {
+  const normalized = message.toLowerCase()
+  return (
+    (normalized.includes('permission') ||
+      normalized.includes('privilege') ||
+      normalized.includes('operation not permitted') ||
+      normalized.includes('access is denied')) &&
+    !message.includes('现有虚拟网卡状态')
+  )
+}
+
 const TunSwitcher: React.FC<Props> = (props) => {
   const { iconOnly, compact } = props
   const location = useLocation()
-  const navigate = useNavigate()
   const match = location.pathname.includes('/tun') || false
   const { appConfig } = useAppConfig()
   const { tunCardStatus = '' } = appConfig || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
-  const { tun } = controledMihomoConfig || {}
+  const { tun, dns } = controledMihomoConfig || {}
   const { enable } = tun || {}
 
   const onChange = async (enable: boolean): Promise<void> => {
     try {
+      if (enable && platform === 'win32' && __ROUTEX_HOST__ === 'tauri') {
+        const hasElevateTask = await checkElevateTask()
+        if (!hasElevateTask) {
+          await showToastError('TUN模式启动失败', '请先到内核设置里注册提权任务，再启用虚拟网卡')
+          return
+        }
+      }
+
+      const previousTun = tun ? { ...tun } : undefined
+      const previousDns = dns ? { ...dns } : undefined
+
       if (enable) {
         await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
       } else {
         await patchControledMihomoConfig({ tun: { enable } })
       }
-      await restartCore()
+      try {
+        await restartCore()
+      } catch (error) {
+        await patchControledMihomoConfig({
+          tun: previousTun,
+          ...(enable ? { dns: previousDns } : {})
+        })
+        throw error
+      }
       sendIpc(SEND.updateFloatingWindow)
       sendIpc(SEND.updateTrayMenu)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      
-      if (enable && (errorMessage.includes('permission') || errorMessage.includes('权限') || errorMessage.includes('access'))) {
-        await showToastError('TUN模式启动失败', '请以管理员身份运行RouteX以使用TUN模式')
+
+      if (enable && isLikelyPermissionError(errorMessage)) {
+        await showToastError('TUN模式启动失败', '当前错误是权限不足，请以管理员身份运行 RouteX')
+      } else if (enable && errorMessage.includes('现有虚拟网卡状态')) {
+        await showToastError('TUN模式启动失败', '当前更像是旧的 Wintun/核心状态残留，请先关闭旧实例后再试')
       } else if (enable) {
-        await showToastError(
-          'TUN模式启动失败',
-          'TUN模式需要管理员权限，请重新以管理员身份启动应用'
-        )
+        notifyError(error, { title: 'TUN模式启动失败' })
       } else {
-        await showToastError('TUN模式关闭失败', errorMessage)
+        notifyError(error, { title: 'TUN模式关闭失败' })
       }
-      
+
       console.error('TUN切换失败:', error)
     }
   }
@@ -68,7 +100,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
             onPress={() => {
-              navigate('/tun')
+              navigateSidebarRoute('/tun')
             }}
           >
             <LuNetwork className="text-[16px]" />
@@ -81,8 +113,8 @@ const TunSwitcher: React.FC<Props> = (props) => {
   if (compact) {
     return (
       <div
-        onClick={() => navigate('/tun')}
-        className={`${tunCardStatus} tun-card flex h-full flex-1 items-center justify-between gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all group ${
+        onClick={() => navigateSidebarRoute('/tun')}
+        className={`${tunCardStatus} tun-card flex h-full flex-1 items-center justify-between gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors group ${
           match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
         }`}
       >
@@ -107,8 +139,8 @@ const TunSwitcher: React.FC<Props> = (props) => {
 
   return (
     <div
-      onClick={() => navigate('/tun')}
-      className={`${tunCardStatus} tun-card flex flex-1 items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${
+      onClick={() => navigateSidebarRoute('/tun')}
+      className={`${tunCardStatus} tun-card flex flex-1 items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
     >

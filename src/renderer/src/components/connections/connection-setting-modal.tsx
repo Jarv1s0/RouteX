@@ -120,16 +120,17 @@ const SortableChip: React.FC<{
 const ConnectionSettingModal: React.FC<Props> = (props) => {
   const { onClose } = props
   const { appConfig, patchAppConfig } = useAppConfig()
+  const MIN_CONNECTION_INTERVAL = 250
 
   const normalizeConnectionInterval = (value?: number) => {
-    if (!value || Number.isNaN(value)) return 1000
-    return Math.max(1000, value)
+    if (!value || Number.isNaN(value)) return MIN_CONNECTION_INTERVAL
+    return Math.max(MIN_CONNECTION_INTERVAL, value)
   }
 
   const { 
     displayIcon = true, 
     displayAppName = true, 
-    connectionInterval: rawConnectionInterval = 1000,
+    connectionInterval: rawConnectionInterval = MIN_CONNECTION_INTERVAL,
     connectionTableColumns = DEFAULT_COLUMNS
   } = appConfig || {}
   const connectionInterval = normalizeConnectionInterval(rawConnectionInterval)
@@ -142,11 +143,11 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
 
   const updateInterval = useMemo(() => debounce(async (v: string) => {
     let num = parseInt(v)
-    if (isNaN(num)) num = 1000
-    if (num < 1000) num = 1000
+    if (isNaN(num)) num = MIN_CONNECTION_INTERVAL
+    if (num < MIN_CONNECTION_INTERVAL) num = MIN_CONNECTION_INTERVAL
     await patchAppConfig({ connectionInterval: num })
     await restartMihomoConnections()
-  }, 1000), [patchAppConfig])
+  }, 1000), [MIN_CONNECTION_INTERVAL, patchAppConfig])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -236,7 +237,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                 className="w-[120px]"
                 classNames={secondaryInputClassNames}
                 value={interval}
-                placeholder="默认 1000"
+                placeholder={`默认 ${MIN_CONNECTION_INTERVAL}`}
                 onValueChange={(v) => {
                   // 允许空值以便用户删除
                   if (v === '') {

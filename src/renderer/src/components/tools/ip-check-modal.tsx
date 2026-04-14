@@ -24,6 +24,7 @@ interface Props {
 
 export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { groups = [], mutate } = useGroups()
+  const isTauriHost = __ROUTEX_HOST__ === 'tauri'
   
   // Site Selection State
   const [targetUrl, setTargetUrl] = useState<string>('https://ping0.cc/')
@@ -35,7 +36,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [autoMatchGroup, setAutoMatchGroup] = useState<string>('') // The group matched by rule
   const [selectedGroup, setSelectedGroup] = useState<string>('') // The group user is currently controlling
   const [loadingMatch, setLoadingMatch] = useState(false)
-  const iframeRef = useRef<Electron.WebviewTag | null>(null)
+  const iframeRef = useRef<Electron.WebviewTag | HTMLIFrameElement | null>(null)
 
   const sites = [
     { name: 'Ping0 (IP纯净度)', url: 'https://ping0.cc/' },
@@ -252,16 +253,21 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </div>
         </ModalHeader>
         <ModalBody>
-           {/* @ts-ignore: webview tag is available in Electron with webviewTag: true */}
-           <webview 
-                ref={iframeRef}
-                id="ip-check-webview"
-                src={activeUrl}
-                className="w-full h-full border-none"
-                // Webview handles permissions differently, sandbox attribute is for iframes
-                // We likely don't need manual sandbox prop for webview as it's isolated by default
-                // allowpopups might be needed if sites open popups
-           />
+           {isTauriHost ? (
+             <iframe
+               ref={iframeRef as React.RefObject<HTMLIFrameElement>}
+               title="ip-check-frame"
+               src={activeUrl}
+               className="w-full h-full border-none bg-white"
+             />
+           ) : (
+             <webview
+               ref={iframeRef}
+               id="ip-check-webview"
+               src={activeUrl}
+               className="w-full h-full border-none"
+             />
+           )}
         </ModalBody>
       </ModalContent>
     </Modal>

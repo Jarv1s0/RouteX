@@ -1,7 +1,8 @@
 import { Button, Tooltip } from '@heroui/react'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { navigateSidebarRoute } from '@renderer/routes'
+import { useLocation } from 'react-router-dom'
 
 export interface SidebarNavItemProps {
   iconOnly?: boolean
@@ -25,8 +26,10 @@ const SidebarNavCard: React.FC<Props> = ({
   className = ''
 }) => {
   const location = useLocation()
-  const navigate = useNavigate()
   const match = location.pathname.includes(path)
+  const handleNavigate = (): void => {
+    navigateSidebarRoute(path)
+  }
 
   if (iconOnly) {
     return (
@@ -37,7 +40,7 @@ const SidebarNavCard: React.FC<Props> = ({
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => navigate(path)}
+            onPress={handleNavigate}
           >
             <Icon className={iconOnlySizeClass} />
           </Button>
@@ -47,11 +50,11 @@ const SidebarNavCard: React.FC<Props> = ({
   }
 
   return (
-    <div
-      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-all group ${className} ${
+      <div
+      className={`app-nodrag flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-colors group ${className} ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
-      onClick={() => navigate(path)}
+      onClick={handleNavigate}
     >
       <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
         <Icon className="text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-primary" />

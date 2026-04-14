@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { getProfileConfig } from '@renderer/utils/profile-ipc'
 import { getProviderStats, getTrafficStats } from '@renderer/utils/stats-ipc'
+import {
+  getRecentTauriTrafficPoints,
+  resetTauriTrafficRecorder
+} from '@renderer/utils/tauri-traffic-stats'
+import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import throttle from 'lodash/throttle'
 import { subscribeConnectionSnapshot } from './use-connections-store'
@@ -46,6 +51,7 @@ const processedConnIds = new Set<string>()
 const MAX_DATA_POINTS = 60
 const MAX_DETAILS_PER_RULE = 20
 const MAX_RULES_TRACKED = 1000
+const TRAFFIC_EVENT_STALE_MS = 1800
 
 // Module-level interval reference
 let trafficStatsInterval: number | undefined
@@ -57,6 +63,9 @@ let currentTrafficUnsubscribe: (() => void) | null = null
 let currentConnectionsThrottle: { cancel: () => void } | null = null
 let currentConnectionsUnsubscribe: (() => void) | null = null
 let currentProfileConfigUnsubscribe: (() => void) | null = null
+let lastIpcTrafficEventAt = 0
+let lastIpcTrafficSample: { up: number; down: number; at: number } | null = null
+let lastConnectionTotals: { upload: number; download: number; at: number } | null = null
 
 function getTimeKey(): string {
   return new Date().toTimeString().split(' ')[0]
@@ -81,6 +90,9 @@ function unregisterTrafficHandlers() {
         document.removeEventListener('visibilitychange', visibilityChangeHandler)
         visibilityChangeHandler = null
     }
+    lastIpcTrafficEventAt = 0
+    lastIpcTrafficSample = null
+    lastConnectionTotals = null
 }
 
 export const useTrafficStore = create<TrafficState>((set, get) => ({
@@ -99,29 +111,53 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
     clearTrafficStatsPolling()
 
     // Traffic Listener Definition
-    const handleTraffic = (_e: unknown, traffic: { up: number; down: number }): void => {
+    const applyTrafficSample = (
+      displayTraffic: { up: number; down: number },
+      trafficDelta = displayTraffic
+    ): void => {
+      const normalizedDisplay = {
+        up: Math.max(0, Math.trunc(displayTraffic.up || 0)),
+        down: Math.max(0, Math.trunc(displayTraffic.down || 0))
+      }
+      const normalizedDelta = {
+        up: Math.max(0, Math.trunc(trafficDelta.up || 0)),
+        down: Math.max(0, Math.trunc(trafficDelta.down || 0))
+      }
       const timeStr = getTimeKey()
-      
+
       set(state => {
         const newPoint: TrafficDataPoint = {
           time: timeStr,
-          upload: traffic.up,
-          download: traffic.down
+          upload: normalizedDisplay.up,
+          download: normalizedDisplay.down
         }
-        // Keep last MAX_DATA_POINTS
         const updated = [...state.trafficHistory, newPoint].slice(-MAX_DATA_POINTS)
-        
-        // Accumulate session stats reasonably (though backend has true total)
-        const newSession = {
-            upload: state.sessionStats.upload + (traffic.up || 0),
-            download: state.sessionStats.download + (traffic.down || 0)
-        }
 
-        return { 
+        return {
           trafficHistory: updated,
-          sessionStats: newSession
+          sessionStats: {
+            upload: state.sessionStats.upload + normalizedDelta.up,
+            download: state.sessionStats.download + normalizedDelta.down
+          }
         }
       })
+    }
+
+    const recentTrafficPoints = getRecentTauriTrafficPoints()
+    if (recentTrafficPoints.length > 0 && get().trafficHistory.length === 0) {
+      set({
+        trafficHistory: recentTrafficPoints
+      })
+    }
+
+    const handleTraffic = (traffic: { up: number; down: number }): void => {
+      lastIpcTrafficEventAt = Date.now()
+      lastIpcTrafficSample = {
+        up: Math.max(0, Math.trunc(traffic.up || 0)),
+        down: Math.max(0, Math.trunc(traffic.down || 0)),
+        at: lastIpcTrafficEventAt
+      }
+      applyTrafficSample(traffic, traffic)
     }
 
     const handleConnections = throttle((snapshot: ControllerConnections): void => {
@@ -130,6 +166,51 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
       const connections = snapshot.connections || []
       const timeStr = getTimeKey()
+      const now = Date.now()
+      const uploadTotal = Math.max(0, Math.trunc(snapshot.uploadTotal || 0))
+      const downloadTotal = Math.max(0, Math.trunc(snapshot.downloadTotal || 0))
+      const previousTotals = lastConnectionTotals
+      lastConnectionTotals = { upload: uploadTotal, download: downloadTotal, at: now }
+
+      if (previousTotals && now - lastIpcTrafficEventAt > TRAFFIC_EVENT_STALE_MS) {
+        const uploadDelta = Math.max(0, uploadTotal - previousTotals.upload)
+        const downloadDelta = Math.max(0, downloadTotal - previousTotals.download)
+
+        if (uploadDelta > 0 || downloadDelta > 0) {
+          const elapsedMs = Math.max(1, now - previousTotals.at)
+          applyTrafficSample(
+            {
+              up: Math.trunc((uploadDelta * 1000) / elapsedMs),
+              down: Math.trunc((downloadDelta * 1000) / elapsedMs)
+            },
+            {
+              up: uploadDelta,
+              down: downloadDelta
+            }
+          )
+        }
+      } else if (previousTotals && lastIpcTrafficSample) {
+        const uploadDelta = Math.max(0, uploadTotal - previousTotals.upload)
+        const downloadDelta = Math.max(0, downloadTotal - previousTotals.download)
+        const ipcSampleLooksStuck =
+          lastIpcTrafficSample.up === 0 &&
+          lastIpcTrafficSample.down === 0 &&
+          now - lastIpcTrafficSample.at <= TRAFFIC_EVENT_STALE_MS
+
+        if (ipcSampleLooksStuck && (uploadDelta > 0 || downloadDelta > 0)) {
+          const elapsedMs = Math.max(1, now - previousTotals.at)
+          applyTrafficSample(
+            {
+              up: Math.trunc((uploadDelta * 1000) / elapsedMs),
+              down: Math.trunc((downloadDelta * 1000) / elapsedMs)
+            },
+            {
+              up: uploadDelta,
+              down: downloadDelta
+            }
+          )
+        }
+      }
 
       set(state => {
         const newStats = new Map(state.ruleStats)
@@ -209,7 +290,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
     // Register Listeners
     try {
-        currentTrafficUnsubscribe = onIpc(ON.mihomoTraffic, handleTraffic)
+        currentTrafficUnsubscribe = subscribeDesktopTraffic(handleTraffic)
         currentConnectionsThrottle = handleConnections
         currentConnectionsUnsubscribe = subscribeConnectionSnapshot(handleConnections)
         currentProfileConfigUnsubscribe = onIpc(ON.profileConfigUpdated, () => {
@@ -227,9 +308,9 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       }
     }
 
-    // 每 30s 轮询一次静态历史数据（历史数据不需要高频更新）
+    // 可见状态下每 5s 补刷一次历史数据，避免小时/日统计长时间滞后。
     // 并且只在窗口可见时才轮询，避免后台无效 IPC 消耗
-    trafficStatsInterval = window.setInterval(refreshVisibleStats, 30000)
+    trafficStatsInterval = window.setInterval(refreshVisibleStats, 5000)
 
     // 当用户从后台切换回前台时，立即补刷一次（防止数据陈旧）
     visibilityChangeHandler = refreshVisibleStats
@@ -282,6 +363,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
           ruleStats: new Map(),
           ruleHitDetails: new Map()
       })
+      resetTauriTrafficRecorder()
       processedConnIds.clear()
   }
 }))

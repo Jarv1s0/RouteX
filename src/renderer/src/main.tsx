@@ -1,25 +1,48 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { getAppConfig, openDevTools, quitApp, setNativeTheme } from '@renderer/api/app'
+import { useAppStore } from '@renderer/store/use-app-store'
 import { init, platform } from '@renderer/utils/init'
+import { applyTheme } from '@renderer/utils/theme-ipc'
 import '@renderer/utils/install-global-alert'
 import '@renderer/assets/main.css'
-
-const App = React.lazy(() => import('@renderer/App'))
-const Providers = React.lazy(() => import('./components/providers'))
+import App from '@renderer/App'
+import Providers from './components/providers'
 
 let F12Count = 0
 
 async function quitAppSafely(): Promise<void> {
-  const { quitApp } = await import('./utils/app-ipc')
   await quitApp()
 }
 
 async function openDevToolsSafely(): Promise<void> {
-  const { openDevTools } = await import('./utils/app-ipc')
   await openDevTools()
 }
 
-init().then(() => {
+function renderApp(): void {
+  ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+    <Providers>
+      <App />
+    </Providers>
+  )
+}
+
+async function preloadStartupConfig(): Promise<void> {
+  try {
+    const appConfig = await getAppConfig()
+    useAppStore.getState().setAppConfig(appConfig)
+    await setNativeTheme(appConfig.appTheme || 'system')
+    await applyTheme(appConfig.customTheme || 'CoolApk.css')
+  } catch (error) {
+    console.error('Failed to preload startup config', error)
+  }
+}
+
+async function bootstrap(): Promise<void> {
+  await init()
+
+  renderApp()
+
   document.addEventListener('keydown', (e) => {
     if (platform !== 'darwin' && e.ctrlKey && e.key === 'q') {
       e.preventDefault()
@@ -42,16 +65,8 @@ init().then(() => {
       }
     }
   })
-})
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <React.Suspense fallback={null}>
-      <Providers>
-        <React.Suspense fallback={null}>
-          <App />
-        </React.Suspense>
-      </Providers>
-    </React.Suspense>
-  </React.StrictMode>
-)
+  void preloadStartupConfig()
+}
+
+void bootstrap()

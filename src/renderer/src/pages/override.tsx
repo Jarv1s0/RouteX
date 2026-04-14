@@ -31,6 +31,7 @@ import { FaGithub } from 'react-icons/fa6'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { notifyError } from '@renderer/utils/notify'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
+import { desktop } from '@renderer/api/desktop'
 
 const emptyItems: OverrideItem[] = []
 
@@ -145,7 +146,7 @@ const OverridePage: React.FC = () => {
             file.name.endsWith('.txt')
           ) {
             try {
-              const path = window.api.webUtils.getPathForFile(file)
+              const path = desktop.getPathForFile(file)
               const content = await readTextFile(path)
               await addOverrideItem({
                 name: file.name,
@@ -257,7 +258,7 @@ const OverridePage: React.FC = () => {
               onAction={async (key) => {
                 if (key === 'open') {
                   try {
-                    const files = await getFilePath(['js', 'yaml'])
+                    const files = await getFilePath(['yaml'])
                     if (files?.length) {
                       const content = await readTextFile(files[0])
                       const fileName = files[0].split('/').pop()?.split('\\').pop()
@@ -265,7 +266,7 @@ const OverridePage: React.FC = () => {
                         name: fileName,
                         type: 'local',
                         file: content,
-                        ext: fileName?.endsWith('.js') ? 'js' : 'yaml'
+                        ext: 'yaml'
                       })
                     }
                   } catch (e) {
@@ -277,13 +278,6 @@ const OverridePage: React.FC = () => {
                     type: 'local',
                     file: '# https://mihomo.party/docs/guide/override/yaml',
                     ext: 'yaml'
-                  })
-                } else if (key === 'new-js') {
-                  await addOverrideItem({
-                    name: '新建 JS',
-                    type: 'local',
-                    file: '// https://mihomo.party/docs/guide/override/javascript\nfunction main(config) {\n  return config\n}',
-                    ext: 'js'
                   })
                 } else if (key === 'import') {
                   const newRemoteOverride: OverrideItem = {
@@ -302,7 +296,6 @@ const OverridePage: React.FC = () => {
               <DropdownItem key="open">打开本地覆写</DropdownItem>
               <DropdownItem key="import">导入远程覆写</DropdownItem>
               <DropdownItem key="new-yaml">新建 YAML</DropdownItem>
-              <DropdownItem key="new-js">新建 JavaScript</DropdownItem>
             </DropdownMenu>
           </Dropdown>
         </div>

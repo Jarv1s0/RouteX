@@ -1,16 +1,17 @@
-import type { IpcRendererEvent } from 'electron'
+import type { DesktopIpcRendererEvent } from '../../../shared/types/desktop-bridge'
 import {
   IPC_ON_CHANNELS,
   IPC_SEND_CHANNELS,
   type IpcOnChannel,
   type IpcSendChannel
 } from '../../../shared/ipc'
+import { desktop } from '@renderer/api/desktop'
 
 export const ON = IPC_ON_CHANNELS
 export const SEND = IPC_SEND_CHANNELS
 
 type RendererListener<Args extends unknown[] = unknown[]> = (
-  event: IpcRendererEvent,
+  event: DesktopIpcRendererEvent,
   ...args: Args
 ) => void
 
@@ -18,16 +19,16 @@ export function onIpc<Args extends unknown[]>(
   channel: IpcOnChannel,
   listener: RendererListener<Args>
 ): () => void {
-  return window.electron.ipcRenderer.on(channel, listener)
+  return desktop.on(channel, listener)
 }
 
 export function onceIpc<Args extends unknown[]>(
   channel: IpcOnChannel,
   listener: RendererListener<Args>
 ): () => void {
-  return window.electron.ipcRenderer.once(channel, listener)
+  return desktop.once(channel, listener)
 }
 
 export function sendIpc(channel: IpcSendChannel, ...args: unknown[]): void {
-  window.electron.ipcRenderer.send(channel, ...args)
+  desktop.send(channel, ...args)
 }

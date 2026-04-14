@@ -1,14 +1,66 @@
 const js = require('@eslint/js')
 const react = require('eslint-plugin-react')
-const { configs } = require('@electron-toolkit/eslint-config-ts')
+const tseslint = require('@typescript-eslint/eslint-plugin')
+const tsParser = require('@typescript-eslint/parser')
+const reactLanguageOptions = react.configs.recommended.languageOptions ?? {}
 
 module.exports = [
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/out/**', '**/extra/**']
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/dist-tauri/**',
+      '**/out/**',
+      '**/extra/**',
+      'src/main/**',
+      'src/preload/**',
+      'electron-builder.config.cjs',
+      'electron-builder.yml',
+      'electron.vite.config.ts'
+    ]
   },
 
   js.configs.recommended,
-  ...configs.recommended,
+
+  {
+    files: ['**/*.{js,jsx,ts,tsx,cjs,mjs,cts,mts}'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        AbortController: 'readonly',
+        CustomEvent: 'readonly',
+        Event: 'readonly',
+        FormData: 'readonly',
+        Image: 'readonly',
+        MutationObserver: 'readonly',
+        Notification: 'readonly',
+        URL: 'readonly',
+        WebSocket: 'readonly',
+        __dirname: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        clearInterval: 'readonly',
+        clearTimeout: 'readonly',
+        console: 'readonly',
+        crypto: 'readonly',
+        document: 'readonly',
+        fetch: 'readonly',
+        getComputedStyle: 'readonly',
+        module: 'readonly',
+        navigator: 'readonly',
+        performance: 'readonly',
+        process: 'readonly',
+        queueMicrotask: 'readonly',
+        require: 'readonly',
+        requestAnimationFrame: 'readonly',
+        setImmediate: 'readonly',
+        setInterval: 'readonly',
+        setTimeout: 'readonly',
+        structuredClone: 'readonly',
+        window: 'readonly'
+      }
+    }
+  },
 
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
@@ -25,7 +77,54 @@ module.exports = [
       }
     },
     languageOptions: {
-      ...react.configs.recommended.languageOptions
+      ...reactLanguageOptions,
+      globals: {
+        ...(reactLanguageOptions.globals ?? {}),
+        AbortController: 'readonly',
+        CustomEvent: 'readonly',
+        FormData: 'readonly',
+        Image: 'readonly',
+        MutationObserver: 'readonly',
+        Notification: 'readonly',
+        URL: 'readonly',
+        WebSocket: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        clearInterval: 'readonly',
+        clearTimeout: 'readonly',
+        crypto: 'readonly',
+        document: 'readonly',
+        fetch: 'readonly',
+        getComputedStyle: 'readonly',
+        navigator: 'readonly',
+        performance: 'readonly',
+        queueMicrotask: 'readonly',
+        requestAnimationFrame: 'readonly',
+        setInterval: 'readonly',
+        setTimeout: 'readonly',
+        structuredClone: 'readonly',
+        window: 'readonly'
+      }
+    }
+  },
+
+  {
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true
+        }
+      }
+    },
+    plugins: {
+      '@typescript-eslint': tseslint
+    },
+    rules: {
+      ...tseslint.configs.recommended.rules,
+      'no-undef': 'off'
     }
   },
 
@@ -56,8 +155,16 @@ module.exports = [
   },
 
   {
+    files: ['**/*.d.ts'],
+    rules: {
+      '@typescript-eslint/no-empty-object-type': 'off'
+    }
+  },
+
+  {
     files: ['src/renderer/src/**/*.{ts,tsx}'],
     ignores: [
+      'src/renderer/src/api/desktop.ts',
       'src/renderer/src/utils/ipc-core.ts',
       'src/renderer/src/utils/ipc-channels.ts'
     ],

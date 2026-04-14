@@ -80,7 +80,6 @@ const monacoInitialization = (): void => {
       {
         uri: 'http://example.com/meta-json-schema.json',
         fileMatch: ['**/*.clash.yaml'],
-        // @ts-ignore // type JSONSchema7
         schema: {
           ...patchedMetaSchema,
           patternProperties: {

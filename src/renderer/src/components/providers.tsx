@@ -25,15 +25,11 @@ const Providers: React.FC<ProvidersProps> = ({ children }) => {
           </Suspense>
           <ErrorBoundary>
             <HashRouter>
-
               <AppConfigProvider>
                 <ControledMihomoConfigProvider>
-                  <ProfileConfigProvider>
-                    {children}
-                  </ProfileConfigProvider>
+                  <ProfileConfigProvider>{children}</ProfileConfigProvider>
                 </ControledMihomoConfigProvider>
               </AppConfigProvider>
-
             </HashRouter>
           </ErrorBoundary>
         </NextThemesProvider>

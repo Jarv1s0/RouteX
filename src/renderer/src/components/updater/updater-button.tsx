@@ -1,7 +1,7 @@
 import { Button } from '@heroui/react'
 import React, { Suspense, useEffect, useState } from 'react'
 import { GrUpgrade } from 'react-icons/gr'
-import { cancelUpdate } from '@renderer/utils/app-ipc'
+import { cancelUpdate } from '@renderer/api/app'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 const UpdaterModal = React.lazy(() => import('./updater-modal'))

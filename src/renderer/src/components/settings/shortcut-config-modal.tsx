@@ -3,7 +3,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
-import { registerShortcut } from '@renderer/utils/app-ipc'
+import { registerShortcut } from '@renderer/api/app'
 import { MdCheck, MdKeyboard, MdRestore } from 'react-icons/md'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 

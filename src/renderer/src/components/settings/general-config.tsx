@@ -3,7 +3,7 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Switch, Tooltip, Tabs, Tab, Input } from '@heroui/react'
 import useSWR from 'swr'
-import { checkAutoRun, disableAutoRun, enableAutoRun, relaunchApp, checkUpdate, cancelUpdate, copyEnv, openUWPTool } from '@renderer/utils/app-ipc'
+import { checkAutoRun, disableAutoRun, enableAutoRun, relaunchApp, checkUpdate, cancelUpdate, copyEnv, openUWPTool } from '@renderer/api/app'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoIosHelpCircle } from 'react-icons/io'
 import ConfirmModal from '../base/base-confirm'
@@ -12,7 +12,6 @@ import { toast } from 'sonner'
 import { platform } from '@renderer/utils/init'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
-import SubStoreConfigModal from './substore-config-modal'
 import WebdavConfigModal from './webdav-config-modal'
 import DnsControlModal from './dns-control-modal'
 import SniffControlModal from './sniff-control-modal'
@@ -40,7 +39,6 @@ const GeneralConfig: React.FC = () => {
   const pauseSSIDArray = pauseSSID ?? emptyArray
   const [pauseSSIDInput, setPauseSSIDInput] = useState(pauseSSIDArray)
 
-  const [isSubStoreModalOpen, setIsSubStoreModalOpen] = useState(false)
   const [isWebdavModalOpen, setIsWebdavModalOpen] = useState(false)
   const [isDnsModalOpen, setIsDnsModalOpen] = useState(false)
   const [isSniffModalOpen, setIsSniffModalOpen] = useState(false)
@@ -354,11 +352,6 @@ const GeneralConfig: React.FC = () => {
             />
           </div>
         </SettingItem>
-        <SettingItem title="Sub-Store 设置" divider>
-          <Button size="sm" variant="flat" onPress={() => setIsSubStoreModalOpen(true)}>
-            管理服务
-          </Button>
-        </SettingItem>
         <SettingItem title="WebDAV 备份设置">
           <Button size="sm" variant="flat" onPress={() => setIsWebdavModalOpen(true)}>
             同步配置
@@ -366,7 +359,6 @@ const GeneralConfig: React.FC = () => {
         </SettingItem>
         <DnsControlModal isOpen={isDnsModalOpen} onOpenChange={setIsDnsModalOpen} />
         <SniffControlModal isOpen={isSniffModalOpen} onOpenChange={setIsSniffModalOpen} />
-        <SubStoreConfigModal isOpen={isSubStoreModalOpen} onOpenChange={setIsSubStoreModalOpen} />
         <WebdavConfigModal isOpen={isWebdavModalOpen} onOpenChange={setIsWebdavModalOpen} />
       </SettingCard>
     </>

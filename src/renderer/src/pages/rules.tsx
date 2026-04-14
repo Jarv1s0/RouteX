@@ -1,4 +1,5 @@
 import BasePage from '@renderer/components/base/base-page'
+import EmptyState from '@renderer/components/base/empty-state'
 import RuleItem from '@renderer/components/rules/rule-item'
 import RuleProviderItem from '@renderer/components/rules/rule-provider-item'
 import GeoData from '@renderer/components/resources/geo-data'
@@ -19,7 +20,6 @@ import { getHash } from '@renderer/utils/hash'
 import useSWR from 'swr'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useRulesStore } from '@renderer/store/use-rules-store'
-import { RulesProvider } from '@renderer/hooks/use-rules'
 
 const RulesPage: React.FC = () => {
   const { rules } = useRules()
@@ -90,10 +90,18 @@ const RulesPage: React.FC = () => {
     }
   }, [disabledRules, toggleRuleDisabled])
 
-  const { data: providersData, mutate } = useSWR('mihomoRuleProviders', mihomoRuleProviders, {
-    errorRetryInterval: 200,
-    errorRetryCount: 10
-  })
+  const shouldLoadProviders = activeTab === 'providers'
+  const { data: providersData, mutate } = useSWR(
+    shouldLoadProviders ? 'mihomoRuleProviders' : null,
+    mihomoRuleProviders,
+    {
+      errorRetryInterval: 200,
+      errorRetryCount: 10,
+      revalidateIfStale: false,
+      revalidateOnMount: true
+    }
+  )
+  
 
   const providers = useMemo(() => {
     if (!providersData) return []
@@ -230,24 +238,38 @@ const RulesPage: React.FC = () => {
       </div>
       {activeTab === 'rules' && (
         <div className="h-[calc(100vh-100px)]">
-          <Virtuoso
-            data={filteredIndices}
-            itemContent={(_i, originalIndex) => {
-              const rule = rules!.rules[originalIndex]
-              const isDisabled = disabledRules[originalIndex] || rule.disabled || false
-              return (
-                <RuleItem
-                  index={originalIndex}
-                  type={rule.type}
-                  payload={rule.payload}
-                  proxy={rule.proxy}
-                  size={rule.size}
-                  enabled={!isDisabled}
-                  onToggle={() => toggleRule(originalIndex)}
-                />
-              )
-            }}
-          />
+          {!rules ? (
+            <EmptyState
+              icon={<IoListOutline className="text-default-400" />}
+              title="正在加载规则"
+              description="等待内核返回规则数据"
+            />
+          ) : filteredIndices.length === 0 ? (
+            <EmptyState
+              icon={<IoListOutline className="text-default-400" />}
+              title="暂无可显示规则"
+              description={filter ? '当前筛选条件没有匹配结果' : '当前内核未返回规则列表'}
+            />
+          ) : (
+            <Virtuoso
+              data={filteredIndices}
+              itemContent={(_i, originalIndex) => {
+                const rule = rules.rules[originalIndex]
+                const isDisabled = disabledRules[originalIndex] || rule.disabled || false
+                return (
+                  <RuleItem
+                    index={originalIndex}
+                    type={rule.type}
+                    payload={rule.payload}
+                    proxy={rule.proxy}
+                    size={rule.size}
+                    enabled={!isDisabled}
+                    onToggle={() => toggleRule(originalIndex)}
+                  />
+                )
+              }}
+            />
+          )}
         </div>
       )}
       {activeTab === 'providers' && (
@@ -273,28 +295,36 @@ const RulesPage: React.FC = () => {
               }
             />
           )}
-          <Virtuoso
-            data={providers}
-            itemContent={(i, provider) => (
-              <RuleProviderItem
-                provider={provider}
-                index={i}
-                updating={updating[provider.name] || false}
-                onUpdate={() => onUpdate(provider.name)}
-                onView={() => {
-                  setShowDetails({
-                    show: false,
-                    privderType: 'rule-providers',
-                    path: provider.name,
-                    type: provider.vehicleType,
-                    title: provider.name,
-                    format: provider.format,
-                    behavior: provider.behavior
-                  })
-                }}
-              />
-            )}
-          />
+          {providers.length === 0 ? (
+            <EmptyState
+              icon={<IoCubeOutline className="text-default-400" />}
+              title="暂无规则集合"
+              description="当前内核未返回规则集合"
+            />
+          ) : (
+            <Virtuoso
+              data={providers}
+              itemContent={(i, provider) => (
+                <RuleProviderItem
+                  provider={provider}
+                  index={i}
+                  updating={updating[provider.name] || false}
+                  onUpdate={() => onUpdate(provider.name)}
+                  onView={() => {
+                    setShowDetails({
+                      show: false,
+                      privderType: 'rule-providers',
+                      path: provider.name,
+                      type: provider.vehicleType,
+                      title: provider.name,
+                      format: provider.format,
+                      behavior: provider.behavior
+                    })
+                  }}
+                />
+              )}
+            />
+          )}
         </div>
       )}
       {activeTab === 'geodata' && (
@@ -306,12 +336,4 @@ const RulesPage: React.FC = () => {
   )
 }
 
-const Rules: React.FC = () => {
-  return (
-    <RulesProvider>
-      <RulesPage />
-    </RulesProvider>
-  )
-}
-
-export default Rules
+export default RulesPage

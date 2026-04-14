@@ -80,9 +80,14 @@ const providers: IpProvider[] = [
 export interface IpCheckerPanelProps {
   showIp?: boolean
   onResultsChange?: (results: Record<string, ProviderResult>) => void
+  enabled?: boolean
 }
 
-export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({ showIp = true, onResultsChange }) => {
+export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
+  showIp = true,
+  onResultsChange,
+  enabled = true
+}) => {
   const [providerResults, setProviderResults] = useState<Record<string, { status: 'loading' | 'success' | 'error', data?: ProviderResult, error?: string }>>({})
 
   const fetchProviders = useCallback(async () => {
@@ -109,8 +114,12 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({ showIp = true, o
   }, [])
 
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     fetchProviders()
-  }, [fetchProviders])
+  }, [enabled, fetchProviders])
 
   useEffect(() => {
     if (onResultsChange) {

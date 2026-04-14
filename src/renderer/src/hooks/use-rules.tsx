@@ -13,7 +13,9 @@ const RulesContext = createContext<RulesContextType | undefined>(undefined)
 export const RulesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { data: rules, mutate } = useSWR<ControllerRules>('mihomoRules', mihomoRules, {
     errorRetryInterval: 200,
-    errorRetryCount: 10
+    errorRetryCount: 10,
+    revalidateIfStale: false,
+    revalidateOnMount: true
   })
 
   React.useEffect(() => {

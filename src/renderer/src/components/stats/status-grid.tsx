@@ -18,6 +18,8 @@ const StatusGrid: React.FC = () => {
 
   useEffect(() => {
     let startTime: number | null = null
+    let cancelled = false
+    let startHealthMonitorTimer: ReturnType<typeof setTimeout> | null = null
     
     // Initial fetch
     getAppUptime().then(seconds => {
@@ -65,10 +67,19 @@ const StatusGrid: React.FC = () => {
     }
     const offMemory = onIpc(ON.mihomoMemory, onMemoryUpdate)
     const offNetworkHealth = onIpc(ON.networkHealth, onNetworkHealthUpdate)
-    void startNetworkHealthMonitor()
-    void syncNetworkHealth()
+    startHealthMonitorTimer = setTimeout(() => {
+      if (cancelled) {
+        return
+      }
+      void startNetworkHealthMonitor()
+      void syncNetworkHealth()
+    }, 600)
 
     return () => {
+      cancelled = true
+      if (startHealthMonitorTimer) {
+        clearTimeout(startHealthMonitorTimer)
+      }
       clearInterval(interval)
       offMemory()
       offNetworkHealth()

@@ -1,11 +1,17 @@
 import { Button, Tooltip } from '@heroui/react'
 import { LuGitBranch, LuRotateCw } from 'react-icons/lu'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { ON, onIpc } from '@renderer/utils/ipc-channels'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useEffect, useMemo, useState } from 'react'
-import { getRuntimeConfig, mihomoRuleProviders, mihomoUpdateRuleProviders } from '@renderer/utils/mihomo-ipc'
-import useSWR, { mutate as globalMutate } from 'swr'
+import { useLocation } from 'react-router-dom'
+import { mutate as globalMutate } from 'swr'
+import useSWR from 'swr'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
+import {
+  getRuntimeConfig,
+  mihomoRuleProviders,
+  mihomoUpdateRuleProviders
+} from '@renderer/utils/mihomo-ipc'
+import { navigateSidebarRoute } from '@renderer/routes'
 
 interface Props {
   iconOnly?: boolean
@@ -16,12 +22,15 @@ interface Props {
 const RuleCard: React.FC<Props> = (props) => {
   const { iconOnly, compact, className = '' } = props
   const location = useLocation()
-  const navigate = useNavigate()
   const match = location.pathname.includes('/rules')
   const [updating, setUpdating] = useState(false)
-  
+  const [shouldLoadStats, setShouldLoadStats] = useState(match)
+  const handleNavigate = (): void => {
+    navigateSidebarRoute('/rules')
+  }
+
   const { data, mutate } = useSWR(
-    'ruleCardStats',
+    shouldLoadStats ? 'ruleCardStats' : null,
     async () => {
       const [providers, runtimeConfig] = await Promise.all([mihomoRuleProviders(), getRuntimeConfig()])
       return { providers, runtimeConfig }
@@ -29,54 +38,71 @@ const RuleCard: React.FC<Props> = (props) => {
     {
       errorRetryInterval: 200,
       errorRetryCount: 10,
-      refreshInterval: 30000
+      refreshInterval: match ? 30000 : 0
     }
   )
 
-  const ruleCount = useMemo(() => {
-    const providerCount = data?.providers?.providers
-      ? Object.values(data.providers.providers).reduce(
-          (total, provider) => total + (provider.ruleCount || 0),
-          0
-        )
-      : 0
-    const manualRuleCount = Array.isArray(data?.runtimeConfig?.rules) ? data.runtimeConfig.rules.length : 0
-    return providerCount + manualRuleCount
-  }, [data])
+  useEffect(() => {
+    if (match) {
+      setShouldLoadStats(true)
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      setShouldLoadStats(true)
+    }, 12000)
+
+    return (): void => {
+      window.clearTimeout(timer)
+    }
+  }, [match])
+
+  const providerMap = data?.providers?.providers
 
   const providerCount = useMemo(() => {
-    return data?.providers?.providers ? Object.keys(data.providers.providers).length : 0
-  }, [data])
+    return providerMap ? Object.keys(providerMap).length : 0
+  }, [providerMap])
+
+  const ruleCount = useMemo(() => {
+    const providerRuleCount = providerMap
+      ? Object.values(providerMap).reduce((total, provider) => total + (provider.ruleCount || 0), 0)
+      : 0
+    const manualRuleCount = Array.isArray(data?.runtimeConfig?.rules) ? data.runtimeConfig.rules.length : 0
+    return providerRuleCount + manualRuleCount
+  }, [data, providerMap])
 
   const updateAll = async (): Promise<void> => {
     if (updating) return
-    const providerNames = data?.providers?.providers ? Object.keys(data.providers.providers) : []
+
+    const providerNames = providerMap ? Object.keys(providerMap) : []
     if (providerNames.length === 0) return
 
     setUpdating(true)
     try {
       await Promise.all(providerNames.map((name) => mihomoUpdateRuleProviders(name)))
-      await Promise.all([
-        mutate(),
-        globalMutate('mihomoRuleProviders')
-      ])
+      await Promise.all([mutate(), globalMutate('mihomoRuleProviders')])
     } catch (e) {
       new Notification(`规则集合更新失败\n${e}`)
     } finally {
       setUpdating(false)
     }
   }
-  
+
   useEffect(() => {
-    const handleRefresh = (): void => {
-      mutate()
+    if (!shouldLoadStats || !match) {
+      return
     }
+
+    const handleRefresh = (): void => {
+      void mutate()
+    }
+
     const offCoreStarted = onIpc(ON.coreStarted, handleRefresh)
     const offRulesUpdated = onIpc(ON.rulesUpdated, handleRefresh)
     const offProfileConfigUpdated = onIpc(ON.profileConfigUpdated, handleRefresh)
     const offOverrideConfigUpdated = onIpc(ON.overrideConfigUpdated, handleRefresh)
     const offControledConfigUpdated = onIpc(ON.controledMihomoConfigUpdated, handleRefresh)
-    
+
     return (): void => {
       offCoreStarted()
       offRulesUpdated()
@@ -84,8 +110,8 @@ const RuleCard: React.FC<Props> = (props) => {
       offOverrideConfigUpdated()
       offControledConfigUpdated()
     }
-  }, [mutate])
-  
+  }, [mutate, shouldLoadStats])
+
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
@@ -95,7 +121,7 @@ const RuleCard: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => navigate('/rules')}
+            onPress={handleNavigate}
           >
             <LuGitBranch className="text-[16px]" />
           </Button>
@@ -105,11 +131,11 @@ const RuleCard: React.FC<Props> = (props) => {
   }
 
   return (
-    <div 
-      className={`rule-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-all group ${
+    <div
+      className={`rule-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
-      onClick={() => navigate('/rules')}
+      onClick={handleNavigate}
     >
       <div className="flex items-center justify-between h-7">
         <div className="flex items-center gap-1.5 flex-1">

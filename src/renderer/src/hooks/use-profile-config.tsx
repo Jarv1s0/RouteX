@@ -76,6 +76,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     const handleProfileConfigUpdated = (): void => {
       void mutateProfileConfig()
     }
+
     return onIpc(ON.profileConfigUpdated, handleProfileConfigUpdated)
   }, [mutateProfileConfig])
 

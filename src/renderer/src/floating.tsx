@@ -9,17 +9,15 @@ import { AppConfigProvider } from './hooks/use-app-config'
 import { ControledMihomoConfigProvider } from './hooks/use-controled-mihomo-config'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <HeroUIProvider>
-      <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
-        <ErrorBoundary>
-          <AppConfigProvider>
-            <ControledMihomoConfigProvider>
-              <FloatingApp />
-            </ControledMihomoConfigProvider>
-          </AppConfigProvider>
-        </ErrorBoundary>
-      </NextThemesProvider>
-    </HeroUIProvider>
-  </React.StrictMode>
+  <HeroUIProvider>
+    <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
+      <ErrorBoundary>
+        <AppConfigProvider>
+          <ControledMihomoConfigProvider>
+            <FloatingApp />
+          </ControledMihomoConfigProvider>
+        </AppConfigProvider>
+      </ErrorBoundary>
+    </NextThemesProvider>
+  </HeroUIProvider>
 )

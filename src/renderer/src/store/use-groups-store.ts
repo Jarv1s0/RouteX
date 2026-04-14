@@ -19,7 +19,8 @@ function isExpectedMihomoUnavailableError(error: unknown): boolean {
   const message = `${error ?? ''}`
   return (
     message.includes('connect ENOENT \\\\.\\pipe\\RouteX\\mihomo') ||
-    message.includes('socket hang up')
+    message.includes('socket hang up') ||
+    message.includes('Mihomo controller is not available')
   )
 }
 
@@ -52,7 +53,7 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
       const groups = await mihomoGroups()
       set({ groups, isLoading: false })
     } catch (e) {
-      set({ isLoading: false })
+      set({ groups: [], isLoading: false }) // 失败时提供稳定的空数组引用
       if (!isExpectedMihomoUnavailableError(e)) {
         console.error('Failed to fetch groups', e)
       }

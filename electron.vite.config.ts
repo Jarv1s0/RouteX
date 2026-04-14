@@ -17,7 +17,9 @@ const monacoEditorPlugin = isObjectWithDefaultFunction(monacoEditorPluginModule)
   ? monacoEditorPluginModule.default
   : monacoEditorPluginModule
 const routexBuildDefines = {
-  __ROUTEX_AUTO_BUILD__: JSON.stringify(process.env.ROUTEX_AUTO_BUILD === 'true')
+  __ROUTEX_AUTO_BUILD__: JSON.stringify(process.env.ROUTEX_AUTO_BUILD === 'true'),
+  __ROUTEX_HOST__: JSON.stringify('electron'),
+  __ROUTEX_PLATFORM__: JSON.stringify(process.platform)
 }
 
 const rendererCspMetaPlugin = {

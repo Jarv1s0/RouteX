@@ -93,7 +93,6 @@ jobs:
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ROUTEX_USE_LOCAL_ELECTRON_DIST: 'true'
 
       - name: Build and Publish Linux
         if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
@@ -108,6 +107,33 @@ jobs:
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Artifacts
+        if: (matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')) || (matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')) || (matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos'))
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="v${VERSION}"
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" \
+            --title "RouteX v${VERSION}" \
+            --notes-file release-notes.md \
+            --draft \
+            --target "${GITHUB_SHA}" || true
+
+          shopt -s globstar nullglob
+          files=()
+          if [ "${{ matrix.platform }}" == "windows" ]; then
+            files=(src-tauri/target/release/bundle/**/*.msi src-tauri/target/release/bundle/**/*.exe)
+          elif [ "${{ matrix.platform }}" == "linux" ]; then
+            files=(src-tauri/target/release/bundle/**/*.deb src-tauri/target/release/bundle/**/*.rpm src-tauri/target/release/bundle/**/*.AppImage)
+          elif [ "${{ matrix.platform }}" == "macos" ]; then
+            files=(src-tauri/target/release/bundle/**/*.dmg src-tauri/target/release/bundle/**/*.app.tar.gz)
+          fi
+
+          if [ "${#files[@]}" -gt 0 ]; then
+            gh release upload "$RELEASE_TAG" "${files[@]}" --clobber
+          fi
 
 
   release:

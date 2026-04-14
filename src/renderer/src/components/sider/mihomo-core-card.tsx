@@ -5,14 +5,14 @@ import {
   restartCore,
   checkMihomoLatestVersion
 } from '@renderer/utils/mihomo-ipc'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { LuRotateCw, LuCpu } from 'react-icons/lu'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import PubSub from 'pubsub-js'
-import useSWR from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { navigateSidebarRoute } from '@renderer/routes'
 
 interface Props {
   iconOnly?: boolean
@@ -29,31 +29,66 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const { iconOnly, compact, className = '' } = props
   const { core = 'mihomo' } = appConfig || {}
-  const { data: version, mutate } = useSWR('mihomoVersion', mihomoVersion, {
-    errorRetryInterval: 200,
-    errorRetryCount: 10
-  })
+  const [version, setVersion] = useState<ControllerVersion | null>(null)
 
   const location = useLocation()
-  const navigate = useNavigate()
   const match = location.pathname.includes('/mihomo')
-  
+  const handleNavigate = (): void => {
+    navigateSidebarRoute('/mihomo')
+  }
+
   const [mem, setMem] = useState(0)
   const [restarting, setRestarting] = useState(false)
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
 
-  useEffect(() => {
-    const checkLatest = async () => {
-      try {
-        const isAlpha = core === 'mihomo-alpha'
-        const latest = await checkMihomoLatestVersion(isAlpha)
-        setLatestVersion(latest)
-      } catch {
-        // ignore
-      }
+  const refreshVersion = useCallback(async (): Promise<void> => {
+    try {
+      const nextVersion = await mihomoVersion()
+      setVersion(nextVersion)
+    } catch {
+      // ignore sidebar version fetch failures
     }
-    void checkLatest()
-  }, [core])
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      if (!cancelled) {
+        void refreshVersion()
+      }
+    }, match ? 0 : 1500)
+
+    return (): void => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [match, refreshVersion])
+
+  useEffect(() => {
+    if (!match) {
+      return
+    }
+
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const isAlpha = core === 'mihomo-alpha'
+          const latest = await checkMihomoLatestVersion(isAlpha)
+          if (!cancelled) {
+            setLatestVersion(latest)
+          }
+        } catch {
+          // ignore
+        }
+      })()
+    }, 2500)
+
+    return (): void => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [core, match])
 
   const hasNewVersion = (): boolean => {
     if (!version?.version || !latestVersion) return false
@@ -66,9 +101,9 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   }
 
   useEffect(() => {
-    const token = PubSub.subscribe('mihomo-core-changed', () => mutate())
+    const token = PubSub.subscribe('mihomo-core-changed', () => void refreshVersion())
     const handleMemory = (_e: unknown, info: ControllerMemory): void => setMem(info.inuse)
-    const handleCoreStarted = (): void => { void mutate() }
+    const handleCoreStarted = (): void => { void refreshVersion() }
     
     const offMemory = onIpc(ON.mihomoMemory, handleMemory)
     const offCoreStarted = onIpc(ON.coreStarted, handleCoreStarted)
@@ -77,7 +112,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
       offMemory()
       offCoreStarted()
     }
-  }, [])
+  }, [refreshVersion])
 
   if (iconOnly) {
     return (
@@ -88,7 +123,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant="flat"
-            onPress={() => navigate('/mihomo')}
+            onPress={handleNavigate}
           >
             <LuCpu className="text-[16px]" />
           </Button>
@@ -99,10 +134,10 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
 
   return (
     <div 
-      className={`mihomo-core-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-all group ${
+      className={`mihomo-core-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
-      onClick={() => navigate('/mihomo')}
+      onClick={handleNavigate}
     >
       <div className="flex items-center justify-between h-7">
         <div className="flex items-center gap-1.5 flex-1">
@@ -129,7 +164,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
               } catch (e) {
                 await showToastError(String(e))
               } finally {
-                mutate()
+                void refreshVersion()
               }
             }}
           >

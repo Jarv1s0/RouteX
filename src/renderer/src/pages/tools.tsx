@@ -101,6 +101,7 @@ const Tools: React.FC = () => {
   const [ipLoading, setIpLoading] = useState(false)
   const [showIp, setShowIp] = useState(false)
   const [ipError, setIpError] = useState<string | null>(null)
+  const [showProbePanel, setShowProbePanel] = useState(false)
 
   const handleDnsQuery = async (): Promise<void> => {
     if (!dnsQuery.trim()) return
@@ -284,8 +285,28 @@ ASN: ${ipInfo.as}`
 
   // 初始加载 IP 信息
   useEffect(() => {
-    fetchIpInfo()
+    let cancelled = false
+    const timer = setTimeout(() => {
+      if (!cancelled) {
+        void fetchIpInfo()
+      }
+    }, 1800)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [fetchIpInfo])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowProbePanel(true)
+    }, 2200)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [])
 
   return (
     <BasePage title="工具">
@@ -620,7 +641,17 @@ ASN: ${ipInfo.as}`
 
                 {/* 第三方 IP 测试探针 (右列) */}
                 <div className="grid grid-cols-1 gap-3 h-fit">
-                  <IpCheckerPanel showIp={showIp} onResultsChange={setProbeResults} />
+                  {showProbePanel ? (
+                    <IpCheckerPanel showIp={showIp} onResultsChange={setProbeResults} enabled />
+                  ) : (
+                    <div className="space-y-3">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <div key={index} className="p-4 rounded-xl bg-default-50/50 border border-default-200/30 h-[72px]">
+                          <Skeleton className="h-full w-full rounded-lg" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : null}

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getAppName, getIconDataURL } from '@renderer/utils/resource-ipc'
-import { platform } from '@renderer/utils/init'
-import { cropAndPadTransparent } from '@renderer/utils/image'
+import { getAppName, getIconDataURLs } from '@renderer/utils/resource-ipc'
 
 const ICON_CACHE_PREFIX = 'routex:icon:'
 const ICON_CACHE_INDEX_KEY = 'routex:icon:index'
 const MAX_ICON_CACHE_ENTRIES = 120
+const ICON_BATCH_SIZE = 10
+const sharedIconMemoryCache = new Map<string, string>()
+const sharedAppNameMemoryCache = new Map<string, string>()
 
 interface UseResourceQueueResult {
   iconMap: Record<string, string>
@@ -13,6 +14,14 @@ interface UseResourceQueueResult {
   firstItemRefreshTrigger: number
   loadIcon: (path: string, isVisible?: boolean) => void
   loadAppName: (path: string) => void
+}
+
+function shouldPersistIconCache(): boolean {
+  try {
+    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+  } catch {
+    return false
+  }
 }
 
 function getIconCacheKey(path: string): string {
@@ -25,14 +34,20 @@ function readIconCacheIndex(): string[] {
     if (!raw) return []
 
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string')
+      : []
   } catch {
     return []
   }
 }
 
 function writeIconCacheIndex(index: string[]): void {
-  localStorage.setItem(ICON_CACHE_INDEX_KEY, JSON.stringify(index))
+  try {
+    localStorage.setItem(ICON_CACHE_INDEX_KEY, JSON.stringify(index))
+  } catch {
+    // ignore cache index write failure
+  }
 }
 
 function evictIconCacheEntries(index: string[], maxEntries: number): string[] {
@@ -49,15 +64,29 @@ function evictIconCacheEntries(index: string[], maxEntries: number): string[] {
 }
 
 function rememberCachedIcon(path: string): void {
+  if (!shouldPersistIconCache()) {
+    return
+  }
+
   const nextIndex = [path, ...readIconCacheIndex().filter((cachedPath) => cachedPath !== path)]
   writeIconCacheIndex(evictIconCacheEntries(nextIndex, MAX_ICON_CACHE_ENTRIES))
 }
 
 function readCachedIcon(path: string): string | null {
+  const fromMemory = sharedIconMemoryCache.get(path)
+  if (fromMemory) {
+    return fromMemory
+  }
+
+  if (!shouldPersistIconCache()) {
+    return null
+  }
+
   const cacheKey = getIconCacheKey(path)
   const cachedIcon = localStorage.getItem(cacheKey)
 
   if (cachedIcon) {
+    sharedIconMemoryCache.set(path, cachedIcon)
     rememberCachedIcon(path)
     return cachedIcon
   }
@@ -74,10 +103,17 @@ function readCachedIcon(path: string): string | null {
     // ignore migration failure
   }
 
+  sharedIconMemoryCache.set(path, legacyCachedIcon)
   return legacyCachedIcon
 }
 
 function writeCachedIcon(path: string, dataUrl: string): void {
+  sharedIconMemoryCache.set(path, dataUrl)
+
+  if (!shouldPersistIconCache()) {
+    return
+  }
+
   const cacheKey = getIconCacheKey(path)
 
   try {
@@ -85,7 +121,10 @@ function writeCachedIcon(path: string, dataUrl: string): void {
     rememberCachedIcon(path)
     return
   } catch {
-    const evictedIndex = evictIconCacheEntries(readIconCacheIndex(), Math.max(0, MAX_ICON_CACHE_ENTRIES - 10))
+    const evictedIndex = evictIconCacheEntries(
+      readIconCacheIndex(),
+      Math.max(0, MAX_ICON_CACHE_ENTRIES - 10)
+    )
 
     try {
       writeIconCacheIndex(evictedIndex)
@@ -103,13 +142,18 @@ export function useResourceQueue(
   findProcessMode: string,
   filteredConnectionsFirstPath: string | undefined
 ): UseResourceQueueResult {
-  const [iconMap, setIconMap] = useState<Record<string, string>>({})
-  const [appNameCache, setAppNameCache] = useState<Record<string, string>>({})
+  const [iconMap, setIconMap] = useState<Record<string, string>>(() =>
+    Object.fromEntries(sharedIconMemoryCache)
+  )
+  const [appNameCache, setAppNameCache] = useState<Record<string, string>>(() =>
+    Object.fromEntries(sharedAppNameMemoryCache)
+  )
   const [firstItemRefreshTrigger, setFirstItemRefreshTrigger] = useState(0)
 
   const iconRequestQueue = useRef(new Set<string>())
   const processingIcons = useRef(new Set<string>())
   const processIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const disposedRef = useRef(false)
 
   const appNameRequestQueue = useRef(new Set<string>())
   const processingAppNames = useRef(new Set<string>())
@@ -120,6 +164,7 @@ export function useResourceQueue(
 
     const pathsToProcess = Array.from(appNameRequestQueue.current).slice(0, 3)
     pathsToProcess.forEach((path) => appNameRequestQueue.current.delete(path))
+    const nextAppNames: Record<string, string> = {}
 
     const promises = pathsToProcess.map(async (path) => {
       if (processingAppNames.current.has(path)) return
@@ -128,7 +173,8 @@ export function useResourceQueue(
       try {
         const appName = await getAppName(path)
         if (appName) {
-          setAppNameCache((prev) => ({ ...prev, [path]: appName }))
+          sharedAppNameMemoryCache.set(path, appName)
+          nextAppNames[path] = appName
         }
       } catch {
         // ignore
@@ -139,53 +185,61 @@ export function useResourceQueue(
 
     await Promise.all(promises)
 
+    if (!disposedRef.current && Object.keys(nextAppNames).length > 0) {
+      setAppNameCache((prev) => ({ ...prev, ...nextAppNames }))
+    }
+
     if (appNameRequestQueue.current.size > 0) {
       processAppNameTimer.current = setTimeout(processAppNameQueue, 100)
     }
   }, [])
 
   const processIconQueue = useCallback(async () => {
-    if (processingIcons.current.size >= 5 || iconRequestQueue.current.size === 0) return
+    if (processingIcons.current.size > 0 || iconRequestQueue.current.size === 0) return
 
-    const pathsToProcess = Array.from(iconRequestQueue.current).slice(0, 5)
+    const pathsToProcess = Array.from(iconRequestQueue.current).slice(0, ICON_BATCH_SIZE)
     pathsToProcess.forEach((path) => iconRequestQueue.current.delete(path))
+    const nextIcons: Record<string, string> = {}
+    let shouldRefreshFirstItem = false
 
-    const promises = pathsToProcess.map(async (path) => {
-      if (processingIcons.current.has(path)) return
-      processingIcons.current.add(path)
+    pathsToProcess.forEach((path) => processingIcons.current.add(path))
 
-      try {
-        const rawBase64 = await getIconDataURL(path)
+    try {
+      const batchedIcons = await getIconDataURLs(pathsToProcess)
+      if (disposedRef.current) return
+
+      pathsToProcess.forEach((path) => {
+        const rawBase64 = batchedIcons[path]
         if (!rawBase64) return
 
         const fullDataURL = rawBase64.startsWith('data:')
           ? rawBase64
           : `data:image/png;base64,${rawBase64}`
 
-        let processedDataURL = fullDataURL
-        if (platform !== 'darwin') {
-          processedDataURL = await cropAndPadTransparent(fullDataURL)
-        }
-
         try {
-          writeCachedIcon(path, processedDataURL)
+          writeCachedIcon(path, fullDataURL)
         } catch {
           // ignore
         }
 
-        setIconMap((prev) => ({ ...prev, [path]: processedDataURL }))
+        nextIcons[path] = fullDataURL
 
         if (filteredConnectionsFirstPath === path) {
-          setFirstItemRefreshTrigger((prev) => prev + 1)
+          shouldRefreshFirstItem = true
         }
-      } catch {
-        // ignore
-      } finally {
-        processingIcons.current.delete(path)
-      }
-    })
+      })
+    } catch {
+      // ignore
+    } finally {
+      pathsToProcess.forEach((path) => processingIcons.current.delete(path))
+    }
 
-    await Promise.all(promises)
+    if (!disposedRef.current && Object.keys(nextIcons).length > 0) {
+      setIconMap((prev) => ({ ...prev, ...nextIcons }))
+      if (shouldRefreshFirstItem) {
+        setFirstItemRefreshTrigger((prev) => prev + 1)
+      }
+    }
 
     if (iconRequestQueue.current.size > 0) {
       processIconTimer.current = setTimeout(processIconQueue, 50)
@@ -194,69 +248,94 @@ export function useResourceQueue(
 
   // Queue consumers
   useEffect(() => {
-    if (!displayIcon || findProcessMode === 'off') {
-        if (processIconTimer.current) clearTimeout(processIconTimer.current)
-        return
-    }
-    
-    // Start processing immediately if queue is not empty, otherwise ensure timer is cleared
-    if (iconRequestQueue.current.size > 0) {
-        if (processIconTimer.current) clearTimeout(processIconTimer.current)
-        processIconTimer.current = setTimeout(processIconQueue, 10)
-    }
-    
-    return () => {
-        if (processIconTimer.current) clearTimeout(processIconTimer.current)
-    }
-  }, [displayIcon, findProcessMode, processIconQueue])
+    disposedRef.current = false
 
+    return () => {
+      disposedRef.current = true
+      iconRequestQueue.current.clear()
+      appNameRequestQueue.current.clear()
+      processingIcons.current.clear()
+      processingAppNames.current.clear()
+      if (processIconTimer.current) clearTimeout(processIconTimer.current)
+      if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
+    }
+  }, [])
 
   useEffect(() => {
-    if (!displayAppName) {
-        if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
-        return
-    }
-
-    if (appNameRequestQueue.current.size > 0) {
-        if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
-        processAppNameTimer.current = setTimeout(processAppNameQueue, 10)
-    }
-
-    return () => {
-        if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
-    }
-  }, [displayAppName, processAppNameQueue])
-
-
-  const loadIcon = useCallback((path: string, isVisible: boolean = false): void => {
-    if (iconMap[path] || processingIcons.current.has(path)) return
-
-    const fromStorage = readCachedIcon(path)
-    if (fromStorage) {
-      setIconMap((prev) => ({ ...prev, [path]: fromStorage }))
-      if (isVisible && filteredConnectionsFirstPath === path) {
-        setFirstItemRefreshTrigger((prev) => prev + 1)
-      }
+    if (!displayIcon || findProcessMode === 'off') {
+      if (processIconTimer.current) clearTimeout(processIconTimer.current)
       return
     }
 
-    iconRequestQueue.current.add(path)
-    // Trigger consumer if not running? 
-    // The consumer effects watch the queue? No, they watch deps. 
-    // But adding to ref doesn't trigger re-render.
-    // So we need to ensure the timer starts if it wasn't running.
-    if (!processIconTimer.current && displayIcon && findProcessMode !== 'off') {
-        processIconTimer.current = setTimeout(processIconQueue, 10)
+    // Start processing immediately if queue is not empty, otherwise ensure timer is cleared
+    if (iconRequestQueue.current.size > 0) {
+      if (processIconTimer.current) clearTimeout(processIconTimer.current)
+      processIconTimer.current = setTimeout(processIconQueue, 10)
     }
-  }, [iconMap, filteredConnectionsFirstPath, displayIcon, findProcessMode, processIconQueue])
 
-  const loadAppName = useCallback((path: string): void => {
-    if (appNameCache[path] || processingAppNames.current.has(path)) return
-    appNameRequestQueue.current.add(path)
-    if (!processAppNameTimer.current && displayAppName) {
-        processAppNameTimer.current = setTimeout(processAppNameQueue, 10)
+    return () => {
+      if (processIconTimer.current) clearTimeout(processIconTimer.current)
     }
-  }, [appNameCache, displayAppName, processAppNameQueue])
+  }, [displayIcon, findProcessMode, processIconQueue])
+
+  useEffect(() => {
+    if (!displayAppName) {
+      if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
+      return
+    }
+
+    if (appNameRequestQueue.current.size > 0) {
+      if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
+      processAppNameTimer.current = setTimeout(processAppNameQueue, 10)
+    }
+
+    return () => {
+      if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
+    }
+  }, [displayAppName, processAppNameQueue])
+
+  const loadIcon = useCallback(
+    (path: string, isVisible: boolean = false): void => {
+      if (iconMap[path] || processingIcons.current.has(path)) return
+
+      const fromStorage = readCachedIcon(path)
+      if (fromStorage) {
+        setIconMap((prev) => ({ ...prev, [path]: fromStorage }))
+        if (isVisible && filteredConnectionsFirstPath === path) {
+          setFirstItemRefreshTrigger((prev) => prev + 1)
+        }
+        return
+      }
+
+      iconRequestQueue.current.add(path)
+      // Trigger consumer if not running?
+      // The consumer effects watch the queue? No, they watch deps.
+      // But adding to ref doesn't trigger re-render.
+      // So we need to ensure the timer starts if it wasn't running.
+      if (!processIconTimer.current && displayIcon && findProcessMode !== 'off') {
+        processIconTimer.current = setTimeout(processIconQueue, 10)
+      }
+    },
+    [iconMap, filteredConnectionsFirstPath, displayIcon, findProcessMode, processIconQueue]
+  )
+
+  const loadAppName = useCallback(
+    (path: string): void => {
+      if (appNameCache[path] || processingAppNames.current.has(path)) return
+
+      const fromMemory = sharedAppNameMemoryCache.get(path)
+      if (fromMemory) {
+        setAppNameCache((prev) => ({ ...prev, [path]: fromMemory }))
+        return
+      }
+
+      appNameRequestQueue.current.add(path)
+      if (!processAppNameTimer.current && displayAppName) {
+        processAppNameTimer.current = setTimeout(processAppNameQueue, 10)
+      }
+    },
+    [appNameCache, displayAppName, processAppNameQueue]
+  )
 
   return {
     iconMap,

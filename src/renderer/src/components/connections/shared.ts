@@ -25,8 +25,8 @@ export interface VisibleRange {
   endIndex: number
 }
 
-export const INITIAL_VISIBLE_RANGE: VisibleRange = { startIndex: 0, endIndex: 39 }
-export const RESOURCE_PRELOAD_BUFFER = 20
+export const INITIAL_VISIBLE_RANGE: VisibleRange = { startIndex: 0, endIndex: 11 }
+export const RESOURCE_PRELOAD_BUFFER = 8
 
 export const CONNECTION_TABLE_SORT_COLUMNS: Record<string, ConnectionOrderBy> = {
   time: 'time',
@@ -39,6 +39,8 @@ export const CONNECTION_TABLE_SORT_COLUMNS: Record<string, ConnectionOrderBy> = 
   rule: 'rule'
 }
 
-export function getConnectionHideRule(connection: Pick<ControllerConnectionDetail, 'metadata'>): string {
+export function getConnectionHideRule(
+  connection: Pick<ControllerConnectionDetail, 'metadata'>
+): string {
   return `${connection.metadata.process || 'unknown'}:${connection.metadata.host || connection.metadata.destinationIP || 'unknown'}`
 }

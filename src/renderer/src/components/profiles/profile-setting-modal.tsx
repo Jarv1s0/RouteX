@@ -13,7 +13,7 @@ import {
 import React, { useState, useEffect, useRef } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getUserAgent } from '@renderer/utils/app-ipc'
+import { getUserAgent } from '@renderer/api/app'
 import { getGistUrl } from '@renderer/utils/profile-ipc'
 import debounce from '@renderer/utils/debounce'
 import { IoIosHelpCircle } from 'react-icons/io'

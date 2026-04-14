@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - develop
+      - codex/tauri-migration
   workflow_dispatch:
 
 concurrency:
-  group: autobuild
+  group: autobuild-${{ github.ref_name }}
   cancel-in-progress: true
 
 env:
@@ -19,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      release_tag: ${{ steps.build-meta.outputs.release_tag }}
     steps:
       - uses: actions/checkout@v6.0.1
         with:
@@ -28,10 +31,27 @@ jobs:
         with:
           node-version: 20
 
-      - name: Read Version
+      - name: Read Build Metadata
+        id: build-meta
+        shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').version")
+          BRANCH_SLUG=$(echo "${GITHUB_REF_NAME}" | sed 's#[^A-Za-z0-9._-]#-#g')
+          RELEASE_TAG="autobuild"
+          RELEASE_LABEL="Autobuild"
+
+          if [ "${GITHUB_REF_NAME}" != "develop" ]; then
+            RELEASE_TAG="autobuild-${BRANCH_SLUG}"
+            RELEASE_LABEL="Autobuild ${GITHUB_REF_NAME}"
+          fi
+
+          SHORT_HASH=$(git rev-parse --short HEAD)
+          RELEASE_TITLE="RouteX v${VERSION} (${RELEASE_LABEL} ${SHORT_HASH})"
+
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+          echo "RELEASE_TITLE=$RELEASE_TITLE" >> $GITHUB_ENV
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
         run: node scripts/extract-latest-changelog.mjs changelog.md release_notes.md
@@ -44,18 +64,15 @@ jobs:
           git config --global user.name "GitHub Action"
           
           # Delete existing release and tag if they exist
-          gh release delete autobuild --yes --cleanup-tag || true
-          git push origin :refs/tags/autobuild || true
+          gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
+          git push origin ":refs/tags/$RELEASE_TAG" || true
           
           # Wait a moment for GitHub to process the deletion
           sleep 2
-          
-          # Get short commit hash for display
-          SHORT_HASH=$(git rev-parse --short HEAD)
-          
+
           # Create new release and tag pointing to the current commit SHA
-          gh release create autobuild \
-            --title "RouteX v${{ env.VERSION }} (Autobuild $SHORT_HASH)" \
+          gh release create "$RELEASE_TAG" \
+            --title "$RELEASE_TITLE" \
             --notes-file release_notes.md \
             --prerelease \
             --target ${{ github.sha }}
@@ -69,13 +86,10 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-            command: npx electron-builder --config electron-builder.config.cjs --win --publish never
           - os: ubuntu-latest
             platform: linux
-            command: npx electron-builder --config electron-builder.config.cjs --linux --publish never
           - os: macos-latest
             platform: macos
-            command: npx electron-builder --config electron-builder.config.cjs --mac --publish never
 
     permissions:
       contents: write
@@ -119,21 +133,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROUTEX_AUTO_BUILD: 'true'
-          ROUTEX_USE_LOCAL_ELECTRON_DIST: ${{ matrix.platform == 'windows' && 'true' || 'false' }}
-        run: |
-          npm run build
-          ${{ matrix.command }}
+        run: pnpm build
 
       - name: Upload Artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
+          shopt -s globstar nullglob
+          files=()
           if [ "${{ matrix.platform }}" == "windows" ]; then
-             gh release upload autobuild dist/*.exe dist/*.7z --clobber
+             files=(src-tauri/target/release/bundle/**/*.msi src-tauri/target/release/bundle/**/*.exe)
           elif [ "${{ matrix.platform }}" == "linux" ]; then
-             gh release upload autobuild dist/*.deb dist/*.rpm dist/*.AppImage --clobber || true
+             files=(src-tauri/target/release/bundle/**/*.deb src-tauri/target/release/bundle/**/*.rpm src-tauri/target/release/bundle/**/*.AppImage)
           elif [ "${{ matrix.platform }}" == "macos" ]; then
-             gh release upload autobuild dist/*.pkg dist/*.dmg --clobber || true
+             files=(src-tauri/target/release/bundle/**/*.dmg src-tauri/target/release/bundle/**/*.app.tar.gz)
+          fi
+
+          if [ "${#files[@]}" -gt 0 ]; then
+             gh release upload "${{ needs.update-tag.outputs.release_tag }}" "${files[@]}" --clobber
           fi
 

@@ -1,11 +1,12 @@
 import { Button, Switch, Tooltip } from '@heroui/react'
 import BorderSwitch from '@renderer/components/base/border-switch'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { triggerSysProxy } from '@renderer/utils/mihomo-ipc'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { navigateSidebarRoute } from '@renderer/routes'
 import { LuGlobe } from 'react-icons/lu'
 import React from 'react'
 
@@ -17,7 +18,6 @@ interface Props {
 const SysproxySwitcher: React.FC<Props> = (props) => {
   const { iconOnly, compact } = props
   const location = useLocation()
-  const navigate = useNavigate()
   const match = location.pathname.includes('/sysproxy')
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
@@ -52,7 +52,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
             onPress={() => {
-              navigate('/sysproxy')
+              navigateSidebarRoute('/sysproxy')
             }}
           >
             <LuGlobe className="text-[16px]" />
@@ -65,8 +65,8 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
   if (compact) {
     return (
       <div
-        onClick={() => navigate('/sysproxy')}
-        className={`${sysproxyCardStatus} sysproxy-card flex h-full flex-1 items-center justify-between gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all group ${
+        onClick={() => navigateSidebarRoute('/sysproxy')}
+        className={`${sysproxyCardStatus} sysproxy-card flex h-full flex-1 items-center justify-between gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors group ${
           match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
         }`}
       >
@@ -92,8 +92,8 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
 
   return (
     <div
-      onClick={() => navigate('/sysproxy')}
-      className={`${sysproxyCardStatus} sysproxy-card flex flex-1 items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${
+      onClick={() => navigateSidebarRoute('/sysproxy')}
+      className={`${sysproxyCardStatus} sysproxy-card flex flex-1 items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
     >

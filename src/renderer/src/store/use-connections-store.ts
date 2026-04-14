@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
+import { mihomoConnections } from '@renderer/utils/mihomo-ipc'
 
 export interface ExtendedConnection extends ControllerConnectionDetail {
   isActive: boolean
@@ -71,6 +72,8 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   setPaused: (paused: boolean) => set({ isPaused: paused }),
 
   initializeListeners: () => {
+    let lastSnapshotAt = 0
+
     const handleConnections = (_e: unknown, info: ControllerConnections): void => {
       if (!info || !info.connections) return
 
@@ -81,14 +84,22 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       if (isPaused) return
       // 窗口不可见时跳过列表衍生计算，降低后台 CPU 占用
       if (document.hidden) return
-      
+
+      const now = Date.now()
+      const elapsedMs = lastSnapshotAt > 0 ? Math.max(1, now - lastSnapshotAt) : 0
+      lastSnapshotAt = now
+
       const { activeConnections: prevActive, closedConnections: prevClosed } = get()
       const prevActiveMap = new Map(prevActive.map((c) => [c.id, c]))
       
       const newActive: ExtendedConnection[] = info.connections.map((conn) => {
         const prev = prevActiveMap.get(conn.id)
-        const downloadSpeed = prev ? conn.download - prev.download : 0
-        const uploadSpeed = prev ? conn.upload - prev.upload : 0
+        const downloadSpeed = prev && elapsedMs > 0
+          ? Math.round(((conn.download - prev.download) * 1000) / elapsedMs)
+          : 0
+        const uploadSpeed = prev && elapsedMs > 0
+          ? Math.round(((conn.upload - prev.upload) * 1000) / elapsedMs)
+          : 0
         
         // Enhance metadata if needed (e.g. for Inner type)
         const metadata = conn.metadata.type === 'Inner' 
@@ -156,6 +167,15 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
 
     // Register Listeners (registerHandlers handles cleanup of old ones)
     registerHandlers(handleConnections, handleMemory)
+
+    // 进入连接/统计相关页面时主动拉一次当前快照，避免只等待后续增量事件导致首屏空白。
+    void mihomoConnections()
+      .then((snapshot) => {
+        handleConnections(undefined, snapshot)
+      })
+      .catch(() => {
+        // ignore initial snapshot fetch failures
+      })
   },
 
   cleanupListeners: () => {

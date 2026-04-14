@@ -1,4 +1,4 @@
-import type { TitleBarOverlayOptions } from 'electron'
+import type { DesktopTitleBarOverlayOptions } from '../../../shared/types/desktop-bridge'
 import { C, invokeSafe } from './ipc-core'
 
 export async function showContextMenu(): Promise<void> {
@@ -33,7 +33,7 @@ export async function isAlwaysOnTop(): Promise<boolean> {
   return invokeSafe(C.isAlwaysOnTop)
 }
 
-export async function setTitleBarOverlay(overlay: TitleBarOverlayOptions): Promise<void> {
+export async function setTitleBarOverlay(overlay: DesktopTitleBarOverlayOptions): Promise<void> {
   return invokeSafe(C.setTitleBarOverlay, overlay)
 }
 

@@ -1,13 +1,16 @@
 import { Button, Card, CardBody, Tooltip } from '@heroui/react'
 import { LuCircleArrowDown, LuCircleArrowUp, LuPlug } from 'react-icons/lu'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useEffect, useState, useRef } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { ON, SEND, onIpc, sendIpc } from '@renderer/utils/ipc-channels'
+import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { getIconDataURL } from '@renderer/utils/resource-ipc'
 import { platform } from '@renderer/utils/init'
+import { navigateSidebarRoute } from '@renderer/routes'
+import { useConnectionsStore } from '@renderer/store/use-connections-store'
+import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
 import TrafficChart from './traffic-chart'
 
 let currentUpload: number | undefined = undefined
@@ -30,11 +33,15 @@ const ConnCard: React.FC<Props> = (props) => {
   showTrafficRef.current = showTraffic
 
   const location = useLocation()
-  const navigate = useNavigate()
   const match = location.pathname.includes('/connections')
+  const handleNavigate = (): void => {
+    navigateSidebarRoute('/connections')
+  }
 
   const [upload, setUpload] = useState(0)
   const [download, setDownload] = useState(0)
+  const lastVisualUpdateAtRef = useRef(0)
+  const activeConnections = useConnectionsStore((state) => state.activeConnections)
   
   const [trafficData, setTrafficData] = useState(() =>
     Array(16)
@@ -42,6 +49,33 @@ const ConnCard: React.FC<Props> = (props) => {
       .map((_, i) => ({ upload: 0, download: 0, index: i }))
   )
   const isWindowFocusedRef = useRef(!document.hidden)
+
+  useEffect(() => {
+    if (activeConnections.length === 0) {
+      return
+    }
+
+    const nextUpload = activeConnections.reduce(
+      (total, connection) => total + (connection.uploadSpeed || 0),
+      0
+    )
+    const nextDownload = activeConnections.reduce(
+      (total, connection) => total + (connection.downloadSpeed || 0),
+      0
+    )
+
+    setUpload(nextUpload)
+    setDownload(nextDownload)
+
+    if (isWindowFocusedRef.current) {
+      setTrafficData((prev) => {
+        const newData = [...prev]
+        newData.shift()
+        newData.push({ upload: nextUpload, download: nextDownload, index: Date.now() })
+        return newData
+      })
+    }
+  }, [activeConnections])
 
   // 监听窗口焦点状态
   useEffect(() => {
@@ -55,7 +89,13 @@ const ConnCard: React.FC<Props> = (props) => {
   }, [])
 
   useEffect(() => {
-    const handleTraffic = async (_e: unknown, info: ControllerTraffic): Promise<void> => {
+    const handleTraffic = async (info: ControllerTraffic): Promise<void> => {
+      const now = Date.now()
+      if (now - lastVisualUpdateAtRef.current < 250) {
+        return
+      }
+      lastVisualUpdateAtRef.current = now
+
       setUpload(info.up)
       setDownload(info.down)
 
@@ -87,7 +127,9 @@ const ConnCard: React.FC<Props> = (props) => {
       }
     }
 
-    return onIpc(ON.mihomoTraffic, handleTraffic)
+    return subscribeDesktopTraffic((info) => {
+      void handleTraffic(info)
+    })
   }, [])
 
   if (iconOnly) {
@@ -99,9 +141,7 @@ const ConnCard: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
-            onPress={() => {
-              navigate('/connections')
-            }}
+            onPress={handleNavigate}
           >
             <LuPlug className="text-[16px]" />
           </Button>
@@ -115,7 +155,7 @@ const ConnCard: React.FC<Props> = (props) => {
       <Card
         fullWidth
         isPressable
-        onPress={() => navigate('/connections')}
+        onPress={handleNavigate}
         className={`
           ${CARD_STYLES.BASE}
           ${match ? CARD_STYLES.ACTIVE : CARD_STYLES.INACTIVE}

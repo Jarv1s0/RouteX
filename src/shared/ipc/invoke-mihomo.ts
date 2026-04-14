@@ -5,6 +5,7 @@ export const MIHOMO_IPC_INVOKE_CHANNELS = {
   mihomoCloseAllConnections: 'mihomoCloseAllConnections',
   mihomoCloseConnection: 'mihomoCloseConnection',
   mihomoConfig: 'mihomoConfig',
+  mihomoConnections: 'mihomoConnections',
   mihomoDnsQuery: 'mihomoDnsQuery',
   mihomoGroupDelay: 'mihomoGroupDelay',
   mihomoGroups: 'mihomoGroups',

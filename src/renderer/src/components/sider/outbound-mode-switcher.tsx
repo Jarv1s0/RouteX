@@ -53,7 +53,7 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
             key={m.key}
             onClick={() => onChangeMode(m.key as OutboundMode)}
             className={clsx(
-              'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm transition-all duration-300 rounded-xl z-10 box-border',
+              'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm transition-colors duration-200 rounded-xl z-10 box-border',
               isActive
                 ? 'text-foreground dark:text-foreground bg-primary/30 dark:bg-primary/30 backdrop-blur-md border-transparent shadow-sm font-semibold'
                 : 'text-default-700 dark:text-default-300 hover:text-foreground dark:hover:text-foreground hover:bg-primary/10 dark:hover:bg-primary/20 font-medium'

@@ -1,4 +1,5 @@
 import { IPC_INVOKE_CHANNELS, type IpcInvokeChannel } from '../../../shared/ipc'
+import { desktop } from '@renderer/api/desktop'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ipcErrorWrapper(response: any): any {
@@ -14,11 +15,11 @@ let globalAlertInstalled = false
 export { C }
 
 export async function invokeSafe<T>(channel: IpcInvokeChannel, ...args: unknown[]): Promise<T> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke<T>(channel, ...args))
+  return ipcErrorWrapper(await desktop.invoke<T>(channel, ...args))
 }
 
 export async function invokeRaw<T>(channel: IpcInvokeChannel, ...args: unknown[]): Promise<T> {
-  return window.electron.ipcRenderer.invoke<T>(channel, ...args)
+  return desktop.invoke<T>(channel, ...args)
 }
 
 export function installGlobalAlert(): void {

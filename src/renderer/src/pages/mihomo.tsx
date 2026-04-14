@@ -13,7 +13,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { platform } from '@renderer/utils/init'
 import { IoMdCloudDownload } from 'react-icons/io'
 import PubSub from 'pubsub-js'
-import { relaunchApp, notDialogQuit } from '@renderer/utils/app-ipc'
+import { relaunchApp, notDialogQuit } from '@renderer/api/app'
 import {
   checkMihomoLatestVersion,
   ensureMihomoCoreAvailable,
@@ -35,7 +35,10 @@ const Mihomo: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { ipv6 } = controledMihomoConfig || {}
 
-  const { data: version } = useSWR('mihomoVersion', mihomoVersion)
+  const { data: version } = useSWR('mihomoVersion', mihomoVersion, {
+    revalidateIfStale: false,
+    revalidateOnMount: false
+  })
   const [latestVersion, setLatestVersion] = useState<string | null>(null)
   const [upgrading, setUpgrading] = useState(false)
   const [showGrantConfirm, setShowGrantConfirm] = useState(false)
@@ -47,12 +50,21 @@ const Mihomo: React.FC = () => {
   // 检查最新版本
   useEffect(() => {
     setLatestVersion(null)
-    const checkLatest = async () => {
-      const isAlpha = core === 'mihomo-alpha'
-      const latest = await checkMihomoLatestVersion(isAlpha)
-      setLatestVersion(latest)
+    let cancelled = false
+    const timer = setTimeout(() => {
+      void (async () => {
+        const isAlpha = core === 'mihomo-alpha'
+        const latest = await checkMihomoLatestVersion(isAlpha)
+        if (!cancelled) {
+          setLatestVersion(latest)
+        }
+      })()
+    }, 2500)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
     }
-    checkLatest()
   }, [core])
 
   // 比较版本号，判断是否有新版本
@@ -273,6 +285,7 @@ const Mihomo: React.FC = () => {
               <Button
                 size="sm"
                 isIconOnly
+                aria-label="升级内核"
                 title="升级内核"
                 variant="light"
                 isLoading={upgrading}
@@ -285,6 +298,7 @@ const Mihomo: React.FC = () => {
           divider
         >
           <Select
+            aria-label="选择内核版本"
             classNames={{
               trigger: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50"
             }}
@@ -302,6 +316,7 @@ const Mihomo: React.FC = () => {
         </SettingItem>
         <SettingItem title="运行模式" divider>
           <Tabs
+            aria-label="选择内核运行模式"
             classNames={CARD_STYLES.GLASS_TABS}
             selectedKey={corePermissionMode}
             disabledKeys={['service']}
@@ -312,17 +327,28 @@ const Mihomo: React.FC = () => {
           </Tabs>
         </SettingItem>
         <SettingItem title={platform === 'win32' ? '任务状态' : '授权状态'} divider>
-          <Button size="sm" color="primary" onPress={() => setShowPermissionModal(true)}>
+          <Button
+            size="sm"
+            color="primary"
+            aria-label={platform === 'win32' ? '管理任务状态' : '管理授权状态'}
+            onPress={() => setShowPermissionModal(true)}
+          >
             管理
           </Button>
         </SettingItem>
         <SettingItem title="服务状态" divider>
-          <Button size="sm" color="primary" onPress={() => setShowServiceModal(true)}>
+          <Button
+            size="sm"
+            color="primary"
+            aria-label="管理服务状态"
+            onPress={() => setShowServiceModal(true)}
+          >
             管理
           </Button>
         </SettingItem>
         <SettingItem title="IPv6">
           <Switch
+            aria-label="切换 IPv6"
             size="sm"
             isSelected={ipv6}
             onValueChange={(v) => onChangeNeedRestart({ ipv6: v })}

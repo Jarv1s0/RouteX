@@ -1,9 +1,10 @@
 import { create } from 'zustand'
-import { getAppConfig, patchAppConfig as patch } from '@renderer/utils/app-ipc'
+import { getAppConfig, patchAppConfig as patch } from '@renderer/api/app'
 import merge from 'lodash/merge'
 
 interface AppState {
   appConfig: AppConfig | undefined
+  setAppConfig: (config: AppConfig) => void
   fetchAppConfig: () => Promise<void>
   patchAppConfig: (value: Partial<AppConfig>) => Promise<void>
   mutateAppConfig: () => void // Alias for fetchAppConfig to keep compatibility
@@ -11,6 +12,10 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   appConfig: undefined,
+
+  setAppConfig: (config) => {
+    set({ appConfig: config })
+  },
 
   fetchAppConfig: async () => {
     try {

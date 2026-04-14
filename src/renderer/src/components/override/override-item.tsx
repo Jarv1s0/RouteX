@@ -13,7 +13,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { IoMdMore, IoMdRefresh } from 'react-icons/io'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { Key, useEffect, useMemo, useState } from 'react'
+import { Key, useEffect, useMemo, useRef, useState } from 'react'
 import EditInfoModal from './edit-info-modal'
 import EditFileModal from './edit-file-modal'
 import { openFile } from '@renderer/utils/file-ipc'
@@ -67,6 +67,8 @@ const OverrideItem: React.FC<Props> = (props) => {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [rollbackAvailable, setRollbackAvailable] = useState(false)
   const [rollingBack, setRollingBack] = useState(false)
+  const dragReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wasDraggingRef = useRef(false)
 
   const menuItems: MenuItem[] = useMemo(() => {
     const list: MenuItem[] = []
@@ -205,14 +207,30 @@ const OverrideItem: React.FC<Props> = (props) => {
   }
 
   useEffect(() => {
+    if (dragReleaseTimerRef.current) {
+      clearTimeout(dragReleaseTimerRef.current)
+      dragReleaseTimerRef.current = null
+    }
+
     if (isDragging) {
-      setTimeout(() => {
-        setDisableOpen(true)
-      }, 200)
-    } else {
-      setTimeout(() => {
+      wasDraggingRef.current = true
+      setDisableOpen(true)
+      return
+    }
+
+    if (wasDraggingRef.current) {
+      dragReleaseTimerRef.current = setTimeout(() => {
         setDisableOpen(false)
+        dragReleaseTimerRef.current = null
       }, 200)
+      wasDraggingRef.current = false
+    }
+
+    return () => {
+      if (dragReleaseTimerRef.current) {
+        clearTimeout(dragReleaseTimerRef.current)
+        dragReleaseTimerRef.current = null
+      }
     }
   }, [isDragging])
 

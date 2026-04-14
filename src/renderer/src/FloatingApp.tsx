@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import MihomoIcon from './components/base/mihomo-icon'
 import { calcTraffic } from './utils/calc'
 import { showContextMenu, triggerMainWindow } from './utils/window-ipc'
-import { ON, onIpc } from './utils/ipc-channels'
 import { useAppConfig } from './hooks/use-app-config'
 import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
+import { subscribeDesktopTraffic } from './utils/mihomo-ipc'
 
 const FloatingApp: React.FC = () => {
   const { appConfig } = useAppConfig()
@@ -50,12 +50,10 @@ const FloatingApp: React.FC = () => {
   }, [spinSpeed, spinFloatingIcon])
 
   useEffect(() => {
-    const handleTraffic = async (_e, info: ControllerTraffic): Promise<void> => {
+    return subscribeDesktopTraffic((info) => {
       setUpload(info.up)
       setDownload(info.down)
-    }
-
-    return onIpc(ON.mihomoTraffic, handleTraffic)
+    }, true)
   }, [])
 
   return (
