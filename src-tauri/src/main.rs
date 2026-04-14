@@ -3108,16 +3108,20 @@ fn ensure_floating_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow
     .decorations(false)
     .always_on_top(true)
     .skip_taskbar(true)
-    .transparent(true)
     .shadow(true)
     .visible(false)
     .focused(true);
+
+    #[cfg(target_os = "windows")]
+    {
+        builder = builder.transparent(true);
+    }
 
     if let Some(state) = read_floating_window_state(app)? {
         builder = builder.position(state.x as f64, state.y as f64);
     }
 
-    let window = builder.build().map_err(|e| e.to_string())?;
+    let window = builder.build().map_err(|e: tauri::Error| e.to_string())?;
 
     window.on_window_event({
         let handle = app.clone();
@@ -5872,6 +5876,7 @@ fn finish_update_download(state: &State<'_, CoreState>) {
 }
 
 fn launch_downloaded_update(app: &tauri::AppHandle, installer_path: &Path) -> Result<(), String> {
+    let _ = app;
     #[cfg(target_os = "windows")]
     {
         let is_msi = installer_path
@@ -7960,11 +7965,12 @@ fn manual_grant_core_permission(
 }
 
 fn revoke_core_permission(
-    _app: &tauri::AppHandle,
+    app: &tauri::AppHandle,
     cores: Option<Vec<String>>,
 ) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
+        let _ = app;
         let _ = cores;
         return delete_elevate_task();
     }
