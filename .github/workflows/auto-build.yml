@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - develop
-      - codex/tauri-migration
+      - tauri
   workflow_dispatch:
 
 concurrency:
@@ -37,12 +37,15 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           BRANCH_SLUG=$(echo "${GITHUB_REF_NAME}" | sed 's#[^A-Za-z0-9._-]#-#g')
-          RELEASE_TAG="autobuild"
-          RELEASE_LABEL="Autobuild"
+          RELEASE_TAG="autobuild-${BRANCH_SLUG}"
+          RELEASE_LABEL="Autobuild ${GITHUB_REF_NAME}"
 
-          if [ "${GITHUB_REF_NAME}" != "develop" ]; then
-            RELEASE_TAG="autobuild-${BRANCH_SLUG}"
-            RELEASE_LABEL="Autobuild ${GITHUB_REF_NAME}"
+          if [ "${GITHUB_REF_NAME}" = "tauri" ]; then
+            RELEASE_TAG="autobuild-tauri"
+            RELEASE_LABEL="Autobuild tauri"
+          elif [ "${GITHUB_REF_NAME}" = "develop" ]; then
+            RELEASE_TAG="autobuild-tauri-develop"
+            RELEASE_LABEL="Autobuild tauri Develop"
           fi
 
           SHORT_HASH=$(git rev-parse --short HEAD)
