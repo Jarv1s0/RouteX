@@ -248,6 +248,14 @@ async function getLatestVersion(url, label) {
 getAssetPrefixCandidates(platform, arch)
 cleanupOptionalExtraResources()
 
+// Pre-create directories to ensure they exist for the build system
+const sidecarDir = path.join(cwd, 'extra', 'sidecar')
+const resDir = path.join(cwd, 'extra', 'files')
+console.log(`[INFO]: Working directory: ${cwd}`)
+console.log(`[INFO]: Ensuring directories exist: ${sidecarDir}, ${resDir}`)
+fs.mkdirSync(sidecarDir, { recursive: true })
+fs.mkdirSync(resDir, { recursive: true })
+
 /**
  * core info
  */
@@ -272,7 +280,6 @@ async function resolveSidecar(binInfo) {
   const sidecarDir = path.join(cwd, 'extra', 'sidecar')
   const sidecarPath = path.join(sidecarDir, targetFile)
 
-  fs.mkdirSync(sidecarDir, { recursive: true })
   if (!tryRemoveExisting(sidecarPath, name)) {
     return
   }
@@ -356,8 +363,6 @@ async function resolveResource(binInfo) {
   if (!tryRemoveExisting(targetPath, file)) {
     return
   }
-
-  fs.mkdirSync(resDir, { recursive: true })
   await downloadFile(downloadURL, targetPath)
 
   if (needExecutable && platform !== 'win32') {
