@@ -34,6 +34,13 @@
       "../extra/sidecar",
       "../extra/files"
     ],
+    "windows": {
+      "nsis": {
+        "headerImage": "../resources/installerHeader.bmp",
+        "sidebarImage": "../resources/installerSidebar.bmp",
+        "installerIcon": "../resources/installerIcon.ico"
+      }
+    },
     "icon": [
       "../resources/icon.png",
       "../resources/icon.ico",
