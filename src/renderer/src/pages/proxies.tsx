@@ -255,6 +255,10 @@ const Proxies: React.FC = () => {
     []
   )
 
+  const setGroupDelaying = useCallback((groupName: string, value: boolean): void => {
+    setDelaying((prev) => ({ ...prev, [groupName]: value }))
+  }, [])
+
   const runGroupDelayTest = useCallback(
     async (group: ControllerMixedGroup): Promise<void> => {
       const targets = getDelayTestTargets(group)
@@ -277,9 +281,22 @@ const Proxies: React.FC = () => {
     [delayTestConcurrency]
   )
 
-  const onGroupDelay = useCallback(
-    async (groupName: string, testUrl?: string): Promise<void> => {
-      setDelaying((prev) => ({ ...prev, [groupName]: true }))
+  const refreshGroups = useCallback(
+    async (awaitRefresh = false): Promise<void> => {
+      const refreshPromise = mutate()
+      if (awaitRefresh) {
+        await refreshPromise
+        return
+      }
+
+      void refreshPromise
+    },
+    [mutate]
+  )
+
+  const runDelayTestByGroupName = useCallback(
+    async (groupName: string, testUrl?: string, awaitRefresh = false): Promise<void> => {
+      setGroupDelaying(groupName, true)
 
       try {
         const group = groups.find((item) => item.name === groupName)
@@ -294,11 +311,18 @@ const Proxies: React.FC = () => {
       } catch {
         // ignore
       } finally {
-        setDelaying((prev) => ({ ...prev, [groupName]: false }))
-        mutate()
+        setGroupDelaying(groupName, false)
+        await refreshGroups(awaitRefresh)
       }
     },
-    [groups, mutate, runGroupDelayTest]
+    [groups, refreshGroups, runGroupDelayTest, setGroupDelaying]
+  )
+
+  const onGroupDelay = useCallback(
+    async (groupName: string, testUrl?: string): Promise<void> => {
+      await runDelayTestByGroupName(groupName, testUrl)
+    },
+    [runDelayTestByGroupName]
   )
 
   const toggleOpen = useCallback((groupName: string) => {
@@ -325,16 +349,7 @@ const Proxies: React.FC = () => {
         }
 
         return async (): Promise<void> => {
-          setDelaying((prev) => ({ ...prev, [group.name]: true }))
-
-          try {
-            await runGroupDelayTest(group)
-            await mutate()
-          } catch {
-            // ignore
-          } finally {
-            setDelaying((prev) => ({ ...prev, [group.name]: false }))
-          }
+          await runDelayTestByGroupName(group.name, group.testUrl, true)
         }
       })
       
@@ -343,7 +358,7 @@ const Proxies: React.FC = () => {
     }
     
     void doAutoDelayTest()
-  }, [groups, mutate, autoDelayTestOnShow, delayTestConcurrency, runGroupDelayTest])
+  }, [groups, mutate, autoDelayTestOnShow, delayTestConcurrency, runDelayTestByGroupName])
 
   // 获取节点延迟颜色
   const getDelayColor = useCallback((proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {

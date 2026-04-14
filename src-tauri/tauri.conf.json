@@ -32,7 +32,12 @@
     "targets": "all",
     "resources": [
       "../extra/sidecar",
-      "../extra/files"
+      "../extra/files",
+      "../resources/icon_tun.ico",
+      "../resources/icon_proxy.ico",
+      "../resources/icon.ico",
+      "../resources/icon.png",
+      "../resources/iconTemplate.png"
     ],
     "windows": {
       "nsis": {

@@ -64,6 +64,8 @@ const TRAY_MENU_MODE_RULE_ID: &str = "tray.mode.rule";
 const TRAY_MENU_MODE_GLOBAL_ID: &str = "tray.mode.global";
 const TRAY_MENU_MODE_DIRECT_ID: &str = "tray.mode.direct";
 const TRAY_MENU_QUIT_ID: &str = "tray.quit";
+const TRAY_MENU_GROUP_TEST_PREFIX: &str = "tray.group.test::";
+const TRAY_MENU_GROUP_PROXY_PREFIX: &str = "tray.group.proxy::";
 const SHORTCUT_ACTION_KEYS: [&str; 9] = [
     "showWindowShortcut",
     "showFloatingWindowShortcut",
@@ -123,6 +125,14 @@ struct CoreEventsMonitorHandle {
     shutdown: mpsc::Sender<()>,
 }
 
+struct LightweightModeHandle {
+    shutdown: mpsc::Sender<()>,
+}
+
+struct SsidCheckHandle {
+    shutdown: mpsc::Sender<()>,
+}
+
 #[derive(Debug, Clone)]
 struct NetworkHealthState {
     latency_history: Vec<i64>,
@@ -147,12 +157,15 @@ struct CoreState {
     runtime: Mutex<CoreRuntime>,
     last_sysproxy_signature: Mutex<Option<String>>,
     pac_server: Mutex<Option<PacServerHandle>>,
+    lightweight_mode: Mutex<Option<LightweightModeHandle>>,
     network_detection: Mutex<Option<NetworkDetectionHandle>>,
+    ssid_check: Mutex<Option<SsidCheckHandle>>,
     core_events_monitor: Mutex<Option<CoreEventsMonitorHandle>>,
     network_health_monitor: Mutex<Option<NetworkHealthMonitorHandle>>,
     network_health_state: Mutex<NetworkHealthState>,
     network_down_handled: Mutex<bool>,
     update_download_cancel: Mutex<Option<Arc<AtomicBool>>>,
+    allow_main_window_close: Mutex<bool>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -629,6 +642,11 @@ fn default_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app.path().app_data_dir().map_err(|e| e.to_string())
 }
 
+fn ensure_dir(path: PathBuf) -> Result<PathBuf, String> {
+    fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    Ok(path)
+}
+
 fn copy_path_if_missing(source: &Path, target: &Path) -> Result<(), String> {
     if !source.exists() {
         return Ok(());
@@ -693,21 +711,16 @@ fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .unwrap_or_else(|| default_root.clone());
 
     migrate_tauri_app_data_root_if_needed(&default_root, &target_root)?;
-    fs::create_dir_all(&target_root).map_err(|e| e.to_string())?;
-    Ok(target_root)
+    ensure_dir(target_root)
 }
 
 #[cfg(not(target_os = "windows"))]
 fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = default_app_data_root(app)?;
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir)
+    ensure_dir(default_app_data_root(app)?)
 }
 
 fn app_storage_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = app_data_root(app)?.join(STORAGE_DIR_NAME);
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir)
+    ensure_dir(app_data_root(app)?.join(STORAGE_DIR_NAME))
 }
 
 fn storage_file(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
@@ -715,9 +728,7 @@ fn storage_file(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, Stri
 }
 
 fn storage_dir(app: &tauri::AppHandle, dir_name: &str) -> Result<PathBuf, String> {
-    let dir = app_storage_root(app)?.join(dir_name);
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir)
+    ensure_dir(app_storage_root(app)?.join(dir_name))
 }
 
 #[cfg(target_os = "windows")]
@@ -2222,6 +2233,11 @@ fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) -> Result<Pat
     }
 
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
+    let path = resource_dir.join("resources").join(file_name);
+    if path.exists() {
+        return Ok(path);
+    }
+
     let path = resource_dir.join(file_name);
     if path.exists() {
         return Ok(path);
@@ -2239,34 +2255,65 @@ fn set_tray_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<()
     tray.set_icon(Some(image)).map_err(|e| e.to_string())
 }
 
-fn update_tray_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {
-    if app.tray_by_id(TRAY_ICON_ID).is_none() {
+fn set_main_window_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("main") else {
         return Ok(());
+    };
+    let path = resolve_tray_icon_path(app, file_name)?;
+    let image = Image::from_path(path).map_err(|e| e.to_string())?;
+    window.set_icon(image).map_err(|e| e.to_string())
+}
+
+fn set_windows_shell_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
+    set_main_window_icon_from_path(app, file_name)?;
+    set_tray_icon_from_path(app, file_name)
+}
+
+fn windows_shell_icon_name_from_kind(kind: &str) -> &'static str {
+    match kind {
+        "tun" => "icon_tun.ico",
+        "proxy" => "icon_proxy.ico",
+        _ => "icon.ico",
+    }
+}
+
+fn windows_shell_icon_name_from_state(app: &tauri::AppHandle) -> Result<&'static str, String> {
+    let config = read_app_config_store(app)?;
+    let controled = read_controlled_config_store(app)?;
+    let sysproxy_enabled = config
+        .get("sysProxy")
+        .and_then(Value::as_object)
+        .and_then(|value| value.get("enable"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let tun_enabled = controled
+        .get("tun")
+        .and_then(Value::as_object)
+        .and_then(|value| value.get("enable"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+
+    Ok(if tun_enabled {
+        "icon_tun.ico"
+    } else if sysproxy_enabled {
+        "icon_proxy.ico"
+    } else {
+        "icon.ico"
+    })
+}
+
+fn update_windows_shell_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {
+    let icon_name = windows_shell_icon_name_from_state(app)?;
+    set_windows_shell_icon_from_path(app, icon_name)
+}
+
+fn update_tray_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {
+    if cfg!(target_os = "windows") {
+        return update_windows_shell_icon_for_state(app);
     }
 
-    if cfg!(target_os = "windows") {
-        let config = read_app_config_store(app)?;
-        let controled = read_controlled_config_store(app)?;
-        let sysproxy_enabled = config
-            .get("sysProxy")
-            .and_then(Value::as_object)
-            .and_then(|value| value.get("enable"))
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
-        let tun_enabled = controled
-            .get("tun")
-            .and_then(Value::as_object)
-            .and_then(|value| value.get("enable"))
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
-        let icon_name = if tun_enabled {
-            "icon_tun.ico"
-        } else if sysproxy_enabled {
-            "icon_proxy.ico"
-        } else {
-            "icon.ico"
-        };
-        return set_tray_icon_from_path(app, icon_name);
+    if app.tray_by_id(TRAY_ICON_ID).is_none() {
+        return Ok(());
     }
 
     if cfg!(target_os = "macos") {
@@ -2309,10 +2356,170 @@ fn apply_tray_icon_data_url(app: &tauri::AppHandle, data_url: &str) -> Result<()
     }
 }
 
-fn show_main_window(app: &tauri::AppHandle) -> Result<(), String> {
-    let Some(window) = app.get_webview_window("main") else {
-        return Err("main window is unavailable".to_string());
+fn set_main_window_close_allowed(app: &tauri::AppHandle, allowed: bool) {
+    if let Ok(mut value) = app.state::<CoreState>().allow_main_window_close.lock() {
+        *value = allowed;
+    }
+}
+
+fn take_main_window_close_allowed(app: &tauri::AppHandle) -> bool {
+    let state = app.state::<CoreState>();
+    let Ok(mut value) = state.allow_main_window_close.lock() else {
+        return false;
     };
+    let current = *value;
+    *value = false;
+    current
+}
+
+fn stop_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
+    let state = app.state::<CoreState>();
+    let mut handle = state
+        .lightweight_mode
+        .lock()
+        .map_err(|e| e.to_string())?;
+    if let Some(current) = handle.take() {
+        let _ = current.shutdown.send(());
+    }
+    Ok(())
+}
+
+fn close_main_window_renderer(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        set_main_window_close_allowed(app, true);
+        let _ = window.close();
+    }
+    Ok(())
+}
+
+fn exit_app_without_core(app: &tauri::AppHandle) -> Result<(), String> {
+    let _ = stop_lightweight_mode(app);
+    close_main_window_renderer(app)?;
+    app.exit(0);
+    Ok(())
+}
+
+fn schedule_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
+    stop_lightweight_mode(app)?;
+
+    let config = read_app_config_store(app)?;
+    let enabled = config
+        .get("autoLightweight")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if !enabled {
+        return Ok(());
+    }
+
+    let delay_secs = config
+        .get("autoLightweightDelay")
+        .and_then(Value::as_u64)
+        .unwrap_or(60);
+    let mode = config
+        .get("autoLightweightMode")
+        .and_then(Value::as_str)
+        .unwrap_or("core")
+        .to_string();
+    let (shutdown_tx, shutdown_rx) = mpsc::channel();
+
+    {
+        let state = app.state::<CoreState>();
+        let mut handle = state
+            .lightweight_mode
+            .lock()
+            .map_err(|e| e.to_string())?;
+        *handle = Some(LightweightModeHandle {
+            shutdown: shutdown_tx,
+        });
+    }
+
+    let app_handle = app.clone();
+    thread::spawn(move || {
+        if shutdown_rx.recv_timeout(Duration::from_secs(delay_secs)).is_ok() {
+            return;
+        }
+
+        let _ = match mode.as_str() {
+            "tray" => close_main_window_renderer(&app_handle),
+            _ => exit_app_without_core(&app_handle),
+        };
+
+        if let Ok(mut handle) = app_handle.state::<CoreState>().lightweight_mode.lock() {
+            *handle = None;
+        }
+    });
+
+    Ok(())
+}
+
+fn refresh_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("main") else {
+        return stop_lightweight_mode(app);
+    };
+
+    if window.is_visible().map_err(|e| e.to_string())? {
+        stop_lightweight_mode(app)
+    } else {
+        schedule_lightweight_mode(app)
+    }
+}
+
+fn install_main_window_handlers(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
+    let handle = app.clone();
+    let tracked_window = window.clone();
+    window.on_window_event(move |event| {
+        if let WindowEvent::CloseRequested { api, .. } = event {
+            if take_main_window_close_allowed(&handle) {
+                return;
+            }
+
+            api.prevent_close();
+            let _ = tracked_window.hide();
+            let _ = schedule_lightweight_mode(&handle);
+        }
+    });
+}
+
+fn build_main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|config| config.label == "main")
+        .cloned()
+        .ok_or_else(|| "main window config is missing".to_string())?;
+    let window = WebviewWindowBuilder::from_config(app, &config)
+        .map_err(|e| e.to_string())?
+        .build()
+        .map_err(|e| e.to_string())?;
+    install_main_window_handlers(app, &window);
+    Ok(window)
+}
+
+fn ensure_main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
+    if let Some(window) = app.get_webview_window("main") {
+        return Ok(window);
+    }
+
+    build_main_window(app)
+}
+
+fn hide_main_window(app: &tauri::AppHandle, lightweight: bool) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
+
+    if lightweight {
+        schedule_lightweight_mode(app)
+    } else {
+        stop_lightweight_mode(app)
+    }
+}
+
+fn show_main_window(app: &tauri::AppHandle) -> Result<(), String> {
+    stop_lightweight_mode(app)?;
+    let window = ensure_main_window(app)?;
     if window.is_minimized().map_err(|e| e.to_string())? {
         let _ = window.unminimize();
     }
@@ -2322,15 +2529,12 @@ fn show_main_window(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 fn trigger_main_window(app: &tauri::AppHandle) -> Result<(), String> {
-    let Some(window) = app.get_webview_window("main") else {
-        return Err("main window is unavailable".to_string());
-    };
+    let window = ensure_main_window(app)?;
 
     if window.is_visible().map_err(|e| e.to_string())?
         && !window.is_minimized().map_err(|e| e.to_string())?
     {
-        let _ = window.hide();
-        return Ok(());
+        return hide_main_window(app, false);
     }
 
     show_main_window(app)
@@ -2350,9 +2554,145 @@ fn tray_mode_label(mode: &str) -> &'static str {
     }
 }
 
+fn tray_delay_label(delay: i64) -> String {
+    if delay == 0 {
+        "Timeout".to_string()
+    } else if delay > 0 {
+        format!("{delay} ms")
+    } else {
+        String::new()
+    }
+}
+
+fn encode_tray_menu_segment(value: &str) -> String {
+    urlencoding::encode(value).into_owned()
+}
+
+fn decode_tray_menu_segment(value: &str) -> Option<String> {
+    urlencoding::decode(value).ok().map(|decoded| decoded.into_owned())
+}
+
+fn build_tray_group_test_id(group: &str) -> String {
+    format!("{TRAY_MENU_GROUP_TEST_PREFIX}{}", encode_tray_menu_segment(group))
+}
+
+fn build_tray_group_proxy_id(group: &str, proxy: &str) -> String {
+    format!(
+        "{TRAY_MENU_GROUP_PROXY_PREFIX}{}::{}",
+        encode_tray_menu_segment(group),
+        encode_tray_menu_segment(proxy)
+    )
+}
+
+fn parse_tray_group_test_id(id: &str) -> Option<String> {
+    id.strip_prefix(TRAY_MENU_GROUP_TEST_PREFIX)
+        .and_then(decode_tray_menu_segment)
+}
+
+fn parse_tray_group_proxy_id(id: &str) -> Option<(String, String)> {
+    let raw = id.strip_prefix(TRAY_MENU_GROUP_PROXY_PREFIX)?;
+    let (group, proxy) = raw.split_once("::")?;
+    Some((
+        decode_tray_menu_segment(group)?,
+        decode_tray_menu_segment(proxy)?,
+    ))
+}
+
+fn load_native_tray_groups(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
+    let state = app.state::<CoreState>();
+    let proxies = core_request(&state, reqwest::Method::GET, "/proxies", None, None)?;
+    let runtime = current_runtime_value(app, &state)?;
+    Ok(build_mihomo_groups_value(&proxies, &runtime)
+        .as_array()
+        .cloned()
+        .unwrap_or_default())
+}
+
+fn append_native_tray_group_menus(
+    app: &tauri::AppHandle,
+    menu: &Menu<tauri::Wry>,
+) -> Result<bool, String> {
+    let groups = load_native_tray_groups(app)?;
+    if groups.is_empty() {
+        return Ok(false);
+    }
+
+    for group in groups {
+        let Some(name) = group.get("name").and_then(Value::as_str) else {
+            continue;
+        };
+        let current_proxy = group.get("now").and_then(Value::as_str).unwrap_or_default();
+        let current_delay = group
+            .get("all")
+            .and_then(Value::as_array)
+            .and_then(|items| {
+                items.iter().find(|item| {
+                    item.get("name").and_then(Value::as_str) == Some(current_proxy)
+                })
+            })
+            .and_then(|item| item.get("history").and_then(Value::as_array))
+            .and_then(|history| history.last())
+            .and_then(|item| item.get("delay").and_then(Value::as_i64))
+            .unwrap_or(-1);
+        let title = match tray_delay_label(current_delay).is_empty() {
+            true => name.to_string(),
+            false => format!("{} ({})", name, tray_delay_label(current_delay)),
+        };
+
+        let submenu = Submenu::new(app, title, true).map_err(|e| e.to_string())?;
+        let retest = MenuItem::with_id(
+            app,
+            build_tray_group_test_id(name),
+            "重新测试",
+            true,
+            None::<&str>,
+        )
+        .map_err(|e| e.to_string())?;
+        let separator = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+        submenu.append(&retest).map_err(|e| e.to_string())?;
+        submenu.append(&separator).map_err(|e| e.to_string())?;
+
+        if let Some(items) = group.get("all").and_then(Value::as_array) {
+            for item in items {
+                let Some(proxy_name) = item.get("name").and_then(Value::as_str) else {
+                    continue;
+                };
+                let delay = item
+                    .get("history")
+                    .and_then(Value::as_array)
+                    .and_then(|history| history.last())
+                    .and_then(|history| history.get("delay").and_then(Value::as_i64))
+                    .unwrap_or(-1);
+                let label = match tray_delay_label(delay).is_empty() {
+                    true => proxy_name.to_string(),
+                    false => format!("{} ({})", proxy_name, tray_delay_label(delay)),
+                };
+                let proxy_item = CheckMenuItem::with_id(
+                    app,
+                    build_tray_group_proxy_id(name, proxy_name),
+                    label,
+                    true,
+                    proxy_name == current_proxy,
+                    None::<&str>,
+                )
+                .map_err(|e| e.to_string())?;
+                submenu.append(&proxy_item).map_err(|e| e.to_string())?;
+            }
+        }
+
+        menu.append(&submenu).map_err(|e| e.to_string())?;
+    }
+
+    Ok(true)
+}
+
 fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, String> {
     let app_config = read_app_config_store(app)?;
     let controlled_config = read_controlled_config_store(app)?;
+    let proxy_in_tray = app_config
+        .get("proxyInTray")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
 
     let show_floating = app_config
         .get("showFloatingWindow")
@@ -2452,22 +2792,29 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     let separator_1 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let separator_2 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let separator_3 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let separator_4 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let menu = Menu::new(app).map_err(|e| e.to_string())?;
+    menu.append(&show_window).map_err(|e| e.to_string())?;
+    menu.append(&toggle_floating).map_err(|e| e.to_string())?;
+    menu.append(&separator_1).map_err(|e| e.to_string())?;
+    menu.append(&sys_proxy).map_err(|e| e.to_string())?;
+    menu.append(&tun).map_err(|e| e.to_string())?;
+    menu.append(&separator_2).map_err(|e| e.to_string())?;
+    menu.append(&mode_menu).map_err(|e| e.to_string())?;
 
-    Menu::with_items(
-        app,
-        &[
-            &show_window,
-            &toggle_floating,
-            &separator_1,
-            &sys_proxy,
-            &tun,
-            &separator_2,
-            &mode_menu,
-            &separator_3,
-            &quit,
-        ],
-    )
-    .map_err(|e| e.to_string())
+    let appended_groups = if proxy_in_tray && !cfg!(target_os = "linux") {
+        append_native_tray_group_menus(app, &menu).unwrap_or(false)
+    } else {
+        false
+    };
+
+    if appended_groups {
+        menu.append(&separator_3).map_err(|e| e.to_string())?;
+    }
+
+    menu.append(&separator_4).map_err(|e| e.to_string())?;
+    menu.append(&quit).map_err(|e| e.to_string())?;
+    Ok(menu)
 }
 
 fn refresh_native_tray_menu(app: &tauri::AppHandle) -> Result<(), String> {
@@ -2566,8 +2913,66 @@ fn handle_tray_change_mode(
     Ok(())
 }
 
+fn handle_tray_test_group_delay(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    group: &str,
+) -> Result<(), String> {
+    let (url, timeout) = resolve_delay_test_options(app, None)?;
+    core_request(
+        state,
+        reqwest::Method::GET,
+        &format!("/group/{}/delay", urlencoding::encode(group)),
+        Some(&[("url", url), ("timeout", timeout)]),
+        None,
+    )?;
+    emit_ipc_event(app, "groupsUpdated", Value::Null);
+    Ok(())
+}
+
+fn handle_tray_change_group_proxy(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    group: &str,
+    proxy: &str,
+) -> Result<(), String> {
+    core_request(
+        state,
+        reqwest::Method::PUT,
+        &format!("/proxies/{}", urlencoding::encode(group)),
+        None,
+        Some(json!({ "name": proxy })),
+    )?;
+
+    if read_app_config_store(app)?
+        .get("autoCloseConnection")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        let _ = core_request(state, reqwest::Method::DELETE, "/connections", None, None);
+    }
+
+    emit_ipc_event(app, "groupsUpdated", Value::Null);
+    Ok(())
+}
+
 fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> Result<(), String> {
     let state = app.state::<CoreState>();
+    let menu_id = event.id().as_ref();
+
+    if let Some(group) = parse_tray_group_test_id(menu_id) {
+        handle_tray_test_group_delay(app, &state, &group)?;
+        update_tray_icon_for_state(app)?;
+        refresh_native_tray_menu(app)?;
+        return Ok(());
+    }
+
+    if let Some((group, proxy)) = parse_tray_group_proxy_id(menu_id) {
+        handle_tray_change_group_proxy(app, &state, &group, &proxy)?;
+        update_tray_icon_for_state(app)?;
+        refresh_native_tray_menu(app)?;
+        return Ok(());
+    }
 
     match event.id() {
         id if id == TRAY_MENU_SHOW_WINDOW_ID => show_main_window(app),
@@ -2609,10 +3014,7 @@ fn run_shortcut_action(
         "ruleModeShortcut" => handle_tray_change_mode(app, &state, "rule"),
         "globalModeShortcut" => handle_tray_change_mode(app, &state, "global"),
         "directModeShortcut" => handle_tray_change_mode(app, &state, "direct"),
-        "quitWithoutCoreShortcut" => {
-            app.exit(0);
-            Ok(())
-        }
+        "quitWithoutCoreShortcut" => exit_app_without_core(app),
         "restartAppShortcut" => relaunch_current_app(app, &state),
         _ => Err(format!("Unknown shortcut action: {action}")),
     }
@@ -2841,6 +3243,7 @@ fn sync_shell_surfaces(app: &tauri::AppHandle) -> Result<(), String> {
     } else {
         ensure_tray_icon(app)?;
         update_tray_icon_for_state(app)?;
+        let _ = refresh_native_tray_menu(app);
     }
 
     if show_floating {
@@ -4210,6 +4613,14 @@ fn run_startup_alignment(app: &tauri::AppHandle) -> Result<(), String> {
         .get("silentStart")
         .and_then(Value::as_bool)
         .unwrap_or(false);
+    #[cfg(target_os = "macos")]
+    {
+        let use_dock_icon = config
+            .get("useDockIcon")
+            .and_then(Value::as_bool)
+            .unwrap_or(true);
+        let _ = app.set_dock_visibility(use_dock_icon);
+    }
     let sysproxy_enabled = config
         .get("sysProxy")
         .and_then(Value::as_object)
@@ -4227,13 +4638,10 @@ fn run_startup_alignment(app: &tauri::AppHandle) -> Result<(), String> {
 
     sync_shell_surfaces(app)?;
 
-    if let Some(window) = app.get_webview_window("main") {
-        if silent_start {
-            let _ = window.hide();
-        } else {
-            let _ = window.show();
-            let _ = window.set_focus();
-        }
+    if silent_start {
+        let _ = hide_main_window(app, true);
+    } else {
+        let _ = show_main_window(app);
     }
 
     let state = app.state::<CoreState>();
@@ -4245,6 +4653,8 @@ fn run_startup_alignment(app: &tauri::AppHandle) -> Result<(), String> {
     if network_detection {
         let _ = start_network_detection(app, &state);
     }
+
+    let _ = refresh_ssid_check(app);
 
     if restart_core_and_emit(app, &state).is_ok() {
         let _ = get_provider_stats_value(app);
@@ -5400,9 +5810,7 @@ fn resolve_update_asset_url(version: &str, asset_path: &str) -> String {
 }
 
 fn update_download_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let base_dir = app_data_root(app)?.join(UPDATES_DIR_NAME);
-    fs::create_dir_all(&base_dir).map_err(|e| e.to_string())?;
-    Ok(base_dir)
+    ensure_dir(app_data_root(app)?.join(UPDATES_DIR_NAME))
 }
 
 fn expected_sha512_bytes(sha512: &Option<String>) -> Result<Option<Vec<u8>>, String> {
@@ -6981,9 +7389,7 @@ fn service_command_args(
 }
 
 fn task_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = app_data_root(app)?.join(TASKS_DIR_NAME);
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir)
+    ensure_dir(app_data_root(app)?.join(TASKS_DIR_NAME))
 }
 
 fn routex_run_binary_task_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -7798,11 +8204,7 @@ $items | ConvertTo-Json -Compress
 }
 
 fn runtime_files_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = app_data_root(app)?
-        .join(RUNTIME_ASSETS_DIR_NAME)
-        .join("files");
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir)
+    ensure_dir(app_data_root(app)?.join(RUNTIME_ASSETS_DIR_NAME).join("files"))
 }
 
 fn download_binary_file(url: &str, target_path: &Path) -> Result<(), String> {
@@ -8132,6 +8534,164 @@ fn has_up_network_interface(excluded_keywords: &[String]) -> bool {
         let _ = excluded_keywords;
         true
     }
+}
+
+fn read_pause_ssids(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
+    Ok(json_array_strings(read_app_config_store(app)?.get("pauseSSID")))
+}
+
+fn current_ssid() -> Option<String> {
+    #[cfg(target_os = "windows")]
+    {
+        let output = Command::new("netsh")
+            .args(["wlan", "show", "interfaces"])
+            .output()
+            .ok()?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines().map(str::trim) {
+            if line.starts_with("SSID") && !line.starts_with("BSSID") {
+                return line
+                    .split_once(':')
+                    .map(|(_, value)| value.trim().to_string())
+                    .filter(|value| !value.is_empty());
+            }
+        }
+        return None;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let output = Command::new("sh")
+            .args(["-c", "iwgetid -r 2>/dev/null"])
+            .output()
+            .ok()?;
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        return if stdout.is_empty() { None } else { Some(stdout) };
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new(
+            "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport",
+        )
+        .arg("-I")
+        .output()
+        .ok()?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines().map(str::trim) {
+            if line.starts_with("SSID") {
+                return line
+                    .split_once(':')
+                    .map(|(_, value)| value.trim().to_string())
+                    .filter(|value| !value.is_empty());
+            }
+        }
+        return None;
+    }
+
+    #[allow(unreachable_code)]
+    None
+}
+
+fn apply_ssid_mode(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    ssid: Option<&str>,
+) -> Result<(), String> {
+    let pause_ssids = read_pause_ssids(app)?;
+    if pause_ssids.is_empty() {
+        return Ok(());
+    }
+
+    let next_mode = if ssid
+        .map(|value| pause_ssids.iter().any(|item| item == value))
+        .unwrap_or(false)
+    {
+        "direct"
+    } else {
+        "rule"
+    };
+
+    let current_mode = read_controlled_config_store(app)?
+        .get("mode")
+        .and_then(Value::as_str)
+        .unwrap_or("rule")
+        .to_string();
+    if current_mode == next_mode {
+        return Ok(());
+    }
+
+    patch_controlled_config_store(app, &json!({ "mode": next_mode }))?;
+    if let Err(error) = core_request(
+        state,
+        reqwest::Method::PATCH,
+        "/configs",
+        None,
+        Some(json!({ "mode": next_mode })),
+    ) {
+        if error != "Mihomo controller is not available" {
+            return Err(error);
+        }
+    }
+
+    emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
+    emit_ipc_event(app, "groupsUpdated", Value::Null);
+    emit_ipc_event(app, "rulesUpdated", Value::Null);
+    let _ = refresh_native_tray_menu(app);
+    Ok(())
+}
+
+fn stop_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(handle) = app
+        .state::<CoreState>()
+        .ssid_check
+        .lock()
+        .map_err(|e| e.to_string())?
+        .take()
+    {
+        let _ = handle.shutdown.send(());
+    }
+    Ok(())
+}
+
+fn refresh_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
+    stop_ssid_check(app)?;
+
+    if read_pause_ssids(app)?.is_empty() {
+        return Ok(());
+    }
+
+    let (shutdown_tx, shutdown_rx) = mpsc::channel();
+    {
+        let state = app.state::<CoreState>();
+        let mut handle = state
+            .ssid_check
+            .lock()
+            .map_err(|e| e.to_string())?;
+        *handle = Some(SsidCheckHandle {
+            shutdown: shutdown_tx,
+        });
+    }
+
+    let app_handle = app.clone();
+    thread::spawn(move || {
+        let state = app_handle.state::<CoreState>();
+        let mut last_ssid: Option<String> = None;
+
+        loop {
+            let current = current_ssid();
+            if current != last_ssid {
+                let _ = apply_ssid_mode(&app_handle, &state, current.as_deref());
+                last_ssid = current;
+            }
+
+            if shutdown_rx.recv_timeout(Duration::from_secs(30)).is_ok() {
+                break;
+            }
+        }
+    });
+
+    Ok(())
 }
 
 fn stop_network_detection(state: &State<'_, CoreState>) -> Result<(), String> {
@@ -9338,8 +9898,19 @@ fn desktop_invoke(
         "getChainsConfig" => Ok(json!(read_chains_config(&app)?)),
         "getAllChains" => Ok(json!(read_chains_config(&app)?.items)),
         "patchAppConfig" => {
-            patch_app_config_store(&app, args.first().unwrap_or(&Value::Null))?;
+            let patch = args.first().unwrap_or(&Value::Null);
+            patch_app_config_store(&app, patch)?;
             sync_shell_surfaces(&app)?;
+            if patch.get("pauseSSID").is_some() {
+                refresh_ssid_check(&app)?;
+            }
+            if patch.get("autoLightweight").is_some()
+                || patch.get("autoLightweightDelay").is_some()
+                || patch.get("autoLightweightMode").is_some()
+                || patch.get("showFloatingWindow").is_some()
+            {
+                let _ = refresh_lightweight_mode(&app);
+            }
             emit_ipc_event(&app, "appConfigUpdated", Value::Null);
             Ok(Value::Null)
         }
@@ -9949,8 +10520,7 @@ fn desktop_invoke(
             )?))
         }
         "quitWithoutCore" => {
-            shutdown_runtime(&app, &state);
-            app.exit(0);
+            exit_app_without_core(&app)?;
             Ok(Value::Null)
         }
         "quitApp" => {
@@ -9972,7 +10542,7 @@ fn desktop_invoke(
             Ok(Value::Null)
         }
         "closeMainWindow" => {
-            let _ = window.close();
+            hide_main_window(&app, true)?;
             Ok(Value::Null)
         }
         "windowMin" => {
@@ -10053,6 +10623,15 @@ fn desktop_invoke(
             emit_ipc_event(&app, "appConfigUpdated", Value::Null);
             emit_ipc_event(&app, "controledMihomoConfigUpdated", Value::Null);
             emit_ipc_event(&app, "groupsUpdated", Value::Null);
+            Ok(Value::Null)
+        }
+        "updateTaskbarIcon" => {
+            #[cfg(target_os = "windows")]
+            {
+                let icon_kind = args.first().and_then(Value::as_str).unwrap_or("default");
+                let icon_name = windows_shell_icon_name_from_kind(icon_kind);
+                set_windows_shell_icon_from_path(&app, icon_name)?;
+            }
             Ok(Value::Null)
         }
         "trayIconUpdate" => {
@@ -10407,6 +10986,9 @@ fn main() {
             let app_handle = app.handle().clone();
             let _ = initialize_traffic_stats_store(&app_handle);
             let _ = init_global_shortcuts(&app_handle);
+            if let Some(window) = app_handle.get_webview_window("main") {
+                install_main_window_handlers(&app_handle, &window);
+            }
             let _ = run_startup_alignment(&app_handle);
             Ok(())
         })

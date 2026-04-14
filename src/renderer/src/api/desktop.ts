@@ -222,6 +222,7 @@ export const desktop: DesktopApi = {
         'customTray:close': 'closeTrayMenuWindow',
         trayIconUpdate: 'trayIconUpdate',
         updateFloatingWindow: 'updateFloatingWindow',
+        'update-taskbar-icon': 'updateTaskbarIcon',
         updateTrayMenu: 'updateTrayMenu'
       }
 
