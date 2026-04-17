@@ -3647,24 +3647,39 @@ fn build_application_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
         None::<&str>,
     )
     .map_err(|e| e.to_string())?;
+    let about =
+        PredefinedMenuItem::about(app, None, Some(about_metadata)).map_err(|e| e.to_string())?;
+    let services = PredefinedMenuItem::services(app, None).map_err(|e| e.to_string())?;
+    let hide = PredefinedMenuItem::hide(app, None).map_err(|e| e.to_string())?;
+    let hide_others = PredefinedMenuItem::hide_others(app, None).map_err(|e| e.to_string())?;
+    let show_all = PredefinedMenuItem::show_all(app, None).map_err(|e| e.to_string())?;
     let separator_1 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let separator_2 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let separator_3 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let separator_4 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
-    let separator_5 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let undo = PredefinedMenuItem::undo(app, None).map_err(|e| e.to_string())?;
+    let redo = PredefinedMenuItem::redo(app, None).map_err(|e| e.to_string())?;
+    let edit_separator = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let cut = PredefinedMenuItem::cut(app, None).map_err(|e| e.to_string())?;
+    let copy = PredefinedMenuItem::copy(app, None).map_err(|e| e.to_string())?;
+    let paste = PredefinedMenuItem::paste(app, None).map_err(|e| e.to_string())?;
+    let select_all = PredefinedMenuItem::select_all(app, None).map_err(|e| e.to_string())?;
+    let minimize = PredefinedMenuItem::minimize(app, None).map_err(|e| e.to_string())?;
+    let window_separator = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let close_window = PredefinedMenuItem::close_window(app, None).map_err(|e| e.to_string())?;
 
     let app_submenu = Submenu::with_items(
         app,
         package_info.name.clone(),
         true,
         &[
-            &PredefinedMenuItem::about(app, None, Some(about_metadata))?,
+            &about,
             &separator_1,
-            &PredefinedMenuItem::services(app, None)?,
+            &services,
             &separator_2,
-            &PredefinedMenuItem::hide(app, None)?,
-            &PredefinedMenuItem::hide_others(app, None)?,
-            &PredefinedMenuItem::show_all(app, None)?,
+            &hide,
+            &hide_others,
+            &show_all,
             &separator_3,
             &quit_without_core,
             &restart_app,
@@ -3678,13 +3693,13 @@ fn build_application_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
         "编辑",
         true,
         &[
-            &PredefinedMenuItem::undo(app, None)?,
-            &PredefinedMenuItem::redo(app, None)?,
-            &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::cut(app, None)?,
-            &PredefinedMenuItem::copy(app, None)?,
-            &PredefinedMenuItem::paste(app, None)?,
-            &PredefinedMenuItem::select_all(app, None)?,
+            &undo,
+            &redo,
+            &edit_separator,
+            &cut,
+            &copy,
+            &paste,
+            &select_all,
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -3708,11 +3723,7 @@ fn build_application_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
         app,
         "窗口",
         true,
-        &[
-            &PredefinedMenuItem::minimize(app, None)?,
-            &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::close_window(app, None)?,
-        ],
+        &[&minimize, &window_separator, &close_window],
     )
     .map_err(|e| e.to_string())?;
 
