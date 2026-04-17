@@ -150,6 +150,59 @@ static ICON_DATA_URL_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock:
 static MIHOMO_HTTP_CLIENT: OnceLock<Result<Client, String>> = OnceLock::new();
 static PROFILE_RUNTIME_CONFIG_CACHE: OnceLock<Mutex<Option<Value>>> = OnceLock::new();
 
+fn tauri_build_variant() -> &'static str {
+    match option_env!("ROUTEX_TAURI_BUILD_VARIANT") {
+        Some("dev") => "dev",
+        Some("autobuild") => "autobuild",
+        Some("release") => "release",
+        Some(value) if !value.trim().is_empty() => value,
+        _ if cfg!(debug_assertions) => "dev",
+        _ => "release",
+    }
+}
+
+fn is_primary_tauri_variant() -> bool {
+    tauri_build_variant() == "release"
+}
+
+fn tauri_variant_suffix() -> Option<&'static str> {
+    match tauri_build_variant() {
+        "dev" => Some("-dev"),
+        "autobuild" => Some("-autobuild"),
+        _ => None,
+    }
+}
+
+fn apply_variant_suffix(path: PathBuf) -> PathBuf {
+    let Some(suffix) = tauri_variant_suffix() else {
+        return path;
+    };
+
+    let Some(file_name) = path.file_name().and_then(|value| value.to_str()) else {
+        return path;
+    };
+
+    path.with_file_name(format!("{file_name}{suffix}"))
+}
+
+#[cfg(target_os = "windows")]
+fn routex_run_task_name() -> &'static str {
+    match tauri_build_variant() {
+        "dev" => "routex-run-dev",
+        "autobuild" => "routex-run-autobuild",
+        _ => ROUTEX_RUN_TASK_NAME,
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn routex_autorun_task_name() -> &'static str {
+    match tauri_build_variant() {
+        "dev" => "routex-dev",
+        "autobuild" => "routex-autobuild",
+        _ => ROUTEX_AUTORUN_TASK_NAME,
+    }
+}
+
 #[derive(Debug, Clone)]
 struct CachedRuntimeConfig {
     path: PathBuf,
@@ -843,14 +896,17 @@ fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
                 .map(|parent| parent.join(WINDOWS_APP_DATA_DIR_NAME))
         })
         .unwrap_or_else(|| default_root.clone());
+    let target_root = apply_variant_suffix(target_root);
 
-    migrate_tauri_app_data_root_if_needed(&default_root, &target_root)?;
+    if is_primary_tauri_variant() {
+        migrate_tauri_app_data_root_if_needed(&default_root, &target_root)?;
+    }
     ensure_dir(target_root)
 }
 
 #[cfg(not(target_os = "windows"))]
 fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(default_app_data_root(app)?)
+    ensure_dir(apply_variant_suffix(default_app_data_root(app)?))
 }
 
 fn app_storage_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -867,6 +923,10 @@ fn storage_dir(app: &tauri::AppHandle, dir_name: &str) -> Result<PathBuf, String
 
 #[cfg(target_os = "windows")]
 fn legacy_electron_data_dir_candidates(app: &tauri::AppHandle) -> Vec<PathBuf> {
+    if !is_primary_tauri_variant() {
+        return Vec::new();
+    }
+
     let mut candidates = Vec::new();
 
     if let Some(app_data) = std::env::var_os("APPDATA") {
@@ -9226,7 +9286,7 @@ fn create_autorun_task(app: &tauri::AppHandle) -> Result<(), String> {
         schtasks_command(&[
             "/create",
             "/tn",
-            ROUTEX_AUTORUN_TASK_NAME,
+            routex_autorun_task_name(),
             "/xml",
             task_file_path
                 .to_str()
@@ -9246,7 +9306,7 @@ fn create_autorun_task(app: &tauri::AppHandle) -> Result<(), String> {
 fn delete_autorun_task() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        match schtasks_command(&["/delete", "/tn", ROUTEX_AUTORUN_TASK_NAME, "/f"]) {
+        match schtasks_command(&["/delete", "/tn", routex_autorun_task_name(), "/f"]) {
             Ok(()) => Ok(()),
             Err(error) if error.to_ascii_lowercase().contains("cannot find") => Ok(()),
             Err(error) if error.contains("找不到") => Ok(()),
@@ -9263,7 +9323,7 @@ fn delete_autorun_task() -> Result<(), String> {
 fn check_autorun_task() -> bool {
     #[cfg(target_os = "windows")]
     {
-        schtasks_command(&["/query", "/tn", ROUTEX_AUTORUN_TASK_NAME]).is_ok()
+        schtasks_command(&["/query", "/tn", routex_autorun_task_name()]).is_ok()
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -9462,7 +9522,7 @@ fn create_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
         schtasks_command(&[
             "/create",
             "/tn",
-            ROUTEX_RUN_TASK_NAME,
+            routex_run_task_name(),
             "/xml",
             task_file_path
                 .to_str()
@@ -9482,7 +9542,7 @@ fn create_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
 fn delete_elevate_task() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        match schtasks_command(&["/delete", "/tn", ROUTEX_RUN_TASK_NAME, "/f"]) {
+        match schtasks_command(&["/delete", "/tn", routex_run_task_name(), "/f"]) {
             Ok(()) => Ok(()),
             Err(error) if error.to_ascii_lowercase().contains("cannot find") => Ok(()),
             Err(error) if error.contains("找不到") => Ok(()),
@@ -9499,7 +9559,7 @@ fn delete_elevate_task() -> Result<(), String> {
 fn check_elevate_task() -> bool {
     #[cfg(target_os = "windows")]
     {
-        schtasks_command(&["/query", "/tn", ROUTEX_RUN_TASK_NAME]).is_ok()
+        schtasks_command(&["/query", "/tn", routex_run_task_name()]).is_ok()
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -9573,7 +9633,7 @@ fn run_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
     {
         write_elevate_task_params(app)?;
         ensure_routex_run_binary_for_task(app)?;
-        return schtasks_command(&["/run", "/tn", ROUTEX_RUN_TASK_NAME]);
+        return schtasks_command(&["/run", "/tn", routex_run_task_name()]);
     }
 
     #[cfg(not(target_os = "windows"))]
