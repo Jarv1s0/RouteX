@@ -329,44 +329,68 @@ export function useConnectionsPage(): UseConnectionsPageResult {
     setVisibleRange(INITIAL_VISIBLE_RANGE)
   }, [tab, viewMode, deferredFilter, deferredOrder, deferredDirection])
 
-  const resourcePaths = useMemo(() => {
-    const paths = new Set<string>()
+  const iconLoadPlan = useMemo(() => {
+    const visiblePaths = new Set<string>()
+    const preloadPaths = new Set<string>()
 
     if (viewMode === 'group') {
       groupedConnections.forEach((group) => {
         if (group.processPath) {
-          paths.add(group.processPath)
+          visiblePaths.add(group.processPath)
         }
       })
-      return Array.from(paths)
+
+      return {
+        visiblePaths: Array.from(visiblePaths),
+        preloadPaths: [] as string[]
+      }
     }
 
-    const startIndex = Math.max(0, visibleRange.startIndex - RESOURCE_PRELOAD_BUFFER)
-    const endIndex = Math.min(
-      filteredConnections.length,
-      visibleRange.endIndex + RESOURCE_PRELOAD_BUFFER + 1
-    )
+    const visibleStart = Math.max(0, visibleRange.startIndex)
+    const visibleEnd = Math.min(filteredConnections.length, visibleRange.endIndex + 1)
+    const preloadStart = Math.max(0, visibleStart - RESOURCE_PRELOAD_BUFFER)
+    const preloadEnd = Math.min(filteredConnections.length, visibleEnd + RESOURCE_PRELOAD_BUFFER)
 
-    filteredConnections.slice(startIndex, endIndex).forEach((connection) => {
+    filteredConnections.slice(visibleStart, visibleEnd).forEach((connection) => {
       const processPath = connection.metadata.processPath || ''
       if (processPath) {
-        paths.add(processPath)
+        visiblePaths.add(processPath)
       }
     })
 
-    return Array.from(paths)
+    filteredConnections.slice(preloadStart, preloadEnd).forEach((connection) => {
+      const processPath = connection.metadata.processPath || ''
+      if (!processPath || visiblePaths.has(processPath)) {
+        return
+      }
+
+      preloadPaths.add(processPath)
+    })
+
+    return {
+      visiblePaths: Array.from(visiblePaths),
+      preloadPaths: Array.from(preloadPaths)
+    }
   }, [filteredConnections, groupedConnections, viewMode, visibleRange])
 
   useEffect(() => {
     const canLoadIcons = displayIcon && findProcessMode !== 'off'
     if (!canLoadIcons && !displayAppName) return
 
-    const firstVisiblePath = filteredConnections[visibleRange.startIndex]?.metadata?.processPath
-
-    resourcePaths.forEach((path) => {
+    iconLoadPlan.visiblePaths.forEach((path) => {
       if (!path) return
       if (canLoadIcons) {
-        loadIcon(path, path === firstVisiblePath)
+        loadIcon(path, true)
+      }
+      if (displayAppName) {
+        loadAppName(path)
+      }
+    })
+
+    iconLoadPlan.preloadPaths.forEach((path) => {
+      if (!path) return
+      if (canLoadIcons) {
+        loadIcon(path, false)
       }
       if (displayAppName) {
         loadAppName(path)
@@ -377,9 +401,9 @@ export function useConnectionsPage(): UseConnectionsPageResult {
     displayIcon,
     filteredConnections,
     findProcessMode,
+    iconLoadPlan,
     loadAppName,
     loadIcon,
-    resourcePaths,
     visibleRange
   ])
 

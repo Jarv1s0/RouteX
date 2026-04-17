@@ -45,23 +45,6 @@ function writeTauriControllerUrl(url: string): void {
   tauriControllerUrl = url
 }
 
-function normalizeTauriControllerUrl(value: string): string {
-  return /^https?:\/\//i.test(value) ? value : `http://${value}`
-}
-
-function syncTauriControllerUrlFromRuntime(config?: Partial<MihomoConfig> | null): string | null {
-  const controller = config?.['external-controller']
-  const rawController = typeof controller === 'string' ? controller.trim() : ''
-
-  if (!rawController) {
-    return readTauriControllerUrl()
-  }
-
-  const nextControllerUrl = normalizeTauriControllerUrl(rawController)
-  writeTauriControllerUrl(nextControllerUrl)
-  return nextControllerUrl
-}
-
 async function readTauriConnectionIntervalMs(): Promise<number> {
   try {
     const appConfig = await invokeSafe<Partial<AppConfig>>(C.getAppConfig)
@@ -84,8 +67,15 @@ async function ensureTauriControllerUrl(): Promise<string | null> {
   }
 
   if (!tauriControllerUrlPromise) {
-    tauriControllerUrlPromise = getRuntimeConfig()
-      .then((config) => syncTauriControllerUrlFromRuntime(config))
+    tauriControllerUrlPromise = invokeSafe<string | null>(C.getControllerUrl)
+      .then((controllerUrl) => {
+        if (!controllerUrl) {
+          return null
+        }
+
+        writeTauriControllerUrl(controllerUrl)
+        return controllerUrl
+      })
       .catch(() => null)
       .finally(() => {
         tauriControllerUrlPromise = null
@@ -618,7 +608,6 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
     const request = invokeSafe<Partial<MihomoConfig>>(C.getRuntimeConfig)
       .then((config) => {
         tauriControlledConfigCache = { ...tauriControlledConfigCache, ...config }
-        syncTauriControllerUrlFromRuntime(config)
         const normalized = createTauriRuntimeConfig(config)
 
         if (requestRevision === tauriRuntimeConfigRevision) {

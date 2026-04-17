@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VERSION: ""
-  STORE_PATH: ""
+  VERSION: ''
+  STORE_PATH: ''
 
 jobs:
   update-tag:
@@ -65,11 +65,11 @@ jobs:
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          
+
           # Delete existing release and tag if they exist
           gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
           git push origin ":refs/tags/$RELEASE_TAG" || true
-          
+
           # Wait a moment for GitHub to process the deletion
           sleep 2
 
@@ -107,6 +107,30 @@ jobs:
 
       - uses: pnpm/action-setup@v5.0.0
 
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+
+          WEBKIT_PACKAGE="libwebkit2gtk-4.1-dev"
+          if ! apt-cache show "$WEBKIT_PACKAGE" >/dev/null 2>&1; then
+            WEBKIT_PACKAGE="libwebkit2gtk-4.0-dev"
+          fi
+
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libxdo-dev \
+            patchelf \
+            pkg-config \
+            "$WEBKIT_PACKAGE"
+
       - name: Get pnpm store directory
         shell: bash
         run: |
@@ -143,17 +167,33 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          shopt -s globstar nullglob
           files=()
-          if [ "${{ matrix.platform }}" == "windows" ]; then
-             files=(src-tauri/target/release/bundle/**/*.msi src-tauri/target/release/bundle/**/*.exe)
-          elif [ "${{ matrix.platform }}" == "linux" ]; then
-             files=(src-tauri/target/release/bundle/**/*.deb src-tauri/target/release/bundle/**/*.rpm src-tauri/target/release/bundle/**/*.AppImage)
-          elif [ "${{ matrix.platform }}" == "macos" ]; then
-             files=(src-tauri/target/release/bundle/**/*.dmg src-tauri/target/release/bundle/**/*.app.tar.gz)
+          if [ ! -d src-tauri/target/release/bundle ]; then
+            echo "Artifact directory not found: src-tauri/target/release/bundle"
+            exit 1
           fi
 
-          if [ "${#files[@]}" -gt 0 ]; then
-             gh release upload "${{ needs.update-tag.outputs.release_tag }}" "${files[@]}" --clobber
+          case "${{ matrix.platform }}" in
+            windows)
+              while IFS= read -r -d '' file; do
+                files+=("$file")
+              done < <(find src-tauri/target/release/bundle -type f \( -name '*.msi' -o -name '*.exe' \) -print0)
+              ;;
+            linux)
+              while IFS= read -r -d '' file; do
+                files+=("$file")
+              done < <(find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) -print0)
+              ;;
+            macos)
+              while IFS= read -r -d '' file; do
+                files+=("$file")
+              done < <(find src-tauri/target/release/bundle -type f \( -name '*.dmg' -o -name '*.app.tar.gz' \) -print0)
+              ;;
+          esac
+
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No artifacts found for platform: ${{ matrix.platform }}"
+            exit 1
           fi
 
+          gh release upload "${{ needs.update-tag.outputs.release_tag }}" "${files[@]}" --clobber

@@ -15,9 +15,13 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+#[cfg(not(target_os = "windows"))]
+use std::os::unix::net::UnixStream;
+
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use quick_xml::{events::Event, Reader};
 use reqwest::blocking::Client;
+use ring::signature::Ed25519KeyPair;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha512};
@@ -49,12 +53,17 @@ const TAURI_CORE_DIR_NAME: &str = "tauri-core";
 const UPDATES_DIR_NAME: &str = "updates";
 const TASKS_DIR_NAME: &str = "tasks";
 const RUNTIME_ASSETS_DIR_NAME: &str = "runtime-assets";
+const TRAFFIC_MONITOR_REPO: &str = "zhongyang219/TrafficMonitor";
+const TRAFFIC_MONITOR_PID_FILE: &str = "traffic-monitor.pid";
 #[cfg(target_os = "windows")]
 const WINDOWS_APP_DATA_DIR_NAME: &str = "routex.app";
 const DEFAULT_PROFILE_TEXT: &str = "proxies: []\nproxy-groups: []\nrules: []\n";
 const FLOATING_WINDOW_LABEL: &str = "floating";
 const FLOATING_WINDOW_STATE_FILE: &str = "floating-window-state.json";
 const TRAYMENU_WINDOW_LABEL: &str = "traymenu";
+const TRAYMENU_WINDOW_WIDTH: f64 = 392.0;
+const TRAYMENU_WINDOW_HEIGHT: f64 = 548.0;
+const TRAYMENU_WINDOW_GAP: f64 = 10.0;
 const TRAY_ICON_ID: &str = "main";
 const TRAY_MENU_SHOW_WINDOW_ID: &str = "tray.show-window";
 const TRAY_MENU_TOGGLE_FLOATING_ID: &str = "tray.toggle-floating";
@@ -63,9 +72,20 @@ const TRAY_MENU_TOGGLE_TUN_ID: &str = "tray.toggle-tun";
 const TRAY_MENU_MODE_RULE_ID: &str = "tray.mode.rule";
 const TRAY_MENU_MODE_GLOBAL_ID: &str = "tray.mode.global";
 const TRAY_MENU_MODE_DIRECT_ID: &str = "tray.mode.direct";
+const TRAY_MENU_PROFILE_EMPTY_ID: &str = "tray.profile.empty";
+const TRAY_MENU_PROFILE_CURRENT_EMPTY_ID: &str = "tray.profile.current.empty";
+const TRAY_MENU_OPEN_APP_DIR_ID: &str = "tray.open-dir.app";
+const TRAY_MENU_OPEN_WORK_DIR_ID: &str = "tray.open-dir.work";
+const TRAY_MENU_OPEN_CORE_DIR_ID: &str = "tray.open-dir.core";
+const TRAY_MENU_OPEN_LOG_DIR_ID: &str = "tray.open-dir.log";
+const TRAY_MENU_QUIT_WITHOUT_CORE_ID: &str = "tray.quit-without-core";
+const TRAY_MENU_RESTART_APP_ID: &str = "tray.restart-app";
 const TRAY_MENU_QUIT_ID: &str = "tray.quit";
 const TRAY_MENU_GROUP_TEST_PREFIX: &str = "tray.group.test::";
 const TRAY_MENU_GROUP_PROXY_PREFIX: &str = "tray.group.proxy::";
+const TRAY_MENU_PROFILE_TOGGLE_PREFIX: &str = "tray.profile.toggle::";
+const TRAY_MENU_PROFILE_CURRENT_PREFIX: &str = "tray.profile.current::";
+const TRAY_MENU_COPY_ENV_PREFIX: &str = "tray.copy-env::";
 const SHORTCUT_ACTION_KEYS: [&str; 9] = [
     "showWindowShortcut",
     "showFloatingWindowShortcut",
@@ -98,15 +118,26 @@ const MAX_TRAFFIC_DAILY_RECORDS: usize = 30;
 
 static APP_STARTED_AT: OnceLock<Instant> = OnceLock::new();
 static ICON_DATA_URL_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+static MIHOMO_HTTP_CLIENT: OnceLock<Result<Client, String>> = OnceLock::new();
+static PROFILE_RUNTIME_CONFIG_CACHE: OnceLock<Mutex<Option<Value>>> = OnceLock::new();
+
+#[derive(Debug, Clone)]
+struct CachedRuntimeConfig {
+    path: PathBuf,
+    modified_at_ms: Option<u64>,
+    value: Value,
+}
 
 #[derive(Default)]
 struct CoreRuntime {
     child: Option<Child>,
+    service_managed: bool,
     binary_path: Option<PathBuf>,
     work_dir: Option<PathBuf>,
     log_path: Option<PathBuf>,
     controller_url: Option<String>,
     config_path: Option<PathBuf>,
+    cached_runtime_config: Option<CachedRuntimeConfig>,
 }
 
 struct PacServerHandle {
@@ -122,6 +153,10 @@ struct NetworkHealthMonitorHandle {
 }
 
 struct CoreEventsMonitorHandle {
+    shutdown: mpsc::Sender<()>,
+}
+
+struct ExternalControllerProxyHandle {
     shutdown: mpsc::Sender<()>,
 }
 
@@ -161,6 +196,7 @@ struct CoreState {
     network_detection: Mutex<Option<NetworkDetectionHandle>>,
     ssid_check: Mutex<Option<SsidCheckHandle>>,
     core_events_monitor: Mutex<Option<CoreEventsMonitorHandle>>,
+    external_controller_proxy: Mutex<Option<ExternalControllerProxyHandle>>,
     network_health_monitor: Mutex<Option<NetworkHealthMonitorHandle>>,
     network_health_state: Mutex<NetworkHealthState>,
     network_down_handled: Mutex<bool>,
@@ -311,6 +347,17 @@ struct ReleaseManifest {
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+struct GitHubReleaseAsset {
+    name: String,
+    browser_download_url: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+struct GitHubReleaseResponse {
+    assets: Option<Vec<GitHubReleaseAsset>>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
 struct GistInfo {
     html_url: String,
     description: Option<String>,
@@ -435,6 +482,59 @@ fn current_timestamp_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as u64
+}
+
+fn runtime_config_modified_at_ms(path: &Path) -> Option<u64> {
+    fs::metadata(path)
+        .ok()?
+        .modified()
+        .ok()?
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .map(|duration| duration.as_millis() as u64)
+}
+
+fn profile_runtime_config_cache() -> &'static Mutex<Option<Value>> {
+    PROFILE_RUNTIME_CONFIG_CACHE.get_or_init(|| Mutex::new(None))
+}
+
+fn read_cached_profile_runtime_config() -> Option<Value> {
+    profile_runtime_config_cache()
+        .lock()
+        .ok()
+        .and_then(|cache| cache.clone())
+}
+
+fn write_cached_profile_runtime_config(value: &Value) {
+    if let Ok(mut cache) = profile_runtime_config_cache().lock() {
+        *cache = Some(value.clone());
+    }
+}
+
+fn invalidate_profile_runtime_config_cache() {
+    if let Ok(mut cache) = profile_runtime_config_cache().lock() {
+        *cache = None;
+    }
+}
+
+fn invalidate_profile_runtime_config_cache_after<T>(
+    result: Result<T, String>,
+) -> Result<T, String> {
+    let value = result?;
+    invalidate_profile_runtime_config_cache();
+    Ok(value)
+}
+
+fn mihomo_http_client() -> Result<&'static Client, String> {
+    match MIHOMO_HTTP_CLIENT.get_or_init(|| {
+        Client::builder()
+            .timeout(Duration::from_secs(15))
+            .build()
+            .map_err(|e| e.to_string())
+    }) {
+        Ok(client) => Ok(client),
+        Err(error) => Err(error.clone()),
+    }
 }
 
 fn current_local_date_string() -> String {
@@ -707,7 +807,11 @@ fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let target_root = std::env::var_os("APPDATA")
         .map(PathBuf::from)
         .map(|base| base.join(WINDOWS_APP_DATA_DIR_NAME))
-        .or_else(|| default_root.parent().map(|parent| parent.join(WINDOWS_APP_DATA_DIR_NAME)))
+        .or_else(|| {
+            default_root
+                .parent()
+                .map(|parent| parent.join(WINDOWS_APP_DATA_DIR_NAME))
+        })
         .unwrap_or_else(|| default_root.clone());
 
     migrate_tauri_app_data_root_if_needed(&default_root, &target_root)?;
@@ -763,6 +867,274 @@ fn legacy_electron_data_dir_candidates(app: &tauri::AppHandle) -> Vec<PathBuf> {
 #[cfg(not(target_os = "windows"))]
 fn legacy_electron_data_dir_candidates(_app: &tauri::AppHandle) -> Vec<PathBuf> {
     Vec::new()
+}
+
+fn legacy_yaml_store_file_candidates(
+    app: &tauri::AppHandle,
+    file_names: &[&str],
+) -> Result<Vec<PathBuf>, String> {
+    let storage_root = app_storage_root(app)?;
+    let mut candidates = Vec::new();
+
+    for file_name in file_names {
+        candidates.push(storage_root.join(file_name));
+    }
+
+    for candidate_root in legacy_electron_data_dir_candidates(app) {
+        for file_name in file_names {
+            candidates.push(candidate_root.join(file_name));
+            candidates.push(candidate_root.join(STORAGE_DIR_NAME).join(file_name));
+        }
+    }
+
+    let mut deduped = Vec::new();
+    for candidate in candidates {
+        if !deduped.contains(&candidate) {
+            deduped.push(candidate);
+        }
+    }
+
+    Ok(deduped)
+}
+
+fn yaml_mapping_key_to_string(key: &serde_yaml::Value) -> String {
+    match key {
+        serde_yaml::Value::Null => "null".to_string(),
+        serde_yaml::Value::Bool(value) => value.to_string(),
+        serde_yaml::Value::Number(value) => value.to_string(),
+        serde_yaml::Value::String(value) => value.clone(),
+        other => serde_yaml::to_string(other)
+            .unwrap_or_default()
+            .trim()
+            .to_string(),
+    }
+}
+
+fn yaml_value_to_json_value(value: &serde_yaml::Value) -> Value {
+    match value {
+        serde_yaml::Value::Null => Value::Null,
+        serde_yaml::Value::Bool(value) => Value::Bool(*value),
+        serde_yaml::Value::Number(value) => {
+            if let Some(number) = value.as_i64() {
+                Value::Number(number.into())
+            } else if let Some(number) = value.as_u64() {
+                Value::Number(number.into())
+            } else if let Some(number) = value.as_f64() {
+                serde_json::Number::from_f64(number)
+                    .map(Value::Number)
+                    .unwrap_or(Value::Null)
+            } else {
+                Value::Null
+            }
+        }
+        serde_yaml::Value::String(value) => Value::String(value.clone()),
+        serde_yaml::Value::Sequence(values) => {
+            Value::Array(values.iter().map(yaml_value_to_json_value).collect())
+        }
+        serde_yaml::Value::Mapping(values) => Value::Object(
+            values
+                .iter()
+                .map(|(key, value)| {
+                    (
+                        yaml_mapping_key_to_string(key),
+                        yaml_value_to_json_value(value),
+                    )
+                })
+                .collect(),
+        ),
+        serde_yaml::Value::Tagged(tagged) => yaml_value_to_json_value(&tagged.value),
+    }
+}
+
+fn read_first_legacy_yaml_value(
+    app: &tauri::AppHandle,
+    file_names: &[&str],
+) -> Result<Option<Value>, String> {
+    for candidate in legacy_yaml_store_file_candidates(app, file_names)? {
+        if !candidate.exists() {
+            continue;
+        }
+
+        let text = match fs::read_to_string(&candidate) {
+            Ok(text) if !text.trim().is_empty() => text,
+            _ => continue,
+        };
+
+        let yaml = match serde_yaml::from_str::<serde_yaml::Value>(&text) {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+
+        return Ok(Some(yaml_value_to_json_value(&yaml)));
+    }
+
+    Ok(None)
+}
+
+fn migrate_legacy_yaml_store_if_needed<T: DeserializeOwned + Serialize>(
+    app: &tauri::AppHandle,
+    target_file_name: &str,
+    legacy_file_names: &[&str],
+    normalize: impl FnOnce(T) -> T,
+) -> Result<(), String> {
+    let target = storage_file(app, target_file_name)?;
+    if target.exists() {
+        return Ok(());
+    }
+
+    let Some(value) = read_first_legacy_yaml_value(app, legacy_file_names)? else {
+        return Ok(());
+    };
+
+    let parsed = serde_json::from_value::<T>(value).map_err(|e| e.to_string())?;
+    write_json_file(&target, &normalize(parsed))
+}
+
+fn migrate_legacy_profile_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
+    migrate_legacy_yaml_store_if_needed(
+        app,
+        PROFILE_CONFIG_FILE,
+        &["profile.yaml", "profiles.yaml"],
+        normalize_profile_config,
+    )
+}
+
+fn migrate_legacy_override_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
+    migrate_legacy_yaml_store_if_needed(
+        app,
+        OVERRIDE_CONFIG_FILE,
+        &["override.yaml", "overrides.yaml"],
+        |config: OverrideConfigData| config,
+    )
+}
+
+fn migrate_legacy_chains_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
+    migrate_legacy_yaml_store_if_needed(
+        app,
+        CHAINS_CONFIG_FILE,
+        &["chains.yaml"],
+        |config: ChainsConfigData| config,
+    )
+}
+
+fn migrate_legacy_controlled_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
+    migrate_legacy_yaml_store_if_needed(
+        app,
+        CONTROLLED_CONFIG_FILE,
+        &["mihomo.yaml"],
+        |config: Value| config,
+    )
+}
+
+fn read_legacy_controlled_config(app: &tauri::AppHandle) -> Result<Option<Value>, String> {
+    read_first_legacy_yaml_value(app, &["mihomo.yaml"])
+}
+
+fn backfill_legacy_value(current: &mut Value, legacy: &Value) -> bool {
+    match legacy {
+        Value::Object(legacy_object) => {
+            let Some(current_object) = current.as_object_mut() else {
+                if current.is_null() {
+                    *current = legacy.clone();
+                    return true;
+                }
+                return false;
+            };
+
+            let mut changed = false;
+            for (key, legacy_value) in legacy_object {
+                match current_object.get_mut(key) {
+                    Some(current_value) => {
+                        changed |= backfill_legacy_value(current_value, legacy_value);
+                    }
+                    None => {
+                        current_object.insert(key.clone(), legacy_value.clone());
+                        changed = true;
+                    }
+                }
+            }
+            changed
+        }
+        Value::String(legacy_value) => {
+            let Some(current_value) = current.as_str() else {
+                if current.is_null() {
+                    *current = legacy.clone();
+                    return true;
+                }
+                return false;
+            };
+
+            if current_value.trim().is_empty() && !legacy_value.trim().is_empty() {
+                *current = Value::String(legacy_value.clone());
+                true
+            } else {
+                false
+            }
+        }
+        Value::Array(legacy_items) => {
+            let Some(current_items) = current.as_array() else {
+                if current.is_null() {
+                    *current = legacy.clone();
+                    return true;
+                }
+                return false;
+            };
+
+            if current_items.is_empty() && !legacy_items.is_empty() {
+                *current = Value::Array(legacy_items.clone());
+                true
+            } else {
+                false
+            }
+        }
+        _ if current.is_null() => {
+            *current = legacy.clone();
+            true
+        }
+        _ => false,
+    }
+}
+
+fn migrate_legacy_storage_dir_if_needed(
+    app: &tauri::AppHandle,
+    target_dir_name: &str,
+    legacy_dir_names: &[&str],
+) -> Result<(), String> {
+    let target_dir = storage_dir(app, target_dir_name)?;
+    let mut target_iter = fs::read_dir(&target_dir).map_err(|e| e.to_string())?;
+    if target_iter.next().is_some() {
+        return Ok(());
+    }
+
+    let storage_root = app_storage_root(app)?;
+    let mut candidates = Vec::new();
+
+    for legacy_dir_name in legacy_dir_names {
+        let sibling = storage_root.join(legacy_dir_name);
+        if sibling != target_dir {
+            candidates.push(sibling);
+        }
+    }
+
+    for candidate_root in legacy_electron_data_dir_candidates(app) {
+        for legacy_dir_name in legacy_dir_names {
+            candidates.push(candidate_root.join(legacy_dir_name));
+            candidates.push(candidate_root.join(STORAGE_DIR_NAME).join(legacy_dir_name));
+        }
+    }
+
+    let mut deduped = Vec::new();
+    for candidate in candidates {
+        if candidate != target_dir && !deduped.contains(&candidate) {
+            deduped.push(candidate);
+        }
+    }
+
+    for candidate in deduped {
+        copy_path_if_missing(&candidate, &target_dir)?;
+    }
+
+    Ok(())
 }
 
 fn migrate_legacy_app_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
@@ -1137,8 +1509,9 @@ fn read_app_config_store(app: &tauri::AppHandle) -> Result<Value, String> {
 fn patch_app_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
     let mut value = read_app_config_store(app)?;
     merge_json(&mut value, patch);
-    write_value_store(app, APP_CONFIG_FILE, &value)?;
-    Ok(value)
+    invalidate_profile_runtime_config_cache_after(
+        write_value_store(app, APP_CONFIG_FILE, &value).map(|_| value),
+    )
 }
 
 fn read_connection_interval_ms(app: &tauri::AppHandle) -> u64 {
@@ -1150,7 +1523,16 @@ fn read_connection_interval_ms(app: &tauri::AppHandle) -> u64 {
 }
 
 fn read_controlled_config_store(app: &tauri::AppHandle) -> Result<Value, String> {
-    read_value_store(app, CONTROLLED_CONFIG_FILE, json!({}))
+    migrate_legacy_controlled_config_if_needed(app)?;
+    let mut current = read_value_store(app, CONTROLLED_CONFIG_FILE, json!({}))?;
+
+    if let Some(legacy) = read_legacy_controlled_config(app)? {
+        if backfill_legacy_value(&mut current, &legacy) {
+            write_value_store(app, CONTROLLED_CONFIG_FILE, &current)?;
+        }
+    }
+
+    Ok(current)
 }
 
 fn patch_controlled_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
@@ -1187,11 +1569,13 @@ fn patch_controlled_config_store(app: &tauri::AppHandle, patch: &Value) -> Resul
         }
     }
 
-    write_value_store(app, CONTROLLED_CONFIG_FILE, &value)?;
-    Ok(value)
+    invalidate_profile_runtime_config_cache_after(
+        write_value_store(app, CONTROLLED_CONFIG_FILE, &value).map(|_| value),
+    )
 }
 
 fn read_profile_config(app: &tauri::AppHandle) -> Result<ProfileConfigData, String> {
+    migrate_legacy_profile_config_if_needed(app)?;
     let path = storage_file(app, PROFILE_CONFIG_FILE)?;
     Ok(normalize_profile_config(
         read_json_file(&path)?.unwrap_or_default(),
@@ -1201,10 +1585,11 @@ fn read_profile_config(app: &tauri::AppHandle) -> Result<ProfileConfigData, Stri
 fn write_profile_config(app: &tauri::AppHandle, config: &ProfileConfigData) -> Result<(), String> {
     let path = storage_file(app, PROFILE_CONFIG_FILE)?;
     let normalized = normalize_profile_config(config.clone());
-    write_json_file(&path, &normalized)
+    invalidate_profile_runtime_config_cache_after(write_json_file(&path, &normalized))
 }
 
 fn read_override_config(app: &tauri::AppHandle) -> Result<OverrideConfigData, String> {
+    migrate_legacy_override_config_if_needed(app)?;
     let path = storage_file(app, OVERRIDE_CONFIG_FILE)?;
     Ok(read_json_file(&path)?.unwrap_or_default())
 }
@@ -1214,17 +1599,18 @@ fn write_override_config(
     config: &OverrideConfigData,
 ) -> Result<(), String> {
     let path = storage_file(app, OVERRIDE_CONFIG_FILE)?;
-    write_json_file(&path, config)
+    invalidate_profile_runtime_config_cache_after(write_json_file(&path, config))
 }
 
 fn read_chains_config(app: &tauri::AppHandle) -> Result<ChainsConfigData, String> {
+    migrate_legacy_chains_config_if_needed(app)?;
     let path = storage_file(app, CHAINS_CONFIG_FILE)?;
     Ok(read_json_file(&path)?.unwrap_or_default())
 }
 
 fn write_chains_config(app: &tauri::AppHandle, config: &ChainsConfigData) -> Result<(), String> {
     let path = storage_file(app, CHAINS_CONFIG_FILE)?;
-    write_json_file(&path, config)
+    invalidate_profile_runtime_config_cache_after(write_json_file(&path, config))
 }
 
 fn read_provider_stats(app: &tauri::AppHandle) -> Result<ProviderStatsData, String> {
@@ -1242,6 +1628,7 @@ fn profile_file_path(app: &tauri::AppHandle, id: &str) -> Result<PathBuf, String
 }
 
 fn read_profile_text(app: &tauri::AppHandle, id: &str) -> Result<String, String> {
+    migrate_legacy_storage_dir_if_needed(app, PROFILE_DIR_NAME, &[PROFILE_DIR_NAME])?;
     let path = profile_file_path(app, id)?;
     if path.exists() {
         return fs::read_to_string(path).map_err(|e| e.to_string());
@@ -1253,7 +1640,9 @@ fn read_profile_text(app: &tauri::AppHandle, id: &str) -> Result<String, String>
 fn write_profile_text(app: &tauri::AppHandle, id: &str, content: &str) -> Result<(), String> {
     let path = profile_file_path(app, id)?;
     ensure_parent(&path)?;
-    fs::write(path, content).map_err(|e| e.to_string())
+    invalidate_profile_runtime_config_cache_after(
+        fs::write(path, content).map_err(|e| e.to_string()),
+    )
 }
 
 fn override_file_path(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<PathBuf, String> {
@@ -1265,6 +1654,7 @@ fn override_rollback_path(app: &tauri::AppHandle, id: &str, ext: &str) -> Result
 }
 
 fn read_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<String, String> {
+    migrate_legacy_storage_dir_if_needed(app, OVERRIDE_DIR_NAME, &["override", OVERRIDE_DIR_NAME])?;
     let path = override_file_path(app, id, ext)?;
     if path.exists() {
         return fs::read_to_string(path).map_err(|e| e.to_string());
@@ -1291,7 +1681,9 @@ fn write_override_text(
     }
 
     ensure_parent(&path)?;
-    fs::write(path, content).map_err(|e| e.to_string())
+    invalidate_profile_runtime_config_cache_after(
+        fs::write(path, content).map_err(|e| e.to_string()),
+    )
 }
 
 fn rollback_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<(), String> {
@@ -1307,7 +1699,9 @@ fn rollback_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result
         let current = fs::read_to_string(&target_path).map_err(|e| e.to_string())?;
         fs::write(&rollback_path, current).map_err(|e| e.to_string())?;
     }
-    fs::write(target_path, rollback_content).map_err(|e| e.to_string())
+    invalidate_profile_runtime_config_cache_after(
+        fs::write(target_path, rollback_content).map_err(|e| e.to_string()),
+    )
 }
 
 fn theme_file_path(app: &tauri::AppHandle, theme: &str) -> Result<PathBuf, String> {
@@ -2374,10 +2768,7 @@ fn take_main_window_close_allowed(app: &tauri::AppHandle) -> bool {
 
 fn stop_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<CoreState>();
-    let mut handle = state
-        .lightweight_mode
-        .lock()
-        .map_err(|e| e.to_string())?;
+    let mut handle = state.lightweight_mode.lock().map_err(|e| e.to_string())?;
     if let Some(current) = handle.take() {
         let _ = current.shutdown.send(());
     }
@@ -2394,6 +2785,7 @@ fn close_main_window_renderer(app: &tauri::AppHandle) -> Result<(), String> {
 
 fn exit_app_without_core(app: &tauri::AppHandle) -> Result<(), String> {
     let _ = stop_lightweight_mode(app);
+    let _ = start_traffic_monitor(app);
     close_main_window_renderer(app)?;
     app.exit(0);
     Ok(())
@@ -2424,10 +2816,7 @@ fn schedule_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
 
     {
         let state = app.state::<CoreState>();
-        let mut handle = state
-            .lightweight_mode
-            .lock()
-            .map_err(|e| e.to_string())?;
+        let mut handle = state.lightweight_mode.lock().map_err(|e| e.to_string())?;
         *handle = Some(LightweightModeHandle {
             shutdown: shutdown_tx,
         });
@@ -2435,7 +2824,10 @@ fn schedule_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
 
     let app_handle = app.clone();
     thread::spawn(move || {
-        if shutdown_rx.recv_timeout(Duration::from_secs(delay_secs)).is_ok() {
+        if shutdown_rx
+            .recv_timeout(Duration::from_secs(delay_secs))
+            .is_ok()
+        {
             return;
         }
 
@@ -2569,11 +2961,16 @@ fn encode_tray_menu_segment(value: &str) -> String {
 }
 
 fn decode_tray_menu_segment(value: &str) -> Option<String> {
-    urlencoding::decode(value).ok().map(|decoded| decoded.into_owned())
+    urlencoding::decode(value)
+        .ok()
+        .map(|decoded| decoded.into_owned())
 }
 
 fn build_tray_group_test_id(group: &str) -> String {
-    format!("{TRAY_MENU_GROUP_TEST_PREFIX}{}", encode_tray_menu_segment(group))
+    format!(
+        "{TRAY_MENU_GROUP_TEST_PREFIX}{}",
+        encode_tray_menu_segment(group)
+    )
 }
 
 fn build_tray_group_proxy_id(group: &str, proxy: &str) -> String {
@@ -2596,6 +2993,65 @@ fn parse_tray_group_proxy_id(id: &str) -> Option<(String, String)> {
         decode_tray_menu_segment(group)?,
         decode_tray_menu_segment(proxy)?,
     ))
+}
+
+fn build_tray_profile_toggle_id(profile_id: &str) -> String {
+    format!(
+        "{TRAY_MENU_PROFILE_TOGGLE_PREFIX}{}",
+        encode_tray_menu_segment(profile_id)
+    )
+}
+
+fn parse_tray_profile_toggle_id(id: &str) -> Option<String> {
+    id.strip_prefix(TRAY_MENU_PROFILE_TOGGLE_PREFIX)
+        .and_then(decode_tray_menu_segment)
+}
+
+fn build_tray_profile_current_id(profile_id: &str) -> String {
+    format!(
+        "{TRAY_MENU_PROFILE_CURRENT_PREFIX}{}",
+        encode_tray_menu_segment(profile_id)
+    )
+}
+
+fn parse_tray_profile_current_id(id: &str) -> Option<String> {
+    id.strip_prefix(TRAY_MENU_PROFILE_CURRENT_PREFIX)
+        .and_then(decode_tray_menu_segment)
+}
+
+fn build_tray_copy_env_id(shell_type: &str) -> String {
+    format!(
+        "{TRAY_MENU_COPY_ENV_PREFIX}{}",
+        encode_tray_menu_segment(shell_type)
+    )
+}
+
+fn parse_tray_copy_env_id(id: &str) -> Option<String> {
+    id.strip_prefix(TRAY_MENU_COPY_ENV_PREFIX)
+        .and_then(decode_tray_menu_segment)
+}
+
+fn read_tray_env_types(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
+    let mut env_types = json_array_strings(read_app_config_store(app)?.get("envType"))
+        .into_iter()
+        .filter(|shell_type| {
+            matches!(
+                shell_type.as_str(),
+                "bash" | "cmd" | "powershell" | "nushell"
+            )
+        })
+        .collect::<Vec<_>>();
+
+    if env_types.is_empty() {
+        env_types.push(if cfg!(target_os = "windows") {
+            "powershell".to_string()
+        } else {
+            "bash".to_string()
+        });
+    }
+
+    env_types.dedup();
+    Ok(env_types)
 }
 
 fn load_native_tray_groups(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
@@ -2626,9 +3082,9 @@ fn append_native_tray_group_menus(
             .get("all")
             .and_then(Value::as_array)
             .and_then(|items| {
-                items.iter().find(|item| {
-                    item.get("name").and_then(Value::as_str) == Some(current_proxy)
-                })
+                items
+                    .iter()
+                    .find(|item| item.get("name").and_then(Value::as_str) == Some(current_proxy))
             })
             .and_then(|item| item.get("history").and_then(Value::as_array))
             .and_then(|history| history.last())
@@ -2684,6 +3140,159 @@ fn append_native_tray_group_menus(
     }
 
     Ok(true)
+}
+
+fn append_native_tray_profile_menu(
+    app: &tauri::AppHandle,
+    menu: &Menu<tauri::Wry>,
+) -> Result<(), String> {
+    let profile_config = read_profile_config(app)?;
+    let active_ids = active_profile_ids(&profile_config);
+    let current_id = primary_profile_id(&profile_config, &active_ids);
+
+    let profile_menu = Submenu::new(app, "订阅配置", true).map_err(|e| e.to_string())?;
+
+    if profile_config.items.is_empty() {
+        let empty_item = MenuItem::with_id(
+            app,
+            TRAY_MENU_PROFILE_EMPTY_ID,
+            "暂无订阅",
+            false,
+            None::<&str>,
+        )
+        .map_err(|e| e.to_string())?;
+        profile_menu
+            .append(&empty_item)
+            .map_err(|e| e.to_string())?;
+    } else {
+        for item in &profile_config.items {
+            let profile_item = CheckMenuItem::with_id(
+                app,
+                build_tray_profile_toggle_id(&item.id),
+                &item.name,
+                true,
+                active_ids.iter().any(|id| id == &item.id),
+                None::<&str>,
+            )
+            .map_err(|e| e.to_string())?;
+            profile_menu
+                .append(&profile_item)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+
+    let separator = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    profile_menu.append(&separator).map_err(|e| e.to_string())?;
+
+    let current_menu = Submenu::new(app, "主订阅", true).map_err(|e| e.to_string())?;
+    let current_items = profile_config
+        .items
+        .iter()
+        .filter(|item| active_ids.iter().any(|id| id == &item.id))
+        .collect::<Vec<_>>();
+
+    if current_items.is_empty() {
+        let empty_item = MenuItem::with_id(
+            app,
+            TRAY_MENU_PROFILE_CURRENT_EMPTY_ID,
+            "暂无可用主订阅",
+            false,
+            None::<&str>,
+        )
+        .map_err(|e| e.to_string())?;
+        current_menu
+            .append(&empty_item)
+            .map_err(|e| e.to_string())?;
+    } else {
+        for item in current_items {
+            let current_item = CheckMenuItem::with_id(
+                app,
+                build_tray_profile_current_id(&item.id),
+                &item.name,
+                true,
+                current_id.as_deref() == Some(item.id.as_str()),
+                None::<&str>,
+            )
+            .map_err(|e| e.to_string())?;
+            current_menu
+                .append(&current_item)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+
+    profile_menu
+        .append(&current_menu)
+        .map_err(|e| e.to_string())?;
+    menu.append(&profile_menu).map_err(|e| e.to_string())
+}
+
+fn append_tray_text_items(
+    app: &tauri::AppHandle,
+    menu: &Submenu<tauri::Wry>,
+    items: &[(&str, &str)],
+) -> Result<(), String> {
+    for (id, label) in items {
+        let item =
+            MenuItem::with_id(app, *id, *label, true, None::<&str>).map_err(|e| e.to_string())?;
+        menu.append(&item).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+fn append_native_tray_open_dir_menu(
+    app: &tauri::AppHandle,
+    menu: &Menu<tauri::Wry>,
+) -> Result<(), String> {
+    let open_dir_menu = Submenu::new(app, "打开目录", true).map_err(|e| e.to_string())?;
+    append_tray_text_items(
+        app,
+        &open_dir_menu,
+        &[
+            (TRAY_MENU_OPEN_APP_DIR_ID, "应用目录"),
+            (TRAY_MENU_OPEN_WORK_DIR_ID, "工作目录"),
+            (TRAY_MENU_OPEN_CORE_DIR_ID, "内核目录"),
+            (TRAY_MENU_OPEN_LOG_DIR_ID, "日志目录"),
+        ],
+    )?;
+    menu.append(&open_dir_menu).map_err(|e| e.to_string())
+}
+
+fn append_native_tray_copy_env_menu(
+    app: &tauri::AppHandle,
+    menu: &Menu<tauri::Wry>,
+) -> Result<(), String> {
+    let env_types = read_tray_env_types(app)?;
+
+    if env_types.len() <= 1 {
+        let shell_type = env_types
+            .first()
+            .cloned()
+            .unwrap_or_else(|| String::from("powershell"));
+        let copy_env_item = MenuItem::with_id(
+            app,
+            build_tray_copy_env_id(&shell_type),
+            "复制环境变量",
+            true,
+            None::<&str>,
+        )
+        .map_err(|e| e.to_string())?;
+        return menu.append(&copy_env_item).map_err(|e| e.to_string());
+    }
+
+    let env_menu = Submenu::new(app, "复制环境变量", true).map_err(|e| e.to_string())?;
+    for shell_type in env_types {
+        let item = MenuItem::with_id(
+            app,
+            build_tray_copy_env_id(&shell_type),
+            &shell_type,
+            true,
+            None::<&str>,
+        )
+        .map_err(|e| e.to_string())?;
+        env_menu.append(&item).map_err(|e| e.to_string())?;
+    }
+
+    menu.append(&env_menu).map_err(|e| e.to_string())
 }
 
 fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, String> {
@@ -2787,12 +3396,31 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
         &[&rule_mode, &global_mode, &direct_mode],
     )
     .map_err(|e| e.to_string())?;
+    let quit_without_core = MenuItem::with_id(
+        app,
+        TRAY_MENU_QUIT_WITHOUT_CORE_ID,
+        "保留内核退出",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    let restart_app = MenuItem::with_id(
+        app,
+        TRAY_MENU_RESTART_APP_ID,
+        "重启应用",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
     let quit = MenuItem::with_id(app, TRAY_MENU_QUIT_ID, "退出应用", true, None::<&str>)
         .map_err(|e| e.to_string())?;
     let separator_1 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let separator_2 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let separator_3 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let separator_4 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let separator_5 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let separator_6 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let separator_7 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let menu = Menu::new(app).map_err(|e| e.to_string())?;
     menu.append(&show_window).map_err(|e| e.to_string())?;
     menu.append(&toggle_floating).map_err(|e| e.to_string())?;
@@ -2813,6 +3441,14 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     }
 
     menu.append(&separator_4).map_err(|e| e.to_string())?;
+    append_native_tray_profile_menu(app, &menu)?;
+    menu.append(&separator_5).map_err(|e| e.to_string())?;
+    append_native_tray_open_dir_menu(app, &menu)?;
+    append_native_tray_copy_env_menu(app, &menu)?;
+    menu.append(&separator_6).map_err(|e| e.to_string())?;
+    menu.append(&quit_without_core).map_err(|e| e.to_string())?;
+    menu.append(&restart_app).map_err(|e| e.to_string())?;
+    menu.append(&separator_7).map_err(|e| e.to_string())?;
     menu.append(&quit).map_err(|e| e.to_string())?;
     Ok(menu)
 }
@@ -2828,6 +3464,11 @@ fn refresh_native_tray_menu(app: &tauri::AppHandle) -> Result<(), String> {
 
     let menu = build_native_tray_menu(app)?;
     tray.set_menu(Some(menu)).map_err(|e| e.to_string())
+}
+
+fn refresh_native_tray_shell(app: &tauri::AppHandle) -> Result<(), String> {
+    update_tray_icon_for_state(app)?;
+    refresh_native_tray_menu(app)
 }
 
 fn handle_tray_toggle_floating(app: &tauri::AppHandle) -> Result<(), String> {
@@ -2956,21 +3597,107 @@ fn handle_tray_change_group_proxy(
     Ok(())
 }
 
+fn emit_profile_config_changed(app: &tauri::AppHandle) {
+    emit_ipc_event(app, "profileConfigUpdated", Value::Null);
+    emit_ipc_event(app, "rulesUpdated", Value::Null);
+}
+
+fn handle_tray_toggle_profile_active(
+    app: &tauri::AppHandle,
+    profile_id: &str,
+) -> Result<(), String> {
+    let profile_config = read_profile_config(app)?;
+    let mut next_actives = active_profile_ids(&profile_config);
+    let current_id = primary_profile_id(&profile_config, &next_actives);
+    let existed = next_actives.iter().any(|id| id == profile_id);
+
+    if existed {
+        next_actives.retain(|id| id != profile_id);
+    } else {
+        next_actives.push(profile_id.to_string());
+    }
+
+    let next_current = if existed && current_id.as_deref() == Some(profile_id) {
+        next_actives.first().cloned()
+    } else {
+        current_id
+    };
+
+    set_active_profiles_store(app, &next_actives, next_current.as_deref())?;
+    emit_profile_config_changed(app);
+    Ok(())
+}
+
+fn handle_tray_change_current_profile(
+    app: &tauri::AppHandle,
+    profile_id: &str,
+) -> Result<(), String> {
+    change_current_profile_store(app, profile_id)?;
+    emit_profile_config_changed(app);
+    Ok(())
+}
+
+fn resolve_current_runtime_dirs(
+    app: &tauri::AppHandle,
+) -> Result<(PathBuf, PathBuf, PathBuf, PathBuf), String> {
+    let current_profile_id = current_runtime_profile_id(app)?;
+    let diff_work_dir = read_diff_work_dir(app)?;
+    ensure_runtime_dirs(app, current_profile_id.as_deref(), diff_work_dir)
+}
+
+fn handle_tray_open_directory(app: &tauri::AppHandle, menu_id: &str) -> Result<(), String> {
+    let path = match menu_id {
+        TRAY_MENU_OPEN_APP_DIR_ID => app_data_root(app)?,
+        TRAY_MENU_OPEN_WORK_DIR_ID => resolve_current_runtime_dirs(app)?.1,
+        TRAY_MENU_OPEN_CORE_DIR_ID => {
+            let core = read_core_name(app)?;
+            let core_binary = resolve_core_binary(app, &core)?;
+            core_binary
+                .parent()
+                .map(Path::to_path_buf)
+                .ok_or_else(|| "无法解析内核目录".to_string())?
+        }
+        TRAY_MENU_OPEN_LOG_DIR_ID => resolve_current_runtime_dirs(app)?
+            .2
+            .parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| "无法解析日志目录".to_string())?,
+        _ => return Ok(()),
+    };
+
+    open_path_in_shell(&path)
+}
+
+fn handle_tray_copy_env(app: &tauri::AppHandle, shell_type: &str) -> Result<(), String> {
+    let command = build_proxy_env_command(app, shell_type)?;
+    copy_text_to_clipboard(&command)
+}
+
 fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> Result<(), String> {
     let state = app.state::<CoreState>();
     let menu_id = event.id().as_ref();
 
-    if let Some(group) = parse_tray_group_test_id(menu_id) {
+    let handled = if let Some(group) = parse_tray_group_test_id(menu_id) {
         handle_tray_test_group_delay(app, &state, &group)?;
-        update_tray_icon_for_state(app)?;
-        refresh_native_tray_menu(app)?;
-        return Ok(());
-    }
-
-    if let Some((group, proxy)) = parse_tray_group_proxy_id(menu_id) {
+        true
+    } else if let Some((group, proxy)) = parse_tray_group_proxy_id(menu_id) {
         handle_tray_change_group_proxy(app, &state, &group, &proxy)?;
-        update_tray_icon_for_state(app)?;
-        refresh_native_tray_menu(app)?;
+        true
+    } else if let Some(profile_id) = parse_tray_profile_toggle_id(menu_id) {
+        handle_tray_toggle_profile_active(app, &profile_id)?;
+        true
+    } else if let Some(profile_id) = parse_tray_profile_current_id(menu_id) {
+        handle_tray_change_current_profile(app, &profile_id)?;
+        true
+    } else if let Some(shell_type) = parse_tray_copy_env_id(menu_id) {
+        handle_tray_copy_env(app, &shell_type)?;
+        true
+    } else {
+        false
+    };
+
+    if handled {
+        refresh_native_tray_shell(app)?;
         return Ok(());
     }
 
@@ -2982,6 +3709,18 @@ fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> R
         id if id == TRAY_MENU_MODE_RULE_ID => handle_tray_change_mode(app, &state, "rule"),
         id if id == TRAY_MENU_MODE_GLOBAL_ID => handle_tray_change_mode(app, &state, "global"),
         id if id == TRAY_MENU_MODE_DIRECT_ID => handle_tray_change_mode(app, &state, "direct"),
+        id if id == TRAY_MENU_OPEN_APP_DIR_ID => handle_tray_open_directory(app, menu_id),
+        id if id == TRAY_MENU_OPEN_WORK_DIR_ID => handle_tray_open_directory(app, menu_id),
+        id if id == TRAY_MENU_OPEN_CORE_DIR_ID => handle_tray_open_directory(app, menu_id),
+        id if id == TRAY_MENU_OPEN_LOG_DIR_ID => handle_tray_open_directory(app, menu_id),
+        id if id == TRAY_MENU_QUIT_WITHOUT_CORE_ID => {
+            exit_app_without_core(app)?;
+            return Ok(());
+        }
+        id if id == TRAY_MENU_RESTART_APP_ID => {
+            relaunch_current_app(app, &state)?;
+            return Ok(());
+        }
         id if id == TRAY_MENU_QUIT_ID => {
             shutdown_runtime(app, &state);
             app.exit(0);
@@ -2990,8 +3729,7 @@ fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> R
         _ => Ok(()),
     }?;
 
-    update_tray_icon_for_state(app)?;
-    refresh_native_tray_menu(app)?;
+    refresh_native_tray_shell(app)?;
     Ok(())
 }
 
@@ -3155,9 +3893,21 @@ fn position_traymenu_window(
         .map_err(|e| e.to_string())?
         .or_else(|| window.primary_monitor().ok().flatten());
     if let Some(monitor) = monitor {
+        let monitor_position = monitor.position();
         let size = monitor.size();
-        let safe_x = x.clamp(0.0, (size.width as f64 - width).max(0.0));
-        let safe_y = y.clamp(0.0, (size.height as f64 - height).max(0.0));
+        let min_x = monitor_position.x as f64;
+        let min_y = monitor_position.y as f64;
+        let max_x = (min_x + size.width as f64 - width).max(min_x);
+        let max_y = (min_y + size.height as f64 - height).max(min_y);
+        let open_below = y <= min_y + size.height as f64 / 2.0;
+        let preferred_x = x - width / 2.0;
+        let preferred_y = if open_below {
+            y + TRAYMENU_WINDOW_GAP
+        } else {
+            y - height - TRAYMENU_WINDOW_GAP
+        };
+        let safe_x = preferred_x.clamp(min_x, max_x);
+        let safe_y = preferred_y.clamp(min_y, max_y);
         window
             .set_position(Position::Physical(PhysicalPosition::new(
                 safe_x as i32,
@@ -3179,15 +3929,19 @@ fn ensure_traymenu_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow
         WebviewUrl::App("traymenu.html".into()),
     )
     .title("RouteX Tray Menu")
-    .inner_size(380.0, 520.0)
+    .inner_size(TRAYMENU_WINDOW_WIDTH, TRAYMENU_WINDOW_HEIGHT)
     .resizable(false)
     .decorations(false)
     .always_on_top(true)
     .skip_taskbar(true)
+    .shadow(true)
     .visible(false)
-    .focused(true)
-    .build()
-    .map_err(|e| e.to_string())?;
+    .focused(true);
+
+    #[cfg(target_os = "windows")]
+    let window = window.transparent(true);
+
+    let window = window.build().map_err(|e| e.to_string())?;
 
     window.on_window_event({
         let handle = app.clone();
@@ -3206,10 +3960,9 @@ fn show_traymenu_window(
     position: Option<(f64, f64)>,
 ) -> Result<(), String> {
     let window = ensure_traymenu_window(app)?;
-    let width = 380.0;
-    let height = 520.0;
     if let Some((x, y)) = position {
-        let _ = position_traymenu_window(&window, x, y - height, width, height);
+        let _ =
+            position_traymenu_window(&window, x, y, TRAYMENU_WINDOW_WIDTH, TRAYMENU_WINDOW_HEIGHT);
     }
     let _ = window.show();
     let _ = window.set_focus();
@@ -4611,7 +5364,14 @@ fn restart_core_and_emit(
     Ok(())
 }
 
-fn run_startup_alignment(app: &tauri::AppHandle) -> Result<(), String> {
+struct StartupAlignmentConfig {
+    sysproxy_enabled: bool,
+    only_active_device: bool,
+    network_detection: bool,
+    show_traffic: bool,
+}
+
+fn read_startup_alignment_config(app: &tauri::AppHandle) -> Result<StartupAlignmentConfig, String> {
     let config = read_app_config_store(app)?;
     let silent_start = config
         .get("silentStart")
@@ -4639,6 +5399,10 @@ fn run_startup_alignment(app: &tauri::AppHandle) -> Result<(), String> {
         .get("networkDetection")
         .and_then(Value::as_bool)
         .unwrap_or(false);
+    let show_traffic = config
+        .get("showTraffic")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
 
     sync_shell_surfaces(app)?;
 
@@ -4648,14 +5412,30 @@ fn run_startup_alignment(app: &tauri::AppHandle) -> Result<(), String> {
         let _ = show_main_window(app);
     }
 
+    Ok(StartupAlignmentConfig {
+        sysproxy_enabled,
+        only_active_device,
+        network_detection,
+        show_traffic,
+    })
+}
+
+fn run_startup_alignment(
+    app: &tauri::AppHandle,
+    startup_config: &StartupAlignmentConfig,
+) -> Result<(), String> {
     let state = app.state::<CoreState>();
 
-    if sysproxy_enabled {
-        let _ = trigger_sys_proxy(app, &state, true, only_active_device);
+    if startup_config.sysproxy_enabled {
+        let _ = trigger_sys_proxy(app, &state, true, startup_config.only_active_device);
     }
 
-    if network_detection {
+    if startup_config.network_detection {
         let _ = start_network_detection(app, &state);
+    }
+
+    if startup_config.show_traffic {
+        let _ = start_traffic_monitor(app);
     }
 
     let _ = refresh_ssid_check(app);
@@ -5120,30 +5900,6 @@ fn map_named_reference(
         .unwrap_or_else(|| name.to_string())
 }
 
-fn update_group_reference_array(
-    group_object: &mut serde_json::Map<String, Value>,
-    key: &str,
-    proxy_name_map: &HashMap<String, String>,
-    group_name_map: &HashMap<String, String>,
-    provider_name_map: &HashMap<String, String>,
-) {
-    let Some(items) = group_object.get_mut(key).and_then(Value::as_array_mut) else {
-        return;
-    };
-
-    for item in items {
-        let Some(name) = item.as_str() else {
-            continue;
-        };
-
-        let mapped = provider_name_map
-            .get(name)
-            .cloned()
-            .unwrap_or_else(|| map_named_reference(name, proxy_name_map, group_name_map));
-        *item = Value::String(mapped);
-    }
-}
-
 fn merge_profile_nodes(
     target_profile: &mut Value,
     source_profile: &Value,
@@ -5162,7 +5918,7 @@ fn merge_profile_nodes(
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    let mut target_groups = target_object
+    let target_groups = target_object
         .get("proxy-groups")
         .and_then(Value::as_array)
         .cloned()
@@ -5193,7 +5949,7 @@ fn merge_profile_nodes(
         .iter()
         .filter_map(value_name)
         .collect::<HashSet<_>>();
-    let mut group_names = target_groups
+    let group_names = target_groups
         .iter()
         .filter_map(value_name)
         .collect::<HashSet<_>>();
@@ -5206,11 +5962,9 @@ fn merge_profile_nodes(
         .map(str::to_string)
         .collect::<HashSet<_>>();
 
-    let mut provider_name_map = HashMap::new();
     for (provider_name, provider_value) in source_proxy_providers {
         let next_provider_name =
             create_unique_name(&provider_name, &mut provider_names, profile_name);
-        provider_name_map.insert(provider_name.clone(), next_provider_name.clone());
         let mut cloned_provider = provider_value.clone();
         rewrite_provider_path(&mut cloned_provider, profile_id);
         target_proxy_providers.insert(next_provider_name, cloned_provider);
@@ -5219,8 +5973,9 @@ fn merge_profile_nodes(
     let mut group_name_map = HashMap::new();
     for group in &source_groups {
         if let Some(group_name) = value_name(group) {
-            let next_group_name = create_unique_name(&group_name, &mut group_names, profile_name);
-            group_name_map.insert(group_name, next_group_name);
+            if group_names.contains(&group_name) {
+                group_name_map.insert(group_name.clone(), group_name);
+            }
         }
     }
 
@@ -5258,42 +6013,103 @@ fn merge_profile_nodes(
         target_proxies.push(cloned_proxy);
     }
 
-    for group in source_groups {
-        let mut cloned_group = group;
-        let Some(group_object) = cloned_group.as_object_mut() else {
-            continue;
-        };
-
-        if let Some(group_name) = group_object.get("name").and_then(Value::as_str) {
-            if let Some(mapped_name) = group_name_map.get(group_name) {
-                group_object.insert("name".to_string(), Value::String(mapped_name.clone()));
-            }
-        }
-
-        update_group_reference_array(
-            group_object,
-            "proxies",
-            &proxy_name_map,
-            &group_name_map,
-            &provider_name_map,
-        );
-        update_group_reference_array(
-            group_object,
-            "use",
-            &proxy_name_map,
-            &group_name_map,
-            &provider_name_map,
-        );
-
-        target_groups.push(cloned_group);
-    }
-
     target_object.insert("proxies".to_string(), Value::Array(target_proxies));
     target_object.insert("proxy-groups".to_string(), Value::Array(target_groups));
     target_object.insert(
         "proxy-providers".to_string(),
         Value::Object(target_proxy_providers),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn merge_profile_nodes_keeps_secondary_groups_out_of_runtime_profile() {
+        let mut target_profile = json!({
+            "proxies": [
+                { "name": "Primary Node" }
+            ],
+            "proxy-groups": [
+                { "name": "ALL", "type": "Selector", "include-all": true },
+                { "name": "Proxy", "type": "Selector", "proxies": ["Primary Node"] }
+            ],
+            "proxy-providers": {}
+        });
+        let source_profile = json!({
+            "proxies": [
+                { "name": "Merged Node" },
+                { "name": "Relay By Shared Group", "dialer-proxy": "Proxy" },
+                { "name": "Relay By Secondary Group", "dialer-proxy": "HK" }
+            ],
+            "proxy-groups": [
+                { "name": "Proxy", "type": "Selector", "proxies": ["Merged Node"] },
+                { "name": "HK", "type": "Selector", "proxies": ["Merged Node"] }
+            ],
+            "proxy-providers": {
+                "subscription": { "path": "./providers/subscription.yaml" }
+            }
+        });
+
+        merge_profile_nodes(
+            &mut target_profile,
+            &source_profile,
+            "profile-secondary",
+            "自建.yaml",
+        );
+
+        let merged_groups = target_profile
+            .get("proxy-groups")
+            .and_then(Value::as_array)
+            .expect("proxy-groups should be present");
+        let merged_group_names = merged_groups
+            .iter()
+            .filter_map(value_name)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            merged_group_names,
+            vec!["ALL".to_string(), "Proxy".to_string()]
+        );
+
+        let merged_proxies = target_profile
+            .get("proxies")
+            .and_then(Value::as_array)
+            .expect("proxies should be present");
+        let merged_proxy_names = merged_proxies
+            .iter()
+            .filter_map(value_name)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            merged_proxy_names,
+            vec![
+                "Primary Node".to_string(),
+                "Merged Node".to_string(),
+                "Relay By Shared Group".to_string()
+            ]
+        );
+
+        let relay_proxy = merged_proxies
+            .iter()
+            .find(|proxy| value_name(proxy).as_deref() == Some("Relay By Shared Group"))
+            .and_then(Value::as_object)
+            .expect("relay proxy should be merged");
+        assert_eq!(
+            relay_proxy.get("dialer-proxy").and_then(Value::as_str),
+            Some("Proxy")
+        );
+
+        let merged_provider = target_profile
+            .get("proxy-providers")
+            .and_then(Value::as_object)
+            .and_then(|providers| providers.get("subscription"))
+            .and_then(Value::as_object)
+            .expect("provider should be preserved");
+        assert_eq!(
+            merged_provider.get("path").and_then(Value::as_str),
+            Some("merged-profiles/profile-secondary/providers/subscription.yaml")
+        );
+    }
 }
 
 fn parse_profile_yaml_value(text: &str) -> Result<Value, String> {
@@ -5354,6 +6170,10 @@ fn apply_yaml_overrides_to_profile(
 }
 
 fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, String> {
+    if let Some(cached) = read_cached_profile_runtime_config() {
+        return Ok(cached);
+    }
+
     let profile_config = read_profile_config(app)?;
     let active_ids = active_profile_ids(&profile_config);
     let current = primary_profile_id(&profile_config, &active_ids);
@@ -5432,6 +6252,7 @@ fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, Strin
     merge_json(&mut profile_value, &controlled_config);
     inject_chain_proxies(&mut profile_value, app)?;
     sanitize_runtime_profile_value(&mut profile_value, control_dns, control_sniff);
+    write_cached_profile_runtime_config(&profile_value);
 
     Ok(profile_value)
 }
@@ -5464,43 +6285,68 @@ fn current_runtime_value(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<Value, String> {
-    let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
-    if let Some(config_path) = runtime.config_path.as_ref() {
+    let config_path = {
+        let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+        runtime.config_path.clone()
+    };
+
+    if let Some(config_path) = config_path {
+        let modified_at_ms = runtime_config_modified_at_ms(&config_path);
+        if let Some(runtime) = state
+            .runtime
+            .lock()
+            .map_err(|e| e.to_string())?
+            .cached_runtime_config
+            .clone()
+        {
+            if runtime.path == config_path && runtime.modified_at_ms == modified_at_ms {
+                return Ok(runtime.value);
+            }
+        }
+
         if config_path.exists() {
-            let text = fs::read_to_string(config_path).map_err(|e| e.to_string())?;
+            let text = fs::read_to_string(&config_path).map_err(|e| e.to_string())?;
             let yaml = serde_yaml::from_str::<Value>(&text).map_err(|e| e.to_string())?;
+
+            let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+            if runtime.config_path.as_ref() == Some(&config_path) {
+                runtime.cached_runtime_config = Some(CachedRuntimeConfig {
+                    path: config_path,
+                    modified_at_ms,
+                    value: yaml.clone(),
+                });
+            }
+
             return Ok(yaml);
         }
     }
-    drop(runtime);
 
     current_profile_runtime_config(app)
-}
-
-fn current_controller_address(state: &State<'_, CoreState>) -> Result<Option<String>, String> {
-    let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
-    Ok(runtime.controller_url.as_ref().map(|url| {
-        url.strip_prefix("http://")
-            .or_else(|| url.strip_prefix("https://"))
-            .unwrap_or(url)
-            .to_string()
-    }))
 }
 
 fn current_runtime_value_for_renderer(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<Value, String> {
-    let value = current_runtime_value(app, state)?;
-    let Some(controller_address) = current_controller_address(state)? else {
+    let mut value = current_runtime_value(app, state)?;
+
+    let Some(object) = value.as_object_mut() else {
         return Ok(value);
     };
 
-    if controller_address.trim().is_empty() {
-        return Ok(value);
+    match configured_external_controller_address(Some(&read_controlled_config_store(app)?)) {
+        Some(external_controller) => {
+            object.insert(
+                "external-controller".to_string(),
+                Value::String(external_controller),
+            );
+        }
+        None => {
+            object.remove("external-controller");
+        }
     }
 
-    Ok(normalize_runtime_config(Some(&value), &controller_address))
+    Ok(value)
 }
 
 fn current_controller_url(state: &State<'_, CoreState>) -> Result<Option<String>, String> {
@@ -6599,6 +7445,32 @@ fn open_path_in_shell(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn open_external_url(url: &str) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = Command::new("explorer");
+        command.arg(url);
+        command
+    };
+
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = Command::new("open");
+        command.arg(url);
+        command
+    };
+
+    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+    let mut command = {
+        let mut command = Command::new("xdg-open");
+        command.arg(url);
+        command
+    };
+
+    command.spawn().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 fn normalize_dialog_extensions(extensions: &[String]) -> Vec<String> {
     extensions
         .iter()
@@ -7155,6 +8027,161 @@ fn allocate_controller_address() -> Result<String, String> {
     Ok(format!("127.0.0.1:{}", address.port()))
 }
 
+fn configured_external_controller_address(input: Option<&Value>) -> Option<String> {
+    input
+        .and_then(Value::as_object)
+        .and_then(|config| config.get("external-controller"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn controller_bind_address(listen_address: &str) -> String {
+    let trimmed = listen_address.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    let value = trimmed
+        .strip_prefix("http://")
+        .or_else(|| trimmed.strip_prefix("https://"))
+        .unwrap_or(trimmed);
+
+    if let Some(port) = value.strip_prefix(':') {
+        return format!("0.0.0.0:{port}");
+    }
+
+    if value.starts_with('[') {
+        return value.to_string();
+    }
+
+    let Some((host, port)) = value.rsplit_once(':') else {
+        return value.to_string();
+    };
+
+    let normalized_host = match host.trim() {
+        "" | "*" => "0.0.0.0",
+        other => other,
+    };
+
+    format!("{normalized_host}:{port}")
+}
+
+fn controller_connect_address(listen_address: &str) -> String {
+    let trimmed = listen_address.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    let value = trimmed
+        .strip_prefix("http://")
+        .or_else(|| trimmed.strip_prefix("https://"))
+        .unwrap_or(trimmed);
+
+    if let Some(port) = value.strip_prefix(':') {
+        return format!("127.0.0.1:{port}");
+    }
+
+    if value.starts_with('[') {
+        if let Some((host, port)) = value.split_once("]:") {
+            let normalized_host = match host {
+                "[::" | "[::0" | "[::0.0.0.0" => "127.0.0.1".to_string(),
+                _ => format!("{host}]"),
+            };
+            return format!("{normalized_host}:{port}");
+        }
+        return value.to_string();
+    }
+
+    let Some((host, port)) = value.rsplit_once(':') else {
+        return value.to_string();
+    };
+
+    let normalized_host = match host.trim() {
+        "" | "*" | "0.0.0.0" | "::" => "127.0.0.1",
+        other => other,
+    };
+
+    format!("{normalized_host}:{port}")
+}
+
+fn proxy_tcp_streams(mut inbound: std::net::TcpStream, target_addr: &str) -> Result<(), String> {
+    let mut outbound = std::net::TcpStream::connect(target_addr).map_err(|e| e.to_string())?;
+    let mut inbound_reader = inbound.try_clone().map_err(|e| e.to_string())?;
+    let mut outbound_writer = outbound.try_clone().map_err(|e| e.to_string())?;
+
+    let forward = thread::spawn(move || {
+        let _ = std::io::copy(&mut inbound_reader, &mut outbound_writer);
+    });
+
+    let _ = std::io::copy(&mut outbound, &mut inbound);
+    let _ = forward.join();
+    Ok(())
+}
+
+fn stop_external_controller_proxy(state: &State<'_, CoreState>) -> Result<(), String> {
+    let mut proxy_handle = state
+        .external_controller_proxy
+        .lock()
+        .map_err(|e| e.to_string())?;
+    if let Some(handle) = proxy_handle.take() {
+        let _ = handle.shutdown.send(());
+    }
+    Ok(())
+}
+
+fn start_external_controller_proxy(
+    state: &State<'_, CoreState>,
+    listen_address: Option<&str>,
+    target_address: &str,
+) -> Result<(), String> {
+    stop_external_controller_proxy(state)?;
+
+    let Some(listen_address) = listen_address
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return Ok(());
+    };
+
+    let bind_address = controller_bind_address(listen_address);
+    let listener = std::net::TcpListener::bind(&bind_address)
+        .map_err(|e| format!("外部控制器监听失败: {e}"))?;
+    listener.set_nonblocking(true).map_err(|e| e.to_string())?;
+
+    let (shutdown_tx, shutdown_rx) = mpsc::channel::<()>();
+    let target_address = target_address.to_string();
+    thread::spawn(move || loop {
+        match shutdown_rx.try_recv() {
+            Ok(_) | Err(mpsc::TryRecvError::Disconnected) => break,
+            Err(mpsc::TryRecvError::Empty) => {}
+        }
+
+        match listener.accept() {
+            Ok((stream, _)) => {
+                let target = target_address.clone();
+                thread::spawn(move || {
+                    let _ = proxy_tcp_streams(stream, &target);
+                });
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                thread::sleep(Duration::from_millis(50));
+            }
+            Err(_) => break,
+        }
+    });
+
+    let mut proxy_handle = state
+        .external_controller_proxy
+        .lock()
+        .map_err(|e| e.to_string())?;
+    *proxy_handle = Some(ExternalControllerProxyHandle {
+        shutdown: shutdown_tx,
+    });
+    Ok(())
+}
+
 fn dev_root() -> Result<PathBuf, String> {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -7391,6 +8418,307 @@ fn service_command_args(
     args.push(command.to_string());
     args.extend(extra_args);
     args
+}
+
+fn read_core_permission_mode(app: &tauri::AppHandle) -> Result<String, String> {
+    Ok(read_app_config_store(app)?
+        .get("corePermissionMode")
+        .and_then(Value::as_str)
+        .unwrap_or("elevated")
+        .to_string())
+}
+
+fn build_service_request_signature(app: &tauri::AppHandle) -> Result<(String, String), String> {
+    let service_auth_key = read_service_auth_key(app)?.ok_or_else(|| {
+        "当前未提供服务密钥，无法通过 RouteX 服务管理内核；请先初始化服务".to_string()
+    })?;
+    let (_, private_key_pem) = parse_service_auth_key(&service_auth_key)?;
+    let private_key_der = BASE64_STANDARD
+        .decode(
+            private_key_pem
+                .lines()
+                .filter(|line| !line.trim_start().starts_with("-----"))
+                .collect::<String>()
+                .as_bytes(),
+        )
+        .map_err(|e| format!("解析服务私钥失败: {e}"))?;
+    let key_pair = Ed25519KeyPair::from_pkcs8(&private_key_der)
+        .map_err(|_| "serviceAuthKey 中的私钥无效，无法生成服务签名".to_string())?;
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_secs()
+        .to_string();
+    let signature = BASE64_STANDARD.encode(key_pair.sign(timestamp.as_bytes()).as_ref());
+    Ok((timestamp, signature))
+}
+
+fn build_service_http_request(
+    method: &str,
+    path: &str,
+    body: Option<&Value>,
+    timestamp: &str,
+    signature: &str,
+) -> Result<Vec<u8>, String> {
+    let body_text = body
+        .map(|value| serde_json::to_string(value).map_err(|e| e.to_string()))
+        .transpose()?
+        .unwrap_or_default();
+    let mut request = format!(
+        "{method} {path} HTTP/1.1\r\nHost: localhost\r\nAccept: application/json\r\nX-Timestamp: {timestamp}\r\nX-Signature: {signature}\r\nConnection: close\r\n"
+    );
+    if method != "GET" || !body_text.is_empty() {
+        request.push_str("Content-Type: application/json\r\n");
+        request.push_str(&format!("Content-Length: {}\r\n", body_text.len()));
+    }
+    request.push_str("\r\n");
+    request.push_str(&body_text);
+    Ok(request.into_bytes())
+}
+
+fn find_http_header_end(bytes: &[u8]) -> Option<usize> {
+    bytes.windows(4).position(|window| window == b"\r\n\r\n")
+}
+
+fn find_crlf(bytes: &[u8], offset: usize) -> Option<usize> {
+    bytes[offset..]
+        .windows(2)
+        .position(|window| window == b"\r\n")
+        .map(|index| offset + index)
+}
+
+fn decode_chunked_http_body(bytes: &[u8]) -> Result<Vec<u8>, String> {
+    let mut decoded = Vec::new();
+    let mut offset = 0usize;
+
+    loop {
+        let line_end = find_crlf(bytes, offset)
+            .ok_or_else(|| "RouteX 服务返回了不完整的 chunked 响应".to_string())?;
+        let chunk_len_text = String::from_utf8_lossy(&bytes[offset..line_end]);
+        let chunk_len = usize::from_str_radix(
+            chunk_len_text.split(';').next().unwrap_or_default().trim(),
+            16,
+        )
+        .map_err(|e| format!("解析 RouteX 服务 chunk 长度失败: {e}"))?;
+        offset = line_end + 2;
+
+        if chunk_len == 0 {
+            return Ok(decoded);
+        }
+
+        let chunk_end = offset + chunk_len;
+        if chunk_end > bytes.len() {
+            return Err("RouteX 服务返回的 chunk 数据不完整".to_string());
+        }
+
+        decoded.extend_from_slice(&bytes[offset..chunk_end]);
+        offset = chunk_end;
+
+        if bytes.get(offset..offset + 2) != Some(b"\r\n" as &[u8]) {
+            return Err("RouteX 服务 chunk 响应格式无效".to_string());
+        }
+        offset += 2;
+    }
+}
+
+fn parse_service_http_response(bytes: &[u8]) -> Result<(u16, Vec<u8>), String> {
+    let header_end = find_http_header_end(bytes)
+        .ok_or_else(|| "RouteX 服务响应不是合法的 HTTP 报文".to_string())?;
+    let header_text = String::from_utf8_lossy(&bytes[..header_end]);
+    let mut lines = header_text.split("\r\n");
+    let status_line = lines
+        .next()
+        .ok_or_else(|| "RouteX 服务响应缺少状态行".to_string())?;
+    let status = status_line
+        .split_whitespace()
+        .nth(1)
+        .ok_or_else(|| "RouteX 服务响应状态行无效".to_string())?
+        .parse::<u16>()
+        .map_err(|e| format!("解析 RouteX 服务状态码失败: {e}"))?;
+
+    let mut chunked = false;
+    for line in lines {
+        let Some((name, value)) = line.split_once(':') else {
+            continue;
+        };
+        if name.trim().eq_ignore_ascii_case("Transfer-Encoding")
+            && value.to_ascii_lowercase().contains("chunked")
+        {
+            chunked = true;
+        }
+    }
+
+    let body = if chunked {
+        decode_chunked_http_body(&bytes[header_end + 4..])?
+    } else {
+        bytes[header_end + 4..].to_vec()
+    };
+
+    Ok((status, body))
+}
+
+fn send_service_http_over_stream<T: Read + Write>(
+    mut stream: T,
+    request: &[u8],
+) -> Result<Vec<u8>, String> {
+    stream.write_all(request).map_err(|e| e.to_string())?;
+    stream.flush().map_err(|e| e.to_string())?;
+    let mut response = Vec::new();
+    stream
+        .read_to_end(&mut response)
+        .map_err(|e| e.to_string())?;
+    if response.is_empty() {
+        return Err("RouteX 服务没有返回任何数据".to_string());
+    }
+    Ok(response)
+}
+
+#[cfg(target_os = "windows")]
+fn send_service_http_request(request: &[u8]) -> Result<Vec<u8>, String> {
+    let pipe_path = r"\\.\pipe\routex\service";
+    let mut last_error = None;
+
+    for _ in 0..10 {
+        match OpenOptions::new().read(true).write(true).open(pipe_path) {
+            Ok(pipe) => return send_service_http_over_stream(pipe, request),
+            Err(error) => {
+                last_error = Some(error.to_string());
+                thread::sleep(Duration::from_millis(300));
+            }
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| "连接 RouteX 服务命名管道失败".to_string()))
+}
+
+#[cfg(not(target_os = "windows"))]
+fn send_service_http_request(request: &[u8]) -> Result<Vec<u8>, String> {
+    let socket = UnixStream::connect("/tmp/routex-service.sock").map_err(|e| e.to_string())?;
+    send_service_http_over_stream(socket, request)
+}
+
+fn service_http_request_json(
+    app: &tauri::AppHandle,
+    method: &str,
+    path: &str,
+    body: Option<&Value>,
+) -> Result<Value, String> {
+    let (timestamp, signature) = build_service_request_signature(app)?;
+    let request = build_service_http_request(method, path, body, &timestamp, &signature)?;
+    let response = send_service_http_request(&request)?;
+    let (status, body_bytes) = parse_service_http_response(&response)?;
+    let body_text = String::from_utf8(body_bytes).map_err(|e| e.to_string())?;
+
+    if body_text.trim().is_empty() {
+        if status >= 400 {
+            return Err(format!("RouteX 服务请求失败: HTTP {}", status));
+        }
+        return Ok(Value::Null);
+    }
+
+    let value = serde_json::from_str::<Value>(&body_text)
+        .map_err(|e| format!("解析 RouteX 服务响应失败: {e}; body={body_text}"))?;
+    if let Some("error") = value.get("status").and_then(Value::as_str) {
+        return Err(value
+            .get("message")
+            .and_then(Value::as_str)
+            .unwrap_or("RouteX 服务请求失败")
+            .to_string());
+    }
+    if status >= 400 {
+        return Err(format!("RouteX 服务请求失败: HTTP {}", status));
+    }
+    Ok(value)
+}
+
+fn service_core_control(app: &tauri::AppHandle, path: &str) -> Result<(), String> {
+    service_http_request_json(app, "POST", path, None).map(|_| ())
+}
+
+fn service_core_status_info(app: &tauri::AppHandle) -> Result<Option<Value>, String> {
+    match service_http_request_json(app, "GET", "/core", None) {
+        Ok(value) => Ok(Some(value)),
+        Err(error)
+            if error.contains("进程未运行")
+                || error.to_ascii_lowercase().contains("not running") =>
+        {
+            Ok(None)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn build_service_core_restart_payload(
+    binary_path: &Path,
+    work_dir: &Path,
+    log_path: &Path,
+    safe_paths: &[String],
+    app_config: &Value,
+) -> Value {
+    let mut env = serde_json::Map::new();
+
+    env.insert(
+        "DISABLE_LOOPBACK_DETECTOR".to_string(),
+        Value::String(
+            app_config
+                .get("disableLoopbackDetector")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+                .to_string(),
+        ),
+    );
+    env.insert(
+        "DISABLE_EMBED_CA".to_string(),
+        Value::String(
+            app_config
+                .get("disableEmbedCA")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+                .to_string(),
+        ),
+    );
+    env.insert(
+        "DISABLE_SYSTEM_CA".to_string(),
+        Value::String(
+            app_config
+                .get("disableSystemCA")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+                .to_string(),
+        ),
+    );
+    env.insert(
+        "DISABLE_NFTABLES".to_string(),
+        Value::String(
+            app_config
+                .get("disableNftables")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+                .to_string(),
+        ),
+    );
+
+    if !safe_paths.is_empty() {
+        env.insert(
+            "SAFE_PATHS".to_string(),
+            Value::String(safe_paths.join(path_delimiter())),
+        );
+    }
+
+    if let Some(path) = std::env::var_os("PATH") {
+        env.insert(
+            "PATH".to_string(),
+            Value::String(path.to_string_lossy().to_string()),
+        );
+    }
+
+    json!({
+        "binary_path": binary_path.to_string_lossy(),
+        "work_dir": work_dir.to_string_lossy(),
+        "log_path": log_path.to_string_lossy(),
+        "args": ["-d", work_dir.to_string_lossy().to_string()],
+        "env": env,
+    })
 }
 
 fn task_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -8210,7 +9538,265 @@ $items | ConvertTo-Json -Compress
 }
 
 fn runtime_files_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(app_data_root(app)?.join(RUNTIME_ASSETS_DIR_NAME).join("files"))
+    ensure_dir(
+        app_data_root(app)?
+            .join(RUNTIME_ASSETS_DIR_NAME)
+            .join("files"),
+    )
+}
+
+fn traffic_monitor_pid_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    Ok(app_data_root(app)?.join(TRAFFIC_MONITOR_PID_FILE))
+}
+
+fn fetch_latest_github_release_assets(
+    app: &tauri::AppHandle,
+    repo: &str,
+) -> Result<Vec<GitHubReleaseAsset>, String> {
+    let client = update_client(app, 30)?;
+    let response = client
+        .get(format!(
+            "https://api.github.com/repos/{repo}/releases/latest"
+        ))
+        .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+        .header(reqwest::header::USER_AGENT, "RouteX-Tauri/1.0")
+        .send()
+        .map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+        return Err(format!("请求失败: {}", response.status()));
+    }
+
+    Ok(response
+        .json::<GitHubReleaseResponse>()
+        .map_err(|e| e.to_string())?
+        .assets
+        .unwrap_or_default())
+}
+
+fn score_traffic_monitor_asset_name(name: &str) -> i32 {
+    let mut score = 0;
+    if name.contains("lite") {
+        score += 10;
+    }
+    if name.contains("portable") {
+        score += 1;
+    }
+    score
+}
+
+fn pick_traffic_monitor_asset(
+    assets: &[GitHubReleaseAsset],
+    arch: &str,
+) -> Result<GitHubReleaseAsset, String> {
+    let candidates = assets
+        .iter()
+        .filter_map(|asset| {
+            let normalized_name = asset.name.to_ascii_lowercase();
+            if !normalized_name.ends_with(".zip") || !normalized_name.contains("trafficmonitor") {
+                return None;
+            }
+
+            let matches_arch = match arch {
+                "x86_64" => normalized_name.contains("x64") || normalized_name.contains("amd64"),
+                "x86" => normalized_name.contains("x86") || normalized_name.contains("386"),
+                "aarch64" => {
+                    normalized_name.contains("arm64") || normalized_name.contains("arm64ec")
+                }
+                _ => false,
+            };
+
+            if !matches_arch {
+                return None;
+            }
+
+            Some((
+                score_traffic_monitor_asset_name(&normalized_name),
+                asset.clone(),
+            ))
+        })
+        .collect::<Vec<_>>();
+
+    candidates
+        .into_iter()
+        .min_by_key(|(score, _)| *score)
+        .map(|(_, asset)| asset)
+        .ok_or_else(|| {
+            format!(
+                "No matched TrafficMonitor asset found for {}",
+                std::env::consts::ARCH
+            )
+        })
+}
+
+fn extract_zip_bytes(bytes: &[u8], output_dir: &Path) -> Result<(), String> {
+    let reader = Cursor::new(bytes);
+    let mut archive = ZipArchive::new(reader).map_err(|e| e.to_string())?;
+
+    for index in 0..archive.len() {
+        let mut file = archive.by_index(index).map_err(|e| e.to_string())?;
+        let Some(enclosed_name) = file.enclosed_name().map(Path::to_path_buf) else {
+            continue;
+        };
+
+        let output_path = output_dir.join(enclosed_name);
+        if file.is_dir() {
+            fs::create_dir_all(&output_path).map_err(|e| e.to_string())?;
+            continue;
+        }
+
+        ensure_parent(&output_path)?;
+        let mut output_file = fs::File::create(&output_path).map_err(|e| e.to_string())?;
+        std::io::copy(&mut file, &mut output_file).map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+fn ensure_traffic_monitor_binary(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), String> {
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(executable_path) = resolve_resource_binary(
+            app,
+            "files/TrafficMonitor/TrafficMonitor",
+            "TrafficMonitor.exe",
+        ) {
+            let cwd = executable_path
+                .parent()
+                .map(Path::to_path_buf)
+                .ok_or_else(|| "invalid TrafficMonitor cwd".to_string())?;
+            return Ok((executable_path, cwd));
+        }
+
+        let runtime_root = runtime_files_dir(app)?.join("TrafficMonitor");
+        let runtime_executable_path = runtime_root
+            .join("TrafficMonitor")
+            .join("TrafficMonitor.exe");
+
+        if runtime_executable_path.exists() {
+            let cwd = runtime_executable_path
+                .parent()
+                .map(Path::to_path_buf)
+                .ok_or_else(|| "invalid TrafficMonitor cwd".to_string())?;
+            return Ok((runtime_executable_path, cwd));
+        }
+
+        let asset = pick_traffic_monitor_asset(
+            &fetch_latest_github_release_assets(app, TRAFFIC_MONITOR_REPO)?,
+            std::env::consts::ARCH,
+        )?;
+        let client = update_client(app, 60)?;
+        let response = client
+            .get(&asset.browser_download_url)
+            .header(reqwest::header::USER_AGENT, "RouteX-Tauri/1.0")
+            .send()
+            .map_err(|e| e.to_string())?;
+
+        if !response.status().is_success() {
+            return Err(format!("下载 TrafficMonitor 失败: {}", response.status()));
+        }
+
+        let bytes = response.bytes().map_err(|e| e.to_string())?;
+        extract_zip_bytes(&bytes, &runtime_root)?;
+
+        if !runtime_executable_path.exists() {
+            return Err("TrafficMonitor 下载完成但未找到可执行文件".to_string());
+        }
+
+        let cwd = runtime_executable_path
+            .parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| "invalid TrafficMonitor cwd".to_string())?;
+        return Ok((runtime_executable_path, cwd));
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app;
+        Err("当前平台不支持 TrafficMonitor".to_string())
+    }
+}
+
+fn stop_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        let pid_path = traffic_monitor_pid_path(app)?;
+        if !pid_path.exists() {
+            return Ok(());
+        }
+
+        let pid = fs::read_to_string(&pid_path)
+            .map_err(|e| e.to_string())?
+            .trim()
+            .parse::<u32>()
+            .ok();
+        let _ = fs::remove_file(&pid_path);
+
+        if let Some(pid) = pid {
+            let output = Command::new("taskkill")
+                .args(["/PID", &pid.to_string(), "/T", "/F"])
+                .output()
+                .map_err(|e| e.to_string())?;
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                let combined = if stderr.is_empty() { stdout } else { stderr };
+                let normalized = combined.to_ascii_lowercase();
+                if !normalized.contains("not found")
+                    && !combined.contains("没有找到")
+                    && !combined.contains("找不到")
+                {
+                    return Err(if combined.is_empty() {
+                        format!("停止 TrafficMonitor 失败: {}", output.status)
+                    } else {
+                        combined
+                    });
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app;
+        Ok(())
+    }
+}
+
+fn start_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        stop_traffic_monitor(app)?;
+
+        let show_traffic = read_app_config_store(app)?
+            .get("showTraffic")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        if !show_traffic {
+            return Ok(());
+        }
+
+        let (executable_path, cwd) = ensure_traffic_monitor_binary(app)?;
+        let child = Command::new(&executable_path)
+            .current_dir(cwd)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+
+        fs::write(traffic_monitor_pid_path(app)?, child.id().to_string())
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app;
+        Ok(())
+    }
 }
 
 fn download_binary_file(url: &str, target_path: &Path) -> Result<(), String> {
@@ -8543,7 +10129,9 @@ fn has_up_network_interface(excluded_keywords: &[String]) -> bool {
 }
 
 fn read_pause_ssids(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
-    Ok(json_array_strings(read_app_config_store(app)?.get("pauseSSID")))
+    Ok(json_array_strings(
+        read_app_config_store(app)?.get("pauseSSID"),
+    ))
 }
 
 fn current_ssid() -> Option<String> {
@@ -8572,7 +10160,11 @@ fn current_ssid() -> Option<String> {
             .output()
             .ok()?;
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        return if stdout.is_empty() { None } else { Some(stdout) };
+        return if stdout.is_empty() {
+            None
+        } else {
+            Some(stdout)
+        };
     }
 
     #[cfg(target_os = "macos")]
@@ -8670,10 +10262,7 @@ fn refresh_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
     let (shutdown_tx, shutdown_rx) = mpsc::channel();
     {
         let state = app.state::<CoreState>();
-        let mut handle = state
-            .ssid_check
-            .lock()
-            .map_err(|e| e.to_string())?;
+        let mut handle = state.ssid_check.lock().map_err(|e| e.to_string())?;
         *handle = Some(SsidCheckHandle {
             shutdown: shutdown_tx,
         });
@@ -8811,7 +10400,7 @@ fn start_network_detection(
                 let _ = trigger_sys_proxy(&app_handle, &state, false, only_active_device);
             }
             let _ = recover_dns(&app_handle);
-            let _ = stop_core_process(&state);
+            let _ = stop_core_process(&app_handle, &state);
             *network_down_handled = true;
         }
     });
@@ -8828,7 +10417,8 @@ fn shutdown_runtime(app: &tauri::AppHandle, state: &State<'_, CoreState>) {
     let _ = stop_network_detection(state);
     let _ = trigger_sys_proxy(app, state, false, only_active_device);
     let _ = recover_dns(app);
-    let _ = stop_core_process(state);
+    let _ = stop_traffic_monitor(app);
+    let _ = stop_core_process(app, state);
 }
 
 fn read_core_name(app: &tauri::AppHandle) -> Result<String, String> {
@@ -9558,10 +11148,25 @@ fn normalize_runtime_config(input: Option<&Value>, controller_address: &str) -> 
     Value::Object(config)
 }
 
-fn stop_core_process(state: &State<'_, CoreState>) -> Result<(), String> {
+fn stop_core_process(app: &tauri::AppHandle, state: &State<'_, CoreState>) -> Result<(), String> {
     let _ = stop_core_events_monitor(state);
-    let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+    let _ = stop_external_controller_proxy(state);
+    let service_managed = {
+        let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+        runtime.service_managed
+    };
 
+    if service_managed {
+        match service_core_control(app, "/core/stop") {
+            Ok(()) => {}
+            Err(error)
+                if error.contains("进程未运行")
+                    || error.to_ascii_lowercase().contains("not running") => {}
+            Err(error) => return Err(error),
+        }
+    }
+
+    let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
     if let Some(child) = runtime.child.as_mut() {
         if child.try_wait().map_err(|e| e.to_string())?.is_none() {
             let _ = child.kill();
@@ -9570,8 +11175,10 @@ fn stop_core_process(state: &State<'_, CoreState>) -> Result<(), String> {
     }
 
     runtime.child = None;
+    runtime.service_managed = false;
     runtime.controller_url = None;
     runtime.config_path = None;
+    runtime.cached_runtime_config = None;
     Ok(())
 }
 
@@ -9593,10 +11200,7 @@ fn core_request(
     };
 
     let url = format!("{controller_url}{path}");
-    let client = Client::builder()
-        .timeout(Duration::from_secs(15))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let client = mihomo_http_client()?;
 
     let mut request = client.request(method, &url);
 
@@ -9751,24 +11355,28 @@ fn restart_core_process(
     config: Option<&Value>,
 ) -> Result<Value, String> {
     let _ = recover_dns(app);
-    stop_core_process(state)?;
+    stop_core_process(app, state)?;
 
     let core = read_core_name(app)?;
     let binary_path = resolve_core_binary(app, &core)?;
+    let use_service_mode = read_core_permission_mode(app)? == "service";
     let current_profile_id = current_runtime_profile_id(app)?;
     let diff_work_dir = read_diff_work_dir(app)?;
     let safe_paths = read_safe_paths(app)?;
     let (control_dns, control_sniff) = read_control_flags(app)?;
     let (_, work_dir, log_path, test_dir) =
         ensure_runtime_dirs(app, current_profile_id.as_deref(), diff_work_dir)?;
-    let controller_address = allocate_controller_address()?;
+    let internal_controller_address = allocate_controller_address()?;
     let mut merged_runtime_config = current_profile_runtime_config(app)?;
     if let Some(config_patch) = config {
         merge_json(&mut merged_runtime_config, config_patch);
     }
+    let external_controller_address =
+        configured_external_controller_address(Some(&merged_runtime_config));
     sanitize_runtime_profile_value(&mut merged_runtime_config, control_dns, control_sniff);
+    let controller_client_address = controller_connect_address(&internal_controller_address);
     let runtime_config =
-        normalize_runtime_config(Some(&merged_runtime_config), &controller_address);
+        normalize_runtime_config(Some(&merged_runtime_config), &internal_controller_address);
     let config_path = work_dir.join("config.yaml");
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
     prepare_runtime_work_dir(app, &work_dir)?;
@@ -9783,6 +11391,63 @@ fn restart_core_process(
     let auto_set_dns_mode = read_auto_set_dns_mode(app)?;
     if tun_enabled && auto_set_dns_mode != "none" {
         set_public_dns(app)?;
+    }
+
+    if use_service_mode {
+        let app_config = read_app_config_store(app)?;
+        let payload = build_service_core_restart_payload(
+            &binary_path,
+            &work_dir,
+            &log_path,
+            &safe_paths,
+            &app_config,
+        );
+        service_http_request_json(app, "POST", "/core/restart", Some(&payload))?;
+
+        let pid = service_core_status_info(app)?
+            .and_then(|value| value.get("pid").cloned())
+            .unwrap_or(Value::Null);
+
+        let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+        runtime.binary_path = Some(binary_path.clone());
+        runtime.work_dir = Some(work_dir.clone());
+        runtime.log_path = Some(log_path.clone());
+        runtime.controller_url = Some(format!("http://{controller_client_address}"));
+        runtime.config_path = Some(config_path.clone());
+        runtime.cached_runtime_config = Some(CachedRuntimeConfig {
+            path: config_path.clone(),
+            modified_at_ms: runtime_config_modified_at_ms(&config_path),
+            value: runtime_config.clone(),
+        });
+        runtime.child = None;
+        runtime.service_managed = true;
+        drop(runtime);
+
+        if let Err(error) = wait_for_core_ready(state, &runtime_config) {
+            let _ = recover_dns(app);
+            let _ = stop_core_process(app, state);
+            return Err(error);
+        }
+
+        if let Err(error) = start_external_controller_proxy(
+            state,
+            external_controller_address.as_deref(),
+            &controller_client_address,
+        ) {
+            let _ = recover_dns(app);
+            let _ = stop_core_process(app, state);
+            return Err(error);
+        }
+
+        let _ = start_core_events_monitor(app, state);
+
+        return Ok(json!({
+            "pid": pid,
+            "binaryPath": binary_path.to_string_lossy(),
+            "workDir": work_dir.to_string_lossy(),
+            "logPath": log_path.to_string_lossy(),
+            "controller": controller_client_address,
+        }));
     }
 
     let stdout = OpenOptions::new()
@@ -9812,20 +11477,36 @@ fn restart_core_process(
     runtime.binary_path = Some(binary_path.clone());
     runtime.work_dir = Some(work_dir.clone());
     runtime.log_path = Some(log_path.clone());
-    runtime.controller_url = Some(format!("http://{controller_address}"));
+    runtime.controller_url = Some(format!("http://{controller_client_address}"));
     runtime.config_path = Some(config_path.clone());
+    runtime.cached_runtime_config = Some(CachedRuntimeConfig {
+        path: config_path.clone(),
+        modified_at_ms: runtime_config_modified_at_ms(&config_path),
+        value: runtime_config.clone(),
+    });
     runtime.child = Some(child);
+    runtime.service_managed = false;
     drop(runtime);
 
     if let Err(error) = wait_for_core_ready(state, &runtime_config) {
         let _ = recover_dns(app);
-        let _ = stop_core_process(state);
+        let _ = stop_core_process(app, state);
         return Err(error);
     }
 
     if let Err(error) = validate_runtime_start_log(&log_path, log_start_offset, &runtime_config) {
         let _ = recover_dns(app);
-        let _ = stop_core_process(state);
+        let _ = stop_core_process(app, state);
+        return Err(error);
+    }
+
+    if let Err(error) = start_external_controller_proxy(
+        state,
+        external_controller_address.as_deref(),
+        &controller_client_address,
+    ) {
+        let _ = recover_dns(app);
+        let _ = stop_core_process(app, state);
         return Err(error);
     }
 
@@ -9836,7 +11517,7 @@ fn restart_core_process(
         "binaryPath": binary_path.to_string_lossy(),
         "workDir": work_dir.to_string_lossy(),
         "logPath": log_path.to_string_lossy(),
-        "controller": controller_address,
+        "controller": controller_client_address,
     }))
 }
 
@@ -9852,19 +11533,52 @@ async fn desktop_check_update(app: tauri::AppHandle) -> Result<Value, String> {
     let elapsed_ms = started_at.elapsed().as_millis();
     match &result {
         Ok(_) => eprintln!("[desktop.invoke] checkUpdate {}ms", elapsed_ms),
-        Err(error) => eprintln!(
+        Err(error) if !should_suppress_update_check_error_log(error) => eprintln!(
             "[desktop.invoke] checkUpdate failed in {}ms: {}",
             elapsed_ms, error
         ),
+        Err(_) => {}
     }
 
     result
 }
 
+fn should_suppress_update_check_error_log(error: &str) -> bool {
+    error.contains("error sending request for url")
+}
+
+fn should_suppress_desktop_invoke_error_log(channel: &str, error: &str) -> bool {
+    matches!(channel, "mihomoProxyDelay" | "mihomoGroupDelay")
+        && (error.contains("Mihomo API request failed: 503 Service Unavailable")
+            || error.contains("Mihomo API request failed: 504 Gateway Timeout"))
+}
+
 #[tauri::command]
-fn desktop_invoke(
-    app: tauri::AppHandle,
-    window: tauri::WebviewWindow,
+async fn desktop_get_icon_data_urls(app_paths: Vec<String>) -> Result<Value, String> {
+    let started_at = Instant::now();
+    let paths = app_paths;
+    let result =
+        tauri::async_runtime::spawn_blocking(move || Ok(json!(resolve_icon_data_urls(&paths))))
+            .await
+            .map_err(|e| e.to_string())?;
+
+    let elapsed_ms = started_at.elapsed().as_millis();
+    if elapsed_ms >= 80 {
+        match &result {
+            Ok(_) => eprintln!("[desktop.invoke] getIconDataURLs {}ms", elapsed_ms),
+            Err(error) => eprintln!(
+                "[desktop.invoke] getIconDataURLs failed in {}ms: {}",
+                elapsed_ms, error
+            ),
+        }
+    }
+
+    result
+}
+
+fn desktop_invoke_sync(
+    app: &tauri::AppHandle,
+    window: &tauri::WebviewWindow,
     state: State<'_, CoreState>,
     channel: String,
     args: Vec<Value>,
@@ -10355,7 +12069,7 @@ fn desktop_invoke(
             )?))
         }
         "resetAppConfig" => {
-            stop_core_process(&state)?;
+            stop_core_process(&app, &state)?;
             let root = app_storage_root(&app)?;
             if root.exists() {
                 let _ = fs::remove_dir_all(root);
@@ -10649,6 +12363,7 @@ fn desktop_invoke(
             Ok(Value::Null)
         }
         "startMonitor" => {
+            start_traffic_monitor(&app)?;
             update_tray_icon_for_state(&app)?;
             refresh_native_tray_menu(&app)?;
             Ok(Value::Null)
@@ -10703,16 +12418,15 @@ fn desktop_invoke(
             Ok(Value::Null)
         }
         "showContextMenu" => {
-            if cfg!(target_os = "macos") {
-                let position = window
-                    .outer_position()
-                    .map(|position| (position.x as f64, position.y as f64))
-                    .ok();
-                show_traymenu_window(&app, position)?;
-            } else {
-                let menu = build_native_tray_menu(&app)?;
-                window.popup_menu(&menu).map_err(|e| e.to_string())?;
-            }
+            let position = window.outer_position().map_err(|e| e.to_string())?;
+            let size = window.outer_size().map_err(|e| e.to_string())?;
+            show_traymenu_window(
+                &app,
+                Some((
+                    position.x as f64 + size.width as f64 / 2.0,
+                    position.y as f64,
+                )),
+            )?;
             Ok(Value::Null)
         }
         "openDevTools" => {
@@ -10720,6 +12434,14 @@ fn desktop_invoke(
             {
                 window.open_devtools();
             }
+            Ok(Value::Null)
+        }
+        "openExternalUrl" => {
+            let url = args
+                .first()
+                .and_then(Value::as_str)
+                .ok_or_else(|| "openExternalUrl requires url".to_string())?;
+            open_external_url(url)?;
             Ok(Value::Null)
         }
         "ensureMihomoCoreAvailable" => {
@@ -10973,14 +12695,40 @@ fn desktop_invoke(
     {
         match &result {
             Ok(_) => eprintln!("[desktop.invoke] {} {}ms", channel, elapsed_ms),
-            Err(error) => eprintln!(
+            Err(error) if !should_suppress_desktop_invoke_error_log(&channel, error) => eprintln!(
                 "[desktop.invoke] {} failed in {}ms: {}",
                 channel, elapsed_ms, error
             ),
+            Err(_) => {}
         }
     }
 
     result
+}
+
+#[tauri::command]
+async fn desktop_invoke(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    channel: String,
+    args: Vec<Value>,
+) -> Result<Value, String> {
+    let app_for_task = app.clone();
+    let window_for_task = window.clone();
+    let channel_for_task = channel.clone();
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app_for_task.state::<CoreState>();
+        desktop_invoke_sync(
+            &app_for_task,
+            &window_for_task,
+            state,
+            channel_for_task,
+            args,
+        )
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 fn main() {
@@ -10995,10 +12743,19 @@ fn main() {
             if let Some(window) = app_handle.get_webview_window("main") {
                 install_main_window_handlers(&app_handle, &window);
             }
-            let _ = run_startup_alignment(&app_handle);
+            if let Ok(startup_config) = read_startup_alignment_config(&app_handle) {
+                let startup_handle = app_handle.clone();
+                thread::spawn(move || {
+                    let _ = run_startup_alignment(&startup_handle, &startup_config);
+                });
+            }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![desktop_invoke, desktop_check_update])
+        .invoke_handler(tauri::generate_handler![
+            desktop_invoke,
+            desktop_check_update,
+            desktop_get_icon_data_urls
+        ])
         .run(tauri::generate_context!())
         .expect("error while running RouteX Tauri shell");
 }

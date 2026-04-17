@@ -218,10 +218,18 @@ function shouldInitServiceKeyManager(appConfig: AppConfig): boolean {
 }
 
 export async function init(): Promise<void> {
-  await initDirs()
-  await Promise.all([initConfig(), initFiles()])
-  await migration()
+  await initStartupPrerequisites()
+  await initPostWindow()
+}
 
+export async function initStartupPrerequisites(): Promise<void> {
+  await initDirs()
+  await initConfig()
+  await migration()
+}
+
+export async function initPostWindow(): Promise<void> {
+  await initFiles()
   const [appConfig] = await Promise.all([
     getAppConfig(),
     cleanup().catch(() => {

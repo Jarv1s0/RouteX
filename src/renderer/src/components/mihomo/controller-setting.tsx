@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
+import { openExternalUrl } from '@renderer/api/app'
 import { mihomoUpgradeUI, restartCore } from '@renderer/utils/mihomo-ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import EditableList from '../base/base-list-editor'
@@ -14,6 +15,57 @@ import { isValidListenAddress } from '@renderer/utils/validate'
 const inputClassNames = {
   input: "bg-transparent",
   inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
+}
+
+function normalizeControllerForBrowser(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+
+  if (trimmed.startsWith(':')) {
+    return `127.0.0.1${trimmed}`
+  }
+
+  const ipv6Match = trimmed.match(/^\[([^\]]+)\]:(\d+)$/)
+  if (ipv6Match) {
+    const [, host, port] = ipv6Match
+    const normalizedHost = host === '::' ? '127.0.0.1' : `[${host}]`
+    return `${normalizedHost}:${port}`
+  }
+
+  const separatorIndex = trimmed.lastIndexOf(':')
+  if (separatorIndex > 0) {
+    const host = trimmed.slice(0, separatorIndex).trim()
+    const port = trimmed.slice(separatorIndex + 1).trim()
+    const normalizedHost =
+      host === '' || host === '*' || host === '0.0.0.0' || host === '::'
+        ? '127.0.0.1'
+        : host
+    return `${normalizedHost}:${port}`
+  }
+
+  return trimmed
+}
+
+function buildExternalUiOpenUrl(
+  controller: string,
+  uiPath: string,
+  externalUiUrl: string,
+  secret: string
+): string {
+  const controllerUrl = new URL(`http://${controller}`)
+  const host = controllerUrl.hostname
+  const port = controllerUrl.port
+
+  if (uiPath === 'zashboard' || externalUiUrl.includes('zashboard')) {
+    return `http://${controller}/ui/${uiPath}/#/setup?hostname=${host}&port=${port}&secret=${secret}`
+  }
+
+  if (uiPath.includes('metacubexd') || externalUiUrl.includes('metacubexd')) {
+    return `http://${controller}/ui/${uiPath}/#/setup?hostname=${host}&port=${port}&secret=${secret}`
+  }
+
+  const query = secret && secret.length > 0 ? `&secret=${secret}` : ''
+  return `http://${controller}/ui/${uiPath}/?hostname=${host}&port=${port}${query}`
 }
 
 const ControllerSetting: React.FC = () => {
@@ -43,6 +95,19 @@ const ControllerSetting: React.FC = () => {
     const r = isValidListenAddress(externalController)
     return r.ok ? null : (r.error ?? '格式错误')
   })
+  const resolvedExternalController = externalControllerInput.trim() || externalController
+  const hasExternalController = resolvedExternalController.trim() !== ''
+
+  useEffect(() => {
+    setAllowOriginsInput(allowOrigins.length == 1 && allowOrigins[0] == '*' ? [] : allowOrigins)
+    setExternalControllerInput(externalController)
+    setExternalUiUrlInput(externalUiUrl)
+    setSecretInput(secret)
+    setEnableExternalUi(externalUi == 'ui')
+
+    const result = isValidListenAddress(externalController)
+    setExternalControllerError(result.ok ? null : (result.error ?? '格式错误'))
+  }, [allowOrigins, externalController, externalUi, externalUiUrl, secret])
 
   const upgradeUI = async (): Promise<void> => {
     try {
@@ -72,7 +137,7 @@ const ControllerSetting: React.FC = () => {
   return (
     <SettingCard title="外部控制器" collapsible>
 
-          <SettingItem title="监听地址" divider={externalController !== ''}>
+          <SettingItem title="监听地址" divider={hasExternalController}>
             <div className="flex">
               {externalControllerInput != externalController && !externalControllerError && (
                 <Button
@@ -111,7 +176,7 @@ const ControllerSetting: React.FC = () => {
               </Tooltip>
             </div>
           </SettingItem>
-          {externalController && externalController !== '' && (
+          {hasExternalController && (
             <>
               <SettingItem
                 title="访问密钥"
@@ -200,28 +265,11 @@ const ControllerSetting: React.FC = () => {
                         variant="light"
                         isDisabled={upgrading}
                         onPress={() => {
-                          const controller = externalController.startsWith(':')
-                            ? `127.0.0.1${externalController}`
-                            : externalController
-                          const host = controller.split(':')[0]
-                          const port = controller.split(':')[1]
-                          
-                          // Use configured external-ui-name if available, otherwise fallback
+                          const controller = normalizeControllerForBrowser(resolvedExternalController)
                           const uiPath = externalUiName && externalUiName.length > 0 ? externalUiName : 'ui'
-                          
-                          if (uiPath === 'zashboard' || externalUiUrl.includes('zashboard')) {
-                             open(`http://${controller}/ui/${uiPath}/#/setup?hostname=${host}&port=${port}&secret=${secret}`)
-                          } 
-                          else if (uiPath.includes('metacubexd') || externalUiUrl.includes('metacubexd')) {
-                             open(`http://${controller}/ui/${uiPath}/#/setup?hostname=${host}&port=${port}&secret=${secret}`)
-                          }
-                          else {
-                             if (secret && secret.length > 0) {
-                                open(`http://${controller}/ui/${uiPath}/?hostname=${host}&port=${port}&secret=${secret}`)
-                             } else {
-                                open(`http://${controller}/ui/${uiPath}/?hostname=${host}&port=${port}`)
-                             }
-                          }
+                          void openExternalUrl(
+                            buildExternalUiOpenUrl(controller, uiPath, externalUiUrl, secret)
+                          )
                         }}
                       >
                         <HiExternalLink className="text-lg" />

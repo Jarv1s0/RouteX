@@ -4,10 +4,10 @@ import { useLocation } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getFlag, removeFlag, cleanNodeName } from '@renderer/utils/flags'
-import React, { useMemo, useEffect, useRef, useState } from 'react'
-import { mihomoProxies } from '@renderer/utils/mihomo-ipc'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { navigateSidebarRoute } from '@renderer/routes'
+import { mihomoProxies } from '@renderer/utils/mihomo-ipc'
 
 interface Props {
   iconOnly?: boolean
@@ -23,47 +23,30 @@ const ProxyCard: React.FC<Props> = (props) => {
   const [allProxies, setAllProxies] = useState<
     Record<string, ControllerProxiesDetail | ControllerGroupDetail>
   >({})
-  const loadedSnapshotSignatureRef = useRef<string | null>(null)
 
   const handleCardClick = (): void => {
     navigateSidebarRoute('/proxies')
   }
 
-  const proxySnapshotSignature = useMemo(() => {
-    return `${mode || 'rule'}:${groups.map((group) => `${group.name}:${group.now}`).join('|')}`
-  }, [groups, mode])
-
   useEffect(() => {
-    if (!match || groups.length === 0) {
-      return
-    }
-
-    if (loadedSnapshotSignatureRef.current === proxySnapshotSignature) {
-      return
-    }
-
     let cancelled = false
-    const timer = window.setTimeout(() => {
-      mihomoProxies()
-        .then((data) => {
-          if (!cancelled) {
-            loadedSnapshotSignatureRef.current = proxySnapshotSignature
-            setAllProxies(data.proxies)
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            loadedSnapshotSignatureRef.current = null
-            setAllProxies((prev) => (Object.keys(prev).length === 0 ? prev : {}))
-          }
-        })
-    }, 350)
+
+    mihomoProxies()
+      .then((data) => {
+        if (!cancelled) {
+          setAllProxies(data.proxies)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAllProxies({})
+        }
+      })
 
     return () => {
       cancelled = true
-      window.clearTimeout(timer)
     }
-  }, [groups.length, match, proxySnapshotSignature])
+  }, [groups])
 
   const firstGroup = useMemo(() => {
     return mode === 'global' 
@@ -82,25 +65,27 @@ const ProxyCard: React.FC<Props> = (props) => {
   }, [firstGroup])
 
   const finalNodeName = useMemo(() => {
-    if (!match) {
-      return ''
-    }
+    const visited = new Set<string>()
 
     const findFinalNode = (nodeName: string | undefined): string | undefined => {
-      if (!nodeName) return undefined
+      if (!nodeName || visited.has(nodeName)) return nodeName
+
+      visited.add(nodeName)
       const subGroup = allProxies[nodeName]
       if (subGroup && 'now' in subGroup && subGroup.now) {
         return findFinalNode(subGroup.now)
       }
+
       return nodeName
     }
+
     const groupName = firstGroup?.now
     const finalNode = findFinalNode(groupName)
     if (groupName && finalNode && groupName !== finalNode) {
       return cleanNodeName(removeFlag(finalNode))
     }
     return ''
-  }, [allProxies, firstGroup, match])
+  }, [allProxies, firstGroup])
 
   const hasFinalNode = finalNodeName.length > 0
 

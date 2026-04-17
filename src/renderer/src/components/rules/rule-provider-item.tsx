@@ -8,12 +8,13 @@ import React from 'react'
 interface Props {
   provider: ControllerRuleProviderDetail
   index: number
+  canUpdate: boolean
   updating: boolean
   onUpdate: () => void
   onView: () => void
 }
 
-const RuleProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate, onView }) => {
+const RuleProviderItem: React.FC<Props> = ({ provider, index, canUpdate, updating, onUpdate, onView }) => {
   return (
     <div className="w-full px-2 pb-2">
       <Card 
@@ -65,8 +66,9 @@ const RuleProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate
               <Button
                 isIconOnly
                 variant="light"
-                title="更新"
+                title={canUpdate ? '更新' : '仅 HTTP 规则集合支持更新'}
                 size="sm"
+                isDisabled={!canUpdate}
                 onPress={onUpdate}
               >
                 <IoMdRefresh className={`text-lg ${updating ? 'animate-spin' : ''}`} />

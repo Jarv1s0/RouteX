@@ -191,12 +191,12 @@ const ConnectionItemComponent: React.FC<Props> = ({
                 <div className={`flex items-center gap-2 px-2 py-0.5 ml-1 shrink-0 ${META_PILL_CLASS}`}>
                   <div className="flex items-center gap-1 group/speed" style={{ color: 'rgb(14, 165, 233)' }}>
                     <IoArrowUp className="text-[10px] opacity-70 group-hover/speed:opacity-100 group-hover/speed:-translate-y-px transition-all" />
-                    <span className="text-[10px] font-mono font-medium">{uploadSpeed || '0 B'}/s</span>
+                    <span className="text-[10px] font-data-numeric font-medium">{uploadSpeed || '0 B'}/s</span>
                   </div>
                   <div className="w-[1px] h-2 bg-default-200/50 dark:bg-default-200/20" />
                   <div className="flex items-center gap-1 group/speed" style={{ color: 'rgb(168, 85, 247)' }}>
                     <IoArrowDown className="text-[10px] opacity-70 group-hover/speed:opacity-100 group-hover/speed:translate-y-px transition-all" />
-                    <span className="text-[10px] font-mono font-medium">{downloadSpeed || '0 B'}/s</span>
+                    <span className="text-[10px] font-data-numeric font-medium">{downloadSpeed || '0 B'}/s</span>
                   </div>
                 </div>
               )}

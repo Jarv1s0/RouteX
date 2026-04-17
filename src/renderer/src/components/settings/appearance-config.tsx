@@ -32,7 +32,6 @@ const ShortcutConfigContent: React.FC = () => {
 }
 
 const AppearanceConfig: React.FC = () => {
-  const isTauriHost = __ROUTEX_HOST__ === 'tauri'
   const { appConfig, patchAppConfig } = useAppConfig()
   const [customThemes, setCustomThemes] = useState<{ key: string; label: string }[]>()
   const [openCSSEditor, setOpenCSSEditor] = useState(false)
@@ -52,8 +51,6 @@ const AppearanceConfig: React.FC = () => {
   } = appConfig || {}
   const [localShowFloating, setLocalShowFloating] = useState(showFloating)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const supportsWindowsTrafficMonitor = !(isTauriHost && platform === 'win32')
-
   useEffect(() => {
     resolveThemes().then((themes) => {
       setCustomThemes(themes)
@@ -161,23 +158,12 @@ const AppearanceConfig: React.FC = () => {
             </SettingItem>
             <SettingItem
               title={`${platform === 'win32' ? '任务栏' : '状态栏'}显示网速信息`}
-              actions={
-                !supportsWindowsTrafficMonitor ? (
-                  <Tooltip content="Windows 下的 Tauri 宿主暂未接入 Electron 版本依赖的 TrafficMonitor 外部程序链路">
-                    <Button isIconOnly size="sm" variant="light">
-                      <IoIosHelpCircle className="text-lg" />
-                    </Button>
-                  </Tooltip>
-                ) : undefined
-              }
               divider
             >
               <Switch
                 size="sm"
                 isSelected={showTraffic}
-                isDisabled={!supportsWindowsTrafficMonitor}
                 onValueChange={async (v) => {
-                  if (!supportsWindowsTrafficMonitor) return
                   await patchAppConfig({ showTraffic: v })
                   await startMonitor()
                 }}

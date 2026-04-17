@@ -21,7 +21,18 @@ import {
   mihomoVersion,
   restartCore
 } from '@renderer/utils/mihomo-ipc'
-import { manualGrantCorePermition, revokeCorePermission, deleteElevateTask, checkElevateTask, installService, uninstallService, startService, stopService, initService, restartService } from '@renderer/utils/service-ipc'
+import {
+  manualGrantCorePermition,
+  revokeCorePermission,
+  deleteElevateTask,
+  checkElevateTask,
+  installService,
+  uninstallService,
+  startService,
+  stopService,
+  initService,
+  restartService
+} from '@renderer/utils/service-ipc'
 import React, { useState, useEffect } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
@@ -30,6 +41,7 @@ import useSWR from 'swr'
 import { notifyError, notifyInfo, notifySuccess } from '@renderer/utils/notify'
 
 const Mihomo: React.FC = () => {
+  const isTauriHost = __ROUTEX_HOST__ === 'tauri'
   const { appConfig, patchAppConfig } = useAppConfig()
   const { core = 'mihomo', corePermissionMode = 'elevated' } = appConfig || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -131,14 +143,14 @@ const Mihomo: React.FC = () => {
           setPendingPermissionMode(key)
           setShowUnGrantConfirm(true)
         } else {
-          patchAppConfig({ corePermissionMode: key as 'elevated' | 'service' })
+          await handleConfigChangeWithRestart('corePermissionMode', key as 'elevated' | 'service')
         }
       } else if (key === 'elevated') {
         setPendingPermissionMode(key)
         setShowGrantConfirm(true)
       }
     } else {
-      patchAppConfig({ corePermissionMode: key as 'elevated' | 'service' })
+      await handleConfigChangeWithRestart('corePermissionMode', key as 'elevated' | 'service')
     }
   }
 
@@ -268,97 +280,96 @@ const Mihomo: React.FC = () => {
         />
       )}
       <div className="p-2 flex flex-col gap-2">
-      <SettingCard>
-        <SettingItem
-          title={
-            <div className="flex items-center gap-2">
-              <span>内核版本</span>
-              {hasNewVersion() && (
-                <Chip size="sm" color="success" variant="flat">
-                  新版本 {latestVersion}
-                </Chip>
-              )}
-            </div>
-          }
-          actions={
-            core === 'mihomo' || core === 'mihomo-alpha' ? (
-              <Button
-                size="sm"
-                isIconOnly
-                aria-label="升级内核"
-                title="升级内核"
-                variant="light"
-                isLoading={upgrading}
-                onPress={handleCoreUpgrade}
-              >
-                <IoMdCloudDownload className="text-lg" />
-              </Button>
-            ) : null
-          }
-          divider
-        >
-          <Select
-            aria-label="选择内核版本"
-            classNames={{
-              trigger: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50"
-            }}
-            className="w-[150px]"
-            size="sm"
-            selectedKeys={new Set([core])}
-            disallowEmptySelection={true}
-            onSelectionChange={(v) =>
-              handleCoreChange(v.currentKey as 'mihomo' | 'mihomo-alpha')
+        <SettingCard>
+          <SettingItem
+            title={
+              <div className="flex items-center gap-2">
+                <span>内核版本</span>
+                {hasNewVersion() && (
+                  <Chip size="sm" color="success" variant="flat">
+                    新版本 {latestVersion}
+                  </Chip>
+                )}
+              </div>
             }
+            actions={
+              core === 'mihomo' || core === 'mihomo-alpha' ? (
+                <Button
+                  size="sm"
+                  isIconOnly
+                  aria-label="升级内核"
+                  title="升级内核"
+                  variant="light"
+                  isLoading={upgrading}
+                  onPress={handleCoreUpgrade}
+                >
+                  <IoMdCloudDownload className="text-lg" />
+                </Button>
+              ) : null
+            }
+            divider
           >
-            <SelectItem key="mihomo">Mihomo</SelectItem>
-            <SelectItem key="mihomo-alpha">Mihomo Alpha</SelectItem>
-          </Select>
-        </SettingItem>
-        <SettingItem title="运行模式" divider>
-          <Tabs
-            aria-label="选择内核运行模式"
-            classNames={CARD_STYLES.GLASS_TABS}
-            selectedKey={corePermissionMode}
-            disabledKeys={['service']}
-            onSelectionChange={(key) => handlePermissionModeChange(key as string)}
-          >
-            <Tab key="elevated" title={platform === 'win32' ? '任务计划' : '授权运行'} />
-            <Tab key="service" title="系统服务" />
-          </Tabs>
-        </SettingItem>
-        <SettingItem title={platform === 'win32' ? '任务状态' : '授权状态'} divider>
-          <Button
-            size="sm"
-            color="primary"
-            aria-label={platform === 'win32' ? '管理任务状态' : '管理授权状态'}
-            onPress={() => setShowPermissionModal(true)}
-          >
-            管理
-          </Button>
-        </SettingItem>
-        <SettingItem title="服务状态" divider>
-          <Button
-            size="sm"
-            color="primary"
-            aria-label="管理服务状态"
-            onPress={() => setShowServiceModal(true)}
-          >
-            管理
-          </Button>
-        </SettingItem>
-        <SettingItem title="IPv6">
-          <Switch
-            aria-label="切换 IPv6"
-            size="sm"
-            isSelected={ipv6}
-            onValueChange={(v) => onChangeNeedRestart({ ipv6: v })}
-          />
-        </SettingItem>
-      </SettingCard>
-      <PortSetting />
-      <ControllerSetting />
-      <EnvSetting />
-      <AdvancedSetting />
+            <Select
+              aria-label="选择内核版本"
+              classNames={{
+                trigger:
+                  'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50'
+              }}
+              className="w-[150px]"
+              size="sm"
+              selectedKeys={new Set([core])}
+              disallowEmptySelection={true}
+              onSelectionChange={(v) => handleCoreChange(v.currentKey as 'mihomo' | 'mihomo-alpha')}
+            >
+              <SelectItem key="mihomo">Mihomo</SelectItem>
+              <SelectItem key="mihomo-alpha">Mihomo Alpha</SelectItem>
+            </Select>
+          </SettingItem>
+          <SettingItem title="运行模式" divider>
+            <Tabs
+              aria-label="选择内核运行模式"
+              classNames={CARD_STYLES.GLASS_TABS}
+              selectedKey={corePermissionMode}
+              disabledKeys={isTauriHost ? [] : ['service']}
+              onSelectionChange={(key) => handlePermissionModeChange(key as string)}
+            >
+              <Tab key="elevated" title={platform === 'win32' ? '任务计划' : '授权运行'} />
+              <Tab key="service" title="系统服务" />
+            </Tabs>
+          </SettingItem>
+          <SettingItem title={platform === 'win32' ? '任务状态' : '授权状态'} divider>
+            <Button
+              size="sm"
+              color="primary"
+              aria-label={platform === 'win32' ? '管理任务状态' : '管理授权状态'}
+              onPress={() => setShowPermissionModal(true)}
+            >
+              管理
+            </Button>
+          </SettingItem>
+          <SettingItem title="服务状态" divider>
+            <Button
+              size="sm"
+              color="primary"
+              aria-label="管理服务状态"
+              onPress={() => setShowServiceModal(true)}
+            >
+              管理
+            </Button>
+          </SettingItem>
+          <SettingItem title="IPv6">
+            <Switch
+              aria-label="切换 IPv6"
+              size="sm"
+              isSelected={ipv6}
+              onValueChange={(v) => onChangeNeedRestart({ ipv6: v })}
+            />
+          </SettingItem>
+        </SettingCard>
+        <PortSetting />
+        <ControllerSetting />
+        <EnvSetting />
+        <AdvancedSetting />
       </div>
     </BasePage>
   )

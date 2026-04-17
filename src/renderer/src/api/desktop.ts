@@ -138,6 +138,10 @@ export const desktop: DesktopApi = {
         const result =
           channel === 'checkUpdate'
             ? await invoke<T>('desktop_check_update')
+            : channel === 'getIconDataURLs'
+              ? await invoke<T>('desktop_get_icon_data_urls', {
+                  appPaths: Array.isArray(args[0]) ? args[0] : []
+                })
             : await invoke<T>('desktop_invoke', {
                 channel,
                 args

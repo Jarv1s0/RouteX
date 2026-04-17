@@ -30,6 +30,12 @@ pre,
   font-family: 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace !important;
 }
 
+.font-data-numeric {
+  font-family: Consolas, 'JetBrains Mono', 'Fira Code', 'Courier New', monospace !important;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
 .driver-popover {
   background-color: hsl(var(--heroui-content2)) !important;
   border-radius: 8px !important;

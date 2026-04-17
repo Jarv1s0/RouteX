@@ -2,7 +2,12 @@ import { Button } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import EmptyState from '@renderer/components/base/empty-state'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { mihomoChangeProxy, mihomoCloseAllConnections, mihomoProxyDelay } from '@renderer/utils/mihomo-ipc'
+import {
+  mihomoChangeProxy,
+  mihomoCloseAllConnections,
+  mihomoGroupDelay,
+  mihomoProxyDelay
+} from '@renderer/utils/mihomo-ipc'
 import { useEffect, useMemo, useRef, useState, useCallback, useDeferredValue, memo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
@@ -100,6 +105,7 @@ const ProxyRowChunk = memo(
 )
 
 ProxyRowChunk.displayName = 'ProxyRowChunk'
+let hasSkippedStartupAutoDelayTest = false
 
 async function runWithConcurrency(
   tasks: Array<() => Promise<void>>,
@@ -124,20 +130,6 @@ function normalizeDelayTestConcurrency(value?: number): number {
   const parsed = Number.parseInt(String(value ?? 8), 10)
   if (!Number.isFinite(parsed)) return 8
   return Math.min(12, Math.max(1, parsed))
-}
-
-function isDelayTestableProxy(
-  proxyOrGroup: ControllerProxiesDetail | ControllerGroupDetail
-): boolean {
-  return !['Direct', 'Reject', 'RejectDrop', 'Pass', 'Compatible', 'Dns'].includes(
-    proxyOrGroup.type
-  )
-}
-
-function getDelayTestTargets(
-  group: ControllerMixedGroup
-): (ControllerProxiesDetail | ControllerGroupDetail)[] {
-  return (group.all || []).filter(isDelayTestableProxy)
 }
 
 const Proxies: React.FC = () => {
@@ -255,74 +247,20 @@ const Proxies: React.FC = () => {
     []
   )
 
-  const setGroupDelaying = useCallback((groupName: string, value: boolean): void => {
-    setDelaying((prev) => ({ ...prev, [groupName]: value }))
-  }, [])
-
-  const runGroupDelayTest = useCallback(
-    async (group: ControllerMixedGroup): Promise<void> => {
-      const targets = getDelayTestTargets(group)
-      const tasks = targets.map((proxyOrGroup) => {
-        return async (): Promise<void> => {
-          try {
-            await mihomoProxyDelay(proxyOrGroup.name, group.testUrl)
-          } catch {
-            // ignore single proxy failure and continue the batch
-          }
-        }
-      })
-
-      if (tasks.length === 0) {
-        return
-      }
-
-      await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrency))
-    },
-    [delayTestConcurrency]
-  )
-
-  const refreshGroups = useCallback(
-    async (awaitRefresh = false): Promise<void> => {
-      const refreshPromise = mutate()
-      if (awaitRefresh) {
-        await refreshPromise
-        return
-      }
-
-      void refreshPromise
-    },
-    [mutate]
-  )
-
-  const runDelayTestByGroupName = useCallback(
-    async (groupName: string, testUrl?: string, awaitRefresh = false): Promise<void> => {
-      setGroupDelaying(groupName, true)
+  const onGroupDelay = useCallback(
+    async (groupName: string, testUrl?: string): Promise<void> => {
+      setDelaying((prev) => ({ ...prev, [groupName]: true }))
 
       try {
-        const group = groups.find((item) => item.name === groupName)
-        if (!group) {
-          return
-        }
-
-        await runGroupDelayTest({
-          ...group,
-          testUrl: testUrl || group.testUrl
-        })
+        await mihomoGroupDelay(groupName, testUrl)
       } catch {
         // ignore
       } finally {
-        setGroupDelaying(groupName, false)
-        await refreshGroups(awaitRefresh)
+        setDelaying((prev) => ({ ...prev, [groupName]: false }))
+        mutate()
       }
     },
-    [groups, refreshGroups, runGroupDelayTest, setGroupDelaying]
-  )
-
-  const onGroupDelay = useCallback(
-    async (groupName: string, testUrl?: string): Promise<void> => {
-      await runDelayTestByGroupName(groupName, testUrl)
-    },
-    [runDelayTestByGroupName]
+    [mutate]
   )
 
   const toggleOpen = useCallback((groupName: string) => {
@@ -339,26 +277,36 @@ const Proxies: React.FC = () => {
     if (groups.length === 0) return
     if (hasInitialTestRef.current) return
     if (!autoDelayTestOnShow) return
-    
+
+    if (!hasSkippedStartupAutoDelayTest) {
+      hasSkippedStartupAutoDelayTest = true
+      return
+    }
+
     hasInitialTestRef.current = true
-    
+
     const doAutoDelayTest = async (): Promise<void> => {
       const tasks = groups.map((group) => {
-        if (getDelayTestTargets(group).length === 0) {
+        if (
+          includesIgnoreCase(group.name, 'proxy') ||
+          includesIgnoreCase(group.name, 'compatible')
+        ) {
           return async (): Promise<void> => {}
         }
 
         return async (): Promise<void> => {
-          await runDelayTestByGroupName(group.name, group.testUrl, true)
+          await mihomoGroupDelay(group.name, group.testUrl)
+            .then(() => mutate())
+            .catch(() => {})
         }
       })
-      
+
       await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrency))
-      await mutate()
+      mutate()
     }
-    
+
     void doAutoDelayTest()
-  }, [groups, mutate, autoDelayTestOnShow, delayTestConcurrency, runDelayTestByGroupName])
+  }, [groups, mutate, autoDelayTestOnShow, delayTestConcurrency])
 
   // 获取节点延迟颜色
   const getDelayColor = useCallback((proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {

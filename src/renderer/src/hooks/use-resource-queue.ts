@@ -4,7 +4,8 @@ import { getAppName, getIconDataURLs } from '@renderer/utils/resource-ipc'
 const ICON_CACHE_PREFIX = 'routex:icon:'
 const ICON_CACHE_INDEX_KEY = 'routex:icon:index'
 const MAX_ICON_CACHE_ENTRIES = 120
-const ICON_BATCH_SIZE = 10
+const VISIBLE_ICON_BATCH_SIZE = 4
+const PRELOAD_ICON_BATCH_SIZE = 2
 const sharedIconMemoryCache = new Map<string, string>()
 const sharedAppNameMemoryCache = new Map<string, string>()
 
@@ -150,7 +151,8 @@ export function useResourceQueue(
   )
   const [firstItemRefreshTrigger, setFirstItemRefreshTrigger] = useState(0)
 
-  const iconRequestQueue = useRef(new Set<string>())
+  const visibleIconRequestQueue = useRef(new Set<string>())
+  const preloadIconRequestQueue = useRef(new Set<string>())
   const processingIcons = useRef(new Set<string>())
   const processIconTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const disposedRef = useRef(false)
@@ -195,10 +197,23 @@ export function useResourceQueue(
   }, [])
 
   const processIconQueue = useCallback(async () => {
-    if (processingIcons.current.size > 0 || iconRequestQueue.current.size === 0) return
+    if (processingIcons.current.size > 0) return
 
-    const pathsToProcess = Array.from(iconRequestQueue.current).slice(0, ICON_BATCH_SIZE)
-    pathsToProcess.forEach((path) => iconRequestQueue.current.delete(path))
+    const activeQueue =
+      visibleIconRequestQueue.current.size > 0
+        ? visibleIconRequestQueue.current
+        : preloadIconRequestQueue.current.size > 0
+          ? preloadIconRequestQueue.current
+          : null
+
+    if (!activeQueue) return
+
+    const batchSize =
+      activeQueue === visibleIconRequestQueue.current
+        ? VISIBLE_ICON_BATCH_SIZE
+        : PRELOAD_ICON_BATCH_SIZE
+    const pathsToProcess = Array.from(activeQueue).slice(0, batchSize)
+    pathsToProcess.forEach((path) => activeQueue.delete(path))
     const nextIcons: Record<string, string> = {}
     let shouldRefreshFirstItem = false
 
@@ -241,8 +256,14 @@ export function useResourceQueue(
       }
     }
 
-    if (iconRequestQueue.current.size > 0) {
-      processIconTimer.current = setTimeout(processIconQueue, 50)
+    if (
+      visibleIconRequestQueue.current.size > 0 ||
+      preloadIconRequestQueue.current.size > 0
+    ) {
+      processIconTimer.current = setTimeout(
+        processIconQueue,
+        visibleIconRequestQueue.current.size > 0 ? 20 : 60
+      )
     }
   }, [filteredConnectionsFirstPath])
 
@@ -252,7 +273,8 @@ export function useResourceQueue(
 
     return () => {
       disposedRef.current = true
-      iconRequestQueue.current.clear()
+      visibleIconRequestQueue.current.clear()
+      preloadIconRequestQueue.current.clear()
       appNameRequestQueue.current.clear()
       processingIcons.current.clear()
       processingAppNames.current.clear()
@@ -268,7 +290,10 @@ export function useResourceQueue(
     }
 
     // Start processing immediately if queue is not empty, otherwise ensure timer is cleared
-    if (iconRequestQueue.current.size > 0) {
+    if (
+      visibleIconRequestQueue.current.size > 0 ||
+      preloadIconRequestQueue.current.size > 0
+    ) {
       if (processIconTimer.current) clearTimeout(processIconTimer.current)
       processIconTimer.current = setTimeout(processIconQueue, 10)
     }
@@ -307,7 +332,13 @@ export function useResourceQueue(
         return
       }
 
-      iconRequestQueue.current.add(path)
+      if (isVisible) {
+        preloadIconRequestQueue.current.delete(path)
+        visibleIconRequestQueue.current.add(path)
+      } else if (!visibleIconRequestQueue.current.has(path)) {
+        preloadIconRequestQueue.current.add(path)
+      }
+
       // Trigger consumer if not running?
       // The consumer effects watch the queue? No, they watch deps.
       // But adding to ref doesn't trigger re-render.

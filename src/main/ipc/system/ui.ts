@@ -1,4 +1,4 @@
-import { app, dialog } from 'electron'
+import { app, dialog, shell } from 'electron'
 import { checkUpdate, downloadAndInstallUpdate, cancelUpdate } from '../../resolve/autoUpdater'
 import {
   resetAppConfig,
@@ -25,6 +25,7 @@ import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../../
 import { ipcErrorWrapper, type IpcInvokeHandlerMap } from '../../utils/ipc'
 import { IPC_INVOKE_CHANNELS, IPC_ON_CHANNELS } from '../../../shared/ipc'
 import { getDisplayVersion } from '../../utils/version'
+import { getAxios } from '../../core/mihomoApi'
 
 export function createUiHandlers(): IpcInvokeHandlerMap {
   const C = IPC_INVOKE_CHANNELS
@@ -35,6 +36,10 @@ export function createUiHandlers(): IpcInvokeHandlerMap {
     [C.cancelUpdate]: () => ipcErrorWrapper(cancelUpdate)(),
     [C.getVersion]: () => getDisplayVersion(),
     [C.platform]: () => process.platform,
+    [C.getControllerUrl]: async () => {
+      const axios = await getAxios()
+      return axios.defaults.socketPath || null
+    },
     [C.registerShortcut]: (_e, oldShortcut, newShortcut, action) =>
       ipcErrorWrapper(registerShortcut)(oldShortcut, newShortcut, action),
     [C.setNativeTheme]: (_e, theme) => {
@@ -72,6 +77,7 @@ export function createUiHandlers(): IpcInvokeHandlerMap {
     [C.openDevTools]: () => {
       mainWindow?.webContents.openDevTools()
     },
+    [C.openExternalUrl]: (_e, url: string) => ipcErrorWrapper(shell.openExternal)(url),
     [C.resolveThemes]: () => ipcErrorWrapper(resolveThemes)(),
     [C.fetchThemes]: () => ipcErrorWrapper(fetchThemes)(),
     [C.importThemes]: (_e, file) => ipcErrorWrapper(importThemes)(file),

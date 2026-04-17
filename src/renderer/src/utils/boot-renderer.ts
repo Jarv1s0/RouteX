@@ -11,6 +11,20 @@ function normalizeError(error: unknown): { message: string; stack?: string } {
   }
 }
 
+export function traceBootStep(entryName: string, step: string, detail?: unknown): void {
+  if (detail instanceof Error) {
+    console.error(`[boot:${entryName}] ${step}`, detail)
+    return
+  }
+
+  if (detail !== undefined) {
+    console.info(`[boot:${entryName}] ${step}`, detail)
+    return
+  }
+
+  console.info(`[boot:${entryName}] ${step}`)
+}
+
 function renderFatalScreen(entryName: string, error: unknown): void {
   const { message, stack } = normalizeError(error)
   const root = document.getElementById('root')
@@ -37,17 +51,24 @@ function renderFatalScreen(entryName: string, error: unknown): void {
 }
 
 export async function bootRenderer(entryName: string, loader: () => Promise<unknown>): Promise<void> {
+  traceBootStep(entryName, 'entry:boot')
+
   window.addEventListener('error', (event) => {
+    traceBootStep(entryName, 'window:error', event.error ?? event.message)
     console.error(`[boot:${entryName}] window error`, event.error ?? event.message)
   })
 
   window.addEventListener('unhandledrejection', (event) => {
+    traceBootStep(entryName, 'window:unhandledrejection', event.reason)
     console.error(`[boot:${entryName}] unhandled rejection`, event.reason)
   })
 
   try {
+    traceBootStep(entryName, 'entry:import:start')
     await loader()
+    traceBootStep(entryName, 'entry:import:done')
   } catch (error) {
+    traceBootStep(entryName, 'entry:import:failed', error)
     console.error(`[boot:${entryName}] entry import failed`, error)
     renderFatalScreen(entryName, error)
   }

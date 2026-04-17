@@ -111,6 +111,10 @@ const RulesPage: React.FC = () => {
     })
   }, [providersData])
 
+  const updatableProviders = useMemo(() => {
+    return providers.filter((provider) => provider.vehicleType === 'HTTP')
+  }, [providers])
+
   useEffect(() => {
     if (showDetails.title) {
       const fetchProviderPath = async (name: string): Promise<void> => {
@@ -133,11 +137,14 @@ const RulesPage: React.FC = () => {
     }
   }, [showDetails.title])
 
-  const onUpdate = async (name: string): Promise<void> => {
+  const onUpdate = async (provider: ControllerRuleProviderDetail): Promise<void> => {
+    if (provider.vehicleType !== 'HTTP') return
+
+    const { name } = provider
     setUpdating((prev) => ({ ...prev, [name]: true }))
     try {
       await mihomoUpdateRuleProviders(name)
-      mutate()
+      await mutate()
     } catch (e) {
       new Notification(`${name} 更新失败\n${e}`)
     } finally {
@@ -146,8 +153,8 @@ const RulesPage: React.FC = () => {
   }
 
   const updateAll = (): void => {
-    providers.forEach((provider) => {
-      onUpdate(provider.name)
+    updatableProviders.forEach((provider) => {
+      void onUpdate(provider)
     })
   }
 
@@ -229,6 +236,7 @@ const RulesPage: React.FC = () => {
               size="sm"
               color="primary"
               className="ml-auto"
+              isDisabled={updatableProviders.length === 0}
               onPress={updateAll}
             >
               更新全部
@@ -308,8 +316,11 @@ const RulesPage: React.FC = () => {
                 <RuleProviderItem
                   provider={provider}
                   index={i}
+                  canUpdate={provider.vehicleType === 'HTTP'}
                   updating={updating[provider.name] || false}
-                  onUpdate={() => onUpdate(provider.name)}
+                  onUpdate={() => {
+                    void onUpdate(provider)
+                  }}
                   onView={() => {
                     setShowDetails({
                       show: false,

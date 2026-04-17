@@ -82,16 +82,16 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           <div className="app-nodrag p-2 flex flex-col items-center gap-2 shrink-0 border-t border-divider">
             {latest && latest.version && <UpdaterButton iconOnly={true} latest={latest} />}
             <OutboundModeSwitcher iconOnly />
-              <Button
-                size="sm"
-                className="app-nodrag"
-                isIconOnly
-                color={location.pathname.includes('/settings') ? 'primary' : 'default'}
-                variant={location.pathname.includes('/settings') ? 'solid' : 'light'}
-                onPress={handleSettingsNavigate}
-              >
-                <IoSettings className="text-[20px]" />
-              </Button>
+            <Button
+              size="sm"
+              className="app-nodrag"
+              isIconOnly
+              color={location.pathname.includes('/settings') ? 'primary' : 'default'}
+              variant={location.pathname.includes('/settings') ? 'solid' : 'light'}
+              onPress={handleSettingsNavigate}
+            >
+              <IoSettings className="text-[20px]" />
+            </Button>
           </div>
         </div>
       )

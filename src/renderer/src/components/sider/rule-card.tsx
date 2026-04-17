@@ -1,6 +1,6 @@
 import { Button, Tooltip } from '@heroui/react'
 import { LuGitBranch, LuRotateCw } from 'react-icons/lu'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { mutate as globalMutate } from 'swr'
 import useSWR from 'swr'
@@ -63,6 +63,13 @@ const RuleCard: React.FC<Props> = (props) => {
     return providerMap ? Object.keys(providerMap).length : 0
   }, [providerMap])
 
+  const updatableProviderNames = useMemo(() => {
+    if (!providerMap) return []
+    return Object.entries(providerMap)
+      .filter(([, provider]) => provider.vehicleType === 'HTTP')
+      .map(([name]) => name)
+  }, [providerMap])
+
   const ruleCount = useMemo(() => {
     const providerRuleCount = providerMap
       ? Object.values(providerMap).reduce((total, provider) => total + (provider.ruleCount || 0), 0)
@@ -71,22 +78,21 @@ const RuleCard: React.FC<Props> = (props) => {
     return providerRuleCount + manualRuleCount
   }, [data, providerMap])
 
-  const updateAll = async (): Promise<void> => {
+  const updateAll = useCallback(async (): Promise<void> => {
     if (updating) return
 
-    const providerNames = providerMap ? Object.keys(providerMap) : []
-    if (providerNames.length === 0) return
+    if (updatableProviderNames.length === 0) return
 
     setUpdating(true)
     try {
-      await Promise.all(providerNames.map((name) => mihomoUpdateRuleProviders(name)))
+      await Promise.all(updatableProviderNames.map((name) => mihomoUpdateRuleProviders(name)))
       await Promise.all([mutate(), globalMutate('mihomoRuleProviders')])
     } catch (e) {
       new Notification(`规则集合更新失败\n${e}`)
     } finally {
       setUpdating(false)
     }
-  }
+  }, [mutate, updatableProviderNames, updating])
 
   useEffect(() => {
     if (!shouldLoadStats || !match) {
@@ -152,7 +158,7 @@ const RuleCard: React.FC<Props> = (props) => {
             size="sm"
             className={`${compact ? 'w-5 h-5' : 'w-6 h-6'} min-w-0`}
             variant="light"
-            disabled={updating || providerCount === 0}
+            disabled={updating || updatableProviderNames.length === 0}
             onPress={updateAll}
           >
             <LuRotateCw className={`${compact ? 'text-[13px]' : 'text-[14px]'} ${updating ? 'animate-spin' : ''}`} />
