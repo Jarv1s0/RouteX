@@ -8,6 +8,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { navigateSidebarRoute } from '@renderer/routes'
 import { mihomoProxies } from '@renderer/utils/mihomo-ipc'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface Props {
   iconOnly?: boolean
@@ -30,23 +31,30 @@ const ProxyCard: React.FC<Props> = (props) => {
 
   useEffect(() => {
     let cancelled = false
+    const refreshProxies = (): void => {
+      mihomoProxies()
+        .then((data) => {
+          if (!cancelled) {
+            setAllProxies(data.proxies)
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setAllProxies({})
+          }
+        })
+    }
 
-    mihomoProxies()
-      .then((data) => {
-        if (!cancelled) {
-          setAllProxies(data.proxies)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAllProxies({})
-        }
-      })
+    refreshProxies()
+    const offCoreStarted = onIpc(ON.coreStarted, refreshProxies)
+    const offGroupsUpdated = onIpc(ON.groupsUpdated, refreshProxies)
 
     return () => {
       cancelled = true
+      offCoreStarted()
+      offGroupsUpdated()
     }
-  }, [groups])
+  }, [])
 
   const firstGroup = useMemo(() => {
     return mode === 'global' 

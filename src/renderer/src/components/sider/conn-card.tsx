@@ -127,9 +127,12 @@ const ConnCard: React.FC<Props> = (props) => {
       }
     }
 
-    return subscribeDesktopTraffic((info) => {
-      void handleTraffic(info)
-    })
+    return subscribeDesktopTraffic(
+      (info) => {
+        void handleTraffic(info)
+      },
+      true
+    )
   }, [])
 
   if (iconOnly) {

@@ -51,18 +51,8 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-    const timer = window.setTimeout(() => {
-      if (!cancelled) {
-        void refreshVersion()
-      }
-    }, match ? 0 : 1500)
-
-    return (): void => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [match, refreshVersion])
+    void refreshVersion()
+  }, [refreshVersion])
 
   useEffect(() => {
     if (!match) {

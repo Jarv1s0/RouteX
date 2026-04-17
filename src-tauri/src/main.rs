@@ -128,6 +128,7 @@ const SHORTCUT_ACTION_KEYS: [&str; 9] = [
 const ROUTEX_RUN_TASK_NAME: &str = "routex-run";
 const ROUTEX_RUN_BINARY: &str = "routex-run.exe";
 const ROUTEX_RUN_XML: &str = "routex-run.xml";
+const ROUTEX_RUN_ARGS_FILE: &str = "param.txt";
 const ROUTEX_AUTORUN_TASK_NAME: &str = "routex";
 const ROUTEX_AUTORUN_XML: &str = "routex-autorun.xml";
 #[cfg(target_os = "linux")]
@@ -9054,6 +9055,10 @@ fn routex_run_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(task_dir(app)?.join(ROUTEX_RUN_XML))
 }
 
+fn routex_run_args_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    Ok(task_dir(app)?.join(ROUTEX_RUN_ARGS_FILE))
+}
+
 fn routex_autorun_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(task_dir(app)?.join(ROUTEX_AUTORUN_XML))
 }
@@ -9061,6 +9066,28 @@ fn routex_autorun_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, Strin
 fn resolve_routex_run_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     resolve_resource_binary(app, "files", ROUTEX_RUN_BINARY)
         .map_err(|_| format!("RouteX run helper not found: {ROUTEX_RUN_BINARY}"))
+}
+
+fn write_elevate_task_params(app: &tauri::AppHandle) -> Result<(), String> {
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
+    let value = if args.is_empty() {
+        "empty".to_string()
+    } else {
+        args.join(" ")
+    };
+    fs::write(routex_run_args_path(app)?, value).map_err(|e| e.to_string())
+}
+
+fn ensure_routex_run_binary_for_task(app: &tauri::AppHandle) -> Result<(), String> {
+    let routex_run_dest = routex_run_binary_task_path(app)?;
+    if routex_run_dest.exists() {
+        return Ok(());
+    }
+
+    let routex_run_source = resolve_routex_run_binary(app)?;
+    fs::copy(routex_run_source, routex_run_dest)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
 
 fn encode_utf16le_with_bom(value: &str) -> Vec<u8> {
@@ -9485,7 +9512,7 @@ fn check_elevate_task() -> bool {
 fn show_windows_startup_admin_required_dialog() {
     let title = powershell_single_quoted("需要管理员权限");
     let message = powershell_single_quoted(
-        "首次启动需要管理员权限来创建系统任务。\r\n\r\n请右键点击应用图标，选择\"以管理员身份运行\"。",
+        "首次启动仅需一次管理员权限，用来注册提权任务。\r\n\r\n完成后后续可直接正常打开，不需要每次都手动管理员运行。\r\n\r\n请右键点击应用图标，选择\"以管理员身份运行\"。",
     );
     let script = format!(
         r#"
@@ -9511,6 +9538,51 @@ Add-Type -AssemblyName System.Windows.Forms
         .output();
 }
 
+#[cfg(target_os = "windows")]
+fn show_windows_startup_relaunch_failed_dialog(create_error: &str, run_error: &str) {
+    let title = powershell_single_quoted("自动提权启动失败");
+    let message = powershell_single_quoted(&format!(
+        "已检测到提权任务，但自动拉起高权限实例失败。\r\n\r\n首次管理员授权的注册状态可能异常，请到“内核设置 -> 任务状态”重新注册后再试。\r\n\r\n创建任务错误：{create_error}\r\n启动任务错误：{run_error}"
+    ));
+    let script = format!(
+        r#"
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.MessageBox]::Show(
+  {message},
+  {title},
+  [System.Windows.Forms.MessageBoxButtons]::OK,
+  [System.Windows.Forms.MessageBoxIcon]::Error
+) | Out-Null
+"#
+    );
+
+    let mut command = Command::new("powershell");
+    let _ = apply_background_command(&mut command)
+        .args([
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            &script,
+        ])
+        .output();
+}
+
+fn run_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        write_elevate_task_params(app)?;
+        ensure_routex_run_binary_for_task(app)?;
+        return schtasks_command(&["/run", "/tn", ROUTEX_RUN_TASK_NAME]);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app;
+        Err("当前平台未实现任务计划启动".to_string())
+    }
+}
+
 fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
     #[cfg(target_os = "windows")]
     {
@@ -9522,16 +9594,25 @@ fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
             return Ok(true);
         }
 
-        if read_core_permission_mode(app)? == "service" || check_elevate_task() {
+        if read_core_permission_mode(app)? == "service" {
             return Ok(true);
         }
 
         match create_elevate_task(app) {
             Ok(()) => Ok(true),
-            Err(_) if check_elevate_task() => Ok(true),
-            Err(_) => {
-                show_windows_startup_admin_required_dialog();
-                Ok(false)
+            Err(create_error) => {
+                if !check_elevate_task() {
+                    show_windows_startup_admin_required_dialog();
+                    return Ok(false);
+                }
+
+                match run_elevate_task(app) {
+                    Ok(()) => Ok(false),
+                    Err(run_error) => {
+                        show_windows_startup_relaunch_failed_dialog(&create_error, &run_error);
+                        Ok(false)
+                    }
+                }
             }
         }
     }
