@@ -57,6 +57,7 @@ const EditFileModal: React.FC<Props> = (props) => {
         base: 'max-w-none w-full',
         backdrop: 'top-[48px]'
       }}
+      style={{ zIndex: 99999 }}
       size="5xl"
       hideCloseButton
       isOpen={true}
@@ -73,11 +74,11 @@ const EditFileModal: React.FC<Props> = (props) => {
           onConfirm={onClose}
         />
       )}
-      <ModalContent className="h-full w-[calc(100%-100px)]">
+      <ModalContent className="flex h-[calc(100vh-4rem)] w-[min(1400px,calc(100vw-2rem))] flex-col overflow-hidden">
         <ModalHeader className="flex pb-0 app-drag">
           编辑覆写{language === 'javascript' ? '脚本' : '配置'}
         </ModalHeader>
-        <ModalBody className="h-full">
+        <ModalBody className="flex-1 min-h-0 overflow-hidden">
           <BaseEditor
             language={language}
             value={currData}

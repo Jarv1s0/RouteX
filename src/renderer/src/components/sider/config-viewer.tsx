@@ -50,15 +50,16 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
         base: 'max-w-none w-full',
         backdrop: 'top-[48px]'
       }}
+      style={{ zIndex: 99999 }}
       size="5xl"
       hideCloseButton
       isOpen={true}
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent className="h-full w-[calc(100%-100px)]">
+      <ModalContent className="flex h-[calc(100vh-4rem)] w-[min(1400px,calc(100vw-2rem))] flex-col overflow-hidden">
         <ModalHeader className="flex pb-0 app-drag">当前运行时配置</ModalHeader>
-        <ModalBody className="h-full">
+        <ModalBody className="flex-1 min-h-0 overflow-hidden">
           <BaseEditor
             language="yaml"
             value={runtimeConfig}

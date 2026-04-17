@@ -67,14 +67,15 @@ const EditInfoModal: React.FC<Props> = (props) => {
         backdrop: 'top-[48px]',
         base: 'w-[600px] md:w-[600px] lg:w-[800px] xl:w-[1024px]'
       }}
+      style={{ zIndex: 99999 }}
       hideCloseButton
       isOpen={true}
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent>
+      <ModalContent className="flex h-[calc(100vh-4rem)] w-[min(1024px,calc(100vw-2rem))] flex-col overflow-hidden">
         <ModalHeader className="flex app-drag">{item.id ? '编辑信息' : '导入远程配置'}</ModalHeader>
-        <ModalBody>
+        <ModalBody className="flex-1 min-h-0 overflow-y-auto">
           <SettingItem title="名称">
             <Input
               size="sm"
