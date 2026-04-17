@@ -257,7 +257,7 @@ src-tauri/
 
 当前进展（2026-04-10）：
 
-1. Tauri bundler 已完成打包验证，当前工作区已实际生成 `3.1.0` 的 Windows `msi` / `nsis` 安装产物。
+1. Tauri bundler 已完成打包验证，当前工作区已实际生成 `4.0.0` 的 Windows `msi` / `nsis` 安装产物。
 2. Tauri 宿主已接入基于现有 `latest.yml` 的首版更新链路，支持检查更新后的下载、取消、SHA-512 校验和启动安装器。
 3. 当前仍未切换到 Tauri 官方 updater / 签名链路；跨平台资产组织、签名和真实安装回归留待后续收口。
 

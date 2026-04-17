@@ -144,10 +144,6 @@ export async function relaunchApp(): Promise<void> {
 }
 
 export async function quitWithoutCore(): Promise<void> {
-  if (isTauriHost()) {
-    return quitApp()
-  }
-
   return invokeSafe(C.quitWithoutCore)
 }
 

@@ -13,6 +13,7 @@ interface GroupsState {
 }
 
 let updateTimer: NodeJS.Timeout | null = null
+let unavailableRetryTimer: number | null = null
 let groupsListenerRefCount = 0
 
 function isExpectedMihomoUnavailableError(error: unknown): boolean {
@@ -37,6 +38,15 @@ function clearUpdateTimer(): void {
   updateTimer = null
 }
 
+function clearUnavailableRetryTimer(): void {
+  if (unavailableRetryTimer === null) {
+    return
+  }
+
+  window.clearTimeout(unavailableRetryTimer)
+  unavailableRetryTimer = null
+}
+
 function unregisterGroupHandlers(): void {
   currentGroupsCleanup?.()
   currentGroupsCleanup = null
@@ -51,12 +61,28 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
   fetchGroups: async () => {
     try {
       const groups = await mihomoGroups()
+      clearUnavailableRetryTimer()
       set({ groups, isLoading: false })
     } catch (e) {
-      set({ groups: [], isLoading: false }) // 失败时提供稳定的空数组引用
-      if (!isExpectedMihomoUnavailableError(e)) {
-        console.error('Failed to fetch groups', e)
+      if (isExpectedMihomoUnavailableError(e)) {
+        const previousGroups = get().groups
+        set({
+          groups: previousGroups,
+          isLoading: !previousGroups || previousGroups.length === 0
+        })
+
+        if (unavailableRetryTimer === null && !document.hidden) {
+          unavailableRetryTimer = window.setTimeout(() => {
+            unavailableRetryTimer = null
+            void get().fetchGroups()
+          }, 1200)
+        }
+        return
       }
+
+      clearUnavailableRetryTimer()
+      set({ groups: [], isLoading: false }) // 失败时提供稳定的空数组引用
+      console.error('Failed to fetch groups', e)
     }
   },
 
@@ -84,6 +110,7 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
   cleanupListeners: () => {
     unregisterGroupHandlers()
     clearUpdateTimer()
+    clearUnavailableRetryTimer()
   }
 }))
 

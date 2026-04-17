@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "RouteX",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "identifier": "com.jarv1s0.routex.tauri",
   "build": {
     "beforeDevCommand": "node scripts/ensure-tauri-dev-server.mjs",
@@ -57,5 +57,16 @@
       "../resources/icon.ico",
       "../resources/icon.icns"
     ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "clash",
+          "mihomo",
+          "routex"
+        ]
+      }
+    }
   }
 }

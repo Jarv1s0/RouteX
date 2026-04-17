@@ -3,15 +3,34 @@ import ConfirmModal from '@renderer/components/base/base-confirm'
 import { platform } from '@renderer/utils/init'
 import { ON, SEND, onIpc, sendIpc } from '@renderer/utils/ipc-channels'
 
+interface CustomInstallConfirmDetail {
+  requestId: string
+  url: string
+  name?: string | null
+}
+
+function dispatchInstallConfirmResult(eventName: string, requestId: string, confirmed: boolean): void {
+  window.dispatchEvent(
+    new CustomEvent(eventName, {
+      detail: {
+        requestId,
+        confirmed
+      }
+    })
+  )
+}
+
 const GlobalConfirmModals: React.FC = () => {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)
   const [showProfileInstallConfirm, setShowProfileInstallConfirm] = useState(false)
   const [showOverrideInstallConfirm, setShowOverrideInstallConfirm] = useState(false)
   const [profileInstallData, setProfileInstallData] = useState<{
+    requestId?: string
     url: string
     name?: string | null
   }>()
   const [overrideInstallData, setOverrideInstallData] = useState<{
+    requestId?: string
     url: string
     name?: string | null
   }>()
@@ -34,6 +53,24 @@ const GlobalConfirmModals: React.FC = () => {
       setOverrideInstallData(data)
       setShowOverrideInstallConfirm(true)
     }
+    const handleShowProfileInstallConfirmCustom = (event: Event): void => {
+      const detail = (event as CustomEvent<CustomInstallConfirmDetail>).detail
+      if (!detail?.requestId) {
+        return
+      }
+
+      setProfileInstallData(detail)
+      setShowProfileInstallConfirm(true)
+    }
+    const handleShowOverrideInstallConfirmCustom = (event: Event): void => {
+      const detail = (event as CustomEvent<CustomInstallConfirmDetail>).detail
+      if (!detail?.requestId) {
+        return
+      }
+
+      setOverrideInstallData(detail)
+      setShowOverrideInstallConfirm(true)
+    }
 
     const offQuitConfirm = onIpc(ON.showQuitConfirm, handleShowQuitConfirm)
     const offProfileInstallConfirm = onIpc(
@@ -45,10 +82,31 @@ const GlobalConfirmModals: React.FC = () => {
       handleShowOverrideInstallConfirm
     )
 
+    window.addEventListener(
+      'routex:show-profile-install-confirm',
+      handleShowProfileInstallConfirmCustom
+    )
+    window.addEventListener(
+      'routex:show-override-install-confirm',
+      handleShowOverrideInstallConfirmCustom
+    )
+
+    const cleanupCustomListeners = (): void => {
+      window.removeEventListener(
+        'routex:show-profile-install-confirm',
+        handleShowProfileInstallConfirmCustom
+      )
+      window.removeEventListener(
+        'routex:show-override-install-confirm',
+        handleShowOverrideInstallConfirmCustom
+      )
+    }
+
     return (): void => {
       offQuitConfirm()
       offProfileInstallConfirm()
       offOverrideInstallConfirm()
+      cleanupCustomListeners()
     }
   }, [])
 
@@ -59,12 +117,30 @@ const GlobalConfirmModals: React.FC = () => {
 
   const handleProfileInstallConfirm = (confirmed: boolean): void => {
     setShowProfileInstallConfirm(false)
-    sendIpc(SEND.profileInstallConfirmResult, confirmed)
+    if (profileInstallData?.requestId) {
+      dispatchInstallConfirmResult(
+        'routex:profile-install-confirm-result',
+        profileInstallData.requestId,
+        confirmed
+      )
+    } else {
+      sendIpc(SEND.profileInstallConfirmResult, confirmed)
+    }
+    setProfileInstallData(undefined)
   }
 
   const handleOverrideInstallConfirm = (confirmed: boolean): void => {
     setShowOverrideInstallConfirm(false)
-    sendIpc(SEND.overrideInstallConfirmResult, confirmed)
+    if (overrideInstallData?.requestId) {
+      dispatchInstallConfirmResult(
+        'routex:override-install-confirm-result',
+        overrideInstallData.requestId,
+        confirmed
+      )
+    } else {
+      sendIpc(SEND.overrideInstallConfirmResult, confirmed)
+    }
+    setOverrideInstallData(undefined)
   }
 
   return (

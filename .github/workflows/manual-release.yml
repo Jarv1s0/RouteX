@@ -40,6 +40,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v6.1.0
@@ -116,6 +120,7 @@ jobs:
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
 
       - name: Build and Publish Linux
         if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
@@ -123,6 +128,7 @@ jobs:
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
 
       - name: Build and Publish macOS
         if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
@@ -130,12 +136,14 @@ jobs:
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
 
       - name: Upload Release Artifacts
         if: (matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')) || (matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')) || (matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos'))
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           RELEASE_TAG="v${VERSION}"
           gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" \
@@ -184,7 +192,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6.0.1
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v6.1.0
@@ -205,6 +215,7 @@ jobs:
       - name: Update Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           gh release edit v${{ env.VERSION }} \
             --title "RouteX v${{ env.VERSION }}" \

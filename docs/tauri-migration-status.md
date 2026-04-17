@@ -205,7 +205,7 @@
 1. Tauri 宿主已补齐 `downloadAndInstallUpdate` / `cancelUpdate` 的首版实现，设置页更新弹窗不再只依赖空宿主通道。
 2. 当前更新链路会复用 Release `latest.yml` 清单解析版本、资产路径和 `sha512`，并在下载完成后做 SHA-512 校验。
 3. Windows 下已支持下载 NSIS / MSI 更新包后直接启动安装器；macOS / Linux 下已补齐按安装包类型打开文件的首版落地。
-4. `src-tauri/Cargo.toml` 与 `src-tauri/tauri.conf.json` 版本号已对齐到 `3.1.0`，避免 Tauri 运行时版本、打包产物版本和前端更新判断继续错位。
+4. `src-tauri/Cargo.toml` 与 `src-tauri/tauri.conf.json` 版本号已对齐到 `4.0.0`，避免 Tauri 运行时版本、打包产物版本和前端更新判断继续错位。
 
 ## 3. 当前验证结果
 
@@ -250,7 +250,7 @@
 28. 已确认阶段 4 追加的托盘通道落地、悬浮窗位置持久化、宿主点击语义对齐后，`corepack pnpm run build:tauri-web`、`corepack pnpm run tauri:build` 仍通过。
 29. 已确认打包产物 `src-tauri/target/release/routex_tauri.exe` 可以启动且不会立即退出。
 30. 已确认 `cargo check --manifest-path src-tauri/Cargo.toml`、`corepack pnpm run typecheck:web`、`corepack pnpm run build:tauri-web` 在阶段 5 的首版更新链路与版本号对齐后仍通过。
-31. 已确认 `corepack pnpm run tauri:build` 在阶段 5 改动后仍通过，并生成 `3.1.0` 版本安装产物。
+31. 已确认 `corepack pnpm run tauri:build` 在阶段 5 改动后仍通过，并生成 `4.0.0` 版本安装产物。
 32. 已确认 Windows / Linux 原生托盘菜单代码路径接入后，`cargo check --manifest-path src-tauri/Cargo.toml` 与 `corepack pnpm run typecheck:web` 仍通过。
 33. 已确认 Tauri 流量历史迁到宿主持久化后，`cargo check --manifest-path src-tauri/Cargo.toml` 与 `corepack pnpm run typecheck:web` 仍通过。
 34. 已确认接入 `tauri-plugin-global-shortcut` 并补齐 `registerShortcut` 宿主实现后，`cargo check --manifest-path src-tauri/Cargo.toml`、`corepack pnpm run typecheck:web`、`corepack pnpm run verify` 仍通过。
@@ -258,8 +258,8 @@
 
 当前已成功生成 Windows 安装产物：
 
-1. `src-tauri/target/release/bundle/msi/RouteX_3.1.0_x64_en-US.msi`
-2. `src-tauri/target/release/bundle/nsis/RouteX_3.1.0_x64-setup.exe`
+1. `src-tauri/target/release/bundle/msi/RouteX_4.0.0_x64_en-US.msi`
+2. `src-tauri/target/release/bundle/nsis/RouteX_4.0.0_x64-setup.exe`
 
 
 ## 4. 当前仍未完成或仅为占位的部分
@@ -287,7 +287,7 @@
 
 当前状态：
 
-1. 已能打包，并已将 Tauri 宿主版本与打包版本对齐到 `3.1.0`。
+1. 已能打包，并已将 Tauri 宿主版本与打包版本对齐到 `4.0.0`。
 2. 已能检查新版本，并已补齐自动下载、取消下载、SHA-512 校验和启动安装器的首版宿主链路。
 3. 当前更新方案仍依赖现有 `latest.yml` 清单和 Release 资产组织方式，尚未切到 Tauri 官方 updater / 签名发布链。
 4. 尚未做真实更新安装回归；macOS / Linux 的资产命名、签名和发布流程也还未最终收口。
@@ -379,7 +379,7 @@
 
 原因：
 
-1. `tauri:build` 已通过并生成 `3.1.0` 版本安装包。
+1. `tauri:build` 已通过并生成 `4.0.0` 版本安装包。
 2. Tauri 宿主已补齐更新检查后的下载、取消、校验和启动安装器首版链路。
 3. 当前仍未切换到最终的 Tauri 官方 updater / 签名发布方案，也未完成真实更新安装回归。
 

@@ -50,7 +50,6 @@ const GeneralConfig: React.FC = () => {
 
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
   const [pendingDisableGPU, setPendingDisableGPU] = useState(disableGPU)
-  const supportsDisableGpuSetting = !isTauriHost
 
   const [newVersion, setNewVersion] = useState('')
   const [releaseNotes, setReleaseNotes] = useState('')
@@ -184,34 +183,28 @@ const GeneralConfig: React.FC = () => {
           </Button>
         </SettingItem>
 
-        <SettingItem
-          title="禁用 GPU 加速"
-          actions={
-            <Tooltip
-              content={
-                supportsDisableGpuSetting
-                  ? '开启后，应用将禁用 GPU 加速，可能会提高稳定性，但会降低性能'
-                  : 'Tauri 宿主暂未提供与 Electron 对等的 GPU 加速禁用能力'
-              }
-            >
-              <Button isIconOnly size="sm" variant="light">
-                <IoIosHelpCircle className="text-lg" />
-              </Button>
-            </Tooltip>
-          }
-          divider
-        >
-          <Switch
-            size="sm"
-            isSelected={pendingDisableGPU}
-            isDisabled={!supportsDisableGpuSetting}
-            onValueChange={(v) => {
-              if (!supportsDisableGpuSetting) return
-              setPendingDisableGPU(v)
-              setShowRestartConfirm(true)
-            }}
-          />
-        </SettingItem>
+        {!isTauriHost && (
+          <SettingItem
+            title="禁用 GPU 加速"
+            actions={
+              <Tooltip content="开启后，应用将禁用 GPU 加速，可能会提高稳定性，但会降低性能">
+                <Button isIconOnly size="sm" variant="light">
+                  <IoIosHelpCircle className="text-lg" />
+                </Button>
+              </Tooltip>
+            }
+            divider
+          >
+            <Switch
+              size="sm"
+              isSelected={pendingDisableGPU}
+              onValueChange={(v) => {
+                setPendingDisableGPU(v)
+                setShowRestartConfirm(true)
+              }}
+            />
+          </SettingItem>
+        )}
         <SettingItem
           title="禁用动画"
           actions={

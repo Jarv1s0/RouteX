@@ -24,7 +24,7 @@ export function createDefaultAppConfig(
     connectionDirection: 'asc',
     connectionOrderBy: 'time',
     connectionInterval: 250,
-    useSubStore: true,
+    useSubStore: false,
     proxyDisplayOrder: 'default',
     autoCheckUpdate: false,
     autoCloseConnection: true,
@@ -47,7 +47,6 @@ export function createDefaultAppConfig(
       'rule',
       'override',
       'log',
-      'substore',
       'stats',
       'tools'
     ],

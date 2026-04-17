@@ -17,6 +17,8 @@ use std::{
 
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::net::UnixStream;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use quick_xml::{events::Event, Reader};
@@ -25,6 +27,8 @@ use ring::signature::Ed25519KeyPair;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha512};
+#[cfg(target_os = "macos")]
+use tauri::menu::AboutMetadata;
 use tauri::{
     image::Image,
     menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu},
@@ -57,6 +61,8 @@ const TRAFFIC_MONITOR_REPO: &str = "zhongyang219/TrafficMonitor";
 const TRAFFIC_MONITOR_PID_FILE: &str = "traffic-monitor.pid";
 #[cfg(target_os = "windows")]
 const WINDOWS_APP_DATA_DIR_NAME: &str = "routex.app";
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 const DEFAULT_PROFILE_TEXT: &str = "proxies: []\nproxy-groups: []\nrules: []\n";
 const FLOATING_WINDOW_LABEL: &str = "floating";
 const FLOATING_WINDOW_STATE_FILE: &str = "floating-window-state.json";
@@ -86,6 +92,28 @@ const TRAY_MENU_GROUP_PROXY_PREFIX: &str = "tray.group.proxy::";
 const TRAY_MENU_PROFILE_TOGGLE_PREFIX: &str = "tray.profile.toggle::";
 const TRAY_MENU_PROFILE_CURRENT_PREFIX: &str = "tray.profile.current::";
 const TRAY_MENU_COPY_ENV_PREFIX: &str = "tray.copy-env::";
+#[cfg(target_os = "macos")]
+const APP_MENU_QUIT_WITHOUT_CORE_ID: &str = "app.quit-without-core";
+#[cfg(target_os = "macos")]
+const APP_MENU_RESTART_APP_ID: &str = "app.restart-app";
+#[cfg(target_os = "macos")]
+const APP_MENU_QUIT_ID: &str = "app.quit";
+#[cfg(target_os = "macos")]
+const APP_MENU_OPEN_APP_DIR_ID: &str = "app.open-dir.app";
+#[cfg(target_os = "macos")]
+const APP_MENU_OPEN_WORK_DIR_ID: &str = "app.open-dir.work";
+#[cfg(target_os = "macos")]
+const APP_MENU_OPEN_CORE_DIR_ID: &str = "app.open-dir.core";
+#[cfg(target_os = "macos")]
+const APP_MENU_OPEN_LOG_DIR_ID: &str = "app.open-dir.log";
+#[cfg(target_os = "macos")]
+const APP_MENU_RELOAD_ID: &str = "app.reload";
+#[cfg(target_os = "macos")]
+const APP_MENU_OPEN_DEVTOOLS_ID: &str = "app.open-devtools";
+#[cfg(target_os = "macos")]
+const APP_MENU_LEARN_MORE_ID: &str = "app.help.learn-more";
+#[cfg(target_os = "macos")]
+const APP_MENU_REPORT_ISSUE_ID: &str = "app.help.report-issue";
 const SHORTCUT_ACTION_KEYS: [&str; 9] = [
     "showWindowShortcut",
     "showFloatingWindowShortcut",
@@ -201,6 +229,7 @@ struct CoreState {
     network_health_state: Mutex<NetworkHealthState>,
     network_down_handled: Mutex<bool>,
     update_download_cancel: Mutex<Option<Arc<AtomicBool>>>,
+    quit_confirm_sender: Mutex<Option<mpsc::Sender<bool>>>,
     allow_main_window_close: Mutex<bool>,
 }
 
@@ -2596,6 +2625,15 @@ fn emit_ipc_event(app: &tauri::AppHandle, channel: &str, payload: Value) {
     let _ = app.emit(channel, payload);
 }
 
+fn apply_background_command(command: &mut Command) -> &mut Command {
+    #[cfg(target_os = "windows")]
+    {
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    command
+}
+
 fn guess_mime_from_path(path: &Path) -> &'static str {
     match path
         .extension()
@@ -2789,6 +2827,51 @@ fn exit_app_without_core(app: &tauri::AppHandle) -> Result<(), String> {
     close_main_window_renderer(app)?;
     app.exit(0);
     Ok(())
+}
+
+fn resolve_quit_confirmation(state: &State<'_, CoreState>, confirmed: bool) -> Result<(), String> {
+    let sender = state
+        .quit_confirm_sender
+        .lock()
+        .map_err(|e| e.to_string())?
+        .take();
+
+    if let Some(sender) = sender {
+        let _ = sender.send(confirmed);
+    }
+
+    Ok(())
+}
+
+fn request_quit_confirmation(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+) -> Result<bool, String> {
+    let _ = stop_lightweight_mode(app);
+    show_main_window(app)?;
+
+    let (sender, receiver) = mpsc::channel();
+    {
+        let mut pending = state
+            .quit_confirm_sender
+            .lock()
+            .map_err(|e| e.to_string())?;
+        *pending = Some(sender);
+    }
+
+    emit_ipc_event(app, "show-quit-confirm", Value::Null);
+
+    let confirmed = receiver
+        .recv_timeout(Duration::from_secs(60))
+        .unwrap_or(false);
+
+    let mut pending = state
+        .quit_confirm_sender
+        .lock()
+        .map_err(|e| e.to_string())?;
+    pending.take();
+
+    Ok(confirmed)
 }
 
 fn schedule_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
@@ -3469,6 +3552,232 @@ fn refresh_native_tray_menu(app: &tauri::AppHandle) -> Result<(), String> {
 fn refresh_native_tray_shell(app: &tauri::AppHandle) -> Result<(), String> {
     update_tray_icon_for_state(app)?;
     refresh_native_tray_menu(app)
+}
+
+#[cfg(target_os = "macos")]
+fn build_application_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, String> {
+    let package_info = app.package_info();
+    let config = app.config();
+    let about_metadata = AboutMetadata {
+        name: Some(package_info.name.clone()),
+        version: Some(package_info.version.to_string()),
+        authors: config
+            .bundle
+            .publisher
+            .clone()
+            .map(|publisher| vec![publisher]),
+        copyright: config.bundle.copyright.clone(),
+        ..Default::default()
+    };
+
+    let quit_without_core = MenuItem::with_id(
+        app,
+        APP_MENU_QUIT_WITHOUT_CORE_ID,
+        "保留内核退出",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    let restart_app =
+        MenuItem::with_id(app, APP_MENU_RESTART_APP_ID, "重启应用", true, None::<&str>)
+            .map_err(|e| e.to_string())?;
+    let quit = MenuItem::with_id(
+        app,
+        APP_MENU_QUIT_ID,
+        "退出应用",
+        true,
+        Some("CommandOrControl+Q"),
+    )
+    .map_err(|e| e.to_string())?;
+    let open_app_dir = MenuItem::with_id(
+        app,
+        APP_MENU_OPEN_APP_DIR_ID,
+        "应用目录",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    let open_work_dir = MenuItem::with_id(
+        app,
+        APP_MENU_OPEN_WORK_DIR_ID,
+        "工作目录",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    let open_core_dir = MenuItem::with_id(
+        app,
+        APP_MENU_OPEN_CORE_DIR_ID,
+        "内核目录",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    let open_log_dir = MenuItem::with_id(
+        app,
+        APP_MENU_OPEN_LOG_DIR_ID,
+        "日志目录",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    let reload = MenuItem::with_id(
+        app,
+        APP_MENU_RELOAD_ID,
+        "重新加载",
+        true,
+        Some("CommandOrControl+R"),
+    )
+    .map_err(|e| e.to_string())?;
+    let open_devtools = MenuItem::with_id(
+        app,
+        APP_MENU_OPEN_DEVTOOLS_ID,
+        "开发者工具",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    let learn_more = MenuItem::with_id(app, APP_MENU_LEARN_MORE_ID, "了解更多", true, None::<&str>)
+        .map_err(|e| e.to_string())?;
+    let report_issue = MenuItem::with_id(
+        app,
+        APP_MENU_REPORT_ISSUE_ID,
+        "报告问题",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    let separator_1 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let separator_2 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let separator_3 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let separator_4 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+    let separator_5 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
+
+    let app_submenu = Submenu::with_items(
+        app,
+        package_info.name.clone(),
+        true,
+        &[
+            &PredefinedMenuItem::about(app, None, Some(about_metadata))?,
+            &separator_1,
+            &PredefinedMenuItem::services(app, None)?,
+            &separator_2,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::show_all(app, None)?,
+            &separator_3,
+            &quit_without_core,
+            &restart_app,
+            &quit,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let edit_submenu = Submenu::with_items(
+        app,
+        "编辑",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let open_dir_submenu = Submenu::with_items(
+        app,
+        "打开目录",
+        true,
+        &[&open_app_dir, &open_work_dir, &open_core_dir, &open_log_dir],
+    )
+    .map_err(|e| e.to_string())?;
+    let tools_submenu = Submenu::with_items(
+        app,
+        "工具",
+        true,
+        &[&open_dir_submenu, &separator_4, &reload, &open_devtools],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let window_submenu = Submenu::with_items(
+        app,
+        "窗口",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let help_submenu = Submenu::with_items(app, "帮助", true, &[&learn_more, &report_issue])
+        .map_err(|e| e.to_string())?;
+
+    Menu::with_items(
+        app,
+        &[
+            &app_submenu,
+            &edit_submenu,
+            &tools_submenu,
+            &window_submenu,
+            &help_submenu,
+        ],
+    )
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn handle_application_menu_event(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    event: &MenuEvent,
+) -> Result<(), String> {
+    match event.id().as_ref() {
+        APP_MENU_QUIT_WITHOUT_CORE_ID => exit_app_without_core(app),
+        APP_MENU_RESTART_APP_ID => relaunch_current_app(app, state),
+        APP_MENU_QUIT_ID => {
+            if request_quit_confirmation(app, state)? {
+                shutdown_runtime(app, state);
+                app.exit(0);
+            }
+            Ok(())
+        }
+        APP_MENU_OPEN_APP_DIR_ID => open_path_in_shell(&app_data_root(app)?),
+        APP_MENU_OPEN_WORK_DIR_ID => open_path_in_shell(&resolve_current_runtime_dirs(app)?.1),
+        APP_MENU_OPEN_CORE_DIR_ID => {
+            let core = read_core_name(app)?;
+            let core_binary = resolve_core_binary(app, &core)?;
+            let core_dir = core_binary
+                .parent()
+                .map(Path::to_path_buf)
+                .ok_or_else(|| "无法解析内核目录".to_string())?;
+            open_path_in_shell(&core_dir)
+        }
+        APP_MENU_OPEN_LOG_DIR_ID => open_path_in_shell(&resolve_current_runtime_dirs(app)?.2),
+        APP_MENU_RELOAD_ID => {
+            let window = ensure_main_window(app)?;
+            window
+                .eval("window.location.reload()")
+                .map_err(|e| e.to_string())?;
+            Ok(())
+        }
+        APP_MENU_OPEN_DEVTOOLS_ID => {
+            #[cfg(debug_assertions)]
+            {
+                ensure_main_window(app)?.open_devtools();
+            }
+            Ok(())
+        }
+        APP_MENU_LEARN_MORE_ID => open_external_url("https://github.com/Jarv1s0/RouteX"),
+        APP_MENU_REPORT_ISSUE_ID => open_external_url("https://github.com/Jarv1s0/RouteX/issues"),
+        _ => Ok(()),
+    }
 }
 
 fn handle_tray_toggle_floating(app: &tauri::AppHandle) -> Result<(), String> {
@@ -7446,24 +7755,34 @@ fn open_path_in_shell(path: &Path) -> Result<(), String> {
 }
 
 fn open_external_url(url: &str) -> Result<(), String> {
+    let parsed = reqwest::Url::parse(url).map_err(|e| format!("无效的外部链接: {e}"))?;
+    match parsed.scheme() {
+        "http" | "https" | "mailto" => {}
+        scheme => {
+            return Err(format!("不支持的外部链接协议: {scheme}"));
+        }
+    }
+
     #[cfg(target_os = "windows")]
     let mut command = {
-        let mut command = Command::new("explorer");
-        command.arg(url);
+        let mut command = Command::new("rundll32");
+        command
+            .arg("url.dll,FileProtocolHandler")
+            .arg(parsed.as_str());
         command
     };
 
     #[cfg(target_os = "macos")]
     let mut command = {
         let mut command = Command::new("open");
-        command.arg(url);
+        command.arg(parsed.as_str());
         command
     };
 
     #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
     let mut command = {
         let mut command = Command::new("xdg-open");
-        command.arg(url);
+        command.arg(parsed.as_str());
         command
     };
 
@@ -8364,10 +8683,9 @@ fn build_sysproxy_signature(
 
 fn run_service_command(app: &tauri::AppHandle, args: &[String]) -> Result<(), String> {
     let binary = resolve_service_binary(app)?;
-    let output = Command::new(binary)
-        .args(args)
-        .output()
-        .map_err(|e| e.to_string())?;
+    let mut command = Command::new(binary);
+    apply_background_command(&mut command);
+    let output = command.args(args).output().map_err(|e| e.to_string())?;
     if output.status.success() {
         return Ok(());
     }
@@ -8382,10 +8700,9 @@ fn run_service_command(app: &tauri::AppHandle, args: &[String]) -> Result<(), St
 
 fn run_service_command_capture(app: &tauri::AppHandle, args: &[String]) -> Result<String, String> {
     let binary = resolve_service_binary(app)?;
-    let output = Command::new(binary)
-        .args(args)
-        .output()
-        .map_err(|e| e.to_string())?;
+    let mut command = Command::new(binary);
+    apply_background_command(&mut command);
+    let output = command.args(args).output().map_err(|e| e.to_string())?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
@@ -8751,10 +9068,9 @@ fn encode_utf16le_with_bom(value: &str) -> Vec<u8> {
 }
 
 fn schtasks_command(args: &[&str]) -> Result<(), String> {
-    let output = Command::new("schtasks.exe")
-        .args(args)
-        .output()
-        .map_err(|e| e.to_string())?;
+    let mut command = Command::new("schtasks.exe");
+    apply_background_command(&mut command);
+    let output = command.args(args).output().map_err(|e| e.to_string())?;
     if output.status.success() {
         return Ok(());
     }
@@ -9158,6 +9474,68 @@ fn check_elevate_task() -> bool {
     #[cfg(not(target_os = "windows"))]
     {
         false
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn show_windows_startup_admin_required_dialog() {
+    let title = powershell_single_quoted("需要管理员权限");
+    let message = powershell_single_quoted(
+        "首次启动需要管理员权限来创建系统任务。\r\n\r\n请右键点击应用图标，选择\"以管理员身份运行\"。",
+    );
+    let script = format!(
+        r#"
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.MessageBox]::Show(
+  {message},
+  {title},
+  [System.Windows.Forms.MessageBoxButtons]::OK,
+  [System.Windows.Forms.MessageBoxIcon]::Error
+) | Out-Null
+"#
+    );
+
+    let mut command = Command::new("powershell");
+    let _ = apply_background_command(&mut command)
+        .args([
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            &script,
+        ])
+        .output();
+}
+
+fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
+    #[cfg(target_os = "windows")]
+    {
+        if cfg!(debug_assertions) {
+            return Ok(true);
+        }
+
+        if std::env::args().any(|arg| arg.eq_ignore_ascii_case("noadmin")) {
+            return Ok(true);
+        }
+
+        if read_core_permission_mode(app)? == "service" || check_elevate_task() {
+            return Ok(true);
+        }
+
+        match create_elevate_task(app) {
+            Ok(()) => Ok(true),
+            Err(_) if check_elevate_task() => Ok(true),
+            Err(_) => {
+                show_windows_startup_admin_required_dialog();
+                Ok(false)
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app;
+        Ok(true)
     }
 }
 
@@ -11063,6 +11441,7 @@ fn check_runtime_profile(
     safe_paths: &[String],
 ) -> Result<(), String> {
     let mut command = Command::new(binary_path);
+    apply_background_command(&mut command);
     command
         .arg("-t")
         .arg("-f")
@@ -11235,6 +11614,77 @@ fn core_request(
     result
 }
 
+fn expected_runtime_group_count(runtime_config: &Value) -> usize {
+    let mode = runtime_config
+        .get("mode")
+        .and_then(Value::as_str)
+        .unwrap_or("rule");
+    if mode == "direct" {
+        return 0;
+    }
+
+    runtime_config
+        .get("proxy-groups")
+        .and_then(Value::as_array)
+        .map(|groups| {
+            groups
+                .iter()
+                .filter(|group| {
+                    !group
+                        .get("hidden")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false)
+                })
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+fn wait_for_renderer_data_ready(
+    state: &State<'_, CoreState>,
+    runtime_config: &Value,
+) -> Result<(), String> {
+    let expected_group_count = expected_runtime_group_count(runtime_config);
+    let mut last_error = String::from("Mihomo renderer data is not available");
+
+    for _ in 0..50 {
+        let rules_ready = match core_request(state, reqwest::Method::GET, "/rules", None, None) {
+            Ok(_) => true,
+            Err(error) => {
+                last_error = error;
+                std::thread::sleep(Duration::from_millis(200));
+                continue;
+            }
+        };
+
+        let proxies = match core_request(state, reqwest::Method::GET, "/proxies", None, None) {
+            Ok(value) => value,
+            Err(error) => {
+                last_error = error;
+                std::thread::sleep(Duration::from_millis(200));
+                continue;
+            }
+        };
+
+        let groups = build_mihomo_groups_value(&proxies, runtime_config);
+        let actual_group_count = groups.as_array().map(|items| items.len()).unwrap_or(0);
+        let groups_ready = expected_group_count == 0 || actual_group_count >= expected_group_count;
+
+        if rules_ready && groups_ready {
+            return Ok(());
+        }
+
+        last_error = format!(
+            "waiting for groups to become ready: expected at least {expected_group_count}, got {actual_group_count}"
+        );
+        std::thread::sleep(Duration::from_millis(200));
+    }
+
+    Err(format!(
+        "Timed out waiting for Mihomo renderer data to become ready: {last_error}"
+    ))
+}
+
 fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> Result<(), String> {
     let mut last_error = String::from("Mihomo controller is not available");
     let expected_rule_providers = runtime_config
@@ -11287,6 +11737,12 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
                     };
 
                     if proxy_ready && rule_ready {
+                        if let Err(error) = wait_for_renderer_data_ready(state, runtime_config) {
+                            eprintln!(
+                                "[desktop.core_request] renderer data not fully ready yet: {}",
+                                error
+                            );
+                        }
                         return Ok(());
                     }
 
@@ -11366,7 +11822,6 @@ fn restart_core_process(
     let (control_dns, control_sniff) = read_control_flags(app)?;
     let (_, work_dir, log_path, test_dir) =
         ensure_runtime_dirs(app, current_profile_id.as_deref(), diff_work_dir)?;
-    let internal_controller_address = allocate_controller_address()?;
     let mut merged_runtime_config = current_profile_runtime_config(app)?;
     if let Some(config_patch) = config {
         merge_json(&mut merged_runtime_config, config_patch);
@@ -11374,9 +11829,14 @@ fn restart_core_process(
     let external_controller_address =
         configured_external_controller_address(Some(&merged_runtime_config));
     sanitize_runtime_profile_value(&mut merged_runtime_config, control_dns, control_sniff);
-    let controller_client_address = controller_connect_address(&internal_controller_address);
+    let runtime_controller_address = if let Some(address) = external_controller_address.clone() {
+        address
+    } else {
+        allocate_controller_address()?
+    };
+    let controller_client_address = controller_connect_address(&runtime_controller_address);
     let runtime_config =
-        normalize_runtime_config(Some(&merged_runtime_config), &internal_controller_address);
+        normalize_runtime_config(Some(&merged_runtime_config), &runtime_controller_address);
     let config_path = work_dir.join("config.yaml");
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
     prepare_runtime_work_dir(app, &work_dir)?;
@@ -11429,16 +11889,6 @@ fn restart_core_process(
             return Err(error);
         }
 
-        if let Err(error) = start_external_controller_proxy(
-            state,
-            external_controller_address.as_deref(),
-            &controller_client_address,
-        ) {
-            let _ = recover_dns(app);
-            let _ = stop_core_process(app, state);
-            return Err(error);
-        }
-
         let _ = start_core_events_monitor(app, state);
 
         return Ok(json!({
@@ -11458,6 +11908,7 @@ fn restart_core_process(
     let stderr = stdout.try_clone().map_err(|e| e.to_string())?;
 
     let mut command = Command::new(&binary_path);
+    apply_background_command(&mut command);
     command
         .arg("-d")
         .arg(&work_dir)
@@ -11495,16 +11946,6 @@ fn restart_core_process(
     }
 
     if let Err(error) = validate_runtime_start_log(&log_path, log_start_offset, &runtime_config) {
-        let _ = recover_dns(app);
-        let _ = stop_core_process(app, state);
-        return Err(error);
-    }
-
-    if let Err(error) = start_external_controller_proxy(
-        state,
-        external_controller_address.as_deref(),
-        &controller_client_address,
-    ) {
         let _ = recover_dns(app);
         let _ = stop_core_process(app, state);
         return Err(error);
@@ -12194,15 +12635,15 @@ fn desktop_invoke_sync(
             let domain = args.first().and_then(Value::as_str).unwrap_or("google.com");
             Ok(json!(test_dns_latency(domain)))
         }
-        "subStorePort" => Ok(json!(0)),
-        "subStoreFrontendPort" => Ok(json!(0)),
-        "subStoreSubs" => Ok(json!([])),
-        "subStoreCollections" => Ok(json!([])),
-        "startSubStoreBackendServer" => Ok(Value::Null),
-        "stopSubStoreBackendServer" => Ok(Value::Null),
-        "startSubStoreFrontendServer" => Ok(Value::Null),
-        "stopSubStoreFrontendServer" => Ok(Value::Null),
-        "downloadSubStore" => Ok(Value::Null),
+        "subStorePort"
+        | "subStoreFrontendPort"
+        | "subStoreSubs"
+        | "subStoreCollections"
+        | "startSubStoreBackendServer"
+        | "stopSubStoreBackendServer"
+        | "startSubStoreFrontendServer"
+        | "stopSubStoreFrontendServer"
+        | "downloadSubStore" => Err("Sub-Store 已从 Tauri 版本移除".to_string()),
         "webdavBackup" => Ok(json!(webdav_backup(&app)?)),
         "listWebdavBackups" => Ok(json!(list_webdav_backup_names(&read_webdav_config(&app)?)?)),
         "webdavRestore" => {
@@ -12243,9 +12684,16 @@ fn desktop_invoke_sync(
             exit_app_without_core(&app)?;
             Ok(Value::Null)
         }
+        "quitConfirmResult" => {
+            let confirmed = args.first().and_then(Value::as_bool).unwrap_or(false);
+            resolve_quit_confirmation(&state, confirmed)?;
+            Ok(Value::Null)
+        }
         "quitApp" => {
-            shutdown_runtime(&app, &state);
-            app.exit(0);
+            if request_quit_confirmation(&app, &state)? {
+                shutdown_runtime(&app, &state);
+                app.exit(0);
+            }
             Ok(Value::Null)
         }
         "notDialogQuit" => {
@@ -12315,6 +12763,15 @@ fn desktop_invoke_sync(
             if let Some(window) = app.get_webview_window(FLOATING_WINDOW_LABEL) {
                 let _ = window.close();
             }
+            patch_app_config_store(
+                &app,
+                &json!({
+                    "showFloatingWindow": false,
+                    "disableTray": false
+                }),
+            )?;
+            sync_shell_surfaces(&app)?;
+            emit_ipc_event(&app, "appConfigUpdated", Value::Null);
             Ok(Value::Null)
         }
         "showTrayIcon" => {
@@ -12733,13 +13190,35 @@ async fn desktop_invoke(
 
 fn main() {
     let _ = APP_STARTED_AT.get_or_init(Instant::now);
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+    let builder = builder
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            let _ = show_main_window(app);
+        }))
+        .plugin(tauri_plugin_deep_link::init());
+    builder
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(CoreState::default())
         .setup(|app| {
             let app_handle = app.handle().clone();
+            if !ensure_elevated_startup(&app_handle)? {
+                app_handle.exit(0);
+                return Ok(());
+            }
             let _ = initialize_traffic_stats_store(&app_handle);
             let _ = init_global_shortcuts(&app_handle);
+            #[cfg(target_os = "macos")]
+            {
+                let menu = build_application_menu(&app_handle)?;
+                let _ = app_handle.set_menu(menu).map_err(|e| e.to_string())?;
+                app_handle.on_menu_event(|app, event| {
+                    let state = app.state::<CoreState>();
+                    if let Err(error) = handle_application_menu_event(app, &state, &event) {
+                        eprintln!("application menu event failed: {error}");
+                    }
+                });
+            }
             if let Some(window) = app_handle.get_webview_window("main") {
                 install_main_window_handlers(&app_handle, &window);
             }

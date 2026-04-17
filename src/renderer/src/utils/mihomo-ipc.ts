@@ -26,6 +26,17 @@ function isTauriHost(): boolean {
   return __ROUTEX_HOST__ === 'tauri'
 }
 
+function isExpectedMihomoUnavailableError(error: unknown): boolean {
+  const message = `${error ?? ''}`
+  return (
+    message.includes('connect ENOENT \\\\.\\pipe\\RouteX\\mihomo') ||
+    message.includes('socket hang up') ||
+    message.includes('Mihomo controller is not available') ||
+    message.includes('503 Service Unavailable') ||
+    message.includes('504 Gateway Timeout')
+  )
+}
+
 function getDefaultTauriControledMihomoConfig(): Partial<MihomoConfig> {
   return createDefaultControledMihomoConfig(__ROUTEX_PLATFORM__)
 }
@@ -587,6 +598,19 @@ export async function mihomoConnections(): Promise<ControllerConnections> {
 }
 
 export async function mihomoGroups(): Promise<ControllerMixedGroup[]> {
+  if (isTauriHost()) {
+    try {
+      return await invokeSafe(C.mihomoGroups)
+    } catch (error) {
+      if (!isExpectedMihomoUnavailableError(error)) {
+        throw error
+      }
+
+      const runtime = await getRuntimeConfig()
+      return buildRuntimeGroupsFallback(runtime)
+    }
+  }
+
   return invokeSafe(C.mihomoGroups)
 }
 

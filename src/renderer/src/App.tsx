@@ -222,6 +222,10 @@ const App: React.FC = () => {
   }, [appConfig, customTheme])
 
   useEffect(() => {
+    if (__ROUTEX_HOST__ === 'tauri') {
+      return
+    }
+
     const tunEnabled = controledMihomoConfig?.tun?.enable
     const sysProxyEnabled = sysProxy?.enable
 

@@ -1,6 +1,6 @@
 [package]
 name = "routex_tauri"
-version = "3.1.0"
+version = "4.0.0"
 description = "RouteX Tauri shell"
 authors = ["Jarv1s0"]
 edition = "2021"
@@ -23,3 +23,7 @@ time = { version = "0.3", features = ["formatting", "local-offset", "macros"] }
 urlencoding = "2"
 walkdir = "2"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
+
+[target."cfg(any(target_os = \"windows\", target_os = \"macos\", target_os = \"linux\"))".dependencies]
+tauri-plugin-deep-link = "2"
+tauri-plugin-single-instance = "2"
