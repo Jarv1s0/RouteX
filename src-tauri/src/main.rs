@@ -2657,25 +2657,18 @@ fn to_data_url(mime: &str, bytes: &[u8]) -> String {
 }
 
 fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
-    if cfg!(debug_assertions) {
-        let path = dev_root()?.join("resources").join(file_name);
-        if path.exists() {
-            return Ok(path);
-        }
-    }
-
-    let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
-    let path = resource_dir.join("resources").join(file_name);
+    let path = app
+        .path()
+        .resource_dir()
+        .map_err(|e| e.to_string())?
+        .join(file_name);
     if path.exists() {
         return Ok(path);
     }
-
-    let path = resource_dir.join(file_name);
-    if path.exists() {
-        return Ok(path);
-    }
-
-    Err(format!("Tray icon not found: {file_name}"))
+    Err(format!(
+        "Tray icon not found: {file_name}. Expected at {}",
+        path.to_string_lossy()
+    ))
 }
 
 fn set_tray_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
