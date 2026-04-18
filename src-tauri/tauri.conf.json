@@ -5,7 +5,6 @@
   "identifier": "com.jarv1s0.routex.tauri",
   "build": {
     "beforeDevCommand": "node scripts/ensure-tauri-dev-server.mjs",
-    "beforeBuildCommand": "corepack pnpm run build:tauri-web",
     "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../dist-tauri"
   },

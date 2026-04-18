@@ -140,11 +140,16 @@ jobs:
       - name: Lint
         run: pnpm lint:ci
 
+      - name: Prepare Resources
+        env:
+          ROUTEX_SKIP_RESOURCE_REFRESH: 'true'
+        run: pnpm prepare:resources
+
+      - name: Build Tauri Web
+        run: pnpm build:tauri-web
+
       - name: Typecheck
         run: pnpm typecheck
-
-      - name: Generate Release Notes
-        run: node scripts/extract-latest-changelog.mjs changelog.md release-notes.md
 
       - name: Build Tauri Application
         env:
@@ -152,7 +157,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           ROUTEX_AUTO_BUILD: 'true'
           ROUTEX_TAURI_BUILD_VARIANT: autobuild
-        run: pnpm build
+        run: pnpm tauri build
 
       - name: Upload Artifacts
         env:

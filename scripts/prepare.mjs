@@ -237,8 +237,7 @@ async function getLatestVersion(url, label) {
     console.log(`Latest ${label} version: ${version}`)
     return version
   } catch (error) {
-    console.error(`Error fetching latest ${label} version:`, error.message)
-    process.exit(1)
+    throw new Error(`Error fetching latest ${label} version: ${error.message}`)
   }
 }
 
@@ -256,33 +255,51 @@ console.log(`[INFO]: Ensuring directories exist: ${sidecarDir}, ${resDir}`)
 fs.mkdirSync(sidecarDir, { recursive: true })
 fs.mkdirSync(resDir, { recursive: true })
 
+if (process.env.ROUTEX_SKIP_RESOURCE_REFRESH === 'true' || process.env.ROUTEX_SKIP_RESOURCE_REFRESH === '1') {
+  console.log('[INFO]: resource refresh skipped by ROUTEX_SKIP_RESOURCE_REFRESH')
+  process.exit(0)
+}
+
 /**
  * core info
  */
 async function createMihomoBinaryInfo(name, versionUrl, isAlpha) {
   const isWin = platform === 'win32'
-  const version = await getLatestVersion(versionUrl, isAlpha ? 'alpha' : 'release')
-  const asset = await resolveReleaseAsset(version, isAlpha)
+  try {
+    const version = await getLatestVersion(versionUrl, isAlpha ? 'alpha' : 'release')
+    const asset = await resolveReleaseAsset(version, isAlpha)
 
-  return {
-    name,
-    targetFile: `${name}${isWin ? '.exe' : ''}`,
-    zipFile: asset.name,
-    downloadURL: asset.browser_download_url
+    return {
+      name,
+      targetFile: `${name}${isWin ? '.exe' : ''}`,
+      zipFile: asset.name,
+      downloadURL: asset.browser_download_url
+    }
+  } catch (error) {
+    const targetFile = `${name}${isWin ? '.exe' : ''}`
+    const sidecarPath = path.join(cwd, 'extra', 'sidecar', targetFile)
+    if (fs.existsSync(sidecarPath)) {
+      console.warn(
+        `[WARN]: failed to refresh ${name}, keeping existing binary: ${error.message}`
+      )
+      return null
+    }
+    throw error
   }
 }
 /**
  * download sidecar and rename
  */
 async function resolveSidecar(binInfo) {
+  if (!binInfo) {
+    return
+  }
+
   const { name, targetFile, zipFile, downloadURL } = binInfo
 
   const sidecarDir = path.join(cwd, 'extra', 'sidecar')
   const sidecarPath = path.join(sidecarDir, targetFile)
 
-  if (!tryRemoveExisting(sidecarPath, name)) {
-    return
-  }
   const tempDir = path.join(TEMP_DIR, name)
   const tempZip = path.join(tempDir, zipFile)
 
@@ -343,9 +360,10 @@ async function resolveSidecar(binInfo) {
       })
     }
   } catch (err) {
-    // 需要删除文件
-    fs.rmSync(sidecarPath)
-    throw err
+    if (!fs.existsSync(sidecarPath)) {
+      throw err
+    }
+    console.warn(`[WARN]: failed to refresh "${name}", keeping existing binary: ${err.message}`)
   } finally {
     fs.rmSync(tempDir, { recursive: true })
   }
@@ -359,11 +377,25 @@ async function resolveResource(binInfo) {
 
   const resDir = path.join(cwd, 'extra', 'files')
   const targetPath = path.join(resDir, file)
+  const hadExisting = fs.existsSync(targetPath)
+  const tempPath = `${targetPath}.tmp`
 
-  if (!tryRemoveExisting(targetPath, file)) {
-    return
+  try {
+    await downloadFile(downloadURL, tempPath)
+    if (hadExisting) {
+      fs.rmSync(targetPath, { force: true })
+    }
+    fs.renameSync(tempPath, targetPath)
+  } catch (error) {
+    fs.rmSync(tempPath, { force: true })
+    if (hadExisting) {
+      console.warn(
+        `[WARN]: failed to refresh "${file}", keeping existing resource: ${error.message}`
+      )
+      return
+    }
+    throw error
   }
-  await downloadFile(downloadURL, targetPath)
 
   if (needExecutable && platform !== 'win32') {
     execSync(`chmod 755 ${targetPath}`)
@@ -450,11 +482,19 @@ const resolveFont = async () => {
   if (fs.existsSync(targetPath)) {
     return
   }
-  await downloadFile(
-    // 'https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf',
-    'https://github.com/Sav22999/emoji/raw/refs/heads/master/font/twemoji.ttf',
-    targetPath
-  )
+  try {
+    await downloadFile(
+      // 'https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf',
+      'https://github.com/Sav22999/emoji/raw/refs/heads/master/font/twemoji.ttf',
+      targetPath
+    )
+  } catch (error) {
+    if (fs.existsSync(targetPath)) {
+      console.warn(`[WARN]: failed to refresh twemoji font, keeping existing file: ${error.message}`)
+      return
+    }
+    throw error
+  }
 
   console.log(`[INFO]: twemoji.ttf finished`)
 }
