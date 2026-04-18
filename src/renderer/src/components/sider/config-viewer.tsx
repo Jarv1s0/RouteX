@@ -14,12 +14,14 @@ import { getOverrideProfileStr } from '@renderer/utils/override-ipc'
 import { getProfileConfig, getRawProfileStr, getCurrentProfileStr } from '@renderer/utils/profile-ipc'
 import useSWR from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 interface Props {
   onClose: () => void
 }
 const ConfigViewer: React.FC<Props> = ({ onClose }) => {
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
   const [runtimeConfig, setRuntimeConfig] = useState('')
   const [rawProfile, setRawProfile] = useState('')
   const [profileConfig, setProfileConfig] = useState('')
@@ -57,7 +59,10 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent className="flex h-[calc(100vh-4rem)] w-[min(1400px,calc(100vw-2rem))] flex-col overflow-hidden">
+      <ModalContent
+        className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+      >
         <ModalHeader className="flex pb-0 app-drag">当前运行时配置</ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-hidden">
           <BaseEditor

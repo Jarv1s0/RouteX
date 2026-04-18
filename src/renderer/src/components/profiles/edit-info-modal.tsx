@@ -22,6 +22,7 @@ import { MdDeleteForever } from 'react-icons/md'
 import { FaPlus } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoIosHelpCircle } from 'react-icons/io'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 interface Props {
   item: ProfileItem
@@ -32,7 +33,8 @@ interface Props {
 
 const EditInfoModal: React.FC<Props> = (props) => {
   const { item, isCurrent, updateProfileItem, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
   const { overrideConfig } = useOverrideConfig()
   const { items: overrideItems = [] } = overrideConfig || {}
   const [values, setValues] = useState({ ...item, autoUpdate: item.autoUpdate ?? true })
@@ -73,7 +75,10 @@ const EditInfoModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent className="flex h-[calc(100vh-4rem)] w-[min(1024px,calc(100vw-2rem))] flex-col overflow-hidden">
+      <ModalContent
+        className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1024 })}
+      >
         <ModalHeader className="flex app-drag">{item.id ? '编辑信息' : '导入远程配置'}</ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-y-auto">
           <SettingItem title="名称">

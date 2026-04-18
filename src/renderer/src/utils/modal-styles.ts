@@ -1,4 +1,6 @@
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { platform } from '@renderer/utils/init'
+import type { CSSProperties } from 'react'
 
 type ModalClassNames = Partial<
   Record<'base' | 'backdrop' | 'wrapper' | 'header' | 'body' | 'footer' | 'closeButton', string>
@@ -31,5 +33,33 @@ export function createSecondaryModalClassNames(
     body: overrides.body,
     footer: mergeClassNames(`border-t ${MODAL_BORDER}`, overrides.footer),
     closeButton: mergeClassNames(SECONDARY_MODAL_CLOSE_BUTTON_CLASSNAME, overrides.closeButton)
+  }
+}
+
+interface MainPaneModalContentStyleOptions {
+  collapseSidebar?: boolean
+  siderWidth?: number
+  maxWidthPx?: number
+  viewportPaddingPx?: number
+}
+
+export function getMainPaneModalContentStyle(
+  options: MainPaneModalContentStyleOptions = {}
+): CSSProperties {
+  const {
+    collapseSidebar = false,
+    siderWidth = 250,
+    maxWidthPx,
+    viewportPaddingPx = 32
+  } = options
+
+  const narrowWidth = platform === 'darwin' ? 70 : 60
+  const activeSidebarWidth = collapseSidebar ? narrowWidth : siderWidth
+  const widthExpression = `calc(100vw - ${activeSidebarWidth}px - ${viewportPaddingPx}px)`
+
+  return {
+    width: maxWidthPx ? `min(${maxWidthPx}px, ${widthExpression})` : widthExpression,
+    maxWidth: 'none',
+    marginLeft: `${activeSidebarWidth}px`
   }
 }

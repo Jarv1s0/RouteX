@@ -20,6 +20,10 @@ const isSubGroup = (proxy: ControllerProxiesDetail | ControllerGroupDetail): pro
   return 'all' in proxy && Array.isArray((proxy as ControllerGroupDetail).all) && (proxy as ControllerGroupDetail).all.length > 0
 }
 
+function getProxyNow(proxy: ControllerProxiesDetail | ControllerGroupDetail): string | undefined {
+  return 'now' in proxy ? proxy.now : undefined
+}
+
 const ProxyItemComponent: React.FC<Props> = (props) => {
   const {
     mutateProxies,
@@ -252,13 +256,21 @@ const ProxyItem = memo(ProxyItemComponent, (prev, next) => {
     // 精细化阻断不必要渲染。比如测速或者选择了其他节点，不要带动我这颗没变的节点重绘
     const isPrevSelected = prev.group.now === prev.proxy.name
     const isNextSelected = next.group.now === next.proxy.name
+    const prevDelay = prev.proxy.history?.length
+      ? prev.proxy.history[prev.proxy.history.length - 1].delay
+      : -1
+    const nextDelay = next.proxy.history?.length
+      ? next.proxy.history[next.proxy.history.length - 1].delay
+      : -1
     
     return (
         isPrevSelected === isNextSelected &&
         prev.selected === next.selected &&
         prev.proxyDisplayLayout === next.proxyDisplayLayout &&
         prev.group.fixed === next.group.fixed &&
-        prev.proxy === next.proxy && 
+        prev.proxy === next.proxy &&
+        getProxyNow(prev.proxy) === getProxyNow(next.proxy) &&
+        prevDelay === nextDelay &&
         prev.index === next.index
     )
 })

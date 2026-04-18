@@ -8,6 +8,7 @@ import { Spinner } from '@heroui/react'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
@@ -23,7 +24,8 @@ interface Props {
 }
 const Viewer: React.FC<Props> = (props) => {
   const { type, path, title, format, privderType, behavior, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
   const [currData, setCurrData] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   let language: Language = !format || format === 'YamlRule' ? 'yaml' : 'text'
@@ -101,7 +103,14 @@ const Viewer: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent className="h-full w-[calc(100%-100px)]">
+      <ModalContent
+        className="h-full"
+        style={getMainPaneModalContentStyle({
+          collapseSidebar,
+          siderWidth,
+          viewportPaddingPx: 100
+        })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>{title}</span>
           <SecondaryModalCloseButton onPress={onClose} />

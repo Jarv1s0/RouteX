@@ -94,10 +94,19 @@ const ProxyRowChunk = memo(
         const p1 = prev.proxies[i]
         const p2 = next.proxies[i]
         if (p1.name !== p2.name) return false
+        if (p1.type !== p2.type) return false
         
         const d1 = p1.history?.length ? p1.history[p1.history.length - 1].delay : -1
         const d2 = p2.history?.length ? p2.history[p2.history.length - 1].delay : -1
         if (d1 !== d2) return false
+
+        const p1Now = 'now' in p1 ? p1.now : undefined
+        const p2Now = 'now' in p2 ? p2.now : undefined
+        if (p1Now !== p2Now) return false
+
+        const p1ChildrenCount = 'all' in p1 && Array.isArray(p1.all) ? p1.all.length : -1
+        const p2ChildrenCount = 'all' in p2 && Array.isArray(p2.all) ? p2.all.length : -1
+        if (p1ChildrenCount !== p2ChildrenCount) return false
     }
 
     return true

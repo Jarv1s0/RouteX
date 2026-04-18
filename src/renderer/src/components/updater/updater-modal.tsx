@@ -13,6 +13,7 @@ import React, { useState } from 'react'
 import { downloadAndInstallUpdate } from '@renderer/api/app'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { FiX, FiDownload } from 'react-icons/fi'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 interface Props {
   version: string
@@ -28,7 +29,8 @@ interface Props {
 
 const UpdaterModal: React.FC<Props> = (props) => {
   const { version, releaseNotes, updateStatus, onCancel, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
   const [downloading, setDownloading] = useState(false)
   const onUpdate = async (): Promise<void> => {
     try {
@@ -61,7 +63,14 @@ const UpdaterModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
       isDismissable={!isDownloading}
     >
-      <ModalContent className="h-full w-[calc(100%-100px)]">
+      <ModalContent
+        className="h-full"
+        style={getMainPaneModalContentStyle({
+          collapseSidebar,
+          siderWidth,
+          viewportPaddingPx: 100
+        })}
+      >
         <ModalHeader className="flex justify-between app-drag">
           <div className="flex items-center gap-2">
             <FiDownload className="text-lg" />

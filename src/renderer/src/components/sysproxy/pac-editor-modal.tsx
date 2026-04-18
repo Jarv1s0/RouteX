@@ -5,6 +5,7 @@ import React, { useState } from 'react'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 interface Props {
@@ -14,7 +15,8 @@ interface Props {
 }
 const PacEditorModal: React.FC<Props> = (props) => {
   const { script, onCancel, onConfirm } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
   const [currData, setCurrData] = useState(script)
 
   return (
@@ -30,7 +32,14 @@ const PacEditorModal: React.FC<Props> = (props) => {
       onOpenChange={onCancel}
       scrollBehavior="inside"
     >
-      <ModalContent className="h-full w-[calc(100%-100px)]">
+      <ModalContent
+        className="h-full"
+        style={getMainPaneModalContentStyle({
+          collapseSidebar,
+          siderWidth,
+          viewportPaddingPx: 100
+        })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>编辑 PAC 脚本</span>
           <SecondaryModalCloseButton onPress={onCancel} />

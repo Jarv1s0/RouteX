@@ -2,6 +2,7 @@ import React from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { motion } from 'framer-motion'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 export interface ConfirmButton {
   key: string
@@ -33,7 +34,8 @@ const ConfirmModal: React.FC<Props> = (props) => {
     buttons,
     className
   } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
 
   const renderButtons = () => {
     if (buttons && buttons.length > 0) {
@@ -88,7 +90,10 @@ const ConfirmModal: React.FC<Props> = (props) => {
         backdrop: 'top-[48px]'
       }}
     >
-      <ModalContent className={['w-[400px]', className].filter(Boolean).join(' ')}>
+      <ModalContent
+        className={className}
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 400 })}
+      >
         {() => (
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -10 }}

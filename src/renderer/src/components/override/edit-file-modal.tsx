@@ -12,6 +12,7 @@ import { BaseEditor } from '../base/base-editor-lazy'
 import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { getOverride, setOverride } from '@renderer/utils/override-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import ConfirmModal from '../base/base-confirm'
 
 interface Props {
@@ -22,7 +23,8 @@ interface Props {
 
 const EditFileModal: React.FC<Props> = (props) => {
   const { id, language, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
   const [currData, setCurrData] = useState('')
   const [originalData, setOriginalData] = useState('')
   const [isDiff, setIsDiff] = useState(false)
@@ -74,7 +76,10 @@ const EditFileModal: React.FC<Props> = (props) => {
           onConfirm={onClose}
         />
       )}
-      <ModalContent className="flex h-[calc(100vh-4rem)] w-[min(1400px,calc(100vw-2rem))] flex-col overflow-hidden">
+      <ModalContent
+        className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+      >
         <ModalHeader className="flex pb-0 app-drag">
           编辑覆写{language === 'javascript' ? '脚本' : '配置'}
         </ModalHeader>

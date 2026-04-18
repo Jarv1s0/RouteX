@@ -12,6 +12,7 @@ import { BaseEditor } from '../base/base-editor-lazy'
 import { getProfileStr, setProfileStr } from '@renderer/utils/profile-ipc'
 import { useNavigate } from 'react-router-dom'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import ConfirmModal from '../base/base-confirm'
 
 interface Props {
@@ -22,7 +23,8 @@ interface Props {
 
 const EditFileModal: React.FC<Props> = (props) => {
   const { id, isRemote, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
   const [currData, setCurrData] = useState('')
   const [originalData, setOriginalData] = useState('')
   const [isDiff, setIsDiff] = useState(false)
@@ -75,7 +77,10 @@ const EditFileModal: React.FC<Props> = (props) => {
           onConfirm={onClose}
         />
       )}
-      <ModalContent className="flex h-[calc(100vh-4rem)] w-[min(1400px,calc(100vw-2rem))] flex-col overflow-hidden">
+      <ModalContent
+        className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+      >
         <ModalHeader className="flex pb-0 app-drag">
           <div className="flex justify-start">
             <div className="flex items-center">编辑订阅</div>

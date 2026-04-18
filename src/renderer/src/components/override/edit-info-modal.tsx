@@ -15,6 +15,7 @@ import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { restartCore } from '@renderer/utils/mihomo-ipc'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 interface Props {
   item: OverrideItem
   updateOverrideItem: (item: OverrideItem) => Promise<void>
@@ -23,7 +24,8 @@ interface Props {
 
 const EditInfoModal: React.FC<Props> = (props) => {
   const { item, updateOverrideItem, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
   const [values, setValues] = useState(item)
   const inputWidth = 'w-[400px] md:w-[400px] lg:w-[600px] xl:w-[800px]'
 
@@ -58,7 +60,10 @@ const EditInfoModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent className="flex h-[calc(100vh-4rem)] w-[min(1024px,calc(100vw-2rem))] flex-col overflow-hidden">
+      <ModalContent
+        className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1024 })}
+      >
         <ModalHeader className="flex app-drag">
           {item.id ? '编辑覆写信息' : '导入远程覆写'}
         </ModalHeader>

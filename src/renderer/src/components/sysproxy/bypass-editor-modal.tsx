@@ -3,6 +3,7 @@ import yaml from 'js-yaml'
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import { BaseEditor } from '../base/base-editor-lazy'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 interface Props {
   bypass: string[]
@@ -16,7 +17,8 @@ interface ParsedYaml {
 
 const ByPassEditorModal: React.FC<Props> = (props) => {
   const { bypass, onCancel, onConfirm } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
+    useAppConfig()
   const [currData, setCurrData] = useState<string>('')
   useEffect(() => {
     setCurrData(yaml.dump({ bypass }))
@@ -49,7 +51,10 @@ const ByPassEditorModal: React.FC<Props> = (props) => {
       onOpenChange={onCancel}
       scrollBehavior="inside"
     >
-      <ModalContent className="flex h-[calc(100vh-4rem)] w-[min(1400px,calc(100vw-2rem))] flex-col overflow-hidden">
+      <ModalContent
+        className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+      >
         <ModalHeader className="flex pb-0 app-drag">编辑绕过列表 (YAML)</ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-hidden">
           <BaseEditor
