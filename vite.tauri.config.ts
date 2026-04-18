@@ -39,7 +39,7 @@ export default defineConfig({
     tailwindcss(),
     monacoEditorPlugin({
       languageWorkers: ['editorWorkerService'],
-      // @ts-ignore - vite-plugin-monaco-editor type mismatch
+      // @ts-expect-error - vite-plugin-monaco-editor type mismatch
       languages: ['yaml', 'json'],
       customDistPath: (_root, outDir) => `${outDir}/monacoeditorwork`,
       customWorkers: [

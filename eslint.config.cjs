@@ -12,6 +12,7 @@ module.exports = [
       '**/dist-tauri/**',
       '**/out/**',
       '**/extra/**',
+      '**/.tmp-*/**',
       'src/main/**',
       'src/preload/**',
       'electron-builder.config.cjs',
