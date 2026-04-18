@@ -161,28 +161,23 @@ fn tauri_build_variant() -> &'static str {
     }
 }
 
-fn is_primary_tauri_variant() -> bool {
-    tauri_build_variant() == "release"
+#[cfg(target_os = "windows")]
+fn primary_tauri_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let default_root = default_app_data_root(app)?;
+    Ok(std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .map(|base| base.join(WINDOWS_APP_DATA_DIR_NAME))
+        .or_else(|| {
+            default_root
+                .parent()
+                .map(|parent| parent.join(WINDOWS_APP_DATA_DIR_NAME))
+        })
+        .unwrap_or(default_root))
 }
 
-fn tauri_variant_suffix() -> Option<&'static str> {
-    match tauri_build_variant() {
-        "dev" => Some("-dev"),
-        "autobuild" => Some("-autobuild"),
-        _ => None,
-    }
-}
-
-fn apply_variant_suffix(path: PathBuf) -> PathBuf {
-    let Some(suffix) = tauri_variant_suffix() else {
-        return path;
-    };
-
-    let Some(file_name) = path.file_name().and_then(|value| value.to_str()) else {
-        return path;
-    };
-
-    path.with_file_name(format!("{file_name}{suffix}"))
+#[cfg(not(target_os = "windows"))]
+fn primary_tauri_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    default_app_data_root(app)
 }
 
 #[cfg(target_os = "windows")]
@@ -884,29 +879,47 @@ fn migrate_tauri_app_data_root_if_needed(
     Ok(())
 }
 
+#[cfg(not(target_os = "windows"))]
+fn migrate_tauri_app_data_root_if_needed(
+    source_root: &Path,
+    target_root: &Path,
+) -> Result<(), String> {
+    if source_root == target_root || !source_root.exists() {
+        return Ok(());
+    }
+
+    let target_store = target_root.join(STORAGE_DIR_NAME);
+    let target_core = target_root.join(TAURI_CORE_DIR_NAME);
+    if target_store.exists() && target_core.exists() {
+        return Ok(());
+    }
+
+    fs::create_dir_all(target_root).map_err(|e| e.to_string())?;
+
+    for entry_name in [
+        STORAGE_DIR_NAME,
+        TAURI_CORE_DIR_NAME,
+        UPDATES_DIR_NAME,
+        TASKS_DIR_NAME,
+        RUNTIME_ASSETS_DIR_NAME,
+    ] {
+        copy_path_if_missing(&source_root.join(entry_name), &target_root.join(entry_name))?;
+    }
+
+    Ok(())
+}
+
 #[cfg(target_os = "windows")]
 fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let default_root = default_app_data_root(app)?;
-    let target_root = std::env::var_os("APPDATA")
-        .map(PathBuf::from)
-        .map(|base| base.join(WINDOWS_APP_DATA_DIR_NAME))
-        .or_else(|| {
-            default_root
-                .parent()
-                .map(|parent| parent.join(WINDOWS_APP_DATA_DIR_NAME))
-        })
-        .unwrap_or_else(|| default_root.clone());
-    let target_root = apply_variant_suffix(target_root);
-
-    if is_primary_tauri_variant() {
-        migrate_tauri_app_data_root_if_needed(&default_root, &target_root)?;
-    }
-    ensure_dir(target_root)
+    let primary_root = primary_tauri_app_data_root(app)?;
+    migrate_tauri_app_data_root_if_needed(&default_root, &primary_root)?;
+    ensure_dir(primary_root)
 }
 
 #[cfg(not(target_os = "windows"))]
 fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(apply_variant_suffix(default_app_data_root(app)?))
+    ensure_dir(primary_tauri_app_data_root(app)?)
 }
 
 fn app_storage_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -923,10 +936,6 @@ fn storage_dir(app: &tauri::AppHandle, dir_name: &str) -> Result<PathBuf, String
 
 #[cfg(target_os = "windows")]
 fn legacy_electron_data_dir_candidates(app: &tauri::AppHandle) -> Vec<PathBuf> {
-    if !is_primary_tauri_variant() {
-        return Vec::new();
-    }
-
     let mut candidates = Vec::new();
 
     if let Some(app_data) = std::env::var_os("APPDATA") {
