@@ -9167,10 +9167,33 @@ fn encode_utf16le_with_bom(value: &str) -> Vec<u8> {
     bytes
 }
 
-fn schtasks_command(args: &[&str]) -> Result<(), String> {
-    let mut command = Command::new("schtasks.exe");
+#[cfg(target_os = "windows")]
+fn resolve_windows_system_binary(binary: &str) -> PathBuf {
+    for key in ["SystemRoot", "windir", "WINDIR"] {
+        if let Some(root) = std::env::var_os(key) {
+            let candidate = PathBuf::from(root).join("System32").join(binary);
+            if candidate.exists() {
+                return candidate;
+            }
+        }
+    }
+
+    PathBuf::from(binary)
+}
+
+#[cfg(target_os = "windows")]
+fn schtasks_output(args: &[&str]) -> Result<std::process::Output, String> {
+    let schtasks_path = resolve_windows_system_binary("schtasks.exe");
+    let mut command = Command::new(&schtasks_path);
     apply_background_command(&mut command);
-    let output = command.args(args).output().map_err(|e| e.to_string())?;
+    command
+        .args(args)
+        .output()
+        .map_err(|e| format!("{}: {e}", schtasks_path.display()))
+}
+
+fn schtasks_command(args: &[&str]) -> Result<(), String> {
+    let output = schtasks_output(args)?;
     if output.status.success() {
         return Ok(());
     }
@@ -9184,6 +9207,17 @@ fn schtasks_command(args: &[&str]) -> Result<(), String> {
     } else {
         Err(format!("schtasks failed: {}", output.status))
     }
+}
+
+#[cfg(target_os = "windows")]
+fn looks_like_windows_permission_error(error: &str) -> bool {
+    let lower = error.to_ascii_lowercase();
+    lower.contains("access is denied")
+        || lower.contains("elevation")
+        || lower.contains("privilege")
+        || error.contains("拒绝访问")
+        || error.contains("权限")
+        || error.contains("提升")
 }
 
 fn build_routex_run_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
@@ -9578,11 +9612,62 @@ fn check_elevate_task() -> bool {
 }
 
 #[cfg(target_os = "windows")]
+fn check_elevate_task_matches_current_app(app: &tauri::AppHandle) -> bool {
+    let routex_run_path = match routex_run_binary_task_path(app) {
+        Ok(path) => path,
+        Err(_) => return false,
+    };
+    let exe_path = match std::env::current_exe() {
+        Ok(path) => path,
+        Err(_) => return false,
+    };
+    let output = match schtasks_output(&["/query", "/tn", routex_run_task_name(), "/xml"]) {
+        Ok(output) if output.status.success() => output,
+        _ => return false,
+    };
+    let xml = String::from_utf8_lossy(&output.stdout);
+    let routex_run_path = routex_run_path.to_string_lossy();
+    let exe_path = exe_path.to_string_lossy();
+
+    xml.contains(routex_run_path.as_ref()) && xml.contains(exe_path.as_ref())
+}
+
+#[cfg(target_os = "windows")]
 fn show_windows_startup_admin_required_dialog() {
     let title = powershell_single_quoted("需要管理员权限");
     let message = powershell_single_quoted(
         "首次启动仅需一次管理员权限，用来注册提权任务。\r\n\r\n完成后后续可直接正常打开，不需要每次都手动管理员运行。\r\n\r\n请右键点击应用图标，选择\"以管理员身份运行\"。",
     );
+    let script = format!(
+        r#"
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.MessageBox]::Show(
+  {message},
+  {title},
+  [System.Windows.Forms.MessageBoxButtons]::OK,
+  [System.Windows.Forms.MessageBoxIcon]::Error
+) | Out-Null
+"#
+    );
+
+    let mut command = Command::new("powershell");
+    let _ = apply_background_command(&mut command)
+        .args([
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            &script,
+        ])
+        .output();
+}
+
+#[cfg(target_os = "windows")]
+fn show_windows_startup_task_registration_failed_dialog(create_error: &str) {
+    let title = powershell_single_quoted("提权任务注册失败");
+    let message = powershell_single_quoted(&format!(
+        "检测到首次启动需要注册提权任务，但注册失败。\r\n\r\n如果你已经是“以管理员身份运行”，这通常不是管理员权限本身的问题，而是系统任务创建失败。\r\n\r\n错误详情：{create_error}"
+    ));
     let script = format!(
         r#"
 Add-Type -AssemblyName System.Windows.Forms
@@ -9670,8 +9755,12 @@ fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
         match create_elevate_task(app) {
             Ok(()) => Ok(true),
             Err(create_error) => {
-                if !check_elevate_task() {
-                    show_windows_startup_admin_required_dialog();
+                if !check_elevate_task_matches_current_app(app) {
+                    if looks_like_windows_permission_error(&create_error) {
+                        show_windows_startup_admin_required_dialog();
+                    } else {
+                        show_windows_startup_task_registration_failed_dialog(&create_error);
+                    }
                     return Ok(false);
                 }
 

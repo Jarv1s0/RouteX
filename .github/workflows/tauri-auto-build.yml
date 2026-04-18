@@ -142,8 +142,57 @@ jobs:
 
       - name: Prepare Resources
         env:
-          ROUTEX_SKIP_RESOURCE_REFRESH: 'true'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm prepare:resources
+
+      - name: Verify Bundled Resources
+        shell: bash
+        run: |
+          expected_files=(
+            "extra/files/country.mmdb"
+            "extra/files/geoip.metadb"
+            "extra/files/geosite.dat"
+            "extra/files/geoip.dat"
+            "extra/files/ASN.mmdb"
+          )
+
+          case "${{ matrix.platform }}" in
+            windows)
+              expected_files+=(
+                "extra/sidecar/mihomo.exe"
+                "extra/files/routex-service.exe"
+                "extra/files/routex-run.exe"
+              )
+              ;;
+            linux|macos)
+              expected_files+=(
+                "extra/sidecar/mihomo"
+                "extra/files/routex-service"
+              )
+              ;;
+            *)
+              echo "Unsupported platform: ${{ matrix.platform }}"
+              exit 1
+              ;;
+          esac
+
+          missing=0
+          for file in "${expected_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "Missing required bundled resource: $file"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          printf 'Verified bundled resources:\n'
+          for file in "${expected_files[@]}"; do
+            du -h "$file"
+          done
 
       - name: Build Tauri Web
         run: pnpm build:tauri-web
