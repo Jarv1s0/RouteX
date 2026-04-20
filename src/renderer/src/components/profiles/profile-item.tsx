@@ -33,6 +33,7 @@ interface Props {
   removeProfileItem: (id: string) => Promise<void>
   mutateProfileConfig: () => void
   onClick: () => Promise<void>
+  onSetPrimary: () => Promise<void>
   onToggleEnabled: (nextEnabled: boolean) => Promise<void>
   switching: boolean
   isEnabled: boolean
@@ -56,6 +57,7 @@ const ProfileItem: React.FC<Props> = (props) => {
     mutateProfileConfig,
     updateProfileItem,
     onClick,
+    onSetPrimary,
     isCurrent,
     switching,
     onToggleEnabled,
@@ -84,7 +86,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const [disableSelect, setDisableSelect] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const mergeActionDisabled = switching || (!isCurrent && isEnabled && !canDisable)
+  const mergeActionDisabled = switching || (isEnabled && !canDisable)
 
   const menuItems: MenuItem[] = useMemo(() => {
     const list = [
@@ -127,25 +129,52 @@ const ProfileItem: React.FC<Props> = (props) => {
       } as MenuItem)
     }
 
-    if (!isCurrent) {
+    if (isEnabled) {
       list.unshift({
-        key: 'toggle-merge',
-        label: isEnabled ? '移出合并' : '加入合并',
+        key: 'remove-merge',
+        label: '移出合并',
         showDivider: true,
         color: 'default',
         className: '',
-        isDisabled: mergeActionDisabled,
-        description: (isEnabled && !canDisable) ? '至少保留一个启用订阅' : undefined
+        isDisabled: mergeActionDisabled
+      } as MenuItem)
+    } else {
+      list.unshift({
+        key: 'join-merge',
+        label: '加入合并',
+        showDivider: true,
+        color: 'default',
+        className: '',
+        isDisabled: switching
+      } as MenuItem)
+    }
+
+    if (isEnabled && !isCurrent) {
+      list.unshift({
+        key: 'set-primary',
+        label: '设为主订阅',
+        showDivider: false,
+        color: 'default',
+        className: '',
+        isDisabled: switching
       } as MenuItem)
     }
 
     return list
-  }, [info, isCurrent, isEnabled, canDisable, mergeActionDisabled])
+  }, [info, isCurrent, isEnabled, canDisable, mergeActionDisabled, switching])
 
   const onMenuAction = async (key: Key): Promise<void> => {
     switch (key) {
-      case 'toggle-merge': {
-        void onToggleMerge(!isEnabled)
+      case 'join-merge': {
+        void runSelectionAction(() => onToggleEnabled(true), switching)
+        break
+      }
+      case 'remove-merge': {
+        void runSelectionAction(() => onToggleEnabled(false), mergeActionDisabled)
+        break
+      }
+      case 'set-primary': {
+        void runSelectionAction(onSetPrimary, switching || isCurrent || !isEnabled)
         break
       }
       case 'edit-info': {
@@ -184,11 +213,14 @@ const ProfileItem: React.FC<Props> = (props) => {
     }
   }, [isDragging])
 
-  const onToggleMerge = async (nextEnabled: boolean): Promise<void> => {
-    if (mergeActionDisabled) return
+  const runSelectionAction = async (
+    action: () => Promise<void>,
+    isDisabled: boolean
+  ): Promise<void> => {
+    if (isDisabled) return
     setSelecting(true)
     try {
-      await onToggleEnabled(nextEnabled)
+      await action()
     } finally {
       setSelecting(false)
     }
@@ -290,7 +322,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                         isDisabled={mergeActionDisabled}
                         className="h-6 px-2.5 min-w-0 bg-primary/20 text-primary font-medium shadow-none text-[12px] rounded-full hover:bg-primary/30"
                         onPress={() => {
-                          void onToggleMerge(!isEnabled)
+                          void runSelectionAction(() => onToggleEnabled(false), mergeActionDisabled)
                         }}
                       >
                         已合并

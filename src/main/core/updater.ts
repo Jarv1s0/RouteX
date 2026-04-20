@@ -187,6 +187,11 @@ async function resolveAssetFromRelease(
   }
 }
 
+function parseContentLength(value: unknown): number | undefined {
+  const length = Number.parseInt(String(value ?? ''), 10)
+  return Number.isFinite(length) && length > 0 ? length : undefined
+}
+
 // 获取最新的 Release/Alpha 版本下载地址
 async function getDownloadUrl(isAlpha: boolean): Promise<{ url: string; version: string }> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
@@ -255,13 +260,13 @@ export async function upgradeMihomo(): Promise<void> {
       proxy: { protocol: 'http', host: '127.0.0.1', port: mixedPort },
       timeout: 30000
     }).then(response => {
-       const totalLength = response.headers['content-length']
+       const totalLength = parseContentLength(response.headers['content-length'])
        let downloaded = 0
        
        response.data.on('data', (chunk) => {
          downloaded += chunk.length
          if (totalLength) {
-           const progress = Math.round((downloaded / parseInt(totalLength)) * 100)
+           const progress = Math.round((downloaded / totalLength) * 100)
            mainWindow?.webContents.send('mihomo-download-progress', { status: 'downloading', progress })
          }
        })
@@ -276,12 +281,12 @@ export async function upgradeMihomo(): Promise<void> {
             responseType: 'stream',
             timeout: 30000
         })
-        const totalLength = response.headers['content-length']
+        const totalLength = parseContentLength(response.headers['content-length'])
         let downloaded = 0
         response.data.on('data', (chunk) => {
             downloaded += chunk.length
             if (totalLength) {
-                const progress = Math.round((downloaded / parseInt(totalLength)) * 100)
+                const progress = Math.round((downloaded / totalLength) * 100)
                 mainWindow?.webContents.send('mihomo-download-progress', { status: 'downloading', progress })
             }
         })

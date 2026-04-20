@@ -15,19 +15,30 @@ import { IoMdCloudDownload } from 'react-icons/io'
 import PubSub from 'pubsub-js'
 import { relaunchApp, notDialogQuit } from '@renderer/utils/app-ipc'
 import {
-  checkMihomoLatestVersion,
   ensureMihomoCoreAvailable,
   mihomoUpgrade,
   mihomoVersion,
   restartCore
 } from '@renderer/utils/mihomo-ipc'
-import { manualGrantCorePermition, revokeCorePermission, deleteElevateTask, checkElevateTask, installService, uninstallService, startService, stopService, initService, restartService } from '@renderer/utils/service-ipc'
-import React, { useState, useEffect } from 'react'
+import {
+  manualGrantCorePermition,
+  revokeCorePermission,
+  deleteElevateTask,
+  checkElevateTask,
+  installService,
+  uninstallService,
+  startService,
+  stopService,
+  initService,
+  restartService
+} from '@renderer/utils/service-ipc'
+import React, { useState } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
 import useSWR from 'swr'
 import { notifyError, notifyInfo, notifySuccess } from '@renderer/utils/notify'
+import { useMihomoCoreUpdateStatus } from '@renderer/hooks/use-mihomo-core-update-status'
 
 const Mihomo: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -36,39 +47,13 @@ const Mihomo: React.FC = () => {
   const { ipv6 } = controledMihomoConfig || {}
 
   const { data: version } = useSWR('mihomoVersion', mihomoVersion)
-  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+  const { latestVersion, hasNewVersion } = useMihomoCoreUpdateStatus(core, version?.version)
   const [upgrading, setUpgrading] = useState(false)
   const [showGrantConfirm, setShowGrantConfirm] = useState(false)
   const [showUnGrantConfirm, setShowUnGrantConfirm] = useState(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
   const [pendingPermissionMode, setPendingPermissionMode] = useState<string>('')
-
-  // 检查最新版本
-  useEffect(() => {
-    setLatestVersion(null)
-    const checkLatest = async () => {
-      const isAlpha = core === 'mihomo-alpha'
-      const latest = await checkMihomoLatestVersion(isAlpha)
-      setLatestVersion(latest)
-    }
-    checkLatest()
-  }, [core])
-
-  // 比较版本号，判断是否有新版本
-  const hasNewVersion = (): boolean => {
-    if (!version?.version || !latestVersion) return false
-
-    // Alpha 版本使用 Hash 匹配
-    if (core === 'mihomo-alpha') {
-      return !version.version.includes(latestVersion)
-    }
-
-    // Stable 版本使用语义化比较
-    const current = version.version.replace(/^v/, '')
-    const latest = latestVersion.replace(/^v/, '')
-    return current !== latest && latest > current
-  }
 
   const onChangeNeedRestart = async (patch: Partial<MihomoConfig>): Promise<void> => {
     await patchControledMihomoConfig(patch)
@@ -256,83 +241,82 @@ const Mihomo: React.FC = () => {
         />
       )}
       <div className="p-2 flex flex-col gap-2">
-      <SettingCard>
-        <SettingItem
-          title={
-            <div className="flex items-center gap-2">
-              <span>内核版本</span>
-              {hasNewVersion() && (
-                <Chip size="sm" color="success" variant="flat">
-                  新版本 {latestVersion}
-                </Chip>
-              )}
-            </div>
-          }
-          actions={
-            core === 'mihomo' || core === 'mihomo-alpha' ? (
-              <Button
-                size="sm"
-                isIconOnly
-                title="升级内核"
-                variant="light"
-                isLoading={upgrading}
-                onPress={handleCoreUpgrade}
-              >
-                <IoMdCloudDownload className="text-lg" />
-              </Button>
-            ) : null
-          }
-          divider
-        >
-          <Select
-            classNames={{
-              trigger: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50"
-            }}
-            className="w-[150px]"
-            size="sm"
-            selectedKeys={new Set([core])}
-            disallowEmptySelection={true}
-            onSelectionChange={(v) =>
-              handleCoreChange(v.currentKey as 'mihomo' | 'mihomo-alpha')
+        <SettingCard>
+          <SettingItem
+            title={
+              <div className="flex items-center gap-2">
+                <span>内核版本</span>
+                {hasNewVersion && (
+                  <Chip size="sm" color="success" variant="flat">
+                    新版本 {latestVersion}
+                  </Chip>
+                )}
+              </div>
             }
+            actions={
+              core === 'mihomo' || core === 'mihomo-alpha' ? (
+                <Button
+                  size="sm"
+                  isIconOnly
+                  title="升级内核"
+                  variant="light"
+                  isLoading={upgrading}
+                  onPress={handleCoreUpgrade}
+                >
+                  <IoMdCloudDownload className="text-lg" />
+                </Button>
+              ) : null
+            }
+            divider
           >
-            <SelectItem key="mihomo">Mihomo</SelectItem>
-            <SelectItem key="mihomo-alpha">Mihomo Alpha</SelectItem>
-          </Select>
-        </SettingItem>
-        <SettingItem title="运行模式" divider>
-          <Tabs
-            classNames={CARD_STYLES.GLASS_TABS}
-            selectedKey={corePermissionMode}
-            disabledKeys={['service']}
-            onSelectionChange={(key) => handlePermissionModeChange(key as string)}
-          >
-            <Tab key="elevated" title={platform === 'win32' ? '任务计划' : '授权运行'} />
-            <Tab key="service" title="系统服务" />
-          </Tabs>
-        </SettingItem>
-        <SettingItem title={platform === 'win32' ? '任务状态' : '授权状态'} divider>
-          <Button size="sm" color="primary" onPress={() => setShowPermissionModal(true)}>
-            管理
-          </Button>
-        </SettingItem>
-        <SettingItem title="服务状态" divider>
-          <Button size="sm" color="primary" onPress={() => setShowServiceModal(true)}>
-            管理
-          </Button>
-        </SettingItem>
-        <SettingItem title="IPv6">
-          <Switch
-            size="sm"
-            isSelected={ipv6}
-            onValueChange={(v) => onChangeNeedRestart({ ipv6: v })}
-          />
-        </SettingItem>
-      </SettingCard>
-      <PortSetting />
-      <ControllerSetting />
-      <EnvSetting />
-      <AdvancedSetting />
+            <Select
+              classNames={{
+                trigger:
+                  'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50'
+              }}
+              className="w-[150px]"
+              size="sm"
+              selectedKeys={new Set([core])}
+              disallowEmptySelection={true}
+              onSelectionChange={(v) => handleCoreChange(v.currentKey as 'mihomo' | 'mihomo-alpha')}
+            >
+              <SelectItem key="mihomo">Mihomo</SelectItem>
+              <SelectItem key="mihomo-alpha">Mihomo Alpha</SelectItem>
+            </Select>
+          </SettingItem>
+          <SettingItem title="运行模式" divider>
+            <Tabs
+              classNames={CARD_STYLES.GLASS_TABS}
+              selectedKey={corePermissionMode}
+              disabledKeys={['service']}
+              onSelectionChange={(key) => handlePermissionModeChange(key as string)}
+            >
+              <Tab key="elevated" title={platform === 'win32' ? '任务计划' : '授权运行'} />
+              <Tab key="service" title="系统服务" />
+            </Tabs>
+          </SettingItem>
+          <SettingItem title={platform === 'win32' ? '任务状态' : '授权状态'} divider>
+            <Button size="sm" color="primary" onPress={() => setShowPermissionModal(true)}>
+              管理
+            </Button>
+          </SettingItem>
+          <SettingItem title="服务状态" divider>
+            <Button size="sm" color="primary" onPress={() => setShowServiceModal(true)}>
+              管理
+            </Button>
+          </SettingItem>
+          <SettingItem title="IPv6">
+            <Switch
+              size="sm"
+              isSelected={ipv6}
+              onValueChange={(v) => onChangeNeedRestart({ ipv6: v })}
+            />
+          </SettingItem>
+        </SettingCard>
+        <PortSetting />
+        <ControllerSetting />
+        <EnvSetting />
+        <AdvancedSetting />
       </div>
     </BasePage>
   )

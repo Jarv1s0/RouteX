@@ -276,9 +276,6 @@ const Proxies: React.FC = () => {
     
     const doAutoDelayTest = async (): Promise<void> => {
       const tasks = groups.map((group) => {
-        if (includesIgnoreCase(group.name, 'proxy') || includesIgnoreCase(group.name, 'compatible')) {
-          return async (): Promise<void> => {}
-        }
         return async (): Promise<void> => {
           await mihomoGroupDelay(group.name, group.testUrl)
           .then(() => mutate()) // 每个组完成后立即更新 UI
