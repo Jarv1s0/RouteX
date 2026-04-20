@@ -33,7 +33,8 @@ use tauri::{
     image::Image,
     menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager, PhysicalPosition, Position, State, WebviewUrl, WebviewWindowBuilder,
+    Emitter, Manager, PhysicalPosition, Position, RunEvent, State, WebviewUrl,
+    WebviewWindowBuilder,
     WindowEvent,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState};
@@ -146,6 +147,7 @@ const MAX_TRAFFIC_HOURLY_RECORDS: usize = 24 * 7;
 const MAX_TRAFFIC_DAILY_RECORDS: usize = 30;
 
 static APP_STARTED_AT: OnceLock<Instant> = OnceLock::new();
+static GLOBAL_SHORTCUT_PLUGIN_ENABLED: OnceLock<bool> = OnceLock::new();
 static ICON_DATA_URL_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
 static MIHOMO_HTTP_CLIENT: OnceLock<Result<Client, String>> = OnceLock::new();
 static PROFILE_RUNTIME_CONFIG_CACHE: OnceLock<Mutex<Option<Value>>> = OnceLock::new();
@@ -159,6 +161,45 @@ fn tauri_build_variant() -> &'static str {
         _ if cfg!(debug_assertions) => "dev",
         _ => "release",
     }
+}
+
+#[cfg(target_os = "windows")]
+fn read_preflight_app_config_value() -> Option<Value> {
+    let app_data = std::env::var_os("APPDATA")?;
+    let path = PathBuf::from(app_data)
+        .join(WINDOWS_APP_DATA_DIR_NAME)
+        .join(STORAGE_DIR_NAME)
+        .join(APP_CONFIG_FILE);
+    let text = fs::read_to_string(path).ok()?;
+    serde_json::from_str::<Value>(&text).ok()
+}
+
+fn global_shortcut_plugin_enabled() -> bool {
+    *GLOBAL_SHORTCUT_PLUGIN_ENABLED.get_or_init(|| {
+        #[cfg(target_os = "windows")]
+        {
+            if cfg!(debug_assertions) {
+                return true;
+            }
+
+            return read_preflight_app_config_value()
+                .map(|config| {
+                    SHORTCUT_ACTION_KEYS.iter().any(|action| {
+                        config
+                            .get(*action)
+                            .and_then(Value::as_str)
+                            .map(|value| !value.trim().is_empty())
+                            .unwrap_or(false)
+                    })
+                })
+                .unwrap_or(false);
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            true
+        }
+    })
 }
 
 #[cfg(target_os = "windows")]
@@ -280,6 +321,8 @@ struct CoreState {
     update_download_cancel: Mutex<Option<Arc<AtomicBool>>>,
     quit_confirm_sender: Mutex<Option<mpsc::Sender<bool>>>,
     allow_main_window_close: Mutex<bool>,
+    shutdown_started: AtomicBool,
+    preserve_core_on_exit: AtomicBool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -2885,6 +2928,10 @@ fn close_main_window_renderer(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 fn exit_app_without_core(app: &tauri::AppHandle) -> Result<(), String> {
+    let state = app.state::<CoreState>();
+    state
+        .preserve_core_on_exit
+        .store(true, AtomicOrdering::SeqCst);
     let _ = stop_lightweight_mode(app);
     let _ = start_traffic_monitor(app);
     close_main_window_renderer(app)?;
@@ -3817,7 +3864,7 @@ fn handle_application_menu_event(
         APP_MENU_RESTART_APP_ID => relaunch_current_app(app, state),
         APP_MENU_QUIT_ID => {
             if request_quit_confirmation(app, state)? {
-                shutdown_runtime(app, state);
+                shutdown_runtime_once(app);
                 app.exit(0);
             }
             Ok(())
@@ -4105,7 +4152,7 @@ fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> R
             return Ok(());
         }
         id if id == TRAY_MENU_QUIT_ID => {
-            shutdown_runtime(app, &state);
+            shutdown_runtime_once(app);
             app.exit(0);
             return Ok(());
         }
@@ -4173,6 +4220,10 @@ fn read_shortcut_binding(config: &Value, action: &str) -> String {
 }
 
 fn init_global_shortcuts(app: &tauri::AppHandle) -> Result<(), String> {
+    if !global_shortcut_plugin_enabled() {
+        return Ok(());
+    }
+
     let config = read_app_config_store(app)?;
 
     app.global_shortcut()
@@ -4197,6 +4248,10 @@ fn register_global_shortcut(
     new_shortcut: &str,
     action: &str,
 ) -> Result<bool, String> {
+    if !global_shortcut_plugin_enabled() {
+        return Ok(true);
+    }
+
     let shortcut_manager = app.global_shortcut();
 
     if !old_shortcut.trim().is_empty() {
@@ -8190,9 +8245,9 @@ fn save_text_file_with_dialog(
 
 fn relaunch_current_app(
     app: &tauri::AppHandle,
-    state: &State<'_, CoreState>,
+    _state: &State<'_, CoreState>,
 ) -> Result<(), String> {
-    shutdown_runtime(app, state);
+    shutdown_runtime_once(app);
 
     let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let current_dir = std::env::current_dir().map_err(|e| e.to_string())?;
@@ -9315,6 +9370,27 @@ fn build_routex_autorun_task_xml(app: &tauri::AppHandle) -> Result<String, Strin
     ))
 }
 
+#[cfg(target_os = "windows")]
+fn check_windows_task_matches_current_app(task_name: &str, app: &tauri::AppHandle) -> bool {
+    let routex_run_path = match routex_run_binary_task_path(app) {
+        Ok(path) => path,
+        Err(_) => return false,
+    };
+    let exe_path = match std::env::current_exe() {
+        Ok(path) => path,
+        Err(_) => return false,
+    };
+    let output = match schtasks_output(&["/query", "/tn", task_name, "/xml"]) {
+        Ok(output) if output.status.success() => output,
+        _ => return false,
+    };
+    let xml = String::from_utf8_lossy(&output.stdout);
+    let routex_run_path = routex_run_path.to_string_lossy();
+    let exe_path = exe_path.to_string_lossy();
+
+    xml.contains(routex_run_path.as_ref()) && xml.contains(exe_path.as_ref())
+}
+
 fn create_autorun_task(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
@@ -9373,6 +9449,11 @@ fn check_autorun_task() -> bool {
     {
         false
     }
+}
+
+#[cfg(target_os = "windows")]
+fn check_autorun_task_matches_current_app(app: &tauri::AppHandle) -> bool {
+    check_windows_task_matches_current_app(routex_autorun_task_name(), app)
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -9471,18 +9552,42 @@ fn linux_autostart_file_path() -> Result<PathBuf, String> {
 }
 
 #[cfg(target_os = "linux")]
+fn escape_desktop_exec_arg(value: &str) -> String {
+    let needs_quotes = value.chars().any(|ch| {
+        matches!(
+            ch,
+            ' ' | '\t' | '\n' | '"' | '\'' | '\\' | '>' | '<' | '~' | '|' | '&' | ';' | '$'
+                | '*' | '?' | '#' | '(' | ')' | '`'
+        )
+    });
+
+    if !needs_quotes {
+        return value.to_string();
+    }
+
+    format!(
+        "\"{}\"",
+        value
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('`', "\\`")
+            .replace('$', "\\$")
+    )
+}
+
+#[cfg(target_os = "linux")]
 fn linux_autostart_desktop_entry() -> Result<String, String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     Ok(format!(
         "[Desktop Entry]\nName=RouteX\nExec={} %U\nTerminal=false\nType=Application\nIcon=routex\nStartupWMClass=routex\nComment=RouteX\nCategories=Utility;\n",
-        exe_path.to_string_lossy()
+        escape_desktop_exec_arg(exe_path.to_string_lossy().as_ref())
     ))
 }
 
-fn check_auto_run_enabled() -> Result<bool, String> {
+fn check_auto_run_enabled(app: &tauri::AppHandle) -> Result<bool, String> {
     #[cfg(target_os = "windows")]
     {
-        return Ok(check_autorun_task());
+        return Ok(check_autorun_task() && check_autorun_task_matches_current_app(app));
     }
 
     #[cfg(target_os = "macos")]
@@ -9492,7 +9597,14 @@ fn check_auto_run_enabled() -> Result<bool, String> {
 
     #[cfg(target_os = "linux")]
     {
-        return Ok(linux_autostart_file_path()?.exists());
+        let desktop_file_path = linux_autostart_file_path()?;
+        if !desktop_file_path.exists() {
+            return Ok(false);
+        }
+
+        let current = fs::read_to_string(desktop_file_path).map_err(|e| e.to_string())?;
+        let expected = linux_autostart_desktop_entry()?;
+        return Ok(current.trim() == expected.trim());
     }
 
     #[allow(unreachable_code)]
@@ -9613,23 +9725,7 @@ fn check_elevate_task() -> bool {
 
 #[cfg(target_os = "windows")]
 fn check_elevate_task_matches_current_app(app: &tauri::AppHandle) -> bool {
-    let routex_run_path = match routex_run_binary_task_path(app) {
-        Ok(path) => path,
-        Err(_) => return false,
-    };
-    let exe_path = match std::env::current_exe() {
-        Ok(path) => path,
-        Err(_) => return false,
-    };
-    let output = match schtasks_output(&["/query", "/tn", routex_run_task_name(), "/xml"]) {
-        Ok(output) if output.status.success() => output,
-        _ => return false,
-    };
-    let xml = String::from_utf8_lossy(&output.stdout);
-    let routex_run_path = routex_run_path.to_string_lossy();
-    let exe_path = exe_path.to_string_lossy();
-
-    xml.contains(routex_run_path.as_ref()) && xml.contains(exe_path.as_ref())
+    check_windows_task_matches_current_app(routex_run_task_name(), app)
 }
 
 #[cfg(target_os = "windows")]
@@ -9761,14 +9857,16 @@ fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
                     } else {
                         show_windows_startup_task_registration_failed_dialog(&create_error);
                     }
-                    return Ok(false);
+                    // Allow the shell to start even if the elevate task is stale or not yet
+                    // registered. Users can still repair the permission state from the UI.
+                    return Ok(true);
                 }
 
                 match run_elevate_task(app) {
                     Ok(()) => Ok(false),
                     Err(run_error) => {
                         show_windows_startup_relaunch_failed_dialog(&create_error, &run_error);
-                        Ok(false)
+                        Ok(true)
                     }
                 }
             }
@@ -11042,6 +11140,33 @@ fn shutdown_runtime(app: &tauri::AppHandle, state: &State<'_, CoreState>) {
     let _ = stop_core_process(app, state);
 }
 
+fn shutdown_runtime_once(app: &tauri::AppHandle) {
+    let state = app.state::<CoreState>();
+    if state
+        .shutdown_started
+        .compare_exchange(false, true, AtomicOrdering::SeqCst, AtomicOrdering::SeqCst)
+        .is_err()
+    {
+        return;
+    }
+
+    if state.preserve_core_on_exit.load(AtomicOrdering::SeqCst) {
+        let _ = stop_lightweight_mode(app);
+        return;
+    }
+
+    shutdown_runtime(app, &state);
+}
+
+fn install_process_signal_handlers(app: &tauri::AppHandle) -> Result<(), String> {
+    let app_handle = app.clone();
+    ctrlc::set_handler(move || {
+        shutdown_runtime_once(&app_handle);
+        std::process::exit(0);
+    })
+    .map_err(|e| e.to_string())
+}
+
 fn read_core_name(app: &tauri::AppHandle) -> Result<String, String> {
     Ok(
         match read_app_config_store(app)?
@@ -12271,7 +12396,7 @@ fn desktop_invoke_sync(
     let result = match channel.as_str() {
         "getVersion" => Ok(json!(app.package_info().version.to_string())),
         "platform" => Ok(json!(platform_name())),
-        "checkAutoRun" => Ok(json!(check_auto_run_enabled()?)),
+        "checkAutoRun" => Ok(json!(check_auto_run_enabled(&app)?)),
         "enableAutoRun" => {
             enable_auto_run(&app)?;
             Ok(Value::Null)
@@ -12934,13 +13059,13 @@ fn desktop_invoke_sync(
         }
         "quitApp" => {
             if request_quit_confirmation(&app, &state)? {
-                shutdown_runtime(&app, &state);
+                shutdown_runtime_once(&app);
                 app.exit(0);
             }
             Ok(Value::Null)
         }
         "notDialogQuit" => {
-            shutdown_runtime(&app, &state);
+            shutdown_runtime_once(&app);
             app.exit(0);
             Ok(Value::Null)
         }
@@ -13440,8 +13565,12 @@ fn main() {
             let _ = show_main_window(app);
         }))
         .plugin(tauri_plugin_deep_link::init());
+    let builder = if global_shortcut_plugin_enabled() {
+        builder.plugin(tauri_plugin_global_shortcut::Builder::new().build())
+    } else {
+        builder
+    };
     builder
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(CoreState::default())
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -13451,6 +13580,7 @@ fn main() {
             }
             let _ = initialize_traffic_stats_store(&app_handle);
             let _ = init_global_shortcuts(&app_handle);
+            let _ = install_process_signal_handlers(&app_handle);
             #[cfg(target_os = "macos")]
             {
                 let menu = build_application_menu(&app_handle)?;
@@ -13478,6 +13608,11 @@ fn main() {
             desktop_check_update,
             desktop_get_icon_data_urls
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running RouteX Tauri shell");
+        .build(tauri::generate_context!())
+        .expect("error while building RouteX Tauri shell")
+        .run(|app_handle, event| {
+            if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
+                shutdown_runtime_once(app_handle);
+            }
+        });
 }
