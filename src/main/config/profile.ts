@@ -56,10 +56,10 @@ export function normalizeProfileConfig(config?: ProfileConfig): ProfileConfig {
   const validIds = new Set(items.map((item) => item.id))
   let current = pickFirstValidProfileId([config?.current], validIds)
   const seedActives = Array.isArray(config?.actives) ? config.actives : current ? [current] : []
-  const actives = dedupeProfileIds(seedActives).filter((id) => validIds.has(id))
+  let actives = dedupeProfileIds(seedActives).filter((id) => validIds.has(id))
 
-  if (current && !actives.includes(current)) {
-    actives.unshift(current)
+  if (current) {
+    actives = [current, ...actives.filter((id) => id !== current)]
   }
   if (!current && actives.length > 0) {
     current = actives[0]

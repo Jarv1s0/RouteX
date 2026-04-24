@@ -63,16 +63,34 @@ function dedupeProfileIds(ids: string[]): string[] {
   return Array.from(new Set(ids))
 }
 
-function resolveNextCurrentProfile(
+function putPrimaryFirst(ids: string[], primary: string | undefined): string[] {
+  const uniqueIds = dedupeProfileIds(ids)
+  if (!primary || !uniqueIds.includes(primary)) {
+    return uniqueIds
+  }
+  return [primary, ...uniqueIds.filter((id) => id !== primary)]
+}
+
+function resolveProfileSelection(
+  activeIds: string[],
   current: string | undefined,
   id: string,
-  nextEnabled: boolean,
-  nextActives: string[]
-): string | undefined {
-  if (nextEnabled || current !== id) {
-    return current
+  nextEnabled: boolean
+): { actives: string[]; current: string | undefined } {
+  if (nextEnabled) {
+    return {
+      current,
+      actives: putPrimaryFirst([...activeIds, id], current ?? id)
+    }
   }
-  return nextActives[0]
+
+  const actives = activeIds.filter((activeId) => activeId !== id)
+  const nextCurrent = current === id ? actives[0] : current
+
+  return {
+    current: nextCurrent,
+    actives: putPrimaryFirst(actives, nextCurrent)
+  }
 }
 
 function normalizeManagementTab(tab: string | null): ManagementTab {
@@ -393,9 +411,25 @@ const ProfilesPage: React.FC = () => {
     [setActiveProfiles]
   )
 
+  const handleSelectProfile = useCallback(
+    async (id: string): Promise<void> => {
+      if (id === current) return
+
+      if (activeProfileIdSet.has(id)) {
+        await runSelectionMutation(putPrimaryFirst(activeProfileIds, id), id)
+        return
+      }
+
+      await runSelectionMutation([id], id)
+    },
+    [activeProfileIdSet, activeProfileIds, current, runSelectionMutation]
+  )
+
   const handleSetPrimaryProfile = useCallback(
     async (id: string): Promise<void> => {
-      const nextActives = activeProfileIdSet.has(id) ? activeProfileIds : [...activeProfileIds, id]
+      const nextActives = activeProfileIdSet.has(id)
+        ? putPrimaryFirst(activeProfileIds, id)
+        : [id]
       await runSelectionMutation(nextActives, id)
     },
     [activeProfileIdSet, activeProfileIds, runSelectionMutation]
@@ -403,12 +437,8 @@ const ProfilesPage: React.FC = () => {
 
   const handleToggleProfileActive = useCallback(
     async (id: string, nextEnabled: boolean): Promise<void> => {
-      const nextActives = nextEnabled
-        ? dedupeProfileIds([...activeProfileIds, id])
-        : activeProfileIds.filter((activeId) => activeId !== id)
-      const nextCurrent = resolveNextCurrentProfile(current, id, nextEnabled, nextActives)
-
-      await runSelectionMutation(nextActives, nextCurrent)
+      const nextSelection = resolveProfileSelection(activeProfileIds, current, id, nextEnabled)
+      await runSelectionMutation(nextSelection.actives, nextSelection.current)
     },
     [activeProfileIds, current, runSelectionMutation]
   )
@@ -934,7 +964,8 @@ const ProfilesPage: React.FC = () => {
                   updateProfileItem={patchProfileItem}
                   info={item}
                   switching={switching}
-                  onClick={() => handleSetPrimaryProfile(item.id)}
+                  onClick={() => handleSelectProfile(item.id)}
+                  onSetPrimary={() => handleSetPrimaryProfile(item.id)}
                   onToggleEnabled={(nextEnabled) => handleToggleProfileActive(item.id, nextEnabled)}
                 />
               ))}

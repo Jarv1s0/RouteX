@@ -7,7 +7,11 @@ import { calcTraffic } from '../utils/calc'
 import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
 import { mihomoIpcPath } from '../utils/dirs'
-import { updateTrafficStats, updateProcessTraffic, resetTrafficDelta } from '../resolve/trafficStats'
+import {
+  updateTrafficStats,
+  updateProcessTraffic,
+  resetTrafficDelta
+} from '../resolve/trafficStats'
 import { IPC_ON_CHANNELS } from '../../shared/ipc'
 import { writeFile } from 'fs/promises'
 import { logPath } from '../utils/dirs'
@@ -81,7 +85,7 @@ async function resolveDelayTestOptions(url?: string): Promise<{
   const appConfig = await getAppConfig()
   const { delayTestUrl, delayTestTimeout } = appConfig
   return {
-    finalUrl: (url && url.length > 0) ? url : (delayTestUrl || DEFAULT_DELAY_TEST_URL),
+    finalUrl: url && url.length > 0 ? url : delayTestUrl || DEFAULT_DELAY_TEST_URL,
     timeoutVal: normalizeDelayTestTimeout(delayTestTimeout)
   }
 }
@@ -92,7 +96,7 @@ async function mihomoProxyDelayWithOptions(
   timeoutVal: number,
   instance?: AxiosInstance
 ): Promise<ControllerProxiesDelay> {
-  const axiosInstance = instance || await getAxios()
+  const axiosInstance = instance || (await getAxios())
   return await axiosInstance.get(`/proxies/${encodeURIComponent(proxy)}/delay`, {
     params: {
       url: finalUrl,
@@ -195,7 +199,7 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
   const proxies = await mihomoProxies()
   const runtime = await getRuntimeConfig()
   const groups: ControllerMixedGroup[] = []
-  
+
   // 创建一个 icon 映射表
   const iconMap: Record<string, string> = {}
   runtime?.['proxy-groups']?.forEach((group: { name: string; icon?: string }) => {
@@ -203,7 +207,7 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
       iconMap[group.name] = group.icon
     }
   })
-  
+
   runtime?.['proxy-groups']?.forEach((group: { name: string; url?: string; icon?: string }) => {
     const { name, url, icon } = group
     if (proxies.proxies[name] && 'all' in proxies.proxies[name] && !proxies.proxies[name].hidden) {
@@ -317,12 +321,13 @@ export const mihomoUpgradeUI = async (): Promise<void> => {
 }
 
 export const checkMihomoLatestVersion = async (isAlpha: boolean): Promise<string | null> => {
+  const versionUrl = isAlpha
+    ? 'https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt'
+    : 'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
+
   try {
     const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-    const versionUrl = isAlpha
-      ? 'https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt'
-      : 'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
-    
+
     const res = await axios.get(versionUrl, {
       proxy: {
         protocol: 'http',
@@ -334,11 +339,22 @@ export const checkMihomoLatestVersion = async (isAlpha: boolean): Promise<string
     })
     return res.data.trim()
   } catch {
-    return null
+    try {
+      const res = await axios.get(versionUrl, {
+        timeout: 10000,
+        responseType: 'text'
+      })
+      return res.data.trim()
+    } catch {
+      return null
+    }
   }
 }
 
-export const mihomoDnsQuery = async (name: string, type: string): Promise<{ Answer?: { data: string }[] }> => {
+export const mihomoDnsQuery = async (
+  name: string,
+  type: string
+): Promise<{ Answer?: { data: string }[] }> => {
   const instance = await getAxios()
   return await instance.get('/dns/query', { params: { name, type } })
 }
@@ -369,12 +385,12 @@ const mihomoTraffic = async (): Promise<void> => {
     const data = e.data as string
     const json = JSON.parse(data) as ControllerTraffic
     trafficRetry = 10
-    
+
     // 累计流量并更新统计
     totalUpload += json.up
     totalDownload += json.down
     updateTrafficStats(totalUpload, totalDownload)
-    
+
     try {
       mainWindow?.webContents.send('mihomoTraffic', json)
       if (process.platform !== 'linux') {
@@ -443,7 +459,9 @@ const mihomoMemory = async (): Promise<void> => {
   }
 
   mihomoMemoryWs.onclose = async (event): Promise<void> => {
-    await writeFile(logPath(), `[MihomoApi] Memory WS Closed: ${event.code} ${event.reason}\n`, { flag: 'a' })
+    await writeFile(logPath(), `[MihomoApi] Memory WS Closed: ${event.code} ${event.reason}\n`, {
+      flag: 'a'
+    })
     if (memoryRetry) {
       memoryRetry--
       setTimeout(() => {
