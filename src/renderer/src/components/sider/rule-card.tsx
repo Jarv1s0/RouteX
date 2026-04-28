@@ -1,13 +1,13 @@
 import { Button, Tooltip } from '@heroui/react'
 import { LuGitBranch, LuRotateCw } from 'react-icons/lu'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { mutate as globalMutate } from 'swr'
 import useSWR from 'swr'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import {
   getRuntimeConfig,
+  isExpectedMihomoUnavailableError,
   mihomoRuleProviders,
   mihomoUpdateRuleProviders
 } from '@renderer/utils/mihomo-ipc'
@@ -24,40 +24,42 @@ const RuleCard: React.FC<Props> = (props) => {
   const location = useLocation()
   const match = location.pathname.includes('/rules')
   const [updating, setUpdating] = useState(false)
-  const [shouldLoadStats, setShouldLoadStats] = useState(match)
+  const retryTimerRef = useRef<number | null>(null)
   const handleNavigate = (): void => {
     navigateSidebarRoute('/rules')
   }
 
-  const { data, mutate } = useSWR(
-    shouldLoadStats ? 'ruleCardStats' : null,
-    async () => {
-      const [providers, runtimeConfig] = await Promise.all([mihomoRuleProviders(), getRuntimeConfig()])
-      return { providers, runtimeConfig }
-    },
-    {
-      errorRetryInterval: 200,
-      errorRetryCount: 10,
-      refreshInterval: match ? 30000 : 0
-    }
-  )
-
-  useEffect(() => {
-    if (match) {
-      setShouldLoadStats(true)
+  const clearRetryTimer = useCallback((): void => {
+    if (retryTimerRef.current === null) {
       return
     }
 
-    const timer = window.setTimeout(() => {
-      setShouldLoadStats(true)
-    }, 12000)
+    window.clearTimeout(retryTimerRef.current)
+    retryTimerRef.current = null
+  }, [])
 
-    return (): void => {
-      window.clearTimeout(timer)
+  const {
+    data: providersData,
+    error: providersError,
+    mutate: mutateProviders
+  } = useSWR(
+    'mihomoRuleProviders',
+    mihomoRuleProviders,
+    {
+      shouldRetryOnError: false,
+      refreshInterval: match ? 30000 : 0
     }
-  }, [match])
+  )
+  const {
+    data: runtimeConfig,
+    error: runtimeConfigError,
+    mutate: mutateRuntimeConfig
+  } = useSWR('ruleCardRuntimeConfig', getRuntimeConfig, {
+    shouldRetryOnError: false,
+    refreshInterval: match ? 30000 : 0
+  })
 
-  const providerMap = data?.providers?.providers
+  const providerMap = providersData?.providers
 
   const providerCount = useMemo(() => {
     return providerMap ? Object.keys(providerMap).length : 0
@@ -74,9 +76,11 @@ const RuleCard: React.FC<Props> = (props) => {
     const providerRuleCount = providerMap
       ? Object.values(providerMap).reduce((total, provider) => total + (provider.ruleCount || 0), 0)
       : 0
-    const manualRuleCount = Array.isArray(data?.runtimeConfig?.rules) ? data.runtimeConfig.rules.length : 0
+    const manualRuleCount = Array.isArray(runtimeConfig?.rules)
+      ? runtimeConfig.rules.length
+      : 0
     return providerRuleCount + manualRuleCount
-  }, [data, providerMap])
+  }, [providerMap, runtimeConfig])
 
   const updateAll = useCallback(async (): Promise<void> => {
     if (updating) return
@@ -86,21 +90,25 @@ const RuleCard: React.FC<Props> = (props) => {
     setUpdating(true)
     try {
       await Promise.all(updatableProviderNames.map((name) => mihomoUpdateRuleProviders(name)))
-      await Promise.all([mutate(), globalMutate('mihomoRuleProviders')])
+      await Promise.all([mutateProviders(), mutateRuntimeConfig()])
     } catch (e) {
       new Notification(`规则集合更新失败\n${e}`)
     } finally {
       setUpdating(false)
     }
-  }, [mutate, updatableProviderNames, updating])
+  }, [mutateProviders, mutateRuntimeConfig, updatableProviderNames, updating])
 
   useEffect(() => {
-    if (!shouldLoadStats || !match) {
-      return
+    const handleRefresh = (): void => {
+      clearRetryTimer()
+      void mutateProviders()
+      void mutateRuntimeConfig()
     }
 
-    const handleRefresh = (): void => {
-      void mutate()
+    const handleVisibilityChange = (): void => {
+      if (!document.hidden) {
+        handleRefresh()
+      }
     }
 
     const offCoreStarted = onIpc(ON.coreStarted, handleRefresh)
@@ -108,15 +116,40 @@ const RuleCard: React.FC<Props> = (props) => {
     const offProfileConfigUpdated = onIpc(ON.profileConfigUpdated, handleRefresh)
     const offOverrideConfigUpdated = onIpc(ON.overrideConfigUpdated, handleRefresh)
     const offControledConfigUpdated = onIpc(ON.controledMihomoConfigUpdated, handleRefresh)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return (): void => {
+      clearRetryTimer()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       offCoreStarted()
       offRulesUpdated()
       offProfileConfigUpdated()
       offOverrideConfigUpdated()
       offControledConfigUpdated()
     }
-  }, [mutate, shouldLoadStats])
+  }, [clearRetryTimer, mutateProviders, mutateRuntimeConfig])
+
+  useEffect(() => {
+    clearRetryTimer()
+
+    if (
+      (!isExpectedMihomoUnavailableError(providersError) &&
+        !isExpectedMihomoUnavailableError(runtimeConfigError)) ||
+      document.hidden
+    ) {
+      return
+    }
+
+    retryTimerRef.current = window.setTimeout(() => {
+      retryTimerRef.current = null
+      void mutateProviders()
+      void mutateRuntimeConfig()
+    }, 1200)
+
+    return (): void => {
+      clearRetryTimer()
+    }
+  }, [clearRetryTimer, mutateProviders, mutateRuntimeConfig, providersError, runtimeConfigError])
 
   if (iconOnly) {
     return (
@@ -146,13 +179,20 @@ const RuleCard: React.FC<Props> = (props) => {
       <div className="flex items-center justify-between h-7">
         <div className="flex items-center gap-1.5 flex-1">
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-            <LuGitBranch className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
+            <LuGitBranch
+              className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`}
+            />
           </span>
-          <h3 className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}>
+          <h3
+            className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}
+          >
             路由规则
           </h3>
         </div>
-        <div className="flex shrink-0 items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex shrink-0 items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
           <Button
             isIconOnly
             size="sm"
@@ -161,11 +201,15 @@ const RuleCard: React.FC<Props> = (props) => {
             disabled={updating || updatableProviderNames.length === 0}
             onPress={updateAll}
           >
-            <LuRotateCw className={`${compact ? 'text-[13px]' : 'text-[14px]'} ${updating ? 'animate-spin' : ''}`} />
+            <LuRotateCw
+              className={`${compact ? 'text-[13px]' : 'text-[14px]'} ${updating ? 'animate-spin' : ''}`}
+            />
           </Button>
         </div>
       </div>
-      <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
+      <div
+        className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}
+      >
         <span>{providerCount.toLocaleString()} 个规则集</span>
         <span>{ruleCount.toLocaleString()} 条规则</span>
       </div>

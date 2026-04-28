@@ -114,7 +114,6 @@ const ProxyRowChunk = memo(
 )
 
 ProxyRowChunk.displayName = 'ProxyRowChunk'
-let hasSkippedStartupAutoDelayTest = false
 
 async function runWithConcurrency(
   tasks: Array<() => Promise<void>>,
@@ -287,30 +286,23 @@ const Proxies: React.FC = () => {
     if (hasInitialTestRef.current) return
     if (!autoDelayTestOnShow) return
 
-    if (!hasSkippedStartupAutoDelayTest) {
-      hasSkippedStartupAutoDelayTest = true
-      return
-    }
-
     hasInitialTestRef.current = true
 
     const doAutoDelayTest = async (): Promise<void> => {
-      const tasks = groups.map((group) => {
-        if (
-          includesIgnoreCase(group.name, 'proxy') ||
-          includesIgnoreCase(group.name, 'compatible')
-        ) {
-          return async (): Promise<void> => {}
-        }
+      console.debug('[proxy-delay:auto] start', groups.map((group) => group.name))
 
-        return async (): Promise<void> => {
-          await mihomoGroupDelay(group.name, group.testUrl)
-            .then(() => mutate())
-            .catch(() => {})
-        }
+      const tasks = groups.map((group) => async (): Promise<void> => {
+        console.debug('[proxy-delay:auto] test group', group.name, group.testUrl || '')
+
+        await mihomoGroupDelay(group.name, group.testUrl)
+          .then(() => mutate())
+          .catch((error) => {
+            console.warn('[proxy-delay:auto] failed', group.name, error)
+          })
       })
 
       await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrency))
+      console.debug('[proxy-delay:auto] finished')
       mutate()
     }
 
