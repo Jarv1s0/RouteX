@@ -1,21 +1,9 @@
-import React, { Suspense } from 'react'
-import { Spinner } from '@heroui/react'
+import React from 'react'
 import { BaseEditorSimple } from './base-editor-simple'
+import { BaseEditorMonaco } from './base-editor-monaco'
 import type { BaseEditorProps, Language } from './base-editor.shared'
 
-const MonacoBaseEditor = React.lazy(() =>
-  import('./base-editor-monaco').then((module) => ({ default: module.BaseEditorMonaco }))
-)
-
 const MONACO_LANGUAGES = new Set<Language>(['yaml', 'javascript', 'json'])
-
-function getEditorFallback() {
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <Spinner size="lg" />
-    </div>
-  )
-}
 
 export const BaseEditor: React.FC<BaseEditorProps> = (props) => {
   const shouldUseMonaco =
@@ -25,9 +13,5 @@ export const BaseEditor: React.FC<BaseEditorProps> = (props) => {
     return <BaseEditorSimple {...props} />
   }
 
-  return (
-    <Suspense fallback={getEditorFallback()}>
-      <MonacoBaseEditor {...props} />
-    </Suspense>
-  )
+  return <BaseEditorMonaco {...props} />
 }

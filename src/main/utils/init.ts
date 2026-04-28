@@ -11,7 +11,6 @@ import {
   profilePath,
   profilesDir,
   resourcesFilesDir,
-  subStoreDir,
   themesDir
 } from './dirs'
 import {
@@ -70,8 +69,7 @@ async function initDirs(): Promise<void> {
     overrideDir(),
     mihomoWorkDir(),
     logDir(),
-    mihomoTestDir(),
-    subStoreDir()
+    mihomoTestDir()
   ]
   await Promise.all(
     dirs.map(async (dir) => {

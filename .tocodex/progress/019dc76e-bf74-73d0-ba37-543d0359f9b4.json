@@ -1,0 +1,22 @@
+{
+  "taskId": "019dc76e-bf74-73d0-ba37-543d0359f9b4",
+  "todos": [
+    {
+      "id": "7f44b4aa073b109c339dbf8ab4b27650",
+      "content": "检查 [src/renderer/src/App.tsx](src/renderer/src/App.tsx:1) 中 bridge `useEffect` 当前实现",
+      "status": "completed"
+    },
+    {
+      "id": "0a25d4fdc645af58cbadb9c2c6270ab5",
+      "content": "删除所有 `[TUN_DIAG]` 临时日志并恢复简洁版本",
+      "status": "completed"
+    },
+    {
+      "id": "c5fed93bc94a8b0860a6b584447583cc",
+      "content": "向用户确认修改结果",
+      "status": "completed"
+    }
+  ],
+  "lastUpdated": 1777167516551,
+  "status": "active"
+}

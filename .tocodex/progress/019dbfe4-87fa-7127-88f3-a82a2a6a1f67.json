@@ -1,0 +1,87 @@
+{
+  "taskId": "019dbfe4-87fa-7127-88f3-a82a2a6a1f67",
+  "todos": [
+    {
+      "id": "b0159fd86df9f59c1ab80405cf93cb21",
+      "content": "修改 proxy-group-card.tsx：引入局部 state 缓存图标 URL，去掉 mutate 全局刷新，避免渲染期直接读 localStorage",
+      "status": "completed"
+    },
+    {
+      "id": "fa5d5acef4694a6d2543459b4fabb55a",
+      "content": "修改 card-styles.ts：温和下调 INACTIVE/GLASS_TOOLBAR/GLASS_CARD 的 blur/shadow/hover 成本",
+      "status": "completed"
+    },
+    {
+      "id": "7f692e2c35c6681c8b12ae5bd6be5217",
+      "content": "修改 tauri-function-coverage-and-performance-review.md：追加本轮已落地项与延后项说明",
+      "status": "completed"
+    },
+    {
+      "id": "641375bd6a902125cc8d931605786844",
+      "content": "修正 use-connections-store.ts：去掉重复 startTauriMihomoEventBridge 入口，避免连接桥多入口竞争导致连接页空白",
+      "status": "completed"
+    },
+    {
+      "id": "50a250b193a57e4c681463c41ea61172",
+      "content": "拆分 useConnectionsPage：新建 use-connection-view-state.ts（视图/持久化状态层）",
+      "status": "completed"
+    },
+    {
+      "id": "cda1fc330039f2b5f0be37de515cf08a",
+      "content": "拆分 useConnectionsPage：新建 use-connection-derived.ts（数据派生层）",
+      "status": "completed"
+    },
+    {
+      "id": "c52fb9c071c7d02868605110aaba93ab",
+      "content": "修改 use-connections-page.ts：改为薄组合层，对外接口不变",
+      "status": "completed"
+    },
+    {
+      "id": "760f1d9fa5f8e8039290752e2f1f8b77",
+      "content": "解释为什么当前更像启动时序/启动链对齐问题，而不是 Tauri 迁移本身不值得",
+      "status": "completed"
+    },
+    {
+      "id": "6b1edc7b567269b023aae1be92c99937",
+      "content": "为 TUN 冷启动补最小日志到 main.rs 和 App.tsx，等用户复现后反馈",
+      "status": "completed"
+    },
+    {
+      "id": "a4c47e145ad007b8713f0d98534574b2",
+      "content": "基于日志收敛到一个明确根因：bridge 首选读取 getControllerUrl 通道缺失，导致冷启动时 controller 获取路径先天不完整",
+      "status": "completed"
+    },
+    {
+      "id": "694dd05d0ecbc5764b693d47d8c080fd",
+      "content": "修复根因：确保 getControllerUrl IPC 通道在 Tauri 中正确注册/可达",
+      "status": "completed"
+    },
+    {
+      "id": "082c2f11fbe80557fba8a8d826d1ee5d",
+      "content": "再复现验证 TUN 冷启动问题是否消失，并根据日志判断是否还有第二根因",
+      "status": "completed"
+    },
+    {
+      "id": "f8c2b925349c6c1fb5c5fac197d84885",
+      "content": "再决定是否需要继续修在 renderer 还是 src-tauri/src/main.rs",
+      "status": "completed"
+    },
+    {
+      "id": "934d3f5ed1d58764b07d1839af7f701f",
+      "content": "清理本轮临时 TUN_DIAG 诊断日志",
+      "status": "completed"
+    },
+    {
+      "id": "b408580ec479dc175354f930a02250e6",
+      "content": "为 connections 批量操作增加小批次并发/分帧处理方案并落地到 use-connections-page.ts",
+      "status": "pending"
+    },
+    {
+      "id": "01dc2ec52acd8472bc77c0e5ff9a83dc",
+      "content": "在评估文档中补充本轮新增的连接页结构拆分、TUN 冷启动问题与批量操作后续建议",
+      "status": "pending"
+    }
+  ],
+  "lastUpdated": 1777167657501,
+  "status": "active"
+}

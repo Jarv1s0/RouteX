@@ -26,7 +26,7 @@ use reqwest::blocking::Client;
 use ring::signature::Ed25519KeyPair;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
-use sha2::{Digest, Sha512};
+use sha2::{Digest, Sha256, Sha512};
 #[cfg(target_os = "macos")]
 use tauri::menu::AboutMetadata;
 use tauri::{
@@ -151,6 +151,9 @@ static GLOBAL_SHORTCUT_PLUGIN_ENABLED: OnceLock<bool> = OnceLock::new();
 static ICON_DATA_URL_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
 static MIHOMO_HTTP_CLIENT: OnceLock<Result<Client, String>> = OnceLock::new();
 static PROFILE_RUNTIME_CONFIG_CACHE: OnceLock<Mutex<Option<Value>>> = OnceLock::new();
+// 最后一次成功通过 `mihomo -t` 检查的 config yaml 内容哈希（SHA-256 hex）。
+// 若本次写入的 config_yaml 哈希与缓存相同，则跳过 check_runtime_profile，节省 ~0.5-2s。
+static PROFILE_CHECK_CACHE: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 
 fn tauri_build_variant() -> &'static str {
     match option_env!("ROUTEX_TAURI_BUILD_VARIANT") {
@@ -308,6 +311,7 @@ impl Default for NetworkHealthState {
 #[derive(Default)]
 struct CoreState {
     runtime: Mutex<CoreRuntime>,
+    restart_lock: Mutex<()>,
     last_sysproxy_signature: Mutex<Option<String>>,
     pac_server: Mutex<Option<PacServerHandle>>,
     lightweight_mode: Mutex<Option<LightweightModeHandle>>,
@@ -366,8 +370,6 @@ struct ProfileItemData {
     #[serde(rename = "resetDay", skip_serializing_if = "Option::is_none")]
     reset_day: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    substore: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     locked: Option<bool>,
     #[serde(rename = "autoUpdate", skip_serializing_if = "Option::is_none")]
     auto_update: Option<bool>,
@@ -394,7 +396,6 @@ struct ProfileItemInput {
     extra: Option<Value>,
     #[serde(rename = "resetDay")]
     reset_day: Option<u64>,
-    substore: Option<bool>,
     locked: Option<bool>,
     #[serde(rename = "autoUpdate")]
     auto_update: Option<bool>,
@@ -605,6 +606,15 @@ fn current_timestamp_ms() -> u64 {
         .as_millis() as u64
 }
 
+fn runtime_tun_enabled(runtime_config: &Value) -> bool {
+    runtime_config
+        .get("tun")
+        .and_then(Value::as_object)
+        .and_then(|tun| tun.get("enable"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
 fn runtime_config_modified_at_ms(path: &Path) -> Option<u64> {
     fs::metadata(path)
         .ok()?
@@ -792,7 +802,6 @@ fn default_empty_profile_item() -> ProfileItemData {
         use_proxy: None,
         extra: None,
         reset_day: None,
-        substore: None,
         locked: None,
         auto_update: Some(true),
     }
@@ -2770,17 +2779,37 @@ fn to_data_url(mime: &str, bytes: &[u8]) -> String {
 }
 
 fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
-    let path = app
-        .path()
-        .resource_dir()
-        .map_err(|e| e.to_string())?
-        .join(file_name);
-    if path.exists() {
-        return Ok(path);
+    let mut candidates = Vec::new();
+
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        candidates.push(resource_dir.join(file_name));
     }
+
+    #[cfg(debug_assertions)]
+    {
+        let manifest_resource_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("resources")
+            .join(file_name);
+        candidates.push(manifest_resource_path);
+    }
+
+    if let Some(path) = candidates.iter().find(|path| path.exists()) {
+        return Ok(path.clone());
+    }
+
+    let tried_paths = if candidates.is_empty() {
+        "<no candidate paths>".to_string()
+    } else {
+        candidates
+            .iter()
+            .map(|path| path.to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+
     Err(format!(
-        "Tray icon not found: {file_name}. Expected at {}",
-        path.to_string_lossy()
+        "Tray icon not found: {file_name}. Tried: {tried_paths}"
     ))
 }
 
@@ -5442,9 +5471,6 @@ fn build_profile_item(
         reset_day: item
             .reset_day
             .or_else(|| existing.and_then(|value| value.reset_day)),
-        substore: item
-            .substore
-            .or_else(|| existing.and_then(|value| value.substore)),
         locked: item
             .locked
             .or_else(|| existing.and_then(|value| value.locked)),
@@ -12055,6 +12081,12 @@ fn wait_for_renderer_data_ready(
 
 fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> Result<(), String> {
     let mut last_error = String::from("Mihomo controller is not available");
+    let tun_enabled = runtime_tun_enabled(runtime_config);
+    // TUN 模式下核心需要先初始化 Wintun/虚拟网卡才会开放 HTTP controller，
+    // 给更多次数（150 次 × 100ms = 15 秒上限）；非 TUN 给 60 次（6 秒）。
+    // 相比之前 100/50 × 200ms = 20s/10s，响应延迟减半，总超时也减半。
+    let controller_ready_retries = if tun_enabled { 150 } else { 60 };
+    let poll_interval_ms = 100u64;
     let expected_rule_providers = runtime_config
         .get("rule-providers")
         .and_then(Value::as_object)
@@ -12066,10 +12098,22 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
         .map(|providers| providers.len())
         .unwrap_or(0);
 
-    for _ in 0..50 {
+    let started_at = Instant::now();
+    for attempt in 0..controller_ready_retries {
         match core_request(state, reqwest::Method::GET, "/rules", None, None) {
             Ok(_) => {
-                for _ in 0..50 {
+                eprintln!(
+                    "[desktop.core_ready] controller ready after {}ms (attempt {}{})",
+                    started_at.elapsed().as_millis(),
+                    attempt,
+                    if tun_enabled { ", TUN mode" } else { "" }
+                );
+                // providers 就绪检查：最多等 10 秒（100 次 × 100ms）。
+                // 若超时仍未就绪则仅打印警告，不阻塞 restartCore 返回，
+                // 避免 providers 下载慢时把整个开关操作拖延到超时。
+                let provider_wait_start = Instant::now();
+                let mut providers_ready = false;
+                for _ in 0..100 {
                     let proxy_ready = if expected_proxy_providers == 0 {
                         true
                     } else {
@@ -12105,29 +12149,39 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
                     };
 
                     if proxy_ready && rule_ready {
-                        if let Err(error) = wait_for_renderer_data_ready(state, runtime_config) {
-                            eprintln!(
-                                "[desktop.core_request] renderer data not fully ready yet: {}",
-                                error
-                            );
-                        }
-                        return Ok(());
+                        providers_ready = true;
+                        break;
                     }
 
-                    std::thread::sleep(Duration::from_millis(200));
+                    std::thread::sleep(Duration::from_millis(poll_interval_ms));
                 }
 
-                return Err("Timed out waiting for providers to become ready".to_string());
+                if providers_ready {
+                    if let Err(error) = wait_for_renderer_data_ready(state, runtime_config) {
+                        eprintln!(
+                            "[desktop.core_ready] renderer data not fully ready yet: {}",
+                            error
+                        );
+                    }
+                } else {
+                    eprintln!(
+                        "[desktop.core_ready] providers not fully ready after {}ms, continuing anyway \
+                         (proxy_providers={expected_proxy_providers}, rule_providers={expected_rule_providers})",
+                        provider_wait_start.elapsed().as_millis()
+                    );
+                }
+                return Ok(());
             }
             Err(error) => {
                 last_error = error;
-                std::thread::sleep(Duration::from_millis(200));
+                std::thread::sleep(Duration::from_millis(poll_interval_ms));
             }
         }
     }
 
     Err(format!(
-        "Timed out waiting for Mihomo controller to become ready: {last_error}"
+        "Timed out waiting for Mihomo controller to become ready after {}ms: {last_error}",
+        started_at.elapsed().as_millis()
     ))
 }
 
@@ -12136,12 +12190,7 @@ fn validate_runtime_start_log(
     log_start_offset: u64,
     runtime_config: &Value,
 ) -> Result<(), String> {
-    let expected_tun_enabled = runtime_config
-        .get("tun")
-        .and_then(Value::as_object)
-        .and_then(|tun| tun.get("enable"))
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
+    let expected_tun_enabled = runtime_tun_enabled(runtime_config);
 
     let mut file = fs::File::open(log_path).map_err(|e| e.to_string())?;
     file.seek(SeekFrom::Start(log_start_offset))
@@ -12159,12 +12208,16 @@ fn validate_runtime_start_log(
             return Err("核心启动失败：入站端口仍被其他实例占用".to_string());
         }
 
+        if line.contains("External controller listen error") {
+            return Err("核心启动失败：控制器端口仍被其他实例占用".to_string());
+        }
+
         if expected_tun_enabled && line.contains("Start TUN listening error") {
             if line.contains("Access is denied") {
                 return Err("TUN 启动失败：当前实例没有获得虚拟网卡所需权限".to_string());
             }
             if line.contains("Cannot create a file when that file already exists") {
-                return Err("TUN 启动失败：旧的 Wintun 设备残留，请先关闭旧实例后重试".to_string());
+                return Err("TUN 启动失败：现有虚拟网卡状态残留，请先关闭旧实例后重试".to_string());
             }
             return Err("TUN 启动失败：核心未成功接管虚拟网卡".to_string());
         }
@@ -12173,11 +12226,24 @@ fn validate_runtime_start_log(
     Ok(())
 }
 
+fn refine_core_start_error(
+    startup_error: String,
+    log_path: &Path,
+    log_start_offset: u64,
+    runtime_config: &Value,
+) -> String {
+    match validate_runtime_start_log(log_path, log_start_offset, runtime_config) {
+        Err(error) => error,
+        Ok(()) => startup_error,
+    }
+}
+
 fn restart_core_process(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     config: Option<&Value>,
 ) -> Result<Value, String> {
+    let _restart_guard = state.restart_lock.lock().map_err(|e| e.to_string())?;
     let _ = recover_dns(app);
     stop_core_process(app, state)?;
 
@@ -12207,15 +12273,24 @@ fn restart_core_process(
         normalize_runtime_config(Some(&merged_runtime_config), &runtime_controller_address);
     let config_path = work_dir.join("config.yaml");
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
+    let config_digest = format!("{:x}", Sha256::digest(config_yaml.as_bytes()));
     prepare_runtime_work_dir(app, &work_dir)?;
-    fs::write(&config_path, config_yaml).map_err(|e| e.to_string())?;
-    check_runtime_profile(&binary_path, &config_path, &test_dir, &safe_paths)?;
-    let tun_enabled = runtime_config
-        .get("tun")
-        .and_then(Value::as_object)
-        .and_then(|tun| tun.get("enable"))
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
+    fs::write(&config_path, &config_yaml).map_err(|e| e.to_string())?;
+    let should_check_profile = PROFILE_CHECK_CACHE
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .map(|cache| cache.as_ref() != Some(&config_digest))
+        .unwrap_or(true);
+    if should_check_profile {
+        check_runtime_profile(&binary_path, &config_path, &test_dir, &safe_paths)?;
+        if let Ok(mut cache) = PROFILE_CHECK_CACHE.get_or_init(|| Mutex::new(None)).lock() {
+            *cache = Some(config_digest.clone());
+        }
+    } else {
+        eprintln!("[desktop.core_ready] skip profile check: config unchanged");
+    }
+    let tun_enabled = runtime_tun_enabled(&runtime_config);
+    let log_start_offset = fs::metadata(&log_path).map(|m| m.len()).unwrap_or(0);
     let auto_set_dns_mode = read_auto_set_dns_mode(app)?;
     if tun_enabled && auto_set_dns_mode != "none" {
         set_public_dns(app)?;
@@ -12252,6 +12327,8 @@ fn restart_core_process(
         drop(runtime);
 
         if let Err(error) = wait_for_core_ready(state, &runtime_config) {
+            let error =
+                refine_core_start_error(error, &log_path, log_start_offset, &runtime_config);
             let _ = recover_dns(app);
             let _ = stop_core_process(app, state);
             return Err(error);
@@ -12284,10 +12361,16 @@ fn restart_core_process(
         .stdout(Stdio::from(stdout))
         .stderr(Stdio::from(stderr));
 
-    let log_start_offset = fs::metadata(&log_path).map(|m| m.len()).unwrap_or(0);
     let mut child = command.spawn().map_err(|e| e.to_string())?;
-    std::thread::sleep(Duration::from_millis(500));
-    if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+    let mut exited_early = None;
+    for _ in 0..5 {
+        if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+            exited_early = Some(status);
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    if let Some(status) = exited_early {
         return Err(format!("Mihomo exited early with status: {status}"));
     }
 
@@ -12308,6 +12391,8 @@ fn restart_core_process(
     drop(runtime);
 
     if let Err(error) = wait_for_core_ready(state, &runtime_config) {
+        let error =
+            refine_core_start_error(error, &log_path, log_start_offset, &runtime_config);
         let _ = recover_dns(app);
         let _ = stop_core_process(app, state);
         return Err(error);
@@ -12763,6 +12848,7 @@ fn desktop_invoke_sync(
             write_theme_text(&app, theme, css)?;
             Ok(Value::Null)
         }
+        "getControllerUrl" => Ok(json!(current_controller_url(&state)?)),
         "getRuntimeConfig" => Ok(current_runtime_value_for_renderer(&app, &state)?),
         "getRuntimeConfigStr" => {
             let value = current_runtime_value_for_renderer(&app, &state)?;
@@ -13003,15 +13089,6 @@ fn desktop_invoke_sync(
             let domain = args.first().and_then(Value::as_str).unwrap_or("google.com");
             Ok(json!(test_dns_latency(domain)))
         }
-        "subStorePort"
-        | "subStoreFrontendPort"
-        | "subStoreSubs"
-        | "subStoreCollections"
-        | "startSubStoreBackendServer"
-        | "stopSubStoreBackendServer"
-        | "startSubStoreFrontendServer"
-        | "stopSubStoreFrontendServer"
-        | "downloadSubStore" => Err("Sub-Store 已从 Tauri 版本移除".to_string()),
         "webdavBackup" => Ok(json!(webdav_backup(&app)?)),
         "listWebdavBackups" => Ok(json!(list_webdav_backup_names(&read_webdav_config(&app)?)?)),
         "webdavRestore" => {

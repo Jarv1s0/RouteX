@@ -46,7 +46,12 @@ const TunSwitcher: React.FC<Props> = (props) => {
 
   const onChange = async (enable: boolean): Promise<void> => {
     try {
-      if (enable && platform === 'win32' && __ROUTEX_HOST__ === 'tauri') {
+      if (
+        enable &&
+        platform === 'win32' &&
+        __ROUTEX_HOST__ === 'tauri' &&
+        !import.meta.env.DEV
+      ) {
         const hasElevateTask = await checkElevateTask()
         if (!hasElevateTask) {
           await showToastError('TUN模式启动失败', '请先到内核设置里注册提权任务，再启用虚拟网卡')

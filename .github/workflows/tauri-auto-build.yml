@@ -194,9 +194,6 @@ jobs:
             du -h "$file"
           done
 
-      - name: Build Tauri Web
-        run: pnpm build:tauri-web
-
       - name: Typecheck
         run: pnpm typecheck
 

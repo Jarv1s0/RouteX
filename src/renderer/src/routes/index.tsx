@@ -4,6 +4,20 @@ import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { RulesProvider } from '@renderer/hooks/use-rules'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
+import Proxies from '@renderer/pages/proxies'
+import Rules from '@renderer/pages/rules'
+import Settings from '@renderer/pages/settings'
+import Profiles from '@renderer/pages/profiles'
+import Logs from '@renderer/pages/logs'
+import Connections from '@renderer/pages/connections'
+import Mihomo from '@renderer/pages/mihomo'
+import Sysproxy from '@renderer/pages/sysproxy'
+import Tun from '@renderer/pages/tun'
+import DNS from '@renderer/pages/dns'
+import Sniffer from '@renderer/pages/sniffer'
+import Stats from '@renderer/pages/stats'
+import Tools from '@renderer/pages/tools'
+import MapPage from '@renderer/pages/map'
 
 // ─── 模块级 navigate 引用，供 navigateSidebarRoute 使用 ───
 let _navigate: NavigateFunction | null = null
@@ -15,22 +29,6 @@ export function setRouterNavigate(fn: NavigateFunction, currentPath?: string): v
     _lastNavigatedPath = currentPath
   }
 }
-
-const loadProxies = () => import('@renderer/pages/proxies')
-const loadRules = () => import('@renderer/pages/rules')
-const loadSettings = () => import('@renderer/pages/settings')
-const loadProfiles = () => import('@renderer/pages/profiles')
-const loadLogs = () => import('@renderer/pages/logs')
-const loadConnections = () => import('@renderer/pages/connections')
-const loadMihomo = () => import('@renderer/pages/mihomo')
-const loadSysproxy = () => import('@renderer/pages/sysproxy')
-const loadTun = () => import('@renderer/pages/tun')
-
-const loadDNS = () => import('@renderer/pages/dns')
-const loadSniffer = () => import('@renderer/pages/sniffer')
-const loadStats = () => import('@renderer/pages/stats')
-const loadTools = () => import('@renderer/pages/tools')
-const loadMap = () => import('@renderer/pages/map')
 
 // 记录最后一次导航的目标路径，避免 window.location.hash 与 React Router 内部状态不同步
 let _lastNavigatedPath: string | null = null
@@ -95,22 +93,6 @@ export function navigateSidebarRoute(path: string): void {
 
   window.location.hash = nextHash
 }
-
-const Proxies = React.lazy(loadProxies)
-const Rules = React.lazy(loadRules)
-const Settings = React.lazy(loadSettings)
-const Profiles = React.lazy(loadProfiles)
-const Logs = React.lazy(loadLogs)
-const Connections = React.lazy(loadConnections)
-const Mihomo = React.lazy(loadMihomo)
-const Sysproxy = React.lazy(loadSysproxy)
-const Tun = React.lazy(loadTun)
-
-const DNS = React.lazy(loadDNS)
-const Sniffer = React.lazy(loadSniffer)
-const Stats = React.lazy(loadStats)
-const Tools = React.lazy(loadTools)
-const MapPage = React.lazy(loadMap)
 
 function RulesRoute(): React.JSX.Element {
   return (

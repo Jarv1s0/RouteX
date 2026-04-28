@@ -8,22 +8,19 @@ import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
+import { checkUpdate, setNativeTheme } from '@renderer/api/app'
+import { applyTheme } from '@renderer/utils/theme-ipc'
+import {
+  startTauriMihomoEventBridge
+} from '@renderer/utils/mihomo-ipc'
+import { ensureTauriTrafficRecorder } from '@renderer/utils/tauri-traffic-stats'
+import AppSidebar from '@renderer/components/layout/AppSidebar'
+import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
+import { GlobalDialogModal } from '@renderer/components/base/global-dialog-modal'
 
 import ErrorBoundary from '@renderer/components/base/error-boundary'
-import { ConnectionsSkeleton } from '@renderer/components/skeletons/ConnectionsSkeleton'
-import { ProxiesSkeleton } from '@renderer/components/skeletons/ProxiesSkeleton'
-import { RulesSkeleton } from '@renderer/components/skeletons/RulesSkeleton'
-import { LogsSkeleton } from '@renderer/components/skeletons/LogsSkeleton'
-import { StatsSkeleton } from '@renderer/components/skeletons/StatsSkeleton'
 
 const SIDER_WIDTH_CSS_VAR = '--sider-width'
-const AppSidebar = React.lazy(() => import('@renderer/components/layout/AppSidebar'))
-const GlobalConfirmModals = React.lazy(() => import('@renderer/components/base/GlobalConfirmModals'))
-const GlobalDialogModal = React.lazy(() =>
-  import('@renderer/components/base/global-dialog-modal').then((module) => ({
-    default: module.GlobalDialogModal
-  }))
-)
 
 function scheduleDeferredTask(task: () => void, delay = 0): () => void {
   const timeoutId = window.setTimeout(task, delay)
@@ -62,28 +59,6 @@ function scheduleIdleDeferredTask(task: () => void, delay = 0, timeout = 4000): 
 
     window.clearTimeout(idleId)
   }
-}
-
-async function checkUpdateSafely(): Promise<AppVersion | undefined> {
-  const { checkUpdate } = await import('@renderer/api/app')
-  return checkUpdate()
-}
-
-async function setNativeThemeSafely(theme: 'system' | 'light' | 'dark'): Promise<void> {
-  const { setNativeTheme } = await import('@renderer/api/app')
-  await setNativeTheme(theme)
-}
-
-async function applyThemeSafely(theme: string): Promise<void> {
-  const { applyTheme } = await import('@renderer/utils/theme-ipc')
-  await applyTheme(theme)
-}
-
-async function startTauriMihomoBridgeSafely(): Promise<void> {
-  const { startTauriMihomoEventBridge } = await import('@renderer/utils/mihomo-ipc')
-  const { ensureTauriTrafficRecorder } = await import('@renderer/utils/tauri-traffic-stats')
-  startTauriMihomoEventBridge()
-  ensureTauriTrafficRecorder()
 }
 
 const App: React.FC = () => {
@@ -145,7 +120,7 @@ const App: React.FC = () => {
       lastUpdateCheckAtRef.current = now
 
       try {
-        const nextLatest = await checkUpdateSafely()
+        const nextLatest = await checkUpdate()
         if (!cancelled) {
           setLatest(nextLatest)
         }
@@ -187,13 +162,8 @@ const App: React.FC = () => {
       return
     }
 
-    const cancelBridgeStart = scheduleDeferredTask(() => {
-      void startTauriMihomoBridgeSafely()
-    }, 80)
-
-    return () => {
-      cancelBridgeStart()
-    }
+    startTauriMihomoEventBridge()
+    ensureTauriTrafficRecorder()
   }, [])
 
   useEffect(() => {
@@ -210,7 +180,7 @@ const App: React.FC = () => {
     if (!appConfig) {
       return
     }
-    void setNativeThemeSafely(appTheme)
+    void setNativeTheme(appTheme)
     setTheme(appTheme)
   }, [appConfig, appTheme, setTheme, systemTheme])
 
@@ -218,7 +188,7 @@ const App: React.FC = () => {
     if (!appConfig) {
       return
     }
-    void applyThemeSafely(customTheme || 'CoolApk.css')
+    void applyTheme(customTheme || 'CoolApk.css')
   }, [appConfig, customTheme])
 
   useEffect(() => {
@@ -244,10 +214,11 @@ const App: React.FC = () => {
 
   const syncStoreListeners = useCallback(() => {
     const pathname = location.pathname
+    const isTauri = __ROUTEX_HOST__ === 'tauri'
     const needsConnections =
+      isTauri ||
       pathname.includes('/connections') || pathname.includes('/map') || pathname.includes('/stats')
-    const needsTraffic = pathname.includes('/stats')
-    const isStatsPage = pathname.includes('/stats')
+    const needsTraffic = isTauri || pathname.includes('/stats')
 
     pendingConnectionsInitCleanupRef.current?.()
     pendingConnectionsInitCleanupRef.current = null
@@ -260,21 +231,15 @@ const App: React.FC = () => {
         connectionsListenerActiveRef.current = true
       }
 
-      if (isStatsPage) {
-        pendingConnectionsInitCleanupRef.current = scheduleDeferredTask(initializeConnections, 120)
-      } else {
-        initializeConnections()
-      }
+      initializeConnections()
     } else if (!needsConnections && connectionsListenerActiveRef.current) {
       useConnectionsStore.getState().cleanupListeners()
       connectionsListenerActiveRef.current = false
     }
 
     if (needsTraffic && !trafficListenerActiveRef.current) {
-      pendingTrafficInitCleanupRef.current = scheduleDeferredTask(() => {
-        useTrafficStore.getState().initializeListeners()
-        trafficListenerActiveRef.current = true
-      }, 180)
+      useTrafficStore.getState().initializeListeners()
+      trafficListenerActiveRef.current = true
     } else if (!needsTraffic && trafficListenerActiveRef.current) {
       useTrafficStore.getState().cleanupListeners()
       trafficListenerActiveRef.current = false
@@ -319,35 +284,10 @@ const App: React.FC = () => {
     syncStoreListeners()
   }, [syncStoreListeners])
 
-  const getFallback = (path: string) => {
-    if (path.includes('/connections')) {
-      return <ConnectionsSkeleton />
-    }
-    if (path.includes('/proxies')) {
-      return <ProxiesSkeleton />
-    }
-    if (path.includes('/rules')) {
-      return <RulesSkeleton />
-    }
-    if (path.includes('/logs')) {
-      return <LogsSkeleton />
-    }
-    if (path.includes('/stats')) {
-      return <StatsSkeleton />
-    }
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
-  }
-
   return (
     <>
-      <React.Suspense fallback={null}>
-        <GlobalConfirmModals />
-        <GlobalDialogModal />
-      </React.Suspense>
+      <GlobalConfirmModals />
+      <GlobalDialogModal />
 
       <div
         ref={layoutRef}
@@ -383,21 +323,12 @@ const App: React.FC = () => {
         }}
         className={`flex h-screen w-full ${resizing ? 'cursor-ew-resize select-none' : ''}`}
       >
-        <React.Suspense
-          fallback={
-            <div
-              style={{ width: 'var(--sider-width)' }}
-              className="side h-full shrink-0 border-r border-default-200/50 bg-default-100/50 dark:border-white/5"
-            />
-          }
-        >
-          <AppSidebar
-            ref={sideRef}
-            width={siderWidthValue}
-            narrowWidth={narrowWidth}
-            latest={latest}
-          />
-        </React.Suspense>
+        <AppSidebar
+          ref={sideRef}
+          width={siderWidthValue}
+          narrowWidth={narrowWidth}
+          latest={latest}
+        />
 
         <div
           ref={resizerRef}
@@ -420,9 +351,7 @@ const App: React.FC = () => {
           className="main relative z-0 min-w-0 flex-1 h-full overflow-y-auto"
         >
           <ErrorBoundary>
-            <React.Suspense fallback={getFallback(location.pathname)}>
-              {page}
-            </React.Suspense>
+            {page}
           </ErrorBoundary>
         </div>
       </div>

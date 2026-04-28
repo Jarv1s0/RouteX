@@ -6,7 +6,8 @@ import {
   Dropdown,
   DropdownItem,
   DropdownMenu,
-  DropdownTrigger
+  DropdownTrigger,
+  Spinner
 } from '@heroui/react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -151,12 +152,14 @@ const OverrideItem: React.FC<Props> = (props) => {
     switch (key) {
       case 'toggle-override': {
         if (onToggleOverride) {
-            try {
-                await onToggleOverride(info.id, !!isActive)
-                mutateOverrideConfig()
-            } catch (e) {
-                alert(e)
-            }
+          setUpdating(true)
+          try {
+            await onToggleOverride(info.id, !!isActive)
+          } catch (e) {
+            alert(e)
+          } finally {
+            setUpdating(false)
+          }
         }
         break
       }
@@ -311,6 +314,11 @@ const OverrideItem: React.FC<Props> = (props) => {
           setOpenFileEditor(true)
         }}
       >
+        {updating && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/60">
+            <Spinner size="sm" />
+          </div>
+        )}
         <div ref={setNodeRef} {...attributes} {...listeners} className="h-full w-full">
           <CardBody className="pb-2">
             <div className="flex justify-between h-[32px]">

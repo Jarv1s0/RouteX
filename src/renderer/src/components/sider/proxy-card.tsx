@@ -4,10 +4,10 @@ import { useLocation } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getFlag, removeFlag, cleanNodeName } from '@renderer/utils/flags'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { navigateSidebarRoute } from '@renderer/routes'
-import { mihomoProxies } from '@renderer/utils/mihomo-ipc'
+import { isExpectedMihomoUnavailableError, mihomoProxies } from '@renderer/utils/mihomo-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface Props {
@@ -24,44 +24,80 @@ const ProxyCard: React.FC<Props> = (props) => {
   const [allProxies, setAllProxies] = useState<
     Record<string, ControllerProxiesDetail | ControllerGroupDetail>
   >({})
+  const retryTimerRef = useRef<number | null>(null)
+  const cancelledRef = useRef(false)
 
   const handleCardClick = (): void => {
     navigateSidebarRoute('/proxies')
   }
 
-  useEffect(() => {
-    let cancelled = false
-    const refreshProxies = (): void => {
-      mihomoProxies()
-        .then((data) => {
-          if (!cancelled) {
-            setAllProxies(data.proxies)
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setAllProxies({})
-          }
-        })
+  const clearRetryTimer = useCallback((): void => {
+    if (retryTimerRef.current === null) {
+      return
     }
 
-    refreshProxies()
-    const offCoreStarted = onIpc(ON.coreStarted, refreshProxies)
-    const offGroupsUpdated = onIpc(ON.groupsUpdated, refreshProxies)
+    window.clearTimeout(retryTimerRef.current)
+    retryTimerRef.current = null
+  }, [])
+
+  const refreshProxies = useCallback(async (): Promise<void> => {
+    clearRetryTimer()
+
+    try {
+      const data = await mihomoProxies()
+      if (!cancelledRef.current) {
+        setAllProxies(data.proxies)
+      }
+    } catch (error) {
+      if (cancelledRef.current) {
+        return
+      }
+
+      if (isExpectedMihomoUnavailableError(error)) {
+        if (retryTimerRef.current === null && !document.hidden) {
+          retryTimerRef.current = window.setTimeout(() => {
+            retryTimerRef.current = null
+            void refreshProxies()
+          }, 1200)
+        }
+        return
+      }
+
+      setAllProxies({})
+    }
+  }, [clearRetryTimer])
+
+  useEffect(() => {
+    cancelledRef.current = false
+    const handleRefresh = (): void => {
+      void refreshProxies()
+    }
+    const handleVisibilityChange = (): void => {
+      if (!document.hidden) {
+        void refreshProxies()
+      }
+    }
+
+    handleRefresh()
+    const offCoreStarted = onIpc(ON.coreStarted, handleRefresh)
+    const offGroupsUpdated = onIpc(ON.groupsUpdated, handleRefresh)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      cancelled = true
+      cancelledRef.current = true
+      clearRetryTimer()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       offCoreStarted()
       offGroupsUpdated()
     }
-  }, [])
+  }, [clearRetryTimer, refreshProxies])
 
   const firstGroup = useMemo(() => {
-    return mode === 'global' 
-      ? groups.find((g) => g.name === 'GLOBAL') 
+    return mode === 'global'
+      ? groups.find((g) => g.name === 'GLOBAL')
       : groups.find((g) => g.name !== 'GLOBAL')
   }, [groups, mode])
-  
+
   const currentGroupLabel = useMemo(() => {
     const groupName = firstGroup?.now
     return groupName ? cleanNodeName(groupName) : '代理组'
@@ -126,14 +162,18 @@ const ProxyCard: React.FC<Props> = (props) => {
           cursor-pointer
         `}
       >
-          <CardBody className="py-3 px-5 h-[90px] flex flex-col justify-between">
+        <CardBody className="py-3 px-5 h-[90px] flex flex-col justify-between">
           <div className="flex items-center gap-1.5">
             <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-              <LuRocket className={`text-[16px] transition-colors text-foreground/80 dark:text-foreground/70`} />
+              <LuRocket
+                className={`text-[16px] transition-colors text-foreground/80 dark:text-foreground/70`}
+              />
             </span>
-            <h3 className={`text-sm font-semibold text-foreground dark:text-foreground/90`}>代理组</h3>
+            <h3 className={`text-sm font-semibold text-foreground dark:text-foreground/90`}>
+              代理组
+            </h3>
           </div>
-          
+
           <div className="flex items-center gap-1.5 mt-auto max-w-full overflow-hidden">
             <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-[13px] leading-none flag-emoji">
               {currentGroupFlag}
@@ -148,8 +188,12 @@ const ProxyCard: React.FC<Props> = (props) => {
               </span>
               {hasFinalNode && (
                 <>
-                  <LuChevronRight className={`text-[12px] shrink-0 text-default-500 dark:text-default-300`} />
-                  <span className={`text-sm truncate font-medium min-w-0 flex-1 text-default-700 dark:text-default-300 flag-emoji`}>
+                  <LuChevronRight
+                    className={`text-[12px] shrink-0 text-default-500 dark:text-default-300`}
+                  />
+                  <span
+                    className={`text-sm truncate font-medium min-w-0 flex-1 text-default-700 dark:text-default-300 flag-emoji`}
+                  >
                     {finalNodeName}
                   </span>
                 </>

@@ -16,10 +16,8 @@ import https from 'https'
 import http from 'http'
 import tls from 'tls'
 import crypto from 'crypto'
-import { URL } from 'url'
 import { parseYaml, stringifyYaml } from '../utils/yaml'
 import { defaultProfile } from '../utils/template'
-import { subStorePort } from '../resolve/server'
 import { dirname, join } from 'path'
 import { deepMerge } from '../utils/merge'
 import { getUserAgent } from '../utils/userAgent'
@@ -35,6 +33,15 @@ function dedupeProfileIds(ids: Array<string | undefined | null>): string[] {
   return Array.from(
     new Set(ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0))
   )
+}
+
+function prioritizeProfileId(ids: Array<string | undefined | null>, primary?: string): string[] {
+  const normalizedIds = dedupeProfileIds(ids)
+  if (!primary || !normalizedIds.includes(primary)) {
+    return normalizedIds
+  }
+
+  return [primary, ...normalizedIds.filter((id) => id !== primary)]
 }
 
 function pickFirstValidProfileId(ids: Array<string | undefined>, validIds: Set<string>): string | undefined {
@@ -56,13 +63,16 @@ export function normalizeProfileConfig(config?: ProfileConfig): ProfileConfig {
   const validIds = new Set(items.map((item) => item.id))
   let current = pickFirstValidProfileId([config?.current], validIds)
   const seedActives = Array.isArray(config?.actives) ? config.actives : current ? [current] : []
-  const actives = dedupeProfileIds(seedActives).filter((id) => validIds.has(id))
+  let actives = dedupeProfileIds(seedActives).filter((id) => validIds.has(id))
 
   if (current && !actives.includes(current)) {
     actives.unshift(current)
   }
   if (!current && actives.length > 0) {
     current = actives[0]
+  }
+  if (current) {
+    actives = prioritizeProfileId(actives, current)
   }
 
   return {
@@ -100,7 +110,7 @@ export async function getProfileItem(id: string | undefined): Promise<ProfileIte
 export async function changeCurrentProfile(id: string): Promise<void> {
   const config = await getProfileConfig()
   const actives = getActiveProfileIdsFromConfig(config)
-  const nextActives = actives.includes(id) ? actives : [id, ...actives]
+  const nextActives = prioritizeProfileId(actives.includes(id) ? actives : [id, ...actives], id)
   await setActiveProfiles(nextActives, id)
 }
 
@@ -116,6 +126,7 @@ export async function setActiveProfiles(ids: string[], nextCurrent?: string): Pr
   }
 
   const current = pickFirstValidProfileId([nextCurrent, actives[0]], validIds)
+  actives = current ? prioritizeProfileId(actives, current) : actives
 
   const nextConfig = normalizeProfileConfig({
     ...config,
@@ -227,7 +238,6 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
     ua: item.ua,
     verify: item.verify ?? false,
     autoUpdate: item.autoUpdate ?? true,
-    substore: item.substore || false,
     interval: item.interval || 0,
     override: item.override || [],
     useProxy: item.useProxy || false,
@@ -239,99 +249,82 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
       const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
       if (!item.url) throw new Error('Empty URL')
       let res: AxiosResponse
-      if (newItem.substore) {
-        const urlObj = new URL(`http://127.0.0.1:${subStorePort}${item.url}`)
-        urlObj.searchParams.set('target', 'ClashMeta')
-        urlObj.searchParams.set('noCache', 'true')
-        if (newItem.useProxy && mixedPort != 0) {
-          urlObj.searchParams.set('proxy', `http://127.0.0.1:${mixedPort}`)
-        } else {
-          urlObj.searchParams.delete('proxy')
+      try {
+        const httpsAgent = new https.Agent({ rejectUnauthorized: !item.fingerprint })
+
+        if (item.fingerprint) {
+          const expected = item.fingerprint.replace(/:/g, '').toUpperCase()
+          const verify = (s: tls.TLSSocket) => {
+            if (getCertFingerprint(s.getPeerCertificate()) !== expected)
+              s.destroy(new Error('证书指纹不匹配'))
+          }
+
+          if (newItem.useProxy && mixedPort != 0) {
+            const urlObj = new URL(item.url)
+            const hostname = urlObj.hostname
+            const port = urlObj.port || '443'
+            httpsAgent.createConnection = (_, cb) => {
+              const req = http.request({
+                host: '127.0.0.1',
+                port: mixedPort,
+                method: 'CONNECT',
+                path: `${hostname}:${port}`
+              })
+
+              req.on('connect', (res, sock, head) => {
+                if (res.statusCode !== 200) {
+                  cb?.(new Error(`代理连接失败，状态码：${res.statusCode}`), null!)
+                  return
+                }
+                if (head.length > 0) sock.unshift(head)
+                const tls$ = tls.connect(
+                  { socket: sock, servername: hostname, rejectUnauthorized: false },
+                  () => verify(tls$)
+                )
+                cb?.(null, tls$)
+              })
+
+              req.on('error', (e) => cb?.(e, null!))
+              req.end()
+              return null!
+            }
+          } else {
+            const conn = httpsAgent.createConnection.bind(httpsAgent)
+            httpsAgent.createConnection = (o, c) => {
+              const sock = conn(o, c)
+              sock?.once('secureConnect', function (this: tls.TLSSocket) {
+                verify(this)
+              })
+              return sock
+            }
+          }
         }
-        res = await axios.get(urlObj.toString(), {
-          headers: {
-            'User-Agent': await getUserAgent()
-          },
+
+        res = await axios.get(item.url, {
+          httpsAgent,
+          ...(newItem.useProxy &&
+            mixedPort &&
+            !item.fingerprint && {
+              proxy: { protocol: 'http', host: '127.0.0.1', port: mixedPort }
+            }),
+          headers: { 'User-Agent': newItem.ua || (await getUserAgent()) },
           responseType: 'text'
         })
-      } else {
-        try {
-          const httpsAgent = new https.Agent({ rejectUnauthorized: !item.fingerprint })
-
-          if (item.fingerprint) {
-            const expected = item.fingerprint.replace(/:/g, '').toUpperCase()
-            const verify = (s: tls.TLSSocket) => {
-              if (getCertFingerprint(s.getPeerCertificate()) !== expected)
-                s.destroy(new Error('证书指纹不匹配'))
-            }
-
-            if (newItem.useProxy && mixedPort != 0) {
-              const urlObj = new URL(item.url)
-              const hostname = urlObj.hostname
-              const port = urlObj.port || '443'
-              httpsAgent.createConnection = (_, cb) => {
-                const req = http.request({
-                  host: '127.0.0.1',
-                  port: mixedPort,
-                  method: 'CONNECT',
-                  path: `${hostname}:${port}`
-                })
-
-                req.on('connect', (res, sock, head) => {
-                  if (res.statusCode !== 200) {
-                    cb?.(new Error(`代理连接失败，状态码：${res.statusCode}`), null!)
-                    return
-                  }
-                  if (head.length > 0) sock.unshift(head)
-                  const tls$ = tls.connect(
-                    { socket: sock, servername: hostname, rejectUnauthorized: false },
-                    () => verify(tls$)
-                  )
-                  cb?.(null, tls$)
-                })
-
-                req.on('error', (e) => cb?.(e, null!))
-                req.end()
-                return null!
-              }
-            } else {
-              const conn = httpsAgent.createConnection.bind(httpsAgent)
-              httpsAgent.createConnection = (o, c) => {
-                const sock = conn(o, c)
-                sock?.once('secureConnect', function (this: tls.TLSSocket) {
-                  verify(this)
-                })
-                return sock
-              }
-            }
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          if (error.code === 'ECONNRESET' || error.code === 'ECONNABORTED') {
+            throw new Error(`网络连接被重置或超时：${item.url}`)
+          } else if (error.code === 'CERT_HAS_EXPIRED') {
+            throw new Error(`服务器证书已过期：${item.url}`)
+          } else if (error.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+            throw new Error(`无法验证服务器证书：${item.url}`)
+          } else if (error.message.includes('Certificate verification failed')) {
+            throw new Error(`证书验证失败：${item.url}`)
+          } else {
+            throw new Error(`请求失败：${error.message}`)
           }
-
-          res = await axios.get(item.url, {
-            httpsAgent,
-            ...(newItem.useProxy &&
-              mixedPort &&
-              !item.fingerprint && {
-                proxy: { protocol: 'http', host: '127.0.0.1', port: mixedPort }
-              }),
-            headers: { 'User-Agent': newItem.ua || (await getUserAgent()) },
-            responseType: 'text'
-          })
-        } catch (error) {
-          if (axios.isAxiosError(error)) {
-            if (error.code === 'ECONNRESET' || error.code === 'ECONNABORTED') {
-              throw new Error(`网络连接被重置或超时：${item.url}`)
-            } else if (error.code === 'CERT_HAS_EXPIRED') {
-              throw new Error(`服务器证书已过期：${item.url}`)
-            } else if (error.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
-              throw new Error(`无法验证服务器证书：${item.url}`)
-            } else if (error.message.includes('Certificate verification failed')) {
-              throw new Error(`证书验证失败：${item.url}`)
-            } else {
-              throw new Error(`请求失败：${error.message}`)
-            }
-          }
-          throw error
         }
+        throw error
       }
 
       const data = res.data

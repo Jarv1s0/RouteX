@@ -26,9 +26,7 @@ interface Props {
 const ConnCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
   const { appConfig } = useAppConfig()
-  const {
-    showTraffic = false
-  } = appConfig || {}
+  const { showTraffic = false } = appConfig || {}
   const showTrafficRef = useRef(showTraffic)
   showTrafficRef.current = showTraffic
 
@@ -41,8 +39,10 @@ const ConnCard: React.FC<Props> = (props) => {
   const [upload, setUpload] = useState(0)
   const [download, setDownload] = useState(0)
   const lastVisualUpdateAtRef = useRef(0)
+  const lastTrafficEventAtRef = useRef(0)
+  const hasTrafficEventRef = useRef(false)
   const activeConnections = useConnectionsStore((state) => state.activeConnections)
-  
+
   const [trafficData, setTrafficData] = useState(() =>
     Array(16)
       .fill(0)
@@ -52,6 +52,11 @@ const ConnCard: React.FC<Props> = (props) => {
 
   useEffect(() => {
     if (activeConnections.length === 0) {
+      return
+    }
+
+    // 已经收到实时流量后，优先保留它，避免较慢的连接快照把显示值重置回 0。
+    if (hasTrafficEventRef.current && Date.now() - lastTrafficEventAtRef.current < 1500) {
       return
     }
 
@@ -95,6 +100,8 @@ const ConnCard: React.FC<Props> = (props) => {
         return
       }
       lastVisualUpdateAtRef.current = now
+      lastTrafficEventAtRef.current = now
+      hasTrafficEventRef.current = true
 
       setUpload(info.up)
       setDownload(info.down)
@@ -127,12 +134,9 @@ const ConnCard: React.FC<Props> = (props) => {
       }
     }
 
-    return subscribeDesktopTraffic(
-      (info) => {
-        void handleTraffic(info)
-      },
-      true
-    )
+    return subscribeDesktopTraffic((info) => {
+      void handleTraffic(info)
+    }, true)
   }, [])
 
   if (iconOnly) {
@@ -168,53 +172,66 @@ const ConnCard: React.FC<Props> = (props) => {
         <CardBody className="py-3 px-5 h-[90px] flex flex-col justify-between relative overflow-hidden z-10 w-full">
           {/* Traffic Chart Layer (Pushed to bottom) */}
           <div className="absolute left-0 right-0 bottom-0 top-[20px] z-0 opacity-50 pointer-events-none">
-              <TrafficChart data={trafficData} isActive={match} />
+            <TrafficChart data={trafficData} isActive={match} />
           </div>
-          
+
           <div className="flex justify-between items-start relative z-10">
             <div className="flex items-center gap-1.5">
               <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                <LuPlug className={`text-[16px] transition-colors text-foreground/70 dark:text-foreground/60`} />
+                <LuPlug
+                  className={`text-[16px] transition-colors text-foreground/70 dark:text-foreground/60`}
+                />
               </span>
-              <h3 className={`text-sm font-semibold text-foreground dark:text-foreground/90`}>连接</h3>
+              <h3 className={`text-sm font-semibold text-foreground dark:text-foreground/90`}>
+                连接
+              </h3>
             </div>
           </div>
-          
+
           <div className="flex justify-between items-end relative z-10 mt-auto">
-             <div className="flex items-center justify-between w-full">
-               {/* Upload */}
-               <div className="flex items-center gap-1.5">
-                   <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                     <LuCircleArrowUp className={`text-[12px] text-cyan-500 dark:text-cyan-400`} />
-                   </span>
-                   <div className="flex items-baseline gap-0.5">
-                     <span className={`text-md font-black tracking-tight leading-none text-cyan-500 dark:text-cyan-400`}>
-                       {calcTraffic(upload).replace(/[A-Za-z]/g, '')}
-                     </span>
-                     <span className={`text-[10px] font-bold uppercase leading-none text-cyan-600/60 dark:text-cyan-400/60`}>
-                       {calcTraffic(upload).replace(/[^A-Za-z]/g, '')}/s
-                     </span>
-                   </div>
-               </div>
-               
-               {/* Download */}
-               <div className="flex items-center gap-1.5">
-                   <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                     <LuCircleArrowDown className={`text-[12px] text-purple-500 dark:text-purple-400`} />
-                   </span>
-                   <div className="flex items-baseline gap-0.5">
-                     <span className={`text-md font-black tracking-tight leading-none text-purple-500 dark:text-purple-400`}>
-                       {calcTraffic(download).replace(/[A-Za-z]/g, '')}
-                     </span>
-                     <span className={`text-[10px] font-bold uppercase leading-none text-purple-600/60 dark:text-purple-400/60`}>
-                       {calcTraffic(download).replace(/[^A-Za-z]/g, '')}/s
-                     </span>
-                   </div>
-               </div>
-             </div>
+            <div className="flex items-center justify-between w-full">
+              {/* Upload */}
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+                  <LuCircleArrowUp className={`text-[12px] text-cyan-500 dark:text-cyan-400`} />
+                </span>
+                <div className="flex items-baseline gap-0.5">
+                  <span
+                    className={`text-md font-black tracking-tight leading-none text-cyan-500 dark:text-cyan-400`}
+                  >
+                    {calcTraffic(upload).replace(/[A-Za-z]/g, '')}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold uppercase leading-none text-cyan-600/60 dark:text-cyan-400/60`}
+                  >
+                    {calcTraffic(upload).replace(/[^A-Za-z]/g, '')}/s
+                  </span>
+                </div>
+              </div>
+
+              {/* Download */}
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+                  <LuCircleArrowDown
+                    className={`text-[12px] text-purple-500 dark:text-purple-400`}
+                  />
+                </span>
+                <div className="flex items-baseline gap-0.5">
+                  <span
+                    className={`text-md font-black tracking-tight leading-none text-purple-500 dark:text-purple-400`}
+                  >
+                    {calcTraffic(download).replace(/[A-Za-z]/g, '')}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold uppercase leading-none text-purple-600/60 dark:text-purple-400/60`}
+                  >
+                    {calcTraffic(download).replace(/[^A-Za-z]/g, '')}/s
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </CardBody>
-        
       </Card>
     </div>
   )

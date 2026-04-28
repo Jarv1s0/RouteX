@@ -1,0 +1,32 @@
+{
+  "taskId": "019dbefd-1e1a-733b-85e8-87a88eaefaa1",
+  "todos": [
+    {
+      "id": "705fbb0b437e65f9b0d58b3e5dd70a13",
+      "content": "分析 dev 模式下 TUN 已开启但无流量/无连接的根因",
+      "status": "completed"
+    },
+    {
+      "id": "42f333c2b99ed76a8d71d82cf852b401",
+      "content": "排查连接事件桥、流量桥与 dev 启动顺序的竞态",
+      "status": "completed"
+    },
+    {
+      "id": "864548fa99d4291d8a9fc6e7066db20c",
+      "content": "排查 TUN 开启、核心启动、外部控制器地址同步之间的竞态",
+      "status": "completed"
+    },
+    {
+      "id": "34e86e2a7aff5ac21810991e454a31ae",
+      "content": "给出最小修复方案并实施代码修改",
+      "status": "completed"
+    },
+    {
+      "id": "188b22a50204632760916897a85999fd",
+      "content": "进行静态验证并总结已知风险",
+      "status": "completed"
+    }
+  ],
+  "lastUpdated": 1777040861946,
+  "status": "active"
+}

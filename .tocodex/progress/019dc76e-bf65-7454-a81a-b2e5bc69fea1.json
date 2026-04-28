@@ -1,0 +1,22 @@
+{
+  "taskId": "019dc76e-bf65-7454-a81a-b2e5bc69fea1",
+  "todos": [
+    {
+      "id": "eef22a7c43e073bef65cc48a4673002a",
+      "content": "清理 src-tauri/src/main.rs 中 3 处 TUN_DIAG 临时诊断日志",
+      "status": "completed"
+    },
+    {
+      "id": "7c5cbf7742519e37a83c82067fe47723",
+      "content": "确认未误删 getControllerUrl IPC 通道",
+      "status": "completed"
+    },
+    {
+      "id": "0c6521da55c9a32b28238fdfb532d8a4",
+      "content": "输出结果说明",
+      "status": "completed"
+    }
+  ],
+  "lastUpdated": 1777167605670,
+  "status": "active"
+}

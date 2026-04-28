@@ -38,6 +38,7 @@ interface Props {
   removeProfileItem: (id: string) => Promise<void>
   mutateProfileConfig: () => void
   onClick: () => Promise<void>
+  onSetPrimary: () => Promise<void>
   onToggleEnabled: (nextEnabled: boolean) => Promise<void>
   switching: boolean
   isEnabled: boolean
@@ -61,6 +62,7 @@ const ProfileItem: React.FC<Props> = (props) => {
     mutateProfileConfig,
     updateProfileItem,
     onClick,
+    onSetPrimary,
     isCurrent,
     switching,
     onToggleEnabled,
@@ -144,6 +146,15 @@ const ProfileItem: React.FC<Props> = (props) => {
         isDisabled: mergeActionDisabled,
         description: (isEnabled && !canDisable) ? '至少保留一个启用订阅' : undefined
       } as MenuItem)
+
+      list.unshift({
+        key: 'set-primary',
+        label: '设为主订阅',
+        showDivider: false,
+        color: 'default',
+        className: '',
+        description: isEnabled ? '切换主订阅并保留合并' : '设为主订阅并接管当前合并'
+      } as MenuItem)
     }
 
     return list
@@ -151,6 +162,15 @@ const ProfileItem: React.FC<Props> = (props) => {
 
   const onMenuAction = async (key: Key): Promise<void> => {
     switch (key) {
+      case 'set-primary': {
+        setSelecting(true)
+        try {
+          await onSetPrimary()
+        } finally {
+          setSelecting(false)
+        }
+        break
+      }
       case 'toggle-merge': {
         void onToggleMerge(!isEnabled)
         break

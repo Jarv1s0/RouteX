@@ -8,7 +8,7 @@ import {
   Switch
 } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
-import { BaseEditor } from '../base/base-editor-lazy'
+import { BaseEditor } from '../base/base-editor'
 import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { getOverride, setOverride } from '@renderer/utils/override-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'

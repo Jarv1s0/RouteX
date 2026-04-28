@@ -47,6 +47,7 @@ import ProfileSettingModal from '@renderer/components/profiles/profile-setting-m
 import useSWR from 'swr'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { notifyError } from '@renderer/utils/notify'
+import { createQueuedAsyncRunner } from '@renderer/utils/queued-async-runner'
 import { OverrideConfigProvider, useOverrideConfig } from '@renderer/hooks/use-override-config'
 import { desktop } from '@renderer/api/desktop'
 
@@ -85,6 +86,7 @@ const ProfilesPage: React.FC = () => {
     addProfileItem,
     updateProfileItem: patchProfileItem,
     removeProfileItem,
+    changeCurrentProfile,
     setActiveProfiles,
     mutateProfileConfig
   } = useProfileConfig()
@@ -232,6 +234,12 @@ const ProfilesPage: React.FC = () => {
     [searchParams, setSearchParams]
   )
 
+  const scheduleCoreRestart = useMemo(
+    () =>
+      createQueuedAsyncRunner(restartCore, (error) => notifyError(error, { title: '应用覆写失败' })),
+    []
+  )
+
   const handleImport = async (importUrl: string): Promise<void> => {
     setImporting(true)
     await addProfileItem({ name: '', type: 'remote', url: importUrl, useProxy, autoUpdate: true })
@@ -261,17 +269,26 @@ const ProfilesPage: React.FC = () => {
   const onToggleOverride = useCallback(
     async (id: string, active: boolean): Promise<void> => {
       if (!currentProfile) return
-      let newOverride = currentProfile.override || []
+      const currentOverrides = currentProfile.override || []
+      let newOverride = currentOverrides
       if (active) {
         newOverride = newOverride.filter((overrideId) => overrideId !== id)
       } else if (!newOverride.includes(id)) {
         newOverride = [...newOverride, id]
       }
+
+      if (
+        newOverride.length === currentOverrides.length &&
+        newOverride.every((overrideId, index) => overrideId === currentOverrides[index])
+      ) {
+        return
+      }
+
       await updateProfileItem({ ...currentProfile, override: newOverride })
-      await restartCore()
       mutateProfileConfig()
+      scheduleCoreRestart()
     },
-    [currentProfile, mutateProfileConfig]
+    [currentProfile, mutateProfileConfig, scheduleCoreRestart]
   )
 
   const pageRef = useRef<HTMLDivElement>(null)
@@ -312,24 +329,45 @@ const ProfilesPage: React.FC = () => {
   )
 
   const runSelectionMutation = useCallback(
-    async (nextActives: string[], nextCurrent?: string): Promise<void> => {
+    async (action: () => Promise<void>): Promise<void> => {
       setSwitching(true)
       try {
-        await setActiveProfiles(nextActives, nextCurrent)
+        await action()
       } finally {
         await new Promise((resolve) => setTimeout(resolve, 500))
         setSwitching(false)
       }
     },
-    [setActiveProfiles]
+    []
   )
 
   const handleSetPrimaryProfile = useCallback(
     async (id: string): Promise<void> => {
-      const nextActives = activeProfileIdSet.has(id) ? activeProfileIds : [...activeProfileIds, id]
-      await runSelectionMutation(nextActives, id)
+      if (id === current) return
+      await runSelectionMutation(() => changeCurrentProfile(id))
     },
-    [activeProfileIdSet, activeProfileIds, runSelectionMutation]
+    [changeCurrentProfile, current, runSelectionMutation]
+  )
+
+  const handleSwitchToStandaloneProfile = useCallback(
+    async (id: string): Promise<void> => {
+      if (current === id && activeProfileIds.length === 1) return
+      await runSelectionMutation(() => setActiveProfiles([id], id))
+    },
+    [activeProfileIds.length, current, runSelectionMutation, setActiveProfiles]
+  )
+
+  const handleProfileCardClick = useCallback(
+    async (id: string): Promise<void> => {
+      if (id === current) return
+      if (activeProfileIdSet.has(id)) {
+        await handleSetPrimaryProfile(id)
+        return
+      }
+
+      await handleSwitchToStandaloneProfile(id)
+    },
+    [activeProfileIdSet, current, handleSetPrimaryProfile, handleSwitchToStandaloneProfile]
   )
 
   const handleToggleProfileActive = useCallback(
@@ -339,9 +377,9 @@ const ProfilesPage: React.FC = () => {
         : activeProfileIds.filter((activeId) => activeId !== id)
       const nextCurrent = resolveNextCurrentProfile(current, id, nextEnabled, nextActives)
 
-      await runSelectionMutation(nextActives, nextCurrent)
+      await runSelectionMutation(() => setActiveProfiles(nextActives, nextCurrent))
     },
-    [activeProfileIds, current, runSelectionMutation]
+    [activeProfileIds, current, runSelectionMutation, setActiveProfiles]
   )
 
   const handleOverrideInputKeyUp = useCallback(
@@ -500,7 +538,11 @@ const ProfilesPage: React.FC = () => {
           item={editingItem}
           isCurrent={editingItem.id === current}
           updateProfileItem={async (item: ProfileItem) => {
-            await addProfileItem(item)
+            if (item.id) {
+              await patchProfileItem(item)
+            } else {
+              await addProfileItem(item)
+            }
             setShowEditModal(false)
             setEditingItem(null)
           }}
@@ -514,7 +556,11 @@ const ProfilesPage: React.FC = () => {
         <OverrideEditInfoModal
           item={editingOverrideItem}
           updateOverrideItem={async (item: OverrideItem) => {
-            await addOverrideItem(item)
+            if (item.id) {
+              await updateOverrideItem(item)
+            } else {
+              await addOverrideItem(item)
+            }
             setShowOverrideEditModal(false)
             setEditingOverrideItem(null)
           }}
@@ -781,7 +827,8 @@ const ProfilesPage: React.FC = () => {
                   updateProfileItem={patchProfileItem}
                   info={item}
                   switching={switching}
-                  onClick={() => handleSetPrimaryProfile(item.id)}
+                  onClick={() => handleProfileCardClick(item.id)}
+                  onSetPrimary={() => handleSetPrimaryProfile(item.id)}
                   onToggleEnabled={(nextEnabled) => handleToggleProfileActive(item.id, nextEnabled)}
                 />
               ))}

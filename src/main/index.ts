@@ -1,15 +1,11 @@
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerIpcMainHandlers } from './utils/ipc'
 import windowStateKeeper from 'electron-window-state'
-import {
-  app,
-  BrowserWindow,
-  Menu
-} from 'electron'
+import { app, BrowserWindow, Menu } from 'electron'
 import { getAppConfig, patchControledMihomoConfig } from './config'
 import { quitWithoutCore, startCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
-import { createTray } from './resolve/tray'
+import { closeTrayIcon, createTray } from './resolve/tray'
 import { createApplicationMenu } from './resolve/menu'
 import { init } from './utils/init'
 import { join } from 'path'
@@ -34,7 +30,10 @@ import { runAppStartup } from './bootstrap/startup'
 import { registerTaskbarIconHandler } from './resolve/taskbarIcon'
 import { createShutdownController } from './bootstrap/shutdown'
 import { createDeepLinkHandler } from './resolve/deepLink'
-import { createMainWindowController, registerMainWindowLifecycleHandlers } from './resolve/mainWindow'
+import {
+  createMainWindowController,
+  registerMainWindowLifecycleHandlers
+} from './resolve/mainWindow'
 import { syncLatestConnectionsSnapshotToWindow } from './core/mihomoApi'
 export let mainWindow: BrowserWindow | null = null
 let isCreatingWindow = false
@@ -119,6 +118,7 @@ const shutdownController = createShutdownController({
   getMainWindow: () => mainWindow,
   getAppConfig,
   quitWithoutCore,
+  closeTrayIcon,
   stopMapUpdateTimer,
   saveTrafficStats,
   saveProviderStats,
@@ -215,8 +215,11 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       // 保留自定义窗口按钮时，禁用系统标题栏覆盖区，避免点击区域冲突
       titleBarOverlay: false,
       autoHideMenuBar: true,
-      ...(process.platform === 'linux' ? { icon: getIconPath('icon.png') } : 
-         process.platform === 'win32' ? { icon: getIconPath('icon.ico') } : {}),
+      ...(process.platform === 'linux'
+        ? { icon: getIconPath('icon.png') }
+        : process.platform === 'win32'
+          ? { icon: getIconPath('icon.ico') }
+          : {}),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         spellcheck: false,

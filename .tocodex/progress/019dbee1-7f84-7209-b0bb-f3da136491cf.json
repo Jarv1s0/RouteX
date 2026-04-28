@@ -1,0 +1,57 @@
+{
+  "taskId": "019dbee1-7f84-7209-b0bb-f3da136491cf",
+  "todos": [
+    {
+      "id": "931b33458a6c5596ec7dfd7b323da7be",
+      "content": "分析 TUN 开关触发链路，定位 Electron 与 Tauri 迁移后可能引入的 20 秒延迟点",
+      "status": "completed"
+    },
+    {
+      "id": "51359d0ed7cdab2580dbb1a4752ee913",
+      "content": "对比前端开关逻辑、IPC/命令调用与后端执行路径，确认是 UI 等待、轮询超时还是核心进程创建/销毁网卡慢",
+      "status": "completed"
+    },
+    {
+      "id": "819a2e9faba80a3e1f3739aebe199a5c",
+      "content": "实施最小修复：缩短 TUN 等待轮询间隔，避免满跑 20s，增加日志便于调试",
+      "status": "completed"
+    },
+    {
+      "id": "52b07afb8191473fcb20733c4d3086b6",
+      "content": "验证相关代码路径，整理原因与修改结果",
+      "status": "completed"
+    },
+    {
+      "id": "fa3a9c1e7308d8e7e13d878c0e7daa2b",
+      "content": "规划进一步优化 TUN 启动可用速度的方案，按收益/风险排序",
+      "status": "completed"
+    },
+    {
+      "id": "d71a29d284ae85f3ced361993c8eb8e4",
+      "content": "将优化方案写入 .tocodex/plans 并请求用户确认后切换到实现模式",
+      "status": "completed"
+    },
+    {
+      "id": "be82f1fc557ca0767ea23322c72f1fcb",
+      "content": "方案B：去掉 spawn 后 sleep(500ms)，改为短轮询检测进程存活",
+      "status": "completed"
+    },
+    {
+      "id": "3df05ab6a0e9654d63ba89f78fba452d",
+      "content": "方案A1：config 哈希缓存跳过 check_runtime_profile（配置未变则跳过 mihomo -t）",
+      "status": "completed"
+    },
+    {
+      "id": "ff215e4d4946fa3500a8c6b2c01301d6",
+      "content": "方案C：基于 mihomo 启动日志精确检测 TUN 就绪关键字",
+      "status": "pending"
+    },
+    {
+      "id": "312199796aa1e5554e5fd75cbbe32263",
+      "content": "验证编译通过",
+      "status": "completed"
+    }
+  ],
+  "lastUpdated": 1777026158656,
+  "status": "active"
+}

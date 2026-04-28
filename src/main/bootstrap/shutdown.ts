@@ -4,6 +4,7 @@ interface ShutdownControllerOptions {
   getMainWindow: () => BrowserWindow | null
   getAppConfig: typeof import('../config').getAppConfig
   quitWithoutCore: typeof import('../core/manager').quitWithoutCore
+  closeTrayIcon: typeof import('../resolve/tray').closeTrayIcon
   stopMapUpdateTimer: typeof import('../resolve/providerStats').stopMapUpdateTimer
   saveTrafficStats: typeof import('../resolve/trafficStats').saveTrafficStats
   saveProviderStats: typeof import('../resolve/providerStats').saveProviderStats
@@ -17,6 +18,7 @@ export function createShutdownController(options: ShutdownControllerOptions) {
     getMainWindow,
     getAppConfig,
     quitWithoutCore,
+    closeTrayIcon,
     stopMapUpdateTimer,
     saveTrafficStats,
     saveProviderStats,
@@ -30,6 +32,7 @@ export function createShutdownController(options: ShutdownControllerOptions) {
   let isQuitting = false
   let notQuitDialog = false
   let lastQuitAttempt = 0
+  let signalShutdownStarted = false
 
   function clearQuitTimeout(): void {
     if (quitTimeout) {
@@ -69,6 +72,16 @@ export function createShutdownController(options: ShutdownControllerOptions) {
     notQuitDialog = true
   }
 
+  async function closeUiSurfaces(): Promise<void> {
+    await Promise.resolve(closeTrayIcon()).catch(() => undefined)
+
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed()) {
+        window.destroy()
+      }
+    }
+  }
+
   async function performAppShutdown(): Promise<void> {
     if (shutdownPromise) {
       await shutdownPromise
@@ -77,7 +90,11 @@ export function createShutdownController(options: ShutdownControllerOptions) {
 
     shutdownPromise = (async () => {
       stopMapUpdateTimer()
-      await Promise.allSettled([saveTrafficStats(), saveProviderStats(), triggerSysProxy(false, false)])
+      await Promise.allSettled([
+        saveTrafficStats(),
+        saveProviderStats(),
+        triggerSysProxy(false, false)
+      ])
       await stopCore()
     })()
 
@@ -87,7 +104,21 @@ export function createShutdownController(options: ShutdownControllerOptions) {
   async function exitAppAfterShutdown(): Promise<void> {
     clearQuitTimeout()
     await performAppShutdown()
-    app.exit()
+    await closeUiSurfaces()
+    app.exit(0)
+  }
+
+  function handleProcessSignal(signal: NodeJS.Signals | 'graceful-exit'): void {
+    if (signalShutdownStarted) {
+      return
+    }
+
+    signalShutdownStarted = true
+    console.log(`[shutdown] received ${signal}, exiting gracefully`)
+    void exitAppAfterShutdown().catch((error) => {
+      console.error(`[shutdown] graceful exit failed after ${signal}:`, error)
+      app.exit(1)
+    })
   }
 
   function registerHooks(): void {
@@ -116,6 +147,20 @@ export function createShutdownController(options: ShutdownControllerOptions) {
 
     powerMonitor.on('shutdown', async () => {
       await exitAppAfterShutdown()
+    })
+
+    process.once('SIGINT', () => {
+      handleProcessSignal('SIGINT')
+    })
+
+    process.once('SIGTERM', () => {
+      handleProcessSignal('SIGTERM')
+    })
+
+    process.once('message', (message) => {
+      if (message === 'graceful-exit') {
+        handleProcessSignal('graceful-exit')
+      }
     })
   }
 

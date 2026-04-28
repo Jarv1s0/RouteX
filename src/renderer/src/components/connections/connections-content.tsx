@@ -76,7 +76,7 @@ export default function ConnectionsContent({
         <ConnectionItem
           setSelected={setSelected}
           setIsDetailModalOpen={setIsDetailModalOpen}
-          selected={selected}
+          selectedId={selected?.id}
           iconUrl={iconUrl}
           displayIcon={displayIcon && findProcessMode !== 'off'}
           displayName={displayName}
@@ -160,7 +160,7 @@ export default function ConnectionsContent({
           iconMap={iconMap}
           appNameCache={appNameCache}
           tab={tab}
-          selected={selected}
+          selectedId={selected?.id}
           setSelected={setSelected}
           setIsDetailModalOpen={setIsDetailModalOpen}
           closeConnection={closeConnection}

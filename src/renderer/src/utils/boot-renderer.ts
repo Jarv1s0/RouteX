@@ -11,6 +11,39 @@ function normalizeError(error: unknown): { message: string; stack?: string } {
   }
 }
 
+function isDynamicImportFetchError(error: unknown): boolean {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : JSON.stringify(error)
+
+  return message.includes('Failed to fetch dynamically imported module')
+}
+
+function tryRecoverDynamicImport(entryName: string, error: unknown): boolean {
+  if (!isDynamicImportFetchError(error)) {
+    return false
+  }
+
+  const reloadMarker = `routex:dynamic-import-reload:${entryName}`
+
+  try {
+    if (window.sessionStorage.getItem(reloadMarker) === '1') {
+      return false
+    }
+
+    window.sessionStorage.setItem(reloadMarker, '1')
+  } catch {
+    return false
+  }
+
+  traceBootStep(entryName, 'entry:import:recover:reload', error)
+  window.location.reload()
+  return true
+}
+
 export function traceBootStep(entryName: string, step: string, detail?: unknown): void {
   if (detail instanceof Error) {
     console.error(`[boot:${entryName}] ${step}`, detail)
@@ -66,8 +99,16 @@ export async function bootRenderer(entryName: string, loader: () => Promise<unkn
   try {
     traceBootStep(entryName, 'entry:import:start')
     await loader()
+    try {
+      window.sessionStorage.removeItem(`routex:dynamic-import-reload:${entryName}`)
+    } catch {
+      // ignore sessionStorage failures
+    }
     traceBootStep(entryName, 'entry:import:done')
   } catch (error) {
+    if (tryRecoverDynamicImport(entryName, error)) {
+      return
+    }
     traceBootStep(entryName, 'entry:import:failed', error)
     console.error(`[boot:${entryName}] entry import failed`, error)
     renderFatalScreen(entryName, error)

@@ -1,5 +1,6 @@
 import { Avatar, Button, Card } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import dayjs from 'dayjs'
 import React, { memo, useCallback, useMemo } from 'react'
 import type { PressEvent } from '@react-types/shared'
@@ -8,10 +9,10 @@ import { IoEyeOff, IoEye, IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { getFlag, cleanNodeName } from '@renderer/utils/flags'
 
 const SELECTED_CARD_CLASS =
-  'bg-primary/[0.085] dark:bg-primary/[0.12] backdrop-blur-xl border border-primary/24 shadow-[0_10px_24px_rgba(16,185,129,0.08)] scale-[1.002]'
+  'bg-primary/[0.08] dark:bg-primary/[0.12] border border-primary/24 shadow-[0_4px_14px_rgba(16,185,129,0.08)]'
 
 const DEFAULT_CARD_CLASS =
-  'bg-default-100/60 dark:bg-default-50/30 backdrop-blur-md border border-default-200/60 dark:border-white/10 hover:bg-default-200/60 dark:hover:bg-default-100/40 hover:-translate-y-0.5 hover:shadow-md'
+  'bg-default-100/70 dark:bg-default-50/28 border border-default-200/60 dark:border-white/8 hover:bg-default-100/85 dark:hover:bg-default-100/36 hover:border-default-300/50 dark:hover:border-white/12 hover:shadow'
 
 const META_PILL_CLASS =
   'bg-default-100/50 dark:bg-default-50/30 rounded-full border border-default-200/50 dark:border-white/10'
@@ -24,7 +25,7 @@ interface Props {
   displayIcon?: boolean
   iconUrl?: string
   displayName?: string
-  selected?: ControllerConnectionDetail
+  selectedId?: string
   setSelected?: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
   setIsDetailModalOpen?: React.Dispatch<React.SetStateAction<boolean>>
   close?: (id: string) => void
@@ -40,7 +41,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
   displayIcon,
   iconUrl,
   displayName,
-  selected,
+  selectedId,
   setSelected,
   setIsDetailModalOpen,
   close,
@@ -49,6 +50,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
   isHidden,
   onContextMenu
 }) => {
+  const isSelected = info.id === selectedId
   const processName = displayName || info.metadata.process?.replace(/\.exe$/, '') || info.metadata.sourceIP || '-'
   const destination = info.metadata.host || info.metadata.destinationIP || info.metadata.remoteDestination || '-'
   
@@ -95,10 +97,10 @@ const ConnectionItemComponent: React.FC<Props> = ({
       <Card
         as="div"
         isPressable
-        shadow="sm"
-        className={`w-full transition-all duration-300 border group
-          ${info.id === selected?.id ? SELECTED_CARD_CLASS : DEFAULT_CARD_CLASS}
-          data-[pressed=true]:scale-[0.99]
+        shadow="none"
+        className={`w-full group ${CARD_STYLES.BASE}
+          ${isSelected ? SELECTED_CARD_CLASS : DEFAULT_CARD_CLASS}
+          data-[pressed=true]:scale-[0.995]
         `}
         radius="lg"
         onPress={handleCardPress}
@@ -209,6 +211,9 @@ const ConnectionItemComponent: React.FC<Props> = ({
 }
 
 const ConnectionItem = memo(ConnectionItemComponent, (prevProps, nextProps) => {
+  const wasSelected = prevProps.selectedId === prevProps.info.id
+  const isSelected = nextProps.selectedId === nextProps.info.id
+
   return (
     prevProps.info.id === nextProps.info.id &&
     prevProps.info.uploadSpeed === nextProps.info.uploadSpeed &&
@@ -217,7 +222,7 @@ const ConnectionItem = memo(ConnectionItemComponent, (prevProps, nextProps) => {
     prevProps.iconUrl === nextProps.iconUrl &&
     prevProps.displayIcon === nextProps.displayIcon &&
     prevProps.displayName === nextProps.displayName &&
-    prevProps.selected?.id === nextProps.selected?.id &&
+    wasSelected === isSelected &&
     prevProps.isHidden === nextProps.isHidden &&
     prevProps.timeRefreshTrigger === nextProps.timeRefreshTrigger &&
     prevProps.info.chains?.[0] === nextProps.info.chains?.[0] &&

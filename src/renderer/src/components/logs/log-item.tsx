@@ -1,5 +1,6 @@
 import { Card, CardBody } from '@heroui/react'
-import React from 'react'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
+import React, { memo, useCallback } from 'react'
 
 
 interface Props extends ControllerLog {
@@ -10,11 +11,11 @@ interface Props extends ControllerLog {
 const LogItem: React.FC<Props> = (props) => {
   const { type, payload, time, onPress } = props
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (onPress) {
       onPress({ type, payload, time })
     }
-  }
+  }, [onPress, payload, time, type])
 
   const borderColors: Record<string, string> = {
     error: 'bg-danger',
@@ -28,13 +29,13 @@ const LogItem: React.FC<Props> = (props) => {
       <Card 
         as="div"
         isPressable
-        shadow="sm"
+        shadow="none"
         radius="lg"
-        className={`w-full transition-all duration-200 border group
-          bg-default-100/60 dark:bg-default-50/30 backdrop-blur-md
-          border-default-200/60 dark:border-white/10
-          hover:bg-default-200/60 dark:hover:bg-default-100/40 hover:-translate-y-0.5 hover:shadow-md
-          data-[pressed=true]:scale-[0.98] data-[pressed=true]:bg-default-200/70 dark:data-[pressed=true]:bg-default-100/50
+        className={`w-full group ${CARD_STYLES.BASE}
+          bg-default-100/70 dark:bg-default-50/28
+          border-default-200/60 dark:border-white/8
+          hover:bg-default-100/85 dark:hover:bg-default-100/36 hover:border-default-300/50 dark:hover:border-white/12 hover:shadow
+          data-[pressed=true]:scale-[0.995] data-[pressed=true]:bg-default-200/70 dark:data-[pressed=true]:bg-default-100/44
         `}
         onPress={handlePress}
       >
@@ -65,4 +66,10 @@ const LogItem: React.FC<Props> = (props) => {
   )
 }
 
-export default LogItem
+export default memo(LogItem, (prevProps, nextProps) => {
+  return (
+    prevProps.type === nextProps.type &&
+    prevProps.payload === nextProps.payload &&
+    prevProps.time === nextProps.time
+  )
+})

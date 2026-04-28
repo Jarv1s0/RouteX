@@ -1,5 +1,6 @@
 import { Button, Card, CardBody } from '@heroui/react'
 import { mihomoUnfixedProxy } from '@renderer/utils/mihomo-ipc'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useMemo, useState, memo } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -103,13 +104,13 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
       shadow="none"
       className={`
         ${fixed 
-          ? 'bg-secondary/20 backdrop-blur-md border border-secondary/50' 
+          ? 'bg-secondary/18 border border-secondary/40' 
           : selected 
-            ? 'bg-primary/[0.085] dark:bg-primary/[0.12] backdrop-blur-xl border border-primary/24 shadow-[0_10px_24px_rgba(16,185,129,0.08)]' 
-            : 'bg-default-100/60 dark:bg-default-50/30 backdrop-blur-md border border-default-200/60 dark:border-white/10 hover:bg-default-200/60 dark:hover:bg-default-100/40 hover:-translate-y-0.5 hover:shadow-md'
+            ? 'bg-primary/[0.08] dark:bg-primary/[0.12] border border-primary/24 shadow-[0_4px_14px_rgba(16,185,129,0.08)]' 
+            : 'bg-default-100/70 dark:bg-default-50/28 border border-default-200/60 dark:border-white/8 hover:bg-default-100/85 dark:hover:bg-default-100/36 hover:border-default-300/50 dark:hover:border-white/12 hover:shadow'
         } 
         ${displayDelay === 0 ? 'opacity-70 grayscale-[30%] hover:grayscale-0' : ''}
-        transition-all duration-200 border
+        ${CARD_STYLES.BASE} data-[pressed=true]:scale-[0.995]
       `}
       radius="lg"
     >
@@ -254,8 +255,8 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
 
 const ProxyItem = memo(ProxyItemComponent, (prev, next) => {
     // 精细化阻断不必要渲染。比如测速或者选择了其他节点，不要带动我这颗没变的节点重绘
-    const isPrevSelected = prev.group.now === prev.proxy.name
-    const isNextSelected = next.group.now === next.proxy.name
+    const isPrevSelected = prev.selected
+    const isNextSelected = next.selected
     const prevDelay = prev.proxy.history?.length
       ? prev.proxy.history[prev.proxy.history.length - 1].delay
       : -1
@@ -268,7 +269,11 @@ const ProxyItem = memo(ProxyItemComponent, (prev, next) => {
         prev.selected === next.selected &&
         prev.proxyDisplayLayout === next.proxyDisplayLayout &&
         prev.group.fixed === next.group.fixed &&
-        prev.proxy === next.proxy &&
+        prev.group.name === next.group.name &&
+        prev.group.testUrl === next.group.testUrl &&
+        prev.proxy.name === next.proxy.name &&
+        prev.proxy.type === next.proxy.type &&
+        prev.proxy.icon === next.proxy.icon &&
         getProxyNow(prev.proxy) === getProxyNow(next.proxy) &&
         prevDelay === nextDelay &&
         prev.index === next.index

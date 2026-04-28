@@ -5,7 +5,7 @@ import { ON, onIpc } from '@renderer/utils/ipc-channels'
 interface GroupsState {
   groups: ControllerMixedGroup[] | undefined
   isLoading: boolean
-  
+
   // Actions
   fetchGroups: () => Promise<void>
   initializeListeners: () => void
@@ -21,13 +21,16 @@ function isExpectedMihomoUnavailableError(error: unknown): boolean {
   return (
     message.includes('connect ENOENT \\\\.\\pipe\\RouteX\\mihomo') ||
     message.includes('socket hang up') ||
-    message.includes('Mihomo controller is not available')
+    message.includes('Mihomo controller is not available') ||
+    message.includes('503 Service Unavailable') ||
+    message.includes('504 Gateway Timeout')
   )
 }
 
 // 精确的监听器引用，避免使用 removeAllListeners
 let currentGroupsCleanup: (() => void) | null = null
 let currentCoreStartedCleanup: (() => void) | null = null
+let currentVisibilityChangeHandler: (() => void) | null = null
 
 function clearUpdateTimer(): void {
   if (!updateTimer) {
@@ -52,6 +55,10 @@ function unregisterGroupHandlers(): void {
   currentGroupsCleanup = null
   currentCoreStartedCleanup?.()
   currentCoreStartedCleanup = null
+  if (currentVisibilityChangeHandler) {
+    document.removeEventListener('visibilitychange', currentVisibilityChangeHandler)
+    currentVisibilityChangeHandler = null
+  }
 }
 
 export const useGroupsStore = create<GroupsState>((set, get) => ({
@@ -96,6 +103,12 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
     // 保存引用并注册
     currentGroupsCleanup = onIpc(ON.groupsUpdated, fetchGroups)
     currentCoreStartedCleanup = onIpc(ON.coreStarted, fetchGroups)
+    currentVisibilityChangeHandler = () => {
+      if (!document.hidden) {
+        fetchGroups()
+      }
+    }
+    document.addEventListener('visibilitychange', currentVisibilityChangeHandler)
 
     // Initial fetch
     fetchGroups()

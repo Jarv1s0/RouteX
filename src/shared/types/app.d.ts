@@ -52,24 +52,15 @@ interface AppConfig {
   ruleCardStatus?: CardStatus
   sniffCardStatus?: CardStatus
   statsCardStatus?: CardStatus
-  substoreCardStatus?: CardStatus
   toolsCardStatus?: CardStatus
   mapCardStatus?: CardStatus
   sysproxyCardStatus?: CardStatus
   tunCardStatus?: CardStatus
   githubToken?: string
-  useSubStore: boolean
-  subStoreHost?: string
-  subStoreBackendSyncCron?: string
-  subStoreBackendDownloadCron?: string
-  subStoreBackendUploadCron?: string
   autoLightweight?: boolean
   autoLightweightDelay?: number
   autoLightweightMode?: 'core' | 'tray'
-  useCustomSubStore?: boolean
-  useProxyInSubStore?: boolean
   mihomoCpuPriority?: Priority
-  customSubStoreUrl?: string
   diffWorkDir?: boolean
   autoSetDNSMode?: 'none' | 'exec' | 'service'
   originDNS?: string
@@ -151,7 +142,6 @@ interface ProfileItem {
   useProxy?: boolean
   extra?: SubscriptionUserInfo
   resetDay?: number // 流量结算日 (1-31)，默认为1
-  substore?: boolean
   locked?: boolean
   autoUpdate?: boolean
 }
@@ -177,13 +167,6 @@ interface OverrideItem {
   url?: string
   file?: string
   fingerprint?: string
-}
-
-interface SubStoreSub {
-  name: string
-  displayName?: string
-  icon?: string
-  tag?: string[]
 }
 
 // 代理链配置

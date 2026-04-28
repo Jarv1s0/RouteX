@@ -196,7 +196,26 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
   const proxies = await mihomoProxies()
   const runtime = await getRuntimeConfig()
   const groups: ControllerMixedGroup[] = []
-  
+
+  const resolveGroupMember = (
+    parentGroup: ControllerGroupDetail,
+    proxyName: string
+  ): ControllerProxiesDetail | ControllerGroupDetail | undefined => {
+    const proxy = proxies.proxies[proxyName]
+    if (!proxy) {
+      return undefined
+    }
+
+    const member = { ...proxy }
+    const extra = parentGroup.extra?.[proxyName]
+    if (extra) {
+      member.alive = extra.alive
+      member.history = extra.history
+    }
+
+    return member
+  }
+
   // 创建一个 icon 映射表
   const iconMap: Record<string, string> = {}
   runtime?.['proxy-groups']?.forEach((group: { name: string; icon?: string }) => {
@@ -204,7 +223,7 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
       iconMap[group.name] = group.icon
     }
   })
-  
+
   runtime?.['proxy-groups']?.forEach((group: { name: string; url?: string; icon?: string }) => {
     const { name, url, icon } = group
     if (proxies.proxies[name] && 'all' in proxies.proxies[name] && !proxies.proxies[name].hidden) {
@@ -215,26 +234,44 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
       }
       if (icon) newGroup.icon = icon
       // 为 all 数组中的每个代理/组也添加 icon
-      const newAll = newGroup.all.map((proxyName: string) => {
-        const proxy = { ...proxies.proxies[proxyName] }
-        if (iconMap[proxyName]) {
-          proxy.icon = iconMap[proxyName]
-        }
-        return proxy
-      })
+      const newAll = newGroup.all
+        .map((proxyName: string) => {
+          const proxy = resolveGroupMember(newGroup, proxyName)
+          if (!proxy) {
+            return undefined
+          }
+
+          if (iconMap[proxyName]) {
+            proxy.icon = iconMap[proxyName]
+          }
+
+          return proxy
+        })
+        .filter(
+          (proxy): proxy is ControllerProxiesDetail | ControllerGroupDetail => Boolean(proxy)
+        )
       groups.push({ ...newGroup, all: newAll } as ControllerMixedGroup)
     }
   })
   if (!groups.find((group) => group.name === 'GLOBAL')) {
     const newGlobal = proxies.proxies['GLOBAL'] as ControllerGroupDetail
     if (!newGlobal.hidden) {
-      const newAll = newGlobal.all.map((name) => {
-        const proxy = { ...proxies.proxies[name] }
-        if (iconMap[name]) {
-          proxy.icon = iconMap[name]
-        }
-        return proxy
-      })
+      const newAll = newGlobal.all
+        .map((name) => {
+          const proxy = resolveGroupMember(newGlobal, name)
+          if (!proxy) {
+            return undefined
+          }
+
+          if (iconMap[name]) {
+            proxy.icon = iconMap[name]
+          }
+
+          return proxy
+        })
+        .filter(
+          (proxy): proxy is ControllerProxiesDetail | ControllerGroupDetail => Boolean(proxy)
+        )
       groups.push({ ...newGlobal, all: newAll })
     }
   }

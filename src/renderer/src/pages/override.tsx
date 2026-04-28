@@ -11,7 +11,7 @@ import BasePage from '@renderer/components/base/base-page'
 import { getFilePath, readTextFile } from '@renderer/utils/file-ipc'
 import { updateProfileItem } from '@renderer/utils/profile-ipc'
 import { restartCore } from '@renderer/utils/mihomo-ipc'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MdContentPaste } from 'react-icons/md'
 import {
   DndContext,
@@ -30,6 +30,7 @@ import { LuFileText } from 'react-icons/lu'
 import { FaGithub } from 'react-icons/fa6'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { notifyError } from '@renderer/utils/notify'
+import { createQueuedAsyncRunner } from '@renderer/utils/queued-async-runner'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
 import { desktop } from '@renderer/api/desktop'
 
@@ -56,10 +57,16 @@ const OverridePage: React.FC = () => {
   const [url, setUrl] = useState('')
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingItem, setEditingItem] = useState<OverrideItem | null>(null)
+  const scheduleCoreRestart = useMemo(
+    () =>
+      createQueuedAsyncRunner(restartCore, (error) => notifyError(error, { title: '应用覆写失败' })),
+    []
+  )
 
   const onToggleOverride = async (id: string, active: boolean): Promise<void> => {
     if (!currentProfile) return
-    let newOverride = currentProfile.override || []
+    const currentOverrides = currentProfile.override || []
+    let newOverride = currentOverrides
     if (active) {
       newOverride = newOverride.filter((oid) => oid !== id)
     } else {
@@ -67,9 +74,17 @@ const OverridePage: React.FC = () => {
         newOverride = [...newOverride, id]
       }
     }
+
+    if (
+      newOverride.length === currentOverrides.length &&
+      newOverride.every((overrideId, index) => overrideId === currentOverrides[index])
+    ) {
+      return
+    }
+
     await updateProfileItem({ ...currentProfile, override: newOverride })
-    await restartCore()
     mutateProfileConfig()
+    scheduleCoreRestart()
   }
 
   const sensors = useSensors(
@@ -328,7 +343,11 @@ const OverridePage: React.FC = () => {
         <EditInfoModal
           item={editingItem}
           updateOverrideItem={async (item: OverrideItem) => {
-            await addOverrideItem(item)
+            if (item.id) {
+              await updateOverrideItem(item)
+            } else {
+              await addOverrideItem(item)
+            }
             setShowEditModal(false)
             setEditingItem(null)
           }}

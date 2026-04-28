@@ -8,7 +8,7 @@ export interface TauriTrafficHistoryPoint {
 }
 
 const MAX_RECENT_TRAFFIC_POINTS = 60
-const TRAFFIC_FLUSH_INTERVAL_MS = 1000
+const TRAFFIC_FLUSH_INTERVAL_MS = 500
 
 let recentTrafficPoints: TauriTrafficHistoryPoint[] = []
 let pendingTrafficDelta = { up: 0, down: 0 }

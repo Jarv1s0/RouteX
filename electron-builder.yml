@@ -34,8 +34,6 @@ extraResources:
     to: 'icons/icon_proxy.ico'
   - from: './resources/icon_tun.ico'
     to: 'icons/icon_tun.ico'
-  - from: './resources/subStoreIcon.png'
-    to: 'icons/subStoreIcon.png'
 protocols:
   name: 'RouteX URI Scheme'
   schemes:

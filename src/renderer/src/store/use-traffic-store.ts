@@ -51,7 +51,8 @@ const processedConnIds = new Set<string>()
 const MAX_DATA_POINTS = 60
 const MAX_DETAILS_PER_RULE = 20
 const MAX_RULES_TRACKED = 1000
-const TRAFFIC_EVENT_STALE_MS = 1800
+const TRAFFIC_EVENT_STALE_MS = 900
+const CONNECTION_SNAPSHOT_THROTTLE_MS = 250
 
 // Module-level interval reference
 let trafficStatsInterval: number | undefined
@@ -286,7 +287,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
         return hasChanges ? { ruleStats: newStats, ruleHitDetails: newDetails } : {}
       })
-    }, 1500, { leading: true, trailing: true })
+    }, CONNECTION_SNAPSHOT_THROTTLE_MS, { leading: true, trailing: true })
 
     // Register Listeners
     try {

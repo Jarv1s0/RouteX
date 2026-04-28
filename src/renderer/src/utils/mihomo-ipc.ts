@@ -5,6 +5,7 @@ import { createDefaultControledMihomoConfig } from '../../../shared/defaults/run
 import { ON, onIpc } from './ipc-channels'
 
 const tauriSockets: Partial<Record<'traffic' | 'memory' | 'logs' | 'connections', WebSocket>> = {}
+const tauriBridgeReadyListeners = new Set<() => void>()
 let tauriSocketRetryTimer: number | null = null
 let tauriControlledConfigCache: Partial<MihomoConfig> | null = null
 let tauriRuntimeConfigCache: MihomoConfig | null = null
@@ -14,9 +15,11 @@ let tauriRuntimeConfigStrPromise: Promise<string> | null = null
 let tauriControllerUrl: string | null = null
 let tauriControllerUrlPromise: Promise<string | null> | null = null
 let tauriBridgeLifecycleInstalled = false
+let tauriBridgeStartVersion = 0
+let tauriBridgeActiveControllerUrl: string | null = null
+let tauriBridgeReconnectReason = ''
 const latestVersionCache = new Map<boolean, { value: string | null; at: number }>()
 const latestVersionPromiseCache = new Map<boolean, Promise<string | null>>()
-const TAURI_TRAFFIC_EVENT = 'routex:tauri-traffic'
 const MIN_TAURI_CONNECTION_INTERVAL = 250
 let tauriRuntimeConfigRevision = 0
 
@@ -26,7 +29,7 @@ function isTauriHost(): boolean {
   return __ROUTEX_HOST__ === 'tauri'
 }
 
-function isExpectedMihomoUnavailableError(error: unknown): boolean {
+export function isExpectedMihomoUnavailableError(error: unknown): boolean {
   const message = `${error ?? ''}`
   return (
     message.includes('connect ENOENT \\\\.\\pipe\\RouteX\\mihomo') ||
@@ -56,6 +59,16 @@ function writeTauriControllerUrl(url: string): void {
   tauriControllerUrl = url
 }
 
+function markNextTauriBridgeStart(reason: string): number {
+  tauriBridgeReconnectReason = reason
+  tauriBridgeStartVersion += 1
+  return tauriBridgeStartVersion
+}
+
+function isStaleTauriBridgeStart(version: number): boolean {
+  return version !== tauriBridgeStartVersion
+}
+
 function normalizeTauriControllerUrl(value: string): string {
   return /^https?:\/\//i.test(value) ? value : `http://${value}`
 }
@@ -76,7 +89,10 @@ function syncTauriControllerUrlFromRuntime(config?: Partial<MihomoConfig> | null
 async function readTauriConnectionIntervalMs(): Promise<number> {
   try {
     const appConfig = await invokeSafe<Partial<AppConfig>>(C.getAppConfig)
-    const rawInterval = Number.parseInt(String(appConfig.connectionInterval ?? MIN_TAURI_CONNECTION_INTERVAL), 10)
+    const rawInterval = Number.parseInt(
+      String(appConfig.connectionInterval ?? MIN_TAURI_CONNECTION_INTERVAL),
+      10
+    )
 
     if (!Number.isFinite(rawInterval)) {
       return MIN_TAURI_CONNECTION_INTERVAL
@@ -146,11 +162,34 @@ export function stopTauriMihomoEventBridge(): void {
   closeTauriSocket('memory')
   closeTauriSocket('logs')
   closeTauriSocket('connections')
+  tauriBridgeActiveControllerUrl = null
 
   if (tauriSocketRetryTimer !== null) {
     window.clearTimeout(tauriSocketRetryTimer)
     tauriSocketRetryTimer = null
   }
+}
+
+/**
+ * 注册 connections WebSocket 首次建立成功后的回调。
+ * 回调只触发一次，触发后自动移除。
+ */
+export function onTauriBridgeConnectionsReady(listener: () => void): () => void {
+  tauriBridgeReadyListeners.add(listener)
+  return () => {
+    tauriBridgeReadyListeners.delete(listener)
+  }
+}
+
+function emitTauriBridgeConnectionsReady(): void {
+  tauriBridgeReadyListeners.forEach((listener) => {
+    try {
+      listener()
+    } catch {
+      // ignore
+    }
+  })
+  tauriBridgeReadyListeners.clear()
 }
 
 function installTauriBridgeLifecycle(): void {
@@ -169,7 +208,13 @@ function installTauriBridgeLifecycle(): void {
       typeof (payload as Record<string, unknown>).controller === 'string'
     ) {
       writeTauriControllerUrl(`http://${(payload as { controller: string }).controller}`)
-      startTauriMihomoEventBridge()
+      startTauriMihomoEventBridge('core-started-with-controller')
+    } else {
+      // core-started 事件没有携带 controller 字段（旧协议/格式变化），
+      // 清除缓存的旧 controller URL 并让 bridge 主动去 Rust 重新拉取最新地址。
+      tauriControllerUrl = null
+      tauriControllerUrlPromise = null
+      startTauriMihomoEventBridge('core-started-no-controller')
     }
   })
 
@@ -195,18 +240,21 @@ function installTauriBridgeLifecycle(): void {
   })
 }
 
-function scheduleTauriBridgeReconnect(): void {
+function scheduleTauriBridgeReconnect(reason = tauriBridgeReconnectReason || 'retry'): void {
   if (tauriSocketRetryTimer !== null) {
     return
   }
 
   tauriSocketRetryTimer = window.setTimeout(() => {
     tauriSocketRetryTimer = null
-    startTauriMihomoEventBridge()
+    startTauriMihomoEventBridge(reason)
   }, 1200)
 }
 
-function emitParsedDesktopEvent<T>(channel: (typeof IPC_ON_CHANNELS)[keyof typeof IPC_ON_CHANNELS], payload: string): void {
+function emitParsedDesktopEvent<T>(
+  channel: (typeof IPC_ON_CHANNELS)[keyof typeof IPC_ON_CHANNELS],
+  payload: string
+): void {
   try {
     emitDesktopEvent(channel, JSON.parse(payload) as T)
   } catch {
@@ -216,11 +264,7 @@ function emitParsedDesktopEvent<T>(channel: (typeof IPC_ON_CHANNELS)[keyof typeo
 
 function emitTauriTrafficEvent(payload: string): void {
   try {
-    window.dispatchEvent(
-      new CustomEvent(TAURI_TRAFFIC_EVENT, {
-        detail: JSON.parse(payload) as ControllerTraffic
-      })
-    )
+    emitParsedDesktopEvent<ControllerTraffic>(IPC_ON_CHANNELS.mihomoTraffic, payload)
   } catch {
     // ignore malformed payload
   }
@@ -233,6 +277,7 @@ function toWebSocketUrl(controllerUrl: string, path: string): string {
 function startTauriSocket(
   key: keyof typeof tauriSockets,
   url: string,
+  version: number,
   onMessage: (payload: string) => void
 ): void {
   closeTauriSocket(key)
@@ -241,10 +286,21 @@ function startTauriSocket(
     const socket = new WebSocket(url)
     tauriSockets[key] = socket
     const handleDisconnect = () => {
+      if (tauriSockets[key] !== socket) {
+        return
+      }
       closeTauriSocket(key)
-      scheduleTauriBridgeReconnect()
+      scheduleTauriBridgeReconnect(`socket:${key}:disconnect`)
+    }
+    socket.onopen = () => {
+      if (isStaleTauriBridgeStart(version) || tauriBridgeActiveControllerUrl === null) {
+        closeTauriSocket(key)
+      }
     }
     socket.onmessage = (event) => {
+      if (tauriSockets[key] !== socket || isStaleTauriBridgeStart(version)) {
+        return
+      }
       if (typeof event.data === 'string') {
         onMessage(event.data)
       }
@@ -252,49 +308,71 @@ function startTauriSocket(
     socket.onerror = handleDisconnect
     socket.onclose = handleDisconnect
   } catch {
-    scheduleTauriBridgeReconnect()
+    scheduleTauriBridgeReconnect(`socket:${key}:create_failed`)
   }
 }
 
-export function startTauriMihomoEventBridge(): void {
+export function startTauriMihomoEventBridge(reason = 'manual'): void {
   if (!isTauriHost()) {
     return
   }
 
+  const version = markNextTauriBridgeStart(reason)
   const controllerUrl = readTauriControllerUrl()
   if (!controllerUrl) {
+    stopTauriMihomoEventBridge()
     void ensureTauriControllerUrl().then((resolvedControllerUrl) => {
-      if (resolvedControllerUrl) {
-        startTauriMihomoEventBridge()
+      if (isStaleTauriBridgeStart(version)) {
         return
       }
 
-      scheduleTauriBridgeReconnect()
+      if (resolvedControllerUrl) {
+        startTauriMihomoEventBridge('controller-resolved')
+        return
+      }
+
+      scheduleTauriBridgeReconnect('controller-missing')
     })
     return
   }
 
+  if (tauriBridgeActiveControllerUrl && tauriBridgeActiveControllerUrl !== controllerUrl) {
+    stopTauriMihomoEventBridge()
+  }
+
+  tauriBridgeActiveControllerUrl = controllerUrl
   const { 'log-level': logLevel = 'info' } = readTauriControledMihomoConfig()
 
-  startTauriSocket('traffic', toWebSocketUrl(controllerUrl, '/traffic'), emitTauriTrafficEvent)
+  startTauriSocket('traffic', toWebSocketUrl(controllerUrl, '/traffic'), version, emitTauriTrafficEvent)
 
-  startTauriSocket('memory', toWebSocketUrl(controllerUrl, '/memory'), (payload) => {
+  startTauriSocket('memory', toWebSocketUrl(controllerUrl, '/memory'), version, (payload) => {
     // 窗口不可见时跳过内存消息
     if (document.hidden) return
     emitParsedDesktopEvent<ControllerMemory>(IPC_ON_CHANNELS.mihomoMemory, payload)
   })
 
-  startTauriSocket('logs', toWebSocketUrl(controllerUrl, `/logs?level=${logLevel}`), (payload) => {
+  startTauriSocket('logs', toWebSocketUrl(controllerUrl, `/logs?level=${logLevel}`), version, (payload) => {
     // 窗口不可见时跳过日志消息
     if (document.hidden) return
     emitParsedDesktopEvent<ControllerLog>(IPC_ON_CHANNELS.mihomoLogs, payload)
   })
 
   void readTauriConnectionIntervalMs().then((connectionInterval) => {
+    if (isStaleTauriBridgeStart(version) || tauriBridgeActiveControllerUrl !== controllerUrl) {
+      return
+    }
+
+    let bridgeReadyEmitted = false
     startTauriSocket(
       'connections',
       toWebSocketUrl(controllerUrl, `/connections?interval=${connectionInterval}`),
+      version,
       (payload) => {
+        // connections socket 收到第一条消息时通知监听者（bridge 真正就绪）
+        if (!bridgeReadyEmitted) {
+          bridgeReadyEmitted = true
+          emitTauriBridgeConnectionsReady()
+        }
         emitParsedDesktopEvent<ControllerConnections>(IPC_ON_CHANNELS.mihomoConnections, payload)
       }
     )
@@ -306,18 +384,9 @@ export function onTauriRealtimeTraffic(listener: (info: ControllerTraffic) => vo
     return () => undefined
   }
 
-  const handleTraffic = (event: Event): void => {
-    if (!(event instanceof CustomEvent)) {
-      return
-    }
-
-    listener(event.detail as ControllerTraffic)
-  }
-
-  window.addEventListener(TAURI_TRAFFIC_EVENT, handleTraffic)
-  return () => {
-    window.removeEventListener(TAURI_TRAFFIC_EVENT, handleTraffic)
-  }
+  return onIpc<[ControllerTraffic]>(ON.mihomoTraffic, (_event, info) => {
+    listener(info)
+  })
 }
 
 export function subscribeDesktopTraffic(
@@ -546,7 +615,9 @@ function buildRuntimeGroupsFallback(runtime: MihomoConfig): ControllerMixedGroup
 
     const resolvedMembers = members
       .map((memberName) => entityMap.get(memberName))
-      .filter((member): member is ControllerProxiesDetail | ControllerGroupDetail => Boolean(member))
+      .filter((member): member is ControllerProxiesDetail | ControllerGroupDetail =>
+        Boolean(member)
+      )
 
     const now =
       typeof group.now === 'string'
@@ -637,10 +708,7 @@ export async function mihomoUnfixedProxy(group: string): Promise<ControllerProxi
   return invokeSafe(C.mihomoUnfixedProxy, group)
 }
 
-export async function mihomoGroupDelay(
-  group: string,
-  url?: string
-): Promise<ControllerGroupDelay> {
+export async function mihomoGroupDelay(group: string, url?: string): Promise<ControllerGroupDelay> {
   return invokeSafe(C.mihomoGroupDelay, group, url)
 }
 
@@ -691,9 +759,7 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
 
 export async function restartCore(): Promise<void> {
   if (isTauriHost()) {
-    const result = (await invokeSafe(C.restartCore)) as
-      | { controller?: string }
-      | undefined
+    const result = (await invokeSafe(C.restartCore)) as { controller?: string } | undefined
     if (result?.controller) {
       writeTauriControllerUrl(`http://${result.controller}`)
       startTauriMihomoEventBridge()
@@ -824,10 +890,7 @@ export async function mihomoCloseAllConnections(name?: string): Promise<void> {
   return invokeSafe(C.mihomoCloseAllConnections, name)
 }
 
-export async function triggerSysProxy(
-  enable: boolean,
-  onlyActiveDevice: boolean
-): Promise<void> {
+export async function triggerSysProxy(enable: boolean, onlyActiveDevice: boolean): Promise<void> {
   return invokeSafe(C.triggerSysProxy, enable, onlyActiveDevice)
 }
 

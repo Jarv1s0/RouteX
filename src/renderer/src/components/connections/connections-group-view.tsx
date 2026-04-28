@@ -25,7 +25,7 @@ interface ConnectionsGroupViewProps {
   iconMap: Record<string, string>
   appNameCache: Record<string, string>
   tab: string
-  selected?: ControllerConnectionDetail
+  selectedId?: string
   setSelected: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
   setIsDetailModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   closeConnection: (id: string) => void
@@ -46,7 +46,7 @@ const ConnectionsGroupView: React.FC<ConnectionsGroupViewProps> = ({
   iconMap,
   appNameCache,
   tab,
-  selected,
+  selectedId,
   setSelected,
   setIsDetailModalOpen,
   closeConnection,
@@ -68,7 +68,7 @@ const ConnectionsGroupView: React.FC<ConnectionsGroupViewProps> = ({
             {/* 分组头部卡片 */}
             <Card
               isPressable
-              className="w-full hover:bg-primary/30 transition-all duration-200"
+              className="w-full hover:bg-primary/20 transition-[background-color,border-color,box-shadow,transform] duration-150"
               onPress={() => toggleGroup(group.process)}
             >
               <div className="w-full flex justify-between items-center">
@@ -133,7 +133,7 @@ const ConnectionsGroupView: React.FC<ConnectionsGroupViewProps> = ({
                       key={conn.id}
                       setSelected={setSelected}
                       setIsDetailModalOpen={setIsDetailModalOpen}
-                      selected={selected}
+                      selectedId={selectedId}
                       iconUrl={connIconUrl}
                       displayIcon={false}
                       displayName={connDisplayName}
