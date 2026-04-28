@@ -7,7 +7,7 @@ import { Virtuoso } from 'react-virtuoso'
 import { useEffect, useMemo, useState, useDeferredValue, useCallback, useRef } from 'react'
 import { Button, Card, CardBody, Chip, Input, Tab, Tabs, Switch, Tooltip } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
-import { LuSquarePen, LuTrash2 } from 'react-icons/lu'
+import { MdOutlineEdit, MdDelete } from 'react-icons/md'
 import { useRules } from '@renderer/hooks/use-rules'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { includesIgnoreCase } from '@renderer/utils/includes'
@@ -356,7 +356,7 @@ const RulesPage: React.FC = () => {
 
   const handleDeleteQuickRule = useCallback(
     async (rule: QuickRule) => {
-      const confirmDelete = window.confirm(`确认删除这条快速规则？\n\n${formatQuickRule(rule)}`)
+      const confirmDelete = window.confirm(`确认删除这条本地规则？\n\n${formatQuickRule(rule)}`)
       if (!confirmDelete) return
 
       try {
@@ -366,7 +366,7 @@ const RulesPage: React.FC = () => {
           void mutateRules()
         }, 250)
       } catch (error) {
-        alert(`删除快速规则失败: ${error}`)
+        alert(`删除本地规则失败: ${error}`)
       }
     },
     [currentProfileId, mutateQuickRules, mutateRules]
@@ -430,7 +430,7 @@ const RulesPage: React.FC = () => {
           )}
           {activeTab === 'local' && (
             <Button size="sm" color="primary" className="ml-auto" onPress={openCreateQuickRule}>
-              新建快速规则
+              新建本地规则
             </Button>
           )}
           {activeTab === 'remote' && (
@@ -452,6 +452,19 @@ const RulesPage: React.FC = () => {
           )}
 
           <div className="w-full px-2 pb-6">
+            {quickRulesData?.enabled === false && (
+              <div className="mx-2 mb-3 flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning-700 dark:text-warning-300">
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  color="warning"
+                  classNames={{ content: 'text-[10px] font-medium' }}
+                >
+                  已停用
+                </Chip>
+                <span>当前 profile 的本地规则处于全局停用状态，以下规则暂不会注入当前配置。</span>
+              </div>
+            )}
             {filteredQuickRules.length > 0 ? (
               <div className="flex flex-col">
                 {filteredQuickRules.map((rule, index) => (
@@ -536,31 +549,37 @@ const RulesPage: React.FC = () => {
                           </div>
 
                           {/* 操作按钮组 */}
-                          <div className="ml-4 flex shrink-0 items-center gap-1">
-                            <Tooltip content="编辑" delay={500}>
-                              <Button 
-                                isIconOnly
-                                size="sm" 
-                                variant="light" 
-                                className="min-w-7 w-7 h-7 text-default-500 hover:text-default-900"
-                                onPress={() => openEditQuickRule(rule)}
-                              >
-                                <LuSquarePen className="text-base" />
-                              </Button>
-                            </Tooltip>
-                            
-                            <Tooltip content="删除" delay={500} color="danger">
-                              <Button
-                                isIconOnly
-                                size="sm"
-                                color="danger"
-                                variant="light"
-                                className="min-w-7 w-7 h-7 opacity-80 hover:opacity-100"
-                                onPress={() => void handleDeleteQuickRule(rule)}
-                              >
-                                <LuTrash2 className="text-base" />
-                              </Button>
-                            </Tooltip>
+                          <div className="ml-3 flex items-center flex-shrink-0">
+                            <div className="flex items-center justify-end w-[64px] pr-1">
+                              <Tooltip content="编辑" delay={500}>
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  title="编辑规则"
+                                  aria-label="编辑规则"
+                                  className="min-w-7 w-7 h-7 text-default-500"
+                                  onPress={() => openEditQuickRule(rule)}
+                                >
+                                  <MdOutlineEdit className="text-base" />
+                                </Button>
+                              </Tooltip>
+                              
+                              <Tooltip content="删除" delay={500} color="danger">
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  color="danger"
+                                  variant="light"
+                                  title="删除规则"
+                                  aria-label="删除规则"
+                                  className="min-w-7 w-7 h-7"
+                                  onPress={() => void handleDeleteQuickRule(rule)}
+                                >
+                                  <MdDelete className="text-base" />
+                                </Button>
+                              </Tooltip>
+                            </div>
                           </div>
                         </div>
                       </CardBody>
@@ -570,7 +589,7 @@ const RulesPage: React.FC = () => {
               </div>
             ) : (
               <div className="mx-2 rounded-lg border border-dashed border-default-200/70 bg-background/50 px-4 py-8 text-center text-sm text-foreground-400 dark:border-white/10">
-                {deferredFilter ? '没有匹配的快速规则。' : '暂无快速规则，点击右上角按钮创建。'}
+                {deferredFilter ? '没有匹配的本地规则。' : '暂无本地规则，点击右上角按钮创建。'}
               </div>
             )}
           </div>
