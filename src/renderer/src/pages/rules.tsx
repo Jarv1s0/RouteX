@@ -549,8 +549,7 @@ const RulesPage: React.FC = () => {
                           </div>
 
                           {/* 操作按钮组 */}
-                          <div className="ml-3 flex items-center flex-shrink-0">
-                            <div className="flex items-center justify-end w-[64px] pr-1">
+                          <div className="ml-2 flex items-center flex-shrink-0 gap-2 pr-1">
                               <Tooltip content="编辑" delay={500}>
                                 <Button
                                   isIconOnly
@@ -579,7 +578,6 @@ const RulesPage: React.FC = () => {
                                   <MdDelete className="text-base" />
                                 </Button>
                               </Tooltip>
-                            </div>
                           </div>
                         </div>
                       </CardBody>
