@@ -56,6 +56,7 @@ import { OverrideConfigProvider, useOverrideConfig } from '@renderer/hooks/use-o
 
 const emptyProfileItems: ProfileItem[] = []
 const emptyOverrideItems: OverrideItem[] = []
+const SYSTEM_OVERRIDE_IDS = new Set(['quick-rules'])
 
 type ManagementTab = 'profiles' | 'overrides' | 'providers'
 
@@ -132,7 +133,11 @@ const ProfilesPage: React.FC = () => {
     [current, itemsArray]
   )
   const { items: overrideItems } = overrideConfig || {}
-  const overrideItemsArray = overrideItems ?? emptyOverrideItems
+  const allOverrideItemsArray = overrideItems ?? emptyOverrideItems
+  const overrideItemsArray = useMemo(
+    () => allOverrideItemsArray.filter((item) => !SYSTEM_OVERRIDE_IDS.has(item.id)),
+    [allOverrideItemsArray]
+  )
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = normalizeManagementTab(searchParams.get('tab'))
@@ -147,10 +152,14 @@ const ProfilesPage: React.FC = () => {
     title: '',
     privderType: ''
   })
-  const { data: providersData, mutate: mutateProviders } = useSWR('mihomoProxyProviders', mihomoProxyProviders, {
-    errorRetryInterval: 200,
-    errorRetryCount: 10
-  })
+  const { data: providersData, mutate: mutateProviders } = useSWR(
+    'mihomoProxyProviders',
+    mihomoProxyProviders,
+    {
+      errorRetryInterval: 200,
+      errorRetryCount: 10
+    }
+  )
   const proxyProviders = useMemo(() => {
     if (!providersData) return []
     return Object.values(providersData.providers)
@@ -273,7 +282,11 @@ const ProfilesPage: React.FC = () => {
             </div>
           ),
           icon: sub.icon ? (
-            <RemoteImage src={sub.icon} alt={sub.displayName || sub.name} className="h-[18px] w-[18px]" />
+            <RemoteImage
+              src={sub.icon}
+              alt={sub.displayName || sub.name}
+              className="h-[18px] w-[18px]"
+            />
           ) : null,
           divider: index === subs.length - 1 && Boolean(collections) && collections.length > 0
         })
@@ -296,7 +309,11 @@ const ProfilesPage: React.FC = () => {
             </div>
           ),
           icon: sub.icon ? (
-            <RemoteImage src={sub.icon} alt={sub.displayName || sub.name} className="h-[18px] w-[18px]" />
+            <RemoteImage
+              src={sub.icon}
+              alt={sub.displayName || sub.name}
+              className="h-[18px] w-[18px]"
+            />
           ) : null,
           divider: false
         })
@@ -387,7 +404,12 @@ const ProfilesPage: React.FC = () => {
     newOrder.splice(activeIndex, 1)
     newOrder.splice(overIndex, 0, overrideItemsArray[activeIndex])
     setSortedOverrideItems(newOrder)
-    await setOverrideConfig({ items: newOrder })
+    await setOverrideConfig({
+      items: [
+        ...newOrder,
+        ...allOverrideItemsArray.filter((item) => SYSTEM_OVERRIDE_IDS.has(item.id))
+      ]
+    })
   }
 
   const handleProfileInputKeyUp = useCallback(
@@ -427,9 +449,7 @@ const ProfilesPage: React.FC = () => {
 
   const handleSetPrimaryProfile = useCallback(
     async (id: string): Promise<void> => {
-      const nextActives = activeProfileIdSet.has(id)
-        ? putPrimaryFirst(activeProfileIds, id)
-        : [id]
+      const nextActives = activeProfileIdSet.has(id) ? putPrimaryFirst(activeProfileIds, id) : [id]
       await runSelectionMutation(nextActives, id)
     },
     [activeProfileIdSet, activeProfileIds, runSelectionMutation]
@@ -664,7 +684,11 @@ const ProfilesPage: React.FC = () => {
                     >
                       <MdContentPaste className="text-lg" />
                     </Button>
-                    <Checkbox className="whitespace-nowrap" checked={useProxy} onValueChange={setUseProxy}>
+                    <Checkbox
+                      className="whitespace-nowrap"
+                      checked={useProxy}
+                      onValueChange={setUseProxy}
+                    >
                       代理
                     </Checkbox>
                   </>
@@ -710,7 +734,9 @@ const ProfilesPage: React.FC = () => {
                       } else if (key.toString().startsWith('sub-')) {
                         setSubStoreImporting(true)
                         try {
-                          const sub = subs.find((item) => item.name === key.toString().replace('sub-', ''))
+                          const sub = subs.find(
+                            (item) => item.name === key.toString().replace('sub-', '')
+                          )
                           await addProfileItem({
                             name: sub?.displayName || sub?.name || '',
                             substore: !useCustomSubStore,
@@ -749,7 +775,11 @@ const ProfilesPage: React.FC = () => {
                     }}
                   >
                     {subStoreMenuItems.map((item) => (
-                      <DropdownItem startContent={item.icon} key={item.key} showDivider={item.divider}>
+                      <DropdownItem
+                        startContent={item.icon}
+                        key={item.key}
+                        showDivider={item.divider}
+                      >
                         {item.children}
                       </DropdownItem>
                     ))}
@@ -880,8 +910,7 @@ const ProfilesPage: React.FC = () => {
                       await addOverrideItem({
                         name: '新建 JS',
                         type: 'local',
-                        file:
-                          '// https://mihomo.party/docs/guide/override/javascript\nfunction main(config) {\n  return config\n}',
+                        file: '// https://mihomo.party/docs/guide/override/javascript\nfunction main(config) {\n  return config\n}',
                         ext: 'js'
                       })
                     } else if (key === 'import') {
@@ -947,7 +976,11 @@ const ProfilesPage: React.FC = () => {
       </div>
 
       {activeTab === 'profiles' && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onProfileDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onProfileDragEnd}
+        >
           <div
             className={`${fileOver ? 'blur-sm' : ''} mx-2 grid gap-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}
           >
@@ -975,7 +1008,11 @@ const ProfilesPage: React.FC = () => {
       )}
 
       {activeTab === 'overrides' && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onOverrideDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onOverrideDragEnd}
+        >
           <div
             className={`${fileOver ? 'blur-sm' : ''} grid gap-2 px-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}
           >

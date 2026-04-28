@@ -14,49 +14,30 @@ import {
 } from '@heroui/react'
 import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
-import { addOverrideItem, getOverrideConfig, getOverride, setOverride } from '@renderer/utils/override-ipc'
-import { getCurrentProfileItem, updateProfileItem } from '@renderer/utils/profile-ipc'
+import { getCurrentProfileItem } from '@renderer/utils/profile-ipc'
+import {
+  addQuickRule,
+  getQuickRules,
+  removeQuickRule,
+  updateQuickRule
+} from '@renderer/utils/quick-rules-ipc'
 interface Props {
   connection: ControllerConnectionDetail
   onClose: () => void
 }
 
-// 快速规则覆写的固定 ID
-const QUICK_RULES_ID = 'quick-rules'
-
-// 解析规则字符串为结构化对象
-interface ParsedRule {
+interface RuleDraft {
   type: string
   value: string
-  proxy: string
-  noResolve: boolean
-  raw: string
-}
-
-// 解析一条规则字符串
-function parseRuleString(raw: string): ParsedRule | null {
-  const parts = raw.split(',')
-  if (parts.length < 3) return null
-  const type = parts[0]
-  const value = parts[1]
-  const proxy = parts[2]
-  const noResolve = parts.length > 3 && parts[3] === 'no-resolve'
-  return { type, value, proxy, noResolve, raw }
+  target: string
+  noResolve?: boolean
 }
 
 // 将结构化规则还原为字符串
-function ruleToString(rule: ParsedRule): string {
-  let s = `${rule.type},${rule.value},${rule.proxy}`
+function ruleToString(rule: RuleDraft): string {
+  let s = `${rule.type},${rule.value},${rule.target}`
   if (rule.noResolve) s += ',no-resolve'
   return s
-}
-
-// 生成覆写 YAML 内容
-function generateYaml(rules: ParsedRule[]): string {
-  if (rules.length === 0) return '"+rules": []\n'
-  const lines = rules.map((r) => `  - ${ruleToString(r)}`)
-  return `# 由连接页面快速创建的路由规则\n"+rules":\n${lines.join('\n')}\n`
 }
 
 // mihomo 支持的规则类型
@@ -110,8 +91,8 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // 已有的快速规则列表
-  const [existingRules, setExistingRules] = useState<ParsedRule[]>([])
-  const [quickRulesExists, setQuickRulesExists] = useState(false)
+  const [existingRules, setExistingRules] = useState<QuickRule[]>([])
+  const [profileId, setProfileId] = useState('default')
   // 正在编辑的规则索引（-1 表示新建模式）
   const [editingIndex, setEditingIndex] = useState(-1)
 
@@ -146,26 +127,11 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
   useEffect(() => {
     const loadExistingRules = async (): Promise<void> => {
       try {
-        const config = await getOverrideConfig()
-        const quickRulesItem = config.items?.find((item) => item.id === QUICK_RULES_ID)
-        if (quickRulesItem) {
-          setQuickRulesExists(true)
-          const content = await getOverride(QUICK_RULES_ID, 'yaml')
-          if (content) {
-            // 从 YAML 内容中提取规则行
-            const lines = content.split('\n')
-            const rules: ParsedRule[] = []
-            for (const line of lines) {
-              const trimmed = line.trim()
-              if (trimmed.startsWith('- ')) {
-                const ruleStr = trimmed.slice(2).trim()
-                const parsed = parseRuleString(ruleStr)
-                if (parsed) rules.push(parsed)
-              }
-            }
-            setExistingRules(rules)
-          }
-        }
+        const currentProfile = await getCurrentProfileItem()
+        const currentProfileId = currentProfile.id || 'default'
+        setProfileId(currentProfileId)
+        const quickRules = await getQuickRules(currentProfileId)
+        setExistingRules(quickRules.rules)
       } catch {
         // 忽略加载失败
       }
@@ -295,66 +261,38 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
     return options
   }, [groups])
 
-  // 保存规则到覆写文件并重启
-  const saveRulesAndRestart = useCallback(
-    async (rules: ParsedRule[]) => {
-      const yamlContent = generateYaml(rules)
-
-      if (!quickRulesExists) {
-        // 首次创建：新建覆写文件
-        await addOverrideItem({
-          id: QUICK_RULES_ID,
-          type: 'local',
-          ext: 'yaml',
-          name: '快速规则',
-          file: yamlContent,
-          global: false
-        })
-        setQuickRulesExists(true)
-      } else {
-        // 更新已有覆写文件
-        await setOverride(QUICK_RULES_ID, 'yaml', yamlContent)
-      }
-
-      // 确保绑定到当前 profile 的 override 列表（无论是新建还是更新）
-      const currentProfile = await getCurrentProfileItem()
-      const currentOverride = currentProfile.override || []
-      if (!currentOverride.includes(QUICK_RULES_ID)) {
-        currentOverride.push(QUICK_RULES_ID)
-        await updateProfileItem({ ...currentProfile, override: currentOverride })
-      }
-
-      // 重启核心使规则生效
-      await restartCore()
-    },
-    [quickRulesExists]
-  )
-
   // 添加或更新规则
   const handleSubmit = useCallback(async () => {
     if (!ruleValue || !proxyTarget) return
 
     setIsSubmitting(true)
     try {
-      const newRule: ParsedRule = {
+      const newRule: QuickRuleInput = {
         type: ruleType,
         value: ruleValue,
-        proxy: proxyTarget,
+        target: proxyTarget,
         noResolve: supportsNoResolve && noResolve,
-        raw: ruleString
+        source: 'connection'
       }
 
-      let updatedRules: ParsedRule[]
+      let updatedRules: QuickRule[]
       if (editingIndex >= 0) {
         // 编辑模式：替换指定索引的规则
         updatedRules = [...existingRules]
-        updatedRules[editingIndex] = newRule
+        const editingRule = updatedRules[editingIndex]
+        if (!editingRule) return
+        await updateQuickRule(profileId, editingRule.id, newRule)
+        updatedRules[editingIndex] = {
+          ...editingRule,
+          ...newRule,
+          updatedAt: Date.now()
+        }
       } else {
         // 新建模式：追加到列表开头（前置，优先级最高）
-        updatedRules = [newRule, ...existingRules]
+        const createdRule = await addQuickRule(profileId, newRule)
+        updatedRules = [createdRule, ...existingRules]
       }
 
-      await saveRulesAndRestart(updatedRules)
       setExistingRules(updatedRules)
       setEditingIndex(-1)
 
@@ -377,7 +315,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
     noResolve,
     editingIndex,
     existingRules,
-    saveRulesAndRestart,
+    profileId,
     onClose
   ])
 
@@ -386,8 +324,10 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
     async (index: number) => {
       setIsSubmitting(true)
       try {
+        const rule = existingRules[index]
+        if (!rule) return
+        await removeQuickRule(profileId, rule.id)
         const updatedRules = existingRules.filter((_, i) => i !== index)
-        await saveRulesAndRestart(updatedRules)
         setExistingRules(updatedRules)
         // 如果正在编辑被删除的规则，退出编辑模式
         if (editingIndex === index) {
@@ -401,15 +341,15 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
         setIsSubmitting(false)
       }
     },
-    [existingRules, editingIndex, saveRulesAndRestart]
+    [existingRules, editingIndex, profileId]
   )
 
   // 点击编辑规则：将规则内容填充到表单
-  const handleEditRule = useCallback((rule: ParsedRule, index: number) => {
+  const handleEditRule = useCallback((rule: QuickRule, index: number) => {
     setRuleType(rule.type)
     setRuleValue(rule.value)
-    setProxyTarget(rule.proxy)
-    setNoResolve(rule.noResolve)
+    setProxyTarget(rule.target)
+    setNoResolve(rule.noResolve ?? false)
     setEditingIndex(index)
   }, [])
 

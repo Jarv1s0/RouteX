@@ -34,6 +34,18 @@ export {
   rollbackOverride
 } from './override'
 export {
+  getQuickRulesConfig,
+  setQuickRulesConfig,
+  getQuickRules,
+  addQuickRule,
+  updateQuickRule,
+  removeQuickRule,
+  setQuickRulesEnabled,
+  reorderQuickRules,
+  clearQuickRules,
+  getQuickRuleStrings
+} from './quickRules'
+export {
   getChainsConfig,
   setChainsConfig,
   getChainItem,

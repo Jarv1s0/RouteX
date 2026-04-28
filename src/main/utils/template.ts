@@ -165,6 +165,12 @@ export const defaultOverrideConfig: OverrideConfig = {
   items: []
 }
 
+export const defaultQuickRulesConfig: QuickRulesConfig = {
+  version: 1,
+  migratedLegacyQuickRules: false,
+  profiles: {}
+}
+
 export const defaultProfile: Partial<MihomoConfig> = {
   proxies: [],
   'proxy-groups': [],

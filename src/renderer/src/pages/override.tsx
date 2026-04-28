@@ -1,17 +1,10 @@
-import {
-  Button,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownTrigger,
-  Input
-} from '@heroui/react'
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input } from '@heroui/react'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import BasePage from '@renderer/components/base/base-page'
 import { getFilePath, readTextFile } from '@renderer/utils/file-ipc'
 import { updateProfileItem } from '@renderer/utils/profile-ipc'
 import { restartCore } from '@renderer/utils/mihomo-ipc'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MdContentPaste } from 'react-icons/md'
 import {
   DndContext,
@@ -33,6 +26,7 @@ import { notifyError } from '@renderer/utils/notify'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
 
 const emptyItems: OverrideItem[] = []
+const SYSTEM_OVERRIDE_IDS = new Set(['quick-rules'])
 
 const OverridePage: React.FC = () => {
   const {
@@ -48,7 +42,11 @@ const OverridePage: React.FC = () => {
   const currentProfile = profileConfig?.items?.find((p) => p.id === profileConfig?.current)
 
   const { items } = overrideConfig || {}
-  const itemsArray = items ?? emptyItems
+  const allItemsArray = items ?? emptyItems
+  const itemsArray = useMemo(
+    () => allItemsArray.filter((item) => !SYSTEM_OVERRIDE_IDS.has(item.id)),
+    [allItemsArray]
+  )
   const [sortedItems, setSortedItems] = useState(itemsArray)
   const [importing, setImporting] = useState(false)
   const [fileOver, setFileOver] = useState(false)
@@ -106,7 +104,9 @@ const OverridePage: React.FC = () => {
         newOrder.splice(activeIndex, 1)
         newOrder.splice(overIndex, 0, itemsArray[activeIndex])
         setSortedItems(newOrder)
-        await setOverrideConfig({ items: newOrder })
+        await setOverrideConfig({
+          items: [...newOrder, ...allItemsArray.filter((item) => SYSTEM_OVERRIDE_IDS.has(item.id))]
+        })
       }
     }
   }
@@ -215,7 +215,9 @@ const OverridePage: React.FC = () => {
       }
     >
       <div className="sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
-        <div className={`w-full px-2 py-1.5 flex gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}>
+        <div
+          className={`w-full px-2 py-1.5 flex gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
+        >
           <Input
             variant="flat"
             size="sm"

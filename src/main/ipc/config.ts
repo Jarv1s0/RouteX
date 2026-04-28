@@ -32,7 +32,16 @@ import {
   removeChainItem,
   removeOverrideReference,
   getAllChains,
-  convertMrsRuleset
+  convertMrsRuleset,
+  getQuickRulesConfig,
+  setQuickRulesConfig,
+  getQuickRules,
+  addQuickRule,
+  updateQuickRule,
+  removeQuickRule,
+  setQuickRulesEnabled,
+  reorderQuickRules,
+  clearQuickRules
 } from '../config'
 import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
 import { restartCore } from '../core/manager'
@@ -121,6 +130,51 @@ export function registerConfigHandlers(): void {
         mainWindow?.webContents.send('overrideConfigUpdated')
       })(id, ext),
     [C.setOverride]: (_e, id, ext, str) => ipcErrorWrapper(setOverride)(id, ext, str),
+    [C.getQuickRulesConfig]: (_e, force) => ipcErrorWrapper(getQuickRulesConfig)(force),
+    [C.setQuickRulesConfig]: (_e, config) =>
+      ipcErrorWrapper(async (config: QuickRulesConfig) => {
+        await setQuickRulesConfig(config)
+        await restartCore()
+        mainWindow?.webContents.send('quickRulesConfigUpdated')
+      })(config),
+    [C.getQuickRules]: (_e, profileId) => ipcErrorWrapper(getQuickRules)(profileId),
+    [C.addQuickRule]: (_e, profileId, rule) =>
+      ipcErrorWrapper(async (profileId: string, rule: QuickRuleInput) => {
+        const createdRule = await addQuickRule(profileId, rule)
+        await restartCore()
+        mainWindow?.webContents.send('quickRulesConfigUpdated')
+        return createdRule
+      })(profileId, rule),
+    [C.updateQuickRule]: (_e, profileId, ruleId, patch) =>
+      ipcErrorWrapper(async (profileId: string, ruleId: string, patch: Partial<QuickRule>) => {
+        await updateQuickRule(profileId, ruleId, patch)
+        await restartCore()
+        mainWindow?.webContents.send('quickRulesConfigUpdated')
+      })(profileId, ruleId, patch),
+    [C.removeQuickRule]: (_e, profileId, ruleId) =>
+      ipcErrorWrapper(async (profileId: string, ruleId: string) => {
+        await removeQuickRule(profileId, ruleId)
+        await restartCore()
+        mainWindow?.webContents.send('quickRulesConfigUpdated')
+      })(profileId, ruleId),
+    [C.setQuickRulesEnabled]: (_e, profileId, enabled) =>
+      ipcErrorWrapper(async (profileId: string, enabled: boolean) => {
+        await setQuickRulesEnabled(profileId, enabled)
+        await restartCore()
+        mainWindow?.webContents.send('quickRulesConfigUpdated')
+      })(profileId, enabled),
+    [C.reorderQuickRules]: (_e, profileId, ruleIds) =>
+      ipcErrorWrapper(async (profileId: string, ruleIds: string[]) => {
+        await reorderQuickRules(profileId, ruleIds)
+        await restartCore()
+        mainWindow?.webContents.send('quickRulesConfigUpdated')
+      })(profileId, ruleIds),
+    [C.clearQuickRules]: (_e, profileId) =>
+      ipcErrorWrapper(async (profileId: string) => {
+        await clearQuickRules(profileId)
+        await restartCore()
+        mainWindow?.webContents.send('quickRulesConfigUpdated')
+      })(profileId),
     [C.getChainsConfig]: (_e, force) => ipcErrorWrapper(getChainsConfig)(force),
     [C.getAllChains]: ipcErrorWrapper(getAllChains),
     [C.addChainItem]: (_e, item) => ipcErrorWrapper(addChainItem)(item),

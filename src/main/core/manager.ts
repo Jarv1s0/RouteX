@@ -41,8 +41,15 @@ import { uploadRuntimeConfig } from '../resolve/gistApi'
 import { startMonitor } from '../resolve/trafficMonitor'
 import { disableSysProxy, triggerSysProxy } from '../sys/sysproxy'
 import { getAxios } from './mihomoApi'
-import { setSysDns } from '../service/api'
+import {
+  getCoreStatus,
+  setSysDns,
+  startCore as startServiceCore,
+  stopCore as stopServiceCore,
+  type ServiceCoreLaunchProfile
+} from '../service/api'
 import { ensureMihomoAlphaPath } from '../utils/runtimeAssets'
+import { initKeyManager } from '../service/manager'
 
 const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix'
 
@@ -110,9 +117,36 @@ let child: ChildProcess
 let retry = 10
 let restartCoreTask: Promise<void> | null = null
 
+async function startCoreWithService(profile: ServiceCoreLaunchProfile): Promise<Promise<void>[]> {
+  await initKeyManager()
+
+  try {
+    await getCoreStatus()
+    await stopServiceCore()
+  } catch {
+    // ignore
+  }
+
+  if (child && !child.killed) {
+    await stopChildProcess(child)
+    child = undefined as unknown as ChildProcess
+  }
+
+  await startServiceCore(profile)
+  await getAxios(true).catch(() => {})
+  await startMihomoTraffic()
+  await startMihomoConnections()
+  await startMihomoLogs()
+  await startMihomoMemory()
+  retry = 10
+
+  return [Promise.resolve()]
+}
+
 export async function startCore(detached = false): Promise<Promise<void>[]> {
   const {
     core = 'mihomo',
+    corePermissionMode = 'elevated',
     autoSetDNSMode = 'exec',
     diffWorkDir = false,
     mihomoCpuPriority = 'PRIORITY_NORMAL',
@@ -174,6 +208,21 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     SAFE_PATHS: safePaths.join(path.delimiter),
     PATH: process.env.PATH
   }
+
+  if (corePermissionMode === 'service' && !detached) {
+    const serviceProfile: ServiceCoreLaunchProfile = {
+      core_path: corePath,
+      args: ['-d', diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir()],
+      safe_paths: safePaths,
+      env,
+      mihomo_cpu_priority: mihomoCpuPriority,
+      log_path: logPath(),
+      save_logs: true
+    }
+
+    return await startCoreWithService(serviceProfile)
+  }
+
   let initialized = false
   const currentChild = spawn(
     corePath,
@@ -399,6 +448,18 @@ export async function stopCore(force = false): Promise<void> {
   stopMihomoLogs()
   stopMihomoMemory()
 
+  try {
+    const { corePermissionMode = 'elevated' } = await getAppConfig()
+    if (corePermissionMode === 'service') {
+      await initKeyManager()
+      await stopServiceCore()
+    }
+  } catch (error) {
+    await writeFile(logPath(), `[Manager]: stop service core failed, ${error}\n`, {
+      flag: 'a'
+    }).catch(() => {})
+  }
+
   if (child && !child.killed) {
     await stopChildProcess(child)
     child = undefined as unknown as ChildProcess
@@ -499,22 +560,25 @@ async function stopChildProcess(process: ChildProcess): Promise<void> {
   })
 }
 
-
 async function killAllMihomoProcesses(): Promise<void> {
   // Only for Windows where we have taskkill
   if (process.platform !== 'win32') return
-  
+
   const execPromise = promisify(execFile)
   try {
     // /F = Force, /IM = Image Name
     // This will kill ALL processes named mihomo.exe, ensuring no orphans hold the pipe
     await execPromise('taskkill', ['/F', '/IM', 'mihomo.exe'])
-    await writeFile(logPath(), `[Manager]: Forced cleanup of all mihomo.exe processes via taskkill\n`, { flag: 'a' })
+    await writeFile(
+      logPath(),
+      `[Manager]: Forced cleanup of all mihomo.exe processes via taskkill\n`,
+      { flag: 'a' }
+    )
   } catch (e) {
     // Ignore error if process not found (exit code 128)
     const msg = String(e)
     if (!msg.includes('not found') && !msg.includes('没有找到进程')) {
-       await writeFile(logPath(), `[Manager]: taskkill failed: ${e}\n`, { flag: 'a' })
+      await writeFile(logPath(), `[Manager]: taskkill failed: ${e}\n`, { flag: 'a' })
     }
   }
 }
@@ -522,11 +586,11 @@ async function killAllMihomoProcesses(): Promise<void> {
 async function restartCoreInternal(): Promise<void> {
   const maxRetries = 5
   let lastError: unknown = new Error('重启内核失败')
-  
+
   await stopCore()
   // Add a small delay to ensure the OS fully releases the named pipe resource
   await sleep(500)
-  
+
   for (let i = 0; i < maxRetries; i++) {
     try {
       const promises = await startCore()
@@ -551,23 +615,24 @@ async function restartCoreInternal(): Promise<void> {
       lastError = e
       const errorMsg = String(e)
       // 如果是管道监听错误（通常是因为上一个进程未完全释放），且还有重试机会
-      if (
-        errorMsg.includes('External controller pipe listen error') &&
-        i < maxRetries - 1
-      ) {
-        await writeFile(logPath(), `[Manager]: Pipe listen error, retrying in 2s... (${i + 1}/${maxRetries})\n`, { flag: 'a' })
-        
+      if (errorMsg.includes('External controller pipe listen error') && i < maxRetries - 1) {
+        await writeFile(
+          logPath(),
+          `[Manager]: Pipe listen error, retrying in 2s... (${i + 1}/${maxRetries})\n`,
+          { flag: 'a' }
+        )
+
         // 尝试强力清理环境
         await killAllMihomoProcesses()
-        
+
         await sleep(2000)
         // 再次尝试停止，确保状态同步
-        await stopCore(true) 
+        await stopCore(true)
         // 再次等待
         await sleep(500)
         continue
       }
-      
+
       // 其他错误或重试耗尽，显示错误弹窗
       showCoreStartError(e)
       throw e
