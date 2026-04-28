@@ -1,7 +1,7 @@
 import { Button, Card, CardBody, Chip } from '@heroui/react'
 import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
-import { MdEditDocument } from 'react-icons/md'
+import { MdOutlineEdit } from 'react-icons/md'
 import dayjs from 'dayjs'
 import React from 'react'
 import { calcTraffic } from '@renderer/utils/calc'
@@ -53,7 +53,7 @@ const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdat
                 onPress={onView}
               >
                 {provider.vehicleType === 'File' ? (
-                  <MdEditDocument className="text-lg" />
+                  <MdOutlineEdit className="text-lg" />
                 ) : (
                   <CgLoadbarDoc className="text-lg" />
                 )}

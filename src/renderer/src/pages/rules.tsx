@@ -7,7 +7,7 @@ import { Virtuoso } from 'react-virtuoso'
 import { useEffect, useMemo, useState, useDeferredValue, useCallback, useRef } from 'react'
 import { Button, Card, CardBody, Chip, Input, Tab, Tabs, Switch, Tooltip } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
-import { MdEditDocument, MdDelete } from 'react-icons/md'
+import { MdOutlineEdit, MdDelete } from 'react-icons/md'
 import { useRules } from '@renderer/hooks/use-rules'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { includesIgnoreCase } from '@renderer/utils/includes'
@@ -545,7 +545,7 @@ const RulesPage: React.FC = () => {
                                 className="min-w-8 w-8 h-8 text-default-500 hover:text-default-900"
                                 onPress={() => openEditQuickRule(rule)}
                               >
-                                <MdEditDocument className="text-lg" />
+                                <MdOutlineEdit className="text-lg" />
                               </Button>
                             </Tooltip>
                             
