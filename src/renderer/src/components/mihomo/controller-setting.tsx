@@ -17,6 +17,24 @@ const inputClassNames = {
     'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
 }
 
+function getExternalUiName(externalUiUrl: string): string {
+  if (externalUiUrl.includes('zashboard')) {
+    return 'zashboard'
+  }
+  if (externalUiUrl.includes('metacubexd')) {
+    return 'metacubexd-gh-pages'
+  }
+  return 'ui'
+}
+
+function getExternalUiPath(externalUiUrl: string): string {
+  return `ui/${getExternalUiName(externalUiUrl)}`
+}
+
+function normalizeExternalUiPath(value: string): string {
+  return value.trim().replace(/\\/g, '/').replace(/\/+$/, '')
+}
+
 function normalizeControllerForBrowser(value: string): string {
   const trimmed = value.trim()
   if (!trimmed) return ''
@@ -54,11 +72,9 @@ function buildExternalUiOpenUrl(
   const host = controllerUrl.hostname
   const port = controllerUrl.port
   const normalizedUiPath = uiPath.trim() || 'ui'
-  const uiBaseUrl = new URL(`/ui/${normalizedUiPath}/`, controllerUrl)
-  // Force the browser to fetch a fresh HTML entry so stale hashed assets do not break the panel.
-  uiBaseUrl.searchParams.set('_routex', Date.now().toString())
+  const uiBaseUrl = new URL('/ui/', controllerUrl)
 
-  if (normalizedUiPath === 'zashboard' || externalUiUrl.includes('zashboard')) {
+  if (normalizedUiPath.includes('zashboard') || externalUiUrl.includes('zashboard')) {
     const hashParams = new URLSearchParams({
       hostname: host,
       port
@@ -114,7 +130,6 @@ const ControllerSetting: React.FC = () => {
     'external-controller': externalController = '',
     'external-ui': externalUi = '',
     'external-ui-url': externalUiUrl = '',
-    'external-ui-name': externalUiName = '',
     'external-controller-cors': externalControllerCors,
     secret
   } = controledMihomoConfig || {}
@@ -128,7 +143,7 @@ const ControllerSetting: React.FC = () => {
   const [externalControllerInput, setExternalControllerInput] = useState(externalController)
   const [externalUiUrlInput, setExternalUiUrlInput] = useState(externalUiUrl)
   const [secretInput, setSecretInput] = useState(secret)
-  const [enableExternalUi, setEnableExternalUi] = useState(externalUi == 'ui')
+  const [enableExternalUi, setEnableExternalUi] = useState(externalUi.trim() !== '')
   const [upgrading, setUpgrading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [externalControllerError, setExternalControllerError] = useState<string | null>(() => {
@@ -136,12 +151,15 @@ const ControllerSetting: React.FC = () => {
     return r.ok ? null : (r.error ?? '格式错误')
   })
   const persistedExternalController = externalController.trim()
+  const persistedExternalUi = normalizeExternalUiPath(externalUi)
   const hasExternalController = persistedExternalController !== ''
+  const expectedExternalUi = getExternalUiPath(externalUiUrlInput)
+  const externalUiPathChanged = enableExternalUi && persistedExternalUi !== expectedExternalUi
   const browserOpenUrl =
     enableExternalUi && hasExternalController
       ? resolveExternalUiOpenUrl(
           persistedExternalController,
-          externalUiName && externalUiName.length > 0 ? externalUiName : 'ui',
+          persistedExternalUi,
           externalUiUrl,
           secret
         )
@@ -152,7 +170,7 @@ const ControllerSetting: React.FC = () => {
     setExternalControllerInput(externalController)
     setExternalUiUrlInput(externalUiUrl)
     setSecretInput(secret)
-    setEnableExternalUi(externalUi == 'ui')
+    setEnableExternalUi(externalUi.trim() !== '')
 
     const result = isValidListenAddress(externalController)
     setExternalControllerError(result.ok ? null : (result.error ?? '格式错误'))
@@ -185,7 +203,7 @@ const ControllerSetting: React.FC = () => {
 
   return (
     <SettingCard title="外部控制器" collapsible>
-      <SettingItem title="监听地址" divider={hasExternalController}>
+      <SettingItem title="监听地址" divider>
         <div className="flex">
           {externalControllerInput != externalController && !externalControllerError && (
             <Button
@@ -224,196 +242,187 @@ const ControllerSetting: React.FC = () => {
           </Tooltip>
         </div>
       </SettingItem>
-      {hasExternalController && (
-        <>
-          <SettingItem
-            title="访问密钥"
-            actions={
+      <SettingItem
+        title="访问密钥"
+        actions={
+          <Button
+            size="sm"
+            isIconOnly
+            title="生成密钥"
+            variant="light"
+            onPress={() => setSecretInput(generateRandomString(32))}
+          >
+            <IoMdRefresh className="text-lg" />
+          </Button>
+        }
+        divider
+      >
+        <div className="flex">
+          {secretInput != secret && (
+            <Button
+              size="sm"
+              color="primary"
+              className="mr-2"
+              onPress={() => {
+                onChangeNeedRestart({ secret: secretInput })
+              }}
+            >
+              确认
+            </Button>
+          )}
+          <Input
+            size="sm"
+            type={showPassword ? 'text' : 'password'}
+            className="w-[200px]"
+            classNames={inputClassNames}
+            value={secretInput}
+            onValueChange={setSecretInput}
+            startContent={
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? (
+                  <AiOutlineEyeInvisible className="w-4 h-4" />
+                ) : (
+                  <AiOutlineEye className="w-4 h-4" />
+                )}
+              </button>
+            }
+          />
+        </div>
+      </SettingItem>
+      <SettingItem title="启用控制器面板" divider>
+        <Switch
+          size="sm"
+          isSelected={enableExternalUi}
+          onValueChange={(v) => {
+            setEnableExternalUi(v)
+            onChangeNeedRestart({
+              'external-ui': v ? getExternalUiPath(externalUiUrlInput) : undefined,
+              'external-ui-name': undefined
+            })
+          }}
+        />
+      </SettingItem>
+      {enableExternalUi && (
+        <SettingItem
+          title="控制器面板"
+          divider
+          actions={
+            <>
               <Button
                 size="sm"
                 isIconOnly
-                title="生成密钥"
+                title="更新面板"
                 variant="light"
-                onPress={() => setSecretInput(generateRandomString(32))}
+                isLoading={upgrading}
+                onPress={upgradeUI}
               >
-                <IoMdRefresh className="text-lg" />
+                <IoMdCloudDownload className="text-lg" />
               </Button>
-            }
-            divider
-          >
-            <div className="flex">
-              {secretInput != secret && (
-                <Button
-                  size="sm"
-                  color="primary"
-                  className="mr-2"
-                  onPress={() => {
-                    onChangeNeedRestart({ secret: secretInput })
-                  }}
-                >
-                  确认
-                </Button>
-              )}
-              <Input
+              <Button
+                title="在浏览器中打开"
+                isIconOnly
                 size="sm"
-                type={showPassword ? 'text' : 'password'}
-                className="w-[200px]"
-                classNames={inputClassNames}
-                value={secretInput}
-                onValueChange={setSecretInput}
-                startContent={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    {showPassword ? (
-                      <AiOutlineEyeInvisible className="w-4 h-4" />
-                    ) : (
-                      <AiOutlineEye className="w-4 h-4" />
-                    )}
-                  </button>
-                }
-              />
-            </div>
-          </SettingItem>
-          <SettingItem title="启用控制器面板" divider>
-            <Switch
-              size="sm"
-              isSelected={enableExternalUi}
-              onValueChange={(v) => {
-                setEnableExternalUi(v)
-                onChangeNeedRestart({
-                  'external-ui': v ? 'ui' : undefined
-                })
-              }}
-            />
-          </SettingItem>
-          {enableExternalUi && (
-            <SettingItem
-              title="控制器面板"
-              divider
-              actions={
-                <>
-                  <Button
-                    size="sm"
-                    isIconOnly
-                    title="更新面板"
-                    variant="light"
-                    isLoading={upgrading}
-                    onPress={upgradeUI}
-                  >
-                    <IoMdCloudDownload className="text-lg" />
-                  </Button>
-                  <Button
-                    title="在浏览器中打开"
-                    isIconOnly
-                    size="sm"
-                    className="app-nodrag"
-                    variant="light"
-                    isDisabled={upgrading || !browserOpenUrl}
-                    onPress={() => {
-                      if (!browserOpenUrl) {
-                        alert('当前控制器面板地址无效，请先确认监听地址和面板配置已生效')
-                        return
-                      }
-
-                      void openExternalUrl(browserOpenUrl).catch((error) => {
-                        alert(error)
-                      })
-                    }}
-                  >
-                    <HiExternalLink className="text-lg" />
-                  </Button>
-                </>
-              }
-            >
-              <div className="flex">
-                {externalUiUrlInput != externalUiUrl && (
-                  <Button
-                    size="sm"
-                    color="primary"
-                    className="mr-2"
-                    onPress={() => {
-                      let newName = externalUiName
-                      if (externalUiUrlInput.includes('zashboard')) {
-                        newName = 'zashboard'
-                      } else if (externalUiUrlInput.includes('metacubexd')) {
-                        newName = 'metacubexd-gh-pages'
-                      }
-
-                      onChangeNeedRestart({
-                        'external-ui-url': externalUiUrlInput,
-                        'external-ui-name': newName
-                      })
-                    }}
-                  >
-                    确认
-                  </Button>
-                )}
-                <Select
-                  classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-                  className="w-[150px]"
-                  size="sm"
-                  selectedKeys={new Set([externalUiUrlInput])}
-                  disallowEmptySelection={true}
-                  onSelectionChange={(v) => {
-                    const newUrl = v.currentKey as string
-                    setExternalUiUrlInput(newUrl)
-                  }}
-                >
-                  <SelectItem key="https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip">
-                    zashboard
-                  </SelectItem>
-                  <SelectItem key="https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip">
-                    metacubexd
-                  </SelectItem>
-                </Select>
-              </div>
-            </SettingItem>
-          )}
-          <SettingItem title="CORS 配置" divider />
-          <SettingItem title="允许私有网络访问" divider>
-            <Switch
-              size="sm"
-              isSelected={allowPrivateNetwork}
-              onValueChange={(v) => {
-                onChangeNeedRestart({
-                  'external-controller-cors': {
-                    ...externalControllerCors,
-                    'allow-private-network': v
+                className="app-nodrag"
+                variant="light"
+                isDisabled={upgrading || !browserOpenUrl || externalUiPathChanged}
+                onPress={() => {
+                  if (!browserOpenUrl) {
+                    alert('当前控制器面板地址无效，请先确认监听地址和面板配置已生效')
+                    return
                   }
-                })
-              }}
-            />
-          </SettingItem>
-          <SettingItem title="允许的来源" divider={false}>
-            {allowOriginsInput.join(',') != initialAllowOrigins.join(',') && (
+
+                  void openExternalUrl(browserOpenUrl).catch((error) => {
+                    alert(error)
+                  })
+                }}
+              >
+                <HiExternalLink className="text-lg" />
+              </Button>
+            </>
+          }
+        >
+          <div className="flex">
+            {(externalUiUrlInput != externalUiUrl || externalUiPathChanged) && (
               <Button
                 size="sm"
                 color="primary"
+                className="mr-2"
                 onPress={() => {
-                  const finalOrigins = allowOriginsInput.length == 0 ? ['*'] : allowOriginsInput
                   onChangeNeedRestart({
-                    'external-controller-cors': {
-                      ...externalControllerCors,
-                      'allow-origins': finalOrigins
-                    }
+                    'external-ui': enableExternalUi ? getExternalUiPath(externalUiUrlInput) : undefined,
+                    'external-ui-url': externalUiUrlInput,
+                    'external-ui-name': undefined
                   })
                 }}
               >
                 确认
               </Button>
             )}
-            <EditableList
-              items={allowOriginsInput}
-              onChange={(items) => setAllowOriginsInput(items as string[])}
-              divider={false}
-              inputClassNames={inputClassNames}
-            />
-          </SettingItem>
-        </>
+            <Select
+              classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+              className="w-[150px]"
+              size="sm"
+              selectedKeys={new Set([externalUiUrlInput])}
+              disallowEmptySelection={true}
+              onSelectionChange={(v) => {
+                const newUrl = v.currentKey as string
+                setExternalUiUrlInput(newUrl)
+              }}
+            >
+              <SelectItem key="https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip">
+                zashboard
+              </SelectItem>
+              <SelectItem key="https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip">
+                metacubexd
+              </SelectItem>
+            </Select>
+          </div>
+        </SettingItem>
       )}
+      <SettingItem title="CORS 配置" divider />
+      <SettingItem title="允许私有网络访问" divider>
+        <Switch
+          size="sm"
+          isSelected={allowPrivateNetwork}
+          onValueChange={(v) => {
+            onChangeNeedRestart({
+              'external-controller-cors': {
+                ...externalControllerCors,
+                'allow-private-network': v
+              }
+            })
+          }}
+        />
+      </SettingItem>
+      <SettingItem title="允许的来源" divider={false}>
+        {allowOriginsInput.join(',') != initialAllowOrigins.join(',') && (
+          <Button
+            size="sm"
+            color="primary"
+            onPress={() => {
+              const finalOrigins = allowOriginsInput.length == 0 ? ['*'] : allowOriginsInput
+              onChangeNeedRestart({
+                'external-controller-cors': {
+                  ...externalControllerCors,
+                  'allow-origins': finalOrigins
+                }
+              })
+            }}
+          >
+            确认
+          </Button>
+        )}
+        <EditableList
+          items={allowOriginsInput}
+          onChange={(items) => setAllowOriginsInput(items as string[])}
+          divider={false}
+          inputClassNames={inputClassNames}
+        />
+      </SettingItem>
     </SettingCard>
   )
 }

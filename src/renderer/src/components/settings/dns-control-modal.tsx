@@ -14,9 +14,10 @@ import {
 import { DnsSettingsFormFields, useDnsSettingsEditor } from '@renderer/components/dns/dns-settings-editor'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
-import { patchControledMihomoConfig, restartCore } from '@renderer/utils/mihomo-ipc'
+import { patchControledMihomoConfig } from '@renderer/utils/mihomo-ipc'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 import { toast } from 'sonner'
+import { restartCoreInBackground } from '@renderer/utils/core-restart'
 
 interface Props {
   isOpen: boolean
@@ -35,7 +36,7 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     try {
       await patchAppConfig({ controlDns: value })
       await patchControledMihomoConfig({})
-      await restartCore()
+      restartCoreInBackground('应用 DNS 接管设置失败')
     } catch (error) {
       toast.error(String(error))
     }

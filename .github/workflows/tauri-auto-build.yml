@@ -3,6 +3,7 @@ name: Tauri Auto Build
 on:
   push:
     branches:
+      - develop
       - tauri-develop
   workflow_dispatch:
 
@@ -38,8 +39,8 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           SHORT_HASH=$(git rev-parse --short HEAD)
-          RELEASE_TAG="autobuild-tauri-develop"
-          RELEASE_TITLE="RouteX v${VERSION} (Autobuild tauri Develop ${SHORT_HASH})"
+          RELEASE_TAG="autobuild-${GITHUB_REF_NAME}"
+          RELEASE_TITLE="RouteX v${VERSION} (Autobuild ${GITHUB_REF_NAME} ${SHORT_HASH})"
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV

@@ -36,7 +36,15 @@ interface AppConfig {
   envType?: ('bash' | 'cmd' | 'powershell' | 'nushell')[]
   proxyCols: 'auto' | '1' | '2' | '3' | '4'
   connectionDirection: 'asc' | 'desc'
-  connectionOrderBy: 'time' | 'upload' | 'download' | 'uploadSpeed' | 'downloadSpeed' | 'process' | 'type' | 'rule'
+  connectionOrderBy:
+    | 'time'
+    | 'upload'
+    | 'download'
+    | 'uploadSpeed'
+    | 'downloadSpeed'
+    | 'process'
+    | 'type'
+    | 'rule'
   connectionInterval?: number
   spinFloatingIcon?: boolean
   disableTray?: boolean
@@ -169,6 +177,34 @@ interface OverrideItem {
   fingerprint?: string
 }
 
+interface QuickRulesConfig {
+  version: 1
+  migratedLegacyQuickRules?: boolean
+  profiles: Record<string, QuickRuleProfileConfig>
+}
+
+interface QuickRuleProfileConfig {
+  enabled: boolean
+  rules: QuickRule[]
+}
+
+interface QuickRule {
+  id: string
+  type: string
+  value: string
+  target: string
+  noResolve?: boolean
+  enabled: boolean
+  source: 'connection' | 'manual'
+  createdAt: number
+  updatedAt: number
+}
+
+type QuickRuleInput = Omit<QuickRule, 'id' | 'enabled' | 'createdAt' | 'updatedAt'> & {
+  id?: string
+  enabled?: boolean
+}
+
 // 代理链配置
 interface ChainsConfig {
   items: ChainItem[]
@@ -176,10 +212,9 @@ interface ChainsConfig {
 
 interface ChainItem {
   id: string
-  name: string              // 链名称 (即生成的虚拟节点名)
-  dialerProxy: string       // 前置节点/组
-  targetProxy: string       // 落地节点
-  targetGroups?: string[]   // 要加入的策略组名称列表
-  enabled?: boolean         // 是否启用
+  name: string // 链名称 (即生成的虚拟节点名)
+  dialerProxy: string // 前置节点/组
+  targetProxy: string // 落地节点
+  targetGroups?: string[] // 要加入的策略组名称列表
+  enabled?: boolean // 是否启用
 }
-

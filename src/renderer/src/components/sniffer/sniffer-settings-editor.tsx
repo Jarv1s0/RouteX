@@ -6,7 +6,7 @@ import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
+import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 
 interface SnifferEditorValues {
@@ -115,7 +115,7 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
           'skip-src-address': values.skipSrcAddress
         }
       })
-      await restartCore()
+      restartCoreInBackground('应用嗅探配置失败')
     } catch (error) {
       notifyError(error)
     }

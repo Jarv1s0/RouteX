@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { createScheduledProfileRefresher } from '../src/main/core/profileUpdater.shared.ts'
+import { createScheduledProfileRefresher } from '../src/shared/profile-updater.ts'
 
 async function main(): Promise<void> {
   const staleItem: ProfileItem = {

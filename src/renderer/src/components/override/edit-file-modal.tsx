@@ -9,11 +9,12 @@ import {
 } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
 import { BaseEditor } from '../base/base-editor'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { getOverride, setOverride } from '@renderer/utils/override-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import ConfirmModal from '../base/base-confirm'
+import { notifyError } from '@renderer/utils/notify'
+import { restartCoreInBackground } from '@renderer/utils/core-restart'
 
 interface Props {
   id: string
@@ -30,6 +31,7 @@ const EditFileModal: React.FC<Props> = (props) => {
   const [isDiff, setIsDiff] = useState(false)
   const [sideBySide, setSideBySide] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const isModified = currData !== originalData
 
@@ -108,13 +110,17 @@ const EditFileModal: React.FC<Props> = (props) => {
             <Button
               size="sm"
               color="primary"
+              isLoading={saving}
+              isDisabled={!isModified || saving}
               onPress={async () => {
+                setSaving(true)
                 try {
                   await setOverride(id, language === 'javascript' ? 'js' : 'yaml', currData)
-                  await restartCore()
                   onClose()
+                  restartCoreInBackground('应用覆写失败')
                 } catch (e) {
-                  alert(e)
+                  notifyError(e, { title: '保存覆写失败' })
+                  setSaving(false)
                 }
               }}
             >

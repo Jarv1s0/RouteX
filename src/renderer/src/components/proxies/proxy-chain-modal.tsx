@@ -15,10 +15,10 @@ import { IoTrash, IoAdd, IoEye, IoPencil } from 'react-icons/io5'
 import ChainPreviewModal from './chain-preview-modal'
 import { MdLink, MdLinkOff } from 'react-icons/md'
 import { getAllChains, addChainItem, updateChainItem, removeChainItem } from '@renderer/utils/chains-ipc'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { useGroups } from '@renderer/hooks/use-groups'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { restartCoreInBackground } from '@renderer/utils/core-restart'
 
 const polishedInputClassNames = {
   input: 'bg-transparent text-default-900 text-xs',
@@ -128,7 +128,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
       await loadChains()
       setEditingChain(null)
       setIsEditing(false) // 关闭编辑器
-      await restartCore()
+      restartCoreInBackground('应用代理链失败')
     } catch (e) {
       console.error('Failed to save chain:', e)
     } finally {
@@ -142,7 +142,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
     try {
       await removeChainItem(id)
       await loadChains()
-      await restartCore()
+      restartCoreInBackground('应用代理链失败')
     } catch (e) {
       console.error('Failed to delete chain:', e)
     } finally {
@@ -156,7 +156,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
     try {
       await updateChainItem({ ...chain, enabled })
       await loadChains()
-      await restartCore()
+      restartCoreInBackground('应用代理链失败')
     } catch (e) {
       console.error('Failed to toggle chain:', e)
     } finally {

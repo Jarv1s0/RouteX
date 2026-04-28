@@ -41,7 +41,7 @@ import {
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
-const DEFAULT_DELAY_TEST_CONCURRENCY = 8
+const DEFAULT_DELAY_TEST_CONCURRENCY = 4
 const DEFAULT_DELAY_TEST_TIMEOUT = 5000
 
 interface Props {
@@ -177,7 +177,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 <>
                   延迟测试并发数量
                   <span className="text-xs text-foreground-400 font-normal ml-1">
-                    (默认 8，建议 6-10)
+                    (默认 4，建议 3-6)
                   </span>
                 </>
               }

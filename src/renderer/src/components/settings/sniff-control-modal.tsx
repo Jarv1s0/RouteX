@@ -3,9 +3,10 @@ import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Switc
 
 import { SnifferSettingsFormFields, useSnifferSettingsEditor } from '@renderer/components/sniffer/sniffer-settings-editor'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { patchControledMihomoConfig, restartCore } from '@renderer/utils/mihomo-ipc'
+import { patchControledMihomoConfig } from '@renderer/utils/mihomo-ipc'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 import { toast } from 'sonner'
+import { restartCoreInBackground } from '@renderer/utils/core-restart'
 
 interface Props {
   isOpen: boolean
@@ -24,7 +25,7 @@ const SniffControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     try {
       await patchAppConfig({ controlSniff: value })
       await patchControledMihomoConfig({})
-      await restartCore()
+      restartCoreInBackground('应用嗅探接管设置失败')
     } catch (error) {
       toast.error(String(error))
     }

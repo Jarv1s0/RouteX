@@ -6,7 +6,7 @@ use std::{
     io::{Cursor, Read, Seek, SeekFrom, Write},
     net::{TcpListener, ToSocketAddrs},
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
+    process::{Child, Command, Output, Stdio},
     sync::{
         atomic::{AtomicBool, Ordering as AtomicOrdering},
         mpsc, Arc, Mutex, OnceLock,
@@ -23,6 +23,7 @@ use std::os::windows::process::CommandExt;
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use quick_xml::{events::Event, Reader};
 use reqwest::blocking::Client;
+use ring::rand::{SecureRandom, SystemRandom};
 use ring::signature::Ed25519KeyPair;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -34,8 +35,7 @@ use tauri::{
     menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, PhysicalPosition, Position, RunEvent, State, WebviewUrl,
-    WebviewWindowBuilder,
-    WindowEvent,
+    WebviewWindowBuilder, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState};
 use time::{macros::format_description, OffsetDateTime};
@@ -48,11 +48,13 @@ const CHAINS_CONFIG_FILE: &str = "chains-config.json";
 const CONTROLLED_CONFIG_FILE: &str = "controlled-mihomo-config.json";
 const PROFILE_CONFIG_FILE: &str = "profile-config.json";
 const OVERRIDE_CONFIG_FILE: &str = "override-config.json";
+const QUICK_RULES_CONFIG_FILE: &str = "quick-rules-config.json";
 const PROVIDER_STATS_FILE: &str = "provider-stats.json";
 const TRAFFIC_STATS_FILE: &str = "traffic-stats.json";
 const PROFILE_DIR_NAME: &str = "profiles";
 const OVERRIDE_DIR_NAME: &str = "overrides";
 const THEME_DIR_NAME: &str = "themes";
+const DEFAULT_THEME_FILE_NAME: &str = "default.css";
 const RUNTIME_DIR_NAME: &str = "runtime-files";
 const TAURI_CORE_DIR_NAME: &str = "tauri-core";
 const UPDATES_DIR_NAME: &str = "updates";
@@ -137,7 +139,7 @@ const ROUTEX_DESKTOP_NAME: &str = "routex.desktop";
 const ENABLE_LOOPBACK_URL: &str =
     "https://github.com/Kuingsmile/uwp-tool/releases/download/latest/enableLoopback.exe";
 const THEME_ZIP_URL: &str =
-    "https://github.com/Jarv1s0/theme-hub/releases/download/latest/themes.zip";
+    "https://github.com/Jarv1s0/theme-hub/releases/latest/download/themes.zip";
 const NETWORK_CONNECTIVITY_CHECK_URL: &str = "http://cp.cloudflare.com/generate_204";
 const NETWORK_HEALTH_TEST_INTERVAL: Duration = Duration::from_secs(15);
 const NETWORK_HEALTH_TIMEOUT: Duration = Duration::from_secs(5);
@@ -277,10 +279,6 @@ struct CoreEventsMonitorHandle {
     shutdown: mpsc::Sender<()>,
 }
 
-struct ExternalControllerProxyHandle {
-    shutdown: mpsc::Sender<()>,
-}
-
 struct LightweightModeHandle {
     shutdown: mpsc::Sender<()>,
 }
@@ -318,7 +316,6 @@ struct CoreState {
     network_detection: Mutex<Option<NetworkDetectionHandle>>,
     ssid_check: Mutex<Option<SsidCheckHandle>>,
     core_events_monitor: Mutex<Option<CoreEventsMonitorHandle>>,
-    external_controller_proxy: Mutex<Option<ExternalControllerProxyHandle>>,
     network_health_monitor: Mutex<Option<NetworkHealthMonitorHandle>>,
     network_health_state: Mutex<NetworkHealthState>,
     network_down_handled: Mutex<bool>,
@@ -436,6 +433,57 @@ struct OverrideItemInput {
     url: Option<String>,
     file: Option<String>,
     fingerprint: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct QuickRulesConfigData {
+    version: u8,
+    #[serde(rename = "migratedLegacyQuickRules", default)]
+    migrated_legacy_quick_rules: bool,
+    #[serde(default)]
+    profiles: HashMap<String, QuickRuleProfileConfig>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct QuickRuleProfileConfig {
+    #[serde(default = "default_true")]
+    enabled: bool,
+    #[serde(default)]
+    rules: Vec<QuickRule>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct QuickRule {
+    id: String,
+    #[serde(rename = "type")]
+    rule_type: String,
+    value: String,
+    target: String,
+    #[serde(rename = "noResolve", skip_serializing_if = "Option::is_none")]
+    no_resolve: Option<bool>,
+    enabled: bool,
+    source: String,
+    #[serde(rename = "createdAt")]
+    created_at: u64,
+    #[serde(rename = "updatedAt")]
+    updated_at: u64,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+struct QuickRuleInput {
+    id: Option<String>,
+    #[serde(rename = "type")]
+    rule_type: Option<String>,
+    value: Option<String>,
+    target: Option<String>,
+    #[serde(rename = "noResolve")]
+    no_resolve: Option<bool>,
+    enabled: Option<bool>,
+    source: Option<String>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Default)]
@@ -986,420 +1034,6 @@ fn storage_dir(app: &tauri::AppHandle, dir_name: &str) -> Result<PathBuf, String
     ensure_dir(app_storage_root(app)?.join(dir_name))
 }
 
-#[cfg(target_os = "windows")]
-fn legacy_electron_data_dir_candidates(app: &tauri::AppHandle) -> Vec<PathBuf> {
-    let mut candidates = Vec::new();
-
-    if let Some(app_data) = std::env::var_os("APPDATA") {
-        let base = PathBuf::from(app_data);
-        candidates.push(base.join("RouteX"));
-        candidates.push(base.join("routex"));
-        candidates.push(base.join(WINDOWS_APP_DATA_DIR_NAME));
-    }
-
-    if let Ok(app_data_dir) = default_app_data_root(app) {
-        if let Some(parent) = app_data_dir.parent() {
-            candidates.push(parent.join("RouteX"));
-            candidates.push(parent.join("routex"));
-            candidates.push(parent.join(WINDOWS_APP_DATA_DIR_NAME));
-        }
-    }
-
-    let mut deduped = Vec::new();
-    for candidate in candidates {
-        if !deduped.contains(&candidate) {
-            deduped.push(candidate);
-        }
-    }
-
-    deduped
-}
-
-#[cfg(not(target_os = "windows"))]
-fn legacy_electron_data_dir_candidates(_app: &tauri::AppHandle) -> Vec<PathBuf> {
-    Vec::new()
-}
-
-fn legacy_yaml_store_file_candidates(
-    app: &tauri::AppHandle,
-    file_names: &[&str],
-) -> Result<Vec<PathBuf>, String> {
-    let storage_root = app_storage_root(app)?;
-    let mut candidates = Vec::new();
-
-    for file_name in file_names {
-        candidates.push(storage_root.join(file_name));
-    }
-
-    for candidate_root in legacy_electron_data_dir_candidates(app) {
-        for file_name in file_names {
-            candidates.push(candidate_root.join(file_name));
-            candidates.push(candidate_root.join(STORAGE_DIR_NAME).join(file_name));
-        }
-    }
-
-    let mut deduped = Vec::new();
-    for candidate in candidates {
-        if !deduped.contains(&candidate) {
-            deduped.push(candidate);
-        }
-    }
-
-    Ok(deduped)
-}
-
-fn yaml_mapping_key_to_string(key: &serde_yaml::Value) -> String {
-    match key {
-        serde_yaml::Value::Null => "null".to_string(),
-        serde_yaml::Value::Bool(value) => value.to_string(),
-        serde_yaml::Value::Number(value) => value.to_string(),
-        serde_yaml::Value::String(value) => value.clone(),
-        other => serde_yaml::to_string(other)
-            .unwrap_or_default()
-            .trim()
-            .to_string(),
-    }
-}
-
-fn yaml_value_to_json_value(value: &serde_yaml::Value) -> Value {
-    match value {
-        serde_yaml::Value::Null => Value::Null,
-        serde_yaml::Value::Bool(value) => Value::Bool(*value),
-        serde_yaml::Value::Number(value) => {
-            if let Some(number) = value.as_i64() {
-                Value::Number(number.into())
-            } else if let Some(number) = value.as_u64() {
-                Value::Number(number.into())
-            } else if let Some(number) = value.as_f64() {
-                serde_json::Number::from_f64(number)
-                    .map(Value::Number)
-                    .unwrap_or(Value::Null)
-            } else {
-                Value::Null
-            }
-        }
-        serde_yaml::Value::String(value) => Value::String(value.clone()),
-        serde_yaml::Value::Sequence(values) => {
-            Value::Array(values.iter().map(yaml_value_to_json_value).collect())
-        }
-        serde_yaml::Value::Mapping(values) => Value::Object(
-            values
-                .iter()
-                .map(|(key, value)| {
-                    (
-                        yaml_mapping_key_to_string(key),
-                        yaml_value_to_json_value(value),
-                    )
-                })
-                .collect(),
-        ),
-        serde_yaml::Value::Tagged(tagged) => yaml_value_to_json_value(&tagged.value),
-    }
-}
-
-fn read_first_legacy_yaml_value(
-    app: &tauri::AppHandle,
-    file_names: &[&str],
-) -> Result<Option<Value>, String> {
-    for candidate in legacy_yaml_store_file_candidates(app, file_names)? {
-        if !candidate.exists() {
-            continue;
-        }
-
-        let text = match fs::read_to_string(&candidate) {
-            Ok(text) if !text.trim().is_empty() => text,
-            _ => continue,
-        };
-
-        let yaml = match serde_yaml::from_str::<serde_yaml::Value>(&text) {
-            Ok(value) => value,
-            Err(_) => continue,
-        };
-
-        return Ok(Some(yaml_value_to_json_value(&yaml)));
-    }
-
-    Ok(None)
-}
-
-fn migrate_legacy_yaml_store_if_needed<T: DeserializeOwned + Serialize>(
-    app: &tauri::AppHandle,
-    target_file_name: &str,
-    legacy_file_names: &[&str],
-    normalize: impl FnOnce(T) -> T,
-) -> Result<(), String> {
-    let target = storage_file(app, target_file_name)?;
-    if target.exists() {
-        return Ok(());
-    }
-
-    let Some(value) = read_first_legacy_yaml_value(app, legacy_file_names)? else {
-        return Ok(());
-    };
-
-    let parsed = serde_json::from_value::<T>(value).map_err(|e| e.to_string())?;
-    write_json_file(&target, &normalize(parsed))
-}
-
-fn migrate_legacy_profile_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
-    migrate_legacy_yaml_store_if_needed(
-        app,
-        PROFILE_CONFIG_FILE,
-        &["profile.yaml", "profiles.yaml"],
-        normalize_profile_config,
-    )
-}
-
-fn migrate_legacy_override_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
-    migrate_legacy_yaml_store_if_needed(
-        app,
-        OVERRIDE_CONFIG_FILE,
-        &["override.yaml", "overrides.yaml"],
-        |config: OverrideConfigData| config,
-    )
-}
-
-fn migrate_legacy_chains_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
-    migrate_legacy_yaml_store_if_needed(
-        app,
-        CHAINS_CONFIG_FILE,
-        &["chains.yaml"],
-        |config: ChainsConfigData| config,
-    )
-}
-
-fn migrate_legacy_controlled_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
-    migrate_legacy_yaml_store_if_needed(
-        app,
-        CONTROLLED_CONFIG_FILE,
-        &["mihomo.yaml"],
-        |config: Value| config,
-    )
-}
-
-fn read_legacy_controlled_config(app: &tauri::AppHandle) -> Result<Option<Value>, String> {
-    read_first_legacy_yaml_value(app, &["mihomo.yaml"])
-}
-
-fn backfill_legacy_value(current: &mut Value, legacy: &Value) -> bool {
-    match legacy {
-        Value::Object(legacy_object) => {
-            let Some(current_object) = current.as_object_mut() else {
-                if current.is_null() {
-                    *current = legacy.clone();
-                    return true;
-                }
-                return false;
-            };
-
-            let mut changed = false;
-            for (key, legacy_value) in legacy_object {
-                match current_object.get_mut(key) {
-                    Some(current_value) => {
-                        changed |= backfill_legacy_value(current_value, legacy_value);
-                    }
-                    None => {
-                        current_object.insert(key.clone(), legacy_value.clone());
-                        changed = true;
-                    }
-                }
-            }
-            changed
-        }
-        Value::String(legacy_value) => {
-            let Some(current_value) = current.as_str() else {
-                if current.is_null() {
-                    *current = legacy.clone();
-                    return true;
-                }
-                return false;
-            };
-
-            if current_value.trim().is_empty() && !legacy_value.trim().is_empty() {
-                *current = Value::String(legacy_value.clone());
-                true
-            } else {
-                false
-            }
-        }
-        Value::Array(legacy_items) => {
-            let Some(current_items) = current.as_array() else {
-                if current.is_null() {
-                    *current = legacy.clone();
-                    return true;
-                }
-                return false;
-            };
-
-            if current_items.is_empty() && !legacy_items.is_empty() {
-                *current = Value::Array(legacy_items.clone());
-                true
-            } else {
-                false
-            }
-        }
-        _ if current.is_null() => {
-            *current = legacy.clone();
-            true
-        }
-        _ => false,
-    }
-}
-
-fn migrate_legacy_storage_dir_if_needed(
-    app: &tauri::AppHandle,
-    target_dir_name: &str,
-    legacy_dir_names: &[&str],
-) -> Result<(), String> {
-    let target_dir = storage_dir(app, target_dir_name)?;
-    let mut target_iter = fs::read_dir(&target_dir).map_err(|e| e.to_string())?;
-    if target_iter.next().is_some() {
-        return Ok(());
-    }
-
-    let storage_root = app_storage_root(app)?;
-    let mut candidates = Vec::new();
-
-    for legacy_dir_name in legacy_dir_names {
-        let sibling = storage_root.join(legacy_dir_name);
-        if sibling != target_dir {
-            candidates.push(sibling);
-        }
-    }
-
-    for candidate_root in legacy_electron_data_dir_candidates(app) {
-        for legacy_dir_name in legacy_dir_names {
-            candidates.push(candidate_root.join(legacy_dir_name));
-            candidates.push(candidate_root.join(STORAGE_DIR_NAME).join(legacy_dir_name));
-        }
-    }
-
-    let mut deduped = Vec::new();
-    for candidate in candidates {
-        if candidate != target_dir && !deduped.contains(&candidate) {
-            deduped.push(candidate);
-        }
-    }
-
-    for candidate in deduped {
-        copy_path_if_missing(&candidate, &target_dir)?;
-    }
-
-    Ok(())
-}
-
-fn migrate_legacy_app_config_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
-    let target = storage_file(app, APP_CONFIG_FILE)?;
-    if target.exists() {
-        return Ok(());
-    }
-
-    for candidate in legacy_electron_data_dir_candidates(app) {
-        let legacy_path = candidate.join("config.yaml");
-        if !legacy_path.exists() {
-            continue;
-        }
-
-        let text = match fs::read_to_string(&legacy_path) {
-            Ok(text) if !text.trim().is_empty() => text,
-            _ => continue,
-        };
-
-        let yaml = match serde_yaml::from_str::<serde_yaml::Value>(&text) {
-            Ok(value) => value,
-            Err(_) => continue,
-        };
-
-        let json_value = serde_json::to_value(yaml).map_err(|e| e.to_string())?;
-        if json_value.is_object() {
-            write_value_store(app, APP_CONFIG_FILE, &json_value)?;
-            return Ok(());
-        }
-    }
-
-    Ok(())
-}
-
-fn read_legacy_app_config(app: &tauri::AppHandle) -> Result<Option<Value>, String> {
-    for candidate in legacy_electron_data_dir_candidates(app) {
-        let legacy_path = candidate.join("config.yaml");
-        if !legacy_path.exists() {
-            continue;
-        }
-
-        let text = match fs::read_to_string(&legacy_path) {
-            Ok(text) if !text.trim().is_empty() => text,
-            _ => continue,
-        };
-
-        let yaml = match serde_yaml::from_str::<serde_yaml::Value>(&text) {
-            Ok(value) => value,
-            Err(_) => continue,
-        };
-
-        let json_value = serde_json::to_value(yaml).map_err(|e| e.to_string())?;
-        if json_value.is_object() {
-            return Ok(Some(json_value));
-        }
-    }
-
-    Ok(None)
-}
-
-fn should_replace_with_legacy_app_config(value: &Value) -> bool {
-    let Some(object) = value.as_object() else {
-        return true;
-    };
-
-    object.len() <= 8
-        || !object.contains_key("customTheme")
-        || !object.contains_key("siderWidth")
-        || !object.contains_key("collapseSidebar")
-        || !object.contains_key("showFloatingWindow")
-}
-
-fn migrate_legacy_themes_if_needed(app: &tauri::AppHandle) -> Result<(), String> {
-    let target_dir = storage_dir(app, THEME_DIR_NAME)?;
-    let mut target_iter = fs::read_dir(&target_dir).map_err(|e| e.to_string())?;
-    if target_iter.next().is_some() {
-        return Ok(());
-    }
-
-    for candidate in legacy_electron_data_dir_candidates(app) {
-        let legacy_dir = candidate.join(THEME_DIR_NAME);
-        if !legacy_dir.is_dir() {
-            continue;
-        }
-
-        let mut copied_any = false;
-        for entry in fs::read_dir(&legacy_dir).map_err(|e| e.to_string())? {
-            let entry = entry.map_err(|e| e.to_string())?;
-            let source = entry.path();
-            if !source.is_file() {
-                continue;
-            }
-
-            let Some(file_name) = source.file_name().and_then(|name| name.to_str()) else {
-                continue;
-            };
-
-            if !file_name.ends_with(".css") {
-                continue;
-            }
-
-            let target = target_dir.join(file_name);
-            fs::copy(&source, &target).map_err(|e| e.to_string())?;
-            copied_any = true;
-        }
-
-        if copied_any {
-            return Ok(());
-        }
-    }
-
-    Ok(())
-}
-
 fn ensure_parent(path: &Path) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -1644,17 +1278,7 @@ fn clear_traffic_stats_store(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 fn read_app_config_store(app: &tauri::AppHandle) -> Result<Value, String> {
-    migrate_legacy_app_config_if_needed(app)?;
-    let current = read_value_store(app, APP_CONFIG_FILE, json!({}))?;
-
-    if should_replace_with_legacy_app_config(&current) {
-        if let Some(legacy) = read_legacy_app_config(app)? {
-            write_value_store(app, APP_CONFIG_FILE, &legacy)?;
-            return Ok(legacy);
-        }
-    }
-
-    Ok(current)
+    read_value_store(app, APP_CONFIG_FILE, json!({}))
 }
 
 fn patch_app_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
@@ -1674,16 +1298,7 @@ fn read_connection_interval_ms(app: &tauri::AppHandle) -> u64 {
 }
 
 fn read_controlled_config_store(app: &tauri::AppHandle) -> Result<Value, String> {
-    migrate_legacy_controlled_config_if_needed(app)?;
-    let mut current = read_value_store(app, CONTROLLED_CONFIG_FILE, json!({}))?;
-
-    if let Some(legacy) = read_legacy_controlled_config(app)? {
-        if backfill_legacy_value(&mut current, &legacy) {
-            write_value_store(app, CONTROLLED_CONFIG_FILE, &current)?;
-        }
-    }
-
-    Ok(current)
+    read_value_store(app, CONTROLLED_CONFIG_FILE, json!({}))
 }
 
 fn patch_controlled_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
@@ -1726,7 +1341,6 @@ fn patch_controlled_config_store(app: &tauri::AppHandle, patch: &Value) -> Resul
 }
 
 fn read_profile_config(app: &tauri::AppHandle) -> Result<ProfileConfigData, String> {
-    migrate_legacy_profile_config_if_needed(app)?;
     let path = storage_file(app, PROFILE_CONFIG_FILE)?;
     Ok(normalize_profile_config(
         read_json_file(&path)?.unwrap_or_default(),
@@ -1740,7 +1354,6 @@ fn write_profile_config(app: &tauri::AppHandle, config: &ProfileConfigData) -> R
 }
 
 fn read_override_config(app: &tauri::AppHandle) -> Result<OverrideConfigData, String> {
-    migrate_legacy_override_config_if_needed(app)?;
     let path = storage_file(app, OVERRIDE_CONFIG_FILE)?;
     Ok(read_json_file(&path)?.unwrap_or_default())
 }
@@ -1754,7 +1367,6 @@ fn write_override_config(
 }
 
 fn read_chains_config(app: &tauri::AppHandle) -> Result<ChainsConfigData, String> {
-    migrate_legacy_chains_config_if_needed(app)?;
     let path = storage_file(app, CHAINS_CONFIG_FILE)?;
     Ok(read_json_file(&path)?.unwrap_or_default())
 }
@@ -1762,6 +1374,419 @@ fn read_chains_config(app: &tauri::AppHandle) -> Result<ChainsConfigData, String
 fn write_chains_config(app: &tauri::AppHandle, config: &ChainsConfigData) -> Result<(), String> {
     let path = storage_file(app, CHAINS_CONFIG_FILE)?;
     invalidate_profile_runtime_config_cache_after(write_json_file(&path, config))
+}
+
+fn default_quick_rules_config() -> QuickRulesConfigData {
+    QuickRulesConfigData {
+        version: 1,
+        migrated_legacy_quick_rules: false,
+        profiles: HashMap::new(),
+    }
+}
+
+fn normalize_quick_rule(rule: QuickRule) -> Option<QuickRule> {
+    if rule.id.trim().is_empty()
+        || rule.rule_type.trim().is_empty()
+        || rule.value.trim().is_empty()
+        || rule.target.trim().is_empty()
+    {
+        return None;
+    }
+
+    Some(QuickRule {
+        id: rule.id,
+        rule_type: rule.rule_type,
+        value: rule.value,
+        target: rule.target,
+        no_resolve: rule.no_resolve,
+        enabled: rule.enabled,
+        source: if rule.source == "connection" {
+            "connection".to_string()
+        } else {
+            "manual".to_string()
+        },
+        created_at: rule.created_at,
+        updated_at: rule.updated_at,
+    })
+}
+
+fn normalize_quick_rules_config(mut config: QuickRulesConfigData) -> QuickRulesConfigData {
+    config.version = 1;
+    config.profiles = config
+        .profiles
+        .into_iter()
+        .map(|(profile_id, profile)| {
+            let rules = profile
+                .rules
+                .into_iter()
+                .filter_map(normalize_quick_rule)
+                .collect::<Vec<_>>();
+            (
+                profile_id,
+                QuickRuleProfileConfig {
+                    enabled: profile.enabled,
+                    rules,
+                },
+            )
+        })
+        .collect();
+    config
+}
+
+fn quick_rule_string(rule: &QuickRule) -> String {
+    let mut text = format!("{},{},{}", rule.rule_type, rule.value, rule.target);
+    if rule.no_resolve.unwrap_or(false) {
+        text.push_str(",no-resolve");
+    }
+    text
+}
+
+fn parse_quick_rule_string(raw: &str) -> Option<QuickRuleInput> {
+    let parts = raw
+        .split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>();
+    if parts.len() < 3 {
+        return None;
+    }
+
+    Some(QuickRuleInput {
+        id: None,
+        rule_type: Some(parts[0].to_string()),
+        value: Some(parts[1].to_string()),
+        target: Some(parts[2].to_string()),
+        no_resolve: Some(parts.get(3).copied() == Some("no-resolve")),
+        enabled: Some(true),
+        source: Some("connection".to_string()),
+    })
+}
+
+fn parse_legacy_quick_rules(content: &str) -> Vec<QuickRuleInput> {
+    content
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            trimmed
+                .strip_prefix("- ")
+                .and_then(|rule| parse_quick_rule_string(rule.trim()))
+        })
+        .collect()
+}
+
+fn ensure_quick_rule_profile_mut<'a>(
+    config: &'a mut QuickRulesConfigData,
+    profile_id: &str,
+) -> &'a mut QuickRuleProfileConfig {
+    config
+        .profiles
+        .entry(profile_id.to_string())
+        .or_insert_with(|| QuickRuleProfileConfig {
+            enabled: true,
+            rules: Vec::new(),
+        })
+}
+
+fn read_quick_rules_config_raw(app: &tauri::AppHandle) -> Result<QuickRulesConfigData, String> {
+    let path = storage_file(app, QUICK_RULES_CONFIG_FILE)?;
+    Ok(normalize_quick_rules_config(
+        read_json_file(&path)?.unwrap_or_else(default_quick_rules_config),
+    ))
+}
+
+fn write_quick_rules_config(
+    app: &tauri::AppHandle,
+    config: &QuickRulesConfigData,
+) -> Result<(), String> {
+    let path = storage_file(app, QUICK_RULES_CONFIG_FILE)?;
+    let normalized = normalize_quick_rules_config(config.clone());
+    invalidate_profile_runtime_config_cache_after(write_json_file(&path, &normalized))
+}
+
+fn quick_rule_from_input(
+    input: QuickRuleInput,
+    fallback_index: usize,
+) -> Result<QuickRule, String> {
+    let now = current_timestamp_ms();
+    let rule_type = input
+        .rule_type
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| "Quick rule type is required".to_string())?;
+    let value = input
+        .value
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| "Quick rule value is required".to_string())?;
+    let target = input
+        .target
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| "Quick rule target is required".to_string())?;
+
+    Ok(QuickRule {
+        id: input
+            .id
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| format!("{:x}-{fallback_index:x}", now)),
+        rule_type,
+        value,
+        target,
+        no_resolve: Some(input.no_resolve.unwrap_or(false)),
+        enabled: input.enabled.unwrap_or(true),
+        source: input.source.unwrap_or_else(|| "manual".to_string()),
+        created_at: now,
+        updated_at: now,
+    })
+}
+
+fn migrate_legacy_quick_rules_if_needed(
+    app: &tauri::AppHandle,
+    config: &mut QuickRulesConfigData,
+) -> Result<(), String> {
+    const LEGACY_QUICK_RULES_ID: &str = "quick-rules";
+    if config.migrated_legacy_quick_rules {
+        return Ok(());
+    }
+
+    let override_config = read_override_config(app)?;
+    let Some(legacy_item) = override_config
+        .items
+        .iter()
+        .find(|item| item.id == LEGACY_QUICK_RULES_ID)
+    else {
+        config.migrated_legacy_quick_rules = true;
+        write_quick_rules_config(app, config)?;
+        return Ok(());
+    };
+
+    let legacy_content = read_override_text(app, LEGACY_QUICK_RULES_ID, &legacy_item.ext)?;
+    let legacy_rules = parse_legacy_quick_rules(&legacy_content);
+    let mut profile_config = read_profile_config(app)?;
+    let mut profile_config_changed = false;
+
+    if !legacy_rules.is_empty() {
+        let target_profile_ids = profile_config
+            .items
+            .iter()
+            .filter(|profile| {
+                profile
+                    .override_ids
+                    .as_ref()
+                    .map(|ids| ids.iter().any(|id| id == LEGACY_QUICK_RULES_ID))
+                    .unwrap_or(false)
+            })
+            .map(|profile| profile.id.clone())
+            .collect::<Vec<_>>();
+
+        for profile_id in target_profile_ids {
+            let profile_rules = ensure_quick_rule_profile_mut(config, &profile_id);
+            let mut existing = profile_rules
+                .rules
+                .iter()
+                .map(quick_rule_string)
+                .collect::<HashSet<_>>();
+            for legacy_rule in legacy_rules.iter().cloned() {
+                let rule = quick_rule_from_input(legacy_rule, profile_rules.rules.len())?;
+                let rule_string = quick_rule_string(&rule);
+                if existing.insert(rule_string) {
+                    profile_rules.rules.push(rule);
+                }
+            }
+        }
+    }
+
+    for profile in &mut profile_config.items {
+        let Some(ids) = profile.override_ids.as_mut() else {
+            continue;
+        };
+        let before_len = ids.len();
+        ids.retain(|id| id != LEGACY_QUICK_RULES_ID);
+        if ids.len() != before_len {
+            profile_config_changed = true;
+        }
+        if ids.is_empty() {
+            profile.override_ids = None;
+        }
+    }
+
+    if profile_config_changed {
+        write_profile_config(app, &profile_config)?;
+    }
+
+    config.migrated_legacy_quick_rules = true;
+    write_quick_rules_config(app, config)
+}
+
+fn read_quick_rules_config(app: &tauri::AppHandle) -> Result<QuickRulesConfigData, String> {
+    let mut config = read_quick_rules_config_raw(app)?;
+    migrate_legacy_quick_rules_if_needed(app, &mut config)?;
+    Ok(config)
+}
+
+fn read_quick_rules(
+    app: &tauri::AppHandle,
+    profile_id: &str,
+) -> Result<QuickRuleProfileConfig, String> {
+    let mut config = read_quick_rules_config(app)?;
+    Ok(ensure_quick_rule_profile_mut(&mut config, profile_id).clone())
+}
+
+fn add_quick_rule_store(
+    app: &tauri::AppHandle,
+    profile_id: &str,
+    input: QuickRuleInput,
+) -> Result<QuickRule, String> {
+    let mut config = read_quick_rules_config(app)?;
+    let profile = ensure_quick_rule_profile_mut(&mut config, profile_id);
+    let rule = quick_rule_from_input(input, profile.rules.len())?;
+    profile.rules.insert(0, rule.clone());
+    write_quick_rules_config(app, &config)?;
+    Ok(rule)
+}
+
+fn update_quick_rule_store(
+    app: &tauri::AppHandle,
+    profile_id: &str,
+    rule_id: &str,
+    patch: Value,
+) -> Result<(), String> {
+    let mut config = read_quick_rules_config(app)?;
+    let profile = ensure_quick_rule_profile_mut(&mut config, profile_id);
+    let rule = profile
+        .rules
+        .iter_mut()
+        .find(|rule| rule.id == rule_id)
+        .ok_or_else(|| "Quick rule not found".to_string())?;
+
+    if let Some(value) = patch.get("type").and_then(Value::as_str) {
+        rule.rule_type = value.to_string();
+    }
+    if let Some(value) = patch.get("value").and_then(Value::as_str) {
+        rule.value = value.to_string();
+    }
+    if let Some(value) = patch.get("target").and_then(Value::as_str) {
+        rule.target = value.to_string();
+    }
+    if let Some(value) = patch.get("noResolve").and_then(Value::as_bool) {
+        rule.no_resolve = Some(value);
+    }
+    if let Some(value) = patch.get("enabled").and_then(Value::as_bool) {
+        rule.enabled = value;
+    }
+    if let Some(value) = patch.get("source").and_then(Value::as_str) {
+        rule.source = if value == "connection" {
+            "connection".to_string()
+        } else {
+            "manual".to_string()
+        };
+    }
+    rule.updated_at = current_timestamp_ms();
+    write_quick_rules_config(app, &config)
+}
+
+fn remove_quick_rule_store(
+    app: &tauri::AppHandle,
+    profile_id: &str,
+    rule_id: &str,
+) -> Result<(), String> {
+    let mut config = read_quick_rules_config(app)?;
+    let profile = ensure_quick_rule_profile_mut(&mut config, profile_id);
+    profile.rules.retain(|rule| rule.id != rule_id);
+    write_quick_rules_config(app, &config)
+}
+
+fn set_quick_rules_enabled_store(
+    app: &tauri::AppHandle,
+    profile_id: &str,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut config = read_quick_rules_config(app)?;
+    ensure_quick_rule_profile_mut(&mut config, profile_id).enabled = enabled;
+    write_quick_rules_config(app, &config)
+}
+
+fn reorder_quick_rules_store(
+    app: &tauri::AppHandle,
+    profile_id: &str,
+    rule_ids: &[String],
+) -> Result<(), String> {
+    let mut config = read_quick_rules_config(app)?;
+    let profile = ensure_quick_rule_profile_mut(&mut config, profile_id);
+    let mut rules_by_id = profile
+        .rules
+        .iter()
+        .cloned()
+        .map(|rule| (rule.id.clone(), rule))
+        .collect::<HashMap<_, _>>();
+    let mut ordered = Vec::new();
+    for id in rule_ids {
+        if let Some(rule) = rules_by_id.remove(id) {
+            ordered.push(rule);
+        }
+    }
+    ordered.extend(
+        profile
+            .rules
+            .iter()
+            .filter(|rule| rules_by_id.contains_key(&rule.id))
+            .cloned(),
+    );
+    profile.rules = ordered;
+    write_quick_rules_config(app, &config)
+}
+
+fn clear_quick_rules_store(app: &tauri::AppHandle, profile_id: &str) -> Result<(), String> {
+    let mut config = read_quick_rules_config(app)?;
+    ensure_quick_rule_profile_mut(&mut config, profile_id)
+        .rules
+        .clear();
+    write_quick_rules_config(app, &config)
+}
+
+fn quick_rule_strings(
+    app: &tauri::AppHandle,
+    profile_id: Option<&str>,
+) -> Result<Vec<String>, String> {
+    let Some(profile_id) = profile_id else {
+        return Ok(Vec::new());
+    };
+    let profile = read_quick_rules(app, profile_id)?;
+    if !profile.enabled {
+        return Ok(Vec::new());
+    }
+    Ok(profile
+        .rules
+        .iter()
+        .filter(|rule| rule.enabled)
+        .map(quick_rule_string)
+        .collect())
+}
+
+fn inject_quick_rules(
+    app: &tauri::AppHandle,
+    profile_id: Option<&str>,
+    profile: &mut Value,
+) -> Result<(), String> {
+    let rules = quick_rule_strings(app, profile_id)?;
+    if rules.is_empty() {
+        return Ok(());
+    }
+
+    if !profile.is_object() {
+        *profile = json!({});
+    }
+
+    let Some(object) = profile.as_object_mut() else {
+        return Ok(());
+    };
+
+    let mut merged = rules.into_iter().map(Value::String).collect::<Vec<_>>();
+    let existing = object
+        .get("rules")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    merged.extend(existing);
+    object.insert("rules".to_string(), Value::Array(merged));
+    Ok(())
 }
 
 fn read_provider_stats(app: &tauri::AppHandle) -> Result<ProviderStatsData, String> {
@@ -1779,7 +1804,6 @@ fn profile_file_path(app: &tauri::AppHandle, id: &str) -> Result<PathBuf, String
 }
 
 fn read_profile_text(app: &tauri::AppHandle, id: &str) -> Result<String, String> {
-    migrate_legacy_storage_dir_if_needed(app, PROFILE_DIR_NAME, &[PROFILE_DIR_NAME])?;
     let path = profile_file_path(app, id)?;
     if path.exists() {
         return fs::read_to_string(path).map_err(|e| e.to_string());
@@ -1805,7 +1829,6 @@ fn override_rollback_path(app: &tauri::AppHandle, id: &str, ext: &str) -> Result
 }
 
 fn read_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<String, String> {
-    migrate_legacy_storage_dir_if_needed(app, OVERRIDE_DIR_NAME, &["override", OVERRIDE_DIR_NAME])?;
     let path = override_file_path(app, id, ext)?;
     if path.exists() {
         return fs::read_to_string(path).map_err(|e| e.to_string());
@@ -1859,8 +1882,15 @@ fn theme_file_path(app: &tauri::AppHandle, theme: &str) -> Result<PathBuf, Strin
     Ok(storage_dir(app, THEME_DIR_NAME)?.join(theme))
 }
 
+fn is_default_theme(theme: &str) -> bool {
+    theme == DEFAULT_THEME_FILE_NAME
+}
+
 fn read_theme_text(app: &tauri::AppHandle, theme: &str) -> Result<String, String> {
-    migrate_legacy_themes_if_needed(app)?;
+    if is_default_theme(theme) {
+        return Ok(String::new());
+    }
+
     let path = theme_file_path(app, theme)?;
     if path.exists() {
         return fs::read_to_string(path).map_err(|e| e.to_string());
@@ -1870,6 +1900,10 @@ fn read_theme_text(app: &tauri::AppHandle, theme: &str) -> Result<String, String
 }
 
 fn write_theme_text(app: &tauri::AppHandle, theme: &str, css: &str) -> Result<(), String> {
+    if is_default_theme(theme) {
+        return Ok(());
+    }
+
     let path = theme_file_path(app, theme)?;
     ensure_parent(&path)?;
     fs::write(path, css).map_err(|e| e.to_string())
@@ -1904,13 +1938,18 @@ fn import_theme_files(app: &tauri::AppHandle, files: &[String]) -> Result<(), St
 }
 
 fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
-    migrate_legacy_themes_if_needed(app)?;
     let themes_dir = storage_dir(app, THEME_DIR_NAME)?;
     let mut entries = Vec::new();
 
     if !themes_dir.exists() {
         fs::create_dir_all(&themes_dir).map_err(|e| e.to_string())?;
     }
+
+    entries.push(json!({
+        "key": DEFAULT_THEME_FILE_NAME,
+        "label": "默认",
+        "content": "",
+    }));
 
     for entry in fs::read_dir(&themes_dir).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
@@ -1923,7 +1962,7 @@ fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
             continue;
         };
 
-        if !name.ends_with(".css") {
+        if !name.ends_with(".css") || is_default_theme(name) {
             continue;
         }
 
@@ -1935,25 +1974,14 @@ fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
         }));
     }
 
-    if !entries.iter().any(|entry| {
-        entry
-            .get("key")
-            .and_then(Value::as_str)
-            .map(|key| key == "CoolApk.css")
-            .unwrap_or(false)
-    }) {
-        entries.push(json!({
-            "key": "CoolApk.css",
-            "label": "CoolApk.css",
-            "content": "",
-        }));
-    }
-
     entries.sort_by(|left, right| {
-        left.get("key")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .cmp(right.get("key").and_then(Value::as_str).unwrap_or_default())
+        let left_key = left.get("key").and_then(Value::as_str).unwrap_or_default();
+        let right_key = right.get("key").and_then(Value::as_str).unwrap_or_default();
+        match (is_default_theme(left_key), is_default_theme(right_key)) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => left_key.cmp(right_key),
+        }
     });
 
     Ok(entries)
@@ -1989,7 +2017,7 @@ fn fetch_theme_archive(app: &tauri::AppHandle) -> Result<(), String> {
             .file_name()
             .and_then(|value| value.to_str())
             .unwrap_or_default();
-        if !file_name.ends_with(".css") {
+        if !file_name.ends_with(".css") || is_default_theme(file_name) {
             continue;
         }
 
@@ -6700,6 +6728,7 @@ fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, Strin
         json!({})
     };
 
+    inject_quick_rules(app, current.as_deref(), &mut profile_value)?;
     strip_profile_managed_runtime_fields(&mut profile_value);
 
     let mut controlled_config = read_controlled_config_store(app)?;
@@ -8511,37 +8540,6 @@ fn configured_external_controller_address(input: Option<&Value>) -> Option<Strin
         .map(str::to_string)
 }
 
-fn controller_bind_address(listen_address: &str) -> String {
-    let trimmed = listen_address.trim();
-    if trimmed.is_empty() {
-        return String::new();
-    }
-
-    let value = trimmed
-        .strip_prefix("http://")
-        .or_else(|| trimmed.strip_prefix("https://"))
-        .unwrap_or(trimmed);
-
-    if let Some(port) = value.strip_prefix(':') {
-        return format!("0.0.0.0:{port}");
-    }
-
-    if value.starts_with('[') {
-        return value.to_string();
-    }
-
-    let Some((host, port)) = value.rsplit_once(':') else {
-        return value.to_string();
-    };
-
-    let normalized_host = match host.trim() {
-        "" | "*" => "0.0.0.0",
-        other => other,
-    };
-
-    format!("{normalized_host}:{port}")
-}
-
 fn controller_connect_address(listen_address: &str) -> String {
     let trimmed = listen_address.trim();
     if trimmed.is_empty() {
@@ -8578,82 +8576,6 @@ fn controller_connect_address(listen_address: &str) -> String {
     };
 
     format!("{normalized_host}:{port}")
-}
-
-fn proxy_tcp_streams(mut inbound: std::net::TcpStream, target_addr: &str) -> Result<(), String> {
-    let mut outbound = std::net::TcpStream::connect(target_addr).map_err(|e| e.to_string())?;
-    let mut inbound_reader = inbound.try_clone().map_err(|e| e.to_string())?;
-    let mut outbound_writer = outbound.try_clone().map_err(|e| e.to_string())?;
-
-    let forward = thread::spawn(move || {
-        let _ = std::io::copy(&mut inbound_reader, &mut outbound_writer);
-    });
-
-    let _ = std::io::copy(&mut outbound, &mut inbound);
-    let _ = forward.join();
-    Ok(())
-}
-
-fn stop_external_controller_proxy(state: &State<'_, CoreState>) -> Result<(), String> {
-    let mut proxy_handle = state
-        .external_controller_proxy
-        .lock()
-        .map_err(|e| e.to_string())?;
-    if let Some(handle) = proxy_handle.take() {
-        let _ = handle.shutdown.send(());
-    }
-    Ok(())
-}
-
-fn start_external_controller_proxy(
-    state: &State<'_, CoreState>,
-    listen_address: Option<&str>,
-    target_address: &str,
-) -> Result<(), String> {
-    stop_external_controller_proxy(state)?;
-
-    let Some(listen_address) = listen_address
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    else {
-        return Ok(());
-    };
-
-    let bind_address = controller_bind_address(listen_address);
-    let listener = std::net::TcpListener::bind(&bind_address)
-        .map_err(|e| format!("外部控制器监听失败: {e}"))?;
-    listener.set_nonblocking(true).map_err(|e| e.to_string())?;
-
-    let (shutdown_tx, shutdown_rx) = mpsc::channel::<()>();
-    let target_address = target_address.to_string();
-    thread::spawn(move || loop {
-        match shutdown_rx.try_recv() {
-            Ok(_) | Err(mpsc::TryRecvError::Disconnected) => break,
-            Err(mpsc::TryRecvError::Empty) => {}
-        }
-
-        match listener.accept() {
-            Ok((stream, _)) => {
-                let target = target_address.clone();
-                thread::spawn(move || {
-                    let _ = proxy_tcp_streams(stream, &target);
-                });
-            }
-            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                thread::sleep(Duration::from_millis(50));
-            }
-            Err(_) => break,
-        }
-    });
-
-    let mut proxy_handle = state
-        .external_controller_proxy
-        .lock()
-        .map_err(|e| e.to_string())?;
-    *proxy_handle = Some(ExternalControllerProxyHandle {
-        shutdown: shutdown_tx,
-    });
-    Ok(())
 }
 
 fn dev_root() -> Result<PathBuf, String> {
@@ -8841,15 +8763,16 @@ fn run_service_command(app: &tauri::AppHandle, args: &[String]) -> Result<(), St
     let mut command = Command::new(binary);
     apply_background_command(&mut command);
     let output = command.args(args).output().map_err(|e| e.to_string())?;
-    if output.status.success() {
+    let combined = command_output_text(&output);
+
+    if output.status.success() && !command_output_contains_error(&combined) {
         return Ok(());
     }
 
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    if stderr.is_empty() {
+    if combined.is_empty() {
         Err(format!("RouteX service command failed: {}", output.status))
     } else {
-        Err(stderr)
+        Err(combined)
     }
 }
 
@@ -8858,16 +8781,7 @@ fn run_service_command_capture(app: &tauri::AppHandle, args: &[String]) -> Resul
     let mut command = Command::new(binary);
     apply_background_command(&mut command);
     let output = command.args(args).output().map_err(|e| e.to_string())?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    let combined = if stderr.is_empty() {
-        stdout.clone()
-    } else if stdout.is_empty() {
-        stderr.clone()
-    } else {
-        format!("{stdout}\n{stderr}")
-    };
+    let combined = command_output_text(&output);
 
     if output.status.success() {
         Ok(combined)
@@ -8876,6 +8790,26 @@ fn run_service_command_capture(app: &tauri::AppHandle, args: &[String]) -> Resul
     } else {
         Err(combined)
     }
+}
+
+fn command_output_text(output: &Output) -> String {
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+
+    match (stdout.is_empty(), stderr.is_empty()) {
+        (true, true) => String::new(),
+        (false, true) => stdout,
+        (true, false) => stderr,
+        (false, false) => format!("{stdout}\n{stderr}"),
+    }
+}
+
+fn command_output_contains_error(text: &str) -> bool {
+    let normalized = text.to_ascii_lowercase();
+    text.contains("失败")
+        || text.contains("错误")
+        || normalized.contains("failed")
+        || normalized.contains("error")
 }
 
 fn service_command_args(
@@ -8900,11 +8834,75 @@ fn read_core_permission_mode(app: &tauri::AppHandle) -> Result<String, String> {
         .to_string())
 }
 
-fn build_service_request_signature(app: &tauri::AppHandle) -> Result<(String, String), String> {
+struct ServiceAuthHeaders {
+    timestamp: String,
+    key_id: String,
+    nonce: String,
+    content_sha256: String,
+    signature: String,
+}
+
+fn service_key_id(public_key_base64: &str) -> Result<String, String> {
+    let public_key_der = BASE64_STANDARD
+        .decode(public_key_base64.trim().as_bytes())
+        .map_err(|e| format!("解析服务公钥失败: {e}"))?;
+    Ok(format!("{:x}", Sha256::digest(&public_key_der)))
+}
+
+fn service_auth_nonce() -> Result<String, String> {
+    let rng = SystemRandom::new();
+    let mut bytes = [0u8; 16];
+    rng.fill(&mut bytes)
+        .map_err(|_| "生成服务请求 nonce 失败".to_string())?;
+    Ok(bytes
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join(""))
+}
+
+fn canonicalize_service_query(raw_query: &str) -> Result<String, String> {
+    if raw_query.is_empty() {
+        return Ok(String::new());
+    }
+
+    let mut pairs = Vec::new();
+    for part in raw_query.split('&') {
+        let (key, value) = part.split_once('=').unwrap_or((part, ""));
+        let decoded_key = urlencoding::decode(key)
+            .map_err(|e| format!("解析服务请求 query 失败: {e}"))?
+            .into_owned();
+        let decoded_value = urlencoding::decode(value)
+            .map_err(|e| format!("解析服务请求 query 失败: {e}"))?
+            .into_owned();
+        pairs.push((decoded_key, decoded_value));
+    }
+    pairs.sort();
+
+    Ok(pairs
+        .into_iter()
+        .map(|(key, value)| {
+            format!(
+                "{}={}",
+                urlencoding::encode(&key),
+                urlencoding::encode(&value)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("&"))
+}
+
+fn build_service_auth_headers(
+    app: &tauri::AppHandle,
+    method: &str,
+    path: &str,
+    body_text: &str,
+) -> Result<ServiceAuthHeaders, String> {
     let service_auth_key = read_service_auth_key(app)?.ok_or_else(|| {
         "当前未提供服务密钥，无法通过 RouteX 服务管理内核；请先初始化服务".to_string()
     })?;
-    let (_, private_key_pem) = parse_service_auth_key(&service_auth_key)?;
+    let (public_key, private_key_pem) = parse_service_auth_key(&service_auth_key)?;
+    let key_id = service_key_id(&public_key)?;
     let private_key_der = BASE64_STANDARD
         .decode(
             private_key_pem
@@ -8916,32 +8914,58 @@ fn build_service_request_signature(app: &tauri::AppHandle) -> Result<(String, St
         .map_err(|e| format!("解析服务私钥失败: {e}"))?;
     let key_pair = Ed25519KeyPair::from_pkcs8(&private_key_der)
         .map_err(|_| "serviceAuthKey 中的私钥无效，无法生成服务签名".to_string())?;
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
-        .as_secs()
-        .to_string();
-    let signature = BASE64_STANDARD.encode(key_pair.sign(timestamp.as_bytes()).as_ref());
-    Ok((timestamp, signature))
+    let timestamp = current_timestamp_ms().to_string();
+    let nonce = service_auth_nonce()?;
+    let content_sha256 = format!("{:x}", Sha256::digest(body_text.as_bytes()));
+    let (path_part, query_part) = path.split_once('?').unwrap_or((path, ""));
+    let canonical_query = canonicalize_service_query(query_part)?;
+    let method_upper = method.to_ascii_uppercase();
+    let canonical = [
+        "ROUTEX-AUTH-V2",
+        timestamp.as_str(),
+        nonce.as_str(),
+        key_id.as_str(),
+        method_upper.as_str(),
+        if path_part.is_empty() { "/" } else { path_part },
+        canonical_query.as_str(),
+        content_sha256.as_str(),
+    ]
+    .join("\n");
+    let signature = BASE64_STANDARD.encode(key_pair.sign(canonical.as_bytes()).as_ref());
+    Ok(ServiceAuthHeaders {
+        timestamp,
+        key_id,
+        nonce,
+        content_sha256,
+        signature,
+    })
 }
 
 fn build_service_http_request(
+    app: &tauri::AppHandle,
     method: &str,
     path: &str,
     body: Option<&Value>,
-    timestamp: &str,
-    signature: &str,
 ) -> Result<Vec<u8>, String> {
     let body_text = body
         .map(|value| serde_json::to_string(value).map_err(|e| e.to_string()))
         .transpose()?
         .unwrap_or_default();
+    let auth = build_service_auth_headers(app, method, path, &body_text)?;
     let mut request = format!(
-        "{method} {path} HTTP/1.1\r\nHost: localhost\r\nAccept: application/json\r\nX-Timestamp: {timestamp}\r\nX-Signature: {signature}\r\nConnection: close\r\n"
+        "{method} {path} HTTP/1.1\r\nHost: localhost\r\nAccept: application/json\r\nX-Auth-Version: 2\r\nX-Timestamp: {}\r\nX-Key-Id: {}\r\nX-Nonce: {}\r\nX-Content-SHA256: {}\r\nX-Signature: {}\r\nConnection: close\r\n",
+        auth.timestamp,
+        auth.key_id,
+        auth.nonce,
+        auth.content_sha256,
+        auth.signature
     );
     if method != "GET" || !body_text.is_empty() {
         request.push_str("Content-Type: application/json\r\n");
-        request.push_str(&format!("Content-Length: {}\r\n", body_text.len()));
+        request.push_str(&format!(
+            "Content-Length: {}\r\n",
+            body_text.as_bytes().len()
+        ));
     }
     request.push_str("\r\n");
     request.push_str(&body_text);
@@ -9075,8 +9099,7 @@ fn service_http_request_json(
     path: &str,
     body: Option<&Value>,
 ) -> Result<Value, String> {
-    let (timestamp, signature) = build_service_request_signature(app)?;
-    let request = build_service_http_request(method, path, body, &timestamp, &signature)?;
+    let request = build_service_http_request(app, method, path, body)?;
     let response = send_service_http_request(&request)?;
     let (status, body_bytes) = parse_service_http_response(&response)?;
     let body_text = String::from_utf8(body_bytes).map_err(|e| e.to_string())?;
@@ -9128,47 +9151,17 @@ fn build_service_core_restart_payload(
     app_config: &Value,
 ) -> Value {
     let mut env = serde_json::Map::new();
-
-    env.insert(
-        "DISABLE_LOOPBACK_DETECTOR".to_string(),
-        Value::String(
-            app_config
-                .get("disableLoopbackDetector")
-                .and_then(Value::as_bool)
-                .unwrap_or(false)
-                .to_string(),
-        ),
-    );
-    env.insert(
-        "DISABLE_EMBED_CA".to_string(),
-        Value::String(
-            app_config
-                .get("disableEmbedCA")
-                .and_then(Value::as_bool)
-                .unwrap_or(false)
-                .to_string(),
-        ),
-    );
-    env.insert(
-        "DISABLE_SYSTEM_CA".to_string(),
-        Value::String(
-            app_config
-                .get("disableSystemCA")
-                .and_then(Value::as_bool)
-                .unwrap_or(false)
-                .to_string(),
-        ),
-    );
-    env.insert(
-        "DISABLE_NFTABLES".to_string(),
-        Value::String(
-            app_config
-                .get("disableNftables")
-                .and_then(Value::as_bool)
-                .unwrap_or(false)
-                .to_string(),
-        ),
-    );
+    for (env_key, config_key) in [
+        ("DISABLE_LOOPBACK_DETECTOR", "disableLoopbackDetector"),
+        ("DISABLE_EMBED_CA", "disableEmbedCA"),
+        ("DISABLE_SYSTEM_CA", "disableSystemCA"),
+        ("DISABLE_NFTABLES", "disableNftables"),
+    ] {
+        env.insert(
+            env_key.to_string(),
+            Value::String(config_bool_string(app_config, config_key)),
+        );
+    }
 
     if !safe_paths.is_empty() {
         env.insert(
@@ -9185,12 +9178,20 @@ fn build_service_core_restart_payload(
     }
 
     json!({
-        "binary_path": binary_path.to_string_lossy(),
-        "work_dir": work_dir.to_string_lossy(),
+        "core_path": binary_path.to_string_lossy(),
         "log_path": log_path.to_string_lossy(),
         "args": ["-d", work_dir.to_string_lossy().to_string()],
+        "safe_paths": safe_paths,
         "env": env,
     })
+}
+
+fn config_bool_string(config: &Value, key: &str) -> String {
+    config
+        .get(key)
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+        .to_string()
 }
 
 fn task_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -9273,6 +9274,7 @@ fn schtasks_output(args: &[&str]) -> Result<std::process::Output, String> {
         .map_err(|e| format!("{}: {e}", schtasks_path.display()))
 }
 
+#[cfg(target_os = "windows")]
 fn schtasks_command(args: &[&str]) -> Result<(), String> {
     let output = schtasks_output(args)?;
     if output.status.success() {
@@ -9582,8 +9584,24 @@ fn escape_desktop_exec_arg(value: &str) -> String {
     let needs_quotes = value.chars().any(|ch| {
         matches!(
             ch,
-            ' ' | '\t' | '\n' | '"' | '\'' | '\\' | '>' | '<' | '~' | '|' | '&' | ';' | '$'
-                | '*' | '?' | '#' | '(' | ')' | '`'
+            ' ' | '\t'
+                | '\n'
+                | '"'
+                | '\''
+                | '\\'
+                | '>'
+                | '<'
+                | '~'
+                | '|'
+                | '&'
+                | ';'
+                | '$'
+                | '*'
+                | '?'
+                | '#'
+                | '('
+                | ')'
+                | '`'
         )
     });
 
@@ -10103,6 +10121,48 @@ fn parse_service_auth_key(service_auth_key: &str) -> Result<(String, String), St
     Ok((public_key.to_string(), private_key.to_string()))
 }
 
+#[cfg(target_os = "windows")]
+fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
+    let mut command = Command::new("whoami");
+    apply_background_command(&mut command);
+    let output = command
+        .args(["/user", "/fo", "csv", "/nh"])
+        .output()
+        .map_err(|e| format!("读取当前用户 SID 失败: {e}"))?;
+    if !output.status.success() {
+        return Err("读取当前用户 SID 失败".to_string());
+    }
+
+    let text = String::from_utf8_lossy(&output.stdout);
+    let sid = text
+        .trim()
+        .rsplit_once(',')
+        .map(|(_, value)| value.trim().trim_matches('"').to_string())
+        .or_else(|| Some(text.trim().trim_matches('"').to_string()))
+        .filter(|value| value.starts_with("S-"))
+        .ok_or_else(|| "无法解析当前用户 SID".to_string())?;
+
+    Ok(vec![String::from("--authorized-sid"), sid])
+}
+
+#[cfg(not(target_os = "windows"))]
+fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
+    let output = Command::new("id")
+        .arg("-u")
+        .output()
+        .map_err(|e| format!("读取当前用户 UID 失败: {e}"))?;
+    if !output.status.success() {
+        return Err("读取当前用户 UID 失败".to_string());
+    }
+
+    let uid = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if uid.parse::<u32>().is_err() {
+        return Err("无法解析当前用户 UID".to_string());
+    }
+
+    Ok(vec![String::from("--authorized-uid"), uid])
+}
+
 fn service_status_value(app: &tauri::AppHandle) -> Result<Value, String> {
     let output = match run_service_command_capture(
         app,
@@ -10122,10 +10182,13 @@ fn service_status_value(app: &tauri::AppHandle) -> Result<Value, String> {
     };
 
     let normalized = output.to_ascii_lowercase();
-    if normalized.contains("running") {
+    if normalized.contains("running") || output.contains("运行中") {
         return Ok(json!("running"));
     }
-    if normalized.contains("stopped") || normalized.contains("not running") {
+    if normalized.contains("stopped")
+        || normalized.contains("not running")
+        || output.contains("已停止")
+    {
         return Ok(json!("stopped"));
     }
     if normalized.contains("not installed") {
@@ -10141,7 +10204,7 @@ fn test_service_connection_value(app: &tauri::AppHandle) -> bool {
     if read_service_auth_key(app).ok().flatten().is_none() {
         return false;
     }
-    run_service_command_capture(app, &[String::from("status")]).is_ok()
+    service_http_request_json(app, "GET", "/test", None).is_ok()
 }
 
 fn init_service(app: &tauri::AppHandle, auth_key_input: Option<Value>) -> Result<(), String> {
@@ -10164,15 +10227,14 @@ fn init_service(app: &tauri::AppHandle, auth_key_input: Option<Value>) -> Result
     };
 
     let (public_key, _) = parse_service_auth_key(&service_auth_key)?;
-    run_service_command(
-        app,
-        &[
-            String::from("service"),
-            String::from("init"),
-            String::from("--public-key"),
-            public_key,
-        ],
-    )?;
+    let mut args = vec![
+        String::from("service"),
+        String::from("init"),
+        String::from("--public-key"),
+        public_key,
+    ];
+    args.extend(current_service_authorized_principal_args()?);
+    run_service_command(app, &args)?;
     patch_app_config_store(app, &json!({ "serviceAuthKey": service_auth_key }))?;
     Ok(())
 }
@@ -11770,7 +11832,7 @@ fn recover_dns(_app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn prepare_runtime_work_dir(app: &tauri::AppHandle, work_dir: &Path) -> Result<(), String> {
+fn prepare_runtime_data_dir(app: &tauri::AppHandle, data_dir: &Path) -> Result<(), String> {
     for file_name in [
         "country.mmdb",
         "geoip.metadb",
@@ -11778,7 +11840,7 @@ fn prepare_runtime_work_dir(app: &tauri::AppHandle, work_dir: &Path) -> Result<(
         "geosite.dat",
         "ASN.mmdb",
     ] {
-        let target_path = work_dir.join(file_name);
+        let target_path = data_dir.join(file_name);
         let should_copy = if target_path.exists() {
             fs::metadata(&target_path)
                 .map(|metadata| metadata.len() == 0)
@@ -11923,7 +11985,6 @@ fn normalize_runtime_config(input: Option<&Value>, controller_address: &str) -> 
 
 fn stop_core_process(app: &tauri::AppHandle, state: &State<'_, CoreState>) -> Result<(), String> {
     let _ = stop_core_events_monitor(state);
-    let _ = stop_external_controller_proxy(state);
     let service_managed = {
         let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
         runtime.service_managed
@@ -12062,14 +12123,16 @@ fn wait_for_renderer_data_ready(
 
         let groups = build_mihomo_groups_value(&proxies, runtime_config);
         let actual_group_count = groups.as_array().map(|items| items.len()).unwrap_or(0);
-        let groups_ready = expected_group_count == 0 || actual_group_count >= expected_group_count;
+        // Mihomo may drop or rewrite configured groups after overrides are applied, so the
+        // renderer-ready check must not wait for the configured group count to reappear exactly.
+        let groups_ready = expected_group_count == 0 || actual_group_count > 0;
 
         if rules_ready && groups_ready {
             return Ok(());
         }
 
         last_error = format!(
-            "waiting for groups to become ready: expected at least {expected_group_count}, got {actual_group_count}"
+            "waiting for renderer groups to become available: configured {expected_group_count}, got {actual_group_count}"
         );
         std::thread::sleep(Duration::from_millis(200));
     }
@@ -12108,9 +12171,8 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
                     attempt,
                     if tun_enabled { ", TUN mode" } else { "" }
                 );
-                // providers 就绪检查：最多等 10 秒（100 次 × 100ms）。
-                // 若超时仍未就绪则仅打印警告，不阻塞 restartCore 返回，
-                // 避免 providers 下载慢时把整个开关操作拖延到超时。
+                // providers 就绪检查：只要求 controller 暴露 provider 数据结构。
+                // 不等待配置声明的 provider 数量完全出现，避免覆写或核心过滤导致保存卡住。
                 let provider_wait_start = Instant::now();
                 let mut providers_ready = false;
                 for _ in 0..100 {
@@ -12129,7 +12191,7 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
                             value
                                 .get("providers")
                                 .and_then(Value::as_object)
-                                .map(|providers| providers.len() >= expected_proxy_providers)
+                                .map(|_| true)
                         })
                         .unwrap_or(false)
                     };
@@ -12143,7 +12205,7 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
                                 value
                                     .get("providers")
                                     .and_then(Value::as_object)
-                                    .map(|providers| providers.len() >= expected_rule_providers)
+                                    .map(|_| true)
                             })
                             .unwrap_or(false)
                     };
@@ -12274,7 +12336,8 @@ fn restart_core_process(
     let config_path = work_dir.join("config.yaml");
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
     let config_digest = format!("{:x}", Sha256::digest(config_yaml.as_bytes()));
-    prepare_runtime_work_dir(app, &work_dir)?;
+    prepare_runtime_data_dir(app, &work_dir)?;
+    prepare_runtime_data_dir(app, &test_dir)?;
     fs::write(&config_path, &config_yaml).map_err(|e| e.to_string())?;
     let should_check_profile = PROFILE_CHECK_CACHE
         .get_or_init(|| Mutex::new(None))
@@ -12391,8 +12454,7 @@ fn restart_core_process(
     drop(runtime);
 
     if let Err(error) = wait_for_core_ready(state, &runtime_config) {
-        let error =
-            refine_core_start_error(error, &log_path, log_start_offset, &runtime_config);
+        let error = refine_core_start_error(error, &log_path, log_start_offset, &runtime_config);
         let _ = recover_dns(app);
         let _ = stop_core_process(app, state);
         return Err(error);
@@ -12762,6 +12824,94 @@ fn desktop_invoke_sync(
             write_override_text(&app, id, ext, content)?;
             emit_ipc_event(&app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(&app, "rulesUpdated", Value::Null);
+            Ok(Value::Null)
+        }
+        "getQuickRulesConfig" => Ok(json!(read_quick_rules_config(&app)?)),
+        "setQuickRulesConfig" => {
+            let config = serde_json::from_value::<QuickRulesConfigData>(
+                args.first()
+                    .cloned()
+                    .unwrap_or_else(|| json!({ "version": 1, "profiles": {} })),
+            )
+            .map_err(|e| e.to_string())?;
+            write_quick_rules_config(&app, &config)?;
+            restart_core_and_emit(&app, &state)?;
+            emit_ipc_event(&app, "quickRulesConfigUpdated", Value::Null);
+            Ok(Value::Null)
+        }
+        "getQuickRules" => {
+            let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
+            Ok(json!(read_quick_rules(&app, profile_id)?))
+        }
+        "addQuickRule" => {
+            let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
+            let input = serde_json::from_value::<QuickRuleInput>(
+                args.get(1).cloned().unwrap_or_else(|| json!({})),
+            )
+            .map_err(|e| e.to_string())?;
+            let rule = add_quick_rule_store(&app, profile_id, input)?;
+            restart_core_and_emit(&app, &state)?;
+            emit_ipc_event(&app, "quickRulesConfigUpdated", Value::Null);
+            Ok(json!(rule))
+        }
+        "updateQuickRule" => {
+            let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
+            let rule_id = args
+                .get(1)
+                .and_then(Value::as_str)
+                .ok_or_else(|| "updateQuickRule requires rule id".to_string())?;
+            update_quick_rule_store(
+                &app,
+                profile_id,
+                rule_id,
+                args.get(2).cloned().unwrap_or_else(|| json!({})),
+            )?;
+            restart_core_and_emit(&app, &state)?;
+            emit_ipc_event(&app, "quickRulesConfigUpdated", Value::Null);
+            Ok(Value::Null)
+        }
+        "removeQuickRule" => {
+            let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
+            let rule_id = args
+                .get(1)
+                .and_then(Value::as_str)
+                .ok_or_else(|| "removeQuickRule requires rule id".to_string())?;
+            remove_quick_rule_store(&app, profile_id, rule_id)?;
+            restart_core_and_emit(&app, &state)?;
+            emit_ipc_event(&app, "quickRulesConfigUpdated", Value::Null);
+            Ok(Value::Null)
+        }
+        "setQuickRulesEnabled" => {
+            let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
+            let enabled = args.get(1).and_then(Value::as_bool).unwrap_or(true);
+            set_quick_rules_enabled_store(&app, profile_id, enabled)?;
+            restart_core_and_emit(&app, &state)?;
+            emit_ipc_event(&app, "quickRulesConfigUpdated", Value::Null);
+            Ok(Value::Null)
+        }
+        "reorderQuickRules" => {
+            let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
+            let rule_ids = args
+                .get(1)
+                .and_then(Value::as_array)
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_string)
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            reorder_quick_rules_store(&app, profile_id, &rule_ids)?;
+            restart_core_and_emit(&app, &state)?;
+            emit_ipc_event(&app, "quickRulesConfigUpdated", Value::Null);
+            Ok(Value::Null)
+        }
+        "clearQuickRules" => {
+            let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
+            clear_quick_rules_store(&app, profile_id)?;
+            restart_core_and_emit(&app, &state)?;
+            emit_ipc_event(&app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
         }
         "getOverrideProfileStr" => Ok(json!(current_override_profile_text(&app)?)),

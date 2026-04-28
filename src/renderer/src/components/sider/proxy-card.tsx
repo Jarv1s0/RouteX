@@ -4,14 +4,18 @@ import { useLocation } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getFlag, removeFlag, cleanNodeName } from '@renderer/utils/flags'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useMemo } from 'react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { navigateSidebarRoute } from '@renderer/routes'
-import { isExpectedMihomoUnavailableError, mihomoProxies } from '@renderer/utils/mihomo-ipc'
-import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface Props {
   iconOnly?: boolean
+}
+
+type ProxyLookupItem = {
+  name: string
+  now?: string
+  all?: Array<ProxyLookupItem>
 }
 
 const ProxyCard: React.FC<Props> = (props) => {
@@ -21,76 +25,22 @@ const ProxyCard: React.FC<Props> = (props) => {
   const location = useLocation()
   const match = location.pathname.includes('/proxies')
   const { groups = [] } = useGroups()
-  const [allProxies, setAllProxies] = useState<
-    Record<string, ControllerProxiesDetail | ControllerGroupDetail>
-  >({})
-  const retryTimerRef = useRef<number | null>(null)
-  const cancelledRef = useRef(false)
 
   const handleCardClick = (): void => {
     navigateSidebarRoute('/proxies')
   }
 
-  const clearRetryTimer = useCallback((): void => {
-    if (retryTimerRef.current === null) {
-      return
+  const allProxies = useMemo(() => {
+    const map: Record<string, ProxyLookupItem> = {}
+
+    const collect = (proxy: ProxyLookupItem): void => {
+      map[proxy.name] = proxy
+      proxy.all?.forEach(collect)
     }
 
-    window.clearTimeout(retryTimerRef.current)
-    retryTimerRef.current = null
-  }, [])
-
-  const refreshProxies = useCallback(async (): Promise<void> => {
-    clearRetryTimer()
-
-    try {
-      const data = await mihomoProxies()
-      if (!cancelledRef.current) {
-        setAllProxies(data.proxies)
-      }
-    } catch (error) {
-      if (cancelledRef.current) {
-        return
-      }
-
-      if (isExpectedMihomoUnavailableError(error)) {
-        if (retryTimerRef.current === null && !document.hidden) {
-          retryTimerRef.current = window.setTimeout(() => {
-            retryTimerRef.current = null
-            void refreshProxies()
-          }, 1200)
-        }
-        return
-      }
-
-      setAllProxies({})
-    }
-  }, [clearRetryTimer])
-
-  useEffect(() => {
-    cancelledRef.current = false
-    const handleRefresh = (): void => {
-      void refreshProxies()
-    }
-    const handleVisibilityChange = (): void => {
-      if (!document.hidden) {
-        void refreshProxies()
-      }
-    }
-
-    handleRefresh()
-    const offCoreStarted = onIpc(ON.coreStarted, handleRefresh)
-    const offGroupsUpdated = onIpc(ON.groupsUpdated, handleRefresh)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      cancelledRef.current = true
-      clearRetryTimer()
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      offCoreStarted()
-      offGroupsUpdated()
-    }
-  }, [clearRetryTimer, refreshProxies])
+    groups.forEach((group) => collect(group as ProxyLookupItem))
+    return map
+  }, [groups])
 
   const firstGroup = useMemo(() => {
     return mode === 'global'

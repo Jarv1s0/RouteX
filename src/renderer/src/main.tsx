@@ -57,12 +57,12 @@ async function preloadStartupConfig(): Promise<void> {
 
     await Promise.all([
       setNativeTheme(appConfig.appTheme || 'system'),
-      applyTheme(appConfig.customTheme || 'CoolApk.css')
+      applyTheme(appConfig.customTheme || 'default.css')
     ])
 
     traceBootStep(BOOT_TRACE_ENTRY, 'preload-config:done', {
       theme: appConfig.appTheme || 'system',
-      customTheme: appConfig.customTheme || 'CoolApk.css'
+      customTheme: appConfig.customTheme || 'default.css'
     })
   } catch (error) {
     traceBootStep(BOOT_TRACE_ENTRY, 'preload-config:failed', error)

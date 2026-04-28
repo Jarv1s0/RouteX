@@ -188,7 +188,7 @@ const App: React.FC = () => {
     if (!appConfig) {
       return
     }
-    void applyTheme(customTheme || 'CoolApk.css')
+    void applyTheme(customTheme || 'default.css')
   }, [appConfig, customTheme])
 
   useEffect(() => {

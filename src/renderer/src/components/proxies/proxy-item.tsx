@@ -136,14 +136,14 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                     {proxy.name}
                   </span>
                 </div>
-                <div className="leading-none mt-1 flex items-center gap-1.5">
-                  <span className="text-[9px] px-1.5 py-[2px] rounded-md bg-default-100/80 dark:bg-default-50/50 text-default-500 uppercase font-bold tracking-wider border border-default-200/50">
+                <div className="mt-1 flex min-h-5 items-center gap-1.5 leading-5">
+                  <span className="inline-flex h-5 items-center rounded-md border border-default-200/50 bg-default-100/80 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-500 dark:bg-default-50/50">
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
                   </span>
                   {subGroupInfo && (
                     <>
                       <span className="text-default-300 dark:text-default-600/50">|</span>
-                      <span className="flag-emoji truncate text-default-500 text-[11px]" title={subGroupInfo.now}>{subGroupInfo.now}</span>
+                      <span className="flag-emoji truncate text-[11px] leading-5 text-default-500" title={subGroupInfo.now}>{subGroupInfo.now}</span>
                     </>
                   )}
                 </div>

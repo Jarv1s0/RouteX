@@ -28,10 +28,10 @@ export function createDefaultAppConfig(
     autoCheckUpdate: false,
     autoCloseConnection: true,
     autoDelayTestOnShow: false,
-    customTheme: 'CoolApk.css',
+    customTheme: 'default.css',
     controlDns: true,
     controlSniff: true,
-    delayTestConcurrency: 8,
+    delayTestConcurrency: 4,
     delayTestTimeout: 5000,
     hosts: [],
     siderOrder: [

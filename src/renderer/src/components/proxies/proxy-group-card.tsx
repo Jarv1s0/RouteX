@@ -2,9 +2,8 @@ import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/resource-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { useEffect, useState, memo } from 'react'
+import { useEffect, memo } from 'react'
 import { addFlag } from '@renderer/utils/flags'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 
 interface Props {
@@ -26,7 +25,8 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
   toggleOpen,
   delaying,
   onGroupDelay,
-  getCurrentDelay
+  getCurrentDelay,
+  mutate
 }) => {
   const { appConfig } = useAppConfig()
   const currentDelay = getCurrentDelay(group)
@@ -43,35 +43,25 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
             ? 'text-warning'
             : 'text-danger'
 
-  // Icon: 用局部 state 缓存已解析的 dataURL，避免触发全局 mutate
-  const [iconSrc, setIconSrc] = useState<string>(() => {
-    if (!group.icon) return ''
-    if (group.icon.startsWith('<svg')) return `data:image/svg+xml;utf8,${group.icon}`
-    // 初始化时同步读一次缓存；之后不在渲染路径外再读 localStorage
-    return localStorage.getItem(group.icon) || group.icon
-  })
-
+  // Icon handling
   useEffect(() => {
-    if (!group.icon || !group.icon.startsWith('http')) return
-    const cached = localStorage.getItem(group.icon)
-    if (cached) {
-      setIconSrc(cached)
-      return
-    }
-    let cancelled = false
-    getImageDataURL(group.icon).then((dataURL) => {
-      if (cancelled) return
-      localStorage.setItem(group.icon, dataURL)
-      setIconSrc(dataURL)
-    })
-    return () => { cancelled = true }
-  }, [group.icon])
+    if (
+        group.icon &&
+        group.icon.startsWith('http') &&
+        !localStorage.getItem(group.icon)
+      ) {
+        getImageDataURL(group.icon).then((dataURL) => {
+          localStorage.setItem(group.icon, dataURL)
+          mutate()
+        })
+      }
+  }, [group.icon, mutate])
 
   // Active Glow Style
   // Active Glow Style
   const activeStyle = isOpen
-    ? "bg-gradient-to-br from-default-100/92 to-default-50/88 border-default-200/70 shadow-[inset_0_-1px_0_rgba(255,255,255,0.3),0_6px_18px_rgba(15,23,42,0.05)] relative"
-    : "bg-default-50/56 dark:bg-default-50/18 border-white/10 dark:border-white/6 shadow-sm hover:bg-default-100/72 hover:border-default-200/32 hover:shadow"
+    ? "bg-gradient-to-br from-default-100/95 to-default-50/90 backdrop-blur-2xl border-default-200/70 shadow-[inset_0_-1px_0_rgba(255,255,255,0.45),0_12px_28px_rgba(15,23,42,0.06)] scale-[1.005] relative"
+    : "bg-default-50/40 dark:bg-default-50/20 backdrop-blur-md border-white/10 dark:border-white/5 shadow-sm hover:scale-[1.002] hover:bg-default-100/60 hover:shadow-md hover:border-default-200/40"
 
   return (
     <div className="w-full pt-2 px-2">
@@ -80,7 +70,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
         isPressable
         fullWidth
         onPress={toggleOpen}
-        className={`${CARD_STYLES.BASE} group ${activeStyle} data-[pressed=true]:scale-[0.995]`}
+        className={`transition-all duration-200 border group ${activeStyle}`}
       >
         <CardBody className="w-full p-4">
           {/* Header Row */}
@@ -92,7 +82,11 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                 {group.icon ? (
                   <img
                     className="w-5 h-5 object-contain"
-                    src={iconSrc || group.icon}
+                    src={
+                      group.icon.startsWith('<svg')
+                        ? `data:image/svg+xml;utf8,${group.icon}`
+                        : localStorage.getItem(group.icon) || group.icon
+                    }
                     alt=""
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none'
@@ -138,10 +132,10 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
 
             {/* Right: Controls & Delay */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-default-100/50 dark:bg-default-50/50 border border-default-200/50 rounded-xl px-1.5 py-1.5 backdrop-blur-md transition-colors hover:bg-default-200/50">
+              <div className="flex items-center overflow-visible bg-default-100/50 dark:bg-default-50/50 border border-default-200/50 rounded-xl px-1.5 py-1.5 backdrop-blur-md transition-colors hover:bg-default-200/50">
                 {/* Node Name */}
-                <div className="flex items-center max-w-[140px] px-2 border-r border-default-200/50">
-                  <span className={`text-xs font-semibold truncate flag-emoji tracking-wide flex items-center gap-1.5 transition-colors ${currentDelay === 0 ? 'text-default-400' : 'text-foreground/80'}`} title={group.now}>
+                <div className="flex items-center max-w-[140px] overflow-visible px-2 border-r border-default-200/50">
+                  <span className={`text-xs font-semibold leading-5 truncate flag-emoji tracking-wide flex items-center gap-1.5 overflow-visible transition-colors ${currentDelay === 0 ? 'text-default-400' : 'text-foreground/80'}`} title={group.now}>
                     {addFlag(group.now)}
                   </span>
                 </div>
@@ -193,15 +187,27 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
 }
 
 export const ProxyGroupCard = memo(ProxyGroupCardComponent, (prev, next) => {
-  // 只在真正影响渲染的 props 变化时才重渲染
-  return (
-    prev.isOpen === next.isOpen &&
-    prev.delaying === next.delaying &&
-    prev.searchValue === next.searchValue &&
-    prev.group.name === next.group.name &&
-    prev.group.now === next.group.now &&
-    prev.group.icon === next.group.icon &&
-    prev.group.all?.length === next.group.all?.length &&
-    prev.getCurrentDelay(prev.group) === next.getCurrentDelay(next.group)
-  )
+    // Only update if relevant props changed
+    return (
+        prev.isOpen === next.isOpen &&
+        prev.delaying === next.delaying &&
+        prev.searchValue === next.searchValue &&
+        prev.group.name === next.group.name &&
+        prev.group.now === next.group.now &&
+        // Check live count efficiently? Or just accept fetch update. 
+        // Comparing length is cheap.
+        (prev.group.all?.length === next.group.all?.length) &&
+        // If it's closed, we don't care about internal updates that much? 
+        // But the "Live" count and "Delay" indicator needs updates.
+        // So we might as well rely on shallow compare of group if mutate changes ref.
+        // But mutate ALWAYS chances ref.
+        // So we must compare data.
+        // Let's compare the last history item of the "now" proxy for the delay dot?
+        // Actually `getCurrentDelay` calculates it.
+        prev.getCurrentDelay(prev.group) === next.getCurrentDelay(next.group)
+        // And live count?
+        // That is expensive to calculate in comparator.
+        // Let's just return false if we are not sure. 
+        // But at least if isOpen/delaying/searchValue/name/now/delay is same, we might skip.
+    )
 })

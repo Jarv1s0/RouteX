@@ -19,12 +19,15 @@ interface Props {
   className?: string
 }
 
+const RULE_CARD_REFRESH_DEBOUNCE_MS = 150
+
 const RuleCard: React.FC<Props> = (props) => {
   const { iconOnly, compact, className = '' } = props
   const location = useLocation()
   const match = location.pathname.includes('/rules')
   const [updating, setUpdating] = useState(false)
   const retryTimerRef = useRef<number | null>(null)
+  const refreshTimerRef = useRef<number | null>(null)
   const handleNavigate = (): void => {
     navigateSidebarRoute('/rules')
   }
@@ -36,6 +39,15 @@ const RuleCard: React.FC<Props> = (props) => {
 
     window.clearTimeout(retryTimerRef.current)
     retryTimerRef.current = null
+  }, [])
+
+  const clearRefreshTimer = useCallback((): void => {
+    if (refreshTimerRef.current === null) {
+      return
+    }
+
+    window.clearTimeout(refreshTimerRef.current)
+    refreshTimerRef.current = null
   }, [])
 
   const {
@@ -99,27 +111,36 @@ const RuleCard: React.FC<Props> = (props) => {
   }, [mutateProviders, mutateRuntimeConfig, updatableProviderNames, updating])
 
   useEffect(() => {
-    const handleRefresh = (): void => {
+    const refresh = (): void => {
       clearRetryTimer()
       void mutateProviders()
       void mutateRuntimeConfig()
     }
 
+    const scheduleRefresh = (): void => {
+      clearRefreshTimer()
+      refreshTimerRef.current = window.setTimeout(() => {
+        refreshTimerRef.current = null
+        refresh()
+      }, RULE_CARD_REFRESH_DEBOUNCE_MS)
+    }
+
     const handleVisibilityChange = (): void => {
       if (!document.hidden) {
-        handleRefresh()
+        scheduleRefresh()
       }
     }
 
-    const offCoreStarted = onIpc(ON.coreStarted, handleRefresh)
-    const offRulesUpdated = onIpc(ON.rulesUpdated, handleRefresh)
-    const offProfileConfigUpdated = onIpc(ON.profileConfigUpdated, handleRefresh)
-    const offOverrideConfigUpdated = onIpc(ON.overrideConfigUpdated, handleRefresh)
-    const offControledConfigUpdated = onIpc(ON.controledMihomoConfigUpdated, handleRefresh)
+    const offCoreStarted = onIpc(ON.coreStarted, scheduleRefresh)
+    const offRulesUpdated = onIpc(ON.rulesUpdated, scheduleRefresh)
+    const offProfileConfigUpdated = onIpc(ON.profileConfigUpdated, scheduleRefresh)
+    const offOverrideConfigUpdated = onIpc(ON.overrideConfigUpdated, scheduleRefresh)
+    const offControledConfigUpdated = onIpc(ON.controledMihomoConfigUpdated, scheduleRefresh)
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return (): void => {
       clearRetryTimer()
+      clearRefreshTimer()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       offCoreStarted()
       offRulesUpdated()
@@ -127,7 +148,7 @@ const RuleCard: React.FC<Props> = (props) => {
       offOverrideConfigUpdated()
       offControledConfigUpdated()
     }
-  }, [clearRetryTimer, mutateProviders, mutateRuntimeConfig])
+  }, [clearRefreshTimer, clearRetryTimer, mutateProviders, mutateRuntimeConfig])
 
   useEffect(() => {
     clearRetryTimer()

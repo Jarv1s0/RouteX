@@ -17,12 +17,13 @@ import {
 import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useOverrideConfig } from '@renderer/hooks/use-override-config'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { MdDeleteForever } from 'react-icons/md'
 import { FaPlus } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { restartCoreInBackground } from '@renderer/utils/core-restart'
+import { notifyError } from '@renderer/utils/notify'
 
 interface Props {
   item: ProfileItem
@@ -38,9 +39,11 @@ const EditInfoModal: React.FC<Props> = (props) => {
   const { overrideConfig } = useOverrideConfig()
   const { items: overrideItems = [] } = overrideConfig || {}
   const [values, setValues] = useState({ ...item, autoUpdate: item.autoUpdate ?? true })
+  const [saving, setSaving] = useState(false)
   const inputWidth = 'w-[400px] md:w-[400px] lg:w-[600px] xl:w-[800px]'
 
   const onSave = async (): Promise<void> => {
+    setSaving(true)
     try {
       const itemToSave = {
         ...values,
@@ -52,11 +55,12 @@ const EditInfoModal: React.FC<Props> = (props) => {
 
       await updateProfileItem(itemToSave)
       if (item.id && isCurrent) {
-        await restartCore()
+        restartCoreInBackground('应用订阅配置失败')
       }
       onClose()
     } catch (e) {
-      alert(e)
+      notifyError(e, { title: item.id ? '保存订阅信息失败' : '导入远程配置失败' })
+      setSaving(false)
     }
   }
 
@@ -263,7 +267,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
           <Button size="sm" variant="light" onPress={onClose}>
             取消
           </Button>
-          <Button size="sm" color="primary" onPress={onSave}>
+          <Button size="sm" color="primary" isLoading={saving} onPress={onSave}>
             {item.id ? '保存' : '导入'}
           </Button>
         </ModalFooter>

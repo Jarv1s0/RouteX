@@ -135,9 +135,9 @@ async function runWithConcurrency(
 }
 
 function normalizeDelayTestConcurrency(value?: number): number {
-  const parsed = Number.parseInt(String(value ?? 8), 10)
-  if (!Number.isFinite(parsed)) return 8
-  return Math.min(12, Math.max(1, parsed))
+  const parsed = Number.parseInt(String(value ?? 4), 10)
+  if (!Number.isFinite(parsed)) return 4
+  return Math.min(8, Math.max(1, parsed))
 }
 
 const Proxies: React.FC = () => {
@@ -152,7 +152,7 @@ const Proxies: React.FC = () => {
     proxyCols = 'auto',
     groupOrder = [],
     autoDelayTestOnShow = false,
-    delayTestConcurrency = 8
+    delayTestConcurrency = 4
   } = appConfig || {}
 
   // 根据模式过滤显示的组
@@ -295,7 +295,6 @@ const Proxies: React.FC = () => {
         console.debug('[proxy-delay:auto] test group', group.name, group.testUrl || '')
 
         await mihomoGroupDelay(group.name, group.testUrl)
-          .then(() => mutate())
           .catch((error) => {
             console.warn('[proxy-delay:auto] failed', group.name, error)
           })

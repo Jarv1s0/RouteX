@@ -28,7 +28,7 @@ const FloatingWindowThemeBridge: React.FC = () => {
       return
     }
 
-    void applyTheme(appConfig.customTheme || 'CoolApk.css')
+    void applyTheme(appConfig.customTheme || 'default.css')
   }, [appConfig])
 
   return null

@@ -20,10 +20,10 @@ import EditFileModal from './edit-file-modal'
 import { openFile } from '@renderer/utils/file-ipc'
 import { canRollbackOverride, rollbackOverride } from '@renderer/utils/override-ipc'
 import ConfirmModal from '../base/base-confirm'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
 import ExecLogModal from './exec-log-modal'
 import 'dayjs/locale/zh-cn'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { restartCoreInBackground } from '@renderer/utils/core-restart'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -166,8 +166,8 @@ const OverrideItem: React.FC<Props> = (props) => {
       case 'toggle-global': {
         try {
           await updateOverrideItem({ ...info, global: !info.global })
-          await restartCore()
           mutateOverrideConfig()
+          restartCoreInBackground('应用覆写失败')
         } catch (e) {
           alert(e)
         }
@@ -195,6 +195,9 @@ const OverrideItem: React.FC<Props> = (props) => {
           await rollbackOverride(info.id, info.ext)
           mutateOverrideConfig()
           setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
+          if (info.global || isActive) {
+            restartCoreInBackground('应用覆写回滚失败')
+          }
         } catch (e) {
           alert(e)
         } finally {
@@ -291,8 +294,12 @@ const OverrideItem: React.FC<Props> = (props) => {
           confirmText="确认删除"
           cancelText="取消"
           onConfirm={() => {
-            removeOverrideItem(info.id)
-            mutateOverrideConfig()
+            void removeOverrideItem(info.id).then(() => {
+              mutateOverrideConfig()
+              if (info.global || isActive) {
+                restartCoreInBackground('应用覆写删除失败')
+              }
+            })
           }}
         />
       )}
@@ -337,12 +344,14 @@ const OverrideItem: React.FC<Props> = (props) => {
                     color="default"
                     disabled={updating || rollingBack}
                     onPress={async () => {
-                      setUpdating(true)
-                      try {
-                        await addOverrideItem(info)
-                        await restartCore()
-                        setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
-                      } catch (e) {
+                    setUpdating(true)
+                    try {
+                      await addOverrideItem(info)
+                      setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
+                      if (info.global || isActive) {
+                        restartCoreInBackground('应用远程覆写失败')
+                      }
+                    } catch (e) {
                         alert(e)
                       } finally {
                         setUpdating(false)

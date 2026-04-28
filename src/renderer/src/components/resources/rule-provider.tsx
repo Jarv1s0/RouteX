@@ -1,7 +1,7 @@
 import { mihomoRuleProviders, mihomoUpdateRuleProviders, getRuntimeConfig } from '@renderer/utils/mihomo-ipc'
 import { getHash } from '@renderer/utils/hash'
 import Viewer from './viewer'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { Button, Card, CardBody, Chip } from '@heroui/react'
 import { IoMdRefresh } from 'react-icons/io'
@@ -15,7 +15,10 @@ interface Props {
   onUpdateAllRef?: React.MutableRefObject<(() => void) | null>
 }
 
+const RULE_PROVIDER_REFRESH_DEBOUNCE_MS = 150
+
 const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }) => {
+  const refreshTimerRef = useRef<number | null>(null)
   const [showDetails, setShowDetails] = useState({
     show: false,
     path: '',
@@ -53,11 +56,29 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
   })
 
   useEffect(() => {
-    const handleCoreStarted = (): void => {
-      mutate()
+    const clearRefreshTimer = (): void => {
+      if (refreshTimerRef.current === null) {
+        return
+      }
+
+      window.clearTimeout(refreshTimerRef.current)
+      refreshTimerRef.current = null
     }
-    return onIpc(ON.coreStarted, handleCoreStarted)
-  }, [])
+
+    const handleCoreStarted = (): void => {
+      clearRefreshTimer()
+      refreshTimerRef.current = window.setTimeout(() => {
+        refreshTimerRef.current = null
+        void mutate()
+      }, RULE_PROVIDER_REFRESH_DEBOUNCE_MS)
+    }
+    const offCoreStarted = onIpc(ON.coreStarted, handleCoreStarted)
+
+    return (): void => {
+      clearRefreshTimer()
+      offCoreStarted()
+    }
+  }, [mutate])
 
   const providers = useMemo(() => {
     if (!data) return []

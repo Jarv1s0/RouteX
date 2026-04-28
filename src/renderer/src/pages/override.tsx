@@ -10,7 +10,6 @@ import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import BasePage from '@renderer/components/base/base-page'
 import { getFilePath, readTextFile } from '@renderer/utils/file-ipc'
 import { updateProfileItem } from '@renderer/utils/profile-ipc'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { MdContentPaste } from 'react-icons/md'
 import {
@@ -30,9 +29,9 @@ import { LuFileText } from 'react-icons/lu'
 import { FaGithub } from 'react-icons/fa6'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { notifyError } from '@renderer/utils/notify'
-import { createQueuedAsyncRunner } from '@renderer/utils/queued-async-runner'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
 import { desktop } from '@renderer/api/desktop'
+import { createQueuedCoreRestartRunner } from '@renderer/utils/core-restart'
 
 const emptyItems: OverrideItem[] = []
 
@@ -58,8 +57,7 @@ const OverridePage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingItem, setEditingItem] = useState<OverrideItem | null>(null)
   const scheduleCoreRestart = useMemo(
-    () =>
-      createQueuedAsyncRunner(restartCore, (error) => notifyError(error, { title: '应用覆写失败' })),
+    () => createQueuedCoreRestartRunner('应用覆写失败'),
     []
   )
 

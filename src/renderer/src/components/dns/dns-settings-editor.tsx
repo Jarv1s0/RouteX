@@ -8,7 +8,7 @@ import { primaryInputClassNames } from '@renderer/components/settings/advanced-s
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
+import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 import {
   isValidDomainWildcard,
@@ -177,7 +177,7 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
         },
         hosts: hostsObject
       })
-      await restartCore()
+      restartCoreInBackground('应用 DNS 配置失败')
     } catch (error) {
       notifyError(error)
     }

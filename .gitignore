@@ -8,6 +8,9 @@ out
 target
 .DS_Store
 *.log*
+*.tsbuildinfo
+.tmp-*
+.tocodex/
 .idea
 *.ttf
 .ai_memory/

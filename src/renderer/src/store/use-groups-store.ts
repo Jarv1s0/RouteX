@@ -15,6 +15,7 @@ interface GroupsState {
 let updateTimer: NodeJS.Timeout | null = null
 let unavailableRetryTimer: number | null = null
 let groupsListenerRefCount = 0
+let fetchGroupsPromise: Promise<void> | null = null
 
 function isExpectedMihomoUnavailableError(error: unknown): boolean {
   const message = `${error ?? ''}`
@@ -66,31 +67,45 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
   isLoading: true,
 
   fetchGroups: async () => {
-    try {
-      const groups = await mihomoGroups()
-      clearUnavailableRetryTimer()
-      set({ groups, isLoading: false })
-    } catch (e) {
-      if (isExpectedMihomoUnavailableError(e)) {
-        const previousGroups = get().groups
-        set({
-          groups: previousGroups,
-          isLoading: !previousGroups || previousGroups.length === 0
-        })
-
-        if (unavailableRetryTimer === null && !document.hidden) {
-          unavailableRetryTimer = window.setTimeout(() => {
-            unavailableRetryTimer = null
-            void get().fetchGroups()
-          }, 1200)
-        }
-        return
-      }
-
-      clearUnavailableRetryTimer()
-      set({ groups: [], isLoading: false }) // 失败时提供稳定的空数组引用
-      console.error('Failed to fetch groups', e)
+    if (fetchGroupsPromise) {
+      return fetchGroupsPromise
     }
+
+    const promise = (async (): Promise<void> => {
+      try {
+        const groups = await mihomoGroups()
+        clearUnavailableRetryTimer()
+        set({ groups, isLoading: false })
+      } catch (e) {
+        if (isExpectedMihomoUnavailableError(e)) {
+          const previousGroups = get().groups
+          set({
+            groups: previousGroups,
+            isLoading: !previousGroups || previousGroups.length === 0
+          })
+
+          if (unavailableRetryTimer === null && !document.hidden) {
+            unavailableRetryTimer = window.setTimeout(() => {
+              unavailableRetryTimer = null
+              void get().fetchGroups()
+            }, 1200)
+          }
+          return
+        }
+
+        clearUnavailableRetryTimer()
+        set({ groups: [], isLoading: false }) // 失败时提供稳定的空数组引用
+        console.error('Failed to fetch groups', e)
+      }
+    })()
+
+    fetchGroupsPromise = promise
+    promise.finally(() => {
+      if (fetchGroupsPromise === promise) {
+        fetchGroupsPromise = null
+      }
+    })
+    return promise
   },
 
   initializeListeners: () => {

@@ -22,8 +22,7 @@ import { updateProfileItem } from '@renderer/utils/profile-ipc'
 import {
   getRuntimeConfig,
   mihomoProxyProviders,
-  mihomoUpdateProxyProviders,
-  restartCore
+  mihomoUpdateProxyProviders
 } from '@renderer/utils/mihomo-ipc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getHash } from '@renderer/utils/hash'
@@ -47,9 +46,9 @@ import ProfileSettingModal from '@renderer/components/profiles/profile-setting-m
 import useSWR from 'swr'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { notifyError } from '@renderer/utils/notify'
-import { createQueuedAsyncRunner } from '@renderer/utils/queued-async-runner'
 import { OverrideConfigProvider, useOverrideConfig } from '@renderer/hooks/use-override-config'
 import { desktop } from '@renderer/api/desktop'
+import { createQueuedCoreRestartRunner } from '@renderer/utils/core-restart'
 
 const emptyProfileItems: ProfileItem[] = []
 const emptyOverrideItems: OverrideItem[] = []
@@ -235,8 +234,7 @@ const ProfilesPage: React.FC = () => {
   )
 
   const scheduleCoreRestart = useMemo(
-    () =>
-      createQueuedAsyncRunner(restartCore, (error) => notifyError(error, { title: '应用覆写失败' })),
+    () => createQueuedCoreRestartRunner('应用覆写失败'),
     []
   )
 

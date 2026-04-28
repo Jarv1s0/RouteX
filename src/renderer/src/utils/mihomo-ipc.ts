@@ -20,6 +20,7 @@ let tauriBridgeActiveControllerUrl: string | null = null
 let tauriBridgeReconnectReason = ''
 const latestVersionCache = new Map<boolean, { value: string | null; at: number }>()
 const latestVersionPromiseCache = new Map<boolean, Promise<string | null>>()
+const inFlightMihomoRequests = new Map<string, Promise<unknown>>()
 const MIN_TAURI_CONNECTION_INTERVAL = 250
 let tauriRuntimeConfigRevision = 0
 
@@ -27,6 +28,30 @@ const CHECK_LATEST_VERSION_CACHE_MS = 3 * 60 * 1000
 
 function isTauriHost(): boolean {
   return __ROUTEX_HOST__ === 'tauri'
+}
+
+function dedupeMihomoRequest<T>(key: string, requestFactory: () => Promise<T>): Promise<T> {
+  const existing = inFlightMihomoRequests.get(key) as Promise<T> | undefined
+  if (existing) {
+    return existing
+  }
+
+  let request: Promise<T>
+  request = requestFactory().finally(() => {
+    if (inFlightMihomoRequests.get(key) === request) {
+      inFlightMihomoRequests.delete(key)
+    }
+  })
+  inFlightMihomoRequests.set(key, request)
+  return request
+}
+
+function createMihomoRequestKey(channel: string, ...args: Array<string | undefined>): string {
+  return JSON.stringify([channel, ...args.map((arg) => arg ?? '')])
+}
+
+function clearInFlightMihomoRequests(...keys: string[]): void {
+  keys.forEach((key) => inFlightMihomoRequests.delete(key))
 }
 
 export function isExpectedMihomoUnavailableError(error: unknown): boolean {
@@ -235,6 +260,10 @@ function installTauriBridgeLifecycle(): void {
     invalidateTauriRuntimeConfigCache()
   })
 
+  desktop.on(IPC_ON_CHANNELS.quickRulesConfigUpdated, () => {
+    invalidateTauriRuntimeConfigCache()
+  })
+
   desktop.on(IPC_ON_CHANNELS.rulesUpdated, () => {
     invalidateTauriRuntimeConfigCache()
   })
@@ -343,7 +372,12 @@ export function startTauriMihomoEventBridge(reason = 'manual'): void {
   tauriBridgeActiveControllerUrl = controllerUrl
   const { 'log-level': logLevel = 'info' } = readTauriControledMihomoConfig()
 
-  startTauriSocket('traffic', toWebSocketUrl(controllerUrl, '/traffic'), version, emitTauriTrafficEvent)
+  startTauriSocket(
+    'traffic',
+    toWebSocketUrl(controllerUrl, '/traffic'),
+    version,
+    emitTauriTrafficEvent
+  )
 
   startTauriSocket('memory', toWebSocketUrl(controllerUrl, '/memory'), version, (payload) => {
     // 窗口不可见时跳过内存消息
@@ -351,11 +385,16 @@ export function startTauriMihomoEventBridge(reason = 'manual'): void {
     emitParsedDesktopEvent<ControllerMemory>(IPC_ON_CHANNELS.mihomoMemory, payload)
   })
 
-  startTauriSocket('logs', toWebSocketUrl(controllerUrl, `/logs?level=${logLevel}`), version, (payload) => {
-    // 窗口不可见时跳过日志消息
-    if (document.hidden) return
-    emitParsedDesktopEvent<ControllerLog>(IPC_ON_CHANNELS.mihomoLogs, payload)
-  })
+  startTauriSocket(
+    'logs',
+    toWebSocketUrl(controllerUrl, `/logs?level=${logLevel}`),
+    version,
+    (payload) => {
+      // 窗口不可见时跳过日志消息
+      if (document.hidden) return
+      emitParsedDesktopEvent<ControllerLog>(IPC_ON_CHANNELS.mihomoLogs, payload)
+    }
+  )
 
   void readTauriConnectionIntervalMs().then((connectionInterval) => {
     if (isStaleTauriBridgeStart(version) || tauriBridgeActiveControllerUrl !== controllerUrl) {
@@ -657,11 +696,11 @@ export async function mihomoConfig(): Promise<ControllerConfigs> {
 }
 
 export async function mihomoRules(): Promise<ControllerRules> {
-  return invokeSafe(C.mihomoRules)
+  return dedupeMihomoRequest(C.mihomoRules, () => invokeSafe(C.mihomoRules))
 }
 
 export async function mihomoProxies(): Promise<ControllerProxies> {
-  return invokeSafe(C.mihomoProxies)
+  return dedupeMihomoRequest(C.mihomoProxies, () => invokeSafe(C.mihomoProxies))
 }
 
 export async function mihomoConnections(): Promise<ControllerConnections> {
@@ -690,7 +729,7 @@ export async function mihomoCloseConnection(id: string): Promise<void> {
 }
 
 export async function mihomoRuleProviders(): Promise<ControllerRuleProviders> {
-  return invokeSafe(C.mihomoRuleProviders)
+  return dedupeMihomoRequest(C.mihomoRuleProviders, () => invokeSafe(C.mihomoRuleProviders))
 }
 
 export async function mihomoProxyProviders(): Promise<ControllerProxyProviders> {
@@ -701,15 +740,24 @@ export async function mihomoChangeProxy(
   group: string,
   proxy: string
 ): Promise<ControllerProxiesDetail> {
-  return invokeSafe<ControllerProxiesDetail>(C.mihomoChangeProxy, group, proxy)
+  const result = await invokeSafe<ControllerProxiesDetail>(C.mihomoChangeProxy, group, proxy)
+  clearInFlightMihomoRequests(C.mihomoProxies)
+  return result
 }
 
 export async function mihomoUnfixedProxy(group: string): Promise<ControllerProxiesDetail> {
-  return invokeSafe(C.mihomoUnfixedProxy, group)
+  const result = await invokeSafe<ControllerProxiesDetail>(C.mihomoUnfixedProxy, group)
+  clearInFlightMihomoRequests(C.mihomoProxies)
+  return result
 }
 
 export async function mihomoGroupDelay(group: string, url?: string): Promise<ControllerGroupDelay> {
-  return invokeSafe(C.mihomoGroupDelay, group, url)
+  const requestKey = createMihomoRequestKey(C.mihomoGroupDelay, group, url)
+  const result = await dedupeMihomoRequest(requestKey, () =>
+    invokeSafe<ControllerGroupDelay>(C.mihomoGroupDelay, group, url)
+  )
+  clearInFlightMihomoRequests(C.mihomoProxies)
+  return result
 }
 
 export async function getRuntimeConfig(): Promise<MihomoConfig> {
@@ -754,12 +802,18 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
     return request
   }
 
-  return invokeSafe(C.getRuntimeConfig)
+  return dedupeMihomoRequest(C.getRuntimeConfig, () => invokeSafe(C.getRuntimeConfig))
 }
 
 export async function restartCore(): Promise<void> {
   if (isTauriHost()) {
     const result = (await invokeSafe(C.restartCore)) as { controller?: string } | undefined
+    clearInFlightMihomoRequests(
+      C.getRuntimeConfig,
+      C.mihomoProxies,
+      C.mihomoRules,
+      C.mihomoRuleProviders
+    )
     if (result?.controller) {
       writeTauriControllerUrl(`http://${result.controller}`)
       startTauriMihomoEventBridge()
@@ -767,26 +821,40 @@ export async function restartCore(): Promise<void> {
     return
   }
 
-  return invokeSafe(C.restartCore)
+  await invokeSafe(C.restartCore)
+  clearInFlightMihomoRequests(
+    C.getRuntimeConfig,
+    C.mihomoProxies,
+    C.mihomoRules,
+    C.mihomoRuleProviders
+  )
 }
 
 export async function mihomoUpdateProxyProviders(name: string): Promise<void> {
-  return invokeSafe(C.mihomoUpdateProxyProviders, name)
+  await invokeSafe(C.mihomoUpdateProxyProviders, name)
+  clearInFlightMihomoRequests(C.mihomoProxies)
 }
 
 export async function mihomoUpdateRuleProviders(name: string): Promise<void> {
-  return invokeSafe(C.mihomoUpdateRuleProviders, name)
+  await invokeSafe(C.mihomoUpdateRuleProviders, name)
+  clearInFlightMihomoRequests(C.mihomoRuleProviders)
 }
 
 export async function mihomoProxyDelay(
   proxy: string,
   url?: string
 ): Promise<ControllerProxiesDelay> {
-  return invokeSafe(C.mihomoProxyDelay, proxy, url)
+  const requestKey = createMihomoRequestKey(C.mihomoProxyDelay, proxy, url)
+  const result = await dedupeMihomoRequest(requestKey, () =>
+    invokeSafe<ControllerProxiesDelay>(C.mihomoProxyDelay, proxy, url)
+  )
+  clearInFlightMihomoRequests(C.mihomoProxies)
+  return result
 }
 
 export async function mihomoToggleRuleDisabled(data: Record<number, boolean>): Promise<void> {
-  return invokeSafe(C.mihomoToggleRuleDisabled, data)
+  await invokeSafe(C.mihomoToggleRuleDisabled, data)
+  clearInFlightMihomoRequests(C.mihomoRules)
 }
 
 export async function checkMihomoLatestVersion(isAlpha: boolean): Promise<string | null> {
@@ -831,18 +899,23 @@ export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): 
       ...patch
     }
     invalidateTauriRuntimeConfigCache()
+    clearInFlightMihomoRequests(C.getRuntimeConfig)
     return
   }
 
-  return invokeSafe(C.patchControledMihomoConfig, patch)
+  await invokeSafe(C.patchControledMihomoConfig, patch)
+  clearInFlightMihomoRequests(C.getRuntimeConfig)
 }
 
 export async function patchMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   if (isTauriHost()) {
-    return invokeSafe(C.patchMihomoConfig, patch)
+    await invokeSafe(C.patchMihomoConfig, patch)
+    clearInFlightMihomoRequests(C.getRuntimeConfig)
+    return
   }
 
-  return invokeSafe(C.patchMihomoConfig, patch)
+  await invokeSafe(C.patchMihomoConfig, patch)
+  clearInFlightMihomoRequests(C.getRuntimeConfig)
 }
 
 export async function getRuntimeConfigStr(): Promise<string> {
