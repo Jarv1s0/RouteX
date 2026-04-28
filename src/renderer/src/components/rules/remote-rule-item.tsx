@@ -164,12 +164,12 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                         title={provider.vehicleType === 'File' ? '编辑' : '查看'}
                         size="sm"
                         onPress={onView}
-                        className="min-w-8 w-8 h-8"
+                        className="min-w-7 w-7 h-7"
                       >
                         {provider.vehicleType === 'File' ? (
-                          <LuFilePenLine className="text-lg" />
+                          <LuFilePenLine className="text-base" />
                         ) : (
-                          <CgLoadbarDoc className="text-lg" />
+                          <CgLoadbarDoc className="text-base" />
                         )}
                       </Button>
                     )}
@@ -179,9 +179,9 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                       title="更新"
                       size="sm"
                       onPress={onUpdate}
-                      className="min-w-8 w-8 h-8"
+                      className="min-w-7 w-7 h-7"
                     >
-                      <IoMdRefresh className={`text-lg ${updating ? 'animate-spin' : ''}`} />
+                      <IoMdRefresh className={`text-base ${updating ? 'animate-spin' : ''}`} />
                     </Button>
                   </div>
                 </div>

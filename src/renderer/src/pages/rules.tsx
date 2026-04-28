@@ -542,10 +542,10 @@ const RulesPage: React.FC = () => {
                                 isIconOnly
                                 size="sm" 
                                 variant="light" 
-                                className="min-w-8 w-8 h-8 text-default-500 hover:text-default-900"
+                                className="min-w-7 w-7 h-7 text-default-500 hover:text-default-900"
                                 onPress={() => openEditQuickRule(rule)}
                               >
-                                <LuSquarePen className="text-lg" />
+                                <LuSquarePen className="text-base" />
                               </Button>
                             </Tooltip>
                             
@@ -555,10 +555,10 @@ const RulesPage: React.FC = () => {
                                 size="sm"
                                 color="danger"
                                 variant="light"
-                                className="min-w-8 w-8 h-8 opacity-80 hover:opacity-100"
+                                className="min-w-7 w-7 h-7 opacity-80 hover:opacity-100"
                                 onPress={() => void handleDeleteQuickRule(rule)}
                               >
-                                <LuTrash2 className="text-lg" />
+                                <LuTrash2 className="text-base" />
                               </Button>
                             </Tooltip>
                           </div>
