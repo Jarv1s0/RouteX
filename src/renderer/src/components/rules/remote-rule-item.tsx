@@ -152,11 +152,11 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                 <div className="flex items-center gap-2 pr-1">
                   {/* 更新时间，定宽居中对齐，平衡两侧间距 */}
                   <span className="text-foreground-400 text-xs w-[48px] text-center hidden sm:inline-block tracking-tighter whitespace-nowrap overflow-hidden text-ellipsis">
-                    {dayjs(provider.updatedAt).fromNow(true)}
+                    {dayjs(provider.updatedAt).fromNow()}
                   </span>
                   
-                  {/* 按钮区定宽 */}
-                  <div className="flex items-center justify-end w-[64px]">
+                  {/* 按钮区 */}
+                  <div className="flex items-center gap-2">
                     {provider.vehicleType !== 'Inline' && (
                       <Button
                         isIconOnly
@@ -164,12 +164,12 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                         title={provider.vehicleType === 'File' ? '编辑' : '查看'}
                         size="sm"
                         onPress={onView}
-                        className="min-w-7 w-7 h-7"
+                        className="min-w-8 w-8 h-8"
                       >
                         {provider.vehicleType === 'File' ? (
-                          <LuFilePenLine className="text-base" />
+                          <LuFilePenLine className="text-lg" />
                         ) : (
-                          <CgLoadbarDoc className="text-base" />
+                          <CgLoadbarDoc className="text-lg" />
                         )}
                       </Button>
                     )}
@@ -179,9 +179,9 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                       title="更新"
                       size="sm"
                       onPress={onUpdate}
-                      className="min-w-7 w-7 h-7"
+                      className="min-w-8 w-8 h-8"
                     >
-                      <IoMdRefresh className={`text-base ${updating ? 'animate-spin' : ''}`} />
+                      <IoMdRefresh className={`text-lg ${updating ? 'animate-spin' : ''}`} />
                     </Button>
                   </div>
                 </div>

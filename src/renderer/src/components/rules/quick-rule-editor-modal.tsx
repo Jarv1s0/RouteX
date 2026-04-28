@@ -6,12 +6,21 @@ import {
   Modal,
   ModalBody,
   ModalContent,
+  ModalFooter,
+  ModalHeader,
   Select,
-  SelectItem
+  SelectItem,
+  Switch
 } from '@heroui/react'
 import React, { useCallback, useMemo, useState } from 'react'
+import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { addQuickRule, updateQuickRule } from '@renderer/utils/quick-rules-ipc'
+import { secondaryInputClassNames } from '@renderer/components/settings/advanced-settings'
+import {
+  createSecondaryModalClassNames,
+  SECONDARY_MODAL_HEADER_CLASSNAME
+} from '@renderer/utils/modal-styles'
 
 interface Props {
   profileId: string
@@ -124,103 +133,133 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
       await onSaved()
       onClose()
     } catch (error) {
-      alert(`${isEditing ? '修改' : '创建'}快速规则失败: ${error}`)
+      alert(`${isEditing ? '修改' : '创建'}本地规则失败: ${error}`)
     } finally {
       setIsSubmitting(false)
     }
   }, [isEditing, noResolve, onClose, onSaved, profileId, proxyTarget, rule, ruleType, ruleValue, supportsNoResolve])
 
   return (
-    <Modal isOpen={true} onClose={onClose} size="lg" scrollBehavior="inside" placement="center">
-      <ModalContent className="mx-4 my-4">
-        <ModalBody className="py-4">
-          <div className="mb-2 flex flex-col gap-0.5">
-            <span className="text-large font-medium">{isEditing ? '编辑快速规则' : '新建快速规则'}</span>
-            <span className="text-small font-normal text-foreground-400">
-              写入当前配置的 quick-rules，优先级最高。
-            </span>
-          </div>
+    <Modal
+      isOpen={true}
+      onOpenChange={onClose}
+      size="xl"
+      backdrop="blur"
+      scrollBehavior="inside"
+      hideCloseButton
+      classNames={createSecondaryModalClassNames()}
+    >
+      <ModalContent>
+        <>
+          <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
+            <div className="flex flex-col gap-0.5">
+              <span>{isEditing ? '编辑本地规则' : '新建本地规则'}</span>
+              <span className="text-xs font-normal text-foreground-500">
+                写入当前配置的本地规则，优先级最高。
+              </span>
+            </div>
+            <SecondaryModalCloseButton onPress={onClose} />
+          </ModalHeader>
 
-          <div className="flex flex-col gap-3">
-            <Select
-              label={`规则类型 - ${RULE_TYPES.find((item) => item.key === ruleType)?.desc || ''}`}
-              selectedKeys={new Set([ruleType])}
-              onSelectionChange={(value) => {
-                const selectedKey = value.currentKey as string
-                if (selectedKey) {
-                  handleRuleTypeChange(selectedKey)
-                }
-              }}
-              disallowEmptySelection
-              size="md"
+          <ModalBody className="px-6 py-4">
+            <div className="flex flex-col gap-3">
+              <Select
+                label={`规则类型 - ${RULE_TYPES.find((item) => item.key === ruleType)?.desc || ''}`}
+                selectedKeys={new Set([ruleType])}
+                onSelectionChange={(value) => {
+                  const selectedKey = value.currentKey as string
+                  if (selectedKey) {
+                    handleRuleTypeChange(selectedKey)
+                  }
+                }}
+                disallowEmptySelection
+                size="md"
+                classNames={{
+                  trigger:
+                    'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50 min-h-12',
+                  value: 'text-default-900'
+                }}
+              >
+                {RULE_TYPES.map((item) => (
+                  <SelectItem key={item.key} textValue={item.label}>
+                    {item.label} - {item.desc}
+                  </SelectItem>
+                ))}
+              </Select>
+
+              <Input
+                label="规则值"
+                value={ruleValue}
+                onValueChange={setRuleValue}
+                size="md"
+                placeholder="输入规则值"
+                classNames={secondaryInputClassNames}
+              />
+
+              <Autocomplete
+                label="目标代理/策略组"
+                inputValue={proxyTarget}
+                onInputChange={setProxyTarget}
+                onSelectionChange={(key) => {
+                  if (key) {
+                    setProxyTarget(key as string)
+                  }
+                }}
+                size="md"
+                allowsCustomValue
+                placeholder="选择或输入代理组名称"
+                variant="bordered"
+                classNames={{
+                  selectorButton: 'text-default-500',
+                  listboxWrapper: 'max-h-64',
+                  popoverContent: 'rounded-2xl'
+                }}
+              >
+                {proxyOptions.map((option) => (
+                  <AutocompleteItem key={option}>{option}</AutocompleteItem>
+                ))}
+              </Autocomplete>
+
+              {supportsNoResolve && (
+                <div className="flex items-center justify-between gap-4 rounded-2xl border border-default-200/70 bg-content1/60 px-4 py-3 shadow-sm">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium text-foreground-700">no-resolve</span>
+                    <span className="text-xs text-foreground-500">不解析域名，直接匹配 IP。</span>
+                  </div>
+                  <Switch size="sm" color="primary" isSelected={noResolve} onValueChange={setNoResolve} />
+                </div>
+              )}
+
+              {ruleString && (
+                <div className="rounded-2xl border border-default-200/70 bg-content1/60 p-4 shadow-sm">
+                  <div className="mb-2 text-xs font-medium text-foreground-500">规则预览</div>
+                  <code className="break-all font-mono text-sm text-primary">{ruleString}</code>
+                </div>
+              )}
+            </div>
+          </ModalBody>
+
+          <ModalFooter className="px-4 py-3">
+            <Button
+              variant="flat"
+              onPress={onClose}
+              isDisabled={isSubmitting}
+              className="px-8 font-medium"
             >
-              {RULE_TYPES.map((item) => (
-                <SelectItem key={item.key} textValue={item.label}>
-                  {item.label} - {item.desc}
-                </SelectItem>
-              ))}
-            </Select>
-
-            <Input
-              label="规则值"
-              value={ruleValue}
-              onValueChange={setRuleValue}
-              size="md"
-              placeholder="输入规则值"
-            />
-
-            <Autocomplete
-              label="目标代理/策略组"
-              inputValue={proxyTarget}
-              onInputChange={setProxyTarget}
-              onSelectionChange={(key) => {
-                if (key) {
-                  setProxyTarget(key as string)
-                }
-              }}
-              size="md"
-              allowsCustomValue
-              placeholder="选择或输入代理组名称"
-            >
-              {proxyOptions.map((option) => (
-                <AutocompleteItem key={option}>{option}</AutocompleteItem>
-              ))}
-            </Autocomplete>
-
-            {supportsNoResolve && (
-              <label className="flex items-center gap-2 text-sm text-foreground-500">
-                <input
-                  type="checkbox"
-                  checked={noResolve}
-                  onChange={(event) => setNoResolve(event.target.checked)}
-                  className="rounded"
-                />
-                no-resolve（不解析域名，直接匹配 IP）
-              </label>
-            )}
-
-            {ruleString && (
-              <div className="rounded-lg bg-default-100 p-3">
-                <div className="mb-1 text-xs text-foreground-400">规则预览</div>
-                <code className="break-all font-mono text-sm text-primary">{ruleString}</code>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-3 flex justify-end gap-2">
-            <Button variant="light" onPress={onClose} isDisabled={isSubmitting}>
-              关闭
+              退出
             </Button>
             <Button
               color="primary"
+              variant="shadow"
               onPress={handleSubmit}
               isDisabled={!ruleValue.trim() || !proxyTarget.trim()}
               isLoading={isSubmitting}
+              className="px-8 font-medium"
             >
               {isEditing ? '保存修改' : '创建规则'}
             </Button>
-          </div>
-        </ModalBody>
+          </ModalFooter>
+        </>
       </ModalContent>
     </Modal>
   )

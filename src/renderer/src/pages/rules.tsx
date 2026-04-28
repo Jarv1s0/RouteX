@@ -7,7 +7,7 @@ import { Virtuoso } from 'react-virtuoso'
 import { useEffect, useMemo, useState, useDeferredValue, useCallback, useRef } from 'react'
 import { Button, Card, CardBody, Chip, Input, Tab, Tabs, Switch, Tooltip } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
-import { MdOutlineEdit, MdDelete } from 'react-icons/md'
+import { LuFilePenLine, LuTrash2 } from 'react-icons/lu'
 import { useRules } from '@renderer/hooks/use-rules'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { includesIgnoreCase } from '@renderer/utils/includes'
@@ -430,7 +430,7 @@ const RulesPage: React.FC = () => {
           )}
           {activeTab === 'local' && (
             <Button size="sm" color="primary" className="ml-auto" onPress={openCreateQuickRule}>
-              新建本地规则
+              新建规则
             </Button>
           )}
           {activeTab === 'remote' && (
@@ -557,10 +557,10 @@ const RulesPage: React.FC = () => {
                                   variant="light"
                                   title="编辑规则"
                                   aria-label="编辑规则"
-                                  className="min-w-7 w-7 h-7 text-default-500"
+                                  className="min-w-8 w-8 h-8 text-default-500"
                                   onPress={() => openEditQuickRule(rule)}
                                 >
-                                  <MdOutlineEdit className="text-base" />
+                                  <LuFilePenLine className="text-base" />
                                 </Button>
                               </Tooltip>
                               
@@ -572,10 +572,10 @@ const RulesPage: React.FC = () => {
                                   variant="light"
                                   title="删除规则"
                                   aria-label="删除规则"
-                                  className="min-w-7 w-7 h-7"
+                                  className="min-w-8 w-8 h-8"
                                   onPress={() => void handleDeleteQuickRule(rule)}
                                 >
-                                  <MdDelete className="text-base" />
+                                  <LuTrash2 className="text-base" />
                                 </Button>
                               </Tooltip>
                           </div>
