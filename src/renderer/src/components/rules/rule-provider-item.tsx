@@ -1,7 +1,7 @@
 import { Button, Card, CardBody, Chip } from '@heroui/react'
 import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
-import { MdOutlineEdit } from 'react-icons/md'
+import { LuFilePenLine } from 'react-icons/lu'
 import dayjs from 'dayjs'
 import React from 'react'
 
@@ -56,7 +56,7 @@ const RuleProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate
                   onPress={onView}
                 >
                   {provider.vehicleType === 'File' ? (
-                    <MdOutlineEdit className="text-lg" />
+                    <LuFilePenLine className="text-lg" />
                   ) : (
                     <CgLoadbarDoc className="text-lg" />
                   )}

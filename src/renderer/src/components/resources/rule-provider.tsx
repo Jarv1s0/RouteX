@@ -6,7 +6,7 @@ import useSWR from 'swr'
 import { Button, Card, CardBody, Chip } from '@heroui/react'
 import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
-import { MdOutlineEdit } from 'react-icons/md'
+import { LuFilePenLine } from 'react-icons/lu'
 import dayjs from 'dayjs'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
@@ -175,7 +175,7 @@ const RuleProvider: React.FC<Props> = ({ hideUpdateAll = false, onUpdateAllRef }
                       }}
                     >
                       {provider.vehicleType == 'File' ? (
-                        <MdOutlineEdit className="text-lg" />
+                        <LuFilePenLine className="text-lg" />
                       ) : (
                         <CgLoadbarDoc className="text-lg" />
                       )}

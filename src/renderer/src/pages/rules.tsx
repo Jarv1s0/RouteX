@@ -7,7 +7,7 @@ import { Virtuoso } from 'react-virtuoso'
 import { useEffect, useMemo, useState, useDeferredValue, useCallback, useRef } from 'react'
 import { Button, Card, CardBody, Chip, Input, Tab, Tabs, Switch, Tooltip } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
-import { MdOutlineEdit, MdDelete } from 'react-icons/md'
+import { LuSquarePen, LuTrash2 } from 'react-icons/lu'
 import { useRules } from '@renderer/hooks/use-rules'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { includesIgnoreCase } from '@renderer/utils/includes'
@@ -545,7 +545,7 @@ const RulesPage: React.FC = () => {
                                 className="min-w-8 w-8 h-8 text-default-500 hover:text-default-900"
                                 onPress={() => openEditQuickRule(rule)}
                               >
-                                <MdOutlineEdit className="text-lg" />
+                                <LuSquarePen className="text-lg" />
                               </Button>
                             </Tooltip>
                             
@@ -558,7 +558,7 @@ const RulesPage: React.FC = () => {
                                 className="min-w-8 w-8 h-8 opacity-80 hover:opacity-100"
                                 onPress={() => void handleDeleteQuickRule(rule)}
                               >
-                                <MdDelete className="text-lg" />
+                                <LuTrash2 className="text-lg" />
                               </Button>
                             </Tooltip>
                           </div>

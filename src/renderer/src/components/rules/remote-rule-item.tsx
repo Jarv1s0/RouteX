@@ -1,7 +1,7 @@
 import { Button, Card, CardBody, Chip, Switch } from '@heroui/react'
 import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
-import { MdOutlineEdit } from 'react-icons/md'
+import { LuFilePenLine } from 'react-icons/lu'
 import dayjs from 'dayjs'
 import React from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
@@ -167,7 +167,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                         className="min-w-8 w-8 h-8"
                       >
                         {provider.vehicleType === 'File' ? (
-                          <MdOutlineEdit className="text-lg" />
+                          <LuFilePenLine className="text-lg" />
                         ) : (
                           <CgLoadbarDoc className="text-lg" />
                         )}
