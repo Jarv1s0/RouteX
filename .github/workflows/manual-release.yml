@@ -109,6 +109,10 @@ jobs:
       - name: Rust Tests
         run: pnpm test:rust
 
+      - name: Install macOS ARM64 Rust Target
+        if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
+        run: rustup target add aarch64-apple-darwin
+
       - name: Generate Release Notes
         run: node scripts/extract-latest-changelog.mjs changelog.md release-notes.md
 
@@ -135,7 +139,11 @@ jobs:
 
       - name: Build and Publish macOS
         if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
-        run: pnpm build:mac
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm prepare:resources -- arm64
+          pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -156,26 +164,48 @@ jobs:
             --target "${GITHUB_SHA}" || true
 
           files=()
-          if [ ! -d src-tauri/target/release/bundle ]; then
-            echo "Artifact directory not found: src-tauri/target/release/bundle"
-            exit 1
-          fi
 
           case "${{ matrix.platform }}" in
             windows)
+              if [ ! -d src-tauri/target/release/bundle ]; then
+                echo "Artifact directory not found: src-tauri/target/release/bundle"
+                exit 1
+              fi
+
               while IFS= read -r -d '' file; do
                 files+=("$file")
               done < <(find src-tauri/target/release/bundle -type f \( -name '*.msi' -o -name '*.exe' \) -print0)
               ;;
             linux)
+              if [ ! -d src-tauri/target/release/bundle ]; then
+                echo "Artifact directory not found: src-tauri/target/release/bundle"
+                exit 1
+              fi
+
               while IFS= read -r -d '' file; do
                 files+=("$file")
               done < <(find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) -print0)
               ;;
             macos)
+              bundle_dirs=()
+              for candidate in \
+                "src-tauri/target/aarch64-apple-darwin/release/bundle" \
+                "src-tauri/target/release/bundle"
+              do
+                if [ -d "$candidate" ]; then
+                  bundle_dirs+=("$candidate")
+                fi
+              done
+
+              if [ "${#bundle_dirs[@]}" -eq 0 ]; then
+                echo "Artifact directory not found for macOS"
+                find src-tauri/target -maxdepth 5 -print | sort || true
+                exit 1
+              fi
+
               while IFS= read -r -d '' file; do
                 files+=("$file")
-              done < <(find src-tauri/target/release/bundle -type f \( -name '*.dmg' -o -name '*.app.tar.gz' \) -print0)
+              done < <(find "${bundle_dirs[@]}" -type f \( -name '*.dmg' -o -name '*.app.tar.gz' \) -print0)
               ;;
           esac
 

@@ -227,7 +227,7 @@ jobs:
               pnpm tauri build --bundles deb rpm appimage
               ;;
             macos)
-              pnpm tauri build --target aarch64-apple-darwin --bundles dmg
+              pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg
               ;;
             *)
               echo "Unsupported platform: ${{ matrix.platform }}"
@@ -292,17 +292,35 @@ jobs:
               cp "$rpm_file" "$artifact_dir/linux-x86_64.rpm"
               ;;
             macos)
-              bundle_dir="src-tauri/target/aarch64-apple-darwin/release/bundle"
-              dmg_file=$(find "$bundle_dir/dmg" -type f -name '*.dmg' -print -quit)
-              app_file=$(find "$bundle_dir/macos" -maxdepth 1 -type d -name '*.app' -print -quit)
+              bundle_dirs=()
+              for candidate in \
+                "src-tauri/target/aarch64-apple-darwin/release/bundle" \
+                "src-tauri/target/release/bundle"
+              do
+                if [ -d "$candidate" ]; then
+                  bundle_dirs+=("$candidate")
+                fi
+              done
+
+              if [ "${#bundle_dirs[@]}" -eq 0 ]; then
+                echo "Missing macOS bundle directory"
+                find src-tauri/target -maxdepth 5 -print | sort || true
+                exit 1
+              fi
+
+              dmg_file=$(find "${bundle_dirs[@]}" -type f -name '*.dmg' -print -quit)
+              app_file=$(find "${bundle_dirs[@]}" -type d -name '*.app' -print -quit)
 
               if [ -z "$dmg_file" ] || [ -z "$app_file" ]; then
                 echo "Missing one or more macOS artifacts"
+                echo "dmg_file=${dmg_file:-<missing>}"
+                echo "app_file=${app_file:-<missing>}"
+                find "${bundle_dirs[@]}" -maxdepth 5 -print | sort
                 exit 1
               fi
 
               cp "$dmg_file" "$artifact_dir/macos-arm64.dmg"
-              productbuild --component "$app_file" /Applications "$artifact_dir/macos-arm64.pkg"
+              xcrun productbuild --component "$app_file" /Applications "$artifact_dir/macos-arm64.pkg"
               ;;
             *)
               echo "Unsupported platform: ${{ matrix.platform }}"
