@@ -981,11 +981,11 @@ fn desktop_invoke_sync(
                         .map_err(|e| e.to_string())?
                         .to_string_lossy()
                 );
-                let _ = Command::new("powershell")
+                let _ = powershell_command()
                     .args(["-Command", remove_command])
                     .status()
                     .map_err(|e| e.to_string())?;
-                let _ = Command::new("powershell")
+                let _ = powershell_command()
                     .args(["-Command", &create_command])
                     .status()
                     .map_err(|e| e.to_string())?;

@@ -227,7 +227,7 @@ fn current_local_timestamp_string() -> String {
 fn get_app_memory_value() -> u64 {
     #[cfg(target_os = "windows")]
     {
-        if let Ok(output) = Command::new("powershell")
+        if let Ok(output) = powershell_command()
             .args([
                 "-NoProfile",
                 "-Command",
@@ -2285,6 +2285,13 @@ fn apply_background_command(command: &mut Command) -> &mut Command {
         command.creation_flags(CREATE_NO_WINDOW);
     }
 
+    command
+}
+
+#[cfg(target_os = "windows")]
+fn powershell_command() -> Command {
+    let mut command = Command::new("powershell");
+    apply_background_command(&mut command);
     command
 }
 
@@ -6892,7 +6899,7 @@ if ($null -ne $process) {{
 "#
         );
 
-        if let Ok(output) = Command::new("powershell")
+        if let Ok(output) = powershell_command()
             .args(["-NoProfile", "-Command", &script])
             .output()
         {
@@ -7101,7 +7108,7 @@ fn encode_powershell_script(script: &str) -> String {
 #[cfg(target_os = "windows")]
 fn run_powershell_script(script: &str) -> Result<String, String> {
     let encoded = encode_powershell_script(script);
-    let output = Command::new("powershell")
+    let output = powershell_command()
         .args(["-NoProfile", "-NonInteractive", "-EncodedCommand", &encoded])
         .output()
         .map_err(|e| e.to_string())?;
@@ -9433,7 +9440,7 @@ $items = Get-NetIPAddress |
   Select-Object InterfaceAlias, AddressFamily, IPAddress
 $items | ConvertTo-Json -Compress
 "#;
-        let output = match Command::new("powershell")
+        let output = match powershell_command()
             .args(["-NoProfile", "-Command", script])
             .output()
         {
@@ -9699,7 +9706,9 @@ fn stop_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String> {
         let _ = fs::remove_file(&pid_path);
 
         if let Some(pid) = pid {
-            let output = Command::new("taskkill")
+            let mut command = Command::new("taskkill");
+            apply_background_command(&mut command);
+            let output = command
                 .args(["/PID", &pid.to_string(), "/T", "/F"])
                 .output()
                 .map_err(|e| e.to_string())?;
@@ -10040,7 +10049,7 @@ fn has_up_network_interface(excluded_keywords: &[String]) -> bool {
     {
         let script =
             "Get-NetAdapter | Select-Object -Property Name, Status | ConvertTo-Json -Compress";
-        let output = match Command::new("powershell")
+        let output = match powershell_command()
             .args(["-NoProfile", "-Command", script])
             .output()
         {
