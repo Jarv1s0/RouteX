@@ -243,6 +243,8 @@ jobs:
           artifact_dir="release-artifacts"
           rm -rf "$artifact_dir"
           mkdir -p "$artifact_dir"
+          version=$(node -p "require('./package.json').version")
+          artifact_prefix="RouteX-${version}"
 
           case "${{ matrix.platform }}" in
             windows)
@@ -252,7 +254,7 @@ jobs:
                 echo "Missing Windows NSIS setup artifact"
                 exit 1
               fi
-              cp "$setup_file" "$artifact_dir/windows-x64-setup.exe"
+              cp "$setup_file" "$artifact_dir/${artifact_prefix}-windows-x64-setup.exe"
 
               portable_dir="$artifact_dir/RouteX-portable"
               mkdir -p "$portable_dir"
@@ -270,10 +272,10 @@ jobs:
               elif [ -x "/c/Program Files/7-Zip/7z.exe" ]; then
                 seven_zip="/c/Program Files/7-Zip/7z.exe"
               else
-                echo "7-Zip is required to create windows-x64-portable.7z"
+                echo "7-Zip is required to create ${artifact_prefix}-windows-x64-portable.7z"
                 exit 1
               fi
-              (cd "$portable_dir" && "$seven_zip" a -t7z "../windows-x64-portable.7z" .)
+              (cd "$portable_dir" && "$seven_zip" a -t7z "../${artifact_prefix}-windows-x64-portable.7z" .)
               rm -rf "$portable_dir"
               ;;
             linux)
@@ -287,9 +289,9 @@ jobs:
                 exit 1
               fi
 
-              cp "$deb_file" "$artifact_dir/linux-amd64.deb"
-              cp "$appimage_file" "$artifact_dir/linux-x86_64.AppImage"
-              cp "$rpm_file" "$artifact_dir/linux-x86_64.rpm"
+              cp "$deb_file" "$artifact_dir/${artifact_prefix}-linux-amd64.deb"
+              cp "$appimage_file" "$artifact_dir/${artifact_prefix}-linux-x86_64.AppImage"
+              cp "$rpm_file" "$artifact_dir/${artifact_prefix}-linux-x86_64.rpm"
               ;;
             macos)
               bundle_dirs=()
@@ -319,8 +321,8 @@ jobs:
                 exit 1
               fi
 
-              cp "$dmg_file" "$artifact_dir/macos-arm64.dmg"
-              xcrun productbuild --component "$app_file" /Applications "$artifact_dir/macos-arm64.pkg"
+              cp "$dmg_file" "$artifact_dir/${artifact_prefix}-macos-arm64.dmg"
+              xcrun productbuild --component "$app_file" /Applications "$artifact_dir/${artifact_prefix}-macos-arm64.pkg"
               ;;
             *)
               echo "Unsupported platform: ${{ matrix.platform }}"
@@ -331,13 +333,13 @@ jobs:
           expected_files=()
           case "${{ matrix.platform }}" in
             windows)
-              expected_files=("windows-x64-portable.7z" "windows-x64-setup.exe")
+              expected_files=("${artifact_prefix}-windows-x64-portable.7z" "${artifact_prefix}-windows-x64-setup.exe")
               ;;
             linux)
-              expected_files=("linux-amd64.deb" "linux-x86_64.AppImage" "linux-x86_64.rpm")
+              expected_files=("${artifact_prefix}-linux-amd64.deb" "${artifact_prefix}-linux-x86_64.AppImage" "${artifact_prefix}-linux-x86_64.rpm")
               ;;
             macos)
-              expected_files=("macos-arm64.dmg" "macos-arm64.pkg")
+              expected_files=("${artifact_prefix}-macos-arm64.dmg" "${artifact_prefix}-macos-arm64.pkg")
               ;;
           esac
 
