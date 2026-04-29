@@ -40,6 +40,21 @@ use time::{macros::format_description, OffsetDateTime};
 use walkdir::WalkDir;
 use zip::{write::FileOptions, CompressionMethod, ZipArchive, ZipWriter};
 
+#[cfg(target_os = "windows")]
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn GetACP() -> u32;
+    fn GetOEMCP() -> u32;
+    fn MultiByteToWideChar(
+        code_page: u32,
+        flags: u32,
+        multi_byte_str: *const i8,
+        multi_byte_len: i32,
+        wide_char_str: *mut u16,
+        wide_char_len: i32,
+    ) -> i32;
+}
+
 mod constants;
 mod gist;
 mod models;
@@ -742,6 +757,18 @@ fn patch_app_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value
     invalidate_profile_runtime_config_cache_after(
         write_value_store(app, APP_CONFIG_FILE, &value).map(|_| value),
     )
+}
+
+fn patch_requires_shell_surface_sync(patch: &Value) -> bool {
+    let Some(patch_map) = patch.as_object() else {
+        return false;
+    };
+
+    ["disableTray", "showFloatingWindow", "proxyInTray"]
+        .iter()
+        .any(|key| patch_map.contains_key(*key))
+        || patch_map.contains_key("sysProxy")
+        || (cfg!(target_os = "macos") && patch_map.contains_key("showTraffic"))
 }
 
 fn read_connection_interval_ms(app: &tauri::AppHandle) -> u64 {
@@ -2288,6 +2315,8 @@ fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) -> Result<Pat
 
     if let Ok(resource_dir) = app.path().resource_dir() {
         candidates.push(resource_dir.join(file_name));
+        candidates.push(resource_dir.join("resources").join(file_name));
+        candidates.push(resource_dir.join("_up_").join("resources").join(file_name));
     }
 
     #[cfg(debug_assertions)]
@@ -7875,6 +7904,10 @@ fn service_command_args(
     extra_args: Vec<String>,
 ) -> Vec<String> {
     let mut args = Vec::new();
+    #[cfg(target_os = "windows")]
+    {
+        args.push(String::from("--use-registry"));
+    }
     if only_active_device {
         args.push(String::from("--only-active-device"));
     }
@@ -8332,14 +8365,83 @@ fn schtasks_output(args: &[&str]) -> Result<std::process::Output, String> {
 }
 
 #[cfg(target_os = "windows")]
+fn decode_windows_code_page_output(bytes: &[u8], code_page: u32) -> Option<String> {
+    if bytes.is_empty() || code_page == 0 {
+        return Some(String::new());
+    }
+
+    let input_len = i32::try_from(bytes.len()).ok()?;
+    let output_len = unsafe {
+        MultiByteToWideChar(
+            code_page,
+            0,
+            bytes.as_ptr() as *const i8,
+            input_len,
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    if output_len <= 0 {
+        return None;
+    }
+
+    let mut buffer = vec![0u16; output_len as usize];
+    let written = unsafe {
+        MultiByteToWideChar(
+            code_page,
+            0,
+            bytes.as_ptr() as *const i8,
+            input_len,
+            buffer.as_mut_ptr(),
+            output_len,
+        )
+    };
+    if written <= 0 {
+        return None;
+    }
+
+    Some(String::from_utf16_lossy(&buffer[..written as usize]))
+}
+
+#[cfg(target_os = "windows")]
+fn decode_windows_process_output(bytes: &[u8]) -> String {
+    if bytes.is_empty() {
+        return String::new();
+    }
+
+    if let Ok(text) = std::str::from_utf8(bytes) {
+        return text.trim().trim_matches('\0').to_string();
+    }
+
+    let mut code_pages = vec![unsafe { GetOEMCP() }, unsafe { GetACP() }, 936];
+    code_pages.dedup();
+    for code_page in code_pages {
+        if let Some(text) = decode_windows_code_page_output(bytes, code_page) {
+            let text = text.trim().trim_matches('\0').to_string();
+            if !text.is_empty() {
+                return text;
+            }
+        }
+    }
+
+    let preview = bytes
+        .iter()
+        .take(64)
+        .map(|byte| format!("{byte:02X}"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    format!("无法解码错误输出（{} 字节）：{preview}", bytes.len())
+}
+
+#[cfg(target_os = "windows")]
 fn schtasks_command(args: &[&str]) -> Result<(), String> {
     let output = schtasks_output(args)?;
     if output.status.success() {
         return Ok(());
     }
 
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = decode_windows_process_output(&output.stderr);
+    let stdout = decode_windows_process_output(&output.stdout);
     if !stderr.is_empty() {
         Err(stderr)
     } else if !stdout.is_empty() {
@@ -8831,9 +8933,9 @@ fn check_elevate_task_matches_current_app(app: &tauri::AppHandle) -> bool {
 
 #[cfg(target_os = "windows")]
 fn show_windows_startup_admin_required_dialog() {
-    let title = powershell_single_quoted("需要管理员权限");
+    let title = powershell_single_quoted("首次启动需要管理员权限");
     let message = powershell_single_quoted(
-        "首次启动仅需一次管理员权限，用来注册提权任务。\r\n\r\n完成后后续可直接正常打开，不需要每次都手动管理员运行。\r\n\r\n请右键点击应用图标，选择\"以管理员身份运行\"。",
+        "首次安装后需要右键“以管理员身份运行”一次，用来注册提权任务。\r\n\r\n注册完成后，后续可直接双击正常打开，不需要每次都手动管理员运行。\r\n\r\n请先退出应用，右键点击应用图标，选择“以管理员身份运行”。",
     );
     let script = format!(
         r#"
@@ -8863,7 +8965,7 @@ Add-Type -AssemblyName System.Windows.Forms
 fn show_windows_startup_task_registration_failed_dialog(create_error: &str) {
     let title = powershell_single_quoted("提权任务注册失败");
     let message = powershell_single_quoted(&format!(
-        "检测到首次启动需要注册提权任务，但注册失败。\r\n\r\n如果你已经是“以管理员身份运行”，这通常不是管理员权限本身的问题，而是系统任务创建失败。\r\n\r\n错误详情：{create_error}"
+        "首次安装后需要右键“以管理员身份运行”一次，用来注册提权任务，但当前注册失败。\r\n\r\n请先退出应用，右键点击应用图标，选择“以管理员身份运行”后再打开一次。注册完成后，后续可直接双击正常打开。\r\n\r\n如果已经按管理员身份运行仍失败，通常是 Windows 任务计划程序创建失败，或被系统策略/安全软件拦截。\r\n\r\n错误详情：{create_error}"
     ));
     let script = format!(
         r#"
@@ -11241,6 +11343,21 @@ fn expected_runtime_group_count(runtime_config: &Value) -> usize {
         .unwrap_or(0)
 }
 
+fn controller_provider_count(value: &Value) -> Option<usize> {
+    value
+        .get("providers")
+        .and_then(Value::as_object)
+        .map(|providers| providers.len())
+}
+
+fn controller_providers_ready(value: Value, expected_count: usize) -> (bool, usize) {
+    let actual_count = controller_provider_count(&value).unwrap_or(0);
+    (
+        expected_count == 0 || actual_count >= expected_count,
+        actual_count,
+    )
+}
+
 fn wait_for_renderer_data_ready(
     state: &State<'_, CoreState>,
     runtime_config: &Value,
@@ -11318,14 +11435,17 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
                     if tun_enabled { ", TUN mode" } else { "" }
                 );
                 // providers 就绪检查：只要求 controller 暴露 provider 数据结构。
-                // 不等待配置声明的 provider 数量完全出现，避免覆写或核心过滤导致保存卡住。
+                // 必须等到配置声明的 provider 数量出现在 controller 里，否则渲染端会缓存空
+                // provider 列表，只剩 rules 引用数量，导致规则集和规则总数显示错误。
                 let provider_wait_start = Instant::now();
                 let mut providers_ready = false;
+                let mut actual_proxy_providers = 0usize;
+                let mut actual_rule_providers = 0usize;
                 for _ in 0..100 {
                     let proxy_ready = if expected_proxy_providers == 0 {
                         true
                     } else {
-                        core_request(
+                        let (ready, count) = core_request(
                             state,
                             reqwest::Method::GET,
                             "/providers/proxies",
@@ -11333,27 +11453,27 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
                             None,
                         )
                         .ok()
-                        .and_then(|value| {
-                            value
-                                .get("providers")
-                                .and_then(Value::as_object)
-                                .map(|_| true)
-                        })
-                        .unwrap_or(false)
+                        .map(|value| controller_providers_ready(value, expected_proxy_providers))
+                        .unwrap_or((false, 0));
+                        actual_proxy_providers = count;
+                        ready
                     };
 
                     let rule_ready = if expected_rule_providers == 0 {
                         true
                     } else {
-                        core_request(state, reqwest::Method::GET, "/providers/rules", None, None)
-                            .ok()
-                            .and_then(|value| {
-                                value
-                                    .get("providers")
-                                    .and_then(Value::as_object)
-                                    .map(|_| true)
-                            })
-                            .unwrap_or(false)
+                        let (ready, count) = core_request(
+                            state,
+                            reqwest::Method::GET,
+                            "/providers/rules",
+                            None,
+                            None,
+                        )
+                        .ok()
+                        .map(|value| controller_providers_ready(value, expected_rule_providers))
+                        .unwrap_or((false, 0));
+                        actual_rule_providers = count;
+                        ready
                     };
 
                     if proxy_ready && rule_ready {
@@ -11374,7 +11494,8 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
                 } else {
                     eprintln!(
                         "[desktop.core_ready] providers not fully ready after {}ms, continuing anyway \
-                         (proxy_providers={expected_proxy_providers}, rule_providers={expected_rule_providers})",
+                         (proxy_providers={actual_proxy_providers}/{expected_proxy_providers}, \
+                         rule_providers={actual_rule_providers}/{expected_rule_providers})",
                         provider_wait_start.elapsed().as_millis()
                     );
                 }

@@ -114,7 +114,9 @@ fn desktop_invoke_sync(
         "patchAppConfig" => {
             let patch = args.first().unwrap_or(&Value::Null);
             patch_app_config_store(&app, patch)?;
-            sync_shell_surfaces(&app)?;
+            if patch_requires_shell_surface_sync(patch) {
+                sync_shell_surfaces(&app)?;
+            }
             if patch.get("pauseSSID").is_some() {
                 refresh_ssid_check(&app)?;
             }
