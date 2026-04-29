@@ -74,13 +74,15 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
                 本次上传
               </span>
             </div>
-            <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
-              <span className="font-extrabold font-mono tracking-tight leading-none" style={{ color: UPLOAD_COLOR }}>
+            <div className="flex items-baseline gap-1.5" style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
+              <span 
+                className="font-bold font-data-numeric tabular-nums leading-none bg-clip-text text-transparent bg-gradient-to-br from-cyan-300 to-cyan-600"
+              >
                 <CountUp end={sessionUploadFormatted.val} decimals={sessionUploadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
               </span>
               <span
-                className="font-semibold tracking-wider translate-y-[-1px]"
-                style={{ fontSize: 'clamp(11px, 4cqi, 16px)', color: UPLOAD_COLOR_MUTED }}
+                className="font-medium tracking-widest translate-y-[-1px] opacity-70"
+                style={{ fontSize: 'clamp(10px, 3.5cqi, 14px)', color: UPLOAD_COLOR }}
               >
                 {sessionUploadFormatted.unit}
               </span>
@@ -92,11 +94,11 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
             <span className="text-default-400 font-medium whitespace-nowrap mb-0.5 tracking-wider" style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>
               今日累计
             </span>
-            <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(14px, 5cqi, 20px)' }}>
-              <span className="font-semibold text-default-600 leading-none">
+            <div className="flex items-baseline gap-1.5" style={{ fontSize: 'clamp(14px, 5cqi, 20px)' }}>
+              <span className="font-semibold text-default-600 tabular-nums leading-none">
                 <CountUp end={todayUploadFormatted.val} decimals={todayUploadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
               </span>
-              <span className="text-default-500/70 uppercase font-medium tracking-wide" style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>{todayUploadFormatted.unit}</span>
+              <span className="text-default-500/70 uppercase font-medium tracking-widest" style={{ fontSize: 'clamp(9px, 3cqi, 12px)' }}>{todayUploadFormatted.unit}</span>
             </div>
           </div>
         </motion.div>
@@ -147,10 +149,10 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
               本次总计
             </span>
             <div className="flex items-baseline justify-center" style={{ fontSize: 'clamp(22px, 10cqi, 40px)' }}>
-              <span className="font-black text-foreground tabular-nums tracking-tighter leading-none">
+              <span className="font-bold font-data-numeric tabular-nums leading-none bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
                 <CountUp end={sessionTotalFormatted.val} decimals={sessionTotalFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
               </span>
-              <span className="font-bold text-default-400/80 ml-1 translate-y-[-1px] uppercase tracking-wider" style={{ fontSize: 'clamp(11px, 4cqi, 16px)' }}>
+              <span className="font-medium text-default-400/70 ml-2 translate-y-[-1px] uppercase tracking-widest" style={{ fontSize: 'clamp(10px, 3.5cqi, 14px)' }}>
                 {sessionTotalFormatted.unit}
               </span>
             </div>
@@ -179,13 +181,15 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
                 本次下载
               </span>
             </div>
-            <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
-              <span className="font-extrabold font-mono tracking-tight leading-none" style={{ color: DOWNLOAD_COLOR }}>
+            <div className="flex items-baseline gap-1.5" style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
+              <span 
+                className="font-bold font-data-numeric tabular-nums leading-none bg-clip-text text-transparent bg-gradient-to-br from-purple-300 to-purple-600"
+              >
                 <CountUp end={sessionDownloadFormatted.val} decimals={sessionDownloadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
               </span>
               <span
-                className="font-semibold tracking-wider translate-y-[-1px]"
-                style={{ fontSize: 'clamp(11px, 4cqi, 16px)', color: DOWNLOAD_COLOR_MUTED }}
+                className="font-medium tracking-widest translate-y-[-1px] opacity-70"
+                style={{ fontSize: 'clamp(10px, 3.5cqi, 14px)', color: DOWNLOAD_COLOR }}
               >
                 {sessionDownloadFormatted.unit}
               </span>
@@ -197,11 +201,11 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
             <span className="text-default-400 font-medium whitespace-nowrap mb-0.5 tracking-wider" style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>
               今日累计
             </span>
-            <div className="flex items-baseline gap-1" style={{ fontSize: 'clamp(14px, 5cqi, 20px)' }}>
-              <span className="font-semibold text-default-600 leading-none">
+            <div className="flex items-baseline gap-1.5" style={{ fontSize: 'clamp(14px, 5cqi, 20px)' }}>
+              <span className="font-semibold text-default-600 tabular-nums leading-none">
                 <CountUp end={todayDownloadFormatted.val} decimals={todayDownloadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
               </span>
-              <span className="text-default-500/70 uppercase font-medium tracking-wide" style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>{todayDownloadFormatted.unit}</span>
+              <span className="text-default-500/70 uppercase font-medium tracking-widest" style={{ fontSize: 'clamp(9px, 3cqi, 12px)' }}>{todayDownloadFormatted.unit}</span>
             </div>
           </div>
         </motion.div>

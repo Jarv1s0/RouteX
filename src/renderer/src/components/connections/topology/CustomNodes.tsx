@@ -77,7 +77,7 @@ export const SourceNode = memo(function SourceNode({ data }: NodeProps) {
     return (
         <Card className={`w-[240px] h-[80px] ${TOPOLOGY_NODE_SURFACE} border-1.5 border-sky-400/50 shadow-[0_4px_20px_rgba(14,165,233,0.15)] relative overflow-visible p-2 transition-all`} radius="md">
             {count > 0 && (
-                 <div className="absolute -top-3 -right-3 bg-sky-500 text-white text-[13px] font-bold px-2 py-0.5 rounded-full z-10 shadow-md">
+                 <div className="absolute -top-3 -right-3 bg-sky-500 text-white text-[11px] font-semibold tracking-wider px-2 py-0.5 rounded-full z-10 shadow-md">
                     {count}
                  </div>
             )}
@@ -90,10 +90,10 @@ export const SourceNode = memo(function SourceNode({ data }: NodeProps) {
                 )}
                 
                 <div className="flex-1 w-full flex flex-col justify-center items-center text-center px-4">
-                    <div className="font-extrabold text-[17px] truncate text-default-900 dark:text-default-100 w-full max-w-[200px]" title={name}>{name}</div>
+                    <div className="font-semibold tracking-wide text-[16px] truncate text-default-900 dark:text-default-100 w-full max-w-[200px]" title={name}>{name}</div>
                     <div className="flex gap-4 mt-1.5 justify-center w-full">
-                        <span className="text-[13px] font-bold" style={{ color: '#0ea5e9' }}>↓ {formatBytes(downloadSpeed)}/s</span>
-                        <span className="text-[13px] font-bold" style={{ color: '#c084fc' }}>↑ {formatBytes(uploadSpeed)}/s</span>
+                        <span className="text-[11px] font-medium tracking-wide tabular-nums" style={{ color: '#0ea5e9' }}>↓ {formatBytes(downloadSpeed)}/s</span>
+                        <span className="text-[11px] font-medium tracking-wide tabular-nums" style={{ color: '#c084fc' }}>↑ {formatBytes(uploadSpeed)}/s</span>
                     </div>
                 </div>
             </div>
@@ -114,7 +114,7 @@ export const RuleNode = memo(function RuleNode({ data }: NodeProps) {
             <Handle type="source" position={Position.Right} className="w-2.5 h-2.5 border-none" style={{ background: color }} />
             
             <div className="flex items-center justify-center h-full">
-                <div className={`font-extrabold text-[18px] ${theme.text} truncate max-w-full`} title={name}>
+                <div className={`font-semibold tracking-wide text-[16px] ${theme.text} truncate max-w-full`} title={name}>
                     {name}
                 </div>
             </div>
@@ -136,7 +136,7 @@ export const GroupNode = memo(function GroupNode({ data }: NodeProps) {
             
             <div className="flex items-center justify-center gap-2 h-full">
                 <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }}></div>
-                <div className={`font-extrabold text-[18px] ${theme.text} truncate max-w-[120px]`} title={name}>
+                <div className={`font-semibold tracking-wide text-[16px] ${theme.text} truncate max-w-[120px]`} title={name}>
                     {name}
                 </div>
             </div>
@@ -156,7 +156,7 @@ export const ExitNode = memo(function ExitNode({ data }: NodeProps) {
     
     return (
         <div className="relative pt-4">
-             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-emerald-500 text-white text-[13px] font-bold px-3 py-0.5 rounded-sm z-10 shadow-[0_4px_12px_rgba(16,185,129,0.3)] tracking-wider truncate max-w-[200px]" title={groupText}>
+             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-emerald-500 text-white text-[11px] font-semibold px-3 py-0.5 rounded-sm z-10 shadow-[0_4px_12px_rgba(16,185,129,0.3)] tracking-[0.1em] truncate max-w-[200px]" title={groupText}>
                 {groupText}
              </div>
              
@@ -164,14 +164,14 @@ export const ExitNode = memo(function ExitNode({ data }: NodeProps) {
                    radius="lg">
                 <Handle type="target" position={Position.Left} className="w-3 h-3 border-none" style={{ background: color }} />
                 
-                <div className="py-2 px-4 flex flex-col gap-2 items-center justify-center h-full">
-                    <div className="font-black text-[19px] flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <div className="py-2 px-4 flex flex-col gap-1.5 items-center justify-center h-full">
+                    <div className="font-bold tracking-wide text-[17px] flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                         <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse border border-white/50"></div>
                         <span className="truncate max-w-[170px]" title={name}>{name}</span>
                     </div>
                     <div className="flex gap-4 mt-0.5">
-                        <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-300 opacity-80">↓ {formatBytes(downloadSpeed || 0)}/s</span>
-                        <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-300 opacity-80">↑ {formatBytes(uploadSpeed || 0)}/s</span>
+                        <span className="text-[11px] font-medium tracking-wide tabular-nums text-emerald-600 dark:text-emerald-300 opacity-80">↓ {formatBytes(downloadSpeed || 0)}/s</span>
+                        <span className="text-[11px] font-medium tracking-wide tabular-nums text-emerald-600 dark:text-emerald-300 opacity-80">↑ {formatBytes(uploadSpeed || 0)}/s</span>
                     </div>
                 </div>
             </Card>

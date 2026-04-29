@@ -195,14 +195,14 @@ const ConnCard: React.FC<Props> = (props) => {
                 <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
                   <LuCircleArrowUp className={`text-[12px] text-cyan-500 dark:text-cyan-400`} />
                 </span>
-                <div className="flex items-baseline gap-0.5">
+                <div className="flex items-baseline gap-1">
                   <span
-                    className={`text-md font-black tracking-tight leading-none text-cyan-500 dark:text-cyan-400`}
+                    className={`text-[15px] font-bold font-data-numeric tabular-nums leading-none text-cyan-500 dark:text-cyan-400`}
                   >
                     {calcTraffic(upload).replace(/[A-Za-z]/g, '')}
                   </span>
                   <span
-                    className={`text-[10px] font-bold uppercase leading-none text-cyan-600/60 dark:text-cyan-400/60`}
+                    className={`text-[9px] font-medium uppercase tracking-[0.1em] leading-none text-cyan-600/60 dark:text-cyan-400/60`}
                   >
                     {calcTraffic(upload).replace(/[^A-Za-z]/g, '')}/s
                   </span>
@@ -216,14 +216,14 @@ const ConnCard: React.FC<Props> = (props) => {
                     className={`text-[12px] text-purple-500 dark:text-purple-400`}
                   />
                 </span>
-                <div className="flex items-baseline gap-0.5">
+                <div className="flex items-baseline gap-1">
                   <span
-                    className={`text-md font-black tracking-tight leading-none text-purple-500 dark:text-purple-400`}
+                    className={`text-[15px] font-bold font-data-numeric tabular-nums leading-none text-purple-500 dark:text-purple-400`}
                   >
                     {calcTraffic(download).replace(/[A-Za-z]/g, '')}
                   </span>
                   <span
-                    className={`text-[10px] font-bold uppercase leading-none text-purple-600/60 dark:text-purple-400/60`}
+                    className={`text-[9px] font-medium uppercase tracking-[0.1em] leading-none text-purple-600/60 dark:text-purple-400/60`}
                   >
                     {calcTraffic(download).replace(/[^A-Za-z]/g, '')}/s
                   </span>

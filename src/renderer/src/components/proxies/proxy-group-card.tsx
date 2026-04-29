@@ -135,7 +135,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
               <div className="flex items-center overflow-visible bg-default-100/50 dark:bg-default-50/50 border border-default-200/50 rounded-xl px-1.5 py-1.5 backdrop-blur-md transition-colors hover:bg-default-200/50">
                 {/* Node Name */}
                 <div className="flex items-center max-w-[140px] overflow-visible px-2 border-r border-default-200/50">
-                  <span className={`text-xs font-semibold leading-5 truncate flag-emoji tracking-wide flex items-center gap-1.5 overflow-visible transition-colors ${currentDelay === 0 ? 'text-default-400' : 'text-foreground/80'}`} title={group.now}>
+                  <span className={`text-[12.5px] font-medium leading-5 truncate flag-emoji tracking-wide flex items-center gap-1.5 overflow-visible transition-colors ${currentDelay === 0 ? 'text-default-400' : 'text-foreground/80'}`} title={group.now}>
                     {addFlag(group.now)}
                   </span>
                 </div>

@@ -25,6 +25,10 @@ function getProxyNow(proxy: ControllerProxiesDetail | ControllerGroupDetail): st
   return 'now' in proxy ? proxy.now : undefined
 }
 
+function getLatestDelay(proxy: ControllerProxiesDetail | ControllerGroupDetail): number {
+  return proxy.history?.length ? proxy.history[proxy.history.length - 1].delay : -1
+}
+
 const ProxyItemComponent: React.FC<Props> = (props) => {
   const {
     mutateProxies,
@@ -40,10 +44,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
   const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
 
   const delay = useMemo(() => {
-    if (proxy.history && proxy.history.length > 0) {
-      return proxy.history[proxy.history.length - 1].delay
-    }
-    return -1
+    return getLatestDelay(proxy)
   }, [proxy])
 
   // 如果是子组，获取当前选中节点的信息和延迟
@@ -51,9 +52,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
     if (!isSubGroup(proxy)) return null
     const subGroup = proxy as ControllerGroupDetail
     // 子组自身的延迟（从子组的 history 获取）
-    const subGroupDelay = subGroup.history?.length 
-      ? subGroup.history[subGroup.history.length - 1].delay 
-      : -1
+    const subGroupDelay = getLatestDelay(subGroup)
     return {
       now: subGroup.now,
       nodeCount: subGroup.all.length,
@@ -132,7 +131,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                       }}
                     />
                   )}
-                  <span className="flag-emoji" title={proxy.name}>
+                  <span className="flag-emoji font-medium tracking-wide text-[12.5px]" title={proxy.name}>
                     {proxy.name}
                   </span>
                 </div>
@@ -143,12 +142,15 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   {subGroupInfo && (
                     <>
                       <span className="text-default-300 dark:text-default-600/50">|</span>
-                      <span className="flag-emoji truncate text-[11px] leading-5 text-default-500" title={subGroupInfo.now}>{subGroupInfo.now}</span>
+                      <span className="flag-emoji truncate text-[11.5px] font-medium tracking-wide leading-5 text-default-500" title={subGroupInfo.now}>{subGroupInfo.now}</span>
                     </>
                   )}
                 </div>
               </div>
-              <div className="flex items-center justify-center gap-0.5 shrink-0">
+              <div
+                className="flex items-center justify-center gap-0.5 shrink-0"
+                onClick={(event) => event.stopPropagation()}
+              >
                 {fixed && (
                   <Button
                     isIconOnly
@@ -193,7 +195,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                     }}
                   />
                 )}
-                <span className="flag-emoji" title={proxy.name}>
+                <span className="flag-emoji font-medium tracking-wide text-[12.5px]" title={proxy.name}>
                   {proxy.name === 'COMPATIBLE' ? 'DIRECT' : proxy.name}
                 </span>
                 {proxyDisplayLayout === 'single' && (
@@ -204,13 +206,16 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 {subGroupInfo && (
                   <>
                     <span className="text-default-300 dark:text-default-600/50 ml-2">|</span>
-                    <span className="ml-1.5 text-[12px] text-default-500 flag-emoji truncate" title={subGroupInfo.now}>
+                    <span className="ml-1.5 text-[12px] font-medium tracking-wide text-default-500 flag-emoji truncate" title={subGroupInfo.now}>
                       {subGroupInfo.now}
                     </span>
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-0.5 shrink-0">
+              <div
+                className="flex items-center gap-0.5 shrink-0"
+                onClick={(event) => event.stopPropagation()}
+              >
                 {fixed && (
                   <div className="flex items-center">
                     <Button
@@ -255,17 +260,10 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
 
 const ProxyItem = memo(ProxyItemComponent, (prev, next) => {
     // 精细化阻断不必要渲染。比如测速或者选择了其他节点，不要带动我这颗没变的节点重绘
-    const isPrevSelected = prev.selected
-    const isNextSelected = next.selected
-    const prevDelay = prev.proxy.history?.length
-      ? prev.proxy.history[prev.proxy.history.length - 1].delay
-      : -1
-    const nextDelay = next.proxy.history?.length
-      ? next.proxy.history[next.proxy.history.length - 1].delay
-      : -1
+    const prevDelay = getLatestDelay(prev.proxy)
+    const nextDelay = getLatestDelay(next.proxy)
     
     return (
-        isPrevSelected === isNextSelected &&
         prev.selected === next.selected &&
         prev.proxyDisplayLayout === next.proxyDisplayLayout &&
         prev.group.fixed === next.group.fixed &&

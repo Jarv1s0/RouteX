@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 @plugin './hero.mjs';
 @source '../../../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
@@ -38,7 +39,7 @@ pre,
 }
 
 .font-data-numeric {
-  font-family: Consolas, 'JetBrains Mono', 'Fira Code', 'Courier New', monospace !important;
+  font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif !important;
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
@@ -148,6 +149,20 @@ pre,
     'Noto Color Emoji',
     system-ui,
     sans-serif;
+}
+
+.font-mono.flag-emoji {
+  font-family:
+    'JetBrains Mono',
+    'Fira Code',
+    Consolas,
+    'Courier New',
+    monospace,
+    'twemoji',
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol',
+    'Noto Color Emoji' !important;
 }
 
 .no-scrollbar::-webkit-scrollbar {
