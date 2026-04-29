@@ -73,6 +73,15 @@ function buildExternalUiOpenUrl(
   const port = controllerUrl.port
   const normalizedUiPath = uiPath.trim() || 'ui'
   const uiBaseUrl = new URL('/ui/', controllerUrl)
+  const uiCacheKey =
+    normalizedUiPath.includes('metacubexd') || externalUiUrl.includes('metacubexd')
+      ? 'metacubexd'
+      : normalizedUiPath.includes('zashboard') || externalUiUrl.includes('zashboard')
+        ? 'zashboard'
+        : 'custom'
+
+  uiBaseUrl.searchParams.set('_routex_ui', uiCacheKey)
+  uiBaseUrl.searchParams.set('_routex', Date.now().toString())
 
   if (normalizedUiPath.includes('zashboard') || externalUiUrl.includes('zashboard')) {
     const hashParams = new URLSearchParams({
