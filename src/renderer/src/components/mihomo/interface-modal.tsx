@@ -11,6 +11,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
@@ -20,7 +21,13 @@ interface Props {
 
 const InterfaceModal: React.FC<Props> = (props) => {
   const { onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const {
+    appConfig: {
+      disableAnimation = false,
+      collapseSidebar = false,
+      siderWidth = 250
+    } = {}
+  } = useAppConfig()
   const [info, setInfo] = useState<Record<string, NetworkInterfaceInfo[]>>({})
   const getInfo = async (): Promise<void> => {
     setInfo(await getInterfaces())
@@ -40,7 +47,7 @@ const InterfaceModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 560 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>网络信息</span>
           <SecondaryModalCloseButton onPress={onClose} />

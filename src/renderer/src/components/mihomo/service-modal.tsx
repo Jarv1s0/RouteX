@@ -17,6 +17,7 @@ import { serviceStatus, testServiceConnection } from '@renderer/utils/service-ip
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
@@ -35,7 +36,13 @@ type ConnectionStatusType = 'connected' | 'disconnected' | 'checking' | 'unknown
 
 const ServiceModal: React.FC<Props> = (props) => {
   const { onChange, onInit, onInstall, onUninstall, onStart, onStop, onRestart } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const {
+    appConfig: {
+      disableAnimation = false,
+      collapseSidebar = false,
+      siderWidth = 250
+    } = {}
+  } = useAppConfig()
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<ServiceStatusType | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusType>('checking')
@@ -149,7 +156,10 @@ const ServiceModal: React.FC<Props> = (props) => {
         base: 'max-w-none w-full'
       })}
     >
-      <ModalContent className="w-[450px]">
+      <ModalContent
+        className="w-[450px]"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 450 })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>RouteX 服务管理</span>
           <SecondaryModalCloseButton onPress={() => onChange(false)} />
@@ -231,27 +241,26 @@ const ServiceModal: React.FC<Props> = (props) => {
 
             <div className="text-xs text-default-500 space-y-2">
               <div className="flex items-start gap-2">
-                <span>提供系统代理设置和核心进程管理的提权功能</span>
+                <span>为系统代理设置和核心进程管理提供服务权限</span>
               </div>
               <div className="flex items-start gap-2">
-                <span>未安装状态下部分高级功能将无法使用</span>
+                <span>安装后可通过服务模式执行需要提权的操作</span>
               </div>
               <div className="flex items-start gap-2">
-                <span>暂未支持全部功能，目前仅支持安装以及管理服务本身</span>
+                <span>未安装服务时，部分高级功能将无法使用</span>
               </div>
               <div className="flex items-start gap-2">
-                <span>暂时不要报告问题</span>
+                <span>当前支持安装、启动、停止、重启和卸载服务</span>
               </div>
             </div>
           </div>
         </ModalBody>
-        <ModalFooter className="flex-col gap-2 sm:flex-row">
+        <ModalFooter className="space-x-2">
           <Button
             size="sm"
             variant="light"
             onPress={() => onChange(false)}
             isDisabled={loading}
-            className="sm:mr-auto"
           >
             关闭
           </Button>

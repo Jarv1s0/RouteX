@@ -342,25 +342,23 @@ const ProfileItem: React.FC<Props> = (props) => {
                   </div>
                 )}
                 {info.type === 'remote' && (
-                  <Tooltip placement="left" content={dayjs(info.updated).fromNow()}>
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="light"
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    color="default"
+                    disabled={updating}
+                    onPress={async () => {
+                      setUpdating(true)
+                      await addProfileItem(info)
+                      setUpdating(false)
+                    }}
+                  >
+                    <IoMdRefresh
                       color="default"
-                      disabled={updating}
-                      onPress={async () => {
-                        setUpdating(true)
-                        await addProfileItem(info)
-                        setUpdating(false)
-                      }}
-                    >
-                      <IoMdRefresh
-                        color="default"
-                        className={`text-foreground text-[24px] ${updating ? 'animate-spin' : ''}`}
-                      />
-                    </Button>
-                  </Tooltip>
+                      className={`text-foreground text-[24px] ${updating ? 'animate-spin' : ''}`}
+                    />
+                  </Button>
                 )}
 
                 <Dropdown>

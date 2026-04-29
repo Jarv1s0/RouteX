@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo } from 'react'
 import {
   getConnectionHideRule,
   RESOURCE_PRELOAD_BUFFER,
-  type ConnectionGroupData,
   type ConnectionOrderBy,
   type ConnectionTab,
   type ConnectionViewMode,
@@ -16,8 +15,6 @@ interface UseConnectionsPageResult {
   activeConnections: ControllerConnectionDetail[]
   closedConnections: ControllerConnectionDetail[]
   filteredConnections: ControllerConnectionDetail[]
-  groupedConnections: ConnectionGroupData[]
-  expandedGroups: Set<string>
   tab: ConnectionTab
   viewMode: ConnectionViewMode
   filter: string
@@ -49,7 +46,6 @@ interface UseConnectionsPageResult {
   handleOrderByChange: (orderBy: ConnectionOrderBy) => Promise<void>
   handleDirectionToggle: () => Promise<void>
   handleTableSort: (column: string) => void
-  toggleGroup: (process: string) => void
 }
 
 export function useConnectionsPage(): UseConnectionsPageResult {
@@ -67,7 +63,6 @@ export function useConnectionsPage(): UseConnectionsPageResult {
     filter,
     tab,
     viewMode,
-    expandedGroups,
     visibleRange,
     hiddenRules,
     showHidden,
@@ -83,18 +78,16 @@ export function useConnectionsPage(): UseConnectionsPageResult {
     handleOrderByChange,
     handleDirectionToggle,
     handleTableSort,
-    toggleGroup,
     resetVisibleRange
   } = useConnectionViewState()
 
-  const { filteredConnections, groupedConnections, connectionMap } = useDerivedConnections({
+  const { filteredConnections, connectionMap } = useDerivedConnections({
     activeConnections,
     closedConnections,
     tab,
     filter,
     showHidden,
     hiddenRules,
-    viewMode,
     connectionOrderBy,
     connectionDirection
   })
@@ -155,19 +148,6 @@ export function useConnectionsPage(): UseConnectionsPageResult {
     const visiblePaths = new Set<string>()
     const preloadPaths = new Set<string>()
 
-    if (viewMode === 'group') {
-      groupedConnections.forEach((group) => {
-        if (group.processPath) {
-          visiblePaths.add(group.processPath)
-        }
-      })
-
-      return {
-        visiblePaths: Array.from(visiblePaths),
-        preloadPaths: [] as string[]
-      }
-    }
-
     const visibleStart = Math.max(0, visibleRange.startIndex)
     const visibleEnd = Math.min(filteredConnections.length, visibleRange.endIndex + 1)
     const preloadStart = Math.max(0, visibleStart - RESOURCE_PRELOAD_BUFFER)
@@ -193,7 +173,7 @@ export function useConnectionsPage(): UseConnectionsPageResult {
       visiblePaths: Array.from(visiblePaths),
       preloadPaths: Array.from(preloadPaths)
     }
-  }, [filteredConnections, groupedConnections, viewMode, visibleRange])
+  }, [filteredConnections, visibleRange])
 
   useEffect(() => {
     const canLoadIcons = displayIcon && findProcessMode !== 'off'
@@ -245,8 +225,6 @@ export function useConnectionsPage(): UseConnectionsPageResult {
     activeConnections,
     closedConnections,
     filteredConnections,
-    groupedConnections,
-    expandedGroups,
     tab,
     viewMode,
     filter,
@@ -277,7 +255,6 @@ export function useConnectionsPage(): UseConnectionsPageResult {
     handleVisibleRangeChange,
     handleOrderByChange,
     handleDirectionToggle,
-    handleTableSort,
-    toggleGroup
+    handleTableSort
   }
 }

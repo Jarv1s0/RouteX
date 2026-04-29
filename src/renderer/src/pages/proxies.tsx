@@ -21,6 +21,11 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { ProxyGroupCard } from '@renderer/components/proxies/proxy-group-card'
 import { ProxyCardSkeleton } from '@renderer/components/base/skeleton'
 
+const AUTO_DELAY_TEST_COOLDOWN_MS = 2 * 60 * 1000
+const DEFAULT_DELAY_TEST_CONCURRENCY = 4
+const MAX_DELAY_TEST_CONCURRENCY = 8
+let lastAutoDelayTestAt = 0
+
 // ----------------------------------------
 // ProxyRowChunk: 独立的 Grid 块渲染组件，用于性能优化
 // ----------------------------------------
@@ -135,9 +140,18 @@ async function runWithConcurrency(
 }
 
 function normalizeDelayTestConcurrency(value?: number): number {
-  const parsed = Number.parseInt(String(value ?? 4), 10)
-  if (!Number.isFinite(parsed)) return 4
-  return Math.min(8, Math.max(1, parsed))
+  const parsed = Number.parseInt(String(value ?? DEFAULT_DELAY_TEST_CONCURRENCY), 10)
+  if (!Number.isFinite(parsed)) return DEFAULT_DELAY_TEST_CONCURRENCY
+  return Math.min(MAX_DELAY_TEST_CONCURRENCY, Math.max(1, parsed))
+}
+
+function hasPositiveDelay(proxy?: ControllerProxiesDetail | ControllerGroupDetail): boolean {
+  return Boolean(proxy?.history?.some((item) => item.delay > 0))
+}
+
+function groupNeedsDelayTest(group: ControllerMixedGroup): boolean {
+  const current = group.all?.find((proxy) => proxy.name === group.now)
+  return !hasPositiveDelay(current)
 }
 
 const Proxies: React.FC = () => {
@@ -152,7 +166,7 @@ const Proxies: React.FC = () => {
     proxyCols = 'auto',
     groupOrder = [],
     autoDelayTestOnShow = false,
-    delayTestConcurrency = 4
+    delayTestConcurrency = DEFAULT_DELAY_TEST_CONCURRENCY
   } = appConfig || {}
 
   // 根据模式过滤显示的组
@@ -173,6 +187,10 @@ const Proxies: React.FC = () => {
       return aIndex - bIndex
     })
   }, [filteredGroups, groupOrder])
+  const autoDelayGroupSignature = useMemo(
+    () => groups.map((group) => `${group.name}\u0000${group.now}`).join('\u0001'),
+    [groups]
+  )
 
   // Determine a reasonable chunk size based on proxyCols preference
   const chunkSize = useMemo(() => {
@@ -240,10 +258,13 @@ const Proxies: React.FC = () => {
   const onChangeProxy = useCallback(
     async (group: string, proxy: string): Promise<void> => {
       await mihomoChangeProxy(group, proxy)
-      if (autoCloseConnection) {
-        await mihomoCloseAllConnections(group)
-      }
       mutate()
+
+      if (autoCloseConnection) {
+        void mihomoCloseAllConnections(group).catch((error) => {
+          console.warn('[proxy-select] close connections failed', group, error)
+        })
+      }
     },
     [autoCloseConnection, mutate]
   )
@@ -286,27 +307,56 @@ const Proxies: React.FC = () => {
     if (hasInitialTestRef.current) return
     if (!autoDelayTestOnShow) return
 
+    const groupsMissingCurrentDelay = groups.filter(groupNeedsDelayTest)
+    const shouldRespectCooldown = groupsMissingCurrentDelay.length === 0
+    if (shouldRespectCooldown && Date.now() - lastAutoDelayTestAt < AUTO_DELAY_TEST_COOLDOWN_MS) return
+
+    const targetGroups = groupsMissingCurrentDelay.length > 0 ? groupsMissingCurrentDelay : groups
+
     hasInitialTestRef.current = true
+    let cancelled = false
 
     const doAutoDelayTest = async (): Promise<void> => {
-      console.debug('[proxy-delay:auto] start', groups.map((group) => group.name))
+      if (cancelled || document.hidden) return
+      lastAutoDelayTestAt = Date.now()
+      setDelaying((prev) => ({
+        ...prev,
+        ...Object.fromEntries(targetGroups.map((group) => [group.name, true]))
+      }))
+      console.debug('[proxy-delay:auto] start', targetGroups.map((group) => group.name))
 
-      const tasks = groups.map((group) => async (): Promise<void> => {
+      const tasks = targetGroups.map((group) => async (): Promise<void> => {
+        if (cancelled || document.hidden) return
         console.debug('[proxy-delay:auto] test group', group.name, group.testUrl || '')
 
         await mihomoGroupDelay(group.name, group.testUrl)
           .catch((error) => {
             console.warn('[proxy-delay:auto] failed', group.name, error)
           })
+          .finally(() => {
+            setDelaying((prev) => ({ ...prev, [group.name]: false }))
+            if (!cancelled) {
+              void mutate()
+            }
+          })
       })
 
       await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrency))
+      if (cancelled) return
       console.debug('[proxy-delay:auto] finished')
       mutate()
     }
 
     void doAutoDelayTest()
-  }, [groups, mutate, autoDelayTestOnShow, delayTestConcurrency])
+
+    return () => {
+      cancelled = true
+      setDelaying((prev) => ({
+        ...prev,
+        ...Object.fromEntries(targetGroups.map((group) => [group.name, false]))
+      }))
+    }
+  }, [autoDelayGroupSignature, mutate, autoDelayTestOnShow, delayTestConcurrency])
 
   // 获取节点延迟颜色
   const getDelayColor = useCallback((proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {

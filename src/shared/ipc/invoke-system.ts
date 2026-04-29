@@ -47,6 +47,7 @@ export const SYSTEM_IPC_INVOKE_CHANNELS = {
   openDevTools: 'openDevTools',
   openExternalUrl: 'openExternalUrl',
   openFile: 'openFile',
+  openConfigDir: 'openConfigDir',
   openUWPTool: 'openUWPTool',
   platform: 'platform',
   quitApp: 'quitApp',

@@ -1,23 +1,22 @@
 import React from 'react'
 import { Navigate, type NavigateFunction } from 'react-router-dom'
-import { useConnectionsStore } from '@renderer/store/use-connections-store'
-import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { RulesProvider } from '@renderer/hooks/use-rules'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
-import Proxies from '@renderer/pages/proxies'
-import Rules from '@renderer/pages/rules'
-import Settings from '@renderer/pages/settings'
-import Profiles from '@renderer/pages/profiles'
-import Logs from '@renderer/pages/logs'
-import Connections from '@renderer/pages/connections'
-import Mihomo from '@renderer/pages/mihomo'
-import Sysproxy from '@renderer/pages/sysproxy'
-import Tun from '@renderer/pages/tun'
-import DNS from '@renderer/pages/dns'
-import Sniffer from '@renderer/pages/sniffer'
-import Stats from '@renderer/pages/stats'
-import Tools from '@renderer/pages/tools'
-import MapPage from '@renderer/pages/map'
+
+const Proxies = React.lazy(() => import('@renderer/pages/proxies'))
+const Rules = React.lazy(() => import('@renderer/pages/rules'))
+const Settings = React.lazy(() => import('@renderer/pages/settings'))
+const Profiles = React.lazy(() => import('@renderer/pages/profiles'))
+const Logs = React.lazy(() => import('@renderer/pages/logs'))
+const Connections = React.lazy(() => import('@renderer/pages/connections'))
+const Mihomo = React.lazy(() => import('@renderer/pages/mihomo'))
+const Sysproxy = React.lazy(() => import('@renderer/pages/sysproxy'))
+const Tun = React.lazy(() => import('@renderer/pages/tun'))
+const DNS = React.lazy(() => import('@renderer/pages/dns'))
+const Sniffer = React.lazy(() => import('@renderer/pages/sniffer'))
+const Stats = React.lazy(() => import('@renderer/pages/stats'))
+const Tools = React.lazy(() => import('@renderer/pages/tools'))
+const MapPage = React.lazy(() => import('@renderer/pages/map'))
 
 // ─── 模块级 navigate 引用，供 navigateSidebarRoute 使用 ───
 let _navigate: NavigateFunction | null = null
@@ -33,6 +32,18 @@ export function setRouterNavigate(fn: NavigateFunction, currentPath?: string): v
 // 记录最后一次导航的目标路径，避免 window.location.hash 与 React Router 内部状态不同步
 let _lastNavigatedPath: string | null = null
 
+function LazyRoute({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return <React.Suspense fallback={null}>{children}</React.Suspense>
+}
+
+function lazyElement(Component: React.LazyExoticComponent<React.ComponentType>): React.JSX.Element {
+  return (
+    <LazyRoute>
+      <Component />
+    </LazyRoute>
+  )
+}
+
 export function navigateSidebarRoute(path: string): void {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
 
@@ -44,23 +55,7 @@ export function navigateSidebarRoute(path: string): void {
       return
     }
 
-    // 在导航前处理需要的清理逻辑
     const currentPath = _lastNavigatedPath || (window.location.hash?.slice(1) || '/')
-    const leavingConnectionsScope =
-      (currentPath.includes('/connections') || currentPath.includes('/map') || currentPath.includes('/stats')) &&
-      !normalizedPath.includes('/connections') &&
-      !normalizedPath.includes('/map') &&
-      !normalizedPath.includes('/stats')
-    const leavingStatsScope = currentPath.includes('/stats') && !normalizedPath.includes('/stats')
-
-    if (leavingConnectionsScope) {
-      useConnectionsStore.getState().cleanupListeners()
-    }
-
-    if (leavingStatsScope) {
-      useTrafficStore.getState().cleanupListeners()
-    }
-
     console.debug('[nav]', currentPath, '→', normalizedPath)
     _lastNavigatedPath = normalizedPath
     _navigate(normalizedPath)
@@ -75,57 +70,45 @@ export function navigateSidebarRoute(path: string): void {
     return
   }
 
-  const currentPath = currentHash.startsWith('#') ? currentHash.slice(1) || '/' : currentHash
-  const leavingConnectionsScope =
-    (currentPath.includes('/connections') || currentPath.includes('/map') || currentPath.includes('/stats')) &&
-    !normalizedPath.includes('/connections') &&
-    !normalizedPath.includes('/map') &&
-    !normalizedPath.includes('/stats')
-  const leavingStatsScope = currentPath.includes('/stats') && !normalizedPath.includes('/stats')
-
-  if (leavingConnectionsScope) {
-    useConnectionsStore.getState().cleanupListeners()
-  }
-
-  if (leavingStatsScope) {
-    useTrafficStore.getState().cleanupListeners()
-  }
-
   window.location.hash = nextHash
 }
 
 function RulesRoute(): React.JSX.Element {
   return (
-    <RulesProvider>
-      <Rules />
-    </RulesProvider>
+    <LazyRoute>
+      <RulesProvider>
+        <Rules />
+      </RulesProvider>
+    </LazyRoute>
   )
 }
 
 function ProfilesRoute(): React.JSX.Element {
   return (
-    <OverrideConfigProvider>
-      <Profiles />
-    </OverrideConfigProvider>
+    <LazyRoute>
+      <OverrideConfigProvider>
+        <Profiles />
+      </OverrideConfigProvider>
+    </LazyRoute>
   )
 }
 
 const routes = [
   {
     path: '/mihomo',
-    element: <Mihomo />
+    element: lazyElement(Mihomo)
   },
   {
     path: '/sysproxy',
-    element: <Sysproxy />
+    element: lazyElement(Sysproxy)
   },
   {
     path: '/tun',
-    element: <Tun />
+    element: lazyElement(Tun)
   },
   {
     path: '/proxies',
-    element: <Proxies />
+    element: lazyElement(Proxies)
   },
   {
     path: '/rules',
@@ -134,19 +117,19 @@ const routes = [
 
   {
     path: '/dns',
-    element: <DNS />
+    element: lazyElement(DNS)
   },
   {
     path: '/sniffer',
-    element: <Sniffer />
+    element: lazyElement(Sniffer)
   },
   {
     path: '/logs',
-    element: <Logs />
+    element: lazyElement(Logs)
   },
   {
     path: '/connections',
-    element: <Connections />
+    element: lazyElement(Connections)
   },
   {
     path: '/override',
@@ -158,19 +141,19 @@ const routes = [
   },
   {
     path: '/settings',
-    element: <Settings />
+    element: lazyElement(Settings)
   },
   {
     path: '/stats',
-    element: <Stats />
+    element: lazyElement(Stats)
   },
   {
     path: '/tools',
-    element: <Tools />
+    element: lazyElement(Tools)
   },
   {
     path: '/map',
-    element: <MapPage />
+    element: lazyElement(MapPage)
   },
   {
     path: '/',

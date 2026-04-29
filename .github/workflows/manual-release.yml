@@ -106,6 +106,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Rust Tests
+        run: pnpm test:rust
+
       - name: Generate Release Notes
         run: node scripts/extract-latest-changelog.mjs changelog.md release-notes.md
 

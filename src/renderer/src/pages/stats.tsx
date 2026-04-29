@@ -5,6 +5,8 @@ import { clearTrafficStats, clearProviderStats } from '@renderer/utils/stats-ipc
 import { IoClose } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import ConfirmModal from '@renderer/components/base/base-confirm'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 
 import StatusGrid from '@renderer/components/stats/status-grid'
@@ -78,6 +80,7 @@ const RuleDetailsModalSection = React.memo(
     const details = useTrafficStore((state) =>
       selectedRule ? (state.ruleHitDetails.get(selectedRule) ?? EMPTY_RULE_HIT_DETAILS) : EMPTY_RULE_HIT_DETAILS
     ) as RuleHitDetail[]
+    const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
 
     return (
       <Modal
@@ -93,7 +96,7 @@ const RuleDetailsModalSection = React.memo(
           backdrop: 'bg-black/50 backdrop-blur-sm'
         }}
       >
-        <ModalContent>
+        <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 900 })}>
           {(closeModal) => (
             <>
               <ModalHeader className="flex flex-col gap-1">

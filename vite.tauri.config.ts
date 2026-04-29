@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import monacoEditorPluginModule from 'vite-plugin-monaco-editor'
+import { DEV_RENDERER_META_CSP, PROD_RENDERER_META_CSP } from './src/shared/csp'
 
 const isObjectWithDefaultFunction = (
   module: unknown
@@ -31,6 +32,8 @@ const routexBuildDefines = {
   __ROUTEX_PLATFORM__: JSON.stringify(process.platform)
 }
 
+const rendererCsp = process.env.NODE_ENV === 'development' ? DEV_RENDERER_META_CSP : PROD_RENDERER_META_CSP
+
 export default defineConfig({
   root: resolve(__dirname, 'src/tauri-web'),
   define: routexBuildDefines,
@@ -48,7 +51,22 @@ export default defineConfig({
           entry: 'monaco-yaml/yaml.worker'
         }
       ]
-    })
+    }),
+    {
+      name: 'routex-renderer-csp',
+      transformIndexHtml() {
+        return [
+          {
+            tag: 'meta',
+            attrs: {
+              'http-equiv': 'Content-Security-Policy',
+              content: rendererCsp
+            },
+            injectTo: 'head-prepend'
+          }
+        ]
+      }
+    }
   ],
   resolve: {
     alias: {
@@ -71,6 +89,7 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, 'dist-tauri'),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 2400,
     rollupOptions: {
       input: {
         index: resolve(__dirname, 'src/tauri-web/index.html'),
@@ -82,7 +101,7 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'next-themes'],
           'vendor-ui': ['@heroui/react'],
           'vendor-motion': ['framer-motion'],
-          'vendor-chart': ['echarts', 'echarts-for-react'],
+          'vendor-chart': ['echarts'],
           'vendor-editor': ['monaco-editor', 'react-monaco-editor', 'monaco-yaml'],
           'vendor-flow': ['@xyflow/react', 'dagre'],
           'vendor-core': ['react-router-dom', 'zustand', 'swr']

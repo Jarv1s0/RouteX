@@ -19,7 +19,6 @@ import type {
 import { CgClose, CgTrash } from 'react-icons/cg'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
 import {
-  IoApps,
   IoEye,
   IoEyeOff,
   IoGrid,
@@ -54,8 +53,7 @@ interface ConnectionsToolbarProps {
 
 const VIEW_MODE_ICONS: Record<ConnectionViewMode, React.ReactNode> = {
   table: <IoGrid className="text-lg" />,
-  list: <IoList className="text-lg" />,
-  group: <IoApps className="text-lg" />
+  list: <IoList className="text-lg" />
 }
 
 const COUNT_BADGE_CLASS =
@@ -187,9 +185,6 @@ export default function ConnectionsToolbar({
             </DropdownItem>
             <DropdownItem key="table" startContent={<IoGrid />}>
               表格视图
-            </DropdownItem>
-            <DropdownItem key="group" startContent={<IoApps />}>
-              分组视图
             </DropdownItem>
           </DropdownMenu>
         </Dropdown>

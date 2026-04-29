@@ -5,6 +5,7 @@ import routes, { setRouterNavigate } from '@renderer/routes'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
+import { releaseLogsListeners, retainLogsListeners } from '@renderer/store/use-logs-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
@@ -21,11 +22,6 @@ import { GlobalDialogModal } from '@renderer/components/base/global-dialog-modal
 import ErrorBoundary from '@renderer/components/base/error-boundary'
 
 const SIDER_WIDTH_CSS_VAR = '--sider-width'
-
-function scheduleDeferredTask(task: () => void, delay = 0): () => void {
-  const timeoutId = window.setTimeout(task, delay)
-  return () => window.clearTimeout(timeoutId)
-}
 
 function scheduleIdleDeferredTask(task: () => void, delay = 0, timeout = 4000): () => void {
   let idleId: number | null = null
@@ -96,8 +92,6 @@ const App: React.FC = () => {
   const page = useRoutes(routes)
   const connectionsListenerActiveRef = useRef(false)
   const trafficListenerActiveRef = useRef(false)
-  const pendingConnectionsInitCleanupRef = useRef<(() => void) | null>(null)
-  const pendingTrafficInitCleanupRef = useRef<(() => void) | null>(null)
   const lastUpdateCheckAtRef = useRef(0)
   const [latest, setLatest] = useState<AppVersion | undefined>()
 
@@ -167,6 +161,14 @@ const App: React.FC = () => {
   }, [])
 
   useEffect(() => {
+    retainLogsListeners()
+
+    return () => {
+      releaseLogsListeners()
+    }
+  }, [])
+
+  useEffect(() => {
     siderWidthValueRef.current = siderWidthValue
     resizingRef.current = resizing
   }, [siderWidthValue, resizing])
@@ -220,18 +222,9 @@ const App: React.FC = () => {
       pathname.includes('/connections') || pathname.includes('/map') || pathname.includes('/stats')
     const needsTraffic = isTauri || pathname.includes('/stats')
 
-    pendingConnectionsInitCleanupRef.current?.()
-    pendingConnectionsInitCleanupRef.current = null
-    pendingTrafficInitCleanupRef.current?.()
-    pendingTrafficInitCleanupRef.current = null
-
     if (needsConnections && !connectionsListenerActiveRef.current) {
-      const initializeConnections = () => {
-        useConnectionsStore.getState().initializeListeners()
-        connectionsListenerActiveRef.current = true
-      }
-
-      initializeConnections()
+      useConnectionsStore.getState().initializeListeners()
+      connectionsListenerActiveRef.current = true
     } else if (!needsConnections && connectionsListenerActiveRef.current) {
       useConnectionsStore.getState().cleanupListeners()
       connectionsListenerActiveRef.current = false
@@ -265,10 +258,6 @@ const App: React.FC = () => {
         window.cancelAnimationFrame(resizeFrameRef.current)
         resizeFrameRef.current = null
       }
-      pendingConnectionsInitCleanupRef.current?.()
-      pendingConnectionsInitCleanupRef.current = null
-      pendingTrafficInitCleanupRef.current?.()
-      pendingTrafficInitCleanupRef.current = null
       if (connectionsListenerActiveRef.current) {
         useConnectionsStore.getState().cleanupListeners()
         connectionsListenerActiveRef.current = false

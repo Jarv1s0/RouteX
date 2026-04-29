@@ -21,6 +21,7 @@ import { BiCopy } from 'react-icons/bi'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
@@ -33,6 +34,8 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
   const { appConfig, patchAppConfig } = useAppConfig()
 
   const {
+    collapseSidebar = false,
+    siderWidth = 250,
     profileDisplayDate = 'update',
     userAgent,
     diffWorkDir = false,
@@ -70,7 +73,10 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent className="flag-emoji">
+      <ModalContent
+        className="flag-emoji"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 560 })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>订阅设置</span>
           <SecondaryModalCloseButton onPress={onClose} />

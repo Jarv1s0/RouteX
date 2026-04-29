@@ -3,11 +3,20 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Switch, Tooltip, Tabs, Tab, Input } from '@heroui/react'
 import useSWR from 'swr'
-import { checkAutoRun, disableAutoRun, enableAutoRun, relaunchApp, checkUpdate, cancelUpdate, copyEnv, openUWPTool } from '@renderer/api/app'
+import {
+  checkAutoRun,
+  disableAutoRun,
+  enableAutoRun,
+  relaunchApp,
+  checkUpdate,
+  cancelUpdate,
+  copyEnv,
+  openConfigDir,
+  openUWPTool
+} from '@renderer/api/app'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoIosHelpCircle } from 'react-icons/io'
 import ConfirmModal from '../base/base-confirm'
-import UpdaterModal from '../updater/updater-modal'
 import { toast } from 'sonner'
 import { platform } from '@renderer/utils/init'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
@@ -15,6 +24,8 @@ import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import WebdavConfigModal from './webdav-config-modal'
 import DnsControlModal from './dns-control-modal'
 import SniffControlModal from './sniff-control-modal'
+
+const UpdaterModal = React.lazy(() => import('../updater/updater-modal'))
 
 const emptyArray: string[] = []
 const CONTROL_STATUS_TEXT: Record<'enabled' | 'disabled', string> = {
@@ -86,13 +97,15 @@ const GeneralConfig: React.FC = () => {
   return (
     <>
       {openUpdate && (
-        <UpdaterModal
-          onClose={() => setOpenUpdate(false)}
-          version={newVersion}
-          releaseNotes={releaseNotes}
-          updateStatus={updateStatus}
-          onCancel={handleCancelUpdate}
-        />
+        <React.Suspense fallback={null}>
+          <UpdaterModal
+            onClose={() => setOpenUpdate(false)}
+            version={newVersion}
+            releaseNotes={releaseNotes}
+            updateStatus={updateStatus}
+            onCancel={handleCancelUpdate}
+          />
+        </React.Suspense>
       )}
       {showRestartConfirm && (
         <ConfirmModal
@@ -148,10 +161,7 @@ const GeneralConfig: React.FC = () => {
             }}
           />
         </SettingItem>
-        <SettingItem 
-          title="检查更新" 
-          divider
-        >
+        <SettingItem title="检查更新" divider>
           <Button
             size="sm"
             variant="flat"
@@ -226,6 +236,21 @@ const GeneralConfig: React.FC = () => {
       </SettingCard>
 
       <SettingCard title="Clash 设置">
+        <SettingItem title="打开配置文件目录" divider>
+          <Button
+            size="sm"
+            variant="flat"
+            onPress={async () => {
+              try {
+                await openConfigDir()
+              } catch (e) {
+                toast.error(String(e))
+              }
+            }}
+          >
+            打开目录
+          </Button>
+        </SettingItem>
         <SettingItem
           title="自动开启轻量模式"
           actions={
@@ -249,41 +274,42 @@ const GeneralConfig: React.FC = () => {
           <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-2">
             <div className="ml-2 text-sm">
               <SettingItem title="轻量模式行为" divider>
-              <Tabs
-                size="sm"
-                color="primary"
-                variant="solid"
-                radius="lg"
-                selectedKey={autoLightweightMode}
-                onSelectionChange={(v) => {
-                  patchAppConfig({ autoLightweightMode: v as 'core' | 'tray' })
-                  if (v === 'core') {
-                    patchAppConfig({ autoLightweightDelay: 1 /* delay check handled by hook */ })
-                  }
-                }}
-              >
-                <Tab key="core" title="仅保留内核" />
-                <Tab key="tray" title="仅关闭渲染进程" />
-              </Tabs>
-            </SettingItem>
-            <SettingItem title="自动开启轻量模式延时" divider>
-              <Input
-                size="sm"
-                className="w-[100px]"
-                classNames={{
-                  input: "bg-transparent",
-                  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
-                }}
-                type="number"
-                endContent="秒"
-                value={appConfig?.autoLightweightDelay?.toString()}
-                onValueChange={async (v: string) => {
-                  let num = parseInt(v)
-                  if (isNaN(num)) num = 0
-                  await patchAppConfig({ autoLightweightDelay: num })
-                }}
-              />
-            </SettingItem>
+                <Tabs
+                  size="sm"
+                  color="primary"
+                  variant="solid"
+                  radius="lg"
+                  selectedKey={autoLightweightMode}
+                  onSelectionChange={(v) => {
+                    patchAppConfig({ autoLightweightMode: v as 'core' | 'tray' })
+                    if (v === 'core') {
+                      patchAppConfig({ autoLightweightDelay: 1 /* delay check handled by hook */ })
+                    }
+                  }}
+                >
+                  <Tab key="core" title="仅保留内核" />
+                  <Tab key="tray" title="仅关闭渲染进程" />
+                </Tabs>
+              </SettingItem>
+              <SettingItem title="自动开启轻量模式延时" divider>
+                <Input
+                  size="sm"
+                  className="w-[100px]"
+                  classNames={{
+                    input: 'bg-transparent',
+                    inputWrapper:
+                      'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
+                  }}
+                  type="number"
+                  endContent="秒"
+                  value={appConfig?.autoLightweightDelay?.toString()}
+                  onValueChange={async (v: string) => {
+                    let num = parseInt(v)
+                    if (isNaN(num)) num = 0
+                    await patchAppConfig({ autoLightweightDelay: num })
+                  }}
+                />
+              </SettingItem>
             </div>
           </div>
         )}
@@ -344,8 +370,9 @@ const GeneralConfig: React.FC = () => {
               size="sm"
               className="w-[200px]"
               classNames={{
-                input: "bg-transparent",
-                inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
+                input: 'bg-transparent',
+                inputWrapper:
+                  'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
               }}
               placeholder="输入 SSID，逗号分隔"
               value={pauseSSIDInput.join(',')}

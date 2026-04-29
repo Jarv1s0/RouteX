@@ -355,19 +355,6 @@ const ProfilesPage: React.FC = () => {
     [activeProfileIds.length, current, runSelectionMutation, setActiveProfiles]
   )
 
-  const handleProfileCardClick = useCallback(
-    async (id: string): Promise<void> => {
-      if (id === current) return
-      if (activeProfileIdSet.has(id)) {
-        await handleSetPrimaryProfile(id)
-        return
-      }
-
-      await handleSwitchToStandaloneProfile(id)
-    },
-    [activeProfileIdSet, current, handleSetPrimaryProfile, handleSwitchToStandaloneProfile]
-  )
-
   const handleToggleProfileActive = useCallback(
     async (id: string, nextEnabled: boolean): Promise<void> => {
       const nextActives = nextEnabled
@@ -378,6 +365,32 @@ const ProfilesPage: React.FC = () => {
       await runSelectionMutation(() => setActiveProfiles(nextActives, nextCurrent))
     },
     [activeProfileIds, current, runSelectionMutation, setActiveProfiles]
+  )
+
+  const handleProfileCardClick = useCallback(
+    async (id: string): Promise<void> => {
+      if (id === current) return
+
+      if (activeProfileIds.length <= 1) {
+        await handleSwitchToStandaloneProfile(id)
+        return
+      }
+
+      if (activeProfileIdSet.has(id)) {
+        await handleSetPrimaryProfile(id)
+        return
+      }
+
+      await handleToggleProfileActive(id, true)
+    },
+    [
+      activeProfileIdSet,
+      activeProfileIds.length,
+      current,
+      handleSetPrimaryProfile,
+      handleSwitchToStandaloneProfile,
+      handleToggleProfileActive
+    ]
   )
 
   const handleOverrideInputKeyUp = useCallback(

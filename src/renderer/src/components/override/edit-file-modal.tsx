@@ -8,7 +8,7 @@ import {
   Switch
 } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
-import { BaseEditor } from '../base/base-editor'
+import { BaseEditor } from '../base/base-editor-lazy'
 import { getOverride, setOverride } from '@renderer/utils/override-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'

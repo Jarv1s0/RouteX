@@ -16,8 +16,9 @@ import ChainPreviewModal from './chain-preview-modal'
 import { MdLink, MdLinkOff } from 'react-icons/md'
 import { getAllChains, addChainItem, updateChainItem, removeChainItem } from '@renderer/utils/chains-ipc'
 import { useGroups } from '@renderer/hooks/use-groups'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
-import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 
 const polishedInputClassNames = {
@@ -40,6 +41,7 @@ interface Props {
 
 const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
   const { groups = [] } = useGroups()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [chains, setChains] = useState<ChainItem[]>([])
   const [loading, setLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -176,7 +178,10 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent className="overflow-hidden">
+      <ModalContent
+        className="overflow-hidden"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 900 })}
+      >
         <ModalHeader className="flex items-start justify-between gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">
             <div className="truncate text-lg font-semibold text-foreground leading-6">

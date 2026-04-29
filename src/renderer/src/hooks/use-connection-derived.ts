@@ -2,16 +2,13 @@ import { includesIgnoreCase } from '@renderer/utils/includes'
 import { useDeferredValue, useMemo } from 'react'
 import {
   getConnectionHideRule,
-  type ConnectionGroupData,
   type ConnectionOrderBy,
-  type ConnectionTab,
-  type ConnectionViewMode
+  type ConnectionTab
 } from '@renderer/components/connections/shared'
 
 const connectionSearchCache = new WeakMap<ControllerConnectionDetail, string>()
 const connectionStartCache = new WeakMap<ControllerConnectionDetail, number>()
 const connectionTypeCache = new WeakMap<ControllerConnectionDetail, string>()
-const EMPTY_GROUPED_CONNECTIONS: ConnectionGroupData[] = []
 
 function getConnectionSearchText(connection: ControllerConnectionDetail): string {
   const cached = connectionSearchCache.get(connection)
@@ -82,38 +79,6 @@ function sortConnections(
   })
 }
 
-function groupConnections(connections: ControllerConnectionDetail[]): ConnectionGroupData[] {
-  const groups = new Map<string, ConnectionGroupData>()
-
-  connections.forEach((connection) => {
-    const process = connection.metadata.process || 'Unknown Process'
-    const processPath = connection.metadata.processPath || ''
-
-    if (!groups.has(process)) {
-      groups.set(process, {
-        process,
-        processPath,
-        connections: [],
-        totalUpload: 0,
-        totalDownload: 0,
-        uploadSpeed: 0,
-        downloadSpeed: 0
-      })
-    }
-
-    const currentGroup = groups.get(process)!
-    currentGroup.connections.push(connection)
-    currentGroup.totalUpload += connection.upload
-    currentGroup.totalDownload += connection.download
-    currentGroup.uploadSpeed += connection.uploadSpeed || 0
-    currentGroup.downloadSpeed += connection.downloadSpeed || 0
-  })
-
-  return Array.from(groups.values()).sort((left, right) => {
-    return right.connections.length - left.connections.length
-  })
-}
-
 interface DerivedConnectionsInput {
   activeConnections: ControllerConnectionDetail[]
   closedConnections: ControllerConnectionDetail[]
@@ -121,14 +86,12 @@ interface DerivedConnectionsInput {
   filter: string
   showHidden: boolean
   hiddenRules: Set<string>
-  viewMode: ConnectionViewMode
   connectionOrderBy: ConnectionOrderBy
   connectionDirection: 'asc' | 'desc'
 }
 
 export interface DerivedConnectionsResult {
   filteredConnections: ControllerConnectionDetail[]
-  groupedConnections: ConnectionGroupData[]
   connectionMap: Map<string, ControllerConnectionDetail>
 }
 
@@ -139,7 +102,6 @@ export function useDerivedConnections({
   filter,
   showHidden,
   hiddenRules,
-  viewMode,
   connectionOrderBy,
   connectionDirection
 }: DerivedConnectionsInput): DerivedConnectionsResult {
@@ -168,18 +130,11 @@ export function useDerivedConnections({
   }, [deferredFilter, visibleConnections])
 
   const filteredConnections = useMemo(() => {
-    if (viewMode === 'group' || !deferredOrder || deferredFilter !== '') {
+    if (!deferredOrder || deferredFilter !== '') {
       return searchedConnections
     }
     return sortConnections(searchedConnections, deferredOrder, deferredDirection)
-  }, [deferredDirection, deferredFilter, deferredOrder, searchedConnections, viewMode])
-
-  const groupedConnections = useMemo<ConnectionGroupData[]>(() => {
-    if (viewMode !== 'group') {
-      return EMPTY_GROUPED_CONNECTIONS
-    }
-    return groupConnections(searchedConnections)
-  }, [searchedConnections, viewMode])
+  }, [deferredDirection, deferredFilter, deferredOrder, searchedConnections])
 
   const connectionMap = useMemo(() => {
     const map = new Map<string, ControllerConnectionDetail>()
@@ -194,7 +149,6 @@ export function useDerivedConnections({
 
   return {
     filteredConnections,
-    groupedConnections,
     connectionMap
   }
 }

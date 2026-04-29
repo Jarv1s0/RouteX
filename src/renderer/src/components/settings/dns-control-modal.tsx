@@ -15,7 +15,7 @@ import { DnsSettingsFormFields, useDnsSettingsEditor } from '@renderer/component
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { patchControledMihomoConfig } from '@renderer/utils/mihomo-ipc'
-import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import { toast } from 'sonner'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 
@@ -29,7 +29,12 @@ const CARD_CLASS =
 
 const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { controlDns = true, autoSetDNSMode = 'exec' } = appConfig || {}
+  const {
+    collapseSidebar = false,
+    siderWidth = 250,
+    controlDns = true,
+    autoSetDNSMode = 'exec'
+  } = appConfig || {}
   const dnsEditor = useDnsSettingsEditor()
 
   const handleToggleControlDns = async (value: boolean): Promise<void> => {
@@ -59,7 +64,7 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
       scrollBehavior="inside"
       classNames={createSecondaryModalClassNames()}
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1100 })}>
         {(onClose) => (
           <>
             <ModalHeader className="flex flex-col gap-1 px-4 py-2">

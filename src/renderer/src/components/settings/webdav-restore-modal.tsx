@@ -7,6 +7,7 @@ import { MdDeleteForever } from 'react-icons/md'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 interface Props {
@@ -15,7 +16,13 @@ interface Props {
 }
 const WebdavRestoreModal: React.FC<Props> = (props) => {
   const { filenames: names, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const {
+    appConfig: {
+      disableAnimation = false,
+      collapseSidebar = false,
+      siderWidth = 250
+    } = {}
+  } = useAppConfig()
   const [filenames, setFilenames] = useState<string[]>(names)
   const [restoring, setRestoring] = useState(false)
 
@@ -29,7 +36,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 640 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>恢复备份</span>
           <SecondaryModalCloseButton onPress={onClose} />

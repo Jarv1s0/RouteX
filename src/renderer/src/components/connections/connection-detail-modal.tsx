@@ -19,7 +19,7 @@ import { FaGlobeAmericas, FaNetworkWired } from 'react-icons/fa'
 import { clsx } from 'clsx'
 import dayjs from 'dayjs'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
-import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 interface Props {
   connection: ControllerConnectionDetail
@@ -29,7 +29,14 @@ interface Props {
 
 const ConnectionDetailModal: React.FC<Props> = (props) => {
   const { connection, onClose, onDisconnect } = props
-  const { appConfig: { disableAnimation = false, delayThresholds = { good: 200, fair: 500 } } = {} } = useAppConfig()
+  const {
+    appConfig: {
+      disableAnimation = false,
+      delayThresholds = { good: 200, fair: 500 },
+      collapseSidebar = false,
+      siderWidth = 250
+    } = {}
+  } = useAppConfig()
   const { groups = [] } = useGroups()
 
   // 辅助函数：获取延迟颜色
@@ -118,7 +125,10 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
         }
       }}
     >
-      <ModalContent className="overflow-hidden">
+      <ModalContent
+        className="overflow-hidden"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+      >
         {/* Header Section */}
         <ModalHeader className="flex flex-col gap-0 p-0 relative overflow-hidden bg-gradient-to-b from-default-100/50 to-transparent">
           {/* 顶部背景装饰 */}

@@ -14,11 +14,13 @@ import {
 } from '@heroui/react'
 import React, { useCallback, useMemo, useState } from 'react'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { addQuickRule, updateQuickRule } from '@renderer/utils/quick-rules-ipc'
 import { secondaryInputClassNames } from '@renderer/components/settings/advanced-settings'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
@@ -71,6 +73,7 @@ const getSuggestedValue = (ruleType: string): string => {
 
 const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSaved }) => {
   const { groups = [] } = useGroups()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const isEditing = Boolean(rule)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [ruleType, setRuleType] = useState(rule?.type || 'DOMAIN')
@@ -154,13 +157,13 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
     <Modal
       isOpen={true}
       onOpenChange={onClose}
-      size="xl"
+      size="lg"
       backdrop="blur"
       scrollBehavior="inside"
       hideCloseButton
       classNames={createSecondaryModalClassNames()}
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 640 })}>
         <>
           <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
             <div className="flex flex-col gap-0.5">
@@ -255,12 +258,12 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
             </div>
           </ModalBody>
 
-          <ModalFooter className="px-4 py-3">
+          <ModalFooter className="py-2 px-4">
             <Button
-              variant="flat"
+              variant="shadow"
               onPress={onClose}
               isDisabled={isSubmitting}
-              className="px-8 font-medium"
+              className="font-medium px-8"
             >
               退出
             </Button>
@@ -270,7 +273,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
               onPress={handleSubmit}
               isDisabled={!ruleValue.trim() || !proxyTarget.trim()}
               isLoading={isSubmitting}
-              className="px-8 font-medium"
+              className="font-medium px-8"
             >
               {isEditing ? '保存修改' : '创建规则'}
             </Button>

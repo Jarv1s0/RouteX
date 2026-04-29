@@ -163,6 +163,10 @@ export async function openExternalUrl(url: string): Promise<void> {
   return invokeSafe(C.openExternalUrl, url)
 }
 
+export async function openConfigDir(): Promise<void> {
+  return invokeSafe(C.openConfigDir)
+}
+
 export async function resetAppConfig(): Promise<void> {
   if (isTauriHost()) {
     await invokeSafe(C.resetAppConfig)

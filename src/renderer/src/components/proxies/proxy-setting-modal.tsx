@@ -38,10 +38,12 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
 const DEFAULT_DELAY_TEST_CONCURRENCY = 4
+const MAX_DELAY_TEST_CONCURRENCY = 8
 const DEFAULT_DELAY_TEST_TIMEOUT = 5000
 
 interface Props {
@@ -54,6 +56,8 @@ const ProxySettingModal: React.FC<Props> = (props) => {
   const { groups: allGroups = [] } = useGroups()
 
   const {
+    collapseSidebar = false,
+    siderWidth = 250,
     proxyCols = 'auto',
     proxyDisplayOrder = 'default',
 
@@ -98,7 +102,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
         onOpenChange={onClose}
         scrollBehavior="inside"
       >
-        <ModalContent>
+        <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 820 })}>
           <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
             <span>代理组设置</span>
             <SecondaryModalCloseButton onPress={onClose} />
@@ -177,7 +181,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 <>
                   延迟测试并发数量
                   <span className="text-xs text-foreground-400 font-normal ml-1">
-                    (默认 4，建议 3-6)
+                    (默认 4，最多 8)
                   </span>
                 </>
               }
@@ -188,12 +192,16 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 size="sm"
                 className="w-[120px]"
                 classNames={numberInputClassNames}
+                min={1}
+                max={MAX_DELAY_TEST_CONCURRENCY}
                 value={delayTestConcurrency?.toString()}
                 placeholder={`默认 ${DEFAULT_DELAY_TEST_CONCURRENCY}`}
                 onValueChange={(v) => {
                   const parsed = Number.parseInt(v, 10)
                   patchAppConfig({
-                    delayTestConcurrency: Number.isFinite(parsed) ? parsed : DEFAULT_DELAY_TEST_CONCURRENCY
+                    delayTestConcurrency: Number.isFinite(parsed)
+                      ? Math.min(MAX_DELAY_TEST_CONCURRENCY, Math.max(1, parsed))
+                      : DEFAULT_DELAY_TEST_CONCURRENCY
                   })
                 }}
               />
@@ -300,6 +308,8 @@ const ProxySettingModal: React.FC<Props> = (props) => {
           groupOrder={groupOrder}
           onClose={() => setShowSortModal(false)}
           patchAppConfig={patchAppConfig}
+          collapseSidebar={collapseSidebar}
+          siderWidth={siderWidth}
         />
       )}
 
@@ -314,13 +324,17 @@ interface GroupSortModalProps {
   groupOrder: string[]
   onClose: () => void
   patchAppConfig: (value: Partial<AppConfig>) => Promise<void>
+  collapseSidebar: boolean
+  siderWidth: number
 }
 
 const GroupSortModal: React.FC<GroupSortModalProps> = ({
   groups,
   groupOrder,
   onClose,
-  patchAppConfig
+  patchAppConfig,
+  collapseSidebar,
+  siderWidth
 }) => {
   const sortedGroupNames = useMemo(() => {
     const names = groups.map(g => g.name)
@@ -355,7 +369,7 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 520 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-end gap-2">
             <span>调整代理组顺序</span>

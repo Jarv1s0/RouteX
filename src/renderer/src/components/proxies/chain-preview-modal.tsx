@@ -13,8 +13,10 @@ import { TbPlugConnected, TbServer } from 'react-icons/tb'
 import { motion } from 'framer-motion'
 import { MdLink } from 'react-icons/md'
 import { useGroups } from '@renderer/hooks/use-groups'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME,
   SECONDARY_MODAL_ICON_CLOSE_BUTTON_CLASSNAME
 } from '@renderer/utils/modal-styles'
@@ -215,6 +217,7 @@ ScaleWrapper.displayName = 'ScaleWrapper'
 
 const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
   const { groups } = useGroups()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [selectedChainId, setSelectedChainId] = useState<string>(
     chains.length > 0 ? chains[0].id : ''
   )
@@ -264,7 +267,10 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
       isOpen={true}
       onOpenChange={onClose}
     >
-      <ModalContent className="bg-background/90 dark:bg-content1/80 border border-default-200 dark:border-white/10 shadow-2xl">
+      <ModalContent
+        className="bg-background/90 dark:bg-content1/80 border border-default-200 dark:border-white/10 shadow-2xl"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1200 })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-center gap-2">
             <MdLink className="text-xl text-primary" />

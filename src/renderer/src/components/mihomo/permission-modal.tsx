@@ -18,6 +18,7 @@ import { platform } from '@renderer/utils/init'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
@@ -29,7 +30,13 @@ interface Props {
 
 const PermissionModal: React.FC<Props> = (props) => {
   const { onChange, onRevoke, onGrant } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const {
+    appConfig: {
+      disableAnimation = false,
+      collapseSidebar = false,
+      siderWidth = 250
+    } = {}
+  } = useAppConfig()
   const [loading, setLoading] = useState<{ mihomo?: boolean; 'mihomo-alpha'?: boolean }>({})
   const [hasPermission, setHasPermission] = useState<
     { mihomo: boolean; 'mihomo-alpha': boolean } | boolean | null
@@ -121,7 +128,10 @@ const PermissionModal: React.FC<Props> = (props) => {
         base: 'max-w-none w-full'
       })}
     >
-      <ModalContent className="w-[450px]">
+      <ModalContent
+        className="w-[450px]"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 450 })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>{isWindows ? '任务计划管理' : '内核授权管理'}</span>
           <SecondaryModalCloseButton onPress={() => onChange(false)} />

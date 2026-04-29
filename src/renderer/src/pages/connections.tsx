@@ -16,8 +16,6 @@ const Connections: React.FC = () => {
     activeConnections,
     closedConnections,
     filteredConnections,
-    groupedConnections,
-    expandedGroups,
     tab,
     viewMode,
     filter,
@@ -46,8 +44,7 @@ const Connections: React.FC = () => {
     handleVisibleRangeChange,
     handleOrderByChange,
     handleDirectionToggle,
-    handleTableSort,
-    toggleGroup
+    handleTableSort
   } = useConnectionsPage()
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
@@ -185,8 +182,6 @@ const Connections: React.FC = () => {
         tab={tab}
         viewMode={viewMode}
         filteredConnections={filteredConnections}
-        groupedConnections={groupedConnections}
-        expandedGroups={expandedGroups}
         selected={selected}
         displayIcon={displayIcon}
         displayAppName={displayAppName}
@@ -203,7 +198,6 @@ const Connections: React.FC = () => {
         closeConnection={closeConnection}
         hideConnection={hideConnection}
         unhideConnection={unhideConnection}
-        toggleGroup={toggleGroup}
         handleContextMenu={handleContextMenu}
         handleVisibleRangeChange={handleVisibleRangeChange}
         handleTableSort={handleTableSort}

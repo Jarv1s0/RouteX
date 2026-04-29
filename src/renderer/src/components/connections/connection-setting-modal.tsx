@@ -35,6 +35,7 @@ import { MdDragIndicator } from 'react-icons/md'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
@@ -127,7 +128,9 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
     return Math.max(MIN_CONNECTION_INTERVAL, value)
   }
 
-  const { 
+  const {
+    collapseSidebar = false,
+    siderWidth = 250,
     displayIcon = true, 
     displayAppName = true, 
     connectionInterval: rawConnectionInterval = MIN_CONNECTION_INTERVAL,
@@ -197,7 +200,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
       hideCloseButton
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span className="text-lg font-semibold">连接设置</span>
           <SecondaryModalCloseButton onPress={onClose} />

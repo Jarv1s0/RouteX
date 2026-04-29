@@ -1,5 +1,5 @@
 export type ConnectionTab = 'active' | 'closed'
-export type ConnectionViewMode = 'list' | 'group' | 'table'
+export type ConnectionViewMode = 'list' | 'table'
 export type ConnectionOrderBy =
   | 'time'
   | 'upload'
@@ -9,16 +9,6 @@ export type ConnectionOrderBy =
   | 'process'
   | 'type'
   | 'rule'
-
-export interface ConnectionGroupData {
-  process: string
-  processPath: string
-  connections: ControllerConnectionDetail[]
-  totalUpload: number
-  totalDownload: number
-  uploadSpeed: number
-  downloadSpeed: number
-}
 
 export interface VisibleRange {
   startIndex: number

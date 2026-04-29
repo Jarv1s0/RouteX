@@ -13,8 +13,9 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { mihomoChangeProxy } from '@renderer/utils/mihomo-ipc'
 import { testRuleMatch } from '@renderer/utils/tools-ipc'
 import { useGroups } from '@renderer/hooks/use-groups'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoOpenOutline, IoReload } from 'react-icons/io5'
-import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 interface Props {
   isOpen: boolean
@@ -24,6 +25,7 @@ interface Props {
 
 export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { groups = [], mutate } = useGroups()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const isTauriHost = __ROUTEX_HOST__ === 'tauri'
   
   // Site Selection State
@@ -144,7 +146,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
         base: 'h-[90vh]'
       })}
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}>
         <ModalHeader className="flex flex-col gap-3 py-4 border-b border-default-100 pr-10">
           {/* Top Bar: Site Selection & Actions */}
           <div className="flex items-center justify-between gap-4">

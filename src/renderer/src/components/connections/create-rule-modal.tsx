@@ -21,6 +21,8 @@ import {
   removeQuickRule,
   updateQuickRule
 } from '@renderer/utils/quick-rules-ipc'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 interface Props {
   connection: ControllerConnectionDetail
   onClose: () => void
@@ -88,6 +90,7 @@ const COMMON_PROXIES = ['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS']
 
 const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
   const { groups = [] } = useGroups()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // 已有的快速规则列表
@@ -561,7 +564,10 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
 
   return (
     <Modal isOpen={true} onClose={onClose} size="lg" scrollBehavior="inside" placement="center">
-      <ModalContent className="mx-4 my-4">
+      <ModalContent
+        className="mx-4 my-4"
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}
+      >
         <ModalBody className="py-4">{renderContent()}</ModalBody>
       </ModalContent>
     </Modal>

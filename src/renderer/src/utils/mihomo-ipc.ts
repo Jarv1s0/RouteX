@@ -390,8 +390,6 @@ export function startTauriMihomoEventBridge(reason = 'manual'): void {
     toWebSocketUrl(controllerUrl, `/logs?level=${logLevel}`),
     version,
     (payload) => {
-      // 窗口不可见时跳过日志消息
-      if (document.hidden) return
       emitParsedDesktopEvent<ControllerLog>(IPC_ON_CHANNELS.mihomoLogs, payload)
     }
   )

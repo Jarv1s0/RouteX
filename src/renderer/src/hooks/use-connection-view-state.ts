@@ -33,7 +33,6 @@ export interface ConnectionViewState {
   filter: string
   tab: ConnectionTab
   viewMode: ConnectionViewMode
-  expandedGroups: Set<string>
   visibleRange: VisibleRange
   hiddenRules: Set<string>
   showHidden: boolean
@@ -53,7 +52,6 @@ export interface ConnectionViewState {
   handleOrderByChange: (orderBy: ConnectionOrderBy) => Promise<void>
   handleDirectionToggle: () => Promise<void>
   handleTableSort: (column: string) => void
-  toggleGroup: (process: string) => void
   resetVisibleRange: () => void
 }
 
@@ -80,7 +78,6 @@ export function useConnectionViewState(): ConnectionViewState {
   const [filter, setFilter] = useState('')
   const [tab, setTab] = useState<ConnectionTab>('active')
   const [viewMode, setViewMode] = useState<ConnectionViewMode>('list')
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [visibleRange, setVisibleRange] = useState<VisibleRange>(INITIAL_VISIBLE_RANGE)
   const [hiddenRules, setHiddenRules] = useState<Set<string>>(() => {
     try {
@@ -170,18 +167,6 @@ export function useConnectionViewState(): ConnectionViewState {
     [connectionDirection, connectionOrderBy, patchAppConfig]
   )
 
-  const toggleGroup = useCallback((process: string) => {
-    setExpandedGroups((previousGroups) => {
-      const nextGroups = new Set(previousGroups)
-      if (nextGroups.has(process)) {
-        nextGroups.delete(process)
-      } else {
-        nextGroups.add(process)
-      }
-      return nextGroups
-    })
-  }, [])
-
   return {
     findProcessMode,
     connectionDirection,
@@ -198,7 +183,6 @@ export function useConnectionViewState(): ConnectionViewState {
     filter,
     tab,
     viewMode,
-    expandedGroups,
     visibleRange,
     hiddenRules,
     showHidden,
@@ -214,7 +198,6 @@ export function useConnectionViewState(): ConnectionViewState {
     handleOrderByChange,
     handleDirectionToggle,
     handleTableSort,
-    toggleGroup,
     resetVisibleRange
   }
 }

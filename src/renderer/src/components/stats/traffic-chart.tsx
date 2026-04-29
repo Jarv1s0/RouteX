@@ -1,10 +1,15 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Card, CardBody, Tabs, Tab } from '@heroui/react'
-import ReactECharts from 'echarts-for-react'
-import type { EChartsOption } from 'echarts'
+import { BarChart, LineChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import * as echarts from 'echarts/core'
+import type { ECharts, EChartsCoreOption } from 'echarts/core'
+import { SVGRenderer } from 'echarts/renderers'
 import { IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+
+echarts.use([BarChart, GridComponent, LegendComponent, LineChart, SVGRenderer, TooltipComponent])
 
 interface TrafficDataPoint {
   time: string
@@ -23,6 +28,53 @@ interface TooltipSeriesParam {
   color: string
   seriesName: string
   value: number | string | [string | number, number]
+}
+
+interface TrafficEChartProps {
+  option: EChartsCoreOption
+}
+
+const TrafficEChart: React.FC<TrafficEChartProps> = ({ option }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<ECharts | null>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
+
+    const chart = echarts.init(container, undefined, { renderer: 'svg' })
+    chartRef.current = chart
+
+    const resizeChart = (): void => {
+      chart.resize()
+    }
+
+    let resizeObserver: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(resizeChart)
+      resizeObserver.observe(container)
+    } else {
+      window.addEventListener('resize', resizeChart)
+    }
+
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', resizeChart)
+      chart.dispose()
+      chartRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    chartRef.current?.setOption(option, {
+      lazyUpdate: true,
+      notMerge: true
+    })
+  }, [option])
+
+  return <div ref={containerRef} className="h-full w-full" />
 }
 
 function splitTrafficText(value: number, speed: boolean): { amount: string; unit: string } {
@@ -91,9 +143,19 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
   const totalUpload = (dailyData || []).reduce((sum, d) => sum + d.upload, 0)
   const totalDownload = (dailyData || []).reduce((sum, d) => sum + d.download, 0)
 
-  const realtimeLabels = useMemo(() => trafficHistory.map((item) => item.time), [trafficHistory])
-  const realtimeUpload = useMemo(() => trafficHistory.map((item) => item.upload), [trafficHistory])
-  const realtimeDownload = useMemo(() => trafficHistory.map((item) => item.download), [trafficHistory])
+  const realtimeData = useMemo(
+    () =>
+      trafficHistory.reduce(
+        (acc, item) => {
+          acc.labels.push(item.time)
+          acc.upload.push(item.upload)
+          acc.download.push(item.download)
+          return acc
+        },
+        { labels: [] as string[], upload: [] as number[], download: [] as number[] }
+      ),
+    [trafficHistory]
+  )
 
   const chartOption = useMemo(() => {
     const axisLabelColor = '#94a3b8'
@@ -209,11 +271,11 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         },
         xAxis: {
           ...baseOption.xAxis,
-          data: realtimeLabels,
+          data: realtimeData.labels,
           axisLabel: {
             color: axisLabelColor,
             fontSize: 10,
-            interval: Math.max(Math.floor(realtimeLabels.length / 4), 12),
+            interval: Math.max(Math.floor(realtimeData.labels.length / 4), 12),
             formatter: (value: string | number) => {
               const label = String(value)
               return label.length >= 5 ? label.substring(0, 5) : label
@@ -227,7 +289,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
             color: uploadColor,
             smooth: true,
             symbol: 'none',
-            data: realtimeUpload,
+            data: realtimeData.upload,
             lineStyle: {
               color: uploadColor,
               width: 2.25,
@@ -258,7 +320,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
             color: downloadColor,
             smooth: true,
             symbol: 'none',
-            data: realtimeDownload,
+            data: realtimeData.download,
             lineStyle: {
               color: downloadColor,
               width: 2.25,
@@ -284,7 +346,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
             }
           }
         ]
-      } as EChartsOption
+      } as EChartsCoreOption
     }
 
     const chartData =
@@ -337,15 +399,13 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
           data: chartData.map((item) => item.download)
         }
       ]
-    } as EChartsOption
+    } as EChartsCoreOption
   }, [
     formattedDailyData,
     formattedHourlyData,
     formattedMonthlyData,
     historyTab,
-    realtimeDownload,
-    realtimeLabels,
-    realtimeUpload
+    realtimeData
   ])
 
   return (
@@ -394,12 +454,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         </div>
 
         <div className="h-[200px] w-full">
-          <ReactECharts
-            option={chartOption}
-            lazyUpdate
-            opts={{ renderer: 'svg' }}
-            style={{ width: '100%', height: '100%' }}
-          />
+          <TrafficEChart option={chartOption} />
         </div>
       </CardBody>
     </Card>

@@ -287,6 +287,29 @@ interface RowProps {
   hiddenRules?: Set<string>
 }
 
+function getConnectionRowRenderKey(conn: ControllerConnectionDetail): string {
+  const metadata = conn.metadata
+  return [
+    metadata.process,
+    metadata.processPath,
+    metadata.host,
+    metadata.destinationIP,
+    metadata.remoteDestination,
+    metadata.sniffHost,
+    metadata.sourceIP,
+    metadata.sourcePort,
+    metadata.destinationPort,
+    metadata.type,
+    metadata.network,
+    metadata.inboundName,
+    metadata.inboundUser,
+    conn.chains?.join('>'),
+    conn.rule,
+    conn.rulePayload,
+    conn.start
+  ].join('|')
+}
+
 const ConnectionRowComponent: React.FC<RowProps> = ({
   conn,
   isSelected,
@@ -400,7 +423,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
     if (col === 'downloadSpeed') {
       return (
-        <div className={`flex items-center justify-end font-mono ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground-500'}`}>
+        <div className={`flex items-center justify-end font-data-numeric ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground-500'}`}>
           {columnValues.downloadSpeed}
         </div>
       )
@@ -408,7 +431,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
     if (col === 'uploadSpeed') {
       return (
-        <div className={`flex items-center justify-end font-mono ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground-500'}`}>
+        <div className={`flex items-center justify-end font-data-numeric ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground-500'}`}>
           {columnValues.uploadSpeed}
         </div>
       )
@@ -417,9 +440,10 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
     const isRightAlign = RIGHT_ALIGN_COLUMNS.includes(col)
     const color = ['time'].includes(col) ? 'text-foreground-500' : ''
     const isMono = ['sourceIP', 'sourcePort', 'destinationIP', 'sniffHost', 'download', 'upload'].includes(col)
+    const isDataNumeric = ['download', 'upload'].includes(col)
 
     return (
-      <div className={`flex items-center truncate ${isRightAlign ? 'justify-end' : ''} ${color} ${isMono ? 'font-mono' : ''}`} title={columnValues[col as keyof typeof columnValues]}>
+      <div className={`flex items-center truncate ${isRightAlign ? 'justify-end' : ''} ${color} ${isMono && !isDataNumeric ? 'font-mono' : ''} ${isDataNumeric ? 'font-data-numeric' : ''}`} title={columnValues[col as keyof typeof columnValues]}>
         {columnValues[col as keyof typeof columnValues]}
       </div>
     )
@@ -458,6 +482,7 @@ const ConnectionRow = memo(ConnectionRowComponent, (prev, next) => {
     prev.conn.uploadSpeed === next.conn.uploadSpeed &&
     prev.conn.downloadSpeed === next.conn.downloadSpeed &&
     prev.conn.isActive === next.conn.isActive &&
+    getConnectionRowRenderKey(prev.conn) === getConnectionRowRenderKey(next.conn) &&
     prev.isSelected === next.isSelected &&
     prev.columnWidths === next.columnWidths &&
     prev.iconMap === next.iconMap &&

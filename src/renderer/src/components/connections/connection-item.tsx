@@ -19,6 +19,23 @@ const META_PILL_CLASS =
 
 const META_BADGE_CLASS = 'bg-default-100/50 dark:bg-default-50/30'
 
+function getConnectionItemRenderKey(info: ControllerConnectionDetail): string {
+  const metadata = info.metadata
+  return [
+    metadata.process,
+    metadata.processPath,
+    metadata.host,
+    metadata.destinationIP,
+    metadata.remoteDestination,
+    metadata.sourceIP,
+    metadata.type,
+    metadata.network,
+    info.chains?.[0],
+    info.rule,
+    info.rulePayload
+  ].join('|')
+}
+
 interface Props {
   index: number
   info: ControllerConnectionDetail
@@ -219,14 +236,13 @@ const ConnectionItem = memo(ConnectionItemComponent, (prevProps, nextProps) => {
     prevProps.info.uploadSpeed === nextProps.info.uploadSpeed &&
     prevProps.info.downloadSpeed === nextProps.info.downloadSpeed &&
     prevProps.info.isActive === nextProps.info.isActive &&
+    getConnectionItemRenderKey(prevProps.info) === getConnectionItemRenderKey(nextProps.info) &&
     prevProps.iconUrl === nextProps.iconUrl &&
     prevProps.displayIcon === nextProps.displayIcon &&
     prevProps.displayName === nextProps.displayName &&
     wasSelected === isSelected &&
     prevProps.isHidden === nextProps.isHidden &&
-    prevProps.timeRefreshTrigger === nextProps.timeRefreshTrigger &&
-    prevProps.info.chains?.[0] === nextProps.info.chains?.[0] &&
-    prevProps.info.rule === nextProps.info.rule
+    prevProps.timeRefreshTrigger === nextProps.timeRefreshTrigger
   )
 })
 

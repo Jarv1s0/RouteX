@@ -13,13 +13,18 @@ import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import {
-  releaseLogsListeners,
-  retainLogsListeners,
-  useLogsStore
-} from '@renderer/store/use-logs-store'
+import { useLogsStore } from '@renderer/store/use-logs-store'
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
+
+function normalizeLogDaysInput(value: string): number {
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 7
+  }
+
+  return Math.min(parsed, 3650)
+}
 
 const Logs: React.FC = () => {
   const logs = useLogsStore((state) => state.logs)
@@ -60,14 +65,11 @@ const Logs: React.FC = () => {
   }
 
   useEffect(() => {
-    retainLogsListeners()
-    return () => {
-      releaseLogsListeners()
-    }
-  }, [])
+    setLogDaysInput(maxLogDays.toString())
+  }, [maxLogDays])
 
   useEffect(() => {
-    if (paused) return
+    if (paused || filteredLogs.length === 0) return
     virtuosoRef.current?.scrollToIndex({
       index: filteredLogs.length - 1,
       behavior: 'smooth',
@@ -129,10 +131,11 @@ const Logs: React.FC = () => {
                   input: `${CARD_STYLES.GLASS_INPUT.input} text-center [&::-webkit-inner-spin-button]:appearance-none`
                 }}
                 aria-label="保留天数"
+                min={1}
                 value={logDaysInput}
                 onValueChange={setLogDaysInput}
                 onBlur={() => {
-                  const val = parseInt(logDaysInput) || 7
+                  const val = normalizeLogDaysInput(logDaysInput)
                   setLogDaysInput(val.toString())
                   patchAppConfig({ maxLogDays: val })
                 }}

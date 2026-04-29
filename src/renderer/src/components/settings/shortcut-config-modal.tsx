@@ -5,7 +5,7 @@ import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
 import { registerShortcut } from '@renderer/api/app'
 import { MdCheck, MdKeyboard, MdRestore } from 'react-icons/md'
-import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 interface Props {
   isOpen: boolean
@@ -116,6 +116,8 @@ const ShortcutInput: React.FC<{
 const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
+    collapseSidebar = false,
+    siderWidth = 250,
     showWindowShortcut = '',
     showFloatingWindowShortcut = '',
     triggerSysProxyShortcut = '',
@@ -147,7 +149,7 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
       backdrop="blur"
       classNames={createSecondaryModalClassNames()}
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 900 })}>
         {(onClose) => (
           <>
             <ModalHeader className="flex flex-col gap-1 py-2 px-4">

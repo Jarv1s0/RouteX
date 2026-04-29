@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
-import { mihomoConnections, onTauriBridgeConnectionsReady } from '@renderer/utils/mihomo-ipc'
+import {
+  mihomoCloseAllConnections,
+  mihomoCloseConnection,
+  mihomoConnections,
+  onTauriBridgeConnectionsReady
+} from '@renderer/utils/mihomo-ipc'
 
 export interface ExtendedConnection extends ControllerConnectionDetail {
   isActive: boolean
@@ -31,6 +36,11 @@ interface ConnectionsState {
 }
 
 type ConnectionSnapshotListener = (snapshot: ControllerConnections) => void
+type ConnectionSpeedSample = {
+  upload: number
+  download: number
+  at: number
+}
 
 const connectionSnapshotListeners = new Set<ConnectionSnapshotListener>()
 let latestConnectionSnapshot: ControllerConnections | null = null
@@ -96,8 +106,10 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   setPaused: (paused: boolean) => set({ isPaused: paused }),
 
   initializeListeners: () => {
-    let lastSnapshotAt = 0
+    let lastForegroundSnapshotAt = 0
     let isBaselineSnapshot = false
+    let initialSnapshotFallbackTimer: number | null = null
+    const speedSamples = new Map<string, ConnectionSpeedSample>()
 
     const handleConnections = (_e: unknown, info: ControllerConnections): void => {
       if (!info || !info.connections) return
@@ -105,32 +117,58 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       // 先把解析后的连接快照广播出去，供其他 store 复用，避免重复监听和重复 JSON.parse。
       emitConnectionSnapshot(info)
 
-      const { isPaused } = get()
-      if (isPaused) return
-      // 窗口不可见时跳过列表衍生计算，降低后台 CPU 占用
-      if (document.hidden) return
-
       const now = Date.now()
-      // 补拉首屏快照时不参与速度计算，也不更新时间基线，避免下一帧 WS 推送时速度被截断为 0
-      if (isBaselineSnapshot) {
-        isBaselineSnapshot = false
-        // 只更新时间基线到"现在"，让下一帧 WS 推送能正常计算速度差
-        lastSnapshotAt = now
+      const updateSpeedSamples = (): void => {
+        const activeIds = new Set<string>()
+        info.connections?.forEach((connection) => {
+          activeIds.add(connection.id)
+          speedSamples.set(connection.id, {
+            upload: Math.max(0, connection.upload || 0),
+            download: Math.max(0, connection.download || 0),
+            at: now
+          })
+        })
+
+        speedSamples.forEach((_sample, id) => {
+          if (!activeIds.has(id)) {
+            speedSamples.delete(id)
+          }
+        })
       }
-      const elapsedMs = lastSnapshotAt > 0 ? Math.max(1, now - lastSnapshotAt) : 0
-      lastSnapshotAt = now
+
+      const { isPaused } = get()
+      if (isPaused) {
+        updateSpeedSamples()
+        return
+      }
+      // 窗口不可见时跳过列表衍生计算，降低后台 CPU 占用
+      if (document.hidden) {
+        updateSpeedSamples()
+        return
+      }
+
+      const isBaseline = isBaselineSnapshot
+      if (isBaseline) {
+        isBaselineSnapshot = false
+      }
 
       const { activeConnections: prevActive, closedConnections: prevClosed } = get()
       const prevActiveMap = new Map(prevActive.map((c) => [c.id, c]))
 
       const newActive: ExtendedConnection[] = info.connections.map((conn) => {
         const prev = prevActiveMap.get(conn.id)
+        const previousSample = speedSamples.get(conn.id)
+        const elapsedMs = previousSample ? Math.max(1, now - previousSample.at) : 0
         const downloadSpeed =
-          prev && elapsedMs > 0
-            ? Math.round(((conn.download - prev.download) * 1000) / elapsedMs)
-            : 0
+          previousSample && !isBaseline
+            ? Math.round(
+                (Math.max(0, conn.download - previousSample.download) * 1000) / elapsedMs
+              )
+            : prev?.downloadSpeed || 0
         const uploadSpeed =
-          prev && elapsedMs > 0 ? Math.round(((conn.upload - prev.upload) * 1000) / elapsedMs) : 0
+          previousSample && !isBaseline
+            ? Math.round((Math.max(0, conn.upload - previousSample.upload) * 1000) / elapsedMs)
+            : prev?.uploadSpeed || 0
 
         // Enhance metadata if needed (e.g. for Inner type)
         const metadata =
@@ -138,15 +176,26 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
             ? { ...conn.metadata, process: 'mihomo', processPath: 'mihomo' }
             : conn.metadata
 
-        // Optimize object creation: reuse previous object if nothing substantial changed
-        // 注意：如果进程信息从无到有（mihomo 延迟归因），必须触发更新，不能复用旧对象
-        const prevProcess = prev?.metadata?.process || prev?.metadata?.processPath
-        const nextProcess = conn.metadata?.process || conn.metadata?.processPath
-        const processResolved = !prevProcess && !!nextProcess
+        const prevMetadata = prev?.metadata
+        const metadataChanged =
+          !prevMetadata ||
+          prevMetadata.process !== metadata.process ||
+          prevMetadata.processPath !== metadata.processPath ||
+          prevMetadata.host !== metadata.host ||
+          prevMetadata.destinationIP !== metadata.destinationIP ||
+          prevMetadata.remoteDestination !== metadata.remoteDestination ||
+          prevMetadata.sniffHost !== metadata.sniffHost ||
+          prevMetadata.sourceIP !== metadata.sourceIP ||
+          prevMetadata.sourcePort !== metadata.sourcePort ||
+          prevMetadata.destinationPort !== metadata.destinationPort ||
+          prevMetadata.type !== metadata.type ||
+          prevMetadata.network !== metadata.network ||
+          prevMetadata.inboundName !== metadata.inboundName ||
+          prevMetadata.inboundUser !== metadata.inboundUser
 
         if (
           prev &&
-          !processResolved &&
+          !metadataChanged &&
           prev.upload === conn.upload &&
           prev.download === conn.download &&
           prev.chains?.[0] === conn.chains?.[0] &&
@@ -172,6 +221,8 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
           uploadSpeed: Math.max(0, uploadSpeed)
         }
       })
+
+      updateSpeedSamples()
 
       // Identify newly closed connections
       // Connections that were in prevActive but are NOT in newActive
@@ -263,8 +314,28 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       }
     }
 
+    const handleWindowFocus = (): void => {
+      if (document.hidden) {
+        return
+      }
+
+      const now = Date.now()
+      if (now - lastForegroundSnapshotAt < 300) {
+        return
+      }
+
+      lastForegroundSnapshotAt = now
+      fetchConnectionsSnapshot(true)
+    }
+
     // Register Listeners (registerHandlers handles cleanup of old ones)
-    registerHandlers(handleConnections, handleMemory, handleCoreStarted, handleVisibilityChange)
+    registerHandlers(
+      handleConnections,
+      handleMemory,
+      handleCoreStarted,
+      handleVisibilityChange,
+      handleWindowFocus
+    )
 
     // 不再由连接 store 主动起桥，避免与 App/bridge 生命周期形成多入口竞争。
     // 改为在 connections bridge 真正收到第一条消息后补拉一次快照，兜住 dev 重启/TUN 切换窗口期。
@@ -273,7 +344,8 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     })
 
     const initialBridgeSeq = bridgeReadySeq
-    window.setTimeout(() => {
+    initialSnapshotFallbackTimer = window.setTimeout(() => {
+      initialSnapshotFallbackTimer = null
       if (bridgeReadySeq !== initialBridgeSeq || document.hidden) {
         return
       }
@@ -287,6 +359,10 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     set({
       cleanupListeners: () => {
         cancelBridgeReady()
+        if (initialSnapshotFallbackTimer !== null) {
+          window.clearTimeout(initialSnapshotFallbackTimer)
+          initialSnapshotFallbackTimer = null
+        }
         previousCleanup()
       }
     })
@@ -296,9 +372,8 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     unregisterHandlers()
   },
 
-  closeConnection: (_id: string) => {
-    // 保持空实现，连接页当前直接调用 IPC / 本地状态更新。
-    // 这里后续若要再次收敛到 store，需要配合运行时验证逐步迁移。
+  closeConnection: (id: string) => {
+    void mihomoCloseConnection(id)
   },
 
   trashClosedConnection: (id: string) => {
@@ -308,7 +383,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   },
 
   closeAllConnections: () => {
-    // 保持空实现，连接页当前直接调用 IPC / 本地状态更新。
+    void mihomoCloseAllConnections()
   },
 
   trashAllClosedConnections: () => {
@@ -323,12 +398,14 @@ let currentConnectionUnsubscribe: (() => void) | null = null
 let currentMemoryUnsubscribe: (() => void) | null = null
 let currentCoreStartedUnsubscribe: (() => void) | null = null
 let currentVisibilityChangeHandler: (() => void) | null = null
+let currentWindowFocusHandler: (() => void) | null = null
 
 function registerHandlers(
   connHandler: (e: unknown, info: ControllerConnections) => void,
   memHandler: (e: unknown, info: ControllerMemory) => void,
   coreStartedHandler: () => void,
-  visibilityChangeHandler: () => void
+  visibilityChangeHandler: () => void,
+  windowFocusHandler: () => void
 ) {
   unregisterHandlers()
   currentConnectionHandler = connHandler
@@ -337,7 +414,9 @@ function registerHandlers(
   currentMemoryUnsubscribe = onIpc(ON.mihomoMemory, currentMemoryHandler)
   currentCoreStartedUnsubscribe = onIpc(ON.coreStarted, coreStartedHandler)
   currentVisibilityChangeHandler = visibilityChangeHandler
+  currentWindowFocusHandler = windowFocusHandler
   document.addEventListener('visibilitychange', currentVisibilityChangeHandler)
+  window.addEventListener('focus', currentWindowFocusHandler)
 }
 
 function unregisterHandlers() {
@@ -356,6 +435,10 @@ function unregisterHandlers() {
   if (currentVisibilityChangeHandler) {
     document.removeEventListener('visibilitychange', currentVisibilityChangeHandler)
     currentVisibilityChangeHandler = null
+  }
+  if (currentWindowFocusHandler) {
+    window.removeEventListener('focus', currentWindowFocusHandler)
+    currentWindowFocusHandler = null
   }
   clearUnavailableRetryTimer()
 }

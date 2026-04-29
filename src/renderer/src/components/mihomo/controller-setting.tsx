@@ -130,6 +130,7 @@ const ControllerSetting: React.FC = () => {
     'external-controller': externalController = '',
     'external-ui': externalUi = '',
     'external-ui-url': externalUiUrl = '',
+    'external-ui-name': externalUiName = '',
     'external-controller-cors': externalControllerCors,
     secret
   } = controledMihomoConfig || {}
@@ -154,7 +155,10 @@ const ControllerSetting: React.FC = () => {
   const persistedExternalUi = normalizeExternalUiPath(externalUi)
   const hasExternalController = persistedExternalController !== ''
   const expectedExternalUi = getExternalUiPath(externalUiUrlInput)
-  const externalUiPathChanged = enableExternalUi && persistedExternalUi !== expectedExternalUi
+  const expectedExternalUiName = getExternalUiName(externalUiUrlInput)
+  const externalUiPathChanged =
+    enableExternalUi &&
+    (persistedExternalUi !== expectedExternalUi || externalUiName !== expectedExternalUiName)
   const browserOpenUrl =
     enableExternalUi && hasExternalController
       ? resolveExternalUiOpenUrl(
@@ -301,7 +305,7 @@ const ControllerSetting: React.FC = () => {
             setEnableExternalUi(v)
             onChangeNeedRestart({
               'external-ui': v ? getExternalUiPath(externalUiUrlInput) : undefined,
-              'external-ui-name': undefined
+              'external-ui-name': v ? getExternalUiName(externalUiUrlInput) : undefined
             })
           }}
         />
@@ -353,9 +357,13 @@ const ControllerSetting: React.FC = () => {
                 className="mr-2"
                 onPress={() => {
                   onChangeNeedRestart({
-                    'external-ui': enableExternalUi ? getExternalUiPath(externalUiUrlInput) : undefined,
+                    'external-ui': enableExternalUi
+                      ? getExternalUiPath(externalUiUrlInput)
+                      : undefined,
                     'external-ui-url': externalUiUrlInput,
-                    'external-ui-name': undefined
+                    'external-ui-name': enableExternalUi
+                      ? getExternalUiName(externalUiUrlInput)
+                      : undefined
                   })
                 }}
               >
@@ -383,7 +391,6 @@ const ControllerSetting: React.FC = () => {
           </div>
         </SettingItem>
       )}
-      <SettingItem title="CORS 配置" divider />
       <SettingItem title="允许私有网络访问" divider>
         <Switch
           size="sm"

@@ -11,6 +11,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
@@ -21,7 +22,13 @@ interface Props {
 
 const ExecLogModal: React.FC<Props> = (props) => {
   const { id, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const {
+    appConfig: {
+      disableAnimation = false,
+      collapseSidebar = false,
+      siderWidth = 250
+    } = {}
+  } = useAppConfig()
   const [logs, setLogs] = useState<string[]>([])
 
   const getLog = async (): Promise<void> => {
@@ -42,7 +49,7 @@ const ExecLogModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>执行日志</span>
           <SecondaryModalCloseButton onPress={onClose} />

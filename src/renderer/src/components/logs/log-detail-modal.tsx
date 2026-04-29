@@ -5,6 +5,7 @@ import { IoCopy } from 'react-icons/io5'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
+  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 
@@ -15,7 +16,13 @@ interface Props {
 
 const LogDetailModal: React.FC<Props> = (props) => {
   const { log, onClose } = props
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+  const {
+    appConfig: {
+      disableAnimation = false,
+      collapseSidebar = false,
+      siderWidth = 250
+    } = {}
+  } = useAppConfig()
 
   const fullLog = `[${log.time}] [${log.type.toUpperCase()}] ${log.payload}`
 
@@ -43,7 +50,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent>
+      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 800 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold">日志详情</span>

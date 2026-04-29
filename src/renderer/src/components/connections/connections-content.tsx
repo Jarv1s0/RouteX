@@ -1,18 +1,15 @@
 import ConnectionItem from '@renderer/components/connections/connection-item'
 import ConnectionTable from '@renderer/components/connections/connection-table'
-import ConnectionsGroupView from '@renderer/components/connections/connections-group-view'
 import EmptyState from '@renderer/components/base/empty-state'
 import { Virtuoso } from 'react-virtuoso'
 import React, { useCallback } from 'react'
 import { IoLink } from 'react-icons/io5'
-import { getConnectionHideRule, type ConnectionGroupData, type ConnectionOrderBy, type ConnectionTab, type ConnectionViewMode, type VisibleRange } from '@renderer/components/connections/shared'
+import { getConnectionHideRule, type ConnectionOrderBy, type ConnectionTab, type ConnectionViewMode, type VisibleRange } from '@renderer/components/connections/shared'
 
 interface ConnectionsContentProps {
   tab: ConnectionTab
   viewMode: ConnectionViewMode
   filteredConnections: ControllerConnectionDetail[]
-  groupedConnections: ConnectionGroupData[]
-  expandedGroups: Set<string>
   selected?: ControllerConnectionDetail
   displayIcon: boolean
   displayAppName: boolean
@@ -29,7 +26,6 @@ interface ConnectionsContentProps {
   closeConnection: (id: string) => void
   hideConnection: (id: string) => void
   unhideConnection: (id: string) => void
-  toggleGroup: (process: string) => void
   handleContextMenu: (conn: ControllerConnectionDetail, e: React.MouseEvent) => void
   handleVisibleRangeChange: (range: VisibleRange) => void
   handleTableSort: (column: string) => void
@@ -39,8 +35,6 @@ export default function ConnectionsContent({
   tab,
   viewMode,
   filteredConnections,
-  groupedConnections,
-  expandedGroups,
   selected,
   displayIcon,
   displayAppName,
@@ -57,7 +51,6 @@ export default function ConnectionsContent({
   closeConnection,
   hideConnection,
   unhideConnection,
-  toggleGroup,
   handleContextMenu,
   handleVisibleRangeChange,
   handleTableSort
@@ -143,31 +136,11 @@ export default function ConnectionsContent({
           onVisibleRangeChange={handleVisibleRangeChange}
           hiddenRules={hiddenRules}
         />
-      ) : viewMode === 'list' ? (
+      ) : (
         <Virtuoso
           data={filteredConnections}
           itemContent={renderConnectionItem}
           rangeChanged={handleVisibleRangeChange}
-        />
-      ) : (
-        <ConnectionsGroupView
-          groupedConnections={groupedConnections}
-          expandedGroups={expandedGroups}
-          toggleGroup={toggleGroup}
-          displayIcon={displayIcon}
-          displayAppName={displayAppName}
-          findProcessMode={findProcessMode}
-          iconMap={iconMap}
-          appNameCache={appNameCache}
-          tab={tab}
-          selectedId={selected?.id}
-          setSelected={setSelected}
-          setIsDetailModalOpen={setIsDetailModalOpen}
-          closeConnection={closeConnection}
-          hideConnection={hideConnection}
-          unhideConnection={unhideConnection}
-          hiddenRules={hiddenRules}
-          handleContextMenu={handleContextMenu}
         />
       )}
     </div>

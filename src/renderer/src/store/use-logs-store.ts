@@ -21,6 +21,7 @@ interface LogsState {
 // We can replicate that but inside the store module scope.
 
 const logBuffer: ControllerLog[] = []
+const LOG_BUFFER_LIMIT = 500
 
 const updateStore = throttle((logs: ControllerLog[]) => {
     useLogsStore.setState({ logs: logs.slice() })
@@ -29,7 +30,7 @@ const updateStore = throttle((logs: ControllerLog[]) => {
 const handleLog = (_e: unknown, log: ControllerLog) => {
     log.time = new Date().toLocaleString()
     logBuffer.push(log)
-    if (logBuffer.length >= 500) {
+    if (logBuffer.length > LOG_BUFFER_LIMIT) {
         logBuffer.shift()
     }
     

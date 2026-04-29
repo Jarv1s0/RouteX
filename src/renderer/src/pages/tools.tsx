@@ -1,9 +1,31 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { Card, CardBody, Input, Button, Tabs, Tab, Chip, Skeleton } from '@heroui/react'
-import { IoSearch, IoGlobe, IoShield, IoWifi, IoCheckmarkCircle, IoCloseCircle, IoRefresh, IoLocation, IoMap, IoTime, IoBusiness, IoServer, IoCopy, IoEye, IoEyeOff } from 'react-icons/io5'
+import {
+  IoSearch,
+  IoGlobe,
+  IoShield,
+  IoWifi,
+  IoCheckmarkCircle,
+  IoCloseCircle,
+  IoRefresh,
+  IoLocation,
+  IoMap,
+  IoTime,
+  IoBusiness,
+  IoServer,
+  IoCopy,
+  IoEye,
+  IoEyeOff
+} from 'react-icons/io5'
 import { mihomoDnsQuery } from '@renderer/utils/mihomo-ipc'
-import { testRuleMatch, testConnectivity, fetchIpInfo as fetchIpInfoIpc, checkStreamingUnlock, fetchBatchIpInfo } from '@renderer/utils/tools-ipc'
+import {
+  testRuleMatch,
+  testConnectivity,
+  fetchIpInfo as fetchIpInfoIpc,
+  checkStreamingUnlock,
+  fetchBatchIpInfo
+} from '@renderer/utils/tools-ipc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { IPCheckModal } from '@renderer/components/tools/ip-check-modal'
 import { IpCheckerPanel } from '@renderer/components/tools/ip-checker-panel'
@@ -36,48 +58,99 @@ interface IpInfo {
 }
 
 const defaultTargets = [
-  { name: 'Google', url: 'https://www.google.com/generate_204', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Google_Search.png' },
-  { name: 'GitHub', url: 'https://github.com', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/GitHub.png' },
-  { name: 'YouTube', url: 'https://www.youtube.com', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/YouTube.png' },
-  { name: 'Cloudflare', url: 'https://1.1.1.1/cdn-cgi/trace', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Cloudflare.png' },
-  { name: 'Twitter', url: 'https://twitter.com', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Twitter.png' },
+  {
+    name: 'Google',
+    url: 'https://www.google.com/generate_204',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Google_Search.png'
+  },
+  {
+    name: 'GitHub',
+    url: 'https://github.com',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/GitHub.png'
+  },
+  {
+    name: 'YouTube',
+    url: 'https://www.youtube.com',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/YouTube.png'
+  },
+  {
+    name: 'Cloudflare',
+    url: 'https://1.1.1.1/cdn-cgi/trace',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Cloudflare.png'
+  },
+  {
+    name: 'Twitter',
+    url: 'https://twitter.com',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Twitter.png'
+  },
   { name: '百度', url: 'https://www.baidu.com', icon: 'https://www.baidu.com/favicon.ico' }
 ]
 
 const defaultStreamingServices = [
-  { key: 'chatgpt', name: 'ChatGPT', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/ChatGPT.png' },
-  { key: 'gemini', name: 'Gemini', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Google.png' },
-  { key: 'netflix', name: 'Netflix', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Netflix.png' },
-  { key: 'youtube', name: 'YouTube', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/YouTube.png' },
-  { key: 'spotify', name: 'Spotify', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Spotify.png' },
-  { key: 'tiktok', name: 'TikTok', icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/TikTok.png' }
+  {
+    key: 'chatgpt',
+    name: 'ChatGPT',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/ChatGPT.png'
+  },
+  {
+    key: 'gemini',
+    name: 'Gemini',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Google.png'
+  },
+  {
+    key: 'netflix',
+    name: 'Netflix',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Netflix.png'
+  },
+  {
+    key: 'youtube',
+    name: 'YouTube',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/YouTube.png'
+  },
+  {
+    key: 'spotify',
+    name: 'Spotify',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Spotify.png'
+  },
+  {
+    key: 'tiktok',
+    name: 'TikTok',
+    icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/TikTok.png'
+  }
 ]
 
 const defaultTestTargets: CombinedTestTarget[] = [
-  ...defaultTargets.map(t => ({ 
-    id: t.name, 
-    ...t, 
-    type: 'connectivity' as const, 
-    status: 'idle' as const, 
-    latency: -1 
+  ...defaultTargets.map((t) => ({
+    id: t.name,
+    ...t,
+    type: 'connectivity' as const,
+    status: 'idle' as const,
+    latency: -1
   })),
-  ...defaultStreamingServices.map(s => ({ 
-    id: s.key, 
-    name: s.name, 
-    icon: s.icon, 
-    type: 'streaming' as const, 
-    status: 'idle' as const, 
-    latency: -1 
+  ...defaultStreamingServices.map((s) => ({
+    id: s.key,
+    name: s.name,
+    icon: s.icon,
+    type: 'streaming' as const,
+    status: 'idle' as const,
+    latency: -1
   }))
 ]
 
 const TEST_ALL_CONCURRENCY = 4
+const PROBE_NAME_MAP: Record<string, string> = {
+  ipip: 'IPIP.net',
+  cloudflare: 'Cloudflare',
+  ipinfo: 'IPinfo.io'
+}
 
 const Tools: React.FC = () => {
   // DNS 查询
   const [dnsQuery, setDnsQuery] = useState('')
   const [dnsType, setDnsType] = useState<'A' | 'AAAA' | 'CNAME' | 'MX' | 'TXT'>('A')
-  const [dnsResult, setDnsResult] = useState<{ ip: string; country?: string; region?: string }[]>([])
+  const [dnsResult, setDnsResult] = useState<{ ip: string; country?: string; region?: string }[]>(
+    []
+  )
   const [dnsLoading, setDnsLoading] = useState(false)
   const [dnsError, setDnsError] = useState<string | null>(null)
 
@@ -86,22 +159,25 @@ const Tools: React.FC = () => {
 
   // 规则测试
   const [ruleQuery, setRuleQuery] = useState('')
-  const [ruleResult, setRuleResult] = useState<{ rule: string; rulePayload: string; proxy: string } | null>(null)
+  const [ruleResult, setRuleResult] = useState<{
+    rule: string
+    rulePayload: string
+    proxy: string
+  } | null>(null)
   const [ruleLoading, setRuleLoading] = useState(false)
   const [ruleError, setRuleError] = useState<string | null>(null)
 
   // 合并测试状态
   const [testTargets, setTestTargets] = useState<CombinedTestTarget[]>(defaultTestTargets)
   const testTargetsRef = useRef(testTargets)
-  testTargetsRef.current = testTargets  // 始终保持最新引用
+  testTargetsRef.current = testTargets // 始终保持最新引用
   const [allTesting, setAllTesting] = useState(false)
 
   // IP 信息
   const [ipInfo, setIpInfo] = useState<IpInfo | null>(null)
-  const [ipLoading, setIpLoading] = useState(false)
+  const [ipLoading, setIpLoading] = useState(true)
   const [showIp, setShowIp] = useState(false)
   const [ipError, setIpError] = useState<string | null>(null)
-  const [showProbePanel, setShowProbePanel] = useState(false)
 
   const handleDnsQuery = async (): Promise<void> => {
     if (!dnsQuery.trim()) return
@@ -111,10 +187,10 @@ const Tools: React.FC = () => {
     try {
       const result = await mihomoDnsQuery(dnsQuery.trim(), dnsType)
       if (result.Answer && result.Answer.length > 0) {
-        const ips = result.Answer.map(a => a.data)
+        const ips = result.Answer.map((a) => a.data)
         // 自动查询归属地
         try {
-          const geoInfos = await fetchBatchIpInfo(ips.map(ip => ({ query: ip, lang: 'zh-CN' })))
+          const geoInfos = await fetchBatchIpInfo(ips.map((ip) => ({ query: ip, lang: 'zh-CN' })))
           const resultsWithGeo = ips.map((ip, index) => {
             const geo = geoInfos[index]
             return {
@@ -126,7 +202,7 @@ const Tools: React.FC = () => {
           setDnsResult(resultsWithGeo)
         } catch {
           // 如果归属地查询失败，只显示 IP
-          setDnsResult(ips.map(ip => ({ ip })))
+          setDnsResult(ips.map((ip) => ({ ip })))
         }
       } else {
         setDnsError('无解析结果')
@@ -158,34 +234,34 @@ const Tools: React.FC = () => {
   }
 
   const testSingle = async (index: number): Promise<void> => {
-    setTestTargets(prev => {
+    setTestTargets((prev) => {
       const next = [...prev]
       next[index] = { ...next[index], status: 'testing', region: undefined, error: undefined }
       return next
     })
-    
+
     // 从 ref 读取最新状态，避免并发调用时闭包捕获过期值
     const target = testTargetsRef.current[index]
     if (!target) return
     try {
       if (target.type === 'connectivity') {
         const result = await testConnectivity(target.url!, 5000)
-        setTestTargets(prev => {
+        setTestTargets((prev) => {
           const next = [...prev]
-          next[index] = { 
-            ...next[index], 
-            status: result.success ? 'success' : 'error', 
+          next[index] = {
+            ...next[index],
+            status: result.success ? 'success' : 'error',
             latency: result.latency,
-            error: result.error,
+            error: result.error
           }
           return next
         })
       } else {
         const result = await checkStreamingUnlock(target.id)
-        setTestTargets(prev => {
+        setTestTargets((prev) => {
           const next = [...prev]
-          next[index] = { 
-            ...next[index], 
+          next[index] = {
+            ...next[index],
             status: result.status,
             region: result.region,
             error: result.error
@@ -194,10 +270,10 @@ const Tools: React.FC = () => {
         })
       }
     } catch (e) {
-      setTestTargets(prev => {
+      setTestTargets((prev) => {
         const next = [...prev]
-        next[index] = { 
-          ...next[index], 
+        next[index] = {
+          ...next[index],
           status: 'error',
           error: e instanceof Error ? e.message : String(e)
         }
@@ -208,7 +284,9 @@ const Tools: React.FC = () => {
 
   const testAll = async (): Promise<void> => {
     setAllTesting(true)
-    setTestTargets(prev => prev.map(t => ({ ...t, status: 'testing', region: undefined, error: undefined })))
+    setTestTargets((prev) =>
+      prev.map((t) => ({ ...t, status: 'testing', region: undefined, error: undefined }))
+    )
 
     for (let index = 0; index < testTargetsRef.current.length; index += TEST_ALL_CONCURRENCY) {
       const batch = testTargetsRef.current
@@ -217,7 +295,7 @@ const Tools: React.FC = () => {
 
       await Promise.allSettled(batch)
     }
-    
+
     setAllTesting(false)
   }
 
@@ -251,7 +329,9 @@ const Tools: React.FC = () => {
     }
   }, [])
 
-  const [probeResults, setProbeResults] = useState<Record<string, { ip: string, location: string, isp: string }>>({})
+  const [probeResults, setProbeResults] = useState<
+    Record<string, { ip: string; location: string; isp: string }>
+  >({})
 
   // 复制 IP 信息
   const copyIpInfo = useCallback(async () => {
@@ -265,8 +345,7 @@ ASN: ${ipInfo.as}`
     if (Object.keys(probeResults).length > 0) {
       info += '\n\n--- 探针检测结果 ---\n'
       Object.entries(probeResults).forEach(([id, res]) => {
-        const nameMap: Record<string, string> = { ipip: 'IPIP.net', cloudflare: 'Cloudflare', ipinfo: 'IPinfo.io' }
-        info += `[${nameMap[id] || id}] IP: ${res.ip} | 归属: ${res.location} ${res.isp}\n`
+        info += `[${PROBE_NAME_MAP[id] || id}] IP: ${res.ip} | 归属: ${res.location} ${res.isp}\n`
       })
     }
 
@@ -285,48 +364,29 @@ ASN: ${ipInfo.as}`
 
   // 初始加载 IP 信息
   useEffect(() => {
-    let cancelled = false
-    const timer = setTimeout(() => {
-      if (!cancelled) {
-        void fetchIpInfo()
-      }
-    }, 1800)
-
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
+    void fetchIpInfo()
   }, [fetchIpInfo])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowProbePanel(true)
-    }, 2200)
-
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [])
 
   return (
     <BasePage title="工具">
       <IPCheckModal isOpen={showIpCheckModal} onClose={() => setShowIpCheckModal(false)} />
       <div className="p-2 space-y-2">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-
-
-
           {/* DNS 查询 */}
-          <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} h-full hover:!scale-100 !cursor-default`}>
+          <Card
+            className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} h-full hover:!scale-100 !cursor-default`}
+          >
             <CardBody className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="p-2 rounded-lg bg-primary/20">
                   <IoGlobe className="text-primary text-lg" />
                 </div>
                 <span className="font-medium">DNS 查询</span>
-                <span className="text-foreground-400 text-xs">（A: IPv4, AAAA: IPv6, CNAME: 别名）</span>
+                <span className="text-foreground-400 text-xs">
+                  （A: IPv4, AAAA: IPv6, CNAME: 别名）
+                </span>
               </div>
-              
+
               <div className="flex items-center gap-2 mb-3">
                 <Input
                   size="sm"
@@ -337,12 +397,12 @@ ASN: ${ipInfo.as}`
                   className="flex-1"
                   classNames={CARD_STYLES.GLASS_INPUT}
                 />
-                <Tabs 
+                <Tabs
                   classNames={{
                     ...CARD_STYLES.GLASS_TABS,
-                    tabList: CARD_STYLES.GLASS_TABS.tabList + " gap-1"
+                    tabList: CARD_STYLES.GLASS_TABS.tabList + ' gap-1'
                   }}
-                  selectedKey={dnsType} 
+                  selectedKey={dnsType}
                   onSelectionChange={(key) => setDnsType(key as typeof dnsType)}
                 >
                   <Tab key="A" title="A" />
@@ -360,15 +420,18 @@ ASN: ${ipInfo.as}`
                 </Button>
               </div>
 
-              {dnsError && (
-                <div className="text-danger text-sm">{dnsError}</div>
-              )}
-              
+              {dnsError && <div className="text-danger text-sm">{dnsError}</div>}
+
               {dnsResult.length > 0 && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   {dnsResult.map((item, i) => (
-                    <div key={i} className="flex items-center gap-3 p-2 rounded-xl bg-default-100/50 border border-default-200/50">
-                      <Chip size="sm" variant="flat" color="primary" className="h-6 shrink-0">{dnsType}</Chip>
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 p-2 rounded-xl bg-default-100/50 border border-default-200/50"
+                    >
+                      <Chip size="sm" variant="flat" color="primary" className="h-6 shrink-0">
+                        {dnsType}
+                      </Chip>
                       <span className="font-mono text-sm select-all">{item.ip}</span>
                       {(item.country || item.region) && (
                         <div className="flex items-center gap-1 ml-2">
@@ -386,7 +449,9 @@ ASN: ${ipInfo.as}`
           </Card>
 
           {/* 规则测试 */}
-          <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} h-full hover:!scale-100 !cursor-default`}>
+          <Card
+            className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} h-full hover:!scale-100 !cursor-default`}
+          >
             <CardBody className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="p-2 rounded-lg bg-warning/20">
@@ -395,7 +460,7 @@ ASN: ${ipInfo.as}`
                 <span className="font-medium">规则测试</span>
                 <span className="text-foreground-400 text-xs">（发起请求测试实际匹配规则）</span>
               </div>
-              
+
               <div className="flex items-center gap-2 mb-3">
                 <Input
                   size="sm"
@@ -417,21 +482,24 @@ ASN: ${ipInfo.as}`
                 </Button>
               </div>
 
-              {ruleError && (
-                <div className="text-danger text-sm">{ruleError}</div>
-              )}
-              
+              {ruleError && <div className="text-danger text-sm">{ruleError}</div>}
+
               {ruleResult && (
                 <div className="p-3 rounded-xl bg-content2/50 border border-default-200/50 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex flex-col gap-1">
                     <span className="text-foreground-400 text-xs">匹配规则</span>
                     <div className="font-mono text-sm bg-background/50 p-1.5 rounded-lg border border-default-100">
-                      {ruleResult.rule}{ruleResult.rulePayload ? `,${ruleResult.rulePayload}` : ''}
+                      {ruleResult.rule}
+                      {ruleResult.rulePayload ? `,${ruleResult.rulePayload}` : ''}
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-foreground-400 text-xs">出站代理</span>
-                    <div><Chip size="sm" variant="flat" color="success" className="h-6">{ruleResult.proxy}</Chip></div>
+                    <div>
+                      <Chip size="sm" variant="flat" color="success" className="h-6">
+                        {ruleResult.proxy}
+                      </Chip>
+                    </div>
                   </div>
                 </div>
               )}
@@ -440,7 +508,9 @@ ASN: ${ipInfo.as}`
         </div>
 
         {/* 网络与服务检测 */}
-        <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default`}>
+        <Card
+          className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default`}
+        >
           <CardBody className="p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -460,10 +530,10 @@ ASN: ${ipInfo.as}`
                 全部测试
               </Button>
             </div>
-            
+
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
               {testTargets.map((target, index) => (
-                <Card 
+                <Card
                   key={target.id}
                   isPressable
                   onPress={() => target.status !== 'testing' && testSingle(index)}
@@ -471,8 +541,8 @@ ASN: ${ipInfo.as}`
                 >
                   <CardBody className="p-3 text-center">
                     <RemoteImage
-                      src={target.icon} 
-                      alt={target.name} 
+                      src={target.icon}
+                      alt={target.name}
                       className="w-6 h-6 mx-auto mb-1"
                     />
                     <div className="text-xs font-medium mb-2">{target.name}</div>
@@ -484,7 +554,9 @@ ASN: ${ipInfo.as}`
                           <IoCheckmarkCircle className="text-success text-xl animate-in zoom-in duration-200" />
                         </div>
                         <div className="text-success text-xs">
-                          {target.type === 'connectivity' ? `${target.latency}ms` : (target.region || '已解锁')}
+                          {target.type === 'connectivity'
+                            ? `${target.latency}ms`
+                            : target.region || '已解锁'}
                         </div>
                       </div>
                     ) : target.status === 'locked' ? (
@@ -499,7 +571,9 @@ ASN: ${ipInfo.as}`
                         <div className="flex justify-center mb-1">
                           <IoCloseCircle className="text-warning text-xl animate-in zoom-in duration-200" />
                         </div>
-                        <div className="text-warning text-xs" title={target.error}>检测失败</div>
+                        <div className="text-warning text-xs" title={target.error}>
+                          检测失败
+                        </div>
                       </div>
                     ) : (
                       <div className="text-primary text-xs">点击测试</div>
@@ -512,7 +586,9 @@ ASN: ${ipInfo.as}`
         </Card>
 
         {/* IP 信息 */}
-        <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default`}>
+        <Card
+          className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default`}
+        >
           <CardBody className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -553,7 +629,7 @@ ASN: ${ipInfo.as}`
                 </Button>
               </div>
             </div>
-            
+
             {ipLoading && !ipInfo ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-3/4 rounded" />
@@ -579,8 +655,8 @@ ASN: ${ipInfo.as}`
                             {showIp ? ipInfo?.ip : '•••.•••.•••.•••'}
                           </div>
                           {showIp && (
-                            <IoCopy 
-                              className="text-foreground-400 hover:text-primary cursor-pointer transition-colors text-base shrink-0" 
+                            <IoCopy
+                              className="text-foreground-400 hover:text-primary cursor-pointer transition-colors text-base shrink-0"
                               onClick={copyIpInfo}
                               title="全部复制"
                             />
@@ -598,19 +674,24 @@ ASN: ${ipInfo.as}`
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-xs text-foreground-400">国家与城市</div>
-                        <div className="text-sm font-medium truncate" title={`${ipInfo?.country} ${ipInfo?.city}`}>
+                        <div
+                          className="text-sm font-medium truncate"
+                          title={`${ipInfo?.country} ${ipInfo?.city}`}
+                        >
                           {ipInfo?.country} {ipInfo?.city}
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="p-2 rounded-lg bg-warning/10 text-warning shrink-0">
                         <IoTime className="text-lg" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-xs text-foreground-400">时区</div>
-                        <div className="text-sm font-medium truncate" title={ipInfo?.timezone}>{ipInfo?.timezone}</div>
+                        <div className="text-sm font-medium truncate" title={ipInfo?.timezone}>
+                          {ipInfo?.timezone}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -623,17 +704,21 @@ ASN: ${ipInfo.as}`
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-xs text-foreground-400">ISP 运营商</div>
-                        <div className="text-sm font-medium truncate" title={ipInfo?.isp}>{ipInfo?.isp}</div>
+                        <div className="text-sm font-medium truncate" title={ipInfo?.isp}>
+                          {ipInfo?.isp}
+                        </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="p-2 rounded-lg bg-danger/10 text-danger shrink-0">
                         <IoServer className="text-lg" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-xs text-foreground-400">ASN 组织</div>
-                        <div className="text-sm font-medium truncate" title={ipInfo?.as}>{ipInfo?.as}</div>
+                        <div className="text-sm font-medium truncate" title={ipInfo?.as}>
+                          {ipInfo?.as}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -641,17 +726,7 @@ ASN: ${ipInfo.as}`
 
                 {/* 第三方 IP 测试探针 (右列) */}
                 <div className="grid grid-cols-1 gap-3 h-fit">
-                  {showProbePanel ? (
-                    <IpCheckerPanel showIp={showIp} onResultsChange={setProbeResults} enabled />
-                  ) : (
-                    <div className="space-y-3">
-                      {Array.from({ length: 3 }).map((_, index) => (
-                        <div key={index} className="p-4 rounded-xl bg-default-50/50 border border-default-200/30 h-[72px]">
-                          <Skeleton className="h-full w-full rounded-lg" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <IpCheckerPanel showIp={showIp} onResultsChange={setProbeResults} enabled />
                 </div>
               </div>
             ) : null}

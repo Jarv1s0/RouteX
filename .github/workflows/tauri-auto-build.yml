@@ -198,6 +198,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Rust Tests
+        run: pnpm test:rust
+
       - name: Build Tauri Application
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -5,7 +5,7 @@ import { webdavBackup, listWebdavBackups } from '@renderer/utils/webdav-ipc'
 import { toast } from 'sonner'
 import debounce from '@renderer/utils/debounce'
 import WebdavRestoreModal from './webdav-restore-modal'
-import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 interface Props {
   isOpen: boolean
@@ -15,6 +15,8 @@ interface Props {
 const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
+    collapseSidebar = false,
+    siderWidth = 250,
     webdavUrl = '',
     webdavUsername = '',
     webdavPassword = '',
@@ -102,7 +104,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
         scrollBehavior="inside"
         classNames={createSecondaryModalClassNames()}
       >
-        <ModalContent>
+        <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 820 })}>
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1 py-2 px-4">

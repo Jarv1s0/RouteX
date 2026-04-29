@@ -7,6 +7,29 @@ import { getAppUptime, getNetworkHealthStats, startNetworkHealthMonitor, stopNet
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
+const LATENCY_VALUE_CLASS = 'font-mono tracking-tight'
+
+const formatLatency = (latency: number | null | undefined): string => {
+  const value = latency ?? -1
+  if (value < 0) return '--'
+  if (value === 0) return 'TIMEOUT'
+  return `${value}ms`
+}
+
+const getLatencyValueClass = (
+  latency: number | null | undefined,
+  thresholds: { good: number; fair: number }
+): string => {
+  const value = latency ?? -1
+  const colorClass =
+    value < 0 ? 'text-default-400' :
+    value === 0 ? 'text-rose-500' :
+    value < thresholds.good ? 'text-emerald-500' :
+    value < thresholds.fair ? 'text-amber-500' : 'text-rose-500'
+
+  return `${colorClass} ${LATENCY_VALUE_CLASS}`
+}
+
 const StatusGrid: React.FC = () => {
   const [uptime, setUptime] = useState<string>('00:00:00')
   const [dnsLatency, setDnsLatency] = useState<number>(-1)
@@ -111,22 +134,17 @@ const StatusGrid: React.FC = () => {
     },
     {
       label: '网络延迟',
-      value: (networkLatency ?? -1) === -1 ? '--' : networkLatency === 0 ? 'TIMEOUT' : `${networkLatency}ms`,
+      value: formatLatency(networkLatency),
       icon: IoGlobe,
       iconClass: 'bg-amber-500/10 text-amber-500',
-      valueClass: ((networkLatency ?? -1) === -1 ? 'text-default-400' : 
-                  networkLatency === 0 ? 'text-rose-500' : 
-                  networkLatency < 200 ? 'text-emerald-500' : 
-                  networkLatency < 500 ? 'text-amber-500' : 'text-rose-500') + ' font-mono tracking-tight'
+      valueClass: getLatencyValueClass(networkLatency, { good: 200, fair: 500 })
     },
     {
       label: 'DNS 延迟',
-      value: (dnsLatency ?? -1) >= 0 ? (dnsLatency === 0 ? '<1ms' : `${dnsLatency}ms`) : 'TIMEOUT',
+      value: formatLatency(dnsLatency),
       icon: IoTimer,
       iconClass: 'bg-rose-500/10 text-rose-500',
-      valueClass: ((dnsLatency ?? -1) < 0 ? 'text-rose-500' :
-                  dnsLatency < 50 ? 'text-emerald-500' : 
-                  dnsLatency < 100 ? 'text-amber-500' : 'text-rose-500') + ' font-mono tracking-tight'
+      valueClass: getLatencyValueClass(dnsLatency, { good: 50, fair: 100 })
     }
   ]
 
