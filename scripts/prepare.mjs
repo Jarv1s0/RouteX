@@ -35,8 +35,14 @@ const OPTIONAL_EXTRA_PATHS = [
   path.join(cwd, 'extra', 'files', 'sub-store-frontend')
 ]
 let arch = process.arch
-if (process.argv.slice(2).length !== 0) {
-  arch = process.argv.slice(2)[0].replace('--', '')
+const archArg = process.argv
+  .slice(2)
+  .find((arg) => arg && arg !== '--')
+if (archArg) {
+  arch = archArg.replace(/^--/, '')
+}
+if (!arch) {
+  throw new Error('target arch must not be empty')
 }
 
 function isLockedFileError(error) {
