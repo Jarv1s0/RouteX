@@ -145,7 +145,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm prepare:resources
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            pnpm prepare:resources -- arm64
+          else
+            pnpm prepare:resources
+          fi
 
       - name: Verify Bundled Resources
         shell: bash
@@ -201,13 +207,130 @@ jobs:
       - name: Rust Tests
         run: pnpm test:rust
 
+      - name: Install macOS ARM64 Rust Target
+        if: matrix.platform == 'macos'
+        run: rustup target add aarch64-apple-darwin
+
       - name: Build Tauri Application
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           ROUTEX_AUTO_BUILD: 'true'
           ROUTEX_TAURI_BUILD_VARIANT: autobuild
-        run: pnpm tauri build
+        shell: bash
+        run: |
+          case "${{ matrix.platform }}" in
+            windows)
+              pnpm tauri build --bundles nsis
+              ;;
+            linux)
+              pnpm tauri build --bundles deb rpm appimage
+              ;;
+            macos)
+              pnpm tauri build --target aarch64-apple-darwin --bundles dmg
+              ;;
+            *)
+              echo "Unsupported platform: ${{ matrix.platform }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Prepare Release Artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          artifact_dir="release-artifacts"
+          rm -rf "$artifact_dir"
+          mkdir -p "$artifact_dir"
+
+          case "${{ matrix.platform }}" in
+            windows)
+              bundle_dir="src-tauri/target/release/bundle"
+              setup_file=$(find "$bundle_dir/nsis" -type f -name '*.exe' -print -quit)
+              if [ -z "$setup_file" ]; then
+                echo "Missing Windows NSIS setup artifact"
+                exit 1
+              fi
+              cp "$setup_file" "$artifact_dir/windows-x64-setup.exe"
+
+              portable_dir="$artifact_dir/RouteX-portable"
+              mkdir -p "$portable_dir"
+              cp src-tauri/target/release/routex_tauri.exe "$portable_dir/RouteX.exe"
+              for dir in extra resources; do
+                if [ ! -d "src-tauri/target/release/$dir" ]; then
+                  echo "Missing Windows portable resources: src-tauri/target/release/$dir"
+                  exit 1
+                fi
+                cp -R "src-tauri/target/release/$dir" "$portable_dir/$dir"
+              done
+
+              if command -v 7z >/dev/null 2>&1; then
+                seven_zip="7z"
+              elif [ -x "/c/Program Files/7-Zip/7z.exe" ]; then
+                seven_zip="/c/Program Files/7-Zip/7z.exe"
+              else
+                echo "7-Zip is required to create windows-x64-portable.7z"
+                exit 1
+              fi
+              (cd "$portable_dir" && "$seven_zip" a -t7z "../windows-x64-portable.7z" .)
+              rm -rf "$portable_dir"
+              ;;
+            linux)
+              bundle_dir="src-tauri/target/release/bundle"
+              deb_file=$(find "$bundle_dir/deb" -type f -name '*.deb' -print -quit)
+              rpm_file=$(find "$bundle_dir/rpm" -type f -name '*.rpm' -print -quit)
+              appimage_file=$(find "$bundle_dir/appimage" -type f -name '*.AppImage' -print -quit)
+
+              if [ -z "$deb_file" ] || [ -z "$rpm_file" ] || [ -z "$appimage_file" ]; then
+                echo "Missing one or more Linux artifacts"
+                exit 1
+              fi
+
+              cp "$deb_file" "$artifact_dir/linux-amd64.deb"
+              cp "$appimage_file" "$artifact_dir/linux-x86_64.AppImage"
+              cp "$rpm_file" "$artifact_dir/linux-x86_64.rpm"
+              ;;
+            macos)
+              bundle_dir="src-tauri/target/aarch64-apple-darwin/release/bundle"
+              dmg_file=$(find "$bundle_dir/dmg" -type f -name '*.dmg' -print -quit)
+              app_file=$(find "$bundle_dir/macos" -maxdepth 1 -type d -name '*.app' -print -quit)
+
+              if [ -z "$dmg_file" ] || [ -z "$app_file" ]; then
+                echo "Missing one or more macOS artifacts"
+                exit 1
+              fi
+
+              cp "$dmg_file" "$artifact_dir/macos-arm64.dmg"
+              productbuild --component "$app_file" /Applications "$artifact_dir/macos-arm64.pkg"
+              ;;
+            *)
+              echo "Unsupported platform: ${{ matrix.platform }}"
+              exit 1
+              ;;
+          esac
+
+          expected_files=()
+          case "${{ matrix.platform }}" in
+            windows)
+              expected_files=("windows-x64-portable.7z" "windows-x64-setup.exe")
+              ;;
+            linux)
+              expected_files=("linux-amd64.deb" "linux-x86_64.AppImage" "linux-x86_64.rpm")
+              ;;
+            macos)
+              expected_files=("macos-arm64.dmg" "macos-arm64.pkg")
+              ;;
+          esac
+
+          for file in "${expected_files[@]}"; do
+            if [ ! -f "$artifact_dir/$file" ]; then
+              echo "Missing release artifact: $file"
+              exit 1
+            fi
+          done
+
+          find "$artifact_dir" -maxdepth 1 -type f -print | sort
 
       - name: Upload Artifacts
         env:
@@ -215,32 +338,9 @@ jobs:
           GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
-          files=()
-          if [ ! -d src-tauri/target/release/bundle ]; then
-            echo "Artifact directory not found: src-tauri/target/release/bundle"
-            exit 1
-          fi
-
-          case "${{ matrix.platform }}" in
-            windows)
-              while IFS= read -r -d '' file; do
-                files+=("$file")
-              done < <(find src-tauri/target/release/bundle -type f \( -name '*.msi' -o -name '*.exe' \) -print0)
-              ;;
-            linux)
-              while IFS= read -r -d '' file; do
-                files+=("$file")
-              done < <(find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) -print0)
-              ;;
-            macos)
-              while IFS= read -r -d '' file; do
-                files+=("$file")
-              done < <(find src-tauri/target/release/bundle -type f \( -name '*.dmg' -o -name '*.app.tar.gz' \) -print0)
-              ;;
-          esac
-
+          mapfile -t files < <(find release-artifacts -maxdepth 1 -type f -print | sort)
           if [ "${#files[@]}" -eq 0 ]; then
-            echo "No artifacts found for platform: ${{ matrix.platform }}"
+            echo "No release artifacts found for platform: ${{ matrix.platform }}"
             exit 1
           fi
 

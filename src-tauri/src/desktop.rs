@@ -2323,7 +2323,6 @@ fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) -> Result<Pat
     if let Ok(resource_dir) = app.path().resource_dir() {
         candidates.push(resource_dir.join(file_name));
         candidates.push(resource_dir.join("resources").join(file_name));
-        candidates.push(resource_dir.join("_up_").join("resources").join(file_name));
     }
 
     #[cfg(debug_assertions)]
@@ -7711,14 +7710,7 @@ fn collect_resource_candidates(
     }
 
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
-    for base in [
-        resource_dir.clone(),
-        resource_dir.join("extra"),
-        resource_dir
-            .parent()
-            .map(|path| path.join("_up_").join("extra"))
-            .unwrap_or_default(),
-    ] {
+    for base in [resource_dir.clone(), resource_dir.join("extra")] {
         if !base.as_os_str().is_empty() {
             push_resource_candidate(
                 &mut candidates,
@@ -7732,7 +7724,6 @@ fn collect_resource_candidates(
         for base in [
             exe_dir.clone(),
             exe_dir.join("resources"),
-            exe_dir.join("_up_").join("extra"),
             exe_dir
                 .parent()
                 .map(|path| path.join("Resources"))

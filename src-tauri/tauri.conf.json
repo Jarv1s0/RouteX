@@ -30,15 +30,15 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "resources": [
-      "../extra/sidecar",
-      "../extra/files",
-      "../resources/icon_tun.ico",
-      "../resources/icon_proxy.ico",
-      "../resources/icon.ico",
-      "../resources/icon.png",
-      "../resources/iconTemplate.png"
-    ],
+    "resources": {
+      "../extra/sidecar": "extra/sidecar",
+      "../extra/files": "extra/files",
+      "../resources/icon_tun.ico": "resources/icon_tun.ico",
+      "../resources/icon_proxy.ico": "resources/icon_proxy.ico",
+      "../resources/icon.ico": "resources/icon.ico",
+      "../resources/icon.png": "resources/icon.png",
+      "../resources/iconTemplate.png": "resources/iconTemplate.png"
+    },
     "windows": {
       "nsis": {
         "languages": [
