@@ -8546,18 +8546,23 @@ fn build_routex_autorun_task_xml(app: &tauri::AppHandle) -> Result<String, Strin
   <Actions Context="Author">
     <Exec>
       <Command>"{}"</Command>
-      <Arguments>"{}"</Arguments>
+      <Arguments>"{}" {}</Arguments>
     </Exec>
   </Actions>
 </Task>
 "#,
         routex_run_path.display(),
-        exe_path.display()
+        exe_path.display(),
+        ROUTEX_STARTUP_ARG
     ))
 }
 
 #[cfg(target_os = "windows")]
-fn check_windows_task_matches_current_app(task_name: &str, app: &tauri::AppHandle) -> bool {
+fn check_windows_task_matches_current_app(
+    task_name: &str,
+    app: &tauri::AppHandle,
+    required_argument: Option<&str>,
+) -> bool {
     let routex_run_path = match routex_run_binary_task_path(app) {
         Ok(path) => path,
         Err(_) => return false,
@@ -8574,7 +8579,11 @@ fn check_windows_task_matches_current_app(task_name: &str, app: &tauri::AppHandl
     let routex_run_path = routex_run_path.to_string_lossy();
     let exe_path = exe_path.to_string_lossy();
 
-    xml.contains(routex_run_path.as_ref()) && xml.contains(exe_path.as_ref())
+    xml.contains(routex_run_path.as_ref())
+        && xml.contains(exe_path.as_ref())
+        && required_argument
+            .map(|argument| xml.contains(argument))
+            .unwrap_or(true)
 }
 
 fn create_autorun_task(app: &tauri::AppHandle) -> Result<(), String> {
@@ -8639,7 +8648,11 @@ fn check_autorun_task() -> bool {
 
 #[cfg(target_os = "windows")]
 fn check_autorun_task_matches_current_app(app: &tauri::AppHandle) -> bool {
-    check_windows_task_matches_current_app(routex_autorun_task_name(), app)
+    check_windows_task_matches_current_app(
+        routex_autorun_task_name(),
+        app,
+        Some(ROUTEX_STARTUP_ARG),
+    )
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -8781,8 +8794,9 @@ fn escape_desktop_exec_arg(value: &str) -> String {
 fn linux_autostart_desktop_entry() -> Result<String, String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     Ok(format!(
-        "[Desktop Entry]\nName=RouteX\nExec={} %U\nTerminal=false\nType=Application\nIcon=routex\nStartupWMClass=routex\nComment=RouteX\nCategories=Utility;\n",
-        escape_desktop_exec_arg(exe_path.to_string_lossy().as_ref())
+        "[Desktop Entry]\nName=RouteX\nExec={} {} %U\nTerminal=false\nType=Application\nIcon=routex\nStartupWMClass=routex\nComment=RouteX\nCategories=Utility;\n",
+        escape_desktop_exec_arg(exe_path.to_string_lossy().as_ref()),
+        ROUTEX_STARTUP_ARG
     ))
 }
 
@@ -8927,7 +8941,7 @@ fn check_elevate_task() -> bool {
 
 #[cfg(target_os = "windows")]
 fn check_elevate_task_matches_current_app(app: &tauri::AppHandle) -> bool {
-    check_windows_task_matches_current_app(routex_run_task_name(), app)
+    check_windows_task_matches_current_app(routex_run_task_name(), app, None)
 }
 
 #[cfg(target_os = "windows")]

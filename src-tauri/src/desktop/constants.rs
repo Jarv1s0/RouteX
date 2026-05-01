@@ -92,6 +92,7 @@ pub(super) const ROUTEX_RUN_XML: &str = "routex-run.xml";
 pub(super) const ROUTEX_RUN_ARGS_FILE: &str = "param.txt";
 pub(super) const ROUTEX_AUTORUN_TASK_NAME: &str = "routex";
 pub(super) const ROUTEX_AUTORUN_XML: &str = "routex-autorun.xml";
+pub(super) const ROUTEX_STARTUP_ARG: &str = "--routex-startup";
 #[cfg(target_os = "linux")]
 pub(super) const ROUTEX_DESKTOP_NAME: &str = "routex.desktop";
 pub(super) const ENABLE_LOOPBACK_URL: &str =

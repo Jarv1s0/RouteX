@@ -15,6 +15,7 @@ pub(super) fn read_startup_alignment_config(
         .get("silentStart")
         .and_then(Value::as_bool)
         .unwrap_or(false);
+    let startup_launch = std::env::args().any(|arg| arg.eq_ignore_ascii_case(ROUTEX_STARTUP_ARG));
     #[cfg(target_os = "macos")]
     {
         let use_dock_icon = config
@@ -44,7 +45,7 @@ pub(super) fn read_startup_alignment_config(
 
     sync_shell_surfaces(app)?;
 
-    if silent_start {
+    if silent_start && startup_launch {
         let _ = hide_main_window(app, true);
     } else {
         let _ = show_main_window(app);
