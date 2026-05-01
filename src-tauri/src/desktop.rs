@@ -8295,10 +8295,6 @@ fn routex_run_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(task_dir(app)?.join(ROUTEX_RUN_XML))
 }
 
-fn routex_run_args_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    Ok(task_dir(app)?.join(ROUTEX_RUN_ARGS_FILE))
-}
-
 fn routex_autorun_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(task_dir(app)?.join(ROUTEX_AUTORUN_XML))
 }
@@ -8306,28 +8302,6 @@ fn routex_autorun_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, Strin
 fn resolve_routex_run_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     resolve_resource_binary(app, "files", ROUTEX_RUN_BINARY)
         .map_err(|_| format!("RouteX run helper not found: {ROUTEX_RUN_BINARY}"))
-}
-
-fn write_elevate_task_params(app: &tauri::AppHandle) -> Result<(), String> {
-    let args = std::env::args().skip(1).collect::<Vec<_>>();
-    let value = if args.is_empty() {
-        "empty".to_string()
-    } else {
-        args.join(" ")
-    };
-    fs::write(routex_run_args_path(app)?, value).map_err(|e| e.to_string())
-}
-
-fn ensure_routex_run_binary_for_task(app: &tauri::AppHandle) -> Result<(), String> {
-    let routex_run_dest = routex_run_binary_task_path(app)?;
-    if routex_run_dest.exists() {
-        return Ok(());
-    }
-
-    let routex_run_source = resolve_routex_run_binary(app)?;
-    fs::copy(routex_run_source, routex_run_dest)
-        .map(|_| ())
-        .map_err(|e| e.to_string())
 }
 
 fn encode_utf16le_with_bom(value: &str) -> Vec<u8> {
@@ -9004,68 +8978,23 @@ Add-Type -AssemblyName System.Windows.Forms
         .output();
 }
 
-#[cfg(target_os = "windows")]
-fn show_windows_startup_relaunch_failed_dialog(create_error: &str, run_error: &str) {
-    let title = powershell_single_quoted("自动提权启动失败");
-    let message = powershell_single_quoted(&format!(
-        "已检测到提权任务，但自动拉起高权限实例失败。\r\n\r\n首次管理员授权的注册状态可能异常，请到“内核设置 -> 任务状态”重新注册后再试。\r\n\r\n创建任务错误：{create_error}\r\n启动任务错误：{run_error}"
-    ));
-    let script = format!(
-        r#"
-Add-Type -AssemblyName System.Windows.Forms
-[System.Windows.Forms.MessageBox]::Show(
-  {message},
-  {title},
-  [System.Windows.Forms.MessageBoxButtons]::OK,
-  [System.Windows.Forms.MessageBoxIcon]::Error
-) | Out-Null
-"#
-    );
-
-    let mut command = Command::new("powershell");
-    let _ = apply_background_command(&mut command)
-        .args([
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            &script,
-        ])
-        .output();
-}
-
-fn run_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
-    #[cfg(target_os = "windows")]
-    {
-        write_elevate_task_params(app)?;
-        ensure_routex_run_binary_for_task(app)?;
-        return schtasks_command(&["/run", "/tn", routex_run_task_name()]);
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        let _ = app;
-        Err("当前平台未实现任务计划启动".to_string())
-    }
-}
-
-fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
+fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         if cfg!(debug_assertions) {
-            return Ok(true);
+            return Ok(());
         }
 
         if std::env::args().any(|arg| arg.eq_ignore_ascii_case("noadmin")) {
-            return Ok(true);
+            return Ok(());
         }
 
         if read_core_permission_mode(app)? == "service" {
-            return Ok(true);
+            return Ok(());
         }
 
         match create_elevate_task(app) {
-            Ok(()) => Ok(true),
+            Ok(()) => Ok(()),
             Err(create_error) => {
                 if !check_elevate_task_matches_current_app(app) {
                     if looks_like_windows_permission_error(&create_error) {
@@ -9075,13 +9004,10 @@ fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
                     }
                     // Allow the shell to start even if the elevate task is stale or not yet
                     // registered. Users can still repair the permission state from the UI.
-                    return Ok(true);
+                    return Ok(());
                 }
 
-                if let Err(run_error) = run_elevate_task(app) {
-                    show_windows_startup_relaunch_failed_dialog(&create_error, &run_error);
-                }
-                Ok(true)
+                Ok(())
             }
         }
     }
@@ -9089,7 +9015,7 @@ fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
     #[cfg(not(target_os = "windows"))]
     {
         let _ = app;
-        Ok(true)
+        Ok(())
     }
 }
 
@@ -11776,9 +11702,13 @@ pub fn run() {
         .manage(CoreState::default())
         .setup(|app| {
             let app_handle = app.handle().clone();
-            if !ensure_elevated_startup(&app_handle)? {
-                app_handle.exit(0);
-                return Ok(());
+            let startup_launch =
+                std::env::args().any(|arg| arg.eq_ignore_ascii_case(ROUTEX_STARTUP_ARG));
+            if !startup_launch {
+                let _ = show_main_window(&app_handle);
+            }
+            if let Err(error) = ensure_elevated_startup(&app_handle) {
+                eprintln!("elevated startup initialization failed: {error}");
             }
             let _ = initialize_traffic_stats_store(&app_handle);
             let _ = init_global_shortcuts(&app_handle);
@@ -11797,11 +11727,19 @@ pub fn run() {
             if let Some(window) = app_handle.get_webview_window("main") {
                 install_main_window_handlers(&app_handle, &window);
             }
-            if let Ok(startup_config) = read_startup_alignment_config(&app_handle) {
-                let startup_handle = app_handle.clone();
-                thread::spawn(move || {
-                    let _ = run_startup_alignment(&startup_handle, &startup_config);
-                });
+            match read_startup_alignment_config(&app_handle) {
+                Ok(startup_config) => {
+                    let startup_handle = app_handle.clone();
+                    thread::spawn(move || {
+                        let _ = run_startup_alignment(&startup_handle, &startup_config);
+                    });
+                }
+                Err(error) => {
+                    eprintln!("startup alignment failed: {error}");
+                    if !startup_launch {
+                        let _ = show_main_window(&app_handle);
+                    }
+                }
             }
             Ok(())
         })
