@@ -9078,13 +9078,10 @@ fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
                     return Ok(true);
                 }
 
-                match run_elevate_task(app) {
-                    Ok(()) => Ok(false),
-                    Err(run_error) => {
-                        show_windows_startup_relaunch_failed_dialog(&create_error, &run_error);
-                        Ok(true)
-                    }
+                if let Err(run_error) = run_elevate_task(app) {
+                    show_windows_startup_relaunch_failed_dialog(&create_error, &run_error);
                 }
+                Ok(true)
             }
         }
     }
