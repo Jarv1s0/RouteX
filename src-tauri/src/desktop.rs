@@ -25,7 +25,7 @@ use ring::rand::{SecureRandom, SystemRandom};
 use ring::signature::Ed25519KeyPair;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256, Sha512};
+use sha2::{Digest, Sha256};
 #[cfg(target_os = "macos")]
 use tauri::menu::AboutMetadata;
 use tauri::{
@@ -36,6 +36,7 @@ use tauri::{
     WebviewWindowBuilder, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState};
+use tauri_plugin_updater::UpdaterExt;
 use time::{macros::format_description, OffsetDateTime};
 use walkdir::WalkDir;
 use zip::{write::FileOptions, CompressionMethod, ZipArchive, ZipWriter};
@@ -11753,7 +11754,8 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             let _ = show_main_window(app);
         }))
-        .plugin(tauri_plugin_deep_link::init());
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_updater::Builder::new().build());
     let builder = if global_shortcut_plugin_enabled() {
         builder.plugin(tauri_plugin_global_shortcut::Builder::new().build())
     } else {

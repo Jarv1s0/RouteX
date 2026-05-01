@@ -246,22 +246,6 @@ pub(super) struct IpInfoQueryInput {
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
-pub(super) struct ReleaseManifestFile {
-    pub(super) url: Option<String>,
-    pub(super) sha512: Option<String>,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-pub(super) struct ReleaseManifest {
-    pub(super) version: String,
-    pub(super) path: Option<String>,
-    pub(super) sha512: Option<String>,
-    pub(super) files: Option<Vec<ReleaseManifestFile>>,
-    #[serde(rename = "releaseNotes")]
-    pub(super) release_notes: Option<serde_yaml::Value>,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
 pub(super) struct GitHubReleaseAsset {
     pub(super) name: String,
     pub(super) browser_download_url: String,

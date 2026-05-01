@@ -28,9 +28,10 @@ interface Props {
 }
 
 const UpdaterModal: React.FC<Props> = (props) => {
-  const { version, releaseNotes, updateStatus, onCancel, onClose } = props
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const { version, releaseNotes, updateStatus, onClose } = props
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
   const [downloading, setDownloading] = useState(false)
   const onUpdate = async (): Promise<void> => {
     try {
@@ -42,12 +43,10 @@ const UpdaterModal: React.FC<Props> = (props) => {
     }
   }
   const handleCancel = (): void => {
-    if (updateStatus?.downloading && onCancel) {
-      setDownloading(false)
-      onCancel()
-    } else {
-      onClose()
+    if (updateStatus?.downloading) {
+      return
     }
+    onClose()
   }
 
   const isDownloading = updateStatus?.downloading || downloading
@@ -130,10 +129,11 @@ const UpdaterModal: React.FC<Props> = (props) => {
           <Button
             size="sm"
             variant="light"
+            isDisabled={updateStatus?.downloading}
             onPress={handleCancel}
-            startContent={updateStatus?.downloading ? <FiX /> : undefined}
+            startContent={!updateStatus?.downloading ? <FiX /> : undefined}
           >
-            {updateStatus?.downloading ? '取消下载' : '取消'}
+            {updateStatus?.downloading ? '下载中' : '取消'}
           </Button>
           {!updateStatus?.downloading && (
             <Button

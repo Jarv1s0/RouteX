@@ -20,14 +20,69 @@ interface Props {
 }
 
 const RULE_CARD_REFRESH_DEBOUNCE_MS = 150
+const RULE_CARD_STARTUP_POLL_INTERVAL_MS = 800
+const RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS = 6
+const RULE_CARD_COUNT_CACHE_KEY = 'routex:rule-card-counts'
+
+interface CachedRuleCardCounts {
+  providerCount: number
+  ruleCount: number
+}
+
+interface RuleCardDisplayCounts {
+  providerText: string
+  ruleText: string
+}
+
+function readCachedRuleCardCounts(): CachedRuleCardCounts | null {
+  try {
+    const raw = window.localStorage.getItem(RULE_CARD_COUNT_CACHE_KEY)
+    if (!raw) {
+      return null
+    }
+
+    const parsed = JSON.parse(raw) as Partial<CachedRuleCardCounts>
+    if (
+      typeof parsed.providerCount !== 'number' ||
+      !Number.isFinite(parsed.providerCount) ||
+      typeof parsed.ruleCount !== 'number' ||
+      !Number.isFinite(parsed.ruleCount)
+    ) {
+      return null
+    }
+
+    return {
+      providerCount: parsed.providerCount,
+      ruleCount: parsed.ruleCount
+    }
+  } catch {
+    return null
+  }
+}
+
+function writeCachedRuleCardCounts(counts: CachedRuleCardCounts): void {
+  try {
+    window.localStorage.setItem(RULE_CARD_COUNT_CACHE_KEY, JSON.stringify(counts))
+  } catch {
+    // ignore storage write errors
+  }
+}
 
 const RuleCard: React.FC<Props> = (props) => {
   const { iconOnly, compact, className = '' } = props
   const location = useLocation()
   const match = location.pathname.includes('/rules')
   const [updating, setUpdating] = useState(false)
+  const [startupCountsReady, setStartupCountsReady] = useState(__ROUTEX_HOST__ !== 'tauri')
+  const [cachedCounts, setCachedCounts] = useState<CachedRuleCardCounts | null>(() =>
+    __ROUTEX_HOST__ === 'tauri' ? readCachedRuleCardCounts() : null
+  )
   const retryTimerRef = useRef<number | null>(null)
   const refreshTimerRef = useRef<number | null>(null)
+  const startupPollTimerRef = useRef<number | null>(null)
+  const startupPollAttemptsRef = useRef(0)
+  const startupStableHitsRef = useRef(0)
+  const startupSignatureRef = useRef('')
   const handleNavigate = (): void => {
     navigateSidebarRoute('/rules')
   }
@@ -49,6 +104,23 @@ const RuleCard: React.FC<Props> = (props) => {
     window.clearTimeout(refreshTimerRef.current)
     refreshTimerRef.current = null
   }, [])
+
+  const clearStartupPollTimer = useCallback((): void => {
+    if (startupPollTimerRef.current === null) {
+      return
+    }
+
+    window.clearTimeout(startupPollTimerRef.current)
+    startupPollTimerRef.current = null
+  }, [])
+
+  const resetStartupCountsState = useCallback((): void => {
+    setStartupCountsReady(false)
+    startupSignatureRef.current = ''
+    startupStableHitsRef.current = 0
+    startupPollAttemptsRef.current = 0
+    clearStartupPollTimer()
+  }, [clearStartupPollTimer])
 
   const {
     data: providersData,
@@ -93,6 +165,41 @@ const RuleCard: React.FC<Props> = (props) => {
       : 0
     return providerRuleCount + manualRuleCount
   }, [providerMap, runtimeConfig])
+
+  const countsSignature = useMemo(() => {
+    return `${providerCount}:${ruleCount}`
+  }, [providerCount, ruleCount])
+
+  const displayCounts = useMemo<RuleCardDisplayCounts>(() => {
+    if (startupCountsReady) {
+      return {
+        providerText: `${providerCount.toLocaleString()} 个规则集`,
+        ruleText: `${ruleCount.toLocaleString()} 条规则`
+      }
+    }
+
+    if (cachedCounts) {
+      return {
+        providerText: `${cachedCounts.providerCount.toLocaleString()} 个规则集`,
+        ruleText: `${cachedCounts.ruleCount.toLocaleString()} 条规则`
+      }
+    }
+
+    return {
+      providerText: '规则集加载中',
+      ruleText: '规则加载中'
+    }
+  }, [cachedCounts, providerCount, ruleCount, startupCountsReady])
+
+  useEffect(() => {
+    if (providerCount <= 0 || ruleCount <= 0) {
+      return
+    }
+
+    const nextCounts = { providerCount, ruleCount }
+    setCachedCounts(nextCounts)
+    writeCachedRuleCardCounts(nextCounts)
+  }, [providerCount, ruleCount])
 
   const updateAll = useCallback(async (): Promise<void> => {
     if (updating) return
@@ -141,6 +248,7 @@ const RuleCard: React.FC<Props> = (props) => {
     return (): void => {
       clearRetryTimer()
       clearRefreshTimer()
+      clearStartupPollTimer()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       offCoreStarted()
       offRulesUpdated()
@@ -148,7 +256,7 @@ const RuleCard: React.FC<Props> = (props) => {
       offOverrideConfigUpdated()
       offControledConfigUpdated()
     }
-  }, [clearRefreshTimer, clearRetryTimer, mutateProviders, mutateRuntimeConfig])
+  }, [clearRefreshTimer, clearRetryTimer, clearStartupPollTimer, mutateProviders, mutateRuntimeConfig])
 
   useEffect(() => {
     clearRetryTimer()
@@ -171,6 +279,59 @@ const RuleCard: React.FC<Props> = (props) => {
       clearRetryTimer()
     }
   }, [clearRetryTimer, mutateProviders, mutateRuntimeConfig, providersError, runtimeConfigError])
+
+  useEffect(() => {
+    if (__ROUTEX_HOST__ !== 'tauri') {
+      return
+    }
+
+    if (!providerMap || !runtimeConfig) {
+      resetStartupCountsState()
+      return
+    }
+
+    if (startupCountsReady) {
+      return
+    }
+
+    if (startupSignatureRef.current === countsSignature) {
+      startupStableHitsRef.current += 1
+    } else {
+      startupSignatureRef.current = countsSignature
+      startupStableHitsRef.current = 0
+    }
+
+    if (startupStableHitsRef.current >= 1) {
+      setStartupCountsReady(true)
+      clearStartupPollTimer()
+      return
+    }
+
+    if (startupPollAttemptsRef.current >= RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS) {
+      setStartupCountsReady(true)
+      clearStartupPollTimer()
+      return
+    }
+
+    clearStartupPollTimer()
+    startupPollTimerRef.current = window.setTimeout(() => {
+      startupPollTimerRef.current = null
+      startupPollAttemptsRef.current += 1
+      void Promise.all([mutateProviders(), mutateRuntimeConfig()])
+    }, RULE_CARD_STARTUP_POLL_INTERVAL_MS)
+
+    return (): void => {
+      clearStartupPollTimer()
+    }
+  }, [
+    countsSignature,
+    mutateProviders,
+    mutateRuntimeConfig,
+    providerMap,
+    resetStartupCountsState,
+    runtimeConfig,
+    startupCountsReady
+  ])
 
   if (iconOnly) {
     return (
@@ -231,8 +392,8 @@ const RuleCard: React.FC<Props> = (props) => {
       <div
         className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}
       >
-        <span>{providerCount.toLocaleString()} 个规则集</span>
-        <span>{ruleCount.toLocaleString()} 条规则</span>
+        <span>{displayCounts.providerText}</span>
+        <span>{displayCounts.ruleText}</span>
       </div>
     </div>
   )

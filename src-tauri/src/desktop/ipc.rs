@@ -3,11 +3,7 @@ use super::*;
 #[tauri::command]
 pub(super) async fn desktop_check_update(app: tauri::AppHandle) -> Result<Value, String> {
     let started_at = Instant::now();
-    let app_for_task = app.clone();
-    let result = tauri::async_runtime::spawn_blocking(move || check_update_manifest(&app_for_task))
-        .await
-        .map_err(|e| e.to_string())
-        .and_then(|result| result.map(|value| json!(value)));
+    let result = check_update_manifest(&app).await.map(|value| json!(value));
 
     let elapsed_ms = started_at.elapsed().as_millis();
     match &result {
@@ -75,13 +71,15 @@ fn desktop_invoke_sync(
             disable_auto_run()?;
             Ok(Value::Null)
         }
-        "checkUpdate" => Ok(json!(check_update_manifest(&app)?)),
+        "checkUpdate" => Ok(json!(tauri::async_runtime::block_on(
+            check_update_manifest(&app)
+        )?)),
         "downloadAndInstallUpdate" => {
             let version = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| String::from("缺少更新版本号"))?;
-            download_and_install_update(&app, &state, version)?;
+            tauri::async_runtime::block_on(download_and_install_update(&app, &state, version))?;
             Ok(Value::Null)
         }
         "cancelUpdate" => {

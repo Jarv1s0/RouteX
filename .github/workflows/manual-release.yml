@@ -123,19 +123,31 @@ jobs:
 
       - name: Build and Publish Windows
         if: matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')
-        run: pnpm build:win
+        shell: bash
+        run: |
+          pnpm prepare:resources
+          pnpm tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":true}}'
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          ROUTEX_UPDATER_PUBLIC_KEY: ${{ secrets.ROUTEX_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Build and Publish Linux
         if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
-        run: pnpm build:linux
+        shell: bash
+        run: |
+          pnpm prepare:resources
+          pnpm tauri build --bundles deb rpm appimage --config '{"bundle":{"createUpdaterArtifacts":true}}'
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          ROUTEX_UPDATER_PUBLIC_KEY: ${{ secrets.ROUTEX_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Build and Publish macOS
         if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
@@ -143,11 +155,14 @@ jobs:
         run: |
           set -euo pipefail
           pnpm prepare:resources -- arm64
-          pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg
+          pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":true}}'
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          ROUTEX_UPDATER_PUBLIC_KEY: ${{ secrets.ROUTEX_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Upload Release Artifacts
         if: (matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')) || (matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')) || (matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos'))
@@ -174,7 +189,7 @@ jobs:
 
               while IFS= read -r -d '' file; do
                 files+=("$file")
-              done < <(find src-tauri/target/release/bundle -type f \( -name '*.msi' -o -name '*.exe' \) -print0)
+              done < <(find src-tauri/target/release/bundle -type f \( -name '*.msi' -o -name '*.exe' -o -name '*.sig' \) -print0)
               ;;
             linux)
               if [ ! -d src-tauri/target/release/bundle ]; then
@@ -184,7 +199,7 @@ jobs:
 
               while IFS= read -r -d '' file; do
                 files+=("$file")
-              done < <(find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' \) -print0)
+              done < <(find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.tar.gz' -o -name '*.sig' \) -print0)
               ;;
             macos)
               bundle_dirs=()
@@ -205,7 +220,7 @@ jobs:
 
               while IFS= read -r -d '' file; do
                 files+=("$file")
-              done < <(find "${bundle_dirs[@]}" -type f \( -name '*.dmg' -o -name '*.app.tar.gz' \) -print0)
+              done < <(find "${bundle_dirs[@]}" -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' \) -print0)
               ;;
           esac
 
@@ -250,6 +265,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
+          node scripts/generate-tauri-updater-manifest.mjs v${{ env.VERSION }} latest.json
+          gh release upload v${{ env.VERSION }} latest.json --clobber
           gh release edit v${{ env.VERSION }} \
             --title "RouteX v${{ env.VERSION }}" \
             --notes-file release_notes.md \
