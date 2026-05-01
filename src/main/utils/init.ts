@@ -10,6 +10,7 @@ import {
   profileConfigPath,
   profilePath,
   profilesDir,
+  quickRulesConfigPath,
   resourcesFilesDir,
   subStoreDir,
   themesDir
@@ -18,6 +19,7 @@ import {
   defaultConfig,
   defaultControledMihomoConfig,
   defaultOverrideConfig,
+  defaultQuickRulesConfig,
   defaultProfile,
   defaultProfileConfig
 } from './template'
@@ -93,6 +95,9 @@ async function initConfig(): Promise<void> {
   }
   if (!existsSync(overrideConfigPath())) {
     configTasks.push(writeFile(overrideConfigPath(), stringifyYaml(defaultOverrideConfig)))
+  }
+  if (!existsSync(quickRulesConfigPath())) {
+    configTasks.push(writeFile(quickRulesConfigPath(), stringifyYaml(defaultQuickRulesConfig)))
   }
   if (!existsSync(profilePath('default'))) {
     configTasks.push(writeFile(profilePath('default'), stringifyYaml(defaultProfile)))

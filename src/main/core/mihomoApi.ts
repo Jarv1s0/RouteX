@@ -6,7 +6,7 @@ import { tray } from '../resolve/tray'
 import { calcTraffic } from '../utils/calc'
 import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
-import { mihomoIpcPath } from '../utils/dirs'
+import { mihomoIpcPath, serviceIpcPath } from '../utils/dirs'
 import {
   updateTrafficStats,
   updateProcessTraffic,
@@ -15,6 +15,7 @@ import {
 import { IPC_ON_CHANNELS } from '../../shared/ipc'
 import { writeFile } from 'fs/promises'
 import { logPath } from '../utils/dirs'
+import { createSignedServiceAxios, getServiceAuthHeaders } from '../service/api'
 
 let axiosIns: AxiosInstance = null!
 let mihomoTrafficWs: WebSocket | null = null
@@ -27,6 +28,7 @@ let mihomoLogsWs: WebSocket | null = null
 let logsRetry = 10
 let mihomoConnectionsWs: WebSocket | null = null
 let connectionsRetry = 10
+let axiosMode: 'direct' | 'service' | null = null
 let latestConnectionsSnapshot: ControllerConnections | null = null
 let connectionsBroadcastTimer: NodeJS.Timeout | null = null
 let lastConnectionsBroadcastAt = 0
@@ -106,32 +108,58 @@ async function mihomoProxyDelayWithOptions(
 }
 
 export const getAxios = async (force: boolean = false): Promise<AxiosInstance> => {
-  const currentSocketPath = mihomoIpcPath()
+  const { corePermissionMode = 'elevated' } = await getAppConfig()
+  const nextMode = corePermissionMode === 'service' ? 'service' : 'direct'
+  const currentSocketPath = nextMode === 'service' ? serviceIpcPath() : mihomoIpcPath()
+  const currentBaseURL =
+    nextMode === 'service' ? 'http://localhost/core/controller' : 'http://localhost'
 
-  if (axiosIns && axiosIns.defaults.socketPath !== currentSocketPath) {
+  if (
+    axiosIns &&
+    (axiosIns.defaults.socketPath !== currentSocketPath ||
+      axiosIns.defaults.baseURL !== currentBaseURL ||
+      axiosMode !== nextMode)
+  ) {
     force = true
   }
 
   if (axiosIns && !force) return axiosIns
 
-  axiosIns = axios.create({
-    baseURL: `http://localhost`,
-    socketPath: currentSocketPath,
-    timeout: 15000
-  })
+  axiosMode = nextMode
+  if (nextMode === 'service') {
+    axiosIns = createSignedServiceAxios(currentBaseURL)
+  } else {
+    axiosIns = axios.create({
+      baseURL: currentBaseURL,
+      socketPath: currentSocketPath,
+      timeout: 15000
+    })
 
-  axiosIns.interceptors.response.use(
-    (response) => {
-      return response.data
-    },
-    (error) => {
-      if (error.response && error.response.data) {
-        return Promise.reject(error.response.data)
+    axiosIns.interceptors.response.use(
+      (response) => {
+        return response.data
+      },
+      (error) => {
+        if (error.response && error.response.data) {
+          return Promise.reject(error.response.data)
+        }
+        return Promise.reject(error)
       }
-      return Promise.reject(error)
-    }
-  )
+    )
+  }
   return axiosIns
+}
+
+const mihomoWs = async (path: string): Promise<WebSocket> => {
+  const { corePermissionMode = 'elevated' } = await getAppConfig()
+  if (corePermissionMode !== 'service') {
+    return new WebSocket(`ws+unix:${mihomoIpcPath()}:${path}`)
+  }
+
+  const servicePath = `/core/controller${path}`
+  return new WebSocket(`ws+unix:${serviceIpcPath()}:${servicePath}`, {
+    headers: getServiceAuthHeaders('GET', servicePath)
+  })
 }
 
 export async function mihomoVersion(): Promise<ControllerVersion> {
@@ -379,7 +407,7 @@ export const stopMihomoTraffic = (): void => {
 }
 
 const mihomoTraffic = async (): Promise<void> => {
-  mihomoTrafficWs = new WebSocket(`ws+unix:${mihomoIpcPath()}:/traffic`)
+  mihomoTrafficWs = await mihomoWs('/traffic')
 
   mihomoTrafficWs.onmessage = async (e): Promise<void> => {
     const data = e.data as string
@@ -440,7 +468,7 @@ export const stopMihomoMemory = (): void => {
 }
 
 const mihomoMemory = async (): Promise<void> => {
-  mihomoMemoryWs = new WebSocket(`ws+unix:${mihomoIpcPath()}:/memory`)
+  mihomoMemoryWs = await mihomoWs('/memory')
 
   mihomoMemoryWs.onopen = async () => {
     await writeFile(logPath(), `[MihomoApi] Memory WS connected\n`, { flag: 'a' })
@@ -497,7 +525,7 @@ export const stopMihomoLogs = (): void => {
 const mihomoLogs = async (): Promise<void> => {
   const { 'log-level': logLevel = 'info' } = await getControledMihomoConfig()
 
-  mihomoLogsWs = new WebSocket(`ws+unix:${mihomoIpcPath()}:/logs?level=${logLevel}`)
+  mihomoLogsWs = await mihomoWs(`/logs?level=${logLevel}`)
 
   mihomoLogsWs.onmessage = (e): void => {
     const data = e.data as string
@@ -556,9 +584,7 @@ export const restartMihomoConnections = async (): Promise<void> => {
 const mihomoConnections = async (): Promise<void> => {
   const { connectionInterval = 1000 } = await getAppConfig()
   const normalizedConnectionInterval = Math.max(1000, connectionInterval || 1000)
-  mihomoConnectionsWs = new WebSocket(
-    `ws+unix:${mihomoIpcPath()}:/connections?interval=${normalizedConnectionInterval}`
-  )
+  mihomoConnectionsWs = await mihomoWs(`/connections?interval=${normalizedConnectionInterval}`)
 
   mihomoConnectionsWs.onmessage = (e): void => {
     const data = e.data as string

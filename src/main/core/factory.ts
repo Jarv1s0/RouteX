@@ -8,7 +8,8 @@ import {
   getOverrideItem,
   getOverrideConfig,
   getAppConfig,
-  getChainsConfig
+  getChainsConfig,
+  getQuickRuleStrings
 } from '../config'
 import {
   mihomoProfileWorkDir,
@@ -257,6 +258,7 @@ export async function generateProfile(): Promise<void> {
     rawProfileStr = await getProfileStr(current)
     currentProfileStr = stringifyYaml(currentProfileConfig)
     currentProfile = await overrideProfile(current, currentProfileConfig)
+    currentProfile = await injectQuickRules(current, currentProfile)
     overrideProfileStr = stringifyYaml(currentProfile)
   } else {
     const loadedProfiles = (
@@ -281,6 +283,7 @@ export async function generateProfile(): Promise<void> {
     rawProfileStr = stringifyYaml(mergedRawProfile)
     currentProfileStr = stringifyYaml(mergedRawProfile)
     currentProfile = mergeActiveProfiles(loadedProfiles, current, 'overriddenProfile')
+    currentProfile = await injectQuickRules(current, currentProfile)
     overrideProfileStr = stringifyYaml(currentProfile)
   }
   const controledMihomoConfig = await getControledMihomoConfig()
@@ -835,6 +838,15 @@ async function overrideProfile(
     }
   }
   return profile
+}
+
+async function injectQuickRules(
+  current: string | undefined,
+  profile: MihomoConfig
+): Promise<MihomoConfig> {
+  const rules = await getQuickRuleStrings(current || 'default')
+  if (rules.length === 0) return profile
+  return deepMerge(profile, { '+rules': rules } as Partial<MihomoConfig>, true)
 }
 
 async function runOverrideScript(

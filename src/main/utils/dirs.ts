@@ -7,12 +7,10 @@ import { getAppConfigSync } from '../config/app'
 import { checkCorePermissionSync } from '../core/manager'
 import { ROUTEX_RUN_BINARY } from './routex-run'
 const FIND_SYSTEM_MIHOMO_CACHE_MS = 60 * 1000
-let systemMihomoCache:
-  | {
-      value: string[]
-      expiresAt: number
-    }
-  | null = null
+let systemMihomoCache: {
+  value: string[]
+  expiresAt: number
+} | null = null
 
 export const homeDir = app.getPath('home')
 
@@ -152,6 +150,10 @@ export function routexRunPath(): string {
   return path.join(resourcesFilesDir(), ROUTEX_RUN_BINARY)
 }
 
+export function serviceAuthStorePath(): string {
+  return path.join(dataDir(), 'service-auth.json')
+}
+
 export function appConfigPath(): string {
   return path.join(dataDir(), 'config.yaml')
 }
@@ -178,6 +180,10 @@ export function overrideDir(): string {
 
 export function overrideConfigPath(): string {
   return path.join(dataDir(), 'override.yaml')
+}
+
+export function quickRulesConfigPath(): string {
+  return path.join(dataDir(), 'quick-rules.yaml')
 }
 
 export function chainsConfigPath(): string {

@@ -149,11 +149,14 @@ const ServiceModal: React.FC<Props> = (props) => {
         base: 'max-w-none w-full'
       })}
     >
-      <ModalContent className="w-[450px]">
+      <ModalContent className="relative w-[450px]">
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>RouteX 服务管理</span>
-          <SecondaryModalCloseButton onPress={() => onChange(false)} />
         </ModalHeader>
+        <SecondaryModalCloseButton
+          onPress={() => onChange(false)}
+          className="absolute right-4 top-3 z-10"
+        />
         <ModalBody>
           <div className="space-y-4">
             <Card
@@ -245,13 +248,12 @@ const ServiceModal: React.FC<Props> = (props) => {
             </div>
           </div>
         </ModalBody>
-        <ModalFooter className="flex-col gap-2 sm:flex-row">
+        <ModalFooter className="flex-col justify-end gap-2 sm:flex-row">
           <Button
             size="sm"
             variant="light"
             onPress={() => onChange(false)}
             isDisabled={loading}
-            className="sm:mr-auto"
           >
             关闭
           </Button>

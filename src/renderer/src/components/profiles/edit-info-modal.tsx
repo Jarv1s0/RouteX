@@ -23,6 +23,8 @@ import { FaPlus } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoIosHelpCircle } from 'react-icons/io'
 
+const SYSTEM_OVERRIDE_IDS = new Set(['quick-rules'])
+
 interface Props {
   item: ProfileItem
   isCurrent: boolean
@@ -34,7 +36,8 @@ const EditInfoModal: React.FC<Props> = (props) => {
   const { item, isCurrent, updateProfileItem, onClose } = props
   const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
   const { overrideConfig } = useOverrideConfig()
-  const { items: overrideItems = [] } = overrideConfig || {}
+  const { items = [] } = overrideConfig || {}
+  const overrideItems = items.filter((item) => !SYSTEM_OVERRIDE_IDS.has(item.id))
   const [values, setValues] = useState({ ...item, autoUpdate: item.autoUpdate ?? true })
   const inputWidth = 'w-[400px] md:w-[400px] lg:w-[600px] xl:w-[800px]'
 

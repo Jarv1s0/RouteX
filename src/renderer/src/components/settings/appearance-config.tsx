@@ -11,7 +11,7 @@ import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
 import { useTheme } from 'next-themes'
 import { IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
-import { MdEditDocument } from 'react-icons/md'
+import { LuFilePenLine } from 'react-icons/lu'
 import ShortcutConfigModal from './shortcut-config-modal'
 import CSSEditorModal from './css-editor-modal'
 
@@ -262,7 +262,7 @@ const AppearanceConfig: React.FC = () => {
                   setOpenCSSEditor(true)
                 }}
               >
-                <MdEditDocument className="text-lg" />
+                <LuFilePenLine className="text-lg" />
               </Button>
             </>
           }

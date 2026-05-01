@@ -288,7 +288,6 @@ const Mihomo: React.FC = () => {
             <Tabs
               classNames={CARD_STYLES.GLASS_TABS}
               selectedKey={corePermissionMode}
-              disabledKeys={['service']}
               onSelectionChange={(key) => handlePermissionModeChange(key as string)}
             >
               <Tab key="elevated" title={platform === 'win32' ? '任务计划' : '授权运行'} />

@@ -10,6 +10,7 @@ export const IPC_ON_CHANNELS = {
   networkHealth: 'networkHealth',
   overrideConfigUpdated: 'overrideConfigUpdated',
   profileConfigUpdated: 'profileConfigUpdated',
+  quickRulesConfigUpdated: 'quickRulesConfigUpdated',
   rulesUpdated: 'rulesUpdated',
   showDialogModal: 'show-dialog-modal',
   showErrorModal: 'show-error-modal',
