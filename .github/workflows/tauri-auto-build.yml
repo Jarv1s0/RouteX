@@ -258,7 +258,7 @@ jobs:
 
               portable_dir="$artifact_dir/RouteX-portable"
               mkdir -p "$portable_dir"
-              cp src-tauri/target/release/routex_tauri.exe "$portable_dir/RouteX.exe"
+              cp src-tauri/target/release/routex.exe "$portable_dir/RouteX.exe"
               for dir in extra resources; do
                 if [ ! -d "src-tauri/target/release/$dir" ]; then
                   echo "Missing Windows portable resources: src-tauri/target/release/$dir"

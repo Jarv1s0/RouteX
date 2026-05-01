@@ -3386,7 +3386,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "routex_tauri"
+name = "routex"
 version = "4.0.0"
 dependencies = [
  "base64 0.22.1",

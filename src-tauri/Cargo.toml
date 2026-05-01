@@ -1,5 +1,5 @@
 [package]
-name = "routex_tauri"
+name = "routex"
 version = "4.0.0"
 description = "RouteX Tauri shell"
 authors = ["Jarv1s0"]
