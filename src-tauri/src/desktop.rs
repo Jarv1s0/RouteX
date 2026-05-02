@@ -1587,15 +1587,94 @@ fn is_icon_remote_or_data_resource(app_path: &str) -> bool {
         || app_path.starts_with("https://")
 }
 
+fn current_exe_path_string() -> Option<String> {
+    std::env::current_exe()
+        .ok()
+        .and_then(|path| path.to_str().map(str::to_string))
+}
+
+fn path_file_name_eq(path: &Path, expected: &str) -> bool {
+    path.file_name()
+        .and_then(|value| value.to_str())
+        .is_some_and(|name| name.eq_ignore_ascii_case(expected))
+}
+
+#[cfg(target_os = "windows")]
+fn path_has_component_eq(path: &Path, expected: &str) -> bool {
+    path.components().any(|component| {
+        component
+            .as_os_str()
+            .to_str()
+            .is_some_and(|value| value.eq_ignore_ascii_case(expected))
+    })
+}
+
+#[cfg(target_os = "windows")]
+fn path_extension_eq(path: &Path, expected: &str) -> bool {
+    path.extension()
+        .and_then(|value| value.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case(expected))
+}
+
+#[cfg(target_os = "windows")]
+fn windowsapps_parent_app_exe(path: &Path) -> Option<String> {
+    if !path_has_component_eq(path, "WindowsApps") {
+        return None;
+    }
+
+    let resources_dir = path.parent()?;
+    if !path_file_name_eq(resources_dir, "resources") {
+        return None;
+    }
+
+    let app_dir = resources_dir.parent()?;
+    if !path_file_name_eq(app_dir, "app") {
+        return None;
+    }
+
+    let mut app_exe = None;
+    for entry in fs::read_dir(app_dir).ok()?.flatten() {
+        let candidate = entry.path();
+        if !candidate.is_file() || !path_extension_eq(&candidate, "exe") {
+            continue;
+        }
+
+        if app_exe.replace(candidate).is_some() {
+            return None;
+        }
+    }
+
+    app_exe.and_then(|candidate| candidate.to_str().map(str::to_string))
+}
+
+#[cfg(target_os = "windows")]
+fn canonical_windows_icon_request_path(app_path: &str) -> Option<String> {
+    let path = Path::new(app_path);
+
+    if path_file_name_eq(path, "mihomo.exe")
+        && path
+            .parent()
+            .is_some_and(|parent| path_file_name_eq(parent, "sidecar"))
+    {
+        return current_exe_path_string();
+    }
+
+    windowsapps_parent_app_exe(path)
+}
+
 fn normalize_icon_request_path(app_path: &str) -> String {
     if app_path == "mihomo" {
-        std::env::current_exe()
-            .ok()
-            .and_then(|path| path.to_str().map(str::to_string))
-            .unwrap_or_else(|| app_path.to_string())
-    } else {
-        app_path.to_string()
+        return current_exe_path_string().unwrap_or_else(|| app_path.to_string());
     }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(canonical_path) = canonical_windows_icon_request_path(app_path) {
+            return canonical_path;
+        }
+    }
+
+    app_path.to_string()
 }
 
 fn read_cached_icon_data_url(app_path: &str) -> Option<String> {

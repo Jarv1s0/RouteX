@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getAppName, getIconDataURLs } from '@renderer/utils/resource-ipc'
 
-const ICON_CACHE_PREFIX = 'routex:icon:'
+const ICON_CACHE_PREFIX = 'routex:icon:v2:'
 const ICON_CACHE_INDEX_KEY = 'routex:icon:index'
 const MAX_ICON_CACHE_ENTRIES = 120
-const VISIBLE_ICON_BATCH_SIZE = 4
-const PRELOAD_ICON_BATCH_SIZE = 2
+const VISIBLE_ICON_BATCH_SIZE = 8
+const PRELOAD_ICON_BATCH_SIZE = 4
 const sharedIconMemoryCache = new Map<string, string>()
 const sharedAppNameMemoryCache = new Map<string, string>()
 
@@ -192,7 +192,10 @@ export function useResourceQueue(
     }
 
     if (appNameRequestQueue.current.size > 0) {
-      processAppNameTimer.current = setTimeout(processAppNameQueue, 100)
+      processAppNameTimer.current = setTimeout(() => {
+        processAppNameTimer.current = null
+        void processAppNameQueue()
+      }, 100)
     }
   }, [])
 
@@ -260,10 +263,10 @@ export function useResourceQueue(
       visibleIconRequestQueue.current.size > 0 ||
       preloadIconRequestQueue.current.size > 0
     ) {
-      processIconTimer.current = setTimeout(
-        processIconQueue,
-        visibleIconRequestQueue.current.size > 0 ? 20 : 60
-      )
+      processIconTimer.current = setTimeout(() => {
+        processIconTimer.current = null
+        void processIconQueue()
+      }, visibleIconRequestQueue.current.size > 0 ? 20 : 60)
     }
   }, [filteredConnectionsFirstPath])
 
@@ -278,8 +281,14 @@ export function useResourceQueue(
       appNameRequestQueue.current.clear()
       processingIcons.current.clear()
       processingAppNames.current.clear()
-      if (processIconTimer.current) clearTimeout(processIconTimer.current)
-      if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
+      if (processIconTimer.current) {
+        clearTimeout(processIconTimer.current)
+        processIconTimer.current = null
+      }
+      if (processAppNameTimer.current) {
+        clearTimeout(processAppNameTimer.current)
+        processAppNameTimer.current = null
+      }
     }
   }, [])
 
@@ -295,11 +304,17 @@ export function useResourceQueue(
       preloadIconRequestQueue.current.size > 0
     ) {
       if (processIconTimer.current) clearTimeout(processIconTimer.current)
-      processIconTimer.current = setTimeout(processIconQueue, 10)
+      processIconTimer.current = setTimeout(() => {
+        processIconTimer.current = null
+        void processIconQueue()
+      }, 10)
     }
 
     return () => {
-      if (processIconTimer.current) clearTimeout(processIconTimer.current)
+      if (processIconTimer.current) {
+        clearTimeout(processIconTimer.current)
+        processIconTimer.current = null
+      }
     }
   }, [displayIcon, findProcessMode, processIconQueue])
 
@@ -311,11 +326,17 @@ export function useResourceQueue(
 
     if (appNameRequestQueue.current.size > 0) {
       if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
-      processAppNameTimer.current = setTimeout(processAppNameQueue, 10)
+      processAppNameTimer.current = setTimeout(() => {
+        processAppNameTimer.current = null
+        void processAppNameQueue()
+      }, 10)
     }
 
     return () => {
-      if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
+      if (processAppNameTimer.current) {
+        clearTimeout(processAppNameTimer.current)
+        processAppNameTimer.current = null
+      }
     }
   }, [displayAppName, processAppNameQueue])
 
@@ -343,8 +364,16 @@ export function useResourceQueue(
       // The consumer effects watch the queue? No, they watch deps.
       // But adding to ref doesn't trigger re-render.
       // So we need to ensure the timer starts if it wasn't running.
-      if (!processIconTimer.current && displayIcon && findProcessMode !== 'off') {
-        processIconTimer.current = setTimeout(processIconQueue, 10)
+      if (
+        !processIconTimer.current &&
+        processingIcons.current.size === 0 &&
+        displayIcon &&
+        findProcessMode !== 'off'
+      ) {
+        processIconTimer.current = setTimeout(() => {
+          processIconTimer.current = null
+          void processIconQueue()
+        }, 10)
       }
     },
     [iconMap, filteredConnectionsFirstPath, displayIcon, findProcessMode, processIconQueue]
@@ -361,8 +390,15 @@ export function useResourceQueue(
       }
 
       appNameRequestQueue.current.add(path)
-      if (!processAppNameTimer.current && displayAppName) {
-        processAppNameTimer.current = setTimeout(processAppNameQueue, 10)
+      if (
+        !processAppNameTimer.current &&
+        processingAppNames.current.size === 0 &&
+        displayAppName
+      ) {
+        processAppNameTimer.current = setTimeout(() => {
+          processAppNameTimer.current = null
+          void processAppNameQueue()
+        }, 10)
       }
     },
     [appNameCache, displayAppName, processAppNameQueue]
