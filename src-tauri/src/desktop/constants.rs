@@ -89,6 +89,7 @@ pub(super) const SHORTCUT_ACTION_KEYS: [&str; 9] = [
 pub(super) const ROUTEX_RUN_TASK_NAME: &str = "routex-run";
 pub(super) const ROUTEX_RUN_BINARY: &str = "routex-run.exe";
 pub(super) const ROUTEX_RUN_XML: &str = "routex-run.xml";
+pub(super) const ROUTEX_RUN_ARGS_FILE: &str = "param.txt";
 pub(super) const ROUTEX_AUTORUN_TASK_NAME: &str = "routex";
 pub(super) const ROUTEX_AUTORUN_XML: &str = "routex-autorun.xml";
 pub(super) const ROUTEX_STARTUP_ARG: &str = "--routex-startup";
