@@ -44,7 +44,6 @@
         "languages": [
           "SimpChinese"
         ],
-        "headerImage": "../resources/installerHeader.bmp",
         "sidebarImage": "../resources/installerSidebar.bmp",
         "installerIcon": "../resources/installerIcon.ico"
       },
