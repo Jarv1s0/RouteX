@@ -118,3 +118,68 @@ fn default_remote_profile_name_ignores_generic_subscribe_path() {
     );
     assert_eq!(default_remote_profile_name(None), "Subscribe");
 }
+
+#[test]
+fn run_override_script_returns_modified_profile() {
+    let profile = json!({
+        "mode": "rule",
+        "proxies": [
+            { "name": "Node A" }
+        ]
+    });
+    let script = r#"
+function main(config) {
+  config.mode = "global";
+  config["proxy-groups"] = [{ name: "Auto", proxies: config.proxies.map((proxy) => proxy.name) }];
+  return config;
+}
+"#;
+
+    let result = run_override_script(script, &profile).expect("script should run");
+
+    assert_eq!(result.get("mode").and_then(Value::as_str), Some("global"));
+    assert_eq!(
+        result
+            .get("proxy-groups")
+            .and_then(Value::as_array)
+            .and_then(|groups| groups.first())
+            .and_then(|group| group.get("name"))
+            .and_then(Value::as_str),
+        Some("Auto")
+    );
+}
+
+#[test]
+fn run_override_script_requires_main_to_return_object() {
+    let profile = json!({ "mode": "rule" });
+    let script = r#"
+function main(config) {
+  return "invalid";
+}
+"#;
+
+    let error = run_override_script(script, &profile).expect_err("script should fail");
+
+    assert!(
+        error.contains("必须返回对象"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn run_override_script_rejects_unbounded_loop() {
+    let profile = json!({ "mode": "rule" });
+    let script = r#"
+function main(config) {
+  while (true) {}
+  return config;
+}
+"#;
+
+    let error = run_override_script(script, &profile).expect_err("script should fail");
+
+    assert!(
+        error.contains("Maximum loop iteration limit") || error.contains("执行失败"),
+        "unexpected error: {error}"
+    );
+}

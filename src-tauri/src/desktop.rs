@@ -19,6 +19,7 @@ use std::os::unix::net::UnixStream;
 use std::os::windows::process::CommandExt;
 
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
+use boa_engine::{Context as JsContext, Source as JsSource};
 use quick_xml::{events::Event, Reader};
 use reqwest::blocking::Client;
 use ring::rand::{SecureRandom, SystemRandom};
@@ -6222,7 +6223,77 @@ fn parse_profile_yaml_value(text: &str) -> Result<Value, String> {
     serde_yaml::from_str::<Value>(trimmed).map_err(|e| e.to_string())
 }
 
-fn apply_yaml_overrides_to_profile(
+const JS_OVERRIDE_LOOP_ITERATION_LIMIT: u64 = 1_000_000;
+const JS_OVERRIDE_RECURSION_LIMIT: usize = 128;
+
+fn write_override_exec_log(app: &tauri::AppHandle, id: &str, message: &str) -> Result<(), String> {
+    let path = override_file_path(app, id, "log")?;
+    ensure_parent(&path)?;
+    fs::write(path, message).map_err(|e| e.to_string())
+}
+
+fn run_override_script(script: &str, profile: &Value) -> Result<Value, String> {
+    let profile_json = serde_json::to_string(profile).map_err(|e| e.to_string())?;
+    let wrapped_script = format!(
+        r#"
+(function() {{
+  const __ROUTEX_CONFIG__ = {profile_json};
+{script}
+  if (typeof main !== "function") {{
+    throw new Error("JS 覆写必须定义 main(config) 函数");
+  }}
+  const __ROUTEX_RESULT__ = main(__ROUTEX_CONFIG__);
+  if (__ROUTEX_RESULT__ === null || typeof __ROUTEX_RESULT__ !== "object" || Array.isArray(__ROUTEX_RESULT__)) {{
+    throw new Error("JS 覆写 main(config) 必须返回对象");
+  }}
+  return JSON.stringify(__ROUTEX_RESULT__);
+}})()
+"#
+    );
+
+    let mut context = JsContext::default();
+    context
+        .runtime_limits_mut()
+        .set_loop_iteration_limit(JS_OVERRIDE_LOOP_ITERATION_LIMIT);
+    context
+        .runtime_limits_mut()
+        .set_recursion_limit(JS_OVERRIDE_RECURSION_LIMIT);
+    let result = context
+        .eval(JsSource::from_bytes(&wrapped_script))
+        .map_err(|e| format!("JS 覆写执行失败: {e}"))?;
+    let result_text = result
+        .to_string(&mut context)
+        .map_err(|e| format!("JS 覆写返回值转换失败: {e}"))?
+        .to_std_string_escaped();
+    let value = serde_json::from_str::<Value>(&result_text)
+        .map_err(|e| format!("JS 覆写返回值不是有效 JSON: {e}"))?;
+    if !value.is_object() {
+        return Err("JS 覆写 main(config) 必须返回对象".to_string());
+    }
+    Ok(value)
+}
+
+fn apply_js_override(
+    app: &tauri::AppHandle,
+    item: &OverrideItemData,
+    text: &str,
+    profile: &mut Value,
+) -> Result<(), String> {
+    match run_override_script(text, profile) {
+        Ok(next_profile) => {
+            *profile = next_profile;
+            let _ = write_override_exec_log(app, &item.id, "JS 覆写执行成功");
+            Ok(())
+        }
+        Err(error) => {
+            let message = format!("{}: {}", item.name, error);
+            let _ = write_override_exec_log(app, &item.id, &message);
+            Err(message)
+        }
+    }
+}
+
+fn apply_overrides_to_profile(
     app: &tauri::AppHandle,
     profile_id: Option<&str>,
     profile: &mut Value,
@@ -6251,20 +6322,19 @@ fn apply_yaml_overrides_to_profile(
         let Some(item) = override_config.items.iter().find(|item| item.id == id) else {
             continue;
         };
-        if item.ext == "js" {
-            return Err("当前 Tauri 版本暂不支持 JS 覆写".to_string());
-        }
-        if item.ext != "yaml" {
-            continue;
-        }
-
         let text = read_override_text(app, &item.id, &item.ext)?;
         if text.trim().is_empty() {
             continue;
         }
 
-        let patch = parse_profile_yaml_value(&text)?;
-        merge_config_value(profile, &patch, true);
+        match item.ext.as_str() {
+            "yaml" => {
+                let patch = parse_profile_yaml_value(&text)?;
+                merge_config_value(profile, &patch, true);
+            }
+            "js" => apply_js_override(app, item, &text, profile)?,
+            _ => return Err(format!("不支持的覆写文件类型: {}", item.ext)),
+        }
     }
 
     Ok(())
@@ -6296,7 +6366,7 @@ fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, Strin
             };
             let raw_profile = parse_profile_yaml_value(&read_profile_text(app, profile_id)?)?;
             let mut overridden_profile = raw_profile.clone();
-            apply_yaml_overrides_to_profile(app, Some(profile_id), &mut overridden_profile)?;
+            apply_overrides_to_profile(app, Some(profile_id), &mut overridden_profile)?;
             loaded_profiles.push((
                 profile_id.clone(),
                 if item.name.trim().is_empty() {
@@ -6331,7 +6401,7 @@ fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, Strin
         merged_profile
     } else if let Some(profile_id) = current.as_deref() {
         let mut profile = parse_profile_yaml_value(&read_profile_text(app, profile_id)?)?;
-        apply_yaml_overrides_to_profile(app, current.as_deref(), &mut profile)?;
+        apply_overrides_to_profile(app, current.as_deref(), &mut profile)?;
         profile
     } else {
         json!({})

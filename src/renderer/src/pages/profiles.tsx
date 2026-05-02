@@ -49,6 +49,11 @@ import { notifyError } from '@renderer/utils/notify'
 import { OverrideConfigProvider, useOverrideConfig } from '@renderer/hooks/use-override-config'
 import { desktop } from '@renderer/api/desktop'
 import { createQueuedCoreRestartRunner } from '@renderer/utils/core-restart'
+import {
+  DEFAULT_JAVASCRIPT_OVERRIDE,
+  inferOverrideExt,
+  OVERRIDE_FILE_EXTENSIONS
+} from '@renderer/utils/override-format'
 
 const emptyProfileItems: ProfileItem[] = []
 const emptyOverrideItems: OverrideItem[] = []
@@ -738,7 +743,7 @@ const ProfilesPage: React.FC = () => {
                   onAction={async (key) => {
                     if (key === 'open') {
                       try {
-                        const files = await getFilePath(['yaml'])
+                        const files = await getFilePath(OVERRIDE_FILE_EXTENSIONS)
                         if (files?.length) {
                           const content = await readTextFile(files[0])
                           const fileName = files[0].split('/').pop()?.split('\\').pop()
@@ -746,7 +751,7 @@ const ProfilesPage: React.FC = () => {
                             name: fileName,
                             type: 'local',
                             file: content,
-                            ext: 'yaml'
+                            ext: inferOverrideExt(fileName)
                           })
                         }
                       } catch (e) {
@@ -758,6 +763,13 @@ const ProfilesPage: React.FC = () => {
                         type: 'local',
                         file: '# https://mihomo.party/docs/guide/override/yaml',
                         ext: 'yaml'
+                      })
+                    } else if (key === 'new-js') {
+                      await addOverrideItem({
+                        name: '新建 JavaScript',
+                        type: 'local',
+                        file: DEFAULT_JAVASCRIPT_OVERRIDE,
+                        ext: 'js'
                       })
                     } else if (key === 'import') {
                       const newRemoteOverride: OverrideItem = {
@@ -776,6 +788,7 @@ const ProfilesPage: React.FC = () => {
                   <DropdownItem key="open">打开本地覆写</DropdownItem>
                   <DropdownItem key="import">导入远程覆写</DropdownItem>
                   <DropdownItem key="new-yaml">新建 YAML</DropdownItem>
+                  <DropdownItem key="new-js">新建 JavaScript</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </>
