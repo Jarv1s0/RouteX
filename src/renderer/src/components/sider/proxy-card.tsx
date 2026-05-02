@@ -130,7 +130,7 @@ const ProxyCard: React.FC<Props> = (props) => {
             </span>
             <div className="flex flex-1 min-w-0 items-center gap-1.5 overflow-hidden">
               <span
-                className={`text-[13px] font-semibold tracking-wide truncate min-w-0 text-foreground ${
+                className={`text-[13px] font-medium tracking-wide truncate min-w-0 text-foreground ${
                   hasFinalNode ? 'max-w-[50%] shrink' : 'flex-1'
                 }`}
               >
@@ -142,7 +142,7 @@ const ProxyCard: React.FC<Props> = (props) => {
                     className={`text-[12px] shrink-0 text-default-500 dark:text-default-300`}
                   />
                   <span
-                    className={`text-[13px] truncate font-semibold tracking-wide min-w-0 flex-1 text-foreground/80 dark:text-foreground/86 flag-emoji`}
+                    className={`text-[13px] truncate font-medium tracking-wide min-w-0 flex-1 text-foreground/80 dark:text-foreground/86 flag-emoji`}
                   >
                     {finalNodeName}
                   </span>
