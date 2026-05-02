@@ -8310,20 +8310,12 @@ fn resolve_routex_run_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> 
 
 fn write_elevate_task_params(app: &tauri::AppHandle) -> Result<(), String> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    let value = if args.is_empty() {
-        "empty".to_string()
-    } else {
-        args.join(" ")
-    };
+    let value = serde_json::to_string(&args).map_err(|e| e.to_string())?;
     fs::write(routex_run_args_path(app)?, value).map_err(|e| e.to_string())
 }
 
 fn ensure_routex_run_binary_for_task(app: &tauri::AppHandle) -> Result<(), String> {
     let routex_run_dest = routex_run_binary_task_path(app)?;
-    if routex_run_dest.exists() {
-        return Ok(());
-    }
-
     let routex_run_source = resolve_routex_run_binary(app)?;
     fs::copy(routex_run_source, routex_run_dest)
         .map(|_| ())
@@ -11800,11 +11792,21 @@ pub fn run() {
             if let Some(window) = app_handle.get_webview_window("main") {
                 install_main_window_handlers(&app_handle, &window);
             }
-            if let Ok(startup_config) = read_startup_alignment_config(&app_handle) {
-                let startup_handle = app_handle.clone();
-                thread::spawn(move || {
-                    let _ = run_startup_alignment(&startup_handle, &startup_config);
-                });
+            let startup_launch =
+                std::env::args().any(|arg| arg.eq_ignore_ascii_case(ROUTEX_STARTUP_ARG));
+            match read_startup_alignment_config(&app_handle) {
+                Ok(startup_config) => {
+                    let startup_handle = app_handle.clone();
+                    thread::spawn(move || {
+                        let _ = run_startup_alignment(&startup_handle, &startup_config);
+                    });
+                }
+                Err(error) => {
+                    eprintln!("startup alignment failed: {error}");
+                    if !startup_launch {
+                        let _ = show_main_window(&app_handle);
+                    }
+                }
             }
             Ok(())
         })
