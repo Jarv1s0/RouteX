@@ -1,4 +1,63 @@
 use super::*;
+use std::collections::HashSet;
+
+const RUST_IPC_HANDLER_SOURCES: [&str; 5] = [
+    include_str!("ipc/config.rs"),
+    include_str!("ipc/mihomo.rs"),
+    include_str!("ipc/network.rs"),
+    include_str!("ipc/shell.rs"),
+    include_str!("ipc/system.rs"),
+];
+
+const TS_INVOKE_CHANNEL_SOURCES: [&str; 4] = [
+    include_str!("../../../src/shared/ipc/invoke-config.ts"),
+    include_str!("../../../src/shared/ipc/invoke-mihomo.ts"),
+    include_str!("../../../src/shared/ipc/invoke-network.ts"),
+    include_str!("../../../src/shared/ipc/invoke-system.ts"),
+];
+
+fn collect_rust_ipc_channels() -> HashSet<String> {
+    RUST_IPC_HANDLER_SOURCES
+        .iter()
+        .flat_map(|source| source.lines())
+        .filter_map(|line| {
+            let trimmed = line.trim_start();
+            if !trimmed.starts_with('"') || !trimmed.contains("=>") {
+                return None;
+            }
+            trimmed.split('"').nth(1).map(str::to_string)
+        })
+        .collect()
+}
+
+fn collect_ts_invoke_channels() -> HashSet<String> {
+    TS_INVOKE_CHANNEL_SOURCES
+        .iter()
+        .flat_map(|source| source.lines())
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            if !trimmed.contains(':') {
+                return None;
+            }
+            trimmed.split('\'').nth(1).map(str::to_string)
+        })
+        .collect()
+}
+
+#[test]
+fn desktop_invoke_channels_match_typescript_contract() {
+    let rust_channels = collect_rust_ipc_channels();
+    let ts_channels = collect_ts_invoke_channels();
+
+    let missing_in_rust = ts_channels
+        .difference(&rust_channels)
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(
+        missing_in_rust.is_empty(),
+        "IPC invoke channels declared in TypeScript are missing Rust handlers: {missing_in_rust:?}"
+    );
+}
 
 #[test]
 fn merge_profile_nodes_keeps_secondary_groups_out_of_runtime_profile() {
@@ -160,10 +219,7 @@ function main(config) {
 
     let error = run_override_script(script, &profile).expect_err("script should fail");
 
-    assert!(
-        error.contains("必须返回对象"),
-        "unexpected error: {error}"
-    );
+    assert!(error.contains("必须返回对象"), "unexpected error: {error}");
 }
 
 #[test]
