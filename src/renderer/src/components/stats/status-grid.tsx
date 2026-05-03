@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Card, CardBody } from '@heroui/react'
 import { IoTime, IoSwapHorizontal, IoServer, IoGlobe, IoTimer } from 'react-icons/io5'
-import { useConnections } from '@renderer/hooks/use-connections'
+import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { calcTraffic } from '@renderer/utils/calc'
 import { getAppUptime, getNetworkHealthStats, startNetworkHealthMonitor, stopNetworkHealthMonitor } from '@renderer/utils/stats-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
@@ -35,7 +35,7 @@ const StatusGrid: React.FC = () => {
   const [dnsLatency, setDnsLatency] = useState<number>(-1)
   const [networkLatency, setNetworkLatency] = useState<number>(-1)
   
-  const { connectionCount } = useConnections()
+  const connectionCount = useConnectionsStore((state) => state.connectionCount)
   const [memory, setMemory] = useState(0)
   const memoryUsage = useMemo(() => calcTraffic(memory), [memory])
 

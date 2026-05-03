@@ -124,8 +124,6 @@ interface AppConfig {
   disableAnimation?: boolean
   enableSiderConfig?: boolean
   collapseSidebar?: boolean
-  enableShortcutConfig?: boolean
-  enableWebdavConfig?: boolean
 }
 
 interface ProfileConfig {

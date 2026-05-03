@@ -13,7 +13,7 @@ import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { useLogsStore } from '@renderer/store/use-logs-store'
+import { releaseLogsView, retainLogsView, useLogsStore } from '@renderer/store/use-logs-store'
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
 
@@ -52,6 +52,13 @@ const Logs: React.FC = () => {
       return includesIgnoreCase(log.payload, deferredFilter) || includesIgnoreCase(log.type, deferredFilter)
     })
   }, [logs, deferredFilter])
+
+  useEffect(() => {
+    retainLogsView()
+    return () => {
+      releaseLogsView()
+    }
+  }, [])
 
   const handleExportLogs = async () => {
     if (filteredLogs.length === 0) {

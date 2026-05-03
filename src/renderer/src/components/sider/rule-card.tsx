@@ -23,6 +23,7 @@ const RULE_CARD_REFRESH_DEBOUNCE_MS = 150
 const RULE_CARD_STARTUP_POLL_INTERVAL_MS = 800
 const RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS = 6
 const RULE_CARD_COUNT_CACHE_KEY = 'routex:rule-card-counts'
+const RULE_CARD_IDLE_REFRESH_DELAY_MS = 2000
 
 interface CachedRuleCardCounts {
   providerCount: number
@@ -68,12 +69,49 @@ function writeCachedRuleCardCounts(counts: CachedRuleCardCounts): void {
   }
 }
 
+function scheduleIdleTask(task: () => void, delay = 0, timeout = 4000): () => void {
+  let idleId: number | null = null
+  const win = window as Window & {
+    requestIdleCallback?: (
+      callback: IdleRequestCallback,
+      options?: IdleRequestOptions
+    ) => number
+    cancelIdleCallback?: (handle: number) => void
+  }
+
+  const timeoutId = window.setTimeout(() => {
+    if (typeof win.requestIdleCallback === 'function') {
+      idleId = win.requestIdleCallback(() => task(), { timeout })
+      return
+    }
+
+    idleId = window.setTimeout(task, 0)
+  }, delay)
+
+  return () => {
+    window.clearTimeout(timeoutId)
+    if (idleId === null) {
+      return
+    }
+
+    if (typeof win.cancelIdleCallback === 'function') {
+      win.cancelIdleCallback(idleId)
+      return
+    }
+
+    window.clearTimeout(idleId)
+  }
+}
+
 const RuleCard: React.FC<Props> = (props) => {
   const { iconOnly, compact, className = '' } = props
   const location = useLocation()
   const match = location.pathname.includes('/rules')
   const [updating, setUpdating] = useState(false)
   const [startupCountsReady, setStartupCountsReady] = useState(__ROUTEX_HOST__ !== 'tauri')
+  const [ruleCardFetchReady, setRuleCardFetchReady] = useState(
+    __ROUTEX_HOST__ !== 'tauri' || match
+  )
   const [cachedCounts, setCachedCounts] = useState<CachedRuleCardCounts | null>(() =>
     __ROUTEX_HOST__ === 'tauri' ? readCachedRuleCardCounts() : null
   )
@@ -127,7 +165,7 @@ const RuleCard: React.FC<Props> = (props) => {
     error: providersError,
     mutate: mutateProviders
   } = useSWR(
-    'mihomoRuleProviders',
+    ruleCardFetchReady ? 'mihomoRuleProviders' : null,
     mihomoRuleProviders,
     {
       shouldRetryOnError: false,
@@ -138,7 +176,7 @@ const RuleCard: React.FC<Props> = (props) => {
     data: runtimeConfig,
     error: runtimeConfigError,
     mutate: mutateRuntimeConfig
-  } = useSWR('ruleCardRuntimeConfig', getRuntimeConfig, {
+  } = useSWR(ruleCardFetchReady ? 'ruleCardRuntimeConfig' : null, getRuntimeConfig, {
     shouldRetryOnError: false,
     refreshInterval: match ? 30000 : 0
   })
@@ -192,6 +230,26 @@ const RuleCard: React.FC<Props> = (props) => {
   }, [cachedCounts, providerCount, ruleCount, startupCountsReady])
 
   useEffect(() => {
+    if (ruleCardFetchReady) {
+      return
+    }
+
+    if (match) {
+      setRuleCardFetchReady(true)
+      return
+    }
+
+    return scheduleIdleTask(
+      () => {
+        if (!document.hidden) {
+          setRuleCardFetchReady(true)
+        }
+      },
+      RULE_CARD_IDLE_REFRESH_DELAY_MS
+    )
+  }, [match, ruleCardFetchReady])
+
+  useEffect(() => {
     if (providerCount <= 0 || ruleCount <= 0) {
       return
     }
@@ -228,6 +286,10 @@ const RuleCard: React.FC<Props> = (props) => {
       clearRefreshTimer()
       refreshTimerRef.current = window.setTimeout(() => {
         refreshTimerRef.current = null
+        if (!ruleCardFetchReady) {
+          setRuleCardFetchReady(true)
+          return
+        }
         refresh()
       }, RULE_CARD_REFRESH_DEBOUNCE_MS)
     }
@@ -256,7 +318,14 @@ const RuleCard: React.FC<Props> = (props) => {
       offOverrideConfigUpdated()
       offControledConfigUpdated()
     }
-  }, [clearRefreshTimer, clearRetryTimer, clearStartupPollTimer, mutateProviders, mutateRuntimeConfig])
+  }, [
+    clearRefreshTimer,
+    clearRetryTimer,
+    clearStartupPollTimer,
+    mutateProviders,
+    mutateRuntimeConfig,
+    ruleCardFetchReady
+  ])
 
   useEffect(() => {
     clearRetryTimer()

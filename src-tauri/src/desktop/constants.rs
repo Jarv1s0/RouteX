@@ -7,7 +7,6 @@ pub(super) const CONTROLLED_CONFIG_FILE: &str = "controlled-mihomo-config.json";
 pub(super) const PROFILE_CONFIG_FILE: &str = "profile-config.json";
 pub(super) const OVERRIDE_CONFIG_FILE: &str = "override-config.json";
 pub(super) const QUICK_RULES_CONFIG_FILE: &str = "quick-rules-config.json";
-pub(super) const PROVIDER_STATS_FILE: &str = "provider-stats.json";
 pub(super) const TRAFFIC_STATS_FILE: &str = "traffic-stats.json";
 pub(super) const PROFILE_DIR_NAME: &str = "profiles";
 pub(super) const OVERRIDE_DIR_NAME: &str = "overrides";

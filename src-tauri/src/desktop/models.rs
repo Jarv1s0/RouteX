@@ -263,21 +263,6 @@ pub(super) struct GistInfo {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub(super) struct ProviderSnapshotData {
-    pub(super) date: String,
-    pub(super) provider: String,
-    pub(super) used: u64,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub(super) struct ProviderStatsData {
-    #[serde(default)]
-    pub(super) snapshots: Vec<ProviderSnapshotData>,
-    #[serde(rename = "lastUpdate")]
-    pub(super) last_update: u64,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub(super) struct TrafficHourlyStats {
     pub(super) hour: String,
     pub(super) upload: u64,

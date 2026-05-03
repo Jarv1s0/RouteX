@@ -12,8 +12,6 @@ export const IPC_ON_CHANNELS = {
   profileConfigUpdated: 'profileConfigUpdated',
   quickRulesConfigUpdated: 'quickRulesConfigUpdated',
   rulesUpdated: 'rulesUpdated',
-  showDialogModal: 'show-dialog-modal',
-  showErrorModal: 'show-error-modal',
   showOverrideInstallConfirm: 'show-override-install-confirm',
   showProfileInstallConfirm: 'show-profile-install-confirm',
   showQuitConfirm: 'show-quit-confirm',

@@ -7,6 +7,7 @@ import { ON, onIpc } from './ipc-channels'
 const tauriSockets: Partial<Record<'traffic' | 'memory' | 'logs' | 'connections', WebSocket>> = {}
 const tauriBridgeReadyListeners = new Set<() => void>()
 let tauriSocketRetryTimer: number | null = null
+let tauriConnectionsBridgeRefCount = 0
 let tauriControlledConfigCache: Partial<MihomoConfig> | null = null
 let tauriRuntimeConfigCache: MihomoConfig | null = null
 let tauriRuntimeConfigStrCache: string | null = null
@@ -206,6 +207,32 @@ export function onTauriBridgeConnectionsReady(listener: () => void): () => void 
   }
 }
 
+export function retainTauriConnectionsBridge(): () => void {
+  if (!isTauriHost()) {
+    return () => undefined
+  }
+
+  tauriConnectionsBridgeRefCount += 1
+  if (tauriBridgeActiveControllerUrl) {
+    startTauriConnectionsSocket(tauriBridgeActiveControllerUrl, tauriBridgeStartVersion)
+  } else {
+    startTauriMihomoEventBridge('connections-retain')
+  }
+
+  let released = false
+  return () => {
+    if (released) {
+      return
+    }
+
+    released = true
+    tauriConnectionsBridgeRefCount = Math.max(0, tauriConnectionsBridgeRefCount - 1)
+    if (tauriConnectionsBridgeRefCount === 0) {
+      closeTauriSocket('connections')
+    }
+  }
+}
+
 function emitTauriBridgeConnectionsReady(): void {
   tauriBridgeReadyListeners.forEach((listener) => {
     try {
@@ -303,6 +330,38 @@ function toWebSocketUrl(controllerUrl: string, path: string): string {
   return controllerUrl.replace(/^http/i, 'ws') + path
 }
 
+function startTauriConnectionsSocket(controllerUrl: string, version: number): void {
+  if (tauriConnectionsBridgeRefCount <= 0) {
+    closeTauriSocket('connections')
+    return
+  }
+
+  void readTauriConnectionIntervalMs().then((connectionInterval) => {
+    if (
+      tauriConnectionsBridgeRefCount <= 0 ||
+      isStaleTauriBridgeStart(version) ||
+      tauriBridgeActiveControllerUrl !== controllerUrl
+    ) {
+      return
+    }
+
+    let bridgeReadyEmitted = false
+    startTauriSocket(
+      'connections',
+      toWebSocketUrl(controllerUrl, `/connections?interval=${connectionInterval}`),
+      version,
+      (payload) => {
+        // connections socket 收到第一条消息时通知监听者（bridge 真正就绪）
+        if (!bridgeReadyEmitted) {
+          bridgeReadyEmitted = true
+          emitTauriBridgeConnectionsReady()
+        }
+        emitParsedDesktopEvent<ControllerConnections>(IPC_ON_CHANNELS.mihomoConnections, payload)
+      }
+    )
+  })
+}
+
 function startTauriSocket(
   key: keyof typeof tauriSockets,
   url: string,
@@ -394,26 +453,7 @@ export function startTauriMihomoEventBridge(reason = 'manual'): void {
     }
   )
 
-  void readTauriConnectionIntervalMs().then((connectionInterval) => {
-    if (isStaleTauriBridgeStart(version) || tauriBridgeActiveControllerUrl !== controllerUrl) {
-      return
-    }
-
-    let bridgeReadyEmitted = false
-    startTauriSocket(
-      'connections',
-      toWebSocketUrl(controllerUrl, `/connections?interval=${connectionInterval}`),
-      version,
-      (payload) => {
-        // connections socket 收到第一条消息时通知监听者（bridge 真正就绪）
-        if (!bridgeReadyEmitted) {
-          bridgeReadyEmitted = true
-          emitTauriBridgeConnectionsReady()
-        }
-        emitParsedDesktopEvent<ControllerConnections>(IPC_ON_CHANNELS.mihomoConnections, payload)
-      }
-    )
-  })
+  startTauriConnectionsSocket(controllerUrl, version)
 }
 
 export function onTauriRealtimeTraffic(listener: (info: ControllerTraffic) => void): () => void {

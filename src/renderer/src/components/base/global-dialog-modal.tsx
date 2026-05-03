@@ -3,7 +3,6 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Code 
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { MdErrorOutline, MdInfoOutline, MdWarningAmber, MdCheckCircleOutline, MdContentCopy } from 'react-icons/md'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
-import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 type DialogType = 'info' | 'error' | 'warning' | 'success'
 
@@ -24,12 +23,6 @@ export const GlobalDialogModal: React.FC = () => {
   const [isCopied, setIsCopied] = useState(false)
 
   useEffect(() => {
-    // 监听主进程 IPC 消息
-    const handleIPC = (_event: Electron.IpcRendererEvent, type: DialogType, title: string, content: string): void => {
-      setDetails({ type, title, content })
-      setIsOpen(true)
-    }
-
     // 监听前端自定义事件
     const handleCustom = (event: Event): void => {
       const customEvent = event as CustomEvent
@@ -42,20 +35,13 @@ export const GlobalDialogModal: React.FC = () => {
       setIsOpen(true)
     }
 
-    const handleErrorModal = (_e: Electron.IpcRendererEvent, t: string, c: string): void => handleIPC(_e, 'error', t, c)
     const handleGlobalError = (e: Event): void => {
         const detail = (e as CustomEvent).detail
         setDetails({ type: 'error', title: detail?.title || '错误', content: detail?.content || '' })
         setIsOpen(true)
     }
 
-    const cleanups: Array<() => void> = []
-
     try {
-        cleanups.push(onIpc(ON.showDialogModal, handleIPC))
-        // 兼容旧的 show-error-modal，默认为 error
-        cleanups.push(onIpc(ON.showErrorModal, handleErrorModal))
-        
         window.addEventListener('show-global-dialog', handleCustom)
         // 兼容旧的 show-global-error，默认为 error
         window.addEventListener('show-global-error', handleGlobalError)
@@ -65,7 +51,6 @@ export const GlobalDialogModal: React.FC = () => {
 
     return (): void => {
       try {
-          cleanups.forEach((cleanup) => cleanup())
           window.removeEventListener('show-global-dialog', handleCustom)
           window.removeEventListener('show-global-error', handleGlobalError)
       } catch {

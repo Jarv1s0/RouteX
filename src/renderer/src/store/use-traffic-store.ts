@@ -1,12 +1,10 @@
 import { create } from 'zustand'
-import { getProfileConfig } from '@renderer/utils/profile-ipc'
-import { getProviderStats, getTrafficStats } from '@renderer/utils/stats-ipc'
+import { getTrafficStats } from '@renderer/utils/stats-ipc'
 import {
   getRecentTauriTrafficPoints,
   resetTauriTrafficRecorder
 } from '@renderer/utils/tauri-traffic-stats'
 import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
-import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import throttle from 'lodash/throttle'
 import { subscribeConnectionSnapshot } from './use-connections-store'
 
@@ -21,10 +19,6 @@ interface TrafficState {
   hourlyData: { hour: string; upload: number; download: number }[]
   dailyData: { date: string; upload: number; download: number }[]
   sessionStats: { upload: number; download: number }
-  
-  // Provider Data
-  providerData: { date: string; provider: string; used: number }[]
-  currentProviders: { name: string; resetDay?: number }[]
   
   // Rule Stats
   ruleStats: Map<string, { hits: number; upload: number; download: number }>
@@ -42,7 +36,6 @@ interface TrafficState {
   initializeListeners: () => void
   cleanupListeners: () => void
   fetchInitialStats: () => Promise<void>
-  refreshCurrentProviders: () => Promise<void>
   clearStats: () => void
 }
 
@@ -52,7 +45,8 @@ const MAX_DATA_POINTS = 60
 const MAX_DETAILS_PER_RULE = 20
 const MAX_RULES_TRACKED = 1000
 const TRAFFIC_EVENT_STALE_MS = 900
-const CONNECTION_SNAPSHOT_THROTTLE_MS = 250
+const CONNECTION_SNAPSHOT_THROTTLE_MS = 1000
+const HISTORICAL_STATS_REFRESH_INTERVAL_MS = 30_000
 
 // Module-level interval reference
 let trafficStatsInterval: number | undefined
@@ -63,7 +57,6 @@ let visibilityChangeHandler: (() => void) | null = null
 let currentTrafficUnsubscribe: (() => void) | null = null
 let currentConnectionsThrottle: { cancel: () => void } | null = null
 let currentConnectionsUnsubscribe: (() => void) | null = null
-let currentProfileConfigUnsubscribe: (() => void) | null = null
 let lastIpcTrafficEventAt = 0
 let lastIpcTrafficSample: { up: number; down: number; at: number } | null = null
 let lastConnectionTotals: { upload: number; download: number; at: number } | null = null
@@ -85,8 +78,6 @@ function unregisterTrafficHandlers() {
     currentConnectionsUnsubscribe = null
     currentTrafficUnsubscribe?.()
     currentTrafficUnsubscribe = null
-    currentProfileConfigUnsubscribe?.()
-    currentProfileConfigUnsubscribe = null
     if (visibilityChangeHandler) {
         document.removeEventListener('visibilitychange', visibilityChangeHandler)
         visibilityChangeHandler = null
@@ -101,8 +92,6 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
   hourlyData: [],
   dailyData: [],
   sessionStats: { upload: 0, download: 0 },
-  providerData: [],
-  currentProviders: [],
   ruleStats: new Map(),
   ruleHitDetails: new Map(),
 
@@ -294,24 +283,23 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
         currentTrafficUnsubscribe = subscribeDesktopTraffic(handleTraffic)
         currentConnectionsThrottle = handleConnections
         currentConnectionsUnsubscribe = subscribeConnectionSnapshot(handleConnections)
-        currentProfileConfigUnsubscribe = onIpc(ON.profileConfigUpdated, () => {
-          void get().refreshCurrentProviders()
-        })
     } catch(e) {
         console.error('Failed to register listeners:', e)
     }
 
     // Initial fetch of static stats
-    void Promise.all([get().fetchInitialStats(), get().refreshCurrentProviders()])
+    void get().fetchInitialStats()
     const refreshVisibleStats = () => {
       if (!document.hidden) {
         void get().fetchInitialStats()
       }
     }
 
-    // 可见状态下每 5s 补刷一次历史数据，避免小时/日统计长时间滞后。
-    // 并且只在窗口可见时才轮询，避免后台无效 IPC 消耗
-    trafficStatsInterval = window.setInterval(refreshVisibleStats, 5000)
+    // 实时速度走 /traffic 推送；小时/日历史数据低频补刷即可，避免统计页持续 IPC 压力。
+    trafficStatsInterval = window.setInterval(
+      refreshVisibleStats,
+      HISTORICAL_STATS_REFRESH_INTERVAL_MS
+    )
 
     // 当用户从后台切换回前台时，立即补刷一次（防止数据陈旧）
     visibilityChangeHandler = refreshVisibleStats
@@ -325,33 +313,15 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
   fetchInitialStats: async () => {
       try {
-        // 并发请求，减少串行等待时间
-        const [stats, pStats] = await Promise.all([
-          getTrafficStats(),
-          getProviderStats()
-        ])
+        const stats = await getTrafficStats()
 
         set({
             hourlyData: (stats.hourly || []).slice(-24),
             dailyData: (stats.daily || []).slice(-30),
-            sessionStats: { upload: stats.sessionUpload, download: stats.sessionDownload },
-            providerData: pStats.snapshots || []
+            sessionStats: { upload: stats.sessionUpload, download: stats.sessionDownload }
         })
       } catch (e) {
           console.error('Failed to fetch initial stats', e)
-      }
-  },
-
-  refreshCurrentProviders: async () => {
-      try {
-        const profileConfig = await getProfileConfig()
-        const providers = (profileConfig.items || [])
-          .filter(item => item.extra)
-          .map(item => ({ name: item.name || item.id, resetDay: item.resetDay }))
-
-        set({ currentProviders: providers })
-      } catch (e) {
-          console.error('Failed to refresh current providers', e)
       }
   },
 

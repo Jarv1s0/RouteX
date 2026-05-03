@@ -181,7 +181,6 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
         }
         "getInterfaces" => Ok(get_interfaces_value()),
         "getTrafficStats" => Ok(json!(read_traffic_stats_store(&app)?)),
-        "getProviderStats" => Ok(json!(get_provider_stats_value(&app)?)),
         "recordTrafficSample" => {
             let sample = serde_json::from_value::<TrafficSampleInput>(
                 args.first().cloned().unwrap_or_else(|| json!({})),
@@ -193,15 +192,6 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             clear_traffic_stats_store(&app)?;
             Ok(Value::Null)
         }
-        "clearProviderStats" => {
-            clear_provider_stats_value(&app)?;
-            Ok(Value::Null)
-        }
-        "getProcessTrafficRanking" => {
-            let _ranking_type = args.first().and_then(Value::as_str).unwrap_or("session");
-            let sort_by = args.get(1).and_then(Value::as_str).unwrap_or("download");
-            get_process_traffic_ranking_value(&state, sort_by)
-        }
         "startNetworkHealthMonitor" => {
             start_network_health_monitor(&app, &state)?;
             Ok(Value::Null)
@@ -212,11 +202,6 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
         }
         "getNetworkHealthStats" => Ok(get_network_health_stats_value(&state)?),
         "getAppUptime" => Ok(json!(get_app_uptime_seconds())),
-        "getAppMemory" => Ok(json!(get_app_memory_value())),
-        "testDNSLatency" => {
-            let domain = args.first().and_then(Value::as_str).unwrap_or("google.com");
-            Ok(json!(test_dns_latency(domain)))
-        }
         "webdavBackup" => Ok(json!(webdav_backup(&app)?)),
         "listWebdavBackups" => Ok(json!(list_webdav_backup_names(&read_webdav_config(&app)?)?)),
         "webdavRestore" => {

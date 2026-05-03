@@ -9,7 +9,6 @@ import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { getIconDataURL } from '@renderer/utils/resource-ipc'
 import { platform } from '@renderer/utils/init'
 import { navigateSidebarRoute } from '@renderer/routes'
-import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
 import TrafficChart from './traffic-chart'
 
@@ -39,9 +38,6 @@ const ConnCard: React.FC<Props> = (props) => {
   const [upload, setUpload] = useState(0)
   const [download, setDownload] = useState(0)
   const lastVisualUpdateAtRef = useRef(0)
-  const lastTrafficEventAtRef = useRef(0)
-  const hasTrafficEventRef = useRef(false)
-  const activeConnections = useConnectionsStore((state) => state.activeConnections)
 
   const [trafficData, setTrafficData] = useState(() =>
     Array(16)
@@ -49,38 +45,6 @@ const ConnCard: React.FC<Props> = (props) => {
       .map((_, i) => ({ upload: 0, download: 0, index: i }))
   )
   const isWindowFocusedRef = useRef(!document.hidden)
-
-  useEffect(() => {
-    if (activeConnections.length === 0) {
-      return
-    }
-
-    // 已经收到实时流量后，优先保留它，避免较慢的连接快照把显示值重置回 0。
-    if (hasTrafficEventRef.current && Date.now() - lastTrafficEventAtRef.current < 1500) {
-      return
-    }
-
-    const nextUpload = activeConnections.reduce(
-      (total, connection) => total + (connection.uploadSpeed || 0),
-      0
-    )
-    const nextDownload = activeConnections.reduce(
-      (total, connection) => total + (connection.downloadSpeed || 0),
-      0
-    )
-
-    setUpload(nextUpload)
-    setDownload(nextDownload)
-
-    if (isWindowFocusedRef.current) {
-      setTrafficData((prev) => {
-        const newData = [...prev]
-        newData.shift()
-        newData.push({ upload: nextUpload, download: nextDownload, index: Date.now() })
-        return newData
-      })
-    }
-  }, [activeConnections])
 
   // 监听窗口焦点状态
   useEffect(() => {
@@ -100,8 +64,6 @@ const ConnCard: React.FC<Props> = (props) => {
         return
       }
       lastVisualUpdateAtRef.current = now
-      lastTrafficEventAtRef.current = now
-      hasTrafficEventRef.current = true
 
       setUpload(info.up)
       setDownload(info.down)

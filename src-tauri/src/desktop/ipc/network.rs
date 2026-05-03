@@ -15,22 +15,6 @@ fn handle_network_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, c
                 .ok_or_else(|| "testRuleMatch requires domain".to_string())?;
             test_rule_match_value(&app, &state, domain)
         }
-        "alert" => {
-            let message =
-                args.first()
-                    .map(|value| match value {
-                        Value::String(text) => text.clone(),
-                        other => serde_json::to_string_pretty(other)
-                            .unwrap_or_else(|_| other.to_string()),
-                    })
-                    .unwrap_or_default();
-            emit_ipc_event(
-                &app,
-                "show-dialog-modal",
-                json!(["warning", "提示", message]),
-            );
-            Ok(Value::Null)
-        }
         "applyTheme" => Ok(Value::Null),
         "fetchIpInfo" => Ok(fetch_ip_info_current()?),
         "fetchIpInfoQuery" => {

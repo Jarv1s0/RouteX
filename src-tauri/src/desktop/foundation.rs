@@ -131,13 +131,6 @@ fn mihomo_http_client() -> Result<&'static Client, String> {
     }
 }
 
-fn current_local_date_string() -> String {
-    OffsetDateTime::now_local()
-        .unwrap_or_else(|_| OffsetDateTime::now_utc())
-        .format(&format_description!("[year]-[month]-[day]"))
-        .unwrap_or_else(|_| "1970-01-01".to_string())
-}
-
 fn current_local_timestamp_string() -> String {
     OffsetDateTime::now_local()
         .unwrap_or_else(|_| OffsetDateTime::now_utc())
@@ -145,48 +138,6 @@ fn current_local_timestamp_string() -> String {
             "[year]-[month]-[day]-[hour][minute][second]"
         ))
         .unwrap_or_else(|_| current_timestamp_ms().to_string())
-}
-
-fn get_app_memory_value() -> u64 {
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(output) = powershell_command()
-            .args([
-                "-NoProfile",
-                "-Command",
-                &format!("(Get-Process -Id {}).WorkingSet64", std::process::id()),
-            ])
-            .output()
-        {
-            if output.status.success() {
-                if let Ok(value) = String::from_utf8_lossy(&output.stdout)
-                    .trim()
-                    .parse::<u64>()
-                {
-                    return value;
-                }
-            }
-        }
-    }
-
-    #[cfg(any(target_os = "macos", target_os = "linux"))]
-    {
-        if let Ok(output) = Command::new("ps")
-            .args(["-o", "rss=", "-p", &std::process::id().to_string()])
-            .output()
-        {
-            if output.status.success() {
-                if let Ok(value) = String::from_utf8_lossy(&output.stdout)
-                    .trim()
-                    .parse::<u64>()
-                {
-                    return value.saturating_mul(1024);
-                }
-            }
-        }
-    }
-
-    0
 }
 
 fn default_sysproxy_bypass() -> Vec<String> {
@@ -1194,16 +1145,6 @@ fn inject_quick_rules(
     Ok(())
 }
 
-fn read_provider_stats(app: &tauri::AppHandle) -> Result<ProviderStatsData, String> {
-    let path = storage_file(app, PROVIDER_STATS_FILE)?;
-    Ok(read_json_file(&path)?.unwrap_or_default())
-}
-
-fn write_provider_stats(app: &tauri::AppHandle, stats: &ProviderStatsData) -> Result<(), String> {
-    let path = storage_file(app, PROVIDER_STATS_FILE)?;
-    write_json_file(&path, stats)
-}
-
 fn profile_file_path(app: &tauri::AppHandle, id: &str) -> Result<PathBuf, String> {
     Ok(storage_dir(app, PROFILE_DIR_NAME)?.join(format!("{id}.yaml")))
 }
@@ -1456,4 +1397,3 @@ fn fetch_theme_archive(app: &tauri::AppHandle) -> Result<(), String> {
 
     Ok(())
 }
-

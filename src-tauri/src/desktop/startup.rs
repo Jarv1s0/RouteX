@@ -79,9 +79,7 @@ pub(super) fn run_startup_alignment(
 
     let _ = refresh_ssid_check(app);
 
-    if restart_core_and_emit(app, &state).is_ok() {
-        let _ = get_provider_stats_value(app);
-    }
+    let _ = restart_core_and_emit(app, &state);
 
     Ok(())
 }

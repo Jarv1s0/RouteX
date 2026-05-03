@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { Button, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
-import { clearTrafficStats, clearProviderStats } from '@renderer/utils/stats-ipc'
+import { clearTrafficStats } from '@renderer/utils/stats-ipc'
 import { IoClose } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import ConfirmModal from '@renderer/components/base/base-confirm'
@@ -138,7 +138,6 @@ const Stats: React.FC = () => {
     setClearingStats(true)
     try {
       await clearTrafficStats()
-      await clearProviderStats()
       clearStats() // Clear local store
     } catch (e) {
       notifyError(`清除失败: ${e}`, { title: '清除统计失败' })
@@ -186,7 +185,6 @@ const Stats: React.FC = () => {
           {/* Traffic Chart */}
           <TrafficChartSection />
           
-          {/* Traffic Ranking (Merged) */}
           <TrafficRankingSection onSelectRule={setSelectedRule} />
         </div>
 

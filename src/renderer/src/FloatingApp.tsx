@@ -30,7 +30,7 @@ const FloatingApp: React.FC = () => {
   const [rotation, setRotation] = useState(0)
 
   useEffect(() => {
-    if (!spinFloatingIcon) return
+    if (!spinFloatingIcon || spinSpeed <= 0) return
 
     let animationFrameId: number
     const animate = (): void => {

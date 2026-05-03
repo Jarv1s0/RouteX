@@ -5,11 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>基于 <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a> 核心的现代跨平台代理客户端</strong>
-</p>
-
-<p align="center">
-  面向日常使用与复杂配置场景，兼顾视觉体验、连接可观测性与配置管理效率
+  <strong>基于 <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a> 的跨平台代理桌面客户端</strong>
 </p>
 
 <p align="center">
@@ -20,69 +16,29 @@
   <img src="https://img.shields.io/github/license/Jarv1s0/RouteX?style=flat-square" alt="License">
 </p>
 
----
+RouteX 是一个 Tauri 2 桌面客户端，用于管理 Mihomo 运行时、代理策略、系统代理、TUN、订阅配置、规则、连接、日志和网络诊断工具。
 
-## ✨ 项目简介
+## 主要能力
 
-RouteX 是一个桌面端跨平台代理客户端，以内置的 [Mihomo](https://github.com/MetaCubeX/mihomo) 内核为核心运行时。
+- 代理控制：查看 Mihomo 状态，切换出站模式，管理系统代理和 TUN。
+- 策略组管理：查看代理组和节点，执行节点切换、筛选、测速和链路查看。
+- 配置管理：维护本地配置、订阅配置、覆写配置和 Proxy Provider。
+- 规则管理：查看规则与规则 Provider，支持规则匹配测试和配置编辑入口。
+- 连接观测：查看实时连接、历史连接、连接详情、网络拓扑和运行日志。
+- 统计分析：记录实时流量、日流量、账期统计、规则命中和流量排行。
+- 网络工具：提供 DNS 查询、连通性测试、流媒体解锁检测和 IP 信息查询。
 
-- 🚀 让代理切换、策略选择与系统代理控制更直观
-- 🔍 让连接、规则、流量与节点状态更容易观察和排查
-- 🧩 让订阅、覆写、配置编辑与多来源管理更顺手
-- 🎨 让桌面客户端在观感、反馈和交互细节上更现代
+## 下载
 
-## 🌟 核心特性
+从 [Releases](https://github.com/Jarv1s0/RouteX/releases) 下载安装包。
 
-### 🚦 代理控制
+- Windows：通常使用 `.exe` 或 `.msi`。
+- macOS：通常使用 `.dmg`。
+- Linux：通常使用 `.deb`、`.rpm` 或 `.AppImage`。
 
-- **Mihomo 核心集成**：围绕 Mihomo 运行时提供完整桌面控制能力
-- **系统代理与 TUN 管理**：支持系统代理、TUN、Mihomo 相关页面与状态联动
-- **策略组快速切换**：支持策略组节点切换、测速、筛选与批量查看
-- **连接快速干预**：支持关闭连接、暂停连接刷新、针对连接快速生成规则
+实际文件名和格式以当前 Release 产物为准。
 
-### 📦 订阅与配置管理
-
-- **订阅配置管理**：支持多配置文件维护、切换、排序和编辑
-- **Proxy Provider 管理**：可查看 Provider 内容并执行更新
-- **覆写能力**：支持覆写编辑、应用与异常时的回滚恢复
-- **规则与资源编辑**：提供直观的规则、配置与资源查看入口
-
-### 📡 连接与可观测性
-
-- **实时连接列表**：区分活动连接与已关闭连接，支持筛选、排序与分组查看
-- **连接详情面板**：展示连接目标、命中规则、进程信息与更多上下文
-- **网络拓扑视图**：以更直观的方式查看连接关系与链路结构
-- **统计中心**：提供实时流量、日流量、账期统计、规则命中与排行能力
-- **日志查看**：支持在客户端内查看运行日志，方便定位问题
-
-### 🧰 网络工具箱
-
-- **DNS 查询**：支持常见记录类型查询与结果展示
-- **规则匹配测试**：输入目标后快速验证规则命中结果
-- **连通性测试**：内置常用目标站点测速与访问性测试
-- **流媒体解锁检测**：检测 ChatGPT、Netflix、YouTube、Spotify 等服务可用性
-- **IP 信息查询**：查看出口 IP、地域、运营商与时区等信息
-- **Sniffer / DNS / SysProxy / TUN 页面**：补齐更完整的网络调试与代理控制能力
-
-### 🎨 界面与体验
-
-- **现代化桌面界面**：支持深色模式、磨砂玻璃风格与更统一的视觉语言
-- **顺滑交互反馈**：页面切换、弹窗、图表与列表交互更细腻
-- **按页面启停监听**：减少无效后台事件处理，降低资源消耗
-- **远程图标本地缓存**：减轻工具页和订阅页的图标闪烁与重复加载
-
-
-## 📥 下载与安装
-
-请前往 [Releases](https://github.com/Jarv1s0/RouteX/releases) 页面下载对应平台的安装包。
-
-| 平台 | 安装包格式 | 说明 |
-|------|------------|------|
-| **Windows** | `.exe` / `.msi` | 推荐优先使用 Setup 安装包 |
-| **macOS** | `.dmg` | 当前以 Tauri bundler 实际产物为准 |
-| **Linux** | `.deb` / `.rpm` / `.AppImage` | 适用于主流发行版 |
-
-## 🛠️ 本地开发
+## 本地开发
 
 ### 环境要求
 
@@ -90,7 +46,7 @@ RouteX 是一个桌面端跨平台代理客户端，以内置的 [Mihomo](https:
 - Rust stable toolchain
 - Corepack
 - `pnpm@10.15.0`
-- 满足 Tauri 2 对应平台的系统依赖
+- 当前平台所需的 Tauri 2 系统依赖
 
 ### 安装依赖
 
@@ -99,78 +55,109 @@ corepack enable
 pnpm install
 ```
 
-### 启动开发环境
+### 启动桌面端
 
 ```powershell
 pnpm dev
 ```
 
-如果只需要单独调试前端构建产物：
+`pnpm dev` 会启动 Tauri 宿主，并通过 `scripts/ensure-tauri-dev-server.mjs` 准备前端开发服务。
+
+### 只启动前端调试服务
 
 ```powershell
 pnpm dev:tauri-web
 ```
 
-### 代码检查
+该命令只运行 Vite，适合单独调试 `src/tauri-web` 前端入口，不会启动 Tauri 桌面宿主。
+
+## 验证与构建
+
+### 常用检查
 
 ```powershell
-pnpm verify
 pnpm lint:ci
+pnpm typecheck
+pnpm verify
 ```
 
-### 构建
+`pnpm verify` 会执行 TypeScript 检查、Rust 测试、死代码检查和 Tauri 前端构建。
+
+### 构建安装包
 
 ```powershell
 pnpm build
-pnpm build:win
-pnpm build:linux
-pnpm build:mac
 ```
 
-补充说明：
+平台别名：
 
-- `pnpm dev` 默认启动 Tauri 宿主与前端联调
-- `pnpm verify` 会执行 TypeScript 检查、`cargo check` 和 Tauri 前端构建
-- `pnpm build` 会执行完整 Tauri 打包，产物位于 `src-tauri/target/release/bundle`
-- `pnpm build:win`、`pnpm build:linux`、`pnpm build:mac` 当前是平台别名，都会走同一套 Tauri 打包链
+```powershell
+pnpm build:win
+pnpm build:mac
+pnpm build:linux
+```
 
-## 🧱 项目结构
+当前平台别名都会调用同一套 `pnpm build` 流程。构建产物位于 `src-tauri/target/release/bundle`，具体格式由 Tauri bundler 和当前平台决定。
+
+## 项目结构
 
 ```text
 src/
-├─ renderer/   React 渲染层
-└─ shared/     共享类型与通用逻辑
+  renderer/       React 渲染层源码
+  shared/         前后端共享类型、默认配置和通用逻辑
+  tauri-web/      Tauri WebView 入口页面
 
-src-tauri/     Tauri Rust 宿主
-src/tauri-web/ Tauri 多入口前端壳层
+src-tauri/
+  src/            Tauri Rust 宿主逻辑
+  tauri.conf.json Tauri 应用、窗口、打包和插件配置
 
-scripts/       构建与准备脚本
-resources/     图标与静态资源
+scripts/          构建、资源准备和工程检查脚本
+resources/        应用图标、安装器图片和静态资源
+extra/            打包进应用的 sidecar 与附加文件
+patches/          pnpm patch 补丁
 ```
 
-## ⚙️ 技术栈
+## 主要页面
 
-- **桌面框架**：Tauri 2
-- **前端框架**：React 19
-- **UI 组件**：HeroUI
-- **样式方案**：Tailwind CSS v4
-- **状态管理**：Zustand
-- **图表能力**：ECharts
-- **构建工具**：Vite 7
+当前渲染层包含以下主要页面：
 
-## 📝 更新记录
+- `/proxies`：代理组与节点。
+- `/connections`：连接列表与连接详情。
+- `/profiles`：配置、订阅和覆写管理。
+- `/mihomo`：Mihomo 核心相关设置。
+- `/rules`：规则与规则 Provider。
+- `/sysproxy`：系统代理。
+- `/tun`：TUN。
+- `/dns`：DNS。
+- `/sniffer`：Sniffer。
+- `/stats`：统计中心。
+- `/tools`：网络工具。
+- `/logs`：日志。
+- `/map`：网络拓扑。
+- `/settings`：应用设置。
 
-版本更新说明见 `changelog.md`。
+## 技术栈
 
-## 🙏 致谢
+- Tauri 2
+- React 19
+- TypeScript
+- Vite 7
+- HeroUI
+- Tailwind CSS v4
+- Zustand
+- ECharts
 
-本项目离不开以下开源项目：
+## 更新记录
+
+版本更新说明见 [changelog.md](changelog.md)。
+
+## 致谢
 
 - [Mihomo](https://github.com/MetaCubeX/mihomo)
 - [Tauri](https://tauri.app/)
 - [React](https://react.dev/)
 - [HeroUI](https://www.heroui.com/)
 
-## 📄 许可证
+## 许可证
 
 本项目基于 GPL-3.0 许可证发布。详见 [LICENSE](LICENSE)。

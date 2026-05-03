@@ -4,7 +4,8 @@ import {
   mihomoCloseAllConnections,
   mihomoCloseConnection,
   mihomoConnections,
-  onTauriBridgeConnectionsReady
+  onTauriBridgeConnectionsReady,
+  retainTauriConnectionsBridge
 } from '@renderer/utils/mihomo-ipc'
 
 export interface ExtendedConnection extends ControllerConnectionDetail {
@@ -337,8 +338,9 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       handleWindowFocus
     )
 
-    // 不再由连接 store 主动起桥，避免与 App/bridge 生命周期形成多入口竞争。
-    // 改为在 connections bridge 真正收到第一条消息后补拉一次快照，兜住 dev 重启/TUN 切换窗口期。
+    // 页面需要完整连接快照时才保留 connections bridge，离开页面后释放。
+    // bridge 真正收到第一条消息后补拉一次快照，兜住 dev 重启/TUN 切换窗口期。
+    const releaseConnectionsBridge = retainTauriConnectionsBridge()
     const cancelBridgeReady = onTauriBridgeConnectionsReady(() => {
       fetchConnectionsSnapshot(true)
     })
@@ -358,6 +360,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     const previousCleanup = get().cleanupListeners
     set({
       cleanupListeners: () => {
+        releaseConnectionsBridge()
         cancelBridgeReady()
         if (initialSnapshotFallbackTimer !== null) {
           window.clearTimeout(initialSnapshotFallbackTimer)

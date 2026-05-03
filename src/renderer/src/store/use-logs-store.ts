@@ -34,13 +34,18 @@ const handleLog = (_e: unknown, log: ControllerLog) => {
         logBuffer.shift()
     }
     
-    if (!useLogsStore.getState().paused) {
+    if (!useLogsStore.getState().paused && logsViewRefCount > 0) {
         updateStore(logBuffer)
     }
 }
 
 let currentLogsCleanup: (() => void) | null = null
 let logsListenerRefCount = 0
+let logsViewRefCount = 0
+
+function syncLogsView(): void {
+  useLogsStore.setState({ logs: logBuffer.slice() })
+}
 
 export const useLogsStore = create<LogsState>((set) => ({
   logs: [],
@@ -59,7 +64,7 @@ export const useLogsStore = create<LogsState>((set) => ({
 
   setPaused: (paused) => {
       set({ paused })
-      if (!paused) {
+      if (!paused && logsViewRefCount > 0) {
           // Sync buffer to state immediately when unpaused
           set({ logs: [...logBuffer] })
       }
@@ -92,4 +97,17 @@ export function releaseLogsListeners(): void {
   if (logsListenerRefCount === 0) {
     useLogsStore.getState().cleanupListeners()
   }
+}
+
+export function retainLogsView(): void {
+  logsViewRefCount += 1
+  syncLogsView()
+}
+
+export function releaseLogsView(): void {
+  if (logsViewRefCount === 0) {
+    return
+  }
+
+  logsViewRefCount -= 1
 }

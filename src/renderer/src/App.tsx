@@ -216,11 +216,9 @@ const App: React.FC = () => {
 
   const syncStoreListeners = useCallback(() => {
     const pathname = location.pathname
-    const isTauri = __ROUTEX_HOST__ === 'tauri'
     const needsConnections =
-      isTauri ||
       pathname.includes('/connections') || pathname.includes('/map') || pathname.includes('/stats')
-    const needsTraffic = isTauri || pathname.includes('/stats')
+    const needsTraffic = pathname.includes('/stats')
 
     if (needsConnections && !connectionsListenerActiveRef.current) {
       useConnectionsStore.getState().initializeListeners()

@@ -10,6 +10,7 @@
     "typecheck:node": "node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "corepack pnpm run typecheck:node && corepack pnpm run typecheck:web && cargo check --manifest-path src-tauri/Cargo.toml",
+    "check:dead-code": "node scripts/check-dead-code.mjs",
     "prepare:resources": "node scripts/prepare.mjs",
     "start": "vite preview --configLoader runner --config vite.tauri.config.ts",
     "dev": "tauri dev",
@@ -20,7 +21,7 @@
     "tauri:build": "tauri build",
     "build": "corepack pnpm run prepare:resources && corepack pnpm run typecheck && tauri build",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
-    "verify": "corepack pnpm run typecheck && corepack pnpm run test:rust && corepack pnpm run build:tauri-web",
+    "verify": "corepack pnpm run typecheck && corepack pnpm run check:dead-code && corepack pnpm run test:rust && corepack pnpm run build:tauri-web",
     "build:win": "corepack pnpm run build",
     "build:mac": "corepack pnpm run build",
     "build:linux": "corepack pnpm run build"
