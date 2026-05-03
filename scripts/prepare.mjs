@@ -26,6 +26,7 @@ const ROUTEX_RUN_ASSETS = {
 }
 const DEFAULT_TASK_RETRY = 5
 const platform = process.platform
+const debugPrepare = process.env.ROUTEX_PREPARE_DEBUG === '1'
 const OPTIONAL_EXTRA_PATHS = [
   path.join(cwd, 'extra', 'sidecar', platform === 'win32' ? 'mihomo-alpha.exe' : 'mihomo-alpha'),
   path.join(cwd, 'extra', 'files', 'enableLoopback.exe'),
@@ -43,6 +44,12 @@ if (archArg) {
 }
 if (!arch) {
   throw new Error('target arch must not be empty')
+}
+
+function debugLog(...args) {
+  if (debugPrepare) {
+    console.log(...args)
+  }
 }
 
 function isLockedFileError(error) {
@@ -183,7 +190,7 @@ function pickBestReleaseAsset(assets, version, isAlpha, ext, prefixes) {
 
 function findExecutableEntry(entries, name) {
   return entries.find((entry) => {
-    console.log(`[DEBUG]: "${name}" entry name`, entry.entryName)
+    debugLog(`[DEBUG]: "${name}" entry name`, entry.entryName)
     return !entry.isDirectory && (entry.entryName.endsWith('.exe') || entry.entryName.includes('mihomo'))
   })
 }
@@ -333,7 +340,7 @@ async function resolveSidecar(binInfo) {
         file: tempZip
       })
       const files = fs.readdirSync(tempDir)
-      console.log(`[DEBUG]: "${name}" files in tempDir:`, files)
+      debugLog(`[DEBUG]: "${name}" files in tempDir:`, files)
       const extractedFile = files.find((file) => file.startsWith('虚空终端-'))
       if (extractedFile) {
         const extractedFilePath = path.join(tempDir, extractedFile)

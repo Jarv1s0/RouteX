@@ -135,6 +135,32 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      - name: Setup Tauri Linux bundler cache
+        if: matrix.platform == 'linux'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/tauri
+          key: ${{ runner.os }}-tauri-bundler-tools-v2
+          restore-keys: |
+            ${{ runner.os }}-tauri-bundler-tools-
+
+      - name: Prefetch Tauri AppImage runtime
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$HOME/.cache/tauri"
+          apprun="$HOME/.cache/tauri/AppRun-x86_64"
+
+          if [ ! -s "$apprun" ]; then
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 10 \
+              --output "$apprun" \
+              https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64
+          fi
+
+          chmod +x "$apprun"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -224,7 +250,18 @@ jobs:
               pnpm tauri build --bundles nsis
               ;;
             linux)
-              pnpm tauri build --bundles deb rpm appimage
+              pnpm tauri build --bundles deb rpm
+              for attempt in 1 2 3; do
+                if pnpm tauri build --bundles appimage; then
+                  break
+                fi
+
+                if [ "$attempt" -eq 3 ]; then
+                  exit 1
+                fi
+
+                sleep $((attempt * 20))
+              done
               ;;
             macos)
               pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg

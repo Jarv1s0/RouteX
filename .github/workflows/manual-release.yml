@@ -97,6 +97,32 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      - name: Setup Tauri Linux bundler cache
+        if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/tauri
+          key: ${{ runner.os }}-tauri-bundler-tools-v2
+          restore-keys: |
+            ${{ runner.os }}-tauri-bundler-tools-
+
+      - name: Prefetch Tauri AppImage runtime
+        if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$HOME/.cache/tauri"
+          apprun="$HOME/.cache/tauri/AppRun-x86_64"
+
+          if [ ! -s "$apprun" ]; then
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 10 \
+              --output "$apprun" \
+              https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64
+          fi
+
+          chmod +x "$apprun"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -140,7 +166,18 @@ jobs:
         shell: bash
         run: |
           pnpm prepare:resources
-          pnpm tauri build --bundles deb rpm appimage --config '{"bundle":{"createUpdaterArtifacts":true}}'
+          pnpm tauri build --bundles deb rpm --config '{"bundle":{"createUpdaterArtifacts":true}}'
+          for attempt in 1 2 3; do
+            if pnpm tauri build --bundles appimage --config '{"bundle":{"createUpdaterArtifacts":true}}'; then
+              break
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+
+            sleep $((attempt * 20))
+          done
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
