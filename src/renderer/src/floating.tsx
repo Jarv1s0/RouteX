@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
-import { HeroUIProvider } from '@heroui/react'
 import '@renderer/assets/floating.css'
 import FloatingApp from '@renderer/FloatingApp'
 import ErrorBoundary from './components/base/error-boundary'
@@ -35,16 +34,14 @@ const FloatingWindowThemeBridge: React.FC = () => {
 }
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <HeroUIProvider>
-    <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
-      <ErrorBoundary>
-        <AppConfigProvider>
-          <ControledMihomoConfigProvider>
-            <FloatingWindowThemeBridge />
-            <FloatingApp />
-          </ControledMihomoConfigProvider>
-        </AppConfigProvider>
-      </ErrorBoundary>
-    </NextThemesProvider>
-  </HeroUIProvider>
+  <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
+    <ErrorBoundary>
+      <AppConfigProvider>
+        <ControledMihomoConfigProvider>
+          <FloatingWindowThemeBridge />
+          <FloatingApp />
+        </ControledMihomoConfigProvider>
+      </AppConfigProvider>
+    </ErrorBoundary>
+  </NextThemesProvider>
 )

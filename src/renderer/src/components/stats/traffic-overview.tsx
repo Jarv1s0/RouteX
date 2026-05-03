@@ -14,13 +14,11 @@ interface TrafficOverviewProps {
 const UPLOAD_COLOR = '#06b6d4'
 const UPLOAD_COLOR_SOFT = 'rgba(6, 182, 212, 0.10)'
 const UPLOAD_COLOR_BORDER = 'rgba(6, 182, 212, 0.22)'
-const UPLOAD_COLOR_MUTED = 'rgba(6, 182, 212, 0.72)'
 const UPLOAD_GLOW = 'rgba(6, 182, 212, 0.42)'
 
 const DOWNLOAD_COLOR = '#a855f7'
 const DOWNLOAD_COLOR_SOFT = 'rgba(168, 85, 247, 0.10)'
 const DOWNLOAD_COLOR_BORDER = 'rgba(168, 85, 247, 0.22)'
-const DOWNLOAD_COLOR_MUTED = 'rgba(168, 85, 247, 0.72)'
 
 const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   sessionUpload,

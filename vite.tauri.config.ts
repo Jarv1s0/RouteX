@@ -1,6 +1,6 @@
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { defineConfig } from 'vite'
+import { defineConfig, type IndexHtmlTransformContext, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import monacoEditorPluginModule from 'vite-plugin-monaco-editor'
@@ -34,24 +34,43 @@ const routexBuildDefines = {
 
 const rendererCsp = process.env.NODE_ENV === 'development' ? DEV_RENDERER_META_CSP : PROD_RENDERER_META_CSP
 
+function createMonacoPlugin(): Plugin {
+  const plugin = monacoEditorPlugin({
+    languageWorkers: ['editorWorkerService'],
+    // @ts-expect-error - vite-plugin-monaco-editor type mismatch
+    languages: ['yaml', 'json'],
+    customDistPath: (_root, outDir) => `${outDir}/monacoeditorwork`,
+    customWorkers: [
+      {
+        label: 'yaml',
+        entry: 'monaco-yaml/yaml.worker'
+      }
+    ]
+  }) as Plugin
+
+  const transformIndexHtml = plugin.transformIndexHtml
+  plugin.transformIndexHtml = function transformMonacoIndexHtml(html, ctx?: IndexHtmlTransformContext) {
+    if (ctx && !ctx.filename.endsWith('index.html')) {
+      return html
+    }
+
+    if (typeof transformIndexHtml === 'function') {
+      return transformIndexHtml.call(this, html, ctx)
+    }
+
+    return transformIndexHtml
+  }
+
+  return plugin
+}
+
 export default defineConfig({
   root: resolve(__dirname, 'src/tauri-web'),
   define: routexBuildDefines,
   plugins: [
     react(),
     tailwindcss(),
-    monacoEditorPlugin({
-      languageWorkers: ['editorWorkerService'],
-      // @ts-expect-error - vite-plugin-monaco-editor type mismatch
-      languages: ['yaml', 'json'],
-      customDistPath: (_root, outDir) => `${outDir}/monacoeditorwork`,
-      customWorkers: [
-        {
-          label: 'yaml',
-          entry: 'monaco-yaml/yaml.worker'
-        }
-      ]
-    }),
+    createMonacoPlugin(),
     {
       name: 'routex-renderer-csp',
       transformIndexHtml() {
@@ -103,7 +122,6 @@ export default defineConfig({
           'vendor-motion': ['framer-motion'],
           'vendor-chart': ['echarts'],
           'vendor-editor': ['monaco-editor', 'react-monaco-editor', 'monaco-yaml'],
-          'vendor-flow': ['@xyflow/react', 'dagre'],
           'vendor-core': ['react-router-dom', 'zustand', 'swr']
         }
       }

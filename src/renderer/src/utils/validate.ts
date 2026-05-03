@@ -7,7 +7,7 @@ export const isIPv4 = (ip: string): ValidationResult => {
   if (!ip) return { ok: false, error: 'IP 地址不能为空' }
   try {
     return isIp.isIPv4(ip) ? { ok: true } : { ok: false, error: '无效的 IPv4 地址' }
-  } catch (e) {
+  } catch {
     return { ok: false, error: '解析 IP 地址时出错' }
   }
 }
@@ -16,7 +16,7 @@ export const isIPv6 = (ip: string): ValidationResult => {
   if (!ip) return { ok: false, error: 'IP 地址不能为空' }
   try {
     return isIp.isIPv6(ip) ? { ok: true } : { ok: false, error: '无效的 IPv6 地址' }
-  } catch (e) {
+  } catch {
     return { ok: false, error: '解析 IP 地址时出错' }
   }
 }
@@ -29,7 +29,7 @@ export const isValidIPv4Cidr = (s: string | undefined): ValidationResult => {
     if (r === 4) return { ok: true }
     if (r === 6) return { ok: false, error: '这是 IPv6 CIDR，而不是 IPv4 CIDR' }
     return { ok: false, error: '不是有效的 CIDR 格式（示例：198.18.0.1/16）' }
-  } catch (e) {
+  } catch {
     return { ok: false, error: '解析 CIDR 时出错' }
   }
 }
@@ -42,7 +42,7 @@ export const isValidIPv6Cidr = (s: string | undefined): ValidationResult => {
     if (r === 6) return { ok: true }
     if (r === 4) return { ok: false, error: '这是 IPv4 CIDR，而不是 IPv6 CIDR' }
     return { ok: false, error: '不是有效的 CIDR 格式（示例：fc00::/18）' }
-  } catch (e) {
+  } catch {
     return { ok: false, error: '解析 CIDR 时出错' }
   }
 }
@@ -230,7 +230,7 @@ export const isValidDnsServer = (s: string | undefined, ipOnly = false): Validat
         return { ok: false, error: '主机必须是 IP 地址，不支持域名' }
       }
       return { ok: true }
-    } catch (e) {
+    } catch {
       return { ok: false, error: '无效的 URL 格式' }
     }
   }

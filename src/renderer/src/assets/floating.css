@@ -1,7 +1,10 @@
 @import 'tailwindcss';
 @plugin './hero.mjs';
 @source '../../../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
-@source '../**/*.{ts,tsx}';
+@source '../floating.tsx';
+@source '../FloatingApp.tsx';
+@source '../components/base/error-boundary.tsx';
+@source '../components/base/mihomo-icon.tsx';
 @custom-variant dark (&:is(.dark *));
 
 .floating-text {

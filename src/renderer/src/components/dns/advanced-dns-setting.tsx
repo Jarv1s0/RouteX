@@ -167,7 +167,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
               }
             }
             setNameserverPolicyError(null)
-          } catch (e) {
+          } catch {
             setNameserverPolicyError('策略格式错误')
           }
         }}

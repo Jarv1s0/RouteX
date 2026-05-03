@@ -68,7 +68,7 @@ export const GlobalDialogModal: React.FC = () => {
           cleanups.forEach((cleanup) => cleanup())
           window.removeEventListener('show-global-dialog', handleCustom)
           window.removeEventListener('show-global-error', handleGlobalError)
-      } catch (e) {
+      } catch {
           // ignore
       }
     }

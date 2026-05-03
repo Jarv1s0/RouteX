@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { Handle, Position, NodeProps } from '@xyflow/react'
+import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { Card, Avatar } from '@heroui/react'
 
 const TOPOLOGY_NODE_SURFACE =
@@ -12,6 +12,25 @@ interface ThemeClasses {
     shadow: string
     bg: string
     badgeShadow: string
+}
+
+interface SourceNodeData extends Record<string, unknown> {
+    name: string
+    displayIcon?: boolean
+    iconUrl?: string
+    uploadSpeed?: number
+    downloadSpeed?: number
+    count?: number
+}
+
+interface NamedNodeData extends Record<string, unknown> {
+    name: string
+}
+
+interface ExitNodeData extends NamedNodeData {
+    uploadSpeed?: number
+    downloadSpeed?: number
+    policyGroups?: Set<string>
 }
 
 const createThemeClasses = (
@@ -71,8 +90,7 @@ const getThemeClasses = (name: string, defaultColor: string): ThemeClasses => {
 }
 
 export const SourceNode = memo(function SourceNode({ data }: NodeProps) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { name, displayIcon, iconUrl, uploadSpeed, downloadSpeed, count } = data as any
+    const { name, displayIcon, iconUrl, uploadSpeed = 0, downloadSpeed = 0, count = 0 } = data as SourceNodeData
 
     return (
         <Card className={`w-[240px] h-[80px] ${TOPOLOGY_NODE_SURFACE} border-1.5 border-sky-400/50 shadow-[0_4px_20px_rgba(14,165,233,0.15)] relative overflow-visible p-2 transition-all`} radius="md">
@@ -102,8 +120,7 @@ export const SourceNode = memo(function SourceNode({ data }: NodeProps) {
 })
 
 export const RuleNode = memo(function RuleNode({ data }: NodeProps) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { name } = data as any
+    const { name } = data as NamedNodeData
     const theme = getThemeClasses(name, '#8b5cf6')
     const color = theme.hex
     
@@ -123,8 +140,7 @@ export const RuleNode = memo(function RuleNode({ data }: NodeProps) {
 })
 
 export const GroupNode = memo(function GroupNode({ data }: NodeProps) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { name } = data as any
+    const { name } = data as NamedNodeData
     const theme = getThemeClasses(name, '#3b82f6')
     const color = theme.hex
     
@@ -145,8 +161,7 @@ export const GroupNode = memo(function GroupNode({ data }: NodeProps) {
 })
 
 export const ExitNode = memo(function ExitNode({ data }: NodeProps) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { name, uploadSpeed, downloadSpeed, policyGroups } = data as any
+    const { name, uploadSpeed = 0, downloadSpeed = 0, policyGroups } = data as ExitNodeData
     const color = '#10b981' // Emerald-500
     
     let groupText = 'PROXY'

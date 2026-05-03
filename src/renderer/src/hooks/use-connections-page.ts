@@ -55,7 +55,6 @@ export function useConnectionsPage(): UseConnectionsPageResult {
     connectionOrderBy,
     displayIcon,
     displayAppName,
-    patchAppConfig,
     activeConnections,
     closedConnections,
     isPaused,

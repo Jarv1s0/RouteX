@@ -4,7 +4,6 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/mihomo-ipc'
 import { useCallback, useEffect, useState } from 'react'
 import {
-  getConnectionHideRule,
   INITIAL_VISIBLE_RANGE,
   type ConnectionOrderBy,
   type ConnectionTab,

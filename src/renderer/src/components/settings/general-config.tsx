@@ -89,7 +89,7 @@ const GeneralConfig: React.FC = () => {
     try {
       await cancelUpdate()
       setUpdateStatus({ downloading: false, progress: 0 })
-    } catch (e) {
+    } catch {
       // ignore
     }
   }

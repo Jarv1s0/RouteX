@@ -22,6 +22,14 @@ interface Props {
   onClose: () => void
 }
 
+const SITES = [
+  { name: 'Ping0 (IP纯净度)', url: 'https://ping0.cc/' },
+  { name: 'IP.SB (IP信息)', url: 'https://ip.sb/' },
+  { name: 'Whoer (匿名度)', url: 'https://whoer.net/' },
+  { name: 'IP138 (国内查询)', url: 'https://www.ip138.com/' },
+  { name: '自定义网址', url: 'custom' },
+]
+
 
 export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { groups = [], mutate } = useGroups()
@@ -40,13 +48,12 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [loadingMatch, setLoadingMatch] = useState(false)
   const iframeRef = useRef<Electron.WebviewTag | HTMLIFrameElement | null>(null)
 
-  const sites = [
-    { name: 'Ping0 (IP纯净度)', url: 'https://ping0.cc/' },
-    { name: 'IP.SB (IP信息)', url: 'https://ip.sb/' },
-    { name: 'Whoer (匿名度)', url: 'https://whoer.net/' },
-    { name: 'IP138 (国内查询)', url: 'https://www.ip138.com/' },
-    { name: '自定义网址', url: 'custom' },
-  ]
+  const reloadCurrentFrame = useCallback(() => {
+    const frame = iframeRef.current
+    if (!frame) return
+    const currentSrc = frame.src
+    frame.src = currentSrc
+  }, [])
 
   // Safe Switch: When URL changes, we manually manage the iframe src to avoid React unmount/remount crashes
   const handleSafeUrlChange = useCallback((newUrl: string) => {
@@ -84,7 +91,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
             }
             })
             .finally(() => setLoadingMatch(false))
-      } catch (e) {
+      } catch {
         setLoadingMatch(false)
       }
     }
@@ -103,18 +110,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
     if (!selectedGroup) return
     await mihomoChangeProxy(selectedGroup, nodeName)
     mutate()
-    // Refresh iframe
-    if (iframeRef.current) {
-        // eslint-disable-next-line no-self-assign
-        iframeRef.current.src = iframeRef.current.src
-    }
-  }
-
-  const reloadIframe = () => {
-    if (iframeRef.current) {
-        // eslint-disable-next-line no-self-assign
-        iframeRef.current.src = iframeRef.current.src
-    }
+    reloadCurrentFrame()
   }
 
   const handleSiteChange = (key: string) => {
@@ -159,7 +155,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     onChange={(e) => handleSiteChange(e.target.value)}
                     aria-label="Select Site"
                 >
-                    {sites.map((site) => (
+                    {SITES.map((site) => (
                         <SelectItem key={site.url} textValue={site.name}>
                             {site.name}
                         </SelectItem>
@@ -180,7 +176,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     <Button 
                         size="sm" 
                         variant="flat" 
-                        onPress={reloadIframe}
+                        onPress={reloadCurrentFrame}
                         startContent={<IoReload />}
                     >
                         刷新

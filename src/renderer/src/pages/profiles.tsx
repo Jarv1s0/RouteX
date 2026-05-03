@@ -44,7 +44,7 @@ import { IoMdRefresh } from 'react-icons/io'
 import { LuFileText } from 'react-icons/lu'
 import ProfileSettingModal from '@renderer/components/profiles/profile-setting-modal'
 import useSWR from 'swr'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { notifyError } from '@renderer/utils/notify'
 import { OverrideConfigProvider, useOverrideConfig } from '@renderer/hooks/use-override-config'
 import { desktop } from '@renderer/api/desktop'
@@ -115,7 +115,6 @@ const ProfilesPage: React.FC = () => {
   )
   const { items: overrideItems } = overrideConfig || {}
   const overrideItemsArray = overrideItems ?? emptyOverrideItems
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = normalizeManagementTab(searchParams.get('tab'))
 

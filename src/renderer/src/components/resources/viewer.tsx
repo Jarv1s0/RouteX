@@ -48,7 +48,7 @@ const Viewer: React.FC<Props> = (props) => {
       let parsedYaml: unknown
       try {
         parsedYaml = yaml.load(fileContent)
-      } catch (e) {
+      } catch {
         parsedYaml = null
       }
       if (parsedYaml && typeof parsedYaml === 'object') {
@@ -79,7 +79,7 @@ const Viewer: React.FC<Props> = (props) => {
       } else {
         setCurrData(fileContent)
       }
-    } catch (error) {
+    } catch {
       setCurrData('')
     } finally {
       setIsLoading(false)

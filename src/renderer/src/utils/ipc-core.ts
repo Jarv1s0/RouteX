@@ -1,12 +1,11 @@
 import { IPC_INVOKE_CHANNELS, type IpcInvokeChannel } from '../../../shared/ipc'
 import { desktop } from '@renderer/api/desktop'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ipcErrorWrapper(response: any): any {
+function ipcErrorWrapper<T>(response: T | { invokeError: unknown }): T {
   if (response !== null && typeof response === 'object' && 'invokeError' in response) {
     throw response.invokeError
   }
-  return response
+  return response as T
 }
 
 const C = IPC_INVOKE_CHANNELS

@@ -41,7 +41,7 @@ const UpdaterButton: React.FC<Props> = (props) => {
     try {
       await cancelUpdate()
       setUpdateStatus({ downloading: false, progress: 0 })
-    } catch (e) {
+    } catch {
       // ignore
     }
   }

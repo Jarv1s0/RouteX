@@ -1,6 +1,4 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
-import { Button } from '@heroui/react'
-import { BiError } from 'react-icons/bi'
 
 interface Props {
   children?: ReactNode
@@ -41,7 +39,7 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="relative">
               <div className="absolute inset-0 bg-danger/20 blur-xl rounded-full animate-pulse" />
               <div className="relative p-5 rounded-2xl bg-gradient-to-br from-danger/20 to-danger/5 text-danger border border-danger/10 shadow-inner">
-                <BiError className="text-5xl drop-shadow-sm" />
+                <span className="block text-5xl font-bold leading-none drop-shadow-sm">!</span>
               </div>
             </div>
             
@@ -65,25 +63,23 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="flex gap-4 w-full pt-2">
-              <Button 
-                variant="bordered" 
-                className="flex-1 font-medium border-default-200 hover:bg-default-100 text-default-700"
-                size="lg"
-                onPress={this.handleCopyError}
+              <button
+                type="button"
+                className="min-h-12 flex-1 rounded-2xl border border-default-200 px-4 text-sm font-medium text-default-700 transition-colors hover:bg-default-100"
+                onClick={this.handleCopyError}
               >
                 复制错误信息
-              </Button>
-              <Button 
-                color="primary" 
-                className="flex-1 font-medium shadow-lg shadow-primary/20"
-                size="lg"
-                onPress={() => {
+              </button>
+              <button
+                type="button"
+                className="min-h-12 flex-1 rounded-2xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-opacity hover:opacity-hover"
+                onClick={() => {
                   this.setState({ hasError: false, error: null })
                   window.location.reload()
                 }}
               >
                 立即重启
-              </Button>
+              </button>
             </div>
           </div>
         </div>
