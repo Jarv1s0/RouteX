@@ -120,7 +120,7 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'next-themes'],
           'vendor-ui': ['@heroui/react'],
           'vendor-motion': ['framer-motion'],
-          'vendor-chart': ['echarts'],
+          'vendor-chart': ['echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers'],
           'vendor-editor': ['monaco-editor', 'react-monaco-editor', 'monaco-yaml'],
           'vendor-core': ['react-router-dom', 'zustand', 'swr']
         }
