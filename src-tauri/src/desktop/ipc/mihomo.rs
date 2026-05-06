@@ -2,7 +2,7 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
     let result: Result<Value, String> = match channel {
         "ensureMihomoCoreAvailable" => {
             let core = args.first().and_then(Value::as_str).unwrap_or("mihomo");
-            let path = resolve_core_binary(&app, core)?;
+            let path = ensure_mihomo_core_available(&app, core)?;
             Ok(json!(path.to_string_lossy().to_string()))
         }
         "mihomoVersion" => core_request(&state, reqwest::Method::GET, "/version", None, None),
@@ -195,7 +195,30 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
             })
         }
         "mihomoUpgrade" => {
-            core_request(&state, reqwest::Method::POST, "/upgrade", None, None).map(|_| Value::Null)
+            if read_core_name(&app)? == "mihomo-alpha" {
+                let latest = latest_mihomo_alpha_version()?;
+                let current = core_request(&state, reqwest::Method::GET, "/version", None, None)?;
+                let current_version = current
+                    .get("version")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                if current_version.contains(&latest) {
+                    Err(format!("already using latest version {latest}"))
+                } else {
+                    stop_core_process(&app, &state)?;
+                    let target_path = mihomo_alpha_core_target_path(&app)?;
+                    download_mihomo_alpha_core(&app, &target_path)?;
+                    restart_core_process(&app, &state, None).map(|value| {
+                        emit_ipc_event(&app, "core-started", value.clone());
+                        emit_ipc_event(&app, "groupsUpdated", Value::Null);
+                        emit_ipc_event(&app, "rulesUpdated", Value::Null);
+                        value
+                    })
+                }
+            } else {
+                core_request(&state, reqwest::Method::POST, "/upgrade", None, None)
+                    .map(|_| Value::Null)
+            }
         }
         "mihomoUpgradeGeo" => {
             core_request(&state, reqwest::Method::POST, "/upgrade/geo", None, None)

@@ -352,6 +352,18 @@ fn resolve_resource_binary(
     ))
 }
 
+fn runtime_sidecar_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    ensure_dir(
+        app_data_root(app)?
+            .join(RUNTIME_ASSETS_DIR_NAME)
+            .join("sidecar"),
+    )
+}
+
+fn runtime_core_binary_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
+    Ok(runtime_sidecar_dir(app)?.join(file_name))
+}
+
 fn resolve_core_binary(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, String> {
     let extension = if cfg!(target_os = "windows") {
         ".exe"
@@ -359,8 +371,299 @@ fn resolve_core_binary(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, St
         ""
     };
     let file_name = format!("{core}{extension}");
-    resolve_resource_binary(app, "sidecar", &file_name)
-        .map_err(|_| format!("Mihomo core not found: {file_name}"))
+    if let Ok(path) = runtime_core_binary_path(app, &file_name) {
+        if path.exists() {
+            return Ok(path);
+        }
+    }
+
+    if let Ok(path) = resolve_resource_binary(app, "sidecar", &file_name) {
+        return Ok(path);
+    }
+
+    Err(format!("Mihomo core not found: {file_name}"))
+}
+
+fn get_mihomo_asset_prefix_candidates() -> Result<Vec<&'static str>, String> {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("windows", "x86_64") => Ok(vec![
+            "mihomo-windows-amd64",
+            "mihomo-windows-amd64-compatible",
+            "mihomo-windows-amd64-v1",
+            "mihomo-windows-amd64-v2",
+            "mihomo-windows-amd64-v3",
+        ]),
+        ("windows", "x86") => Ok(vec!["mihomo-windows-386"]),
+        ("windows", "aarch64") => Ok(vec!["mihomo-windows-arm64"]),
+        ("macos", "x86_64") => Ok(vec![
+            "mihomo-darwin-amd64",
+            "mihomo-darwin-amd64-compatible",
+            "mihomo-darwin-amd64-v1",
+        ]),
+        ("macos", "aarch64") => Ok(vec!["mihomo-darwin-arm64"]),
+        ("linux", "x86_64") => Ok(vec![
+            "mihomo-linux-amd64",
+            "mihomo-linux-amd64-compatible",
+            "mihomo-linux-amd64-v1",
+            "mihomo-linux-amd64-v2",
+            "mihomo-linux-amd64-v3",
+        ]),
+        ("linux", "aarch64") => Ok(vec!["mihomo-linux-arm64"]),
+        ("linux", "loongarch64") => Ok(vec!["mihomo-linux-loong64", "mihomo-linux-loong64-abi2"]),
+        (os, arch) => Err(format!("unsupported mihomo platform \"{os}-{arch}\"")),
+    }
+}
+
+fn mihomo_alpha_asset_matches(
+    asset_name: &str,
+    version: &str,
+    ext: &str,
+    prefixes: &[&str],
+) -> bool {
+    let suffix = format!("-{version}{ext}");
+    if !asset_name.ends_with(&suffix) {
+        return false;
+    }
+
+    prefixes.iter().any(|prefix| {
+        if !asset_name.starts_with(prefix) {
+            return false;
+        }
+        let middle = &asset_name[prefix.len()..asset_name.len() - suffix.len()];
+        middle.is_empty() || middle == "-alpha" || middle.starts_with("-alpha-")
+    })
+}
+
+fn score_mihomo_alpha_asset_name(asset_name: &str, version: &str, ext: &str) -> i32 {
+    let suffix = format!("-{version}{ext}");
+    let middle = asset_name
+        .strip_suffix(&suffix)
+        .unwrap_or(asset_name);
+    if middle.ends_with("-alpha") {
+        return 0;
+    }
+    if middle.contains("-alpha-go") {
+        return 1;
+    }
+    2
+}
+
+fn fetch_mihomo_alpha_release_assets(
+    app: &tauri::AppHandle,
+) -> Result<Vec<GitHubReleaseAsset>, String> {
+    let client = update_client(app, 30)?;
+    let response = client
+        .get("https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/Prerelease-Alpha")
+        .header(reqwest::header::ACCEPT, "application/vnd.github+json")
+        .header(reqwest::header::USER_AGENT, "RouteX-Tauri/1.0")
+        .send()
+        .map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        return Err(format!("请求 Mihomo release 失败: {}", response.status()));
+    }
+
+    Ok(response
+        .json::<GitHubReleaseResponse>()
+        .map_err(|e| e.to_string())?
+        .assets
+        .unwrap_or_default())
+}
+
+fn fallback_mihomo_alpha_asset(version: &str, prefixes: &[&str], ext: &str) -> GitHubReleaseAsset {
+    let file_name = format!("{}-{version}{ext}", prefixes[0]);
+    GitHubReleaseAsset {
+        name: file_name.clone(),
+        browser_download_url: format!(
+            "https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/{file_name}"
+        ),
+    }
+}
+
+fn resolve_mihomo_alpha_asset(app: &tauri::AppHandle, version: &str) -> Result<GitHubReleaseAsset, String> {
+    let ext = if cfg!(target_os = "windows") {
+        ".zip"
+    } else {
+        ".gz"
+    };
+    let prefixes = get_mihomo_asset_prefix_candidates()?;
+
+    match fetch_mihomo_alpha_release_assets(app) {
+        Ok(assets) => assets
+            .into_iter()
+            .filter(|asset| mihomo_alpha_asset_matches(&asset.name, version, ext, &prefixes))
+            .min_by_key(|asset| {
+                let prefix_score = prefixes
+                    .iter()
+                    .position(|prefix| asset.name.starts_with(prefix))
+                    .unwrap_or(prefixes.len());
+                (
+                    prefix_score,
+                    score_mihomo_alpha_asset_name(&asset.name, version, ext),
+                )
+            })
+            .ok_or_else(|| format!("未找到匹配的 Mihomo Alpha 资源: {version}")),
+        Err(_) => Ok(fallback_mihomo_alpha_asset(version, &prefixes, ext)),
+    }
+}
+
+fn download_with_update_client(app: &tauri::AppHandle, url: &str, timeout_secs: u64) -> Result<Vec<u8>, String> {
+    let send = |client: Client| -> Result<Vec<u8>, String> {
+        let response = client
+            .get(url)
+            .header(reqwest::header::USER_AGENT, "RouteX-Tauri/1.0")
+            .send()
+            .map_err(|e| e.to_string())?;
+        if !response.status().is_success() {
+            return Err(format!("下载失败: {}", response.status()));
+        }
+        response.bytes().map(|bytes| bytes.to_vec()).map_err(|e| e.to_string())
+    };
+
+    match update_client(app, timeout_secs).and_then(send) {
+        Ok(bytes) => Ok(bytes),
+        Err(proxy_error) => {
+            let client = Client::builder()
+                .timeout(Duration::from_secs(timeout_secs))
+                .build()
+                .map_err(|e| e.to_string())?;
+            send(client).map_err(|direct_error| {
+                format!("代理下载失败: {proxy_error}; 直连下载失败: {direct_error}")
+            })
+        }
+    }
+}
+
+fn find_mihomo_zip_entry(archive: &mut ZipArchive<Cursor<Vec<u8>>>) -> Result<usize, String> {
+    for index in 0..archive.len() {
+        let file = archive.by_index(index).map_err(|e| e.to_string())?;
+        if file.is_dir() {
+            continue;
+        }
+        let name = file.name().replace('\\', "/");
+        let file_name = Path::new(&name)
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default();
+        if file_name.ends_with(".exe") || file_name.contains("mihomo") {
+            return Ok(index);
+        }
+    }
+    Err("Mihomo Alpha 下载完成但压缩包内未找到可执行文件".to_string())
+}
+
+fn write_mihomo_zip_entry(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
+    let reader = Cursor::new(bytes);
+    let mut archive = ZipArchive::new(reader).map_err(|e| e.to_string())?;
+    let entry_index = find_mihomo_zip_entry(&mut archive)?;
+    let mut file = archive.by_index(entry_index).map_err(|e| e.to_string())?;
+    let temp_path = target_path.with_extension("download");
+    ensure_parent(&temp_path)?;
+    {
+        let mut output = fs::File::create(&temp_path).map_err(|e| e.to_string())?;
+        std::io::copy(&mut file, &mut output).map_err(|e| e.to_string())?;
+    }
+    if target_path.exists() {
+        fs::remove_file(target_path).map_err(|e| e.to_string())?;
+    }
+    fs::rename(&temp_path, target_path).map_err(|e| e.to_string())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn write_mihomo_gzip_bytes(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
+    let archive_path = target_path.with_extension("download.gz");
+    let temp_path = target_path.with_extension("download");
+    ensure_parent(&archive_path)?;
+    fs::write(&archive_path, bytes).map_err(|e| e.to_string())?;
+
+    let output = Command::new("gzip")
+        .arg("-dc")
+        .arg(&archive_path)
+        .output()
+        .map_err(|e| e.to_string())?;
+    let _ = fs::remove_file(&archive_path);
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            format!("解压 Mihomo Alpha 失败: {}", output.status)
+        } else {
+            stderr
+        });
+    }
+
+    fs::write(&temp_path, output.stdout).map_err(|e| e.to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&temp_path, fs::Permissions::from_mode(0o755))
+            .map_err(|e| e.to_string())?;
+    }
+    if target_path.exists() {
+        fs::remove_file(target_path).map_err(|e| e.to_string())?;
+    }
+    fs::rename(&temp_path, target_path).map_err(|e| e.to_string())
+}
+
+fn download_mihomo_alpha_core(app: &tauri::AppHandle, target_path: &Path) -> Result<(), String> {
+    let version = latest_mihomo_alpha_version()?;
+    let asset = resolve_mihomo_alpha_asset(app, &version)?;
+    let bytes = download_with_update_client(app, &asset.browser_download_url, 120)?;
+    if asset.name.ends_with(".zip") {
+        write_mihomo_zip_entry(bytes, target_path)?;
+    } else if asset.name.ends_with(".gz") {
+        #[cfg(target_os = "windows")]
+        {
+            return Err(format!("不支持的 Mihomo Alpha 压缩格式: {}", asset.name));
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            write_mihomo_gzip_bytes(bytes, target_path)?;
+        }
+    } else {
+        return Err(format!("不支持的 Mihomo Alpha 资源格式: {}", asset.name));
+    }
+
+    Ok(())
+}
+
+fn latest_mihomo_alpha_version() -> Result<String, String> {
+    let version = fetch_text(
+        "https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt",
+        30,
+    )?
+    .trim()
+    .to_string();
+    if version.is_empty() {
+        return Err("Mihomo Alpha version 为空".to_string());
+    }
+    Ok(version)
+}
+
+fn mihomo_alpha_core_target_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let extension = if cfg!(target_os = "windows") {
+        ".exe"
+    } else {
+        ""
+    };
+    runtime_core_binary_path(app, &format!("mihomo-alpha{extension}"))
+}
+
+fn ensure_mihomo_core_available(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, String> {
+    if let Ok(path) = resolve_core_binary(app, core) {
+        return Ok(path);
+    }
+
+    if core != "mihomo-alpha" {
+        let extension = if cfg!(target_os = "windows") {
+            ".exe"
+        } else {
+            ""
+        };
+        return Err(format!("Mihomo core not found: {core}{extension}"));
+    }
+
+    let target_path = mihomo_alpha_core_target_path(app)?;
+    download_mihomo_alpha_core(app, &target_path)?;
+    resolve_core_binary(app, core)
 }
 
 fn resolve_service_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -373,4 +676,3 @@ fn resolve_service_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     resolve_resource_binary(app, "files", &file_name)
         .map_err(|_| format!("RouteX service not found: {file_name}"))
 }
-

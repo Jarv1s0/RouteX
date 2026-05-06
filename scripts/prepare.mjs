@@ -87,8 +87,6 @@ function cleanupOptionalExtraResources() {
 }
 const MIHOMO_VERSION_URL =
   'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
-const MIHOMO_ALPHA_VERSION_URL =
-  'https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt'
 
 const GITHUB_JSON_HEADERS = {
   Accept: 'application/vnd.github+json',
@@ -219,8 +217,7 @@ async function fetchGitHubReleaseAssets(url, label) {
 function buildFallbackReleaseAsset(version, isAlpha, prefixes) {
   const prefix = prefixes[0]
   const ext = platform === 'win32' ? '.zip' : '.gz'
-  const alphaMarker = isAlpha && !version.startsWith('alpha-') ? '-alpha' : ''
-  const fileName = `${prefix}${alphaMarker}-${version}${ext}`
+  const fileName = `${prefix}-${version}${ext}`
   const tag = isAlpha ? 'Prerelease-Alpha' : version
 
   return {
@@ -548,14 +545,6 @@ const tasks = [
     name: 'mihomo',
     func: async () =>
       resolveSidecar(await createMihomoBinaryInfo('mihomo', MIHOMO_VERSION_URL, false)),
-    retry: DEFAULT_TASK_RETRY
-  },
-  {
-    name: 'mihomo-alpha',
-    func: async () =>
-      resolveSidecar(
-        await createMihomoBinaryInfo('mihomo-alpha', MIHOMO_ALPHA_VERSION_URL, true)
-      ),
     retry: DEFAULT_TASK_RETRY
   },
   { name: 'mmdb', func: resolveMmdb, retry: DEFAULT_TASK_RETRY },

@@ -306,10 +306,29 @@ fn core_request(
     if status == reqwest::StatusCode::NO_CONTENT {
         return Ok(Value::Null);
     }
-    if !status.is_success() {
-        return Err(format!("Mihomo API request failed: {status}"));
-    }
     let body = response.text().map_err(|e| e.to_string())?;
+    if !status.is_success() {
+        let detail = serde_json::from_str::<Value>(&body)
+            .ok()
+            .and_then(|value| {
+                value
+                    .get("message")
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            })
+            .or_else(|| {
+                let trimmed = body.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed.to_string())
+                }
+            });
+        return Err(match detail {
+            Some(detail) => format!("Mihomo API request failed: {status}: {detail}"),
+            None => format!("Mihomo API request failed: {status}"),
+        });
+    }
     if body.trim().is_empty() {
         return Ok(Value::Null);
     }
@@ -584,7 +603,7 @@ fn restart_core_process(
     stop_core_process(app, state)?;
 
     let core = read_core_name(app)?;
-    let binary_path = resolve_core_binary(app, &core)?;
+    let binary_path = ensure_mihomo_core_available(app, &core)?;
     let use_service_mode = read_core_permission_mode(app)? == "service";
     let current_profile_id = current_runtime_profile_id(app)?;
     let diff_work_dir = read_diff_work_dir(app)?;
@@ -751,4 +770,3 @@ fn restart_core_process(
         "controller": controller_client_address,
     }))
 }
-
