@@ -65,6 +65,7 @@ fn service_command_args(
     if only_active_device {
         args.push(String::from("--only-active-device"));
     }
+    args.push(String::from("sysproxy"));
     args.push(command.to_string());
     args.extend(extra_args);
     args
@@ -429,4 +430,3 @@ fn build_service_core_restart_payload(
         "env": env,
     })
 }
-

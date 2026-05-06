@@ -3,7 +3,7 @@ import AdmZip from 'adm-zip'
 import path from 'path'
 import zlib from 'zlib'
 import { extract } from 'tar'
-import { execSync } from 'child_process'
+import { execFileSync, execSync } from 'child_process'
 
 const cwd = process.cwd()
 const TEMP_DIR = path.join(cwd, 'node_modules/.temp')
@@ -470,16 +470,44 @@ const resolveASN = () =>
     file: 'ASN.mmdb',
     downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb`
   })
-const resolveRoutexService = () => {
+const resolveRoutexService = async () => {
   const key = `${platform}-${arch}`
   const base = getMappedAsset(ROUTEX_SERVICE_ASSETS, key, 'platform')
   const ext = platform == 'win32' ? '.exe' : ''
+  const file = `routex-service${ext}`
 
-  return resolveResource({
-    file: `routex-service${ext}`,
+  await resolveResource({
+    file,
     downloadURL: `${ROUTEX_SERVICE_RELEASE_PREFIX}/${base}${ext}`,
     needExecutable: true
   })
+
+  if (arch !== process.arch) {
+    console.warn(
+      `[WARN]: skip routex-service command verification for target arch "${arch}" on host arch "${process.arch}"`
+    )
+    return
+  }
+
+  verifyRoutexServiceSysproxyCommand(path.join(cwd, 'extra', 'files', file))
+}
+
+function verifyRoutexServiceSysproxyCommand(binaryPath) {
+  try {
+    execFileSync(binaryPath, ['sysproxy', 'disable', '--help'], {
+      stdio: 'pipe',
+      timeout: 10_000
+    })
+  } catch (error) {
+    const output = [error.stdout, error.stderr]
+      .filter(Boolean)
+      .map((value) => value.toString().trim())
+      .filter(Boolean)
+      .join('\n')
+    throw new Error(
+      `routex-service must support "sysproxy disable"; refresh the routex-service pre-release asset. ${output}`
+    )
+  }
 }
 const resolveRunner = () => {
   const asset = getMappedAsset(ROUTEX_RUN_ASSETS, arch, 'runner arch')

@@ -60,6 +60,18 @@ fn desktop_invoke_channels_match_typescript_contract() {
 }
 
 #[test]
+fn sysproxy_service_commands_use_nested_command_group() {
+    let args = service_command_args(false, "disable", Vec::new());
+    let args = args.iter().map(String::as_str).collect::<Vec<_>>();
+    let expected = if cfg!(target_os = "windows") {
+        vec!["--use-registry", "sysproxy", "disable"]
+    } else {
+        vec!["sysproxy", "disable"]
+    };
+    assert_eq!(args, expected);
+}
+
+#[test]
 fn merge_profile_nodes_keeps_secondary_groups_out_of_runtime_profile() {
     let mut target_profile = json!({
         "proxies": [
