@@ -45,7 +45,8 @@
           "SimpChinese"
         ],
         "sidebarImage": "../resources/installerSidebar.bmp",
-        "installerIcon": "../resources/installerIcon.ico"
+        "installerIcon": "../resources/installerIcon.ico",
+        "installerHooks": "../build/nsis/installer-hooks.nsh"
       },
       "wix": {
         "language": "zh-CN"
