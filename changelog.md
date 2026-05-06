@@ -1,5 +1,11 @@
 # 更新日志
 
+## v3.2.1
+
+### 修复
+
+- 修复 GitHub Actions 打包拉取新版 `routex-service` 后，系统代理仍调用旧版根级 `proxy`/`pac`/`disable` 命令导致开启系统代理失败的问题。
+
 ## v3.2.0
 
 ### ⚠️ 注意
