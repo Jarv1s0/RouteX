@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { Chip, Skeleton } from '@heroui/react'
-import { IoGlobe, IoRefreshCircle, IoCopy } from 'react-icons/io5'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { Button, Chip, Skeleton } from '@heroui/react'
+import { IoAlertCircle, IoCheckmarkCircle, IoCloseCircle, IoCopy, IoRefresh } from 'react-icons/io5'
+import * as isIp from 'is-ip'
 import { httpGet } from '@renderer/utils/tools-ipc'
+
 interface ProviderResult {
   ip: string
   location: string
@@ -13,16 +15,20 @@ interface IpProvider {
   id: string
   name: string
   type: '国内' | '国际'
-  iconClass: string
   check: () => Promise<ProviderResult>
 }
+
+type ProviderState =
+  | { status: 'loading' }
+  | { status: 'success'; data: ProviderResult }
+  | { status: 'invalid'; data: ProviderResult; error: string }
+  | { status: 'error'; error: string }
 
 const providers: IpProvider[] = [
   {
     id: 'ipip',
     name: 'IPIP.net',
     type: '国内',
-    iconClass: 'bg-success/10 text-success',
     check: async () => {
       const start = Date.now()
       const res = await httpGet('https://myip.ipip.net/json', 5000)
@@ -37,40 +43,33 @@ const providers: IpProvider[] = [
     }
   },
   {
-    id: 'cloudflare',
-    name: 'Cloudflare',
+    id: 'ipsb',
+    name: 'IP.SB',
     type: '国际',
-    iconClass: 'bg-success/10 text-success',
     check: async () => {
       const start = Date.now()
-      const res = await httpGet('https://1.1.1.1/cdn-cgi/trace', 5000)
-      const lines = res.data.split('\n')
-      const map: Record<string, string> = {}
-      lines.forEach((l) => {
-        const [k, v] = l.split('=')
-        if (k) map[k] = v
-      })
-      return { 
-        ip: map.ip || '', 
-        location: map.loc || '', 
-        isp: `${map.colo || ''} ${map.fl || ''}`,
+      const res = await httpGet('https://api.ip.sb/geoip', 5000)
+      const data = JSON.parse(res.data)
+      return {
+        ip: data.ip || '',
+        location: [data.country_code, data.region, data.city].filter(Boolean).join(' '),
+        isp: data.organization || '',
         latency: Date.now() - start
       }
     }
   },
   {
-    id: 'ipinfo',
-    name: 'IPinfo.io',
+    id: 'ifconfig',
+    name: 'ifconfig.co',
     type: '国际',
-    iconClass: 'bg-success/10 text-success',
     check: async () => {
       const start = Date.now()
-      const res = await httpGet('https://ipinfo.io/json', 5000)
+      const res = await httpGet('https://ifconfig.co/json', 5000)
       const data = JSON.parse(res.data)
       return {
-        ip: data.ip,
-        location: [data.country, data.region, data.city].filter(Boolean).join(' '),
-        isp: data.org,
+        ip: data.ip || '',
+        location: [data.country_iso, data.country, data.city].filter(Boolean).join(' '),
+        isp: data.asn_org || data.asn || '',
         latency: Date.now() - start
       }
     }
@@ -83,35 +82,103 @@ export interface IpCheckerPanelProps {
   enabled?: boolean
 }
 
+const isValidIp = (value: string): boolean => {
+  const ip = value.trim()
+  return isIp.isIPv4(ip) || isIp.isIPv6(ip)
+}
+
+const getReadableError = (error: string): string => {
+  const message = error.toLowerCase()
+
+  if (message.includes('timeout') || message.includes('timed out') || message.includes('超时')) {
+    return '请求超时'
+  }
+
+  if (message.includes('json') || message.includes('parse') || message.includes('解析')) {
+    return '响应解析失败'
+  }
+
+  if (message.includes('network') || message.includes('fetch') || message.includes('网络')) {
+    return '网络请求失败'
+  }
+
+  if (message.includes('http')) {
+    return '服务返回异常'
+  }
+
+  return error ? '无法确认失败原因' : '无错误详情'
+}
+
 export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
   showIp = true,
   onResultsChange,
   enabled = true
 }) => {
-  const [providerResults, setProviderResults] = useState<Record<string, { status: 'loading' | 'success' | 'error', data?: ProviderResult, error?: string }>>({})
+  const [providerResults, setProviderResults] = useState<Record<string, ProviderState>>({})
+  const [copiedProviderId, setCopiedProviderId] = useState<string | null>(null)
+  const copiedProviderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchProviders = useCallback(async () => {
-    const initialStatus: Record<string, { status: 'loading' | 'success' | 'error' }> = {}
-    providers.forEach(p => {
-      initialStatus[p.id] = { status: 'loading' }
-    })
-    setProviderResults(initialStatus)
+  const fetchProvider = useCallback(async (provider: IpProvider) => {
+    setProviderResults((prev) => ({
+      ...prev,
+      [provider.id]: { status: 'loading' }
+    }))
 
-    providers.forEach(async (provider) => {
-      try {
-        const result = await provider.check()
-        setProviderResults((prev) => ({
-          ...prev,
-          [provider.id]: { status: 'success', data: result }
-        }))
-      } catch (e) {
-        setProviderResults((prev) => ({
-          ...prev,
-          [provider.id]: { status: 'error', error: e instanceof Error ? e.message : String(e) }
-        }))
+    try {
+      const result = await provider.check()
+      const normalizedResult = {
+        ...result,
+        ip: result.ip?.trim() || ''
       }
-    })
+      setProviderResults((prev) => ({
+        ...prev,
+        [provider.id]: isValidIp(normalizedResult.ip)
+          ? { status: 'success', data: normalizedResult }
+          : { status: 'invalid', data: normalizedResult, error: '无有效 IP' }
+      }))
+    } catch (e) {
+      setProviderResults((prev) => ({
+        ...prev,
+        [provider.id]: { status: 'error', error: e instanceof Error ? e.message : String(e) }
+      }))
+    }
   }, [])
+
+  const fetchProviders = useCallback(() => {
+    providers.forEach((provider) => {
+      void fetchProvider(provider)
+    })
+  }, [fetchProvider])
+
+  const markProviderCopied = useCallback((providerId: string) => {
+    if (copiedProviderTimerRef.current) {
+      clearTimeout(copiedProviderTimerRef.current)
+    }
+
+    setCopiedProviderId(providerId)
+    copiedProviderTimerRef.current = setTimeout(() => {
+      setCopiedProviderId(null)
+      copiedProviderTimerRef.current = null
+    }, 1200)
+  }, [])
+
+  const copyProviderIp = useCallback(
+    async (providerId: string, ip: string) => {
+      try {
+        await navigator.clipboard.writeText(ip)
+        markProviderCopied(providerId)
+      } catch {
+        const textArea = document.createElement('textarea')
+        textArea.value = ip
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        markProviderCopied(providerId)
+      }
+    },
+    [markProviderCopied]
+  )
 
   useEffect(() => {
     if (!enabled) {
@@ -137,76 +204,148 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
     }
   }, [providerResults, onResultsChange])
 
+  useEffect(() => {
+    return () => {
+      if (copiedProviderTimerRef.current) {
+        clearTimeout(copiedProviderTimerRef.current)
+      }
+    }
+  }, [])
+
   return (
-    <>
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-default-200/40 bg-default-50/50">
+      <div className="grid grid-cols-[minmax(112px,0.9fr)_72px_minmax(128px,1fr)_minmax(92px,0.7fr)] items-center gap-3 border-b border-default-200/50 px-3 py-2 text-[11px] font-medium text-foreground-400">
+        <div>来源</div>
+        <div>类型</div>
+        <div>结果</div>
+        <div className="text-right">延迟 / 操作</div>
+      </div>
       {providers.map((provider) => {
         const state = providerResults[provider.id]
         return (
-          <div key={provider.id} className="p-4 rounded-xl bg-default-50/50 border border-default-200/30 flex items-center justify-between gap-3 hover:bg-default-100/50 transition-colors h-[72px]">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className={`p-2 rounded-lg shrink-0 ${provider.iconClass}`}>
-                <IoGlobe className="text-xl" />
+          <div
+            key={provider.id}
+            className="grid min-h-[58px] flex-1 grid-cols-[minmax(112px,0.9fr)_72px_minmax(128px,1fr)_minmax(92px,0.7fr)] items-center gap-3 border-b border-default-200/30 px-3 py-2 last:border-b-0 hover:bg-default-100/50"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <div
+                className={
+                  state?.status === 'success'
+                    ? 'rounded-lg bg-success/10 p-1.5 text-success'
+                    : state?.status === 'invalid'
+                      ? 'rounded-lg bg-warning/10 p-1.5 text-warning'
+                      : state?.status === 'error'
+                        ? 'rounded-lg bg-danger/10 p-1.5 text-danger'
+                        : 'rounded-lg bg-default-200/60 p-1.5 text-foreground-400'
+                }
+              >
+                {state?.status === 'success' ? (
+                  <IoCheckmarkCircle className="text-base" />
+                ) : state?.status === 'invalid' ? (
+                  <IoAlertCircle className="text-base" />
+                ) : state?.status === 'error' ? (
+                  <IoCloseCircle className="text-base" />
+                ) : (
+                  <IoAlertCircle className="text-base" />
+                )}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <div className="text-xs text-foreground-400 font-medium">{provider.name}</div>
-                  <Chip size="sm" variant="flat" color={provider.type === '国内' ? 'primary' : 'success'} className="h-4 px-1 text-[9px]">
-                    {provider.type}
-                  </Chip>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-foreground-700">
+                  {provider.name}
                 </div>
-                
-                {state?.status === 'loading' && (
-                  <div className="space-y-1.5 mt-1">
-                    <Skeleton className="h-3.5 w-3/4 rounded" />
-                  </div>
-                )}
-
-                {state?.status === 'error' && (
-                  <div className="flex items-center gap-1 text-xs text-danger mt-1 truncate" title={state.error}>
-                    <IoRefreshCircle className="text-base cursor-pointer hover:text-danger-500" onClick={() => fetchProviders()} />
-                    <span>检测失败</span>
-                  </div>
-                )}
-
-                {state?.status === 'success' && state.data && (
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-bold font-mono tracking-wide select-all truncate">
-                      {showIp ? state.data.ip : '•••.•••.•••.•••'}
+                {(state?.status === 'success' || state?.status === 'invalid') &&
+                  state.data.location && (
+                    <div
+                      className="truncate text-[11px] text-foreground-400"
+                      title={`${state.data.location} ${state.data.isp}`}
+                    >
+                      {state.data.location}
                     </div>
-                    {showIp && (
-                      <IoCopy 
-                        className="text-foreground-400 hover:text-primary cursor-pointer transition-colors text-xs" 
-                        onClick={() => navigator.clipboard.writeText(state.data!.ip)}
-                        title="复制 IP"
-                      />
-                    )}
-                  </div>
-                )}
+                  )}
               </div>
             </div>
 
-            {/* 右侧归属地与延迟 */}
-            <div className="flex flex-col items-end shrink-0 pl-2 border-l border-default-200/50 min-w-[120px]">
-               {state?.status === 'loading' && (
-                  <div className="space-y-1.5 w-full flex flex-col items-end">
-                    <Skeleton className="h-3.5 w-3/4 rounded" />
-                    <Skeleton className="h-2.5 w-1/2 rounded" />
-                  </div>
-               )}
-               {state?.status === 'success' && state.data && (
-                  <>
-                    <div className="text-xs text-foreground-500 truncate max-w-[140px]" title={`${state.data.location} ${state.data.isp}`}>
-                      {state.data.location || '未知'} {state.data.isp && `· ${state.data.isp}`}
-                    </div>
-                    <div className={state.data.latency && state.data.latency < 200 ? 'text-[11px] font-mono mt-0.5 text-success' : 'text-[11px] font-mono mt-0.5 text-warning'}>
-                      {state.data.latency} ms
-                    </div>
-                  </>
-               )}
+            <Chip
+              size="sm"
+              variant="flat"
+              color={provider.type === '国内' ? 'primary' : 'success'}
+              className="h-5 justify-self-start px-1.5 text-[10px]"
+            >
+              {provider.type}
+            </Chip>
+
+            <div className="min-w-0">
+              {state?.status === 'loading' && <Skeleton className="h-4 w-24 rounded" />}
+
+              {state?.status === 'error' && (
+                <div className="truncate text-xs font-medium text-danger" title={state.error}>
+                  {getReadableError(state.error)}
+                </div>
+              )}
+
+              {state?.status === 'invalid' && (
+                <div className="truncate text-xs font-medium text-warning" title={state.error}>
+                  {state.error}
+                </div>
+              )}
+
+              {state?.status === 'success' && state.data && (
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate font-mono text-sm font-semibold">
+                    {showIp ? state.data.ip : '•••.•••.•••.•••'}
+                  </span>
+                  {showIp && (
+                    <Button
+                      size="sm"
+                      variant="light"
+                      isIconOnly
+                      color={copiedProviderId === provider.id ? 'success' : 'default'}
+                      className="h-6 w-6 min-w-6 shrink-0"
+                      title={copiedProviderId === provider.id ? '已复制' : '复制该来源返回的 IP'}
+                      onPress={() => copyProviderIp(provider.id, state.data.ip)}
+                    >
+                      {copiedProviderId === provider.id ? (
+                        <IoCheckmarkCircle className="text-xs" />
+                      ) : (
+                        <IoCopy className="text-xs text-foreground-400" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-1.5">
+              {state?.status === 'loading' && <Skeleton className="h-4 w-12 rounded" />}
+
+              {(state?.status === 'success' || state?.status === 'invalid') && state.data && (
+                <span
+                  className={
+                    state.data.latency && state.data.latency < 200
+                      ? 'font-mono text-xs text-success'
+                      : 'font-mono text-xs text-warning'
+                  }
+                >
+                  {state.data.latency ?? '-'} ms
+                </span>
+              )}
+
+              {state?.status === 'error' && (
+                <Button
+                  size="sm"
+                  variant="light"
+                  isIconOnly
+                  className="h-7 w-7 min-w-7 text-danger"
+                  title="重试该检测源"
+                  onPress={() => fetchProvider(provider)}
+                >
+                  <IoRefresh className="text-sm" />
+                </Button>
+              )}
             </div>
           </div>
         )
       })}
-    </>
+    </div>
   )
 }

@@ -140,8 +140,8 @@ const defaultTestTargets: CombinedTestTarget[] = [
 const TEST_ALL_CONCURRENCY = 4
 const PROBE_NAME_MAP: Record<string, string> = {
   ipip: 'IPIP.net',
-  cloudflare: 'Cloudflare',
-  ipinfo: 'IPinfo.io'
+  ipsb: 'IP.SB',
+  ifconfig: 'ifconfig.co'
 }
 
 const Tools: React.FC = () => {
@@ -177,7 +177,9 @@ const Tools: React.FC = () => {
   const [ipInfo, setIpInfo] = useState<IpInfo | null>(null)
   const [ipLoading, setIpLoading] = useState(true)
   const [showIp, setShowIp] = useState(false)
+  const [ipInfoCopied, setIpInfoCopied] = useState(false)
   const [ipError, setIpError] = useState<string | null>(null)
+  const ipInfoCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleDnsQuery = async (): Promise<void> => {
     if (!dnsQuery.trim()) return
@@ -333,6 +335,18 @@ const Tools: React.FC = () => {
     Record<string, { ip: string; location: string; isp: string }>
   >({})
 
+  const markIpInfoCopied = useCallback(() => {
+    if (ipInfoCopiedTimerRef.current) {
+      clearTimeout(ipInfoCopiedTimerRef.current)
+    }
+
+    setIpInfoCopied(true)
+    ipInfoCopiedTimerRef.current = setTimeout(() => {
+      setIpInfoCopied(false)
+      ipInfoCopiedTimerRef.current = null
+    }, 1200)
+  }, [])
+
   // 复制 IP 信息
   const copyIpInfo = useCallback(async () => {
     if (!ipInfo) return
@@ -351,6 +365,7 @@ ASN: ${ipInfo.as}`
 
     try {
       await navigator.clipboard.writeText(info)
+      markIpInfoCopied()
     } catch {
       // 降级方案
       const textArea = document.createElement('textarea')
@@ -359,13 +374,29 @@ ASN: ${ipInfo.as}`
       textArea.select()
       document.execCommand('copy')
       document.body.removeChild(textArea)
+      markIpInfoCopied()
     }
-  }, [ipInfo, probeResults])
+  }, [ipInfo, markIpInfoCopied, probeResults])
 
   // 初始加载 IP 信息
   useEffect(() => {
     void fetchIpInfo()
   }, [fetchIpInfo])
+
+  useEffect(() => {
+    return () => {
+      if (ipInfoCopiedTimerRef.current) {
+        clearTimeout(ipInfoCopiedTimerRef.current)
+      }
+    }
+  }, [])
+
+  const ipLocationText = ipInfo
+    ? [ipInfo.country, ipInfo.region, ipInfo.city].filter(Boolean).join(' · ') || '未知'
+    : '未知'
+  const ipAsnText = ipInfo?.as || '未知'
+  const ipIspText = ipInfo?.isp || '未知'
+  const ipTimezoneText = ipInfo?.timezone || '未知'
 
   return (
     <BasePage title="工具">
@@ -610,12 +641,17 @@ ASN: ${ipInfo.as}`
                 <Button
                   size="sm"
                   isIconOnly
-                  variant="light"
+                  variant={ipInfoCopied ? 'flat' : 'light'}
+                  color={ipInfoCopied ? 'success' : 'default'}
                   onPress={copyIpInfo}
-                  title="复制 IP 信息"
+                  title={ipInfoCopied ? '已复制' : '复制 IP 信息'}
                   isDisabled={!ipInfo}
                 >
-                  <IoCopy className="text-base" />
+                  {ipInfoCopied ? (
+                    <IoCheckmarkCircle className="text-base" />
+                  ) : (
+                    <IoCopy className="text-base" />
+                  )}
                 </Button>
                 <Button
                   size="sm"
@@ -631,101 +667,96 @@ ASN: ${ipInfo.as}`
             </div>
 
             {ipLoading && !ipInfo ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-3/4 rounded" />
-                <Skeleton className="h-4 w-1/2 rounded" />
-                <Skeleton className="h-4 w-2/3 rounded" />
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <Skeleton className="h-36 rounded-xl" />
+                <Skeleton className="h-36 rounded-xl" />
               </div>
             ) : ipError ? (
               <div className="text-danger text-sm">{ipError}</div>
             ) : ipInfo ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* 原始 IP 信息 (左列) */}
-                <div className="grid grid-cols-1 gap-3 h-fit">
-                  {/* 第 1 行：公开 IP 地址 */}
-                  <div className="p-4 rounded-xl bg-default-100/50 border border-default-200/50 flex items-center justify-between group hover:bg-default-200/50 transition-colors h-[72px]">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                        <IoGlobe className="text-xl" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs text-foreground-400">公开 IP 地址</div>
-                        <div className="flex items-center gap-2">
-                          <div className="font-mono text-lg font-bold tracking-wide truncate">
-                            {showIp ? ipInfo?.ip : '•••.•••.•••.•••'}
-                          </div>
-                          {showIp && (
-                            <IoCopy
-                              className="text-foreground-400 hover:text-primary cursor-pointer transition-colors text-base shrink-0"
-                              onClick={copyIpInfo}
-                              title="全部复制"
-                            />
-                          )}
+              <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(380px,1.05fr)]">
+                <div className="h-full rounded-xl border border-default-200/40 bg-default-50/60 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="mb-2 flex items-center gap-2">
+                        <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                          <IoGlobe className="text-lg" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-foreground-400">公开 IP</div>
                         </div>
                       </div>
+                      <div
+                        className="max-w-full truncate font-mono text-2xl font-bold leading-tight text-foreground-900"
+                        title={showIp ? ipInfo.ip : 'IP 已隐藏'}
+                      >
+                        {showIp ? ipInfo.ip : '•••.•••.•••.•••'}
+                      </div>
                     </div>
+
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color={ipInfoCopied ? 'success' : 'primary'}
+                      onPress={copyIpInfo}
+                      title={ipInfoCopied ? '已复制' : '复制完整 IP 信息'}
+                      isDisabled={!ipInfo}
+                      startContent={
+                        ipInfoCopied ? (
+                          <IoCheckmarkCircle className="text-sm" />
+                        ) : (
+                          <IoCopy className="text-sm" />
+                        )
+                      }
+                    >
+                      {ipInfoCopied ? '已复制' : '复制'}
+                    </Button>
                   </div>
 
-                  {/* 第 2 行：国家/地区、城市、时区 */}
-                  <div className="p-4 rounded-xl bg-default-50/50 border border-default-200/30 flex items-center gap-4 hover:bg-default-100/50 transition-colors h-[72px]">
-                    <div className="flex items-center gap-3 min-w-0 flex-1 border-r border-default-200/50 pr-2">
-                      <div className="p-2 rounded-lg bg-success/10 text-success shrink-0">
-                        <IoMap className="text-lg" />
+                  <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
+                      <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
+                        <IoMap className="text-success" />
+                        <span>位置</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs text-foreground-400">国家与城市</div>
-                        <div
-                          className="text-sm font-medium truncate"
-                          title={`${ipInfo?.country} ${ipInfo?.city}`}
-                        >
-                          {ipInfo?.country} {ipInfo?.city}
-                        </div>
+                      <div className="truncate text-sm font-semibold" title={ipLocationText}>
+                        {ipLocationText}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="p-2 rounded-lg bg-warning/10 text-warning shrink-0">
-                        <IoTime className="text-lg" />
+                    <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
+                      <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
+                        <IoTime className="text-warning" />
+                        <span>时区</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs text-foreground-400">时区</div>
-                        <div className="text-sm font-medium truncate" title={ipInfo?.timezone}>
-                          {ipInfo?.timezone}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 第 3 行：ISP 运营商与 ASN */}
-                  <div className="p-4 rounded-xl bg-default-50/50 border border-default-200/30 flex items-center gap-4 hover:bg-default-100/50 transition-colors h-[72px]">
-                    <div className="flex items-center gap-3 min-w-0 flex-1 border-r border-default-200/50 pr-2">
-                      <div className="p-2 rounded-lg bg-secondary/10 text-secondary shrink-0">
-                        <IoBusiness className="text-lg" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs text-foreground-400">ISP 运营商</div>
-                        <div className="text-sm font-medium truncate" title={ipInfo?.isp}>
-                          {ipInfo?.isp}
-                        </div>
+                      <div className="truncate text-sm font-semibold" title={ipTimezoneText}>
+                        {ipTimezoneText}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="p-2 rounded-lg bg-danger/10 text-danger shrink-0">
-                        <IoServer className="text-lg" />
+                    <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
+                      <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
+                        <IoBusiness className="text-secondary" />
+                        <span>ISP</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs text-foreground-400">ASN 组织</div>
-                        <div className="text-sm font-medium truncate" title={ipInfo?.as}>
-                          {ipInfo?.as}
-                        </div>
+                      <div className="line-clamp-2 text-sm font-semibold" title={ipIspText}>
+                        {ipIspText}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
+                      <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
+                        <IoServer className="text-danger" />
+                        <span>ASN</span>
+                      </div>
+                      <div className="line-clamp-2 text-sm font-semibold" title={ipAsnText}>
+                        {ipAsnText}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* 第三方 IP 测试探针 (右列) */}
-                <div className="grid grid-cols-1 gap-3 h-fit">
+                <div className="min-w-0 h-full">
                   <IpCheckerPanel showIp={showIp} onResultsChange={setProbeResults} enabled />
                 </div>
               </div>
