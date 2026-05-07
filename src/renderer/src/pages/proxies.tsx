@@ -3,12 +3,16 @@ import BasePage from '@renderer/components/base/base-page'
 import EmptyState from '@renderer/components/base/empty-state'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
+  getGroupCurrentDelay,
+  getProxyDisplayDelay,
+  getResolvedProxyTarget
+} from '@renderer/utils/proxy-delay'
+import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
-  mihomoGroupDelay,
   mihomoProxyDelay
 } from '@renderer/utils/mihomo-ipc'
-import { useEffect, useMemo, useRef, useState, useCallback, useDeferredValue, memo } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
@@ -16,7 +20,6 @@ import ProxyChainModal from '@renderer/components/proxies/proxy-chain-modal'
 import { MdTune, MdLink } from 'react-icons/md'
 import { TbBolt } from 'react-icons/tb'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { includesIgnoreCase } from '@renderer/utils/includes'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { ProxyGroupCard } from '@renderer/components/proxies/proxy-group-card'
 import { ProxyCardSkeleton } from '@renderer/components/base/skeleton'
@@ -34,6 +37,7 @@ interface ProxyRowChunkProps {
   group: ControllerMixedGroup
   isAuto: boolean
   chunkSize: number
+  delayVersion: string
   mutate: () => void
   onProxyDelay: (proxy: string, url?: string) => Promise<ControllerProxiesDelay>
   onChangeProxy: (group: string, proxy: string) => Promise<void>
@@ -46,6 +50,7 @@ const ProxyRowChunk = memo(
     group,
     isAuto,
     chunkSize,
+    delayVersion,
     mutate,
     onProxyDelay,
     onChangeProxy,
@@ -74,6 +79,7 @@ const ProxyRowChunk = memo(
               onSelect={onChangeProxy}
               proxy={proxy}
               group={group}
+              delayVersion={delayVersion}
               proxyDisplayLayout={proxyDisplayLayout}
               selected={proxy.name === group.now}
               index={i}
@@ -88,6 +94,7 @@ const ProxyRowChunk = memo(
     // 由于外部 mutate 会刷新整个引用，我们需要按值比较核心变化点。
     if (prev.isAuto !== next.isAuto) return false
     if (prev.chunkSize !== next.chunkSize) return false
+    if (prev.delayVersion !== next.delayVersion) return false
     if (prev.proxyDisplayLayout !== next.proxyDisplayLayout) return false
     if (prev.group.now !== next.group.now) return false
     if (prev.group.name !== next.group.name) return false
@@ -145,13 +152,80 @@ function normalizeDelayTestConcurrency(value?: number): number {
   return Math.min(MAX_DELAY_TEST_CONCURRENCY, Math.max(1, parsed))
 }
 
-function hasPositiveDelay(proxy?: ControllerProxiesDetail | ControllerGroupDetail): boolean {
-  return Boolean(proxy?.history?.some((item) => item.delay > 0))
+function getHistoryVersion(history?: ControllerProxiesHistory[]): string {
+  if (!history?.length) return ''
+  const latest = history[history.length - 1]
+  return `${latest.time}:${latest.delay}`
+}
+
+function getDelayVersion(groups: ControllerMixedGroup[]): string {
+  const visited = new WeakSet<object>()
+
+  const visit = (proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {
+    if (visited.has(proxy)) return ''
+    visited.add(proxy)
+
+    const base = [
+      proxy.name,
+      getHistoryVersion(proxy.history)
+    ]
+
+    if ('now' in proxy) {
+      base.push(proxy.now)
+      for (const child of proxy.all || []) {
+        const candidate: unknown = child
+        if (candidate !== null && typeof candidate === 'object' && 'name' in candidate) {
+          base.push(visit(candidate as ControllerProxiesDetail | ControllerGroupDetail))
+        }
+      }
+    }
+
+    return base.join(':')
+  }
+
+  return groups.map(visit).join('\n')
+}
+
+function getAutoDelayGroupSignature(groups: ControllerMixedGroup[]): string {
+  return groups
+    .map((group) => {
+      const childNames = (group.all || [])
+        .map((proxy) => proxy?.name || '')
+        .join('\u0002')
+      return `${group.name}\u0000${group.now}\u0000${childNames}`
+    })
+    .join('\u0001')
 }
 
 function groupNeedsDelayTest(group: ControllerMixedGroup): boolean {
-  const current = group.all?.find((proxy) => proxy.name === group.now)
-  return !hasPositiveDelay(current)
+  return getGroupCurrentDelay(group) <= 0
+}
+
+type ResolvedDelayTarget = {
+  proxyName: string
+  sourceGroups: string[]
+}
+
+function getUniqueResolvedDelayTargets(groups: ControllerMixedGroup[]): ResolvedDelayTarget[] {
+  const targets = new Map<string, ResolvedDelayTarget>()
+
+  groups.forEach((group) => {
+    const target = getResolvedProxyTarget(group)
+    if (!target) return
+
+    const existing = targets.get(target.name)
+    if (existing) {
+      existing.sourceGroups.push(group.name)
+      return
+    }
+
+    targets.set(target.name, {
+      proxyName: target.name,
+      sourceGroups: [group.name]
+    })
+  })
+
+  return Array.from(targets.values())
 }
 
 const Proxies: React.FC = () => {
@@ -166,8 +240,11 @@ const Proxies: React.FC = () => {
     proxyCols = 'auto',
     groupOrder = [],
     autoDelayTestOnShow = false,
+    autoDelayTestInterval = 0,
     delayTestConcurrency = DEFAULT_DELAY_TEST_CONCURRENCY
   } = appConfig || {}
+  const [isAutoDelayTesting, setIsAutoDelayTesting] = useState(false)
+  const autoDelayRenderGroupsRef = useRef<ControllerMixedGroup[]>([])
 
   // 根据模式过滤显示的组
   const filteredGroups = useMemo(() => {
@@ -187,10 +264,21 @@ const Proxies: React.FC = () => {
       return aIndex - bIndex
     })
   }, [filteredGroups, groupOrder])
-  const autoDelayGroupSignature = useMemo(
-    () => groups.map((group) => `${group.name}\u0000${group.now}`).join('\u0001'),
-    [groups]
-  )
+  const renderGroups =
+    isAutoDelayTesting && autoDelayRenderGroupsRef.current.length > 0
+      ? autoDelayRenderGroupsRef.current
+      : groups
+  const delayVersion = useMemo(() => getDelayVersion(renderGroups), [renderGroups])
+  const autoDelayGroupSignature = useMemo(() => getAutoDelayGroupSignature(groups), [groups])
+  // 使用 ref 存储最新引用，避免 useEffect 依赖不稳定值导致自取消
+  // 问题根因：测速期间 mutate() 刷新 groups 数据 → url-test/fallback 组自动切换 now
+  //          → 依赖数组中的签名变化 → effect cleanup 取消正在进行的测速
+  const groupsRef = useRef(renderGroups)
+  groupsRef.current = renderGroups
+  const mutateRef = useRef(mutate)
+  mutateRef.current = mutate
+  const delayTestConcurrencyRef = useRef(delayTestConcurrency)
+  delayTestConcurrencyRef.current = delayTestConcurrency
 
   // Determine a reasonable chunk size based on proxyCols preference
   const chunkSize = useMemo(() => {
@@ -200,8 +288,6 @@ const Proxies: React.FC = () => {
 
   const [isOpen, setIsOpen] = useState<Record<string, boolean>>({})
   const [delaying, setDelaying] = useState<Record<string, boolean>>({})
-  const [searchValue, setSearchValue] = useState<Record<string, string>>({})
-  const deferredSearchValue = useDeferredValue(searchValue)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [isChainModalOpen, setIsChainModalOpen] = useState(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
@@ -213,27 +299,28 @@ const Proxies: React.FC = () => {
   const flatItems = useMemo(() => {
     const items: FlatItem[] = []
     
-    groups.forEach((group, index) => {
+    renderGroups.forEach((group, index) => {
       // 添加组头
       items.push({ type: 'header', groupIndex: index })
       
       // 如果展开，添加代理行
       const isGroupOpen = !!isOpen[group.name]
-      const currentSearchValue = deferredSearchValue[group.name] || ''
-      
+
       if (isGroupOpen) {
         let groupProxies = (group.all || []).filter(
-          (proxy) => proxy && includesIgnoreCase(proxy.name, currentSearchValue)
+          (proxy): proxy is ControllerProxiesDetail | ControllerGroupDetail => Boolean(proxy)
         )
 
         // 排序逻辑
         if (proxyDisplayOrder === 'delay') {
           groupProxies = groupProxies.sort((a, b) => {
-            if (!a.history || a.history.length === 0) return -1
-            if (!b.history || b.history.length === 0) return 1
-            if (a.history[a.history.length - 1].delay === 0) return 1
-            if (b.history[b.history.length - 1].delay === 0) return -1
-            return a.history[a.history.length - 1].delay - b.history[b.history.length - 1].delay
+            const aDelay = getProxyDisplayDelay(a)
+            const bDelay = getProxyDisplayDelay(b)
+            if (aDelay === -1) return -1
+            if (bDelay === -1) return 1
+            if (aDelay === 0) return 1
+            if (bDelay === 0) return -1
+            return aDelay - bDelay
           })
         }
         if (proxyDisplayOrder === 'name') {
@@ -251,7 +338,7 @@ const Proxies: React.FC = () => {
       }
     })
     return items
-  }, [groups, isOpen, proxyDisplayOrder, chunkSize, deferredSearchValue])
+  }, [renderGroups, isOpen, proxyDisplayOrder, chunkSize])
 
 
 
@@ -277,11 +364,15 @@ const Proxies: React.FC = () => {
   )
 
   const onGroupDelay = useCallback(
-    async (groupName: string, testUrl?: string): Promise<void> => {
+    async (groupName: string): Promise<void> => {
       setDelaying((prev) => ({ ...prev, [groupName]: true }))
 
       try {
-        await mihomoGroupDelay(groupName, testUrl)
+        const group = groupsRef.current.find((item) => item.name === groupName)
+        const target = getResolvedProxyTarget(group)
+        if (target) {
+          await mihomoProxyDelay(target.name, group?.testUrl)
+        }
       } catch {
         // ignore
       } finally {
@@ -296,105 +387,172 @@ const Proxies: React.FC = () => {
     setIsOpen((prev) => ({ ...prev, [groupName]: !prev[groupName] }))
   }, [])
 
-  const updateSearchValue = useCallback((groupName: string, value: string) => {
-    setSearchValue((prev) => ({ ...prev, [groupName]: value }))
-  }, [])
-
-  // 首次进入页面时自动测速
+  // 首次进入页面时自动测速，及周期性定时测速
   const hasInitialTestRef = useRef(false)
+  const isTestingRef = useRef(false)
+  const autoTestGenerationRef = useRef(0)
+
   useEffect(() => {
-    if (groups.length === 0) return
-    if (hasInitialTestRef.current) return
-    if (!autoDelayTestOnShow) return
+    const currentGroups = groupsRef.current
+    if (currentGroups.length === 0) return
+    // 既不启用首次测速，也不启用周期测速时，直接返回
+    if (!autoDelayTestOnShow && autoDelayTestInterval === 0) return
 
-    const groupsMissingCurrentDelay = groups.filter(groupNeedsDelayTest)
-    const shouldRespectCooldown = groupsMissingCurrentDelay.length === 0
-    if (shouldRespectCooldown && Date.now() - lastAutoDelayTestAt < AUTO_DELAY_TEST_COOLDOWN_MS) return
+    let disposed = false
+    const resetAutoDelayState = (): void => {
+      setIsAutoDelayTesting(false)
+      setDelaying((prev) => {
+        const resetGroups = groupsRef.current.map((group) => group.name)
+        return {
+          ...prev,
+          ...Object.fromEntries(resetGroups.map((name) => [name, false]))
+        }
+      })
+    }
+    const isCurrentAutoTest = (runId: number): boolean => {
+      return !disposed && autoTestGenerationRef.current === runId && !document.hidden
+    }
 
-    const targetGroups = groupsMissingCurrentDelay.length > 0 ? groupsMissingCurrentDelay : groups
+    // 监听页面可见性变化，隐藏时中止后续测速任务，显示时可能触发首次测速
+    const handleVisibilityChange = (): void => {
+      if (document.hidden) {
+        autoTestGenerationRef.current += 1
+        isTestingRef.current = false
+        resetAutoDelayState()
+      } else {
+        // 如果页面恢复可见，且配置了自动测速但还没进行过，则尝试触发
+        if (!hasInitialTestRef.current && autoDelayTestOnShow) {
+          void doAutoDelayTest().then((started) => {
+            if (started) {
+              hasInitialTestRef.current = true
+            }
+          })
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    hasInitialTestRef.current = true
-    let cancelled = false
+    const doAutoDelayTest = async (forceAll: boolean = false): Promise<boolean> => {
+      if (disposed || document.hidden || isTestingRef.current) return false
+      
+      const latestGroups = groupsRef.current
+      if (latestGroups.length === 0) return false
 
-    const doAutoDelayTest = async (): Promise<void> => {
-      if (cancelled || document.hidden) return
+      let targetGroups = latestGroups
+      if (!forceAll) {
+        const groupsMissingCurrentDelay = latestGroups.filter(groupNeedsDelayTest)
+        const shouldRespectCooldown = groupsMissingCurrentDelay.length === 0
+        if (shouldRespectCooldown && Date.now() - lastAutoDelayTestAt < AUTO_DELAY_TEST_COOLDOWN_MS) {
+          return false
+        }
+        targetGroups = groupsMissingCurrentDelay.length > 0 ? groupsMissingCurrentDelay : latestGroups
+      }
+
+      const delayTargets = getUniqueResolvedDelayTargets(targetGroups)
+      if (delayTargets.length === 0) {
+        console.debug('[proxy-delay:auto] skip: no resolved proxy targets')
+        return false
+      }
+
+      const runId = autoTestGenerationRef.current + 1
+      autoTestGenerationRef.current = runId
+      isTestingRef.current = true
+      autoDelayRenderGroupsRef.current = latestGroups
+      setIsAutoDelayTesting(true)
       lastAutoDelayTestAt = Date.now()
+      
       setDelaying((prev) => ({
         ...prev,
         ...Object.fromEntries(targetGroups.map((group) => [group.name, true]))
       }))
       console.debug('[proxy-delay:auto] start', targetGroups.map((group) => group.name))
 
-      const tasks = targetGroups.map((group) => async (): Promise<void> => {
-        if (cancelled || document.hidden) return
-        console.debug('[proxy-delay:auto] test group', group.name, group.testUrl || '')
+      const tasks = delayTargets.map((target) => async (): Promise<void> => {
+        if (!isCurrentAutoTest(runId)) return
+        console.debug('[proxy-delay:auto] test proxy', target.proxyName, target.sourceGroups)
 
-        await mihomoGroupDelay(group.name, group.testUrl)
-          .catch((error) => {
-            console.warn('[proxy-delay:auto] failed', group.name, error)
-          })
-          .finally(() => {
-            setDelaying((prev) => ({ ...prev, [group.name]: false }))
-            if (!cancelled) {
-              void mutate()
-            }
-          })
+        await mihomoProxyDelay(target.proxyName).catch((error) => {
+          console.warn('[proxy-delay:auto] failed', target.proxyName, error)
+        })
       })
 
-      await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrency))
-      if (cancelled) return
+      await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrencyRef.current))
+      if (!isCurrentAutoTest(runId)) {
+        if (autoTestGenerationRef.current === runId) {
+          isTestingRef.current = false
+        }
+        return false
+      }
+
+      isTestingRef.current = false
       console.debug('[proxy-delay:auto] finished')
-      mutate()
-    }
+      await mutateRef.current()
+      if (!isCurrentAutoTest(runId)) return false
 
-    void doAutoDelayTest()
-
-    return () => {
-      cancelled = true
+      setIsAutoDelayTesting(false)
       setDelaying((prev) => ({
         ...prev,
         ...Object.fromEntries(targetGroups.map((group) => [group.name, false]))
       }))
+      return true
     }
-  }, [autoDelayGroupSignature, mutate, autoDelayTestOnShow, delayTestConcurrency])
 
-  // 获取节点延迟颜色
-  const getDelayColor = useCallback((proxy: ControllerProxiesDetail | ControllerGroupDetail): string => {
-    if (!proxy.history || proxy.history.length === 0) return 'bg-zinc-400' // 未测试 - 灰色
-    const delay = proxy.history[proxy.history.length - 1].delay
-    if (delay === 0) return 'bg-zinc-400' // 0 通常表示测试失败或未测试，暂显示为灰色
-    const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
-    if (delay < delayThresholds.good) return 'bg-emerald-500' // 低延迟 - 翠绿色
-    if (delay < delayThresholds.fair) return 'bg-amber-400' // 中延迟 - 琥珀色
-    return 'bg-red-500' // 高延迟 - 红色
-  }, [appConfig])
+    // 触发首次测速
+    if (!hasInitialTestRef.current && autoDelayTestOnShow) {
+      void doAutoDelayTest().then((started) => {
+        if (started) {
+          hasInitialTestRef.current = true
+        }
+      })
+    }
 
-  // 获取当前节点延迟
-  const getCurrentDelay = useCallback((group: ControllerMixedGroup): number => {
-    const current = group.all?.find((p) => p.name === group.now)
-    if (!current?.history?.length) return -1
-    return current.history[current.history.length - 1].delay
-  }, [])
+    // 设置周期测速定时器
+    let intervalId: NodeJS.Timeout | null = null
+    if (autoDelayTestInterval > 0) {
+      // interval 转换为毫秒
+      const intervalMs = autoDelayTestInterval * 60 * 1000
+      intervalId = setInterval(() => {
+        if (!document.hidden && !isTestingRef.current) {
+          // 定时触发强制测试所有展示的组
+          void doAutoDelayTest(true)
+        }
+      }, intervalMs)
+    }
+
+    return () => {
+      disposed = true
+      autoTestGenerationRef.current += 1
+      isTestingRef.current = false
+      if (intervalId) clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      resetAutoDelayState()
+    }
+    // 注意：签名只包含组名、当前选择和成员名，不包含 history，避免测速刷新历史时重置 effect。
+  }, [autoDelayGroupSignature, autoDelayTestOnShow, autoDelayTestInterval])
+
+  // 获取当前节点延迟 — 解析到最终节点并复用同名节点的最新测速结果
+  const getCurrentDelay = useCallback(
+    (group: ControllerMixedGroup): number => getGroupCurrentDelay(group),
+    []
+  )
 
   const renderItem = useCallback(
     (_index: number, item: FlatItem) => {
       const { groupIndex } = item
 
       if (item.type === 'header') {
-        const group = groups[groupIndex]
+        const group = renderGroups[groupIndex]
         
         return group ? (
           <ProxyGroupCard
             group={group}
             isOpen={!!isOpen[group.name]}
             toggleOpen={() => toggleOpen(group.name)}
-            searchValue={searchValue[group.name] || ''}
-            updateSearchValue={(val) => updateSearchValue(group.name, val)}
             delaying={!!delaying[group.name]}
-            onGroupDelay={() => onGroupDelay(group.name, group.testUrl)}
+            delayVersion={delayVersion}
+            onGroupDelay={() => onGroupDelay(group.name)}
             getCurrentDelay={getCurrentDelay}
             mutate={mutate}
-            getDelayColor={getDelayColor}
           />
         ) : (
           <div>Never See This</div>
@@ -407,9 +565,10 @@ const Proxies: React.FC = () => {
           <ProxyRowChunk
             key={`chunk-${groupIndex}-${proxies[0]?.name}`}
             proxies={proxies}
-            group={groups[groupIndex]}
+            group={renderGroups[groupIndex]}
             isAuto={isAuto}
             chunkSize={chunkSize}
+            delayVersion={delayVersion}
             mutate={mutate}
             onProxyDelay={onProxyDelay}
             onChangeProxy={onChangeProxy}
@@ -419,16 +578,14 @@ const Proxies: React.FC = () => {
       }
     },
     [
-      groups,
+      renderGroups,
       isOpen,
-      searchValue,
       delaying,
       toggleOpen,
-      updateSearchValue,
       onGroupDelay,
       mutate,
-      getDelayColor,
       getCurrentDelay,
+      delayVersion,
       proxyCols,
       chunkSize,
       proxyDisplayLayout,
@@ -481,7 +638,7 @@ const Proxies: React.FC = () => {
             ))}
           </div>
         </div>
-      ) : groups.length === 0 ? (
+      ) : renderGroups.length === 0 ? (
         <EmptyState
           icon={<MdLink className="!text-[40px] text-default-400" />}
           title="暂无代理组"

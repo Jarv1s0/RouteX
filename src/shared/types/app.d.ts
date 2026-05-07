@@ -92,6 +92,7 @@ interface AppConfig {
     fair: number // 良好延迟阈值，默认 500ms
   }
   autoDelayTestOnShow?: boolean // 进入页面时自动测速
+  autoDelayTestInterval?: number // 停留页面时周期性测速间隔（分钟），0 表示禁用
   encryptedPassword?: number[]
   controlDns?: boolean
   controlSniff?: boolean

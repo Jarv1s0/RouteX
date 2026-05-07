@@ -4,6 +4,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useMemo, useState, memo } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { getProxyDisplayDelay, getResolvedProxyTarget } from '@renderer/utils/proxy-delay'
 
 interface Props {
   mutateProxies: () => void
@@ -11,6 +12,7 @@ interface Props {
   proxyDisplayLayout: 'hidden' | 'single' | 'double'
   proxy: ControllerProxiesDetail | ControllerGroupDetail
   group: ControllerMixedGroup
+  delayVersion: string
   onSelect: (group: string, proxy: string) => void
   selected: boolean
   index?: number
@@ -25,8 +27,8 @@ function getProxyNow(proxy: ControllerProxiesDetail | ControllerGroupDetail): st
   return 'now' in proxy ? proxy.now : undefined
 }
 
-function getLatestDelay(proxy: ControllerProxiesDetail | ControllerGroupDetail): number {
-  return proxy.history?.length ? proxy.history[proxy.history.length - 1].delay : -1
+function getProxyTestUrl(proxy: ControllerProxiesDetail | ControllerGroupDetail): string | undefined {
+  return 'testUrl' in proxy ? proxy.testUrl : undefined
 }
 
 const ProxyItemComponent: React.FC<Props> = (props) => {
@@ -37,36 +39,24 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
     proxy,
     selected,
     onSelect,
-    onProxyDelay
+    onProxyDelay,
+    delayVersion
   } = props
 
   const { appConfig } = useAppConfig()
   const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
 
-  const delay = useMemo(() => {
-    return getLatestDelay(proxy)
-  }, [proxy])
+  const displayDelay = useMemo(() => getProxyDisplayDelay(proxy), [proxy, delayVersion])
 
   // 如果是子组，获取当前选中节点的信息和延迟
   const subGroupInfo = useMemo(() => {
     if (!isSubGroup(proxy)) return null
     const subGroup = proxy as ControllerGroupDetail
-    // 子组自身的延迟（从子组的 history 获取）
-    const subGroupDelay = getLatestDelay(subGroup)
     return {
       now: subGroup.now,
-      nodeCount: subGroup.all.length,
-      currentNodeDelay: subGroupDelay
+      nodeCount: subGroup.all.length
     }
-  }, [proxy])
-
-  // 显示的延迟：如果是子组，显示当前选中节点的延迟
-  const displayDelay = useMemo(() => {
-    if (subGroupInfo) {
-      return subGroupInfo.currentNodeDelay
-    }
-    return delay
-  }, [subGroupInfo, delay])
+  }, [proxy, delayVersion])
 
   const [loading, setLoading] = useState(false)
 
@@ -86,7 +76,9 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
 
   const onDelay = (): void => {
     setLoading(true)
-    onProxyDelay(proxy.name, group.testUrl).finally(() => {
+    const target = getResolvedProxyTarget(proxy)
+    const testUrl = isSubGroup(proxy) ? proxy.testUrl ?? group.testUrl : group.testUrl
+    onProxyDelay(target?.name ?? proxy.name, testUrl).finally(() => {
       mutateProxies()
       setLoading(false)
     })
@@ -260,15 +252,17 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
 
 const ProxyItem = memo(ProxyItemComponent, (prev, next) => {
     // 精细化阻断不必要渲染。比如测速或者选择了其他节点，不要带动我这颗没变的节点重绘
-    const prevDelay = getLatestDelay(prev.proxy)
-    const nextDelay = getLatestDelay(next.proxy)
+    const prevDelay = getProxyDisplayDelay(prev.proxy)
+    const nextDelay = getProxyDisplayDelay(next.proxy)
     
     return (
         prev.selected === next.selected &&
         prev.proxyDisplayLayout === next.proxyDisplayLayout &&
+        prev.delayVersion === next.delayVersion &&
         prev.group.fixed === next.group.fixed &&
         prev.group.name === next.group.name &&
         prev.group.testUrl === next.group.testUrl &&
+        getProxyTestUrl(prev.proxy) === getProxyTestUrl(next.proxy) &&
         prev.proxy.name === next.proxy.name &&
         prev.proxy.type === next.proxy.type &&
         prev.proxy.icon === next.proxy.icon &&
