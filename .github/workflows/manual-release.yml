@@ -126,14 +126,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint:ci
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Rust Tests
-        run: pnpm test:rust
+      - name: Verify Project
+        uses: ./.github/actions/verify
 
       - name: Install macOS ARM64 Rust Target
         if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
@@ -151,6 +145,7 @@ jobs:
         if: matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')
         shell: bash
         run: |
+          pnpm check:release-env
           pnpm prepare:resources
           pnpm tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":true}}'
         env:
@@ -165,6 +160,7 @@ jobs:
         if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
         shell: bash
         run: |
+          pnpm check:release-env
           pnpm prepare:resources
           pnpm tauri build --bundles deb rpm --config '{"bundle":{"createUpdaterArtifacts":true}}'
           for attempt in 1 2 3; do
@@ -191,6 +187,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          pnpm check:release-env
           pnpm prepare:resources -- arm64
           pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":true}}'
         env:

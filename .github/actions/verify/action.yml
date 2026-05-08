@@ -1,0 +1,70 @@
+name: Verify Project
+description: Run RouteX lint, typecheck, tests, and dependency audits.
+
+inputs:
+  cargo-audit-version:
+    description: cargo-audit version to install when it is not cached.
+    required: false
+    default: '0.22.1'
+
+runs:
+  using: composite
+  steps:
+    - name: Lint
+      shell: bash
+      run: pnpm lint:ci
+
+    - name: Typecheck
+      shell: bash
+      run: pnpm typecheck
+
+    - name: Clippy
+      shell: bash
+      run: pnpm clippy
+
+    - name: Dead-code Guard
+      shell: bash
+      run: pnpm check:dead-code
+
+    - name: Web Tests
+      shell: bash
+      run: pnpm test:web
+
+    - name: Node Audit
+      shell: bash
+      run: pnpm audit:node
+
+    - name: Setup cargo-audit cache
+      uses: actions/cache@v5
+      with:
+        path: ~/.cargo/bin/cargo-audit*
+        key: ${{ runner.os }}-cargo-audit-${{ inputs.cargo-audit-version }}
+
+    - name: Install cargo-audit
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if cargo audit --version 2>/dev/null | grep -Fq "${CARGO_AUDIT_VERSION}"; then
+          cargo audit --version
+        else
+          cargo install cargo-audit --locked --version "${CARGO_AUDIT_VERSION}" --force
+        fi
+      env:
+        CARGO_AUDIT_VERSION: ${{ inputs.cargo-audit-version }}
+
+    - name: Setup Rust advisory cache
+      uses: actions/cache@v5
+      with:
+        path: ~/.cargo/advisory-db
+        key: ${{ runner.os }}-cargo-advisory-db-${{ hashFiles('src-tauri/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-advisory-db-
+
+    - name: Rust Audit
+      shell: bash
+      run: pnpm audit:rust
+
+    - name: Rust Tests
+      shell: bash
+      run: pnpm test:rust

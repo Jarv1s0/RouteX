@@ -164,9 +164,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint:ci
-
       - name: Prepare Resources
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -227,11 +224,8 @@ jobs:
             du -h "$file"
           done
 
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Rust Tests
-        run: pnpm test:rust
+      - name: Verify Project
+        uses: ./.github/actions/verify
 
       - name: Install macOS ARM64 Rust Target
         if: matrix.platform == 'macos'
