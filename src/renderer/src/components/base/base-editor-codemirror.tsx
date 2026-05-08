@@ -1,0 +1,404 @@
+import React, { type RefObject, useEffect, useMemo, useRef } from 'react'
+import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
+import { css } from '@codemirror/lang-css'
+import { javascript } from '@codemirror/lang-javascript'
+import { json, jsonParseLinter } from '@codemirror/lang-json'
+import { yaml } from '@codemirror/lang-yaml'
+import {
+  bracketMatching,
+  defaultHighlightStyle,
+  foldGutter,
+  foldKeymap,
+  indentOnInput,
+  syntaxHighlighting
+} from '@codemirror/language'
+import { type Diagnostic, lintGutter, linter } from '@codemirror/lint'
+import { MergeView, unifiedMergeView } from '@codemirror/merge'
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
+import { EditorState, type Extension } from '@codemirror/state'
+import {
+  crosshairCursor,
+  drawSelection,
+  dropCursor,
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  keymap,
+  lineNumbers,
+  rectangularSelection
+} from '@codemirror/view'
+import { useTheme } from 'next-themes'
+import { load } from 'js-yaml'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
+import type { BaseEditorProps, Language } from './base-editor.shared'
+
+type YamlParseError = {
+  message?: string
+  mark?: {
+    line?: number
+    column?: number
+  }
+}
+
+interface CodeMirrorViewProps extends BaseEditorProps {
+  extensions: Extension[]
+  suppressChangeRef: RefObject<boolean>
+}
+
+interface CodeMirrorEditorViewProps extends CodeMirrorViewProps {
+  unifiedOriginalValue?: string
+}
+
+type EditorSettings = {
+  disableAnimation: boolean
+  isLight: boolean
+}
+
+const editorFontFamily =
+  'Maple Mono NF CN,Fira Code, JetBrains Mono, Roboto Mono, "Source Code Pro", Consolas, Menlo, Monaco, monospace, "Courier New", "Apple Color Emoji", "Noto Color Emoji"'
+const editorContainerClassName = 'h-full w-full overflow-hidden'
+
+const useEditorSettings = (): EditorSettings => {
+  const { theme, systemTheme } = useTheme()
+  const trueTheme = theme === 'system' ? systemTheme : theme
+  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
+
+  return {
+    disableAnimation,
+    isLight: trueTheme?.includes('light') ?? false
+  }
+}
+
+const yamlParseLinter = linter((view) => {
+  const text = view.state.doc.toString()
+  if (!text.trim()) return []
+
+  try {
+    load(text)
+    return []
+  } catch (error) {
+    const parseError = error as YamlParseError
+    const lineNumber = typeof parseError.mark?.line === 'number' ? parseError.mark.line + 1 : 1
+    const column = typeof parseError.mark?.column === 'number' ? parseError.mark.column : 0
+    const line = view.state.doc.line(Math.min(lineNumber, view.state.doc.lines))
+    const from = Math.min(line.from + column, line.to)
+
+    return [
+      {
+        from,
+        to: Math.min(from + 1, view.state.doc.length),
+        severity: 'error',
+        message: parseError.message || 'YAML 解析失败'
+      } satisfies Diagnostic
+    ]
+  }
+})
+
+const languageExtensions = (language: Language): Extension[] => {
+  switch (language) {
+    case 'css':
+      return [css()]
+    case 'javascript':
+      return [javascript()]
+    case 'json':
+      return [json(), linter(jsonParseLinter())]
+    case 'yaml':
+      return [yaml(), yamlParseLinter]
+    case 'text':
+      return []
+  }
+}
+
+const createTheme = (isLight: boolean, disableAnimation: boolean): Extension =>
+  EditorView.theme(
+    {
+      '&': {
+        height: '100%',
+        backgroundColor: 'transparent',
+        color: 'hsl(var(--heroui-foreground))',
+        fontSize: '14px'
+      },
+      '&.cm-focused': {
+        outline: 'none'
+      },
+      '.cm-scroller': {
+        fontFamily: editorFontFamily,
+        lineHeight: '1.5',
+        scrollBehavior: disableAnimation ? 'auto' : 'smooth'
+      },
+      '.cm-content': {
+        minHeight: '100%',
+        padding: '16px 0',
+        caretColor: 'hsl(var(--heroui-primary))'
+      },
+      '.cm-line': {
+        padding: '0 14px'
+      },
+      '.cm-gutters': {
+        backgroundColor: 'transparent',
+        borderRight: '1px solid hsl(var(--heroui-default-200) / 0.6)',
+        color: 'hsl(var(--heroui-default-500))'
+      },
+      '.cm-activeLine, .cm-activeLineGutter': {
+        backgroundColor: isLight
+          ? 'hsl(var(--heroui-default-100) / 0.65)'
+          : 'hsl(var(--heroui-default-100) / 0.18)'
+      },
+      '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
+        backgroundColor: 'hsl(var(--heroui-primary) / 0.24)'
+      },
+      '.cm-cursor': {
+        borderLeftColor: 'hsl(var(--heroui-primary))'
+      },
+      '.cm-foldGutter span': {
+        color: 'hsl(var(--heroui-default-500))'
+      },
+      '.cm-tooltip': {
+        border: '1px solid hsl(var(--heroui-default-200) / 0.75)',
+        borderRadius: '8px',
+        backgroundColor: 'hsl(var(--heroui-content1))',
+        color: 'hsl(var(--heroui-foreground))',
+        boxShadow: '0 12px 30px hsl(var(--heroui-foreground) / 0.12)'
+      },
+      '.cm-tooltip-autocomplete ul li[aria-selected]': {
+        backgroundColor: 'hsl(var(--heroui-primary) / 0.14)',
+        color: 'hsl(var(--heroui-foreground))'
+      },
+      '.cm-diagnostic': {
+        padding: '2px 0'
+      },
+      '.cm-mergeView': {
+        height: '100%'
+      },
+      '.cm-mergeViewEditors': {
+        height: '100%'
+      },
+      '.cm-mergeViewEditor': {
+        height: '100%'
+      },
+      '.cm-mergeViewEditor .cm-editor': {
+        height: '100%'
+      }
+    },
+    { dark: !isLight }
+  )
+
+const createExtensions = ({
+  language,
+  readOnly,
+  isLight,
+  disableAnimation,
+  onChangeRef,
+  suppressChangeRef
+}: {
+  language: Language
+  readOnly: boolean
+  isLight: boolean
+  disableAnimation: boolean
+  onChangeRef?: RefObject<((value: string) => void) | undefined>
+  suppressChangeRef?: RefObject<boolean>
+}): Extension[] => [
+  lineNumbers(),
+  highlightActiveLineGutter(),
+  foldGutter(),
+  history(),
+  drawSelection(),
+  dropCursor(),
+  EditorState.allowMultipleSelections.of(true),
+  indentOnInput(),
+  bracketMatching(),
+  closeBrackets(),
+  autocompletion(),
+  rectangularSelection(),
+  crosshairCursor(),
+  highlightActiveLine(),
+  highlightSelectionMatches(),
+  lintGutter(),
+  syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+  ...languageExtensions(language),
+  EditorView.lineWrapping,
+  EditorState.tabSize.of(['yaml', 'javascript', 'json'].includes(language) ? 2 : 4),
+  EditorState.readOnly.of(readOnly),
+  EditorView.editable.of(!readOnly),
+  createTheme(isLight, disableAnimation),
+  keymap.of([
+    indentWithTab,
+    ...closeBracketsKeymap,
+    ...defaultKeymap,
+    ...searchKeymap,
+    ...historyKeymap,
+    ...foldKeymap
+  ]),
+  EditorView.updateListener.of((update) => {
+    if (update.docChanged && !suppressChangeRef?.current) {
+      onChangeRef?.current?.(update.state.doc.toString())
+    }
+  })
+]
+
+const replaceDocument = (
+  view: EditorView,
+  value: string,
+  suppressChangeRef: RefObject<boolean>
+): void => {
+  if (view.state.doc.toString() === value) return
+
+  suppressChangeRef.current = true
+  try {
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: view.state.doc.length,
+        insert: value
+      }
+    })
+  } finally {
+    suppressChangeRef.current = false
+  }
+}
+
+const CodeMirrorEditorView: React.FC<CodeMirrorEditorViewProps> = ({
+  value,
+  extensions,
+  suppressChangeRef,
+  unifiedOriginalValue
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const viewRef = useRef<EditorView | undefined>(undefined)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const view = new EditorView({
+      parent: containerRef.current,
+      state: EditorState.create({
+        doc: value,
+        extensions: unifiedOriginalValue === undefined
+          ? extensions
+          : [
+              ...extensions,
+              unifiedMergeView({
+                original: unifiedOriginalValue,
+                gutter: true,
+                highlightChanges: true
+              })
+            ]
+      })
+    })
+    viewRef.current = view
+
+    return () => {
+      view.destroy()
+      viewRef.current = undefined
+    }
+  }, [extensions, unifiedOriginalValue])
+
+  useEffect(() => {
+    const view = viewRef.current
+    if (view) {
+      replaceDocument(view, value, suppressChangeRef)
+    }
+  }, [suppressChangeRef, value])
+
+  return <div ref={containerRef} className={editorContainerClassName} />
+}
+
+const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
+  value,
+  originalValue = '',
+  language,
+  extensions,
+  suppressChangeRef
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mergeViewRef = useRef<MergeView | undefined>(undefined)
+  const { disableAnimation, isLight } = useEditorSettings()
+  const originalExtensions = useMemo(
+    () => createExtensions({
+      language,
+      readOnly: true,
+      isLight,
+      disableAnimation
+    }),
+    [disableAnimation, isLight, language]
+  )
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const mergeView = new MergeView({
+      parent: containerRef.current,
+      a: {
+        doc: originalValue,
+        extensions: originalExtensions
+      },
+      b: {
+        doc: value,
+        extensions
+      },
+      gutter: true,
+      highlightChanges: true
+    })
+    mergeViewRef.current = mergeView
+
+    return () => {
+      mergeView.destroy()
+      mergeViewRef.current = undefined
+    }
+  }, [extensions, originalExtensions, originalValue])
+
+  useEffect(() => {
+    const mergeView = mergeViewRef.current
+    if (mergeView) {
+      replaceDocument(mergeView.b, value, suppressChangeRef)
+    }
+  }, [suppressChangeRef, value])
+
+  return <div ref={containerRef} className={editorContainerClassName} />
+}
+
+export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {
+  const { disableAnimation, isLight } = useEditorSettings()
+  const {
+    originalValue,
+    diffRenderSideBySide = false,
+    readOnly = false,
+    language,
+    onChange
+  } = props
+  const onChangeRef = useRef(onChange)
+  const suppressChangeRef = useRef(false)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  const extensions = useMemo(
+    () => createExtensions({
+      language,
+      readOnly,
+      isLight,
+      disableAnimation,
+      onChangeRef,
+      suppressChangeRef
+    }),
+    [disableAnimation, isLight, language, readOnly]
+  )
+
+  const runtimeProps = {
+    ...props,
+    extensions,
+    suppressChangeRef
+  }
+
+  if (originalValue !== undefined) {
+    if (diffRenderSideBySide) {
+      return <CodeMirrorSideBySideDiffView {...runtimeProps} />
+    }
+
+    return <CodeMirrorEditorView {...runtimeProps} unifiedOriginalValue={originalValue} />
+  }
+
+  return <CodeMirrorEditorView {...runtimeProps} />
+}

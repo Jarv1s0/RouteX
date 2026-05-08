@@ -39,6 +39,18 @@
     "js-yaml": "^4.1.1"
   },
   "devDependencies": {
+    "@codemirror/autocomplete": "^6.20.2",
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-yaml": "^6.1.3",
+    "@codemirror/language": "^6.12.3",
+    "@codemirror/lint": "^6.9.6",
+    "@codemirror/merge": "^6.12.1",
+    "@codemirror/search": "^6.7.0",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.42.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -67,9 +79,6 @@
     "is-cidr": "^6.0.1",
     "is-ip": "^5.0.1",
     "lodash": "^4.18.0",
-    "meta-json-schema": "^1.19.23",
-    "monaco-yaml": "^5.4.0",
-    "nanoid": "^5.1.6",
     "next-themes": "^0.4.6",
     "prettier": "^3.7.4",
     "pubsub-js": "^1.9.5",
@@ -78,7 +87,6 @@
     "react-dom": "^19.2.1",
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
-    "react-monaco-editor": "^0.59.0",
     "react-router-dom": "^7.12.0",
     "react-virtuoso": "^4.17.0",
     "sonner": "^2.0.7",
@@ -86,10 +94,8 @@
     "swr": "^2.3.7",
     "tailwindcss": "^4.1.17",
     "tar": "^7.5.10",
-    "types-pac": "^1.0.3",
     "typescript": "^5.9.3",
     "vite": "^7.3.2",
-    "vite-plugin-monaco-editor": "1.1.0",
     "vitest": "^4.1.5",
     "zustand": "^5.0.10"
   },
@@ -97,9 +103,6 @@
     "onlyBuiltDependencies": [
       "tauri-cli"
     ],
-    "patchedDependencies": {
-      "vite-plugin-monaco-editor@1.1.0": "patches/vite-plugin-monaco-editor@1.1.0.patch"
-    },
     "overrides": {
       "follow-redirects": "^1.16.0",
       "qs": ">=6.14.2",

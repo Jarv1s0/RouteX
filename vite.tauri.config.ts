@@ -1,22 +1,9 @@
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { defineConfig, type IndexHtmlTransformContext, type Plugin } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import monacoEditorPluginModule from 'vite-plugin-monaco-editor'
 import { DEV_RENDERER_META_CSP, PROD_RENDERER_META_CSP } from './src/shared/csp'
-
-const isObjectWithDefaultFunction = (
-  module: unknown
-): module is { default: typeof monacoEditorPluginModule } =>
-  module != null &&
-  typeof module === 'object' &&
-  'default' in module &&
-  typeof module.default === 'function'
-
-const monacoEditorPlugin = isObjectWithDefaultFunction(monacoEditorPluginModule)
-  ? monacoEditorPluginModule.default
-  : monacoEditorPluginModule
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -33,36 +20,6 @@ const routexBuildDefines = {
 }
 
 const rendererCsp = process.env.NODE_ENV === 'development' ? DEV_RENDERER_META_CSP : PROD_RENDERER_META_CSP
-
-function createMonacoPlugin(): Plugin {
-  const plugin = monacoEditorPlugin({
-    languageWorkers: ['editorWorkerService'],
-    // @ts-expect-error - vite-plugin-monaco-editor type mismatch
-    languages: ['yaml', 'json'],
-    customDistPath: (_root, outDir) => `${outDir}/monacoeditorwork`,
-    customWorkers: [
-      {
-        label: 'yaml',
-        entry: 'monaco-yaml/yaml.worker'
-      }
-    ]
-  }) as Plugin
-
-  const transformIndexHtml = plugin.transformIndexHtml
-  plugin.transformIndexHtml = function transformMonacoIndexHtml(html, ctx?: IndexHtmlTransformContext) {
-    if (ctx && !ctx.filename.endsWith('index.html')) {
-      return html
-    }
-
-    if (typeof transformIndexHtml === 'function') {
-      return transformIndexHtml.call(this, html, ctx)
-    }
-
-    return transformIndexHtml
-  }
-
-  return plugin
-}
 
 const manualChunkRules: Array<[string, string[]]> = [
   [
@@ -86,8 +43,7 @@ const manualChunkRules: Array<[string, string[]]> = [
     ]
   ],
   ['vendor-chart', ['/node_modules/echarts/', '/node_modules/zrender/']],
-  ['vendor-editor', ['/node_modules/monaco-editor/', '/node_modules/react-monaco-editor/']],
-  ['vendor-editor-yaml', ['/node_modules/monaco-yaml/']],
+  ['vendor-editor', ['/node_modules/@codemirror/', '/node_modules/@lezer/', '/node_modules/style-mod/']],
   [
     'vendor-core',
     [
@@ -117,7 +73,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    createMonacoPlugin(),
     {
       name: 'routex-renderer-csp',
       transformIndexHtml() {
