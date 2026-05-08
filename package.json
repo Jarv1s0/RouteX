@@ -26,7 +26,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "adm-zip": "^0.5.16",
-    "axios": "^1.15.1",
+    "axios": "^1.15.2",
     "dayjs": "^1.11.19",
     "express": "^5.2.1",
     "file-icon": "^6.0.0",
@@ -81,7 +81,7 @@
     "monaco-yaml": "^5.4.0",
     "nanoid": "^5.1.6",
     "next-themes": "^0.4.6",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.10",
     "prettier": "^3.7.4",
     "pubsub-js": "^1.9.5",
     "react": "^19.2.1",
@@ -126,7 +126,8 @@
       "minimatch": ">=10.2.4",
       "path-to-regexp": ">=8.4.0",
       "@xmldom/xmldom": "0.8.13",
-      "follow-redirects": ">=1.16.0"
+      "follow-redirects": ">=1.16.0",
+      "ip-address": "^10.2.0"
     },
     "auditConfig": {
       "ignoreCves": [
