@@ -64,6 +64,41 @@ function createMonacoPlugin(): Plugin {
   return plugin
 }
 
+const manualChunkRules: Array<[string, string[]]> = [
+  [
+    'vendor-react',
+    [
+      '/node_modules/react/',
+      '/node_modules/react-dom/',
+      '/node_modules/scheduler/',
+      '/node_modules/next-themes/'
+    ]
+  ],
+  ['vendor-motion', ['/node_modules/framer-motion/']],
+  [
+    'vendor-ui',
+    [
+      '/node_modules/@heroui/',
+      '/node_modules/@react-aria/',
+      '/node_modules/@react-stately/',
+      '/node_modules/@react-types/',
+      '/node_modules/@internationalized/'
+    ]
+  ],
+  ['vendor-chart', ['/node_modules/echarts/', '/node_modules/zrender/']],
+  ['vendor-editor', ['/node_modules/monaco-editor/', '/node_modules/react-monaco-editor/']],
+  ['vendor-editor-yaml', ['/node_modules/monaco-yaml/']],
+  [
+    'vendor-core',
+    [
+      '/node_modules/react-router-dom/',
+      '/node_modules/@remix-run/router/',
+      '/node_modules/zustand/',
+      '/node_modules/swr/'
+    ]
+  ]
+]
+
 function createManualChunks(id: string): string | undefined {
   const normalizedId = id.split('\\').join('/')
 
@@ -71,57 +106,9 @@ function createManualChunks(id: string): string | undefined {
     return undefined
   }
 
-  if (
-    normalizedId.includes('/node_modules/react/') ||
-    normalizedId.includes('/node_modules/react-dom/') ||
-    normalizedId.includes('/node_modules/scheduler/') ||
-    normalizedId.includes('/node_modules/next-themes/')
-  ) {
-    return 'vendor-react'
-  }
-
-  if (normalizedId.includes('/node_modules/framer-motion/')) {
-    return 'vendor-motion'
-  }
-
-  if (
-    normalizedId.includes('/node_modules/@heroui/') ||
-    normalizedId.includes('/node_modules/@react-aria/') ||
-    normalizedId.includes('/node_modules/@react-stately/') ||
-    normalizedId.includes('/node_modules/@react-types/') ||
-    normalizedId.includes('/node_modules/@internationalized/')
-  ) {
-    return 'vendor-ui'
-  }
-
-  if (
-    normalizedId.includes('/node_modules/echarts/') ||
-    normalizedId.includes('/node_modules/zrender/')
-  ) {
-    return 'vendor-chart'
-  }
-
-  if (
-    normalizedId.includes('/node_modules/monaco-editor/') ||
-    normalizedId.includes('/node_modules/react-monaco-editor/')
-  ) {
-    return 'vendor-editor'
-  }
-
-  if (normalizedId.includes('/node_modules/monaco-yaml/')) {
-    return 'vendor-editor-yaml'
-  }
-
-  if (
-    normalizedId.includes('/node_modules/react-router-dom/') ||
-    normalizedId.includes('/node_modules/@remix-run/router/') ||
-    normalizedId.includes('/node_modules/zustand/') ||
-    normalizedId.includes('/node_modules/swr/')
-  ) {
-    return 'vendor-core'
-  }
-
-  return undefined
+  return manualChunkRules.find(([, packagePaths]) =>
+    packagePaths.some((packagePath) => normalizedId.includes(packagePath))
+  )?.[0]
 }
 
 export default defineConfig({

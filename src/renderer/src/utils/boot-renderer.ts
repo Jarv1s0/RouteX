@@ -1,3 +1,5 @@
+import { infoLog } from './logger'
+
 function normalizeError(error: unknown): { message: string; stack?: string } {
   if (error instanceof Error) {
     return {
@@ -51,11 +53,11 @@ export function traceBootStep(entryName: string, step: string, detail?: unknown)
   }
 
   if (detail !== undefined) {
-    console.info(`[boot:${entryName}] ${step}`, detail)
+    infoLog(`[boot:${entryName}] ${step}`, detail)
     return
   }
 
-  console.info(`[boot:${entryName}] ${step}`)
+  infoLog(`[boot:${entryName}] ${step}`)
 }
 
 function renderFatalScreen(entryName: string, error: unknown): void {

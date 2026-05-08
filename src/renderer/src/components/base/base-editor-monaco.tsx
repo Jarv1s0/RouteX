@@ -51,8 +51,8 @@ export const BaseEditorMonaco: React.FC<BaseEditorProps> = (props) => {
     let active = true
     setYamlReady(false)
     void import('./base-editor-monaco-yaml')
-      .then(({ configureMonacoYamlSupport }) => {
-        configureMonacoYamlSupport(monaco)
+      .then(async ({ configureMonacoYamlSupport }) => {
+        await configureMonacoYamlSupport(monaco)
         if (active) {
           setYamlReady(true)
         }

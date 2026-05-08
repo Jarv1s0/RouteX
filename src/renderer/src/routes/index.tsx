@@ -2,6 +2,7 @@ import React from 'react'
 import { Navigate, type NavigateFunction } from 'react-router-dom'
 import { RulesProvider } from '@renderer/hooks/use-rules'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
+import { debugLog } from '@renderer/utils/logger'
 
 const Proxies = React.lazy(() => import('@renderer/pages/proxies'))
 const Rules = React.lazy(() => import('@renderer/pages/rules'))
@@ -51,12 +52,12 @@ export function navigateSidebarRoute(path: string): void {
   // 避免 window.location.hash 因渲染未完成而滞后
   if (_navigate) {
     if (_lastNavigatedPath === normalizedPath) {
-      console.debug('[nav] skipped duplicate:', normalizedPath)
+      debugLog('[nav] skipped duplicate:', normalizedPath)
       return
     }
 
     const currentPath = _lastNavigatedPath || (window.location.hash?.slice(1) || '/')
-    console.debug('[nav]', currentPath, '→', normalizedPath)
+    debugLog('[nav]', currentPath, '→', normalizedPath)
     _lastNavigatedPath = normalizedPath
     _navigate(normalizedPath)
     return

@@ -9,7 +9,42 @@ import {
 } from 'react-icons/md'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
-import type { DialogDetails } from './global-dialog-modal'
+import type { DialogDetails, DialogType } from './global-dialog-modal'
+
+const DIALOG_UI: Record<
+  DialogType,
+  {
+    buttonColor: 'danger' | 'warning' | 'primary'
+    borderClass: string
+    icon: React.ReactNode
+    titleClass: string
+  }
+> = {
+  error: {
+    buttonColor: 'danger',
+    borderClass: 'border-danger/20',
+    icon: <MdErrorOutline size={24} />,
+    titleClass: 'text-danger'
+  },
+  warning: {
+    buttonColor: 'warning',
+    borderClass: 'border-warning/20',
+    icon: <MdWarningAmber size={24} />,
+    titleClass: 'text-warning'
+  },
+  success: {
+    buttonColor: 'primary',
+    borderClass: 'border-success/20',
+    icon: <MdCheckCircleOutline size={24} />,
+    titleClass: 'text-success'
+  },
+  info: {
+    buttonColor: 'primary',
+    borderClass: 'border-primary/20',
+    icon: <MdInfoOutline size={24} />,
+    titleClass: 'text-primary'
+  }
+}
 
 interface GlobalDialogContentProps {
   isOpen: boolean
@@ -35,35 +70,7 @@ const GlobalDialogContent: React.FC<GlobalDialogContentProps> = ({ isOpen, detai
     }
   }
 
-  const icon = (() => {
-    switch (details.type) {
-      case 'error':
-        return <MdErrorOutline size={24} />
-      case 'warning':
-        return <MdWarningAmber size={24} />
-      case 'success':
-        return <MdCheckCircleOutline size={24} />
-      case 'info':
-      default:
-        return <MdInfoOutline size={24} />
-    }
-  })()
-
-  const colorClass = (() => {
-    switch (details.type) {
-      case 'error':
-        return 'text-danger border-danger/20'
-      case 'warning':
-        return 'text-warning border-warning/20'
-      case 'success':
-        return 'text-success border-success/20'
-      case 'info':
-      default:
-        return 'text-primary border-primary/20'
-    }
-  })()
-
-  const [titleClass, borderClass] = colorClass.split(' ')
+  const dialogUi = DIALOG_UI[details.type]
 
   return (
     <Modal
@@ -72,7 +79,7 @@ const GlobalDialogContent: React.FC<GlobalDialogContentProps> = ({ isOpen, detai
       backdrop="blur"
       placement="center"
       classNames={createSecondaryModalClassNames({
-        base: `${CARD_STYLES.GLASS_CARD} ${borderClass}`
+        base: `${CARD_STYLES.GLASS_CARD} ${dialogUi.borderClass}`
       })}
       motionProps={{
         variants: {
@@ -85,8 +92,8 @@ const GlobalDialogContent: React.FC<GlobalDialogContentProps> = ({ isOpen, detai
       <ModalContent>
         {() => (
           <>
-            <ModalHeader className={`flex gap-2 items-center ${titleClass}`}>
-              {icon}
+            <ModalHeader className={`flex gap-2 items-center ${dialogUi.titleClass}`}>
+              {dialogUi.icon}
               <span>{details.title}</span>
             </ModalHeader>
             <ModalBody className="py-6">
@@ -106,13 +113,7 @@ const GlobalDialogContent: React.FC<GlobalDialogContentProps> = ({ isOpen, detai
                 {isCopied ? '已复制' : '复制'}
               </Button>
               <Button
-                color={
-                  details.type === 'error'
-                    ? 'danger'
-                    : details.type === 'warning'
-                      ? 'warning'
-                      : 'primary'
-                }
+                color={dialogUi.buttonColor}
                 variant="light"
                 onPress={handleClose}
                 className="font-medium"

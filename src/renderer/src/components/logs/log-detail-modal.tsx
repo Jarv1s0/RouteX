@@ -35,6 +35,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
       case 'error': return 'bg-danger/10 text-danger border-danger/20'
       case 'warning': return 'bg-warning/10 text-warning border-warning/20'
       case 'info': return 'bg-primary/10 text-primary border-primary/20'
+      case 'debug': return 'bg-slate-500/10 text-slate-600 border-dashed border-slate-500/35 dark:text-slate-300'
       default: return 'bg-default/10 text-default-500 border-default/20'
     }
   }

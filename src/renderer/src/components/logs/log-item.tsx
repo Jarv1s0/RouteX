@@ -21,7 +21,7 @@ const LogItem: React.FC<Props> = (props) => {
     error: 'bg-danger',
     warning: 'bg-warning',
     info: 'bg-primary',
-    debug: 'bg-default'
+    debug: 'bg-slate-500'
   }
 
   return (
@@ -48,6 +48,7 @@ const LogItem: React.FC<Props> = (props) => {
                     type === 'error' ? 'border-danger/30 text-danger bg-danger/10' :
                     type === 'warning' ? 'border-warning/30 text-warning bg-warning/10' :
                     type === 'info' ? 'border-primary/30 text-primary bg-primary/10' :
+                    type === 'debug' ? 'border-dashed border-slate-500/35 text-slate-600 bg-slate-500/10 dark:text-slate-300' :
                     'border-default/30 text-default-500 bg-default/10'
                 }`}>
                   {type.toUpperCase()}

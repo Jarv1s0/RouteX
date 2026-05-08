@@ -1,5 +1,4 @@
 import { configureMonacoYaml } from 'monaco-yaml'
-import metaSchema from 'meta-json-schema/schemas/meta-json-schema.json'
 import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api'
 
 type SchemaRecord = Record<string, unknown>
@@ -24,7 +23,12 @@ const getSchemaProperties = (
     : undefined
 }
 
-const createPatchedMetaSchema = (): Record<string, unknown> => {
+const loadMetaSchema = async (): Promise<SchemaRecord> => {
+  const module = await import('meta-json-schema/schemas/meta-json-schema.json')
+  return module.default as SchemaRecord
+}
+
+const createPatchedMetaSchema = (metaSchema: SchemaRecord): Record<string, unknown> => {
   const schema = structuredClone(metaSchema) as SchemaRecord
   const scMaxEachPostBytes = {
     $ref: '#/definitions/proxies/definitions/shadowsocksr/definitions/compatible/integer',
@@ -60,8 +64,9 @@ const createPatchedMetaSchema = (): Record<string, unknown> => {
   return schema
 }
 
-export function configureMonacoYamlSupport(monaco: typeof Monaco): void {
+export async function configureMonacoYamlSupport(monaco: typeof Monaco): Promise<void> {
   if (initialized) return
+  const metaSchema = await loadMetaSchema()
 
   configureMonacoYaml(monaco, {
     validate: true,
@@ -71,7 +76,7 @@ export function configureMonacoYamlSupport(monaco: typeof Monaco): void {
         uri: 'http://example.com/meta-json-schema.json',
         fileMatch: ['**/*.clash.yaml'],
         schema: {
-          ...createPatchedMetaSchema(),
+          ...createPatchedMetaSchema(metaSchema),
           patternProperties: {
             '\\+rules': {
               type: 'array',

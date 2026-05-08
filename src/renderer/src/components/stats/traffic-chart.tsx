@@ -1,15 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { Suspense, useMemo, useState } from 'react'
 import { Card, CardBody, Tabs, Tab } from '@heroui/react'
-import { BarChart, LineChart } from 'echarts/charts'
-import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
-import * as echarts from 'echarts/core'
-import type { ECharts, EChartsCoreOption } from 'echarts/core'
-import { SVGRenderer } from 'echarts/renderers'
+import type { EChartsCoreOption } from 'echarts/core'
 import { IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
-echarts.use([BarChart, GridComponent, LegendComponent, LineChart, SVGRenderer, TooltipComponent])
+const TrafficEChart = React.lazy(() => import('./traffic-echart'))
 
 interface TrafficDataPoint {
   time: string
@@ -30,92 +26,7 @@ interface TooltipSeriesParam {
   value: number | string | [string | number, number]
 }
 
-interface TrafficEChartProps {
-  option: EChartsCoreOption
-}
-
-const TrafficEChart: React.FC<TrafficEChartProps> = ({ option }) => {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<ECharts | null>(null)
-  const optionRef = useRef(option)
-
-  optionRef.current = option
-
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) {
-      return
-    }
-
-    let cancelled = false
-    let idleId: number | null = null
-    let timeoutId: number | null = null
-    let resizeObserver: ResizeObserver | null = null
-    let resizeChartHandler: (() => void) | null = null
-    const win = window as Window & {
-      requestIdleCallback?: (
-        callback: IdleRequestCallback,
-        options?: IdleRequestOptions
-      ) => number
-      cancelIdleCallback?: (handle: number) => void
-    }
-
-    const initializeChart = (): void => {
-      if (cancelled || chartRef.current) {
-        return
-      }
-
-      const chart = echarts.init(container, undefined, { renderer: 'svg' })
-      chartRef.current = chart
-      chart.setOption(optionRef.current, {
-        lazyUpdate: true,
-        notMerge: true
-      })
-
-      resizeChartHandler = (): void => {
-        chart.resize()
-      }
-
-      if (typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver(resizeChartHandler)
-        resizeObserver.observe(container)
-      } else {
-        window.addEventListener('resize', resizeChartHandler)
-      }
-    }
-
-    if (typeof win.requestIdleCallback === 'function') {
-      idleId = win.requestIdleCallback(initializeChart, { timeout: 500 })
-    } else {
-      timeoutId = window.setTimeout(initializeChart, 0)
-    }
-
-    return () => {
-      cancelled = true
-      if (idleId !== null && typeof win.cancelIdleCallback === 'function') {
-        win.cancelIdleCallback(idleId)
-      }
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId)
-      }
-      resizeObserver?.disconnect()
-      if (resizeChartHandler) {
-        window.removeEventListener('resize', resizeChartHandler)
-      }
-      chartRef.current?.dispose()
-      chartRef.current = null
-    }
-  }, [])
-
-  useEffect(() => {
-    chartRef.current?.setOption(option, {
-      lazyUpdate: true,
-      notMerge: true
-    })
-  }, [option])
-
-  return <div ref={containerRef} className="h-full w-full" />
-}
+type HistoryTab = 'realtime' | 'hourly' | 'daily' | 'monthly'
 
 function splitTrafficText(value: number, speed: boolean): { amount: string; unit: string } {
   const formatted = calcTraffic(value)
@@ -142,10 +53,11 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
   hourlyData,
   dailyData
 }) => {
-  const [historyTab, setHistoryTab] = useState<'realtime' | 'hourly' | 'daily' | 'monthly'>('realtime')
+  const [historyTab, setHistoryTab] = useState<HistoryTab>('realtime')
+  const latestTraffic = trafficHistory.at(-1)
 
-  const currentUploadSpeed = trafficHistory.length > 0 ? trafficHistory[trafficHistory.length - 1].upload : 0
-  const currentDownloadSpeed = trafficHistory.length > 0 ? trafficHistory[trafficHistory.length - 1].download : 0
+  const currentUploadSpeed = latestTraffic?.upload ?? 0
+  const currentDownloadSpeed = latestTraffic?.download ?? 0
 
   const formatHourLabel = (hour: string): string => {
     const parts = hour.split('-')
@@ -164,12 +76,14 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
     }))
   }, [hourlyData])
 
+  const recentDailyData = useMemo(() => (dailyData || []).slice(-7), [dailyData])
+
   const formattedDailyData = useMemo(() => {
-    return (dailyData || []).slice(-7).map((item) => ({
+    return recentDailyData.map((item) => ({
       ...item,
       label: formatDateLabel(item.date)
     }))
-  }, [dailyData])
+  }, [recentDailyData])
 
   const formattedMonthlyData = useMemo(() => {
     return (dailyData || []).map((item) => ({
@@ -178,8 +92,8 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
     }))
   }, [dailyData])
 
-  const totalUpload7d = (dailyData || []).slice(-7).reduce((sum, d) => sum + d.upload, 0)
-  const totalDownload7d = (dailyData || []).slice(-7).reduce((sum, d) => sum + d.download, 0)
+  const totalUpload7d = recentDailyData.reduce((sum, d) => sum + d.upload, 0)
+  const totalDownload7d = recentDailyData.reduce((sum, d) => sum + d.download, 0)
   const totalUpload = (dailyData || []).reduce((sum, d) => sum + d.upload, 0)
   const totalDownload = (dailyData || []).reduce((sum, d) => sum + d.download, 0)
 
@@ -457,7 +371,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
               size="sm"
               classNames={CARD_STYLES.GLASS_TABS}
               selectedKey={historyTab}
-              onSelectionChange={(key) => setHistoryTab(key as 'realtime' | 'hourly' | 'daily' | 'monthly')}
+              onSelectionChange={(key) => setHistoryTab(key as HistoryTab)}
             >
               <Tab key="realtime" title="实时" />
               <Tab key="hourly" title="24小时" />
@@ -494,7 +408,9 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         </div>
 
         <div className="h-[200px] w-full">
-          <TrafficEChart option={chartOption} />
+          <Suspense fallback={<div className="h-full w-full" />}>
+            <TrafficEChart option={chartOption} />
+          </Suspense>
         </div>
       </CardBody>
     </Card>

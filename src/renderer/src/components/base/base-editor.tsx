@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import { BaseEditorSimple } from './base-editor-simple'
 import type { BaseEditorProps, Language } from './base-editor.shared'
 
@@ -15,5 +15,15 @@ export const BaseEditor: React.FC<BaseEditorProps> = (props) => {
     return <BaseEditorSimple {...props} />
   }
 
-  return <BaseEditorMonaco {...props} />
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-full w-full items-center justify-center text-sm text-default-500">
+          加载编辑器...
+        </div>
+      }
+    >
+      <BaseEditorMonaco {...props} />
+    </Suspense>
+  )
 }

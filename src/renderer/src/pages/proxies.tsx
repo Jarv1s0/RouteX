@@ -7,6 +7,7 @@ import {
   getProxyDisplayDelay,
   getResolvedProxyTargets
 } from '@renderer/utils/proxy-delay'
+import { debugLog, warnLog } from '@renderer/utils/logger'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -415,7 +416,7 @@ const Proxies: React.FC = () => {
 
       if (autoCloseConnection) {
         void mihomoCloseAllConnections(group).catch((error) => {
-          console.warn('[proxy-select] close connections failed', group, error)
+          warnLog('[proxy-select] close connections failed', group, error)
         })
       }
     },
@@ -439,7 +440,7 @@ const Proxies: React.FC = () => {
         const targets = getResolvedProxyTargets(group)
         const tasks = targets.map((target) => async (): Promise<void> => {
           await mihomoProxyDelay(target.name, group?.testUrl).catch((error) => {
-            console.warn('[proxy-delay:group] failed', groupName, target.name, error)
+            warnLog('[proxy-delay:group] failed', groupName, target.name, error)
           })
           mutateBatcher.schedule()
         })
@@ -511,7 +512,7 @@ const Proxies: React.FC = () => {
 
       const delayTargets = getUniqueResolvedDelayTargets(latestGroups)
       if (delayTargets.length === 0) {
-        console.debug('[proxy-delay:auto] skip: no resolved proxy targets')
+        debugLog('[proxy-delay:auto] skip: no resolved proxy targets')
         return false
       }
 
@@ -523,7 +524,7 @@ const Proxies: React.FC = () => {
         ...prev,
         ...Object.fromEntries(latestGroups.map((group) => [group.name, true]))
       }))
-      console.debug('[proxy-delay:auto] start', latestGroups.map((group) => group.name))
+      debugLog('[proxy-delay:auto] start', latestGroups.map((group) => group.name))
       const mutateBatcher = createMutateBatcher(
         () => mutateRef.current(),
         DELAY_TEST_MUTATE_BATCH_MS
@@ -531,10 +532,10 @@ const Proxies: React.FC = () => {
 
       const tasks = delayTargets.map((target) => async (): Promise<void> => {
         if (!isCurrentAutoTest(runId)) return
-        console.debug('[proxy-delay:auto] test proxy', target.proxyName, target.sourceGroups)
+        debugLog('[proxy-delay:auto] test proxy', target.proxyName, target.sourceGroups)
 
         await mihomoProxyDelay(target.proxyName, target.testUrl).catch((error) => {
-          console.warn('[proxy-delay:auto] failed', target.proxyName, error)
+          warnLog('[proxy-delay:auto] failed', target.proxyName, error)
         })
 
         if (isCurrentAutoTest(runId)) {
@@ -552,7 +553,7 @@ const Proxies: React.FC = () => {
       }
 
       isTestingRef.current = false
-      console.debug('[proxy-delay:auto] finished')
+      debugLog('[proxy-delay:auto] finished')
       await mutateBatcher.flush()
       if (!isCurrentAutoTest(runId)) return false
 

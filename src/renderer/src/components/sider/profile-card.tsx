@@ -10,6 +10,14 @@ import { navigateSidebarRoute } from '@renderer/routes'
 
 const ConfigViewer = React.lazy(() => import('./config-viewer'))
 const relativeTimeFormatter = new Intl.RelativeTimeFormat('zh-CN', { numeric: 'auto' })
+const RELATIVE_TIME_RANGES: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+  ['year', 60 * 60 * 24 * 365],
+  ['month', 60 * 60 * 24 * 30],
+  ['week', 60 * 60 * 24 * 7],
+  ['day', 60 * 60 * 24],
+  ['hour', 60 * 60],
+  ['minute', 60]
+]
 
 function formatRelativeTime(timestamp?: number): string {
   if (!timestamp) {
@@ -23,17 +31,9 @@ function formatRelativeTime(timestamp?: number): string {
     return diffSeconds >= 0 ? '几秒后' : '几秒前'
   }
 
-  const ranges: Array<[Intl.RelativeTimeFormatUnit, number]> = [
-    ['year', 60 * 60 * 24 * 365],
-    ['month', 60 * 60 * 24 * 30],
-    ['week', 60 * 60 * 24 * 7],
-    ['day', 60 * 60 * 24],
-    ['hour', 60 * 60],
-    ['minute', 60]
-  ]
-
   const [unit, secondsPerUnit] =
-    ranges.find(([, secondsPerUnit]) => absSeconds >= secondsPerUnit) ?? ranges[ranges.length - 1]
+    RELATIVE_TIME_RANGES.find(([, secondsPerUnit]) => absSeconds >= secondsPerUnit) ??
+    RELATIVE_TIME_RANGES[RELATIVE_TIME_RANGES.length - 1]
 
   return relativeTimeFormatter.format(Math.round(diffSeconds / secondsPerUnit), unit)
 }
@@ -155,22 +155,20 @@ const ProfileCard: React.FC<Props> = (props) => {
       </div>
 
       {info.type === 'remote' && extra && (
-        <>
-          <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 dark:text-foreground/70 px-0.5`}>
-            <span>{calcTraffic(usage)} / {calcTraffic(total)}</span>
-            <span 
-              className="cursor-pointer hover:text-primary transition-colors hover:underline"
-              onClick={(e) => {
-                e.stopPropagation()
-                patchAppConfig({ profileDisplayDate: profileDisplayDate === 'expire' ? 'update' : 'expire' })
-              }}
-            >
-              {profileDisplayDate === 'expire' 
-                ? (extra.expire ? formatShortDateFromUnixSeconds(extra.expire) : '长期') 
-                : formatRelativeTime(info.updated)}
-            </span>
-          </div>
-        </>
+        <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 dark:text-foreground/70 px-0.5`}>
+          <span>{calcTraffic(usage)} / {calcTraffic(total)}</span>
+          <span
+            className="cursor-pointer hover:text-primary transition-colors hover:underline"
+            onClick={(e) => {
+              e.stopPropagation()
+              patchAppConfig({ profileDisplayDate: profileDisplayDate === 'expire' ? 'update' : 'expire' })
+            }}
+          >
+            {profileDisplayDate === 'expire'
+              ? (extra.expire ? formatShortDateFromUnixSeconds(extra.expire) : '长期')
+              : formatRelativeTime(info.updated)}
+          </span>
+        </div>
       )}
 
       {info.type === 'remote' && !extra && (

@@ -1,22 +1,12 @@
 import React, { Suspense } from 'react'
 import { Spinner } from '@heroui/react'
+import type { BaseEditorProps } from './base-editor.shared'
 
 const BaseEditorComponent = React.lazy(() =>
   import('./base-editor').then((module) => ({ default: module.BaseEditor }))
 )
 
-type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
-
-interface Props {
-  value: string
-  originalValue?: string
-  diffRenderSideBySide?: boolean
-  readOnly?: boolean
-  language: Language
-  onChange?: (value: string) => void
-}
-
-export const BaseEditor: React.FC<Props> = (props) => {
+export const BaseEditor: React.FC<BaseEditorProps> = (props) => {
   return (
     <Suspense
       fallback={

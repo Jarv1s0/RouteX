@@ -20,27 +20,29 @@ export const GlobalDialogModal: React.FC = () => {
   })
 
   useEffect(() => {
-    const handleCustom = (event: Event): void => {
-      const customEvent = event as CustomEvent<Partial<DialogDetails>>
-      const { type = 'error', title, content } = customEvent.detail || {}
-      setDetails({
-        type,
-        title: title || (type === 'error' ? '错误' : '提示'),
-        content: content || ''
-      })
+    const showDialog = (nextDetails: DialogDetails): void => {
+      setDetails(nextDetails)
       setHasDialogContent(true)
       setIsOpen(true)
     }
 
+    const handleCustom = (event: Event): void => {
+      const customEvent = event as CustomEvent<Partial<DialogDetails>>
+      const { type = 'error', title, content } = customEvent.detail || {}
+      showDialog({
+        type,
+        title: title || (type === 'error' ? '错误' : '提示'),
+        content: content || ''
+      })
+    }
+
     const handleGlobalError = (event: Event): void => {
       const detail = (event as CustomEvent<Partial<DialogDetails>>).detail
-      setDetails({
+      showDialog({
         type: 'error',
         title: detail?.title || '错误',
         content: detail?.content || ''
       })
-      setHasDialogContent(true)
-      setIsOpen(true)
     }
 
     try {

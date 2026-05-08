@@ -1,5 +1,6 @@
 import type { DesktopIpcRendererEvent } from '../../../shared/types/desktop-bridge'
 import type { IpcInvokeChannel, IpcOnChannel, IpcSendChannel } from '../../../shared/ipc'
+import { infoLog, isRendererDiagnosticsEnabled, warnLog } from '@renderer/utils/logger'
 
 export type DesktopListener<Args extends unknown[] = unknown[]> = (
   event: DesktopIpcRendererEvent,
@@ -103,6 +104,10 @@ function getApiBridge(): Window['api'] {
 }
 
 function shouldLogDesktopInvoke(channel: string, durationMs: number): boolean {
+  if (!isRendererDiagnosticsEnabled()) {
+    return false
+  }
+
   return (
     durationMs >= 80 ||
     channel === 'getRuntimeConfig' ||
@@ -120,11 +125,11 @@ function logDesktopInvoke(channel: string, durationMs: number, error?: unknown):
 
   const rounded = durationMs.toFixed(1)
   if (error) {
-    console.warn(`[desktop.invoke] ${channel} failed in ${rounded}ms`, error)
+    warnLog(`[desktop.invoke] ${channel} failed in ${rounded}ms`, error)
     return
   }
 
-  console.info(`[desktop.invoke] ${channel} ${rounded}ms`)
+  infoLog(`[desktop.invoke] ${channel} ${rounded}ms`)
 }
 
 export const desktop: DesktopApi = {
