@@ -64,6 +64,66 @@ function createMonacoPlugin(): Plugin {
   return plugin
 }
 
+function createManualChunks(id: string): string | undefined {
+  const normalizedId = id.split('\\').join('/')
+
+  if (!normalizedId.includes('/node_modules/')) {
+    return undefined
+  }
+
+  if (
+    normalizedId.includes('/node_modules/react/') ||
+    normalizedId.includes('/node_modules/react-dom/') ||
+    normalizedId.includes('/node_modules/scheduler/') ||
+    normalizedId.includes('/node_modules/next-themes/')
+  ) {
+    return 'vendor-react'
+  }
+
+  if (normalizedId.includes('/node_modules/framer-motion/')) {
+    return 'vendor-motion'
+  }
+
+  if (
+    normalizedId.includes('/node_modules/@heroui/') ||
+    normalizedId.includes('/node_modules/@react-aria/') ||
+    normalizedId.includes('/node_modules/@react-stately/') ||
+    normalizedId.includes('/node_modules/@react-types/') ||
+    normalizedId.includes('/node_modules/@internationalized/')
+  ) {
+    return 'vendor-ui'
+  }
+
+  if (
+    normalizedId.includes('/node_modules/echarts/') ||
+    normalizedId.includes('/node_modules/zrender/')
+  ) {
+    return 'vendor-chart'
+  }
+
+  if (
+    normalizedId.includes('/node_modules/monaco-editor/') ||
+    normalizedId.includes('/node_modules/react-monaco-editor/')
+  ) {
+    return 'vendor-editor'
+  }
+
+  if (normalizedId.includes('/node_modules/monaco-yaml/')) {
+    return 'vendor-editor-yaml'
+  }
+
+  if (
+    normalizedId.includes('/node_modules/react-router-dom/') ||
+    normalizedId.includes('/node_modules/@remix-run/router/') ||
+    normalizedId.includes('/node_modules/zustand/') ||
+    normalizedId.includes('/node_modules/swr/')
+  ) {
+    return 'vendor-core'
+  }
+
+  return undefined
+}
+
 export default defineConfig({
   root: resolve(__dirname, 'src/tauri-web'),
   define: routexBuildDefines,
@@ -106,6 +166,7 @@ export default defineConfig({
     strictPort: true
   },
   build: {
+    modulePreload: false,
     outDir: resolve(__dirname, 'dist-tauri'),
     emptyOutDir: true,
     chunkSizeWarningLimit: 2400,
@@ -116,15 +177,7 @@ export default defineConfig({
         traymenu: resolve(__dirname, 'src/tauri-web/traymenu.html')
       },
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'next-themes'],
-          'vendor-ui': ['@heroui/react'],
-          'vendor-motion': ['framer-motion'],
-          'vendor-chart': ['echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers'],
-          'vendor-editor': ['monaco-editor', 'react-monaco-editor'],
-          'vendor-editor-yaml': ['monaco-yaml'],
-          'vendor-core': ['react-router-dom', 'zustand', 'swr']
-        }
+        manualChunks: createManualChunks
       }
     }
   }

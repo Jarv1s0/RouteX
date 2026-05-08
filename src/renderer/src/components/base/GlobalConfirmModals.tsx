@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import ConfirmModal from '@renderer/components/base/base-confirm'
 import { platform } from '@renderer/utils/init'
 import { ON, SEND, onIpc, sendIpc } from '@renderer/utils/ipc-channels'
+
+const ConfirmModal = React.lazy(() => import('@renderer/components/base/base-confirm'))
 
 interface CustomInstallConfirmDetail {
   requestId: string
@@ -144,7 +145,7 @@ const GlobalConfirmModals: React.FC = () => {
   }
 
   return (
-    <>
+    <React.Suspense fallback={null}>
       {showQuitConfirm && (
         <ConfirmModal
           title="确定要退出 RouteX 吗？"
@@ -216,7 +217,7 @@ const GlobalConfirmModals: React.FC = () => {
           onConfirm={() => handleOverrideInstallConfirm(true)}
         />
       )}
-    </>
+    </React.Suspense>
   )
 }
 

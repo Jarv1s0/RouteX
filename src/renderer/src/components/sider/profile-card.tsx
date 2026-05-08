@@ -3,18 +3,49 @@ import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useLocation } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
 import { LuCloud, LuFileCode, LuRotateCw, LuRss } from 'react-icons/lu'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import 'dayjs/locale/zh-cn'
-import dayjs from 'dayjs'
 import React, { Suspense, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { navigateSidebarRoute } from '@renderer/routes'
 
 const ConfigViewer = React.lazy(() => import('./config-viewer'))
+const relativeTimeFormatter = new Intl.RelativeTimeFormat('zh-CN', { numeric: 'auto' })
 
-dayjs.extend(relativeTime)
-dayjs.locale('zh-cn')
+function formatRelativeTime(timestamp?: number): string {
+  if (!timestamp) {
+    return '-'
+  }
+
+  const diffSeconds = Math.round((timestamp - Date.now()) / 1000)
+  const absSeconds = Math.abs(diffSeconds)
+
+  if (absSeconds < 45) {
+    return diffSeconds >= 0 ? '几秒后' : '几秒前'
+  }
+
+  const ranges: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+    ['year', 60 * 60 * 24 * 365],
+    ['month', 60 * 60 * 24 * 30],
+    ['week', 60 * 60 * 24 * 7],
+    ['day', 60 * 60 * 24],
+    ['hour', 60 * 60],
+    ['minute', 60]
+  ]
+
+  const [unit, secondsPerUnit] =
+    ranges.find(([, secondsPerUnit]) => absSeconds >= secondsPerUnit) ?? ranges[ranges.length - 1]
+
+  return relativeTimeFormatter.format(Math.round(diffSeconds / secondsPerUnit), unit)
+}
+
+function formatShortDateFromUnixSeconds(timestamp: number): string {
+  const date = new Date(timestamp * 1000)
+  const year = date.getFullYear().toString().slice(-2)
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+
+  return `${year}/${month}/${day}`
+}
 
 interface Props {
   iconOnly?: boolean
@@ -103,7 +134,7 @@ const ProfileCard: React.FC<Props> = (props) => {
             <LuFileCode className={compact ? 'text-[13px]' : 'text-[14px]'} />
           </Button>
           {info.type === 'remote' && (
-            <Tooltip delay={300} placement="left" content={dayjs(info.updated).fromNow()}>
+            <Tooltip delay={300} placement="left" content={formatRelativeTime(info.updated)}>
               <Button
                 isIconOnly
                 size="sm"
@@ -135,8 +166,8 @@ const ProfileCard: React.FC<Props> = (props) => {
               }}
             >
               {profileDisplayDate === 'expire' 
-                ? (extra.expire ? dayjs.unix(extra.expire).format('YY/MM/DD') : '长期') 
-                : dayjs(info.updated).fromNow()}
+                ? (extra.expire ? formatShortDateFromUnixSeconds(extra.expire) : '长期') 
+                : formatRelativeTime(info.updated)}
             </span>
           </div>
         </>
@@ -145,7 +176,7 @@ const ProfileCard: React.FC<Props> = (props) => {
       {info.type === 'remote' && !extra && (
         <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
           <span>远程配置</span>
-          <span>{dayjs(info.updated).fromNow()}</span>
+          <span>{formatRelativeTime(info.updated)}</span>
         </div>
       )}
       {info.type === 'local' && (
