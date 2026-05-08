@@ -69,10 +69,10 @@ fn check_core_permission_value(app: &tauri::AppHandle) -> Result<Value, String> 
             has_elevated_permission_flag(parse_ls_permissions(&stdout))
         };
 
-        return Ok(json!({
+        Ok(json!({
             "mihomo": check_permission("mihomo"),
             "mihomo-alpha": check_permission("mihomo-alpha"),
-        }));
+        }))
     }
 }
 
@@ -177,4 +177,3 @@ fn revoke_core_permission(
     #[allow(unreachable_code)]
     Err("当前平台未实现撤销内核授权".to_string())
 }
-

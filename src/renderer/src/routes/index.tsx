@@ -3,13 +3,13 @@ import { Navigate, type NavigateFunction } from 'react-router-dom'
 import { RulesProvider } from '@renderer/hooks/use-rules'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
 import { debugLog } from '@renderer/utils/logger'
+import Connections from '@renderer/pages/connections'
 
 const Proxies = React.lazy(() => import('@renderer/pages/proxies'))
 const Rules = React.lazy(() => import('@renderer/pages/rules'))
 const Settings = React.lazy(() => import('@renderer/pages/settings'))
 const Profiles = React.lazy(() => import('@renderer/pages/profiles'))
 const Logs = React.lazy(() => import('@renderer/pages/logs'))
-const Connections = React.lazy(() => import('@renderer/pages/connections'))
 const Mihomo = React.lazy(() => import('@renderer/pages/mihomo'))
 const Sysproxy = React.lazy(() => import('@renderer/pages/sysproxy'))
 const Tun = React.lazy(() => import('@renderer/pages/tun'))
@@ -130,7 +130,11 @@ const routes = [
   },
   {
     path: '/connections',
-    element: lazyElement(Connections)
+    element: (
+      <LazyRoute>
+        <Connections />
+      </LazyRoute>
+    )
   },
   {
     path: '/override',

@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
+import { tryRecoverDynamicImport } from '@renderer/utils/boot-renderer'
 
 interface Props {
   children?: ReactNode
@@ -20,6 +21,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    if (tryRecoverDynamicImport('runtime', error)) {
+      return
+    }
+
     console.error('Uncaught error:', error, errorInfo)
   }
 

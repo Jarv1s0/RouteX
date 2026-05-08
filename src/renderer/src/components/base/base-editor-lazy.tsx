@@ -3,7 +3,7 @@ import { Spinner } from '@heroui/react'
 import type { BaseEditorProps } from './base-editor.shared'
 
 const BaseEditorComponent = React.lazy(() =>
-  import('./base-editor').then((module) => ({ default: module.BaseEditor }))
+  import('./base-editor-codemirror').then((module) => ({ default: module.BaseEditorCodeMirror }))
 )
 
 export const BaseEditor: React.FC<BaseEditorProps> = (props) => {

@@ -13,7 +13,7 @@ function normalizeError(error: unknown): { message: string; stack?: string } {
   }
 }
 
-function isDynamicImportFetchError(error: unknown): boolean {
+export function isDynamicImportFetchError(error: unknown): boolean {
   const message =
     error instanceof Error
       ? error.message
@@ -24,7 +24,15 @@ function isDynamicImportFetchError(error: unknown): boolean {
   return message.includes('Failed to fetch dynamically imported module')
 }
 
-function tryRecoverDynamicImport(entryName: string, error: unknown): boolean {
+export function clearDynamicImportRecovery(entryName: string): void {
+  try {
+    window.sessionStorage.removeItem(`routex:dynamic-import-reload:${entryName}`)
+  } catch {
+    // ignore sessionStorage failures
+  }
+}
+
+export function tryRecoverDynamicImport(entryName: string, error: unknown): boolean {
   if (!isDynamicImportFetchError(error)) {
     return false
   }
@@ -101,11 +109,7 @@ export async function bootRenderer(entryName: string, loader: () => Promise<unkn
   try {
     traceBootStep(entryName, 'entry:import:start')
     await loader()
-    try {
-      window.sessionStorage.removeItem(`routex:dynamic-import-reload:${entryName}`)
-    } catch {
-      // ignore sessionStorage failures
-    }
+    clearDynamicImportRecovery(entryName)
     traceBootStep(entryName, 'entry:import:done')
   } catch (error) {
     if (tryRecoverDynamicImport(entryName, error)) {

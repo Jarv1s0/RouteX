@@ -5,6 +5,8 @@ export interface BaseEditorProps {
   originalValue?: string
   diffRenderSideBySide?: boolean
   preferSimple?: boolean
+  diffOriginalLabel?: string
+  diffModifiedLabel?: string
   readOnly?: boolean
   language: Language
   onChange?: (value: string) => void

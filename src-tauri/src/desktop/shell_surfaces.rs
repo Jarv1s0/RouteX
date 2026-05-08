@@ -223,13 +223,12 @@ fn ensure_tray_icon(app: &tauri::AppHandle) -> Result<(), String> {
                         let _ = trigger_main_window(&handle);
                     }
                 }
+                #[cfg(not(target_os = "macos"))]
                 TrayIconEvent::DoubleClick {
                     button: MouseButton::Left,
                     ..
                 } => {
-                    if !cfg!(target_os = "macos") {
-                        let _ = show_main_window(&handle);
-                    }
+                    let _ = show_main_window(&handle);
                 }
                 TrayIconEvent::Click {
                     button: MouseButton::Right,
@@ -249,4 +248,3 @@ fn ensure_tray_icon(app: &tauri::AppHandle) -> Result<(), String> {
     update_tray_icon_for_state(app)?;
     Ok(())
 }
-

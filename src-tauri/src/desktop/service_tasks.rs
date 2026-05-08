@@ -580,6 +580,9 @@ fn linux_autostart_desktop_entry() -> Result<String, String> {
 }
 
 fn check_auto_run_enabled(app: &tauri::AppHandle) -> Result<bool, String> {
+    #[cfg(not(target_os = "windows"))]
+    let _ = app;
+
     #[cfg(target_os = "windows")]
     {
         return Ok(check_autorun_task() && check_autorun_task_matches_current_app(app));
@@ -722,4 +725,3 @@ fn check_elevate_task() -> bool {
 fn check_elevate_task_matches_current_app(app: &tauri::AppHandle) -> bool {
     check_windows_task_matches_current_app(routex_run_task_name(), app, None)
 }
-

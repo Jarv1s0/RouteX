@@ -134,7 +134,7 @@ fn apply_tray_icon_data_url(app: &tauri::AppHandle, data_url: &str) -> Result<()
             .ok_or_else(|| "invalid tray icon data url".to_string())?;
         let bytes = BASE64_STANDARD.decode(encoded).map_err(|e| e.to_string())?;
         let image = Image::from_bytes(&bytes).map_err(|e| e.to_string())?;
-        return tray.set_icon(Some(image)).map_err(|e| e.to_string());
+        tray.set_icon(Some(image)).map_err(|e| e.to_string())
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -143,4 +143,3 @@ fn apply_tray_icon_data_url(app: &tauri::AppHandle, data_url: &str) -> Result<()
         Ok(())
     }
 }
-

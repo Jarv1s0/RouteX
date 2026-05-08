@@ -58,7 +58,11 @@ type EditorSettings = {
 const editorFontFamily =
   'Maple Mono NF CN,Fira Code, JetBrains Mono, Roboto Mono, "Source Code Pro", Consolas, Menlo, Monaco, monospace, "Courier New", "Apple Color Emoji", "Noto Color Emoji"'
 const editorContainerClassName = 'h-full w-full overflow-hidden'
-const mergeContainerClassName = 'h-full min-h-0 w-full overflow-auto'
+const mergeViewWrapperClassName = 'flex h-full min-h-0 w-full flex-col overflow-hidden'
+const mergeHeaderClassName =
+  'grid shrink-0 grid-cols-2 border-b border-default-200/70 bg-content1 text-xs font-medium text-default-600'
+const mergeHeaderItemClassName = 'px-4 py-2'
+const mergeContainerClassName = 'min-h-0 flex-1 w-full overflow-auto'
 
 const createFoldMarker = (open: boolean): HTMLElement => {
   const marker = document.createElement('span')
@@ -355,6 +359,8 @@ const CodeMirrorEditorView: React.FC<CodeMirrorEditorViewProps> = ({
 const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
   value,
   originalValue = '',
+  diffOriginalLabel = '对比源',
+  diffModifiedLabel = '当前内容',
   language,
   extensions,
   suppressChangeRef
@@ -403,7 +409,15 @@ const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
     }
   }, [suppressChangeRef, value])
 
-  return <div ref={containerRef} className={mergeContainerClassName} />
+  return (
+    <div className={mergeViewWrapperClassName}>
+      <div className={mergeHeaderClassName}>
+        <div className={mergeHeaderItemClassName}>{diffOriginalLabel}</div>
+        <div className={mergeHeaderItemClassName}>{diffModifiedLabel}</div>
+      </div>
+      <div ref={containerRef} className={mergeContainerClassName} />
+    </div>
+  )
 }
 
 export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {

@@ -142,7 +142,7 @@ fn pick_open_file_paths_native(extensions: &[String]) -> Result<Option<Vec<Strin
             .map(|ext| format!("*.{ext}"))
             .collect::<Vec<_>>();
 
-        let mut run_backend = |backend: &str| -> Result<Option<Vec<String>>, String> {
+        let run_backend = |backend: &str| -> Result<Option<Vec<String>>, String> {
             match backend {
                 "kdialog" => {
                     let mut command = Command::new("kdialog");
@@ -269,7 +269,7 @@ fn pick_save_file_path_native(default_name: &str, ext: &str) -> Result<Option<Pa
             vec![format!("*.{normalized_ext}")]
         };
 
-        let mut run_backend = |backend: &str| -> Result<Option<PathBuf>, String> {
+        let run_backend = |backend: &str| -> Result<Option<PathBuf>, String> {
             match backend {
                 "kdialog" => {
                     let mut command = Command::new("kdialog");

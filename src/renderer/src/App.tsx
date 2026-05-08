@@ -1,5 +1,5 @@
 import { useTheme } from 'next-themes'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useRoutes } from 'react-router-dom'
 import routes, { setRouterNavigate } from '@renderer/routes'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -87,12 +87,15 @@ const App: React.FC = () => {
   const { setTheme, systemTheme } = useTheme()
   const routerNavigate = useNavigate()
   const location = useLocation()
-  setRouterNavigate(routerNavigate, location.pathname)
   const page = useRoutes(routes)
   const connectionsListenerActiveRef = useRef(false)
   const trafficListenerActiveRef = useRef(false)
   const lastUpdateCheckAtRef = useRef(0)
   const [latest, setLatest] = useState<AppVersion | undefined>()
+
+  useLayoutEffect(() => {
+    setRouterNavigate(routerNavigate, location.pathname)
+  }, [routerNavigate, location.pathname])
 
   useEffect(() => {
     if (!autoCheckUpdate) {

@@ -640,14 +640,14 @@ fn resolve_icon_data_url_uncached(normalized_path: &str) -> String {
 
     #[cfg(target_os = "macos")]
     {
-        if let Some(value) = extract_macos_icon_data_url(&normalized_path) {
+        if let Some(value) = extract_macos_icon_data_url(normalized_path) {
             return value;
         }
     }
 
     #[cfg(target_os = "linux")]
     {
-        if let Some(value) = extract_linux_icon_data_url(&normalized_path) {
+        if let Some(value) = extract_linux_icon_data_url(normalized_path) {
             return value;
         }
     }
@@ -741,4 +741,3 @@ fn resolve_icon_data_urls(app_paths: &[String]) -> HashMap<String, String> {
 
     resolved
 }
-
