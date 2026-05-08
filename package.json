@@ -10,6 +10,7 @@
     "typecheck:node": "node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "node ./node_modules/typescript/bin/tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "corepack pnpm run typecheck:node && corepack pnpm run typecheck:web && cargo check --manifest-path src-tauri/Cargo.toml",
+    "clippy": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
     "check:dead-code": "node scripts/check-dead-code.mjs",
     "prepare:resources": "node scripts/prepare.mjs",
     "start": "vite preview --configLoader runner --config vite.tauri.config.ts",
@@ -20,8 +21,9 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "build": "corepack pnpm run prepare:resources && corepack pnpm run typecheck && tauri build",
+    "test:web": "vitest run",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
-    "verify": "corepack pnpm run typecheck && corepack pnpm run check:dead-code && corepack pnpm run test:rust && corepack pnpm run build:tauri-web",
+    "verify": "corepack pnpm run typecheck && corepack pnpm run clippy && corepack pnpm run check:dead-code && corepack pnpm run test:web && corepack pnpm run test:rust && corepack pnpm run build:tauri-web",
     "build:win": "corepack pnpm run build",
     "build:mac": "corepack pnpm run build",
     "build:linux": "corepack pnpm run build"
@@ -44,6 +46,7 @@
     "@types/adm-zip": "^0.5.7",
     "@types/dagre": "^0.7.53",
     "@types/js-yaml": "^4.0.9",
+    "@types/lodash": "^4.17.24",
     "@types/node": "^24.10.3",
     "@types/pubsub-js": "^1.8.6",
     "@types/react": "^19.2.7",
@@ -84,6 +87,7 @@
     "typescript": "^5.9.3",
     "vite": "^7.3.2",
     "vite-plugin-monaco-editor": "1.1.0",
+    "vitest": "^4.1.5",
     "zustand": "^5.0.10"
   },
   "pnpm": {

@@ -24,7 +24,10 @@ let _tauriEventPromise: Promise<typeof import('@tauri-apps/api/event')> | null =
 function getTauriCore(): Promise<typeof import('@tauri-apps/api/core')> {
   if (_tauriCore) return Promise.resolve(_tauriCore)
   if (!_tauriCorePromise) {
-    _tauriCorePromise = import('@tauri-apps/api/core').then(m => { _tauriCore = m; return m })
+    _tauriCorePromise = import('@tauri-apps/api/core').then((m) => {
+      _tauriCore = m
+      return m
+    })
   }
   return _tauriCorePromise
 }
@@ -32,7 +35,10 @@ function getTauriCore(): Promise<typeof import('@tauri-apps/api/core')> {
 function getTauriEvent(): Promise<typeof import('@tauri-apps/api/event')> {
   if (_tauriEvent) return Promise.resolve(_tauriEvent)
   if (!_tauriEventPromise) {
-    _tauriEventPromise = import('@tauri-apps/api/event').then(m => { _tauriEvent = m; return m })
+    _tauriEventPromise = import('@tauri-apps/api/event').then((m) => {
+      _tauriEvent = m
+      return m
+    })
   }
   return _tauriEventPromise
 }
@@ -70,10 +76,14 @@ function createSyntheticIpcEvent(): DesktopIpcRendererEvent {
 
 function readCustomEventArgs(event: Event): unknown[] {
   if (event instanceof CustomEvent) {
-    return Array.isArray(event.detail) ? event.detail : event.detail === undefined ? [] : [event.detail]
+    return normalizeEventArgs(event.detail)
   }
 
   return []
+}
+
+function normalizeEventArgs(payload: unknown): unknown[] {
+  return Array.isArray(payload) ? payload : payload === undefined ? [] : [payload]
 }
 
 function getElectronBridge(): Window['electron'] {
@@ -93,12 +103,14 @@ function getApiBridge(): Window['api'] {
 }
 
 function shouldLogDesktopInvoke(channel: string, durationMs: number): boolean {
-  return durationMs >= 80 ||
+  return (
+    durationMs >= 80 ||
     channel === 'getRuntimeConfig' ||
     channel === 'getRuntimeConfigStr' ||
     channel === 'mihomoRules' ||
     channel === 'mihomoRuleProviders' ||
     channel === 'mihomoProxyProviders'
+  )
 }
 
 function logDesktopInvoke(channel: string, durationMs: number, error?: unknown): void {
@@ -142,10 +154,10 @@ export const desktop: DesktopApi = {
               ? await invoke<T>('desktop_get_icon_data_urls', {
                   appPaths: Array.isArray(args[0]) ? args[0] : []
                 })
-            : await invoke<T>('desktop_invoke', {
-                channel,
-                args
-              })
+              : await invoke<T>('desktop_invoke', {
+                  channel,
+                  args
+                })
         logDesktopInvoke(channel, performance.now() - startedAt)
         return result
       } catch (error) {
@@ -165,16 +177,11 @@ export const desktop: DesktopApi = {
       window.addEventListener(channel, localHandler)
       const unlistenPromise = getTauriEvent()
         .then(({ listen }) =>
-          listen(channel, (event) => {
-            const payload = Array.isArray(event.payload)
-              ? event.payload
-              : event.payload === undefined
-                ? []
-                : [event.payload]
-            listener(createSyntheticIpcEvent(), ...(payload as unknown as Args))
+          listen(channel, (event): void => {
+            listener(createSyntheticIpcEvent(), ...(normalizeEventArgs(event.payload) as Args))
           })
         )
-        .catch(() => null)
+        .catch((): null => null)
 
       return () => {
         window.removeEventListener(channel, localHandler)
@@ -197,16 +204,11 @@ export const desktop: DesktopApi = {
       window.addEventListener(channel, localHandler, { once: true })
       const unlistenPromise = getTauriEvent()
         .then(({ once }) =>
-          once(channel, (event) => {
-            const payload = Array.isArray(event.payload)
-              ? event.payload
-              : event.payload === undefined
-                ? []
-                : [event.payload]
-            listener(createSyntheticIpcEvent(), ...(payload as unknown as Args))
+          once(channel, (event): void => {
+            listener(createSyntheticIpcEvent(), ...(normalizeEventArgs(event.payload) as Args))
           })
         )
-        .catch(() => null)
+        .catch((): null => null)
 
       return () => {
         window.removeEventListener(channel, localHandler)
@@ -272,9 +274,7 @@ export async function pickTauriFiles(extensions: string[]): Promise<string[] | u
   return await new Promise((resolve) => {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = extensions
-      .map((ext) => (ext.startsWith('.') ? ext : `.${ext}`))
-      .join(',')
+    input.accept = extensions.map((ext) => (ext.startsWith('.') ? ext : `.${ext}`)).join(',')
 
     let settled = false
     const finish = (value: string[] | undefined): void => {

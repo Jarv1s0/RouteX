@@ -239,7 +239,7 @@ fn run_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
     {
         write_elevate_task_params(app)?;
         ensure_routex_run_binary_for_task(app)?;
-        return schtasks_command(&["/run", "/tn", routex_run_task_name()]);
+        schtasks_command(&["/run", "/tn", routex_run_task_name()])
     }
 
     #[cfg(not(target_os = "windows"))]

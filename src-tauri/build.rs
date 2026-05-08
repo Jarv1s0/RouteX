@@ -21,6 +21,8 @@ fn main() {
     println!("cargo:rerun-if-env-changed=ROUTEX_AUTO_BUILD");
     println!("cargo:rerun-if-env-changed=ROUTEX_TAURI_BUILD_VARIANT");
     println!("cargo:rerun-if-env-changed=ROUTEX_UPDATER_PUBLIC_KEY");
+    println!("cargo:rerun-if-env-changed=ROUTEX_UPDATER_STABLE_ENDPOINT");
+    println!("cargo:rerun-if-env-changed=ROUTEX_UPDATER_BETA_ENDPOINT");
     println!("cargo:rustc-env=ROUTEX_TAURI_BUILD_VARIANT={build_variant}");
 
     let manifest_dir =

@@ -44,10 +44,10 @@ fn check_core_permission_value(app: &tauri::AppHandle) -> Result<Value, String> 
     #[cfg(target_os = "windows")]
     {
         let _ = app;
-        return Ok(json!({
+        Ok(json!({
             "mihomo": false,
             "mihomo-alpha": false,
-        }));
+        }))
     }
 
     #[cfg(not(target_os = "windows"))]

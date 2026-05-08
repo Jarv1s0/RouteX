@@ -13,7 +13,7 @@ fn handle_network_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, c
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "testRuleMatch requires domain".to_string())?;
-            test_rule_match_value(&app, &state, domain)
+            test_rule_match_value(app, state, domain)
         }
         "applyTheme" => Ok(Value::Null),
         "fetchIpInfo" => Ok(fetch_ip_info_current()?),

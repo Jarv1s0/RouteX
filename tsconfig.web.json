@@ -21,7 +21,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": false,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "baseUrl": ".",
     "types": ["vite/client", "node"],
     "paths": {

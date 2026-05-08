@@ -74,7 +74,7 @@ $items | ConvertTo-Json -Compress
             }
         }
 
-        return Value::Object(interfaces);
+        Value::Object(interfaces)
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -253,7 +253,7 @@ fn ensure_traffic_monitor_binary(app: &tauri::AppHandle) -> Result<(PathBuf, Pat
             .parent()
             .map(Path::to_path_buf)
             .ok_or_else(|| "invalid TrafficMonitor cwd".to_string())?;
-        return Ok((runtime_executable_path, cwd));
+        Ok((runtime_executable_path, cwd))
     }
 
     #[cfg(not(target_os = "windows"))]

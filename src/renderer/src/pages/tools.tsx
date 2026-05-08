@@ -287,7 +287,14 @@ const Tools: React.FC = () => {
   const testAll = async (): Promise<void> => {
     setAllTesting(true)
     setTestTargets((prev) =>
-      prev.map((t) => ({ ...t, status: 'testing', region: undefined, error: undefined }))
+      prev.map(
+        (t): CombinedTestTarget => ({
+          ...t,
+          status: 'testing',
+          region: undefined,
+          error: undefined
+        })
+      )
     )
 
     for (let index = 0; index < testTargetsRef.current.length; index += TEST_ALL_CONCURRENCY) {

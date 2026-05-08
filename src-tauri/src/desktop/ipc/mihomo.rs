@@ -2,41 +2,41 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
     let result: Result<Value, String> = match channel {
         "ensureMihomoCoreAvailable" => {
             let core = args.first().and_then(Value::as_str).unwrap_or("mihomo");
-            let path = ensure_mihomo_core_available(&app, core)?;
+            let path = ensure_mihomo_core_available(app, core)?;
             Ok(json!(path.to_string_lossy().to_string()))
         }
-        "mihomoVersion" => core_request(&state, reqwest::Method::GET, "/version", None, None),
-        "mihomoConfig" => core_request(&state, reqwest::Method::GET, "/configs", None, None),
+        "mihomoVersion" => core_request(state, reqwest::Method::GET, "/version", None, None),
+        "mihomoConfig" => core_request(state, reqwest::Method::GET, "/configs", None, None),
         "mihomoConnections" => {
-            core_request(&state, reqwest::Method::GET, "/connections", None, None)
+            core_request(state, reqwest::Method::GET, "/connections", None, None)
         }
-        "mihomoRules" => core_request(&state, reqwest::Method::GET, "/rules", None, None),
-        "mihomoProxies" => core_request(&state, reqwest::Method::GET, "/proxies", None, None),
+        "mihomoRules" => core_request(state, reqwest::Method::GET, "/rules", None, None),
+        "mihomoProxies" => core_request(state, reqwest::Method::GET, "/proxies", None, None),
         "mihomoGroups" => {
-            let proxies = core_request(&state, reqwest::Method::GET, "/proxies", None, None)?;
-            let runtime = current_runtime_value(&app, &state)?;
+            let proxies = core_request(state, reqwest::Method::GET, "/proxies", None, None)?;
+            let runtime = current_runtime_value(app, state)?;
             Ok(build_mihomo_groups_value(&proxies, &runtime))
         }
         "mihomoProxyProviders" => core_request(
-            &state,
+            state,
             reqwest::Method::GET,
             "/providers/proxies",
             None,
             None,
         ),
         "mihomoRuleProviders" => {
-            core_request(&state, reqwest::Method::GET, "/providers/rules", None, None)
+            core_request(state, reqwest::Method::GET, "/providers/rules", None, None)
         }
         "patchMihomoConfig" => core_request(
-            &state,
+            state,
             reqwest::Method::PATCH,
             "/configs",
             None,
             Some(args.first().cloned().unwrap_or(Value::Null)),
         )
         .map(|_| {
-            emit_ipc_event(&app, "groupsUpdated", Value::Null);
-            emit_ipc_event(&app, "rulesUpdated", Value::Null);
+            emit_ipc_event(app, "groupsUpdated", Value::Null);
+            emit_ipc_event(app, "rulesUpdated", Value::Null);
             Value::Null
         }),
         "mihomoChangeProxy" => {
@@ -49,15 +49,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 .and_then(Value::as_str)
                 .ok_or_else(|| "mihomoChangeProxy requires proxy".to_string())?;
             core_request(
-                &state,
+                state,
                 reqwest::Method::PUT,
                 &format!("/proxies/{}", urlencoding::encode(group)),
                 None,
                 Some(json!({ "name": proxy })),
             )
-            .map(|value| {
-                emit_ipc_event(&app, "groupsUpdated", Value::Null);
-                value
+            .inspect(|_value| {
+                emit_ipc_event(app, "groupsUpdated", Value::Null);
             })
         }
         "mihomoUnfixedProxy" => {
@@ -66,15 +65,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 .and_then(Value::as_str)
                 .ok_or_else(|| "mihomoUnfixedProxy requires group".to_string())?;
             core_request(
-                &state,
+                state,
                 reqwest::Method::DELETE,
                 &format!("/proxies/{}", urlencoding::encode(group)),
                 None,
                 None,
             )
-            .map(|value| {
-                emit_ipc_event(&app, "groupsUpdated", Value::Null);
-                value
+            .inspect(|_value| {
+                emit_ipc_event(app, "groupsUpdated", Value::Null);
             })
         }
         "mihomoCloseConnection" => {
@@ -83,7 +81,7 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 .and_then(Value::as_str)
                 .ok_or_else(|| "mihomoCloseConnection requires connection id".to_string())?;
             core_request(
-                &state,
+                state,
                 reqwest::Method::DELETE,
                 &format!("/connections/{}", urlencoding::encode(id)),
                 None,
@@ -93,10 +91,10 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
         }
         "mihomoCloseAllConnections" => {
             if let Some(name) = args.first().and_then(Value::as_str) {
-                close_connections_by_group(&state, name)?;
+                close_connections_by_group(state, name)?;
                 Ok(Value::Null)
             } else {
-                core_request(&state, reqwest::Method::DELETE, "/connections", None, None)
+                core_request(state, reqwest::Method::DELETE, "/connections", None, None)
                     .map(|_| Value::Null)
             }
         }
@@ -106,9 +104,9 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 .and_then(Value::as_str)
                 .ok_or_else(|| "mihomoProxyDelay requires proxy".to_string())?;
             let (url, timeout) =
-                resolve_delay_test_options(&app, args.get(1).and_then(Value::as_str))?;
+                resolve_delay_test_options(app, args.get(1).and_then(Value::as_str))?;
             core_request(
-                &state,
+                state,
                 reqwest::Method::GET,
                 &format!("/proxies/{}/delay", urlencoding::encode(proxy)),
                 Some(&[("url", url), ("timeout", timeout)]),
@@ -121,9 +119,9 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 .and_then(Value::as_str)
                 .ok_or_else(|| "mihomoGroupDelay requires group".to_string())?;
             let (url, timeout) =
-                resolve_delay_test_options(&app, args.get(1).and_then(Value::as_str))?;
+                resolve_delay_test_options(app, args.get(1).and_then(Value::as_str))?;
             core_request(
-                &state,
+                state,
                 reqwest::Method::GET,
                 &format!("/group/{}/delay", urlencoding::encode(group)),
                 Some(&[("url", url), ("timeout", timeout)]),
@@ -142,7 +140,7 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 .unwrap_or("A")
                 .to_string();
             core_request(
-                &state,
+                state,
                 reqwest::Method::GET,
                 "/dns/query",
                 Some(&[("name", name), ("type", record_type)]),
@@ -150,14 +148,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
             )
         }
         "mihomoToggleRuleDisabled" => core_request(
-            &state,
+            state,
             reqwest::Method::PATCH,
             "/rules/disable",
             None,
             Some(args.first().cloned().unwrap_or_else(|| json!({}))),
         )
         .map(|_| {
-            emit_ipc_event(&app, "rulesUpdated", Value::Null);
+            emit_ipc_event(app, "rulesUpdated", Value::Null);
             Value::Null
         }),
         "mihomoUpdateProxyProviders" => {
@@ -166,14 +164,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 .and_then(Value::as_str)
                 .ok_or_else(|| "mihomoUpdateProxyProviders requires name".to_string())?;
             core_request(
-                &state,
+                state,
                 reqwest::Method::PUT,
                 &format!("/providers/proxies/{}", urlencoding::encode(name)),
                 None,
                 None,
             )
             .map(|_| {
-                emit_ipc_event(&app, "groupsUpdated", Value::Null);
+                emit_ipc_event(app, "groupsUpdated", Value::Null);
                 Value::Null
             })
         }
@@ -183,21 +181,21 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 .and_then(Value::as_str)
                 .ok_or_else(|| "mihomoUpdateRuleProviders requires name".to_string())?;
             core_request(
-                &state,
+                state,
                 reqwest::Method::PUT,
                 &format!("/providers/rules/{}", urlencoding::encode(name)),
                 None,
                 None,
             )
             .map(|_| {
-                emit_ipc_event(&app, "rulesUpdated", Value::Null);
+                emit_ipc_event(app, "rulesUpdated", Value::Null);
                 Value::Null
             })
         }
         "mihomoUpgrade" => {
-            if read_core_name(&app)? == "mihomo-alpha" {
+            if read_core_name(app)? == "mihomo-alpha" {
                 let latest = latest_mihomo_alpha_version()?;
-                let current = core_request(&state, reqwest::Method::GET, "/version", None, None)?;
+                let current = core_request(state, reqwest::Method::GET, "/version", None, None)?;
                 let current_version = current
                     .get("version")
                     .and_then(Value::as_str)
@@ -205,26 +203,25 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 if current_version.contains(&latest) {
                     Err(format!("already using latest version {latest}"))
                 } else {
-                    stop_core_process(&app, &state)?;
-                    let target_path = mihomo_alpha_core_target_path(&app)?;
-                    download_mihomo_alpha_core(&app, &target_path)?;
-                    restart_core_process(&app, &state, None).map(|value| {
-                        emit_ipc_event(&app, "core-started", value.clone());
-                        emit_ipc_event(&app, "groupsUpdated", Value::Null);
-                        emit_ipc_event(&app, "rulesUpdated", Value::Null);
-                        value
+                    stop_core_process(app, state)?;
+                    let target_path = mihomo_alpha_core_target_path(app)?;
+                    download_mihomo_alpha_core(app, &target_path)?;
+                    restart_core_process(app, state, None).inspect(|value| {
+                        emit_ipc_event(app, "core-started", value.clone());
+                        emit_ipc_event(app, "groupsUpdated", Value::Null);
+                        emit_ipc_event(app, "rulesUpdated", Value::Null);
                     })
                 }
             } else {
-                core_request(&state, reqwest::Method::POST, "/upgrade", None, None)
+                core_request(state, reqwest::Method::POST, "/upgrade", None, None)
                     .map(|_| Value::Null)
             }
         }
         "mihomoUpgradeGeo" => {
-            core_request(&state, reqwest::Method::POST, "/upgrade/geo", None, None)
+            core_request(state, reqwest::Method::POST, "/upgrade/geo", None, None)
                 .map(|_| Value::Null)
         }
-        "mihomoUpgradeUI" => core_request(&state, reqwest::Method::POST, "/upgrade/ui", None, None)
+        "mihomoUpgradeUI" => core_request(state, reqwest::Method::POST, "/upgrade/ui", None, None)
             .map(|_| Value::Null),
         "checkMihomoLatestVersion" => {
             let is_alpha = args.first().and_then(Value::as_bool).unwrap_or(false);
@@ -239,26 +236,25 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
             }
         }
         "restartMihomoConnections" => {
-            if current_controller_url(&state)?.is_some() {
-                start_core_events_monitor(&app, &state)?;
+            if current_controller_url(state)?.is_some() {
+                start_core_events_monitor(app, state)?;
             } else {
-                stop_core_events_monitor(&state)?;
+                stop_core_events_monitor(state)?;
             }
             Ok(Value::Null)
         }
-        "restartCore" => restart_core_process(&app, &state, args.first()).map(|value| {
-            emit_ipc_event(&app, "core-started", value.clone());
-            emit_ipc_event(&app, "groupsUpdated", Value::Null);
-            emit_ipc_event(&app, "rulesUpdated", Value::Null);
-            value
+        "restartCore" => restart_core_process(app, state, args.first()).inspect(|value| {
+            emit_ipc_event(app, "core-started", value.clone());
+            emit_ipc_event(app, "groupsUpdated", Value::Null);
+            emit_ipc_event(app, "rulesUpdated", Value::Null);
         }),
         "setNativeTheme" => {
             let theme = args.first().and_then(Value::as_str);
-            apply_window_theme(&window, theme);
+            apply_window_theme(window, theme);
             Ok(Value::Null)
         }
         "relaunchApp" => {
-            relaunch_current_app(&app, &state)?;
+            relaunch_current_app(app, state)?;
             Ok(Value::Null)
         }
         _ => return Ok(None),

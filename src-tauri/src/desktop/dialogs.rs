@@ -199,7 +199,9 @@ fn pick_save_file_path_native(default_name: &str, ext: &str) -> Result<Option<Pa
     } else {
         format!("{default_name}.{normalized_ext}")
     };
-    let filter = powershell_single_quoted(&windows_dialog_filter(&[normalized_ext.clone()]));
+    let filter = powershell_single_quoted(&windows_dialog_filter(std::slice::from_ref(
+        &normalized_ext,
+    )));
     let file_name = powershell_single_quoted(&normalized_name);
     let default_ext = powershell_single_quoted(&normalized_ext);
     let script = format!(
@@ -350,4 +352,3 @@ fn relaunch_current_app(
     app.exit(0);
     Ok(())
 }
-

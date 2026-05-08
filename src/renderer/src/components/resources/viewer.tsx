@@ -12,6 +12,9 @@ import {
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
+type ResourceYamlEntry = {
+  payload?: unknown
+}
 
 interface Props {
   onClose: () => void
@@ -24,8 +27,9 @@ interface Props {
 }
 const Viewer: React.FC<Props> = (props) => {
   const { type, path, title, format, privderType, behavior, onClose } = props
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
   const [currData, setCurrData] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   let language: Language = !format || format === 'YamlRule' ? 'yaml' : 'text'
@@ -53,28 +57,19 @@ const Viewer: React.FC<Props> = (props) => {
       }
       if (parsedYaml && typeof parsedYaml === 'object') {
         const yamlObj = parsedYaml as Record<string, unknown>
-        const payload = yamlObj[privderType]?.[title]?.payload
+        const providerMap = yamlObj[privderType]
+        const targetObj =
+          providerMap && typeof providerMap === 'object'
+            ? (providerMap as Record<string, ResourceYamlEntry>)[title]
+            : undefined
+        const payload = targetObj?.payload
         if (payload) {
-          if (privderType === 'proxy-providers') {
-            setCurrData(
-              yaml.dump({
-                proxies: payload
-              })
-            )
-          } else {
-            setCurrData(
-              yaml.dump({
-                rules: payload
-              })
-            )
-          }
+          const payloadKey = privderType === 'proxy-providers' ? 'proxies' : 'rules'
+          setCurrData(yaml.dump({ [payloadKey]: payload }))
+        } else if (targetObj) {
+          setCurrData(yaml.dump(targetObj))
         } else {
-          const targetObj = yamlObj[privderType]?.[title]
-          if (targetObj) {
-            setCurrData(yaml.dump(targetObj))
-          } else {
-            setCurrData(fileContent)
-          }
+          setCurrData(fileContent)
         }
       } else {
         setCurrData(fileContent)

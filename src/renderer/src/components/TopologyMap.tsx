@@ -65,12 +65,12 @@ const LayoutHelper = ({
 }: {
   structureKey: string
   containerRef: React.RefObject<HTMLDivElement | null>
-}) => {
+}): null => {
   const { fitView } = useReactFlow()
   const fittedStructureRef = useRef('')
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
 
-  const scheduleFitView = () => {
+  const scheduleFitView = (): void => {
     window.requestAnimationFrame(() => {
       void fitView({ padding: 0.1, duration: 0 })
     })
@@ -360,7 +360,7 @@ function buildTopologyGraph(
     const traffic = nodeTraffic.get(id)
     node.data.uploadSpeed = traffic?.upload || 0
     node.data.downloadSpeed = traffic?.download || 0
-    node.data.count = node.data.layerIndex === 1 ? (traffic?.count || 0) : (targetCounter.get(id) || 0)
+    node.data.count = node.data.layerIndex === 1 ? traffic?.count || 0 : targetCounter.get(id) || 0
 
     if (node.data.layerIndex === maxLayerIndex && maxLayerIndex > 0) {
       node.type = 'exit'
@@ -610,13 +610,7 @@ const TopologyMapInner = () => {
         flushPendingTrafficUpdate()
       }, TOPOLOGY_TRAFFIC_REFRESH_INTERVAL - elapsed)
     }
-  }, [
-    applyGraph,
-    clearPendingTrafficUpdate,
-    connections,
-    flushPendingTrafficUpdate,
-    structureKey
-  ])
+  }, [applyGraph, clearPendingTrafficUpdate, connections, flushPendingTrafficUpdate, structureKey])
 
   useEffect(() => {
     return () => {

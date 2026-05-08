@@ -50,6 +50,10 @@ function withoutExtension(filePath) {
   return normalizePath(filePath).replace(/\.(ts|tsx|js|jsx|mjs|cjs|css)$/, '')
 }
 
+function isTestFile(filePath) {
+  return /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs)$/.test(path.basename(filePath))
+}
+
 function buildModuleIndex(files) {
   const index = new Map()
   for (const filePath of files) {
@@ -76,7 +80,8 @@ function resolveLocalModule(specifier, fromFile, moduleIndex) {
   const normalized = normalizePath(targetPath)
   if (moduleIndex.has(normalized)) return moduleIndex.get(normalized)
   const normalizedWithoutExtension = normalized.replace(/\.(ts|tsx|js|jsx|mjs|cjs|css)$/, '')
-  if (moduleIndex.has(normalizedWithoutExtension)) return moduleIndex.get(normalizedWithoutExtension)
+  if (moduleIndex.has(normalizedWithoutExtension))
+    return moduleIndex.get(normalizedWithoutExtension)
   for (const ext of MODULE_EXTENSIONS) {
     const withExt = `${normalized}${ext}`
     if (fs.existsSync(withExt)) return withExt
@@ -114,7 +119,9 @@ function packageName(specifier) {
     return null
   }
 
-  return specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0]
+  return specifier.startsWith('@')
+    ? specifier.split('/').slice(0, 2).join('/')
+    : specifier.split('/')[0]
 }
 
 function checkRendererReachability() {
@@ -135,6 +142,7 @@ function checkRendererReachability() {
   return [...incoming.entries()]
     .filter(([filePath, count]) => {
       if (count > 0) return false
+      if (isTestFile(filePath)) return false
       if (RENDERER_ENTRY_FILES.has(path.basename(filePath))) return false
       const normalized = normalizePath(path.relative(rendererRoot, filePath))
       return !normalized.startsWith('pages/') && !normalized.startsWith('routes/')
@@ -161,7 +169,9 @@ function checkInvokeChannels() {
 
   const usageFiles = [
     ...walkFiles(rendererRoot),
-    ...walkFiles(path.join(repoRoot, 'src', 'shared')).filter((filePath) => !normalizePath(filePath).includes('/src/shared/ipc/'))
+    ...walkFiles(path.join(repoRoot, 'src', 'shared')).filter(
+      (filePath) => !normalizePath(filePath).includes('/src/shared/ipc/')
+    )
   ]
   const used = new Set()
   for (const filePath of usageFiles) {

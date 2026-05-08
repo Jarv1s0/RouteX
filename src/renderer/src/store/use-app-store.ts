@@ -25,11 +25,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     fetchAppConfigPromise = getAppConfig()
-      .then((config) => {
+      .then((config): AppConfig => {
         set({ appConfig: config })
         return config
       })
-      .catch((e) => {
+      .catch((e): undefined => {
         console.error('Failed to fetch app config', e)
         return undefined
       })

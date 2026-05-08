@@ -222,6 +222,18 @@ textarea {
   -webkit-appearance: none !important;
 }
 
+input[type='number'] {
+  appearance: textfield !important;
+  -moz-appearance: textfield !important;
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  margin: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
 [data-slot="input-wrapper"]:focus,
 [data-slot="input-wrapper"]:focus-visible,
 [data-slot="inner-wrapper"]:focus,

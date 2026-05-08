@@ -627,13 +627,13 @@ fn extract_linux_icon_data_url(app_path: &str) -> Option<String> {
 fn resolve_icon_data_url_uncached(normalized_path: &str) -> String {
     let path = Path::new(&normalized_path);
     if path.exists() && path.is_file() && is_image_file_path(path) {
-        return read_local_icon_data_url(&normalized_path)
+        return read_local_icon_data_url(normalized_path)
             .unwrap_or_else(|| default_icon_data_url().to_string());
     }
 
     #[cfg(target_os = "windows")]
     {
-        if let Some(value) = extract_windows_icon_data_url(&normalized_path) {
+        if let Some(value) = extract_windows_icon_data_url(normalized_path) {
             return value;
         }
     }
@@ -652,7 +652,7 @@ fn resolve_icon_data_url_uncached(normalized_path: &str) -> String {
         }
     }
 
-    read_local_icon_data_url(&normalized_path)
+    read_local_icon_data_url(normalized_path)
         .unwrap_or_else(|| default_icon_data_url().to_string())
 }
 

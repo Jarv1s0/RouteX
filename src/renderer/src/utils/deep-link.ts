@@ -113,10 +113,14 @@ async function handleProfileInstall(url: string): Promise<void> {
     throw new Error('缺少参数 url')
   }
 
-  const confirmed = await waitForCustomConfirm(PROFILE_INSTALL_EVENT, PROFILE_INSTALL_RESULT_EVENT, {
-    url: targetUrl,
-    name: inferNameFromUrl(targetUrl, targetName)
-  })
+  const confirmed = await waitForCustomConfirm(
+    PROFILE_INSTALL_EVENT,
+    PROFILE_INSTALL_RESULT_EVENT,
+    {
+      url: targetUrl,
+      name: inferNameFromUrl(targetUrl, targetName)
+    }
+  )
   if (!confirmed) {
     return
   }
@@ -137,10 +141,14 @@ async function handleOverrideInstall(url: string): Promise<void> {
   }
 
   const inferredName = inferNameFromUrl(targetUrl, targetName)
-  const confirmed = await waitForCustomConfirm(OVERRIDE_INSTALL_EVENT, OVERRIDE_INSTALL_RESULT_EVENT, {
-    url: targetUrl,
-    name: inferredName
-  })
+  const confirmed = await waitForCustomConfirm(
+    OVERRIDE_INSTALL_EVENT,
+    OVERRIDE_INSTALL_RESULT_EVENT,
+    {
+      url: targetUrl,
+      name: inferredName
+    }
+  )
   if (!confirmed) {
     return
   }
@@ -195,12 +203,12 @@ export async function initDeepLinkIntegration(): Promise<void> {
 
   deepLinkInitialized = true
 
-  const startupUrls = await getCurrent().catch(() => [])
+  const startupUrls = await getCurrent().catch((): string[] => [])
   if (startupUrls.length > 0) {
     await processDeepLinks(startupUrls)
   }
 
-  await onOpenUrl((urls) => {
+  await onOpenUrl((urls: string[]): void => {
     void processDeepLinks(urls)
   })
 }

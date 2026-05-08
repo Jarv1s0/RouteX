@@ -7,7 +7,7 @@ import { restartCore, startNetworkDetection, stopNetworkDetection } from '@rende
 import { Button, Input, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
 import { useState } from 'react'
 import { IoIosHelpCircle } from 'react-icons/io'
-import { secondaryInputClassNames } from '../settings/advanced-settings'
+import { numberInputClassNames, secondaryInputClassNames } from '../settings/advanced-settings'
 import EditableList from '../base/base-list-editor'
 
 const AdvancedSetting: React.FC = () => {
@@ -149,7 +149,7 @@ const AdvancedSetting: React.FC = () => {
                   size="sm"
                   type="number"
                   className="w-[100px]"
-                  classNames={secondaryInputClassNames}
+                  classNames={numberInputClassNames}
                   value={intervalInput.toString()}
                   min={0}
                   onValueChange={(v) => {
@@ -176,7 +176,7 @@ const AdvancedSetting: React.FC = () => {
                   size="sm"
                   type="number"
                   className="w-[100px]"
-                  classNames={secondaryInputClassNames}
+                  classNames={numberInputClassNames}
                   value={idleInput.toString()}
                   min={0}
                   onValueChange={(v) => {
@@ -234,7 +234,7 @@ const AdvancedSetting: React.FC = () => {
                   size="sm"
                   type="number"
                   className="w-[100px]"
-                  classNames={secondaryInputClassNames}
+                  classNames={numberInputClassNames}
                   endContent="秒"
                   value={detectionInterval.toString()}
                   min={1}

@@ -144,7 +144,7 @@ const ProfilesPage: React.FC = () => {
     return Object.values(providersData.providers)
       .filter((provider) => provider.vehicleType !== 'Compatible')
       .sort((a, b) => {
-        const order = { File: 1, Inline: 2, HTTP: 3 }
+        const order: Record<string, number> = { File: 1, Inline: 2, HTTP: 3 }
         return (order[a.vehicleType] || 4) - (order[b.vehicleType] || 4)
       })
   }, [providersData])
@@ -237,10 +237,7 @@ const ProfilesPage: React.FC = () => {
     [searchParams, setSearchParams]
   )
 
-  const scheduleCoreRestart = useMemo(
-    () => createQueuedCoreRestartRunner('应用覆写失败'),
-    []
-  )
+  const scheduleCoreRestart = useMemo(() => createQueuedCoreRestartRunner('应用覆写失败'), [])
 
   const handleImport = async (importUrl: string): Promise<void> => {
     setImporting(true)
@@ -330,18 +327,15 @@ const ProfilesPage: React.FC = () => {
     [isUrlEmpty]
   )
 
-  const runSelectionMutation = useCallback(
-    async (action: () => Promise<void>): Promise<void> => {
-      setSwitching(true)
-      try {
-        await action()
-      } finally {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setSwitching(false)
-      }
-    },
-    []
-  )
+  const runSelectionMutation = useCallback(async (action: () => Promise<void>): Promise<void> => {
+    setSwitching(true)
+    try {
+      await action()
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      setSwitching(false)
+    }
+  }, [])
 
   const handleSetPrimaryProfile = useCallback(
     async (id: string): Promise<void> => {
@@ -626,7 +620,11 @@ const ProfilesPage: React.FC = () => {
                     >
                       <MdContentPaste className="text-lg" />
                     </Button>
-                    <Checkbox className="whitespace-nowrap" checked={useProxy} onValueChange={setUseProxy}>
+                    <Checkbox
+                      className="whitespace-nowrap"
+                      checked={useProxy}
+                      onValueChange={setUseProxy}
+                    >
                       代理
                     </Checkbox>
                   </>
@@ -833,7 +831,11 @@ const ProfilesPage: React.FC = () => {
       </div>
 
       {activeTab === 'profiles' && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onProfileDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onProfileDragEnd}
+        >
           <div
             className={`${fileOver ? 'blur-sm' : ''} mx-2 grid gap-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}
           >
@@ -861,7 +863,11 @@ const ProfilesPage: React.FC = () => {
       )}
 
       {activeTab === 'overrides' && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onOverrideDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onOverrideDragEnd}
+        >
           <div
             className={`${fileOver ? 'blur-sm' : ''} grid gap-2 px-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}
           >

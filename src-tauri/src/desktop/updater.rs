@@ -22,11 +22,22 @@ fn update_channel(app: &tauri::AppHandle) -> Result<String, String> {
 
 fn update_manifest_url(app: &tauri::AppHandle) -> Result<String, String> {
     let update_channel = update_channel(app)?;
-    Ok(if update_channel == "beta" {
-        String::from("https://github.com/Jarv1s0/RouteX/releases/download/pre-release/latest.json")
+    let fallback = if update_channel == "beta" {
+        "https://github.com/Jarv1s0/RouteX/releases/download/pre-release/latest.json"
     } else {
-        String::from("https://github.com/Jarv1s0/RouteX/releases/latest/download/latest.json")
-    })
+        "https://github.com/Jarv1s0/RouteX/releases/latest/download/latest.json"
+    };
+    let env_endpoint = if update_channel == "beta" {
+        option_env!("ROUTEX_UPDATER_BETA_ENDPOINT")
+    } else {
+        option_env!("ROUTEX_UPDATER_STABLE_ENDPOINT")
+    };
+
+    Ok(env_endpoint
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(fallback)
+        .to_string())
 }
 
 pub(super) fn update_client(app: &tauri::AppHandle, timeout_secs: u64) -> Result<Client, String> {

@@ -58,7 +58,7 @@ fn value_number(value: &Value, keys: &[&str]) -> Value {
         .unwrap_or(Value::Null)
 }
 
-fn ip_info_result(
+struct IpInfoResult {
     query: String,
     country: String,
     country_code: String,
@@ -70,22 +70,24 @@ fn ip_info_result(
     asn: String,
     lat: Value,
     lon: Value,
-) -> Value {
+}
+
+fn ip_info_result(info: IpInfoResult) -> Value {
     json!({
         "status": "success",
-        "query": query,
-        "country": country,
-        "countryCode": country_code,
+        "query": info.query,
+        "country": info.country,
+        "countryCode": info.country_code,
         "region": "",
-        "regionName": region_name,
-        "city": city,
+        "regionName": info.region_name,
+        "city": info.city,
         "zip": "",
-        "lat": lat,
-        "lon": lon,
-        "timezone": timezone,
-        "isp": isp,
-        "org": org,
-        "as": asn,
+        "lat": info.lat,
+        "lon": info.lon,
+        "timezone": info.timezone,
+        "isp": info.isp,
+        "org": info.org,
+        "as": info.asn,
     })
 }
 
@@ -98,19 +100,19 @@ fn normalize_ipapi_info(value: Value) -> Option<Value> {
     let org = value_string(&value, &["org"]);
     let asn = value_string(&value, &["asn"]);
 
-    Some(ip_info_result(
+    Some(ip_info_result(IpInfoResult {
         query,
-        value_string(&value, &["country_name", "country"]),
-        value_string(&value, &["country_code"]),
-        value_string(&value, &["region"]),
-        value_string(&value, &["city"]),
-        value_string(&value, &["timezone"]),
-        org.clone(),
+        country: value_string(&value, &["country_name", "country"]),
+        country_code: value_string(&value, &["country_code"]),
+        region_name: value_string(&value, &["region"]),
+        city: value_string(&value, &["city"]),
+        timezone: value_string(&value, &["timezone"]),
+        isp: org.clone(),
         org,
         asn,
-        value_number(&value, &["latitude", "lat"]),
-        value_number(&value, &["longitude", "lon"]),
-    ))
+        lat: value_number(&value, &["latitude", "lat"]),
+        lon: value_number(&value, &["longitude", "lon"]),
+    }))
 }
 
 fn normalize_ipinfo_info(value: Value) -> Option<Value> {
@@ -132,19 +134,19 @@ fn normalize_ipinfo_info(value: Value) -> Option<Value> {
 
     let org = value_string(&value, &["org"]);
 
-    Some(ip_info_result(
+    Some(ip_info_result(IpInfoResult {
         query,
-        value_string(&value, &["country"]),
-        value_string(&value, &["country"]),
-        value_string(&value, &["region"]),
-        value_string(&value, &["city"]),
-        value_string(&value, &["timezone"]),
-        org.clone(),
-        org.clone(),
-        org,
+        country: value_string(&value, &["country"]),
+        country_code: value_string(&value, &["country"]),
+        region_name: value_string(&value, &["region"]),
+        city: value_string(&value, &["city"]),
+        timezone: value_string(&value, &["timezone"]),
+        isp: org.clone(),
+        org: org.clone(),
+        asn: org,
         lat,
         lon,
-    ))
+    }))
 }
 
 fn normalize_ipip_info(value: Value) -> Option<Value> {
@@ -172,19 +174,19 @@ fn normalize_ipip_info(value: Value) -> Option<Value> {
     let city = location.get(2).cloned().unwrap_or_default();
     let isp = location.get(3).cloned().unwrap_or_default();
 
-    Some(ip_info_result(
+    Some(ip_info_result(IpInfoResult {
         query,
         country,
-        String::new(),
-        region,
+        country_code: String::new(),
+        region_name: region,
         city,
-        String::new(),
-        isp.clone(),
-        isp.clone(),
-        isp,
-        Value::Null,
-        Value::Null,
-    ))
+        timezone: String::new(),
+        isp: isp.clone(),
+        org: isp.clone(),
+        asn: isp,
+        lat: Value::Null,
+        lon: Value::Null,
+    }))
 }
 
 fn normalize_cloudflare_trace(body: String) -> Option<Value> {
@@ -204,31 +206,31 @@ fn normalize_cloudflare_trace(body: String) -> Option<Value> {
         return None;
     }
 
-    Some(ip_info_result(
+    Some(ip_info_result(IpInfoResult {
         query,
-        trace
+        country: trace
             .get("loc")
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string(),
-        trace
+        country_code: trace
             .get("loc")
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string(),
-        trace
+        region_name: trace
             .get("colo")
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string(),
-        String::new(),
-        String::new(),
-        "Cloudflare".to_string(),
-        value_string(&Value::Object(trace.clone()), &["colo"]),
-        value_string(&Value::Object(trace), &["fl"]),
-        Value::Null,
-        Value::Null,
-    ))
+        city: String::new(),
+        timezone: String::new(),
+        isp: "Cloudflare".to_string(),
+        org: value_string(&Value::Object(trace.clone()), &["colo"]),
+        asn: value_string(&Value::Object(trace), &["fl"]),
+        lat: Value::Null,
+        lon: Value::Null,
+    }))
 }
 
 fn http_post_json(url: &str, body: &Value, timeout_ms: u64) -> Result<Value, String> {
@@ -683,9 +685,8 @@ fn check_streaming_unlock(service: &str) -> Result<Value, String> {
         }
         "gemini" => {
             let (status, body, _) = http_get_response("https://gemini.google.com/", timeout)?;
-            if status == reqwest::StatusCode::FORBIDDEN {
-                json!({ "status": "locked" })
-            } else if body.contains("not available")
+            if status == reqwest::StatusCode::FORBIDDEN
+                || body.contains("not available")
                 || body.contains("unavailable")
                 || body.contains("not supported")
             {
@@ -752,4 +753,3 @@ fn write_runtime_text(
     ensure_parent(&path)?;
     fs::write(path, content).map_err(|e| e.to_string())
 }
-

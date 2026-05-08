@@ -253,7 +253,7 @@ fn has_up_network_interface(excluded_keywords: &[String]) -> bool {
             .map(|value| value.to_ascii_lowercase())
             .collect::<Vec<_>>();
 
-        return entries.iter().any(|entry| {
+        entries.iter().any(|entry| {
             let name = entry
                 .get("Name")
                 .and_then(Value::as_str)
@@ -269,7 +269,7 @@ fn has_up_network_interface(excluded_keywords: &[String]) -> bool {
                 && !excluded
                     .iter()
                     .any(|keyword| !keyword.is_empty() && name_lower.contains(keyword))
-        });
+        })
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -498,10 +498,8 @@ fn start_network_detection(
         Some("lo".to_string()),
         Some("docker0".to_string()),
         Some("utun".to_string()),
-    ] {
-        if let Some(item) = item {
-            excluded.push(item);
-        }
+    ].into_iter().flatten() {
+        excluded.push(item);
     }
 
     let (shutdown_tx, shutdown_rx) = mpsc::channel();
@@ -521,26 +519,20 @@ fn start_network_detection(
             Err(_) => break,
         };
 
-        let core_running = match is_core_running(&state) {
-            Ok(value) => value,
-            Err(_) => false,
-        };
+        let core_running = is_core_running(&state).unwrap_or_default();
 
         if is_online {
             if *network_down_handled && !core_running {
                 let runtime_config = current_runtime_value(&app_handle, &state).ok();
-                match restart_core_process(&app_handle, &state, runtime_config.as_ref()) {
-                    Ok(value) => {
-                        emit_ipc_event(&app_handle, "core-started", value);
-                        emit_ipc_event(&app_handle, "groupsUpdated", Value::Null);
-                        emit_ipc_event(&app_handle, "rulesUpdated", Value::Null);
-                        if sysproxy_enabled {
-                            let _ =
-                                trigger_sys_proxy(&app_handle, &state, true, only_active_device);
-                        }
-                        *network_down_handled = false;
+                if let Ok(value) = restart_core_process(&app_handle, &state, runtime_config.as_ref()) {
+                    emit_ipc_event(&app_handle, "core-started", value);
+                    emit_ipc_event(&app_handle, "groupsUpdated", Value::Null);
+                    emit_ipc_event(&app_handle, "rulesUpdated", Value::Null);
+                    if sysproxy_enabled {
+                        let _ =
+                            trigger_sys_proxy(&app_handle, &state, true, only_active_device);
                     }
-                    Err(_) => {}
+                    *network_down_handled = false;
                 }
             }
             continue;

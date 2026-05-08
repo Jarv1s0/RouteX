@@ -1,9 +1,5 @@
-const DEV_LOOPBACK_ORIGINS = [
-  'http://127.0.0.1:*',
-  'ws://127.0.0.1:*',
-  'http://localhost:*',
-  'ws://localhost:*'
-]
+const PROD_LOOPBACK_ORIGINS = ['http://127.0.0.1:*', 'ws://127.0.0.1:*']
+const DEV_LOOPBACK_ORIGINS = [...PROD_LOOPBACK_ORIGINS, 'http://localhost:*', 'ws://localhost:*']
 const IP_CHECK_ORIGINS = [
   'https://ping0.cc',
   'https://ip.sb',
@@ -11,11 +7,12 @@ const IP_CHECK_ORIGINS = [
   'https://www.ip138.com'
 ]
 
-function buildRendererCsp(options: { isDev: boolean }): string {
+export function buildRendererCsp(options: { isDev: boolean }): string {
   const { isDev } = options
   const scriptSrc = isDev ? "script-src 'self' 'unsafe-inline'" : "script-src 'self'"
-  const connectSrc = ["'self'", ...DEV_LOOPBACK_ORIGINS].join(' ')
-  const frameSrc = ["'self'", 'http://127.0.0.1:*', ...IP_CHECK_ORIGINS].join(' ')
+  const loopbackOrigins = isDev ? DEV_LOOPBACK_ORIGINS : PROD_LOOPBACK_ORIGINS
+  const connectSrc = ["'self'", ...loopbackOrigins].join(' ')
+  const frameSrc = ["'self'", ...IP_CHECK_ORIGINS].join(' ')
 
   const directives = [
     "default-src 'self'",

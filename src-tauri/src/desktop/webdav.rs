@@ -143,9 +143,7 @@ fn list_webdav_backup_names(config: &WebdavConfig) -> Result<Vec<String>, String
             Ok(Event::Start(event)) if event.local_name().as_ref() == b"href" => {
                 let text = reader.read_text(event.name()).map_err(|e| e.to_string())?;
                 let basename = text
-                    .split('/')
-                    .filter(|segment| !segment.is_empty())
-                    .last()
+                    .split('/').rfind(|segment| !segment.is_empty())
                     .unwrap_or_default();
                 let decoded = urlencoding::decode(basename)
                     .map(|value| value.into_owned())

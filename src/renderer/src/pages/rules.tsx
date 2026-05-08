@@ -298,7 +298,7 @@ const RulesPage: React.FC = () => {
     const unusedProviders = allProviders.filter((p) => !firstSeenItems.has(p.name))
 
     unusedProviders.sort((a, b) => {
-      const order = { File: 1, Inline: 2, HTTP: 3 }
+      const order: Record<string, number> = { File: 1, Inline: 2, HTTP: 3 }
       return (order[a.vehicleType] || 4) - (order[b.vehicleType] || 4)
     })
 

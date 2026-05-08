@@ -63,7 +63,7 @@ fn guess_name_from_url(url: &str, fallback: &str) -> String {
 
     let Some(name) = parsed
         .path_segments()
-        .and_then(|segments| segments.filter(|segment| !segment.is_empty()).last())
+        .and_then(|mut segments| segments.rfind(|segment| !segment.is_empty()))
     else {
         return fallback.to_string();
     };
@@ -1422,4 +1422,3 @@ fn current_runtime_value_for_renderer(
 
     Ok(value)
 }
-

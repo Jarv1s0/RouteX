@@ -2,9 +2,9 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
     let result: Result<Value, String> = match channel {
         "getVersion" => Ok(json!(app.package_info().version.to_string())),
         "platform" => Ok(json!(platform_name())),
-        "checkAutoRun" => Ok(json!(check_auto_run_enabled(&app)?)),
+        "checkAutoRun" => Ok(json!(check_auto_run_enabled(app)?)),
         "enableAutoRun" => {
-            enable_auto_run(&app)?;
+            enable_auto_run(app)?;
             Ok(Value::Null)
         }
         "disableAutoRun" => {
@@ -12,18 +12,18 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             Ok(Value::Null)
         }
         "checkUpdate" => Ok(json!(tauri::async_runtime::block_on(
-            check_update_manifest(&app)
+            check_update_manifest(app)
         )?)),
         "downloadAndInstallUpdate" => {
             let version = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| String::from("缺少更新版本号"))?;
-            tauri::async_runtime::block_on(download_and_install_update(&app, &state, version))?;
+            tauri::async_runtime::block_on(download_and_install_update(app, state, version))?;
             Ok(Value::Null)
         }
         "cancelUpdate" => {
-            cancel_update_download(&state)?;
+            cancel_update_download(state)?;
             Ok(Value::Null)
         }
         "getUserAgent" => Ok(json!(format!(
@@ -38,30 +38,30 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             let path = match runtime_work_dir {
                 Some(path) => path,
                 None => {
-                    let (_, work_dir, _, _) = resolve_current_runtime_dirs(&app)?;
+                    let (_, work_dir, _, _) = resolve_current_runtime_dirs(app)?;
                     work_dir
                 }
             };
             open_path_in_shell(&path)?;
             Ok(Value::Null)
         }
-        "getGistUrl" => Ok(json!(get_gist_url_value(&app)?)),
+        "getGistUrl" => Ok(json!(get_gist_url_value(app)?)),
         "copyEnv" => {
             let shell_type = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "copyEnv requires shell type".to_string())?;
-            let command = build_proxy_env_command(&app, shell_type)?;
+            let command = build_proxy_env_command(app, shell_type)?;
             copy_text_to_clipboard(&command)?;
             Ok(Value::Null)
         }
-        "createHeapSnapshot" => Ok(json!(create_heap_snapshot(&app, &state)?)),
+        "createHeapSnapshot" => Ok(json!(create_heap_snapshot(app, state)?)),
         "importThemes" => {
             let files = serde_json::from_value::<Vec<String>>(
                 args.first().cloned().unwrap_or_else(|| json!([])),
             )
             .map_err(|e| e.to_string())?;
-            import_theme_files(&app, &files)?;
+            import_theme_files(app, &files)?;
             Ok(Value::Null)
         }
         "getFilePath" => {
@@ -92,18 +92,18 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             )?))
         }
         "resetAppConfig" => {
-            stop_core_process(&app, &state)?;
-            let root = app_storage_root(&app)?;
+            stop_core_process(app, state)?;
+            let root = app_storage_root(app)?;
             if root.exists() {
                 let _ = fs::remove_dir_all(root);
             }
-            sync_shell_surfaces(&app)?;
-            emit_ipc_event(&app, "appConfigUpdated", Value::Null);
-            emit_ipc_event(&app, "controledMihomoConfigUpdated", Value::Null);
-            emit_ipc_event(&app, "profileConfigUpdated", Value::Null);
-            emit_ipc_event(&app, "overrideConfigUpdated", Value::Null);
-            emit_ipc_event(&app, "groupsUpdated", Value::Null);
-            emit_ipc_event(&app, "rulesUpdated", Value::Null);
+            sync_shell_surfaces(app)?;
+            emit_ipc_event(app, "appConfigUpdated", Value::Null);
+            emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
+            emit_ipc_event(app, "profileConfigUpdated", Value::Null);
+            emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
+            emit_ipc_event(app, "groupsUpdated", Value::Null);
+            emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         }
         "manualGrantCorePermition" => {
@@ -111,10 +111,10 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 args.first().cloned().unwrap_or(Value::Null),
             )
             .map_err(|e| e.to_string())?;
-            manual_grant_core_permission(&app, cores)?;
+            manual_grant_core_permission(app, cores)?;
             Ok(Value::Null)
         }
-        "checkCorePermission" => Ok(check_core_permission_value(&app)?),
+        "checkCorePermission" => Ok(check_core_permission_value(app)?),
         "checkElevateTask" => Ok(json!(check_elevate_task())),
         "deleteElevateTask" => {
             delete_elevate_task()?;
@@ -125,33 +125,33 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 args.first().cloned().unwrap_or(Value::Null),
             )
             .map_err(|e| e.to_string())?;
-            revoke_core_permission(&app, cores)?;
+            revoke_core_permission(app, cores)?;
             Ok(Value::Null)
         }
-        "serviceStatus" => service_status_value(&app),
-        "testServiceConnection" => Ok(json!(test_service_connection_value(&app))),
+        "serviceStatus" => service_status_value(app),
+        "testServiceConnection" => Ok(json!(test_service_connection_value(app))),
         "initService" => {
-            init_service(&app, args.first().cloned())?;
+            init_service(app, args.first().cloned())?;
             Ok(Value::Null)
         }
         "installService" => {
-            install_service(&app)?;
+            install_service(app)?;
             Ok(Value::Null)
         }
         "uninstallService" => {
-            uninstall_service(&app)?;
+            uninstall_service(app)?;
             Ok(Value::Null)
         }
         "startService" => {
-            start_service(&app)?;
+            start_service(app)?;
             Ok(Value::Null)
         }
         "restartService" => {
-            restart_service(&app)?;
+            restart_service(app)?;
             Ok(Value::Null)
         }
         "stopService" => {
-            stop_service(&app)?;
+            stop_service(app)?;
             Ok(Value::Null)
         }
         "findSystemMihomo" => Ok(json!(find_system_mihomo_paths())),
@@ -180,36 +180,36 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             Ok(json!(resolve_icon_data_urls(&app_paths)))
         }
         "getInterfaces" => Ok(get_interfaces_value()),
-        "getTrafficStats" => Ok(json!(read_traffic_stats_store(&app)?)),
+        "getTrafficStats" => Ok(json!(read_traffic_stats_store(app)?)),
         "recordTrafficSample" => {
             let sample = serde_json::from_value::<TrafficSampleInput>(
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
             .map_err(|e| e.to_string())?;
-            Ok(json!(record_traffic_sample(&app, sample)?))
+            Ok(json!(record_traffic_sample(app, sample)?))
         }
         "clearTrafficStats" => {
-            clear_traffic_stats_store(&app)?;
+            clear_traffic_stats_store(app)?;
             Ok(Value::Null)
         }
         "startNetworkHealthMonitor" => {
-            start_network_health_monitor(&app, &state)?;
+            start_network_health_monitor(app, state)?;
             Ok(Value::Null)
         }
         "stopNetworkHealthMonitor" => {
-            stop_network_health_monitor(&state)?;
+            stop_network_health_monitor(state)?;
             Ok(Value::Null)
         }
-        "getNetworkHealthStats" => Ok(get_network_health_stats_value(&state)?),
+        "getNetworkHealthStats" => Ok(get_network_health_stats_value(state)?),
         "getAppUptime" => Ok(json!(get_app_uptime_seconds())),
-        "webdavBackup" => Ok(json!(webdav_backup(&app)?)),
-        "listWebdavBackups" => Ok(json!(list_webdav_backup_names(&read_webdav_config(&app)?)?)),
+        "webdavBackup" => Ok(json!(webdav_backup(app)?)),
+        "listWebdavBackups" => Ok(json!(list_webdav_backup_names(&read_webdav_config(app)?)?)),
         "webdavRestore" => {
             let filename = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "webdavRestore requires filename".to_string())?;
-            webdav_restore(&app, filename)?;
+            webdav_restore(app, filename)?;
             Ok(Value::Null)
         }
         "webdavDelete" => {
@@ -217,11 +217,11 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "webdavDelete requires filename".to_string())?;
-            webdav_delete(&app, filename)?;
+            webdav_delete(app, filename)?;
             Ok(Value::Null)
         }
         "openUWPTool" => {
-            open_uwp_tool(&app)?;
+            open_uwp_tool(app)?;
             Ok(Value::Null)
         }
         _ => return Ok(None),

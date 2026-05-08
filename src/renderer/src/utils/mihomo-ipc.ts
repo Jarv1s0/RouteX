@@ -137,7 +137,7 @@ async function ensureTauriControllerUrl(): Promise<string | null> {
   }
 
   if (!tauriControllerUrlPromise) {
-    tauriControllerUrlPromise = (async () => {
+    tauriControllerUrlPromise = (async (): Promise<string | null> => {
       try {
         const controllerUrl = await invokeSafe<string | null>(C.getControllerUrl)
         if (controllerUrl) {
@@ -155,7 +155,7 @@ async function ensureTauriControllerUrl(): Promise<string | null> {
         return null
       }
     })()
-      .catch(() => null)
+      .catch((): null => null)
       .finally(() => {
         tauriControllerUrlPromise = null
       })

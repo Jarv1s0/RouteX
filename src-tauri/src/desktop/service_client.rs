@@ -209,7 +209,7 @@ fn build_service_http_request(
         request.push_str("Content-Type: application/json\r\n");
         request.push_str(&format!(
             "Content-Length: {}\r\n",
-            body_text.as_bytes().len()
+            body_text.len()
         ));
     }
     request.push_str("\r\n");

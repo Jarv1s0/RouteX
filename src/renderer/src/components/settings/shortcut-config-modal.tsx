@@ -1,23 +1,58 @@
 import React, { useState, useEffect, KeyboardEvent } from 'react'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input } from '@heroui/react'
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input
+} from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
 import { registerShortcut } from '@renderer/api/app'
 import { MdCheck, MdKeyboard, MdRestore } from 'react-icons/md'
-import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import {
+  createSecondaryModalClassNames,
+  getMainPaneModalContentStyle
+} from '@renderer/utils/modal-styles'
 
 interface Props {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
 }
 
-const keyMap = {
-  Backquote: '`', Backslash: '\\', BracketLeft: '[', BracketRight: ']', Comma: ',', Equal: '=',
-  Minus: '-', Plus: 'PLUS', Period: '.', Quote: "'", Semicolon: ';', Slash: '/', Backspace: 'Backspace',
-  CapsLock: 'Capslock', ContextMenu: 'Contextmenu', Space: 'Space', Tab: 'Tab', Convert: 'Convert',
-  Delete: 'Delete', End: 'End', Help: 'Help', Home: 'Home', PageDown: 'Pagedown', PageUp: 'Pageup',
-  Escape: 'Esc', PrintScreen: 'Printscreen', ScrollLock: 'Scrolllock', Pause: 'Pause', Insert: 'Insert',
+const keyMap: Record<string, string> = {
+  Backquote: '`',
+  Backslash: '\\',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Comma: ',',
+  Equal: '=',
+  Minus: '-',
+  Plus: 'PLUS',
+  Period: '.',
+  Quote: "'",
+  Semicolon: ';',
+  Slash: '/',
+  Backspace: 'Backspace',
+  CapsLock: 'Capslock',
+  ContextMenu: 'Contextmenu',
+  Space: 'Space',
+  Tab: 'Tab',
+  Convert: 'Convert',
+  Delete: 'Delete',
+  End: 'End',
+  Help: 'Help',
+  Home: 'Home',
+  PageDown: 'Pagedown',
+  PageUp: 'Pageup',
+  Escape: 'Esc',
+  PrintScreen: 'Printscreen',
+  ScrollLock: 'Scrolllock',
+  Pause: 'Pause',
+  Insert: 'Insert',
   Suspend: 'Suspend'
 }
 
@@ -30,7 +65,9 @@ const ShortcutInput: React.FC<{
   const [inputValue, setInputValue] = useState(value)
   const [isFocused, setIsFocused] = useState(false)
 
-  useEffect(() => { setInputValue(value) }, [value])
+  useEffect(() => {
+    setInputValue(value)
+  }, [value])
 
   const parseShortcut = (event: KeyboardEvent, setKey: (v: string) => void): void => {
     event.preventDefault()
@@ -39,12 +76,13 @@ const ShortcutInput: React.FC<{
     if (code === 'Backspace') {
       setKey('')
     } else {
-      let newValue = ''
-      if (event.ctrlKey) newValue = 'Ctrl'
-      if (event.shiftKey) newValue = `${newValue}${newValue.length > 0 ? '+' : ''}Shift`
-      if (event.metaKey) newValue = `${newValue}${newValue.length > 0 ? '+' : ''}${platform === 'darwin' ? 'Command' : 'Super'}`
-      if (event.altKey) newValue = `${newValue}${newValue.length > 0 ? '+' : ''}Alt`
-      
+      const modifiers = [
+        event.ctrlKey ? 'Ctrl' : '',
+        event.shiftKey ? 'Shift' : '',
+        event.metaKey ? (platform === 'darwin' ? 'Command' : 'Super') : '',
+        event.altKey ? 'Alt' : ''
+      ].filter(Boolean)
+
       if (code.startsWith('Key')) code = code.substring(3)
       else if (code.startsWith('Digit')) code = code.substring(5)
       else if (code.startsWith('Arrow')) code = code.substring(5)
@@ -53,8 +91,8 @@ const ShortcutInput: React.FC<{
       else if (code.startsWith('Numpad')) code = key.length === 1 ? 'Num' + code.substring(6) : key
       else if (keyMap[code] !== undefined) code = keyMap[code]
       else if (!/F\d+/.test(code)) code = ''
-      
-      setKey(`${newValue}${newValue.length > 0 && code.length > 0 ? '+' : ''}${code}`)
+
+      setKey([...modifiers, code].filter(Boolean).join('+'))
     }
   }
 
@@ -89,24 +127,27 @@ const ShortcutInput: React.FC<{
               </Button>
             )}
             {inputValue && (
-               <Button
-               isIconOnly
-               size="sm"
-               variant="light"
-               className="h-6 w-6 min-w-6 text-default-400 hover:text-danger"
-               onPress={() => setInputValue('')}
-             >
-               <MdRestore size={14} />
-             </Button>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                className="h-6 w-6 min-w-6 text-default-400 hover:text-danger"
+                onPress={() => setInputValue('')}
+              >
+                <MdRestore size={14} />
+              </Button>
             )}
           </div>
         }
         classNames={{
-          input: "font-mono font-bold text-primary tracking-wide text-right pr-2 bg-transparent",
-          inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
+          input: 'font-mono font-bold text-primary tracking-wide text-right pr-2 bg-transparent',
+          inputWrapper:
+            'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
         }}
         startContent={
-          <MdKeyboard className={`text-xl transition-colors ${isFocused ? 'text-primary' : 'text-default-300'}`} />
+          <MdKeyboard
+            className={`text-xl transition-colors ${isFocused ? 'text-primary' : 'text-default-300'}`}
+          />
         }
       />
     </div>
@@ -131,8 +172,16 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
 
   const items = [
     { title: '打开/关闭窗口', action: 'showWindowShortcut', value: showWindowShortcut },
-    { title: '打开/关闭悬浮窗', action: 'showFloatingWindowShortcut', value: showFloatingWindowShortcut },
-    { title: '打开/关闭系统代理', action: 'triggerSysProxyShortcut', value: triggerSysProxyShortcut },
+    {
+      title: '打开/关闭悬浮窗',
+      action: 'showFloatingWindowShortcut',
+      value: showFloatingWindowShortcut
+    },
+    {
+      title: '打开/关闭系统代理',
+      action: 'triggerSysProxyShortcut',
+      value: triggerSysProxyShortcut
+    },
     { title: '打开/关闭虚拟网卡', action: 'triggerTunShortcut', value: triggerTunShortcut },
     { title: '切换规则模式', action: 'ruleModeShortcut', value: ruleModeShortcut },
     { title: '切换全局模式', action: 'globalModeShortcut', value: globalModeShortcut },
@@ -142,14 +191,16 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   ]
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onOpenChange={onOpenChange} 
-      size="4xl" 
+    <Modal
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      size="4xl"
       backdrop="blur"
       classNames={createSecondaryModalClassNames()}
     >
-      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 900 })}>
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 900 })}
+      >
         {(onClose) => (
           <>
             <ModalHeader className="flex flex-col gap-1 py-2 px-4">
@@ -163,8 +214,8 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
             <ModalBody className="py-2 px-4">
               <div className="grid grid-cols-2 gap-2">
                 {items.map((item) => (
-                  <div 
-                    key={item.action} 
+                  <div
+                    key={item.action}
                     className="group flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-content1/50 hover:bg-content1 border border-default-100 hover:border-default-200 transition-all duration-300 shadow-sm hover:shadow-md"
                   >
                     <span className="whitespace-nowrap shrink-0 text-sm font-medium text-foreground-600 group-hover:text-foreground-900 transition-colors">
@@ -182,8 +233,8 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
               </div>
             </ModalBody>
             <ModalFooter className="py-2 px-4">
-              <Button 
-                color="primary" 
+              <Button
+                color="primary"
                 variant="shadow"
                 onPress={onClose}
                 className="font-medium px-8"
