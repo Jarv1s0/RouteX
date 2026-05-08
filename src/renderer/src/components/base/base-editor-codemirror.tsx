@@ -58,6 +58,14 @@ type EditorSettings = {
 const editorFontFamily =
   'Maple Mono NF CN,Fira Code, JetBrains Mono, Roboto Mono, "Source Code Pro", Consolas, Menlo, Monaco, monospace, "Courier New", "Apple Color Emoji", "Noto Color Emoji"'
 const editorContainerClassName = 'h-full w-full overflow-hidden'
+const mergeContainerClassName = 'h-full min-h-0 w-full overflow-auto'
+
+const createFoldMarker = (open: boolean): HTMLElement => {
+  const marker = document.createElement('span')
+  marker.className = `cm-foldMarker ${open ? 'cm-foldMarker-open' : 'cm-foldMarker-closed'}`
+  marker.setAttribute('aria-hidden', 'true')
+  return marker
+}
 
 const useEditorSettings = (): EditorSettings => {
   const { theme, systemTheme } = useTheme()
@@ -151,8 +159,46 @@ const createTheme = (isLight: boolean, disableAnimation: boolean): Extension =>
       '.cm-cursor': {
         borderLeftColor: 'hsl(var(--heroui-primary))'
       },
-      '.cm-foldGutter span': {
-        color: 'hsl(var(--heroui-default-500))'
+      '.cm-foldGutter': {
+        width: '18px'
+      },
+      '.cm-foldGutter .cm-gutterElement': {
+        alignItems: 'center',
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '0'
+      },
+      '.cm-foldMarker': {
+        alignItems: 'center',
+        borderRadius: '4px',
+        color: 'hsl(var(--heroui-default-500))',
+        display: 'inline-flex',
+        height: '16px',
+        justifyContent: 'center',
+        opacity: '0.72',
+        transition: disableAnimation
+          ? 'none'
+          : 'background-color 140ms ease, color 140ms ease, opacity 140ms ease',
+        width: '16px'
+      },
+      '.cm-foldMarker::before': {
+        borderBottom: '1.5px solid currentColor',
+        borderRight: '1.5px solid currentColor',
+        content: '""',
+        height: '6px',
+        transform: 'translateX(-1px) rotate(-45deg)',
+        transformOrigin: '50% 50%',
+        width: '6px'
+      },
+      '.cm-foldMarker-open::before': {
+        transform: 'translateY(-1px) rotate(45deg)'
+      },
+      '.cm-foldGutter .cm-gutterElement:hover .cm-foldMarker': {
+        backgroundColor: isLight
+          ? 'hsl(var(--heroui-default-200) / 0.7)'
+          : 'hsl(var(--heroui-default-200) / 0.24)',
+        color: 'hsl(var(--heroui-foreground))',
+        opacity: '1'
       },
       '.cm-tooltip': {
         border: '1px solid hsl(var(--heroui-default-200) / 0.75)',
@@ -201,7 +247,9 @@ const createExtensions = ({
 }): Extension[] => [
   lineNumbers(),
   highlightActiveLineGutter(),
-  foldGutter(),
+  foldGutter({
+    markerDOM: createFoldMarker
+  }),
   history(),
   drawSelection(),
   dropCursor(),
@@ -355,7 +403,7 @@ const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
     }
   }, [suppressChangeRef, value])
 
-  return <div ref={containerRef} className={editorContainerClassName} />
+  return <div ref={containerRef} className={mergeContainerClassName} />
 }
 
 export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {
