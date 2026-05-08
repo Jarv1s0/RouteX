@@ -4,8 +4,8 @@ import { getAppName, getIconDataURLs } from '@renderer/utils/resource-ipc'
 const ICON_CACHE_PREFIX = 'routex:icon:v2:'
 const ICON_CACHE_INDEX_KEY = 'routex:icon:index'
 const MAX_ICON_CACHE_ENTRIES = 120
-const VISIBLE_ICON_BATCH_SIZE = 8
-const PRELOAD_ICON_BATCH_SIZE = 4
+const VISIBLE_ICON_BATCH_SIZE = 12
+const PRELOAD_ICON_BATCH_SIZE = 2
 const RESOURCE_FAILURE_CACHE_MS = 5 * 60 * 1000
 const sharedIconMemoryCache = new Map<string, string>()
 const sharedAppNameMemoryCache = new Map<string, string>()

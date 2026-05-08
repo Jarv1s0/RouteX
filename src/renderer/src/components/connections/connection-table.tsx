@@ -224,7 +224,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
       onContextMenu={onContextMenu}
       hiddenRules={hiddenRules}
     />
-  ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName, onContextMenu])
+  ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName, onContextMenu, hiddenRules])
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -318,6 +318,19 @@ function formatDurationFromStartMs(startMs: number): string {
   return `${hours}小时前`
 }
 
+function getConnectionHost(conn: ControllerConnectionDetail): string {
+  const metadata = conn.metadata
+  return metadata.host || metadata.sniffHost || metadata.destinationIP || metadata.remoteDestination || '-'
+}
+
+function getConnectionType(conn: ControllerConnectionDetail): string {
+  return `${conn.metadata.type} | ${conn.metadata.network}`
+}
+
+function getConnectionRule(conn: ControllerConnectionDetail): string {
+  return conn.rulePayload ? `${conn.rule}: ${conn.rulePayload}` : (conn.rule || '-')
+}
+
 function getConnectionRowRenderKey(conn: ControllerConnectionDetail): string {
   const cached = connectionRowRenderKeyCache.get(conn)
   if (cached) return cached
@@ -370,25 +383,44 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
   const appName = displayAppName && processPath ? appNameCache[processPath] : undefined
   const processName = appName || conn.metadata.process?.replace(/\.exe$/, '') || conn.metadata.sourceIP || '-'
 
-  // 预计算所有可能的列值
-  const columnValues = useMemo(() => ({
-    host: conn.metadata.host || conn.metadata.sniffHost || conn.metadata.destinationIP || conn.metadata.remoteDestination || '-',
-    process: processName,
-    type: `${conn.metadata.type} | ${conn.metadata.network}`,
-    rule: conn.rulePayload ? `${conn.rule}: ${conn.rulePayload}` : (conn.rule || '-'),
-    chains: getConnectionChainDisplay(conn),
-    downloadSpeed: conn.downloadSpeed ? `${calcTraffic(conn.downloadSpeed)}/s` : '0 B/s',
-    uploadSpeed: conn.uploadSpeed ? `${calcTraffic(conn.uploadSpeed)}/s` : '0 B/s',
-    download: calcTraffic(conn.download),
-    upload: calcTraffic(conn.upload),
-    time: formatDurationFromStartMs(getConnectionStartTime(conn)),
-    sourceIP: conn.metadata.sourceIP || '-',
-    sourcePort: conn.metadata.sourcePort || '-',
-    destinationIP: conn.metadata.destinationIP || '-',
-    sniffHost: conn.metadata.sniffHost || '-',
-    inboundName: conn.metadata.inboundName || '-',
-    inboundUser: conn.metadata.inboundUser || '-'
-  }), [conn, processName])
+  const getColumnValue = (col: string): string => {
+    switch (col) {
+      case 'host':
+        return getConnectionHost(conn)
+      case 'process':
+        return processName
+      case 'type':
+        return getConnectionType(conn)
+      case 'rule':
+        return getConnectionRule(conn)
+      case 'chains':
+        return getConnectionChainDisplay(conn)
+      case 'downloadSpeed':
+        return conn.downloadSpeed ? `${calcTraffic(conn.downloadSpeed)}/s` : '0 B/s'
+      case 'uploadSpeed':
+        return conn.uploadSpeed ? `${calcTraffic(conn.uploadSpeed)}/s` : '0 B/s'
+      case 'download':
+        return calcTraffic(conn.download)
+      case 'upload':
+        return calcTraffic(conn.upload)
+      case 'time':
+        return formatDurationFromStartMs(getConnectionStartTime(conn))
+      case 'sourceIP':
+        return conn.metadata.sourceIP || '-'
+      case 'sourcePort':
+        return conn.metadata.sourcePort || '-'
+      case 'destinationIP':
+        return conn.metadata.destinationIP || '-'
+      case 'sniffHost':
+        return conn.metadata.sniffHost || '-'
+      case 'inboundName':
+        return conn.metadata.inboundName || '-'
+      case 'inboundUser':
+        return conn.metadata.inboundUser || '-'
+      default:
+        return '-'
+    }
+  }
 
   const renderCell = (col: string) => {
     if (col === 'close') {
@@ -433,27 +465,30 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
     }
 
     if (col === 'chains') {
+      const chains = getColumnValue('chains')
       return (
-        <div className="flex items-center truncate" title={columnValues.chains}>
+        <div className="flex items-center truncate" title={chains}>
           <span className={conn.chains[0] === 'DIRECT' ? '' : 'text-primary'}>
-            {columnValues.chains}
+            {chains}
           </span>
         </div>
       )
     }
 
     if (col === 'downloadSpeed') {
+      const downloadSpeed = getColumnValue('downloadSpeed')
       return (
         <div className={`flex items-center justify-end font-data-numeric ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground-500'}`}>
-          {columnValues.downloadSpeed}
+          {downloadSpeed}
         </div>
       )
     }
 
     if (col === 'uploadSpeed') {
+      const uploadSpeed = getColumnValue('uploadSpeed')
       return (
         <div className={`flex items-center justify-end font-data-numeric ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground-500'}`}>
-          {columnValues.uploadSpeed}
+          {uploadSpeed}
         </div>
       )
     }
@@ -463,9 +498,11 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
     const isMono = ['sourceIP', 'sourcePort', 'destinationIP', 'sniffHost', 'download', 'upload'].includes(col)
     const isDataNumeric = ['download', 'upload'].includes(col)
 
+    const value = getColumnValue(col)
+
     return (
-      <div className={`flex items-center truncate ${isRightAlign ? 'justify-end' : ''} ${color} ${isMono && !isDataNumeric ? 'font-mono' : ''} ${isDataNumeric ? 'font-data-numeric' : ''}`} title={columnValues[col as keyof typeof columnValues]}>
-        {columnValues[col as keyof typeof columnValues]}
+      <div className={`flex items-center truncate ${isRightAlign ? 'justify-end' : ''} ${color} ${isMono && !isDataNumeric ? 'font-mono' : ''} ${isDataNumeric ? 'font-data-numeric' : ''}`} title={value}>
+        {value}
       </div>
     )
   }
@@ -509,7 +546,8 @@ const ConnectionRow = memo(ConnectionRowComponent, (prev, next) => {
     prev.iconMap === next.iconMap &&
     prev.appNameCache === next.appNameCache &&
     prev.displayIcon === next.displayIcon &&
-    prev.displayAppName === next.displayAppName
+    prev.displayAppName === next.displayAppName &&
+    prev.hiddenRules === next.hiddenRules
   )
 })
 

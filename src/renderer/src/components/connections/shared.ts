@@ -16,7 +16,7 @@ export interface VisibleRange {
 }
 
 export const INITIAL_VISIBLE_RANGE: VisibleRange = { startIndex: 0, endIndex: 11 }
-export const RESOURCE_PRELOAD_BUFFER = 8
+export const RESOURCE_PRELOAD_BUFFER = 4
 
 export const CONNECTION_TABLE_SORT_COLUMNS: Record<string, ConnectionOrderBy> = {
   time: 'time',

@@ -521,11 +521,6 @@ const Proxies: React.FC = () => {
         ...Object.fromEntries(latestGroups.map((group) => [group.name, true]))
       }))
       console.debug('[proxy-delay:auto] start', latestGroups.map((group) => group.name))
-      const mutateBatcher = createMutateBatcher(
-        () => mutateRef.current(),
-        DELAY_TEST_MUTATE_BATCH_MS
-      )
-
       const tasks = delayTargets.map((target) => async (): Promise<void> => {
         if (!isCurrentAutoTest(runId)) return
         console.debug('[proxy-delay:auto] test proxy', target.proxyName, target.sourceGroups)
@@ -533,15 +528,10 @@ const Proxies: React.FC = () => {
         await mihomoProxyDelay(target.proxyName, target.testUrl).catch((error) => {
           console.warn('[proxy-delay:auto] failed', target.proxyName, error)
         })
-
-        if (isCurrentAutoTest(runId)) {
-          mutateBatcher.schedule()
-        }
       })
 
       await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrencyRef.current))
       if (!isCurrentAutoTest(runId)) {
-        mutateBatcher.cancel()
         if (autoTestGenerationRef.current === runId) {
           isTestingRef.current = false
         }
@@ -550,7 +540,7 @@ const Proxies: React.FC = () => {
 
       isTestingRef.current = false
       console.debug('[proxy-delay:auto] finished')
-      await mutateBatcher.flush()
+      await mutateRef.current()
       if (!isCurrentAutoTest(runId)) return false
 
       setDelaying((prev) => ({

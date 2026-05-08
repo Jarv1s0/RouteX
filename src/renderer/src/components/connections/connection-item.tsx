@@ -1,7 +1,6 @@
 import { Avatar, Button, Card } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import dayjs from 'dayjs'
 import React, { memo, useCallback, useMemo } from 'react'
 import type { PressEvent } from '@react-types/shared'
 import { CgClose, CgTrash } from 'react-icons/cg'
@@ -18,6 +17,25 @@ const META_PILL_CLASS =
   'bg-default-100/50 dark:bg-default-50/30 rounded-full border border-default-200/50 dark:border-white/10'
 
 const META_BADGE_CLASS = 'bg-default-100/50 dark:bg-default-50/30'
+const connectionItemStartTimeCache = new WeakMap<ControllerConnectionDetail, number>()
+
+function getConnectionItemStartTime(info: ControllerConnectionDetail): number {
+  const cached = connectionItemStartTimeCache.get(info)
+  if (cached !== undefined) return cached
+
+  const next = Date.parse(info.start || '') || 0
+  connectionItemStartTimeCache.set(info, next)
+  return next
+}
+
+function formatCompactDurationFromStartMs(startMs: number): string {
+  const seconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000))
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  return `${hours}h`
+}
 
 function getConnectionItemRenderKey(info: ControllerConnectionDetail): string {
   const metadata = info.metadata
@@ -65,6 +83,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
   hide,
   unhide,
   isHidden,
+  timeRefreshTrigger,
   onContextMenu
 }) => {
   const isSelected = info.id === selectedId
@@ -72,13 +91,8 @@ const ConnectionItemComponent: React.FC<Props> = ({
   const destination = info.metadata.host || info.metadata.destinationIP || info.metadata.remoteDestination || '-'
   
   const timeAgo = useMemo(() => {
-    const seconds = dayjs().diff(dayjs(info.start), 'second')
-    if (seconds < 60) return `${seconds}s`
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) return `${minutes}m`
-    const hours = Math.floor(minutes / 60)
-    return `${hours}h`
-  }, [info.start])
+    return formatCompactDurationFromStartMs(getConnectionItemStartTime(info))
+  }, [info, timeRefreshTrigger])
 
 
   const uploadSpeed = useMemo(() => calcTraffic(info.uploadSpeed || 0), [info.uploadSpeed])
