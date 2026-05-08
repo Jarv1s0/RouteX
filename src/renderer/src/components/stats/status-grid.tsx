@@ -6,6 +6,7 @@ import { calcTraffic } from '@renderer/utils/calc'
 import { getAppUptime, getNetworkHealthStats, startNetworkHealthMonitor, stopNetworkHealthMonitor } from '@renderer/utils/stats-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { retainTauriMemoryBridge } from '@renderer/utils/mihomo-ipc'
 
 const LATENCY_VALUE_CLASS = 'font-mono tracking-tight'
 
@@ -88,6 +89,7 @@ const StatusGrid: React.FC = () => {
       setNetworkLatency(info.currentLatency)
       setDnsLatency(info.currentDnsLatency)
     }
+    const releaseMemoryBridge = retainTauriMemoryBridge()
     const offMemory = onIpc(ON.mihomoMemory, onMemoryUpdate)
     const offNetworkHealth = onIpc(ON.networkHealth, onNetworkHealthUpdate)
     startHealthMonitorTimer = setTimeout(() => {
@@ -105,6 +107,7 @@ const StatusGrid: React.FC = () => {
       }
       clearInterval(interval)
       offMemory()
+      releaseMemoryBridge()
       offNetworkHealth()
       void stopNetworkHealthMonitor()
     }

@@ -1,5 +1,5 @@
 import { includesIgnoreCase } from '@renderer/utils/includes'
-import { useDeferredValue, useMemo } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import {
   getConnectionHideRule,
   type ConnectionOrderBy,
@@ -9,6 +9,63 @@ import {
 const connectionSearchCache = new WeakMap<ControllerConnectionDetail, string>()
 const connectionStartCache = new WeakMap<ControllerConnectionDetail, number>()
 const connectionTypeCache = new WeakMap<ControllerConnectionDetail, string>()
+const CONNECTION_DERIVED_THROTTLE_MS = 500
+
+function useThrottledValue<T>(value: T, intervalMs: number, resetKey: string): T {
+  const [throttledValue, setThrottledValue] = useState(value)
+  const latestValueRef = useRef(value)
+  const lastUpdatedAtRef = useRef(0)
+  const resetKeyRef = useRef(resetKey)
+  const timerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    latestValueRef.current = value
+
+    if (resetKeyRef.current !== resetKey) {
+      resetKeyRef.current = resetKey
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+      lastUpdatedAtRef.current = Date.now()
+      setThrottledValue(value)
+      return
+    }
+
+    const now = Date.now()
+    const elapsed = now - lastUpdatedAtRef.current
+
+    if (elapsed >= intervalMs) {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+
+      lastUpdatedAtRef.current = now
+      setThrottledValue(value)
+      return
+    }
+
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current)
+    }
+
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null
+      lastUpdatedAtRef.current = Date.now()
+      setThrottledValue(latestValueRef.current)
+    }, intervalMs - elapsed)
+
+    return () => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [intervalMs, resetKey, value])
+
+  return throttledValue
+}
 
 function getConnectionSearchText(connection: ControllerConnectionDetail): string {
   const cached = connectionSearchCache.get(connection)
@@ -110,15 +167,20 @@ export function useDerivedConnections({
   const deferredDirection = useDeferredValue(connectionDirection)
   const sourceConnections = tab === 'active' ? activeConnections : closedConnections
   const deferredSourceConnections = useDeferredValue(sourceConnections)
+  const throttledSourceConnections = useThrottledValue(
+    deferredSourceConnections,
+    CONNECTION_DERIVED_THROTTLE_MS,
+    tab
+  )
 
   const visibleConnections = useMemo(() => {
     if (showHidden || hiddenRules.size === 0) {
-      return deferredSourceConnections
+      return throttledSourceConnections
     }
-    return deferredSourceConnections.filter((connection) => {
+    return throttledSourceConnections.filter((connection) => {
       return !hiddenRules.has(getConnectionHideRule(connection))
     })
-  }, [deferredSourceConnections, hiddenRules, showHidden])
+  }, [hiddenRules, showHidden, throttledSourceConnections])
 
   const searchedConnections = useMemo(() => {
     if (deferredFilter === '') {

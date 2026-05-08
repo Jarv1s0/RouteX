@@ -5,7 +5,8 @@ import {
   mihomoCloseConnection,
   mihomoConnections,
   onTauriBridgeConnectionsReady,
-  retainTauriConnectionsBridge
+  retainTauriConnectionsBridge,
+  retainTauriMemoryBridge
 } from '@renderer/utils/mihomo-ipc'
 
 export interface ExtendedConnection extends ControllerConnectionDetail {
@@ -341,6 +342,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     // 页面需要完整连接快照时才保留 connections bridge，离开页面后释放。
     // bridge 真正收到第一条消息后补拉一次快照，兜住 dev 重启/TUN 切换窗口期。
     const releaseConnectionsBridge = retainTauriConnectionsBridge()
+    const releaseMemoryBridge = retainTauriMemoryBridge()
     const cancelBridgeReady = onTauriBridgeConnectionsReady(() => {
       fetchConnectionsSnapshot(true)
     })
@@ -361,6 +363,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     set({
       cleanupListeners: () => {
         releaseConnectionsBridge()
+        releaseMemoryBridge()
         cancelBridgeReady()
         if (initialSnapshotFallbackTimer !== null) {
           window.clearTimeout(initialSnapshotFallbackTimer)

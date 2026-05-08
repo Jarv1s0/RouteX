@@ -23,7 +23,7 @@ export function createDefaultAppConfig(
     proxyCols: 'auto',
     connectionDirection: 'asc',
     connectionOrderBy: 'time',
-    connectionInterval: 250,
+    connectionInterval: 500,
     proxyDisplayOrder: 'default',
     autoCheckUpdate: false,
     autoCloseConnection: true,

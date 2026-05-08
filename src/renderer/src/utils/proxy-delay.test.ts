@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGroupsStore } from '@renderer/store/use-groups-store'
-import { getGroupCurrentDelay, getProxyDisplayDelay, getResolvedProxyTarget } from './proxy-delay'
+import {
+  getGroupCurrentDelay,
+  getProxyDisplayDelay,
+  getResolvedProxyTarget,
+  getResolvedProxyTargets
+} from './proxy-delay'
 
 function history(delay: number, time: string): ControllerProxiesHistory[] {
   return [{ delay, time }]
@@ -91,5 +96,36 @@ describe('proxy delay display', () => {
     expect(getGroupCurrentDelay(ai)).toBe(180)
     expect(getGroupCurrentDelay(us)).toBe(180)
     expect(getProxyDisplayDelay(us01)).toBe(180)
+  })
+
+  it('collects every unique leaf proxy in a group for group delay tests', () => {
+    const hongKong01 = proxy('Hong Kong 01')
+    const unitedStates01 = proxy('United States 01')
+    const unitedStates05 = proxy('United States 05')
+    const all = group('ALL', 'Hong Kong 01', [hongKong01, unitedStates01, unitedStates05])
+
+    useGroupsStore.setState({ groups: [all] })
+
+    expect(getResolvedProxyTarget(all)?.name).toBe('Hong Kong 01')
+    expect(getResolvedProxyTargets(all).map((item) => item.name)).toEqual([
+      'Hong Kong 01',
+      'United States 01',
+      'United States 05'
+    ])
+  })
+
+  it('collects nested group leaf proxies instead of only the selected leaf', () => {
+    const hongKong01 = proxy('Hong Kong 01')
+    const hongKong02 = proxy('Hong Kong 02')
+    const hongKong = group('Hong Kong', 'Hong Kong 01', [hongKong01, hongKong02])
+    const all = group('ALL', 'Hong Kong', [hongKong])
+
+    useGroupsStore.setState({ groups: [all, hongKong] })
+
+    expect(getResolvedProxyTarget(all)?.name).toBe('Hong Kong 01')
+    expect(getResolvedProxyTargets(all).map((item) => item.name)).toEqual([
+      'Hong Kong 01',
+      'Hong Kong 02'
+    ])
   })
 })

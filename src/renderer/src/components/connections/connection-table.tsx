@@ -2,7 +2,6 @@ import React, { memo, useCallback, useMemo, useState, useRef, useEffect } from '
 import { Avatar, Button } from '@heroui/react'
 
 import { calcTraffic } from '@renderer/utils/calc'
-import dayjs from 'dayjs'
 import { CgClose, CgTrash } from 'react-icons/cg'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { DEFAULT_COLUMNS } from './connection-setting-modal'
@@ -287,9 +286,44 @@ interface RowProps {
   hiddenRules?: Set<string>
 }
 
+const connectionRowRenderKeyCache = new WeakMap<ControllerConnectionDetail, string>()
+const connectionChainDisplayCache = new WeakMap<ControllerConnectionDetail, string>()
+const connectionStartTimeCache = new WeakMap<ControllerConnectionDetail, number>()
+
+function getConnectionStartTime(conn: ControllerConnectionDetail): number {
+  const cached = connectionStartTimeCache.get(conn)
+  if (cached !== undefined) return cached
+
+  const next = Date.parse(conn.start || '') || 0
+  connectionStartTimeCache.set(conn, next)
+  return next
+}
+
+function getConnectionChainDisplay(conn: ControllerConnectionDetail): string {
+  const cached = connectionChainDisplayCache.get(conn)
+  if (cached) return cached
+
+  const chains = conn.chains || []
+  const next = chains.length === 0 ? 'DIRECT' : chains.slice().reverse().join(' → ')
+  connectionChainDisplayCache.set(conn, next)
+  return next
+}
+
+function formatDurationFromStartMs(startMs: number): string {
+  const seconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000))
+  if (seconds < 60) return `${seconds}秒前`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}分钟前`
+  const hours = Math.floor(minutes / 60)
+  return `${hours}小时前`
+}
+
 function getConnectionRowRenderKey(conn: ControllerConnectionDetail): string {
+  const cached = connectionRowRenderKeyCache.get(conn)
+  if (cached) return cached
+
   const metadata = conn.metadata
-  return [
+  const next = [
     metadata.process,
     metadata.processPath,
     metadata.host,
@@ -308,6 +342,9 @@ function getConnectionRowRenderKey(conn: ControllerConnectionDetail): string {
     conn.rulePayload,
     conn.start
   ].join('|')
+
+  connectionRowRenderKeyCache.set(conn, next)
+  return next
 }
 
 const ConnectionRowComponent: React.FC<RowProps> = ({
@@ -333,34 +370,18 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
   const appName = displayAppName && processPath ? appNameCache[processPath] : undefined
   const processName = appName || conn.metadata.process?.replace(/\.exe$/, '') || conn.metadata.sourceIP || '-'
 
-  // 获取代理链显示
-  const getChainDisplay = (chains: string[]): string => {
-    if (!chains || chains.length === 0) return 'DIRECT'
-    return chains.slice().reverse().join(' → ')
-  }
-
-  // 格式化时间
-  const formatDuration = (start: string): string => {
-    const seconds = dayjs().diff(dayjs(start), 'second')
-    if (seconds < 60) return `${seconds}秒前`
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) return `${minutes}分钟前`
-    const hours = Math.floor(minutes / 60)
-    return `${hours}小时前`
-  }
-
   // 预计算所有可能的列值
   const columnValues = useMemo(() => ({
     host: conn.metadata.host || conn.metadata.sniffHost || conn.metadata.destinationIP || conn.metadata.remoteDestination || '-',
     process: processName,
     type: `${conn.metadata.type} | ${conn.metadata.network}`,
     rule: conn.rulePayload ? `${conn.rule}: ${conn.rulePayload}` : (conn.rule || '-'),
-    chains: getChainDisplay(conn.chains),
+    chains: getConnectionChainDisplay(conn),
     downloadSpeed: conn.downloadSpeed ? `${calcTraffic(conn.downloadSpeed)}/s` : '0 B/s',
     uploadSpeed: conn.uploadSpeed ? `${calcTraffic(conn.uploadSpeed)}/s` : '0 B/s',
     download: calcTraffic(conn.download),
     upload: calcTraffic(conn.upload),
-    time: formatDuration(conn.start),
+    time: formatDurationFromStartMs(getConnectionStartTime(conn)),
     sourceIP: conn.metadata.sourceIP || '-',
     sourcePort: conn.metadata.sourcePort || '-',
     destinationIP: conn.metadata.destinationIP || '-',

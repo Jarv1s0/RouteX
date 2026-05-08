@@ -6,8 +6,11 @@ const ICON_CACHE_INDEX_KEY = 'routex:icon:index'
 const MAX_ICON_CACHE_ENTRIES = 120
 const VISIBLE_ICON_BATCH_SIZE = 8
 const PRELOAD_ICON_BATCH_SIZE = 4
+const RESOURCE_FAILURE_CACHE_MS = 5 * 60 * 1000
 const sharedIconMemoryCache = new Map<string, string>()
 const sharedAppNameMemoryCache = new Map<string, string>()
+const sharedIconFailureCache = new Map<string, number>()
+const sharedAppNameFailureCache = new Map<string, number>()
 
 interface UseResourceQueueResult {
   iconMap: Record<string, string>
@@ -23,6 +26,28 @@ function shouldPersistIconCache(): boolean {
   } catch {
     return false
   }
+}
+
+function hasRecentResourceFailure(cache: Map<string, number>, path: string): boolean {
+  const failedAt = cache.get(path)
+  if (!failedAt) {
+    return false
+  }
+
+  if (Date.now() - failedAt < RESOURCE_FAILURE_CACHE_MS) {
+    return true
+  }
+
+  cache.delete(path)
+  return false
+}
+
+function rememberResourceFailure(cache: Map<string, number>, path: string): void {
+  cache.set(path, Date.now())
+}
+
+function forgetResourceFailure(cache: Map<string, number>, path: string): void {
+  cache.delete(path)
 }
 
 function getIconCacheKey(path: string): string {
@@ -175,11 +200,14 @@ export function useResourceQueue(
       try {
         const appName = await getAppName(path)
         if (appName) {
+          forgetResourceFailure(sharedAppNameFailureCache, path)
           sharedAppNameMemoryCache.set(path, appName)
           nextAppNames[path] = appName
+        } else {
+          rememberResourceFailure(sharedAppNameFailureCache, path)
         }
       } catch {
-        // ignore
+        rememberResourceFailure(sharedAppNameFailureCache, path)
       } finally {
         processingAppNames.current.delete(path)
       }
@@ -228,13 +256,17 @@ export function useResourceQueue(
 
       pathsToProcess.forEach((path) => {
         const rawBase64 = batchedIcons[path]
-        if (!rawBase64) return
+        if (!rawBase64) {
+          rememberResourceFailure(sharedIconFailureCache, path)
+          return
+        }
 
         const fullDataURL = rawBase64.startsWith('data:')
           ? rawBase64
           : `data:image/png;base64,${rawBase64}`
 
         try {
+          forgetResourceFailure(sharedIconFailureCache, path)
           writeCachedIcon(path, fullDataURL)
         } catch {
           // ignore
@@ -247,7 +279,9 @@ export function useResourceQueue(
         }
       })
     } catch {
-      // ignore
+      pathsToProcess.forEach((path) => {
+        rememberResourceFailure(sharedIconFailureCache, path)
+      })
     } finally {
       pathsToProcess.forEach((path) => processingIcons.current.delete(path))
     }
@@ -342,10 +376,15 @@ export function useResourceQueue(
 
   const loadIcon = useCallback(
     (path: string, isVisible: boolean = false): void => {
-      if (iconMap[path] || processingIcons.current.has(path)) return
+      if (
+        iconMap[path] ||
+        processingIcons.current.has(path) ||
+        hasRecentResourceFailure(sharedIconFailureCache, path)
+      ) return
 
       const fromStorage = readCachedIcon(path)
       if (fromStorage) {
+        forgetResourceFailure(sharedIconFailureCache, path)
         setIconMap((prev) => ({ ...prev, [path]: fromStorage }))
         if (isVisible && filteredConnectionsFirstPath === path) {
           setFirstItemRefreshTrigger((prev) => prev + 1)
@@ -381,10 +420,15 @@ export function useResourceQueue(
 
   const loadAppName = useCallback(
     (path: string): void => {
-      if (appNameCache[path] || processingAppNames.current.has(path)) return
+      if (
+        appNameCache[path] ||
+        processingAppNames.current.has(path) ||
+        hasRecentResourceFailure(sharedAppNameFailureCache, path)
+      ) return
 
       const fromMemory = sharedAppNameMemoryCache.get(path)
       if (fromMemory) {
+        forgetResourceFailure(sharedAppNameFailureCache, path)
         setAppNameCache((prev) => ({ ...prev, [path]: fromMemory }))
         return
       }

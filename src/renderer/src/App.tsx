@@ -5,7 +5,6 @@ import routes, { setRouterNavigate } from '@renderer/routes'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
-import { releaseLogsListeners, retainLogsListeners } from '@renderer/store/use-logs-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
@@ -158,14 +157,6 @@ const App: React.FC = () => {
 
     startTauriMihomoEventBridge()
     ensureTauriTrafficRecorder()
-  }, [])
-
-  useEffect(() => {
-    retainLogsListeners()
-
-    return () => {
-      releaseLogsListeners()
-    }
   }, [])
 
   useEffect(() => {

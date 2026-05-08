@@ -4,7 +4,8 @@ import {
   mihomoVersion,
   restartCore,
   checkMihomoLatestVersion,
-  isExpectedMihomoUnavailableError
+  isExpectedMihomoUnavailableError,
+  retainTauriMemoryBridge
 } from '@renderer/utils/mihomo-ipc'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { LuRotateCw, LuCpu } from 'react-icons/lu'
@@ -133,16 +134,18 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
       }
     }
 
-    const offMemory = onIpc(ON.mihomoMemory, handleMemory)
+    const releaseMemoryBridge = iconOnly ? () => undefined : retainTauriMemoryBridge()
+    const offMemory = iconOnly ? () => undefined : onIpc(ON.mihomoMemory, handleMemory)
     const offCoreStarted = onIpc(ON.coreStarted, handleCoreStarted)
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return (): void => {
       PubSub.unsubscribe(token)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       offMemory()
+      releaseMemoryBridge()
       offCoreStarted()
     }
-  }, [refreshVersion, version])
+  }, [iconOnly, refreshVersion, version])
 
   if (iconOnly) {
     return (

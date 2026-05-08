@@ -5,7 +5,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
   getGroupCurrentDelay,
   getProxyDisplayDelay,
-  getResolvedProxyTarget
+  getResolvedProxyTargets
 } from '@renderer/utils/proxy-delay'
 import {
   mihomoChangeProxy,
@@ -24,10 +24,9 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { ProxyGroupCard } from '@renderer/components/proxies/proxy-group-card'
 import { ProxyCardSkeleton } from '@renderer/components/base/skeleton'
 
-const AUTO_DELAY_TEST_COOLDOWN_MS = 2 * 60 * 1000
 const DEFAULT_DELAY_TEST_CONCURRENCY = 4
 const MAX_DELAY_TEST_CONCURRENCY = 8
-let lastAutoDelayTestAt = 0
+const DELAY_TEST_MUTATE_BATCH_MS = 700
 
 // ----------------------------------------
 // ProxyRowChunk: 独立的 Grid 块渲染组件，用于性能优化
@@ -192,17 +191,14 @@ function getAutoDelayGroupSignature(groups: ControllerMixedGroup[]): string {
       const childNames = (group.all || [])
         .map((proxy) => proxy?.name || '')
         .join('\u0002')
-      return `${group.name}\u0000${group.now}\u0000${childNames}`
+      return `${group.name}\u0000${childNames}`
     })
     .join('\u0001')
 }
 
-function groupNeedsDelayTest(group: ControllerMixedGroup): boolean {
-  return getGroupCurrentDelay(group) <= 0
-}
-
 type ResolvedDelayTarget = {
   proxyName: string
+  testUrl?: string
   sourceGroups: string[]
 }
 
@@ -210,22 +206,77 @@ function getUniqueResolvedDelayTargets(groups: ControllerMixedGroup[]): Resolved
   const targets = new Map<string, ResolvedDelayTarget>()
 
   groups.forEach((group) => {
-    const target = getResolvedProxyTarget(group)
-    if (!target) return
+    const groupTargets = getResolvedProxyTargets(group)
 
-    const existing = targets.get(target.name)
-    if (existing) {
-      existing.sourceGroups.push(group.name)
-      return
-    }
+    groupTargets.forEach((target) => {
+      const key = `${target.name}\u0000${group.testUrl ?? ''}`
+      const existing = targets.get(key)
+      if (existing) {
+        existing.sourceGroups.push(group.name)
+        return
+      }
 
-    targets.set(target.name, {
-      proxyName: target.name,
-      sourceGroups: [group.name]
+      targets.set(key, {
+        proxyName: target.name,
+        testUrl: group.testUrl,
+        sourceGroups: [group.name]
+      })
     })
   })
 
   return Array.from(targets.values())
+}
+
+function createMutateBatcher(mutate: () => void | Promise<void>, waitMs: number) {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let inFlight: Promise<void> | null = null
+  let lastRunAt = 0
+
+  const run = (): Promise<void> => {
+    if (inFlight) return inFlight
+
+    lastRunAt = Date.now()
+    inFlight = Promise.resolve(mutate()).finally(() => {
+      inFlight = null
+    })
+
+    return inFlight
+  }
+
+  return {
+    schedule(): void {
+      const elapsed = Date.now() - lastRunAt
+      if (elapsed >= waitMs) {
+        if (timer !== null) {
+          clearTimeout(timer)
+          timer = null
+        }
+        void run()
+        return
+      }
+
+      if (timer !== null) return
+
+      timer = setTimeout(() => {
+        timer = null
+        void run()
+      }, Math.max(0, waitMs - elapsed))
+    },
+    async flush(): Promise<void> {
+      if (timer !== null) {
+        clearTimeout(timer)
+        timer = null
+      }
+
+      await run()
+    },
+    cancel(): void {
+      if (timer !== null) {
+        clearTimeout(timer)
+        timer = null
+      }
+    }
+  }
 }
 
 const Proxies: React.FC = () => {
@@ -243,9 +294,6 @@ const Proxies: React.FC = () => {
     autoDelayTestInterval = 0,
     delayTestConcurrency = DEFAULT_DELAY_TEST_CONCURRENCY
   } = appConfig || {}
-  const [isAutoDelayTesting, setIsAutoDelayTesting] = useState(false)
-  const autoDelayRenderGroupsRef = useRef<ControllerMixedGroup[]>([])
-
   // 根据模式过滤显示的组
   const filteredGroups = useMemo(() => {
     if (mode === 'global') {
@@ -264,15 +312,30 @@ const Proxies: React.FC = () => {
       return aIndex - bIndex
     })
   }, [filteredGroups, groupOrder])
-  const renderGroups =
-    isAutoDelayTesting && autoDelayRenderGroupsRef.current.length > 0
-      ? autoDelayRenderGroupsRef.current
-      : groups
+  const renderGroups = groups
   const delayVersion = useMemo(() => getDelayVersion(renderGroups), [renderGroups])
+  const proxyGroupMetrics = useMemo(() => {
+    const metrics = new Map<string, { currentDelay: number; liveCount: number }>()
+
+    renderGroups.forEach((group) => {
+      let liveCount = 0
+      const proxies = group.all || []
+      proxies.forEach((proxy) => {
+        if (getProxyDisplayDelay(proxy) > 0) {
+          liveCount += 1
+        }
+      })
+
+      metrics.set(group.name, {
+        currentDelay: getGroupCurrentDelay(group),
+        liveCount
+      })
+    })
+
+    return metrics
+  }, [delayVersion, renderGroups])
   const autoDelayGroupSignature = useMemo(() => getAutoDelayGroupSignature(groups), [groups])
-  // 使用 ref 存储最新引用，避免 useEffect 依赖不稳定值导致自取消
-  // 问题根因：测速期间 mutate() 刷新 groups 数据 → url-test/fallback 组自动切换 now
-  //          → 依赖数组中的签名变化 → effect cleanup 取消正在进行的测速
+  // 使用 ref 存储最新引用，避免 useEffect 捕获过期数据。
   const groupsRef = useRef(renderGroups)
   groupsRef.current = renderGroups
   const mutateRef = useRef(mutate)
@@ -366,18 +429,24 @@ const Proxies: React.FC = () => {
   const onGroupDelay = useCallback(
     async (groupName: string): Promise<void> => {
       setDelaying((prev) => ({ ...prev, [groupName]: true }))
+      const mutateBatcher = createMutateBatcher(mutate, DELAY_TEST_MUTATE_BATCH_MS)
 
       try {
         const group = groupsRef.current.find((item) => item.name === groupName)
-        const target = getResolvedProxyTarget(group)
-        if (target) {
-          await mihomoProxyDelay(target.name, group?.testUrl)
-        }
+        const targets = getResolvedProxyTargets(group)
+        const tasks = targets.map((target) => async (): Promise<void> => {
+          await mihomoProxyDelay(target.name, group?.testUrl).catch((error) => {
+            console.warn('[proxy-delay:group] failed', groupName, target.name, error)
+          })
+          mutateBatcher.schedule()
+        })
+        await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrencyRef.current))
+        await mutateBatcher.flush()
       } catch {
         // ignore
       } finally {
+        mutateBatcher.cancel()
         setDelaying((prev) => ({ ...prev, [groupName]: false }))
-        mutate()
       }
     },
     [mutate]
@@ -400,7 +469,6 @@ const Proxies: React.FC = () => {
 
     let disposed = false
     const resetAutoDelayState = (): void => {
-      setIsAutoDelayTesting(false)
       setDelaying((prev) => {
         const resetGroups = groupsRef.current.map((group) => group.name)
         return {
@@ -432,23 +500,13 @@ const Proxies: React.FC = () => {
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    const doAutoDelayTest = async (forceAll: boolean = false): Promise<boolean> => {
+    const doAutoDelayTest = async (): Promise<boolean> => {
       if (disposed || document.hidden || isTestingRef.current) return false
       
       const latestGroups = groupsRef.current
       if (latestGroups.length === 0) return false
 
-      let targetGroups = latestGroups
-      if (!forceAll) {
-        const groupsMissingCurrentDelay = latestGroups.filter(groupNeedsDelayTest)
-        const shouldRespectCooldown = groupsMissingCurrentDelay.length === 0
-        if (shouldRespectCooldown && Date.now() - lastAutoDelayTestAt < AUTO_DELAY_TEST_COOLDOWN_MS) {
-          return false
-        }
-        targetGroups = groupsMissingCurrentDelay.length > 0 ? groupsMissingCurrentDelay : latestGroups
-      }
-
-      const delayTargets = getUniqueResolvedDelayTargets(targetGroups)
+      const delayTargets = getUniqueResolvedDelayTargets(latestGroups)
       if (delayTargets.length === 0) {
         console.debug('[proxy-delay:auto] skip: no resolved proxy targets')
         return false
@@ -457,27 +515,33 @@ const Proxies: React.FC = () => {
       const runId = autoTestGenerationRef.current + 1
       autoTestGenerationRef.current = runId
       isTestingRef.current = true
-      autoDelayRenderGroupsRef.current = latestGroups
-      setIsAutoDelayTesting(true)
-      lastAutoDelayTestAt = Date.now()
       
       setDelaying((prev) => ({
         ...prev,
-        ...Object.fromEntries(targetGroups.map((group) => [group.name, true]))
+        ...Object.fromEntries(latestGroups.map((group) => [group.name, true]))
       }))
-      console.debug('[proxy-delay:auto] start', targetGroups.map((group) => group.name))
+      console.debug('[proxy-delay:auto] start', latestGroups.map((group) => group.name))
+      const mutateBatcher = createMutateBatcher(
+        () => mutateRef.current(),
+        DELAY_TEST_MUTATE_BATCH_MS
+      )
 
       const tasks = delayTargets.map((target) => async (): Promise<void> => {
         if (!isCurrentAutoTest(runId)) return
         console.debug('[proxy-delay:auto] test proxy', target.proxyName, target.sourceGroups)
 
-        await mihomoProxyDelay(target.proxyName).catch((error) => {
+        await mihomoProxyDelay(target.proxyName, target.testUrl).catch((error) => {
           console.warn('[proxy-delay:auto] failed', target.proxyName, error)
         })
+
+        if (isCurrentAutoTest(runId)) {
+          mutateBatcher.schedule()
+        }
       })
 
       await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrencyRef.current))
       if (!isCurrentAutoTest(runId)) {
+        mutateBatcher.cancel()
         if (autoTestGenerationRef.current === runId) {
           isTestingRef.current = false
         }
@@ -486,13 +550,12 @@ const Proxies: React.FC = () => {
 
       isTestingRef.current = false
       console.debug('[proxy-delay:auto] finished')
-      await mutateRef.current()
+      await mutateBatcher.flush()
       if (!isCurrentAutoTest(runId)) return false
 
-      setIsAutoDelayTesting(false)
       setDelaying((prev) => ({
         ...prev,
-        ...Object.fromEntries(targetGroups.map((group) => [group.name, false]))
+        ...Object.fromEntries(latestGroups.map((group) => [group.name, false]))
       }))
       return true
     }
@@ -513,8 +576,7 @@ const Proxies: React.FC = () => {
       const intervalMs = autoDelayTestInterval * 60 * 1000
       intervalId = setInterval(() => {
         if (!document.hidden && !isTestingRef.current) {
-          // 定时触发强制测试所有展示的组
-          void doAutoDelayTest(true)
+          void doAutoDelayTest()
         }
       }, intervalMs)
     }
@@ -527,14 +589,8 @@ const Proxies: React.FC = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       resetAutoDelayState()
     }
-    // 注意：签名只包含组名、当前选择和成员名，不包含 history，避免测速刷新历史时重置 effect。
+    // 注意：签名只包含组名和成员名，不包含 now/history，避免测速刷新或 url-test 自动切换时重置 effect。
   }, [autoDelayGroupSignature, autoDelayTestOnShow, autoDelayTestInterval])
-
-  // 获取当前节点延迟 — 解析到最终节点并复用同名节点的最新测速结果
-  const getCurrentDelay = useCallback(
-    (group: ControllerMixedGroup): number => getGroupCurrentDelay(group),
-    []
-  )
 
   const renderItem = useCallback(
     (_index: number, item: FlatItem) => {
@@ -542,6 +598,9 @@ const Proxies: React.FC = () => {
 
       if (item.type === 'header') {
         const group = renderGroups[groupIndex]
+        const metrics = group
+          ? proxyGroupMetrics.get(group.name) || { currentDelay: -1, liveCount: 0 }
+          : undefined
         
         return group ? (
           <ProxyGroupCard
@@ -550,8 +609,9 @@ const Proxies: React.FC = () => {
             toggleOpen={() => toggleOpen(group.name)}
             delaying={!!delaying[group.name]}
             delayVersion={delayVersion}
+            currentDelay={metrics?.currentDelay ?? -1}
+            liveCount={metrics?.liveCount ?? 0}
             onGroupDelay={() => onGroupDelay(group.name)}
-            getCurrentDelay={getCurrentDelay}
             mutate={mutate}
           />
         ) : (
@@ -579,19 +639,18 @@ const Proxies: React.FC = () => {
     },
     [
       renderGroups,
+      proxyGroupMetrics,
       isOpen,
       delaying,
       toggleOpen,
       onGroupDelay,
       mutate,
-      getCurrentDelay,
       delayVersion,
       proxyCols,
       chunkSize,
       proxyDisplayLayout,
       onProxyDelay,
-      onChangeProxy,
-      appConfig
+      onChangeProxy
     ]
   )
 

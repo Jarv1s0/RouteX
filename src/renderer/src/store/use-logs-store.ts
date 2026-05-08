@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import throttle from 'lodash/throttle'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
+import { retainTauriLogsBridge } from '@renderer/utils/mihomo-ipc'
 
 interface LogsState {
   logs: ControllerLog[]
@@ -40,6 +41,7 @@ const handleLog = (_e: unknown, log: ControllerLog) => {
 }
 
 let currentLogsCleanup: (() => void) | null = null
+let currentLogsBridgeCleanup: (() => void) | null = null
 let logsListenerRefCount = 0
 let logsViewRefCount = 0
 
@@ -72,12 +74,16 @@ export const useLogsStore = create<LogsState>((set) => ({
 
   initializeListeners: () => {
     currentLogsCleanup?.()
+    currentLogsBridgeCleanup?.()
+    currentLogsBridgeCleanup = retainTauriLogsBridge()
     currentLogsCleanup = onIpc(ON.mihomoLogs, handleLog)
   },
 
   cleanupListeners: () => {
     currentLogsCleanup?.()
     currentLogsCleanup = null
+    currentLogsBridgeCleanup?.()
+    currentLogsBridgeCleanup = null
   }
 }))
 

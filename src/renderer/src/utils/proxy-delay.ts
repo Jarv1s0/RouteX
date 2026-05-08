@@ -112,6 +112,40 @@ export function getResolvedProxyTarget(proxy?: ProxyDelayTarget): ControllerProx
   return current && !isProxyGroup(current) ? current : undefined
 }
 
+export function getResolvedProxyTargets(proxy?: ProxyDelayTarget): ControllerProxiesDetail[] {
+  if (!proxy) return []
+  if (!isProxyGroup(proxy)) return [proxy]
+
+  const targets = new Map<string, ControllerProxiesDetail>()
+  const seen = new Set<string>()
+  const current = getResolvedProxyTarget(proxy)
+
+  if (current) {
+    targets.set(current.name, current)
+  }
+
+  const visit = (target: ProxyDelayTarget): void => {
+    if (seen.has(target.name)) return
+    seen.add(target.name)
+
+    if (!isProxyGroup(target)) {
+      targets.set(target.name, target)
+      return
+    }
+
+    for (const child of target.all || []) {
+      const candidate = isResolvedProxy(child) ? child : getGlobalProxy(String(child))
+      if (candidate) {
+        visit(candidate)
+      }
+    }
+  }
+
+  visit(proxy)
+
+  return Array.from(targets.values())
+}
+
 export function getProxyDisplayDelay(proxy?: ProxyDelayTarget): number {
   if (!proxy) return -1
   if (!isProxyGroup(proxy)) {

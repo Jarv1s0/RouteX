@@ -121,7 +121,7 @@ const SortableChip: React.FC<{
 const ConnectionSettingModal: React.FC<Props> = (props) => {
   const { onClose } = props
   const { appConfig, patchAppConfig } = useAppConfig()
-  const MIN_CONNECTION_INTERVAL = 250
+  const MIN_CONNECTION_INTERVAL = 500
 
   const normalizeConnectionInterval = (value?: number) => {
     if (!value || Number.isNaN(value)) return MIN_CONNECTION_INTERVAL

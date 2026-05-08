@@ -8,6 +8,8 @@ const tauriSockets: Partial<Record<'traffic' | 'memory' | 'logs' | 'connections'
 const tauriBridgeReadyListeners = new Set<() => void>()
 let tauriSocketRetryTimer: number | null = null
 let tauriConnectionsBridgeRefCount = 0
+let tauriMemoryBridgeRefCount = 0
+let tauriLogsBridgeRefCount = 0
 let tauriControlledConfigCache: Partial<MihomoConfig> | null = null
 let tauriRuntimeConfigCache: MihomoConfig | null = null
 let tauriRuntimeConfigStrCache: string | null = null
@@ -22,7 +24,7 @@ let tauriBridgeReconnectReason = ''
 const latestVersionCache = new Map<boolean, { value: string | null; at: number }>()
 const latestVersionPromiseCache = new Map<boolean, Promise<string | null>>()
 const inFlightMihomoRequests = new Map<string, Promise<unknown>>()
-const MIN_TAURI_CONNECTION_INTERVAL = 250
+const MIN_TAURI_CONNECTION_INTERVAL = 500
 let tauriRuntimeConfigRevision = 0
 
 const CHECK_LATEST_VERSION_CACHE_MS = 3 * 60 * 1000
@@ -233,6 +235,62 @@ export function retainTauriConnectionsBridge(): () => void {
   }
 }
 
+export function retainTauriMemoryBridge(): () => void {
+  if (!isTauriHost()) {
+    return () => undefined
+  }
+
+  tauriMemoryBridgeRefCount += 1
+  if (tauriBridgeActiveControllerUrl) {
+    if (!tauriSockets.memory) {
+      startTauriMemorySocket(tauriBridgeActiveControllerUrl, tauriBridgeStartVersion)
+    }
+  } else {
+    startTauriMihomoEventBridge('memory-retain')
+  }
+
+  let released = false
+  return () => {
+    if (released) {
+      return
+    }
+
+    released = true
+    tauriMemoryBridgeRefCount = Math.max(0, tauriMemoryBridgeRefCount - 1)
+    if (tauriMemoryBridgeRefCount === 0) {
+      closeTauriSocket('memory')
+    }
+  }
+}
+
+export function retainTauriLogsBridge(): () => void {
+  if (!isTauriHost()) {
+    return () => undefined
+  }
+
+  tauriLogsBridgeRefCount += 1
+  if (tauriBridgeActiveControllerUrl) {
+    if (!tauriSockets.logs) {
+      startTauriLogsSocket(tauriBridgeActiveControllerUrl, tauriBridgeStartVersion)
+    }
+  } else {
+    startTauriMihomoEventBridge('logs-retain')
+  }
+
+  let released = false
+  return () => {
+    if (released) {
+      return
+    }
+
+    released = true
+    tauriLogsBridgeRefCount = Math.max(0, tauriLogsBridgeRefCount - 1)
+    if (tauriLogsBridgeRefCount === 0) {
+      closeTauriSocket('logs')
+    }
+  }
+}
+
 function emitTauriBridgeConnectionsReady(): void {
   tauriBridgeReadyListeners.forEach((listener) => {
     try {
@@ -362,6 +420,35 @@ function startTauriConnectionsSocket(controllerUrl: string, version: number): vo
   })
 }
 
+function startTauriMemorySocket(controllerUrl: string, version: number): void {
+  if (tauriMemoryBridgeRefCount <= 0) {
+    closeTauriSocket('memory')
+    return
+  }
+
+  startTauriSocket('memory', toWebSocketUrl(controllerUrl, '/memory'), version, (payload) => {
+    if (document.hidden) return
+    emitParsedDesktopEvent<ControllerMemory>(IPC_ON_CHANNELS.mihomoMemory, payload)
+  })
+}
+
+function startTauriLogsSocket(controllerUrl: string, version: number): void {
+  if (tauriLogsBridgeRefCount <= 0) {
+    closeTauriSocket('logs')
+    return
+  }
+
+  const { 'log-level': logLevel = 'info' } = readTauriControledMihomoConfig()
+  startTauriSocket(
+    'logs',
+    toWebSocketUrl(controllerUrl, `/logs?level=${logLevel}`),
+    version,
+    (payload) => {
+      emitParsedDesktopEvent<ControllerLog>(IPC_ON_CHANNELS.mihomoLogs, payload)
+    }
+  )
+}
+
 function startTauriSocket(
   key: keyof typeof tauriSockets,
   url: string,
@@ -429,7 +516,6 @@ export function startTauriMihomoEventBridge(reason = 'manual'): void {
   }
 
   tauriBridgeActiveControllerUrl = controllerUrl
-  const { 'log-level': logLevel = 'info' } = readTauriControledMihomoConfig()
 
   startTauriSocket(
     'traffic',
@@ -438,21 +524,8 @@ export function startTauriMihomoEventBridge(reason = 'manual'): void {
     emitTauriTrafficEvent
   )
 
-  startTauriSocket('memory', toWebSocketUrl(controllerUrl, '/memory'), version, (payload) => {
-    // 窗口不可见时跳过内存消息
-    if (document.hidden) return
-    emitParsedDesktopEvent<ControllerMemory>(IPC_ON_CHANNELS.mihomoMemory, payload)
-  })
-
-  startTauriSocket(
-    'logs',
-    toWebSocketUrl(controllerUrl, `/logs?level=${logLevel}`),
-    version,
-    (payload) => {
-      emitParsedDesktopEvent<ControllerLog>(IPC_ON_CHANNELS.mihomoLogs, payload)
-    }
-  )
-
+  startTauriMemorySocket(controllerUrl, version)
+  startTauriLogsSocket(controllerUrl, version)
   startTauriConnectionsSocket(controllerUrl, version)
 }
 
