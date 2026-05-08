@@ -1,7 +1,11 @@
 @import 'tailwindcss';
 @plugin './hero.mjs';
-@source '../../../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
-@source '../**/*.{ts,tsx}';
+@source '../../../../node_modules/@heroui/theme/dist/components/{accordion,autocomplete,avatar,button,card,checkbox,chip,code,divider,dropdown,input,modal,progress,scroll-shadow,select,skeleton,snippet,spinner,tabs,toggle,tooltip}.js';
+@source '../App.tsx';
+@source '../components/**/*.{ts,tsx}';
+@source '../pages/**/*.{ts,tsx}';
+@source '../routes/**/*.{ts,tsx}';
+@source '../utils/{card-styles,modal-styles}.ts';
 @custom-variant dark (&:is(.dark *));
 
 @font-face {
