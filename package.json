@@ -26,7 +26,7 @@
     "build": "corepack pnpm run prepare:resources && corepack pnpm run check:release-env && corepack pnpm run typecheck && tauri build",
     "test:web": "vitest run",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
-    "verify": "corepack pnpm run typecheck && corepack pnpm run clippy && corepack pnpm run check:dead-code && corepack pnpm run test:web && corepack pnpm run test:rust && corepack pnpm run build:tauri-web",
+    "verify": "corepack pnpm run lint:ci && corepack pnpm run typecheck && corepack pnpm run clippy && corepack pnpm run check:dead-code && corepack pnpm run test:web && corepack pnpm run audit:node && corepack pnpm run audit:rust && corepack pnpm run test:rust && corepack pnpm run build:tauri-web",
     "build:win": "corepack pnpm run build",
     "build:mac": "corepack pnpm run build",
     "build:linux": "corepack pnpm run build"
