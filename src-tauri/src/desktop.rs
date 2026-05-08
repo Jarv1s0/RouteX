@@ -40,7 +40,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent, S
 use tauri_plugin_updater::UpdaterExt;
 use time::{macros::format_description, OffsetDateTime};
 use walkdir::WalkDir;
-use zip::{write::FileOptions, CompressionMethod, ZipArchive, ZipWriter};
+use zip::{write::SimpleFileOptions, CompressionMethod, ZipArchive, ZipWriter};
 
 #[cfg(target_os = "windows")]
 #[link(name = "kernel32")]

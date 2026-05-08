@@ -181,7 +181,7 @@ fn extract_zip_bytes(bytes: &[u8], output_dir: &Path) -> Result<(), String> {
 
     for index in 0..archive.len() {
         let mut file = archive.by_index(index).map_err(|e| e.to_string())?;
-        let Some(enclosed_name) = file.enclosed_name().map(Path::to_path_buf) else {
+        let Some(enclosed_name) = file.enclosed_name() else {
             continue;
         };
 

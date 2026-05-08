@@ -45,43 +45,56 @@ fn ensure_webdav_directory(config: &WebdavConfig) -> Result<(), String> {
     Ok(())
 }
 
-fn build_webdav_backup_archive(app: &tauri::AppHandle) -> Result<Vec<u8>, String> {
+fn build_webdav_backup_archive(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let root = app_storage_root(app)?;
     if !root.exists() {
         fs::create_dir_all(&root).map_err(|e| e.to_string())?;
     }
 
-    let cursor = Cursor::new(Vec::<u8>::new());
-    let mut writer = ZipWriter::new(cursor);
-    let options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+    let temp_path = std::env::temp_dir().join(format!(
+        "routex-webdav-backup-{}-{}.zip",
+        current_timestamp_ms(),
+        create_id()
+    ));
 
-    for entry in WalkDir::new(&root) {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let path = entry.path();
-        let relative = path.strip_prefix(&root).map_err(|e| e.to_string())?;
+    let build_result = (|| -> Result<(), String> {
+        let file = fs::File::create(&temp_path).map_err(|e| e.to_string())?;
+        let mut writer = ZipWriter::new(file);
+        let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
 
-        if relative.as_os_str().is_empty() {
-            continue;
+        for entry in WalkDir::new(&root) {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let path = entry.path();
+            let relative = path.strip_prefix(&root).map_err(|e| e.to_string())?;
+
+            if relative.as_os_str().is_empty() {
+                continue;
+            }
+
+            let name = relative.to_string_lossy().replace('\\', "/");
+            if path.is_dir() {
+                writer
+                    .add_directory(format!("{name}/"), options)
+                    .map_err(|e| e.to_string())?;
+            } else {
+                writer
+                    .start_file(name, options)
+                    .map_err(|e| e.to_string())?;
+                let mut input = fs::File::open(path).map_err(|e| e.to_string())?;
+                std::io::copy(&mut input, &mut writer).map_err(|e| e.to_string())?;
+            }
         }
 
-        let name = relative.to_string_lossy().replace('\\', "/");
-        if path.is_dir() {
-            writer
-                .add_directory(format!("{name}/"), options)
-                .map_err(|e| e.to_string())?;
-        } else {
-            writer
-                .start_file(name, options)
-                .map_err(|e| e.to_string())?;
-            let bytes = fs::read(path).map_err(|e| e.to_string())?;
-            writer.write_all(&bytes).map_err(|e| e.to_string())?;
-        }
+        writer.finish().map_err(|e| e.to_string())?;
+        Ok(())
+    })();
+
+    if let Err(error) = build_result {
+        let _ = fs::remove_file(&temp_path);
+        return Err(error);
     }
 
-    writer
-        .finish()
-        .map(|cursor| cursor.into_inner())
-        .map_err(|e| e.to_string())
+    Ok(temp_path)
 }
 
 fn restore_webdav_backup_archive(app: &tauri::AppHandle, bytes: &[u8]) -> Result<(), String> {
@@ -96,7 +109,7 @@ fn restore_webdav_backup_archive(app: &tauri::AppHandle, bytes: &[u8]) -> Result
 
     for index in 0..archive.len() {
         let mut file = archive.by_index(index).map_err(|e| e.to_string())?;
-        let Some(relative_path) = file.enclosed_name().map(Path::to_path_buf) else {
+        let Some(relative_path) = file.enclosed_name() else {
             continue;
         };
 
@@ -167,14 +180,18 @@ fn webdav_backup(app: &tauri::AppHandle) -> Result<bool, String> {
     let config = read_webdav_config(app)?;
     ensure_webdav_directory(&config)?;
 
-    let archive = build_webdav_backup_archive(app)?;
+    let archive_path = build_webdav_backup_archive(app)?;
+    let archive = fs::File::open(&archive_path).map_err(|e| {
+        let _ = fs::remove_file(&archive_path);
+        e.to_string()
+    })?;
     let file_name = format!("routex-{}.zip", current_local_timestamp_string());
     let client = Client::builder()
         .timeout(Duration::from_secs(60))
         .build()
         .map_err(|e| e.to_string())?;
 
-    let response = webdav_request(
+    let upload_result = webdav_request(
         &client,
         reqwest::Method::PUT,
         &build_webdav_url(&config, Some(&file_name)),
@@ -182,7 +199,9 @@ fn webdav_backup(app: &tauri::AppHandle) -> Result<bool, String> {
     )
     .body(archive)
     .send()
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| e.to_string());
+    let _ = fs::remove_file(&archive_path);
+    let response = upload_result?;
 
     if !response.status().is_success() {
         return Err(format!("上传 WebDAV 备份失败: {}", response.status()));
@@ -244,4 +263,3 @@ fn webdav_delete(app: &tauri::AppHandle, filename: &str) -> Result<(), String> {
 
     Ok(())
 }
-
