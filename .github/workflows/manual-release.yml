@@ -25,17 +25,41 @@ env:
   SHORT_COMMIT: ''
 
 jobs:
+  select-platforms:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Build platform matrix
+        id: matrix
+        shell: bash
+        run: |
+          case "${{ github.event.inputs.platforms }}" in
+            all)
+              matrix='{"include":[{"os":"windows-latest","platform":"windows"},{"os":"ubuntu-latest","platform":"linux"},{"os":"macos-latest","platform":"macos"}]}'
+              ;;
+            windows)
+              matrix='{"include":[{"os":"windows-latest","platform":"windows"}]}'
+              ;;
+            linux)
+              matrix='{"include":[{"os":"ubuntu-latest","platform":"linux"}]}'
+              ;;
+            macos)
+              matrix='{"include":[{"os":"macos-latest","platform":"macos"}]}'
+              ;;
+            *)
+              echo "Unsupported platform selection: ${{ github.event.inputs.platforms }}"
+              exit 1
+              ;;
+          esac
+
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: select-platforms
     runs-on: ${{ matrix.os }}
     strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows
-          - os: ubuntu-latest
-            platform: linux
-          - os: macos-latest
-            platform: macos
+      matrix: ${{ fromJSON(needs.select-platforms.outputs.matrix) }}
 
     steps:
       - name: Checkout code
@@ -98,7 +122,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Setup Tauri Linux bundler cache
-        if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
+        if: matrix.platform == 'linux'
         uses: actions/cache@v5
         with:
           path: ~/.cache/tauri
@@ -107,7 +131,7 @@ jobs:
             ${{ runner.os }}-tauri-bundler-tools-
 
       - name: Prefetch Tauri AppImage runtime
-        if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
+        if: matrix.platform == 'linux'
         shell: bash
         run: |
           set -euo pipefail
@@ -130,7 +154,7 @@ jobs:
         uses: ./.github/actions/verify
 
       - name: Install macOS ARM64 Rust Target
-        if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
+        if: matrix.platform == 'macos'
         run: rustup target add aarch64-apple-darwin
 
       - name: Generate Release Notes
@@ -142,7 +166,7 @@ jobs:
           echo "SHORT_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Build and Publish Windows
-        if: matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')
+        if: matrix.platform == 'windows'
         shell: bash
         run: |
           pnpm check:release-env
@@ -157,7 +181,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Build and Publish Linux
-        if: matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')
+        if: matrix.platform == 'linux'
         shell: bash
         run: |
           pnpm check:release-env
@@ -183,7 +207,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Build and Publish macOS
-        if: matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos')
+        if: matrix.platform == 'macos'
         shell: bash
         run: |
           set -euo pipefail
@@ -199,7 +223,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Upload Release Artifacts
-        if: (matrix.platform == 'windows' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'windows')) || (matrix.platform == 'linux' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'linux')) || (matrix.platform == 'macos' && (github.event.inputs.platforms == 'all' || github.event.inputs.platforms == 'macos'))
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
