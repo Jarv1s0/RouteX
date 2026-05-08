@@ -27,7 +27,7 @@ export function createDefaultAppConfig(
     proxyDisplayOrder: 'default',
     autoCheckUpdate: false,
     autoCloseConnection: true,
-    autoDelayTestOnShow: false,
+    autoDelayTestOnShow: true,
     customTheme: 'default.css',
     controlDns: true,
     controlSniff: true,

@@ -114,6 +114,21 @@ describe('proxy delay display', () => {
     ])
   })
 
+  it('puts the selected resolved leaf before the other group delay targets', () => {
+    const hongKong01 = proxy('Hong Kong 01')
+    const unitedStates01 = proxy('United States 01')
+    const unitedStates05 = proxy('United States 05')
+    const all = group('ALL', 'United States 05', [hongKong01, unitedStates01, unitedStates05])
+
+    useGroupsStore.setState({ groups: [all] })
+
+    expect(getResolvedProxyTargets(all).map((item) => item.name)).toEqual([
+      'United States 05',
+      'Hong Kong 01',
+      'United States 01'
+    ])
+  })
+
   it('collects nested group leaf proxies instead of only the selected leaf', () => {
     const hongKong01 = proxy('Hong Kong 01')
     const hongKong02 = proxy('Hong Kong 02')

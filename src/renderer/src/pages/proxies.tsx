@@ -231,27 +231,36 @@ function createMutateBatcher(mutate: () => void | Promise<void>, waitMs: number)
   let timer: ReturnType<typeof setTimeout> | null = null
   let inFlight: Promise<void> | null = null
   let lastRunAt = 0
+  let pendingRefresh = false
 
-  const run = (): Promise<void> => {
-    if (inFlight) return inFlight
+  const clearTimer = (): void => {
+    if (timer === null) return
+    clearTimeout(timer)
+    timer = null
+  }
 
+  const runPendingRefresh = async (): Promise<void> => {
+    if (inFlight) {
+      await inFlight
+    }
+    if (!pendingRefresh) return
+
+    pendingRefresh = false
     lastRunAt = Date.now()
     inFlight = Promise.resolve(mutate()).finally(() => {
       inFlight = null
     })
 
-    return inFlight
+    await inFlight
   }
 
   return {
     schedule(): void {
-      const elapsed = Date.now() - lastRunAt
-      if (elapsed >= waitMs) {
-        if (timer !== null) {
-          clearTimeout(timer)
-          timer = null
-        }
-        void run()
+      pendingRefresh = true
+      const delay = waitMs - (Date.now() - lastRunAt)
+      if (delay <= 0) {
+        clearTimer()
+        void runPendingRefresh()
         return
       }
 
@@ -259,22 +268,16 @@ function createMutateBatcher(mutate: () => void | Promise<void>, waitMs: number)
 
       timer = setTimeout(() => {
         timer = null
-        void run()
-      }, Math.max(0, waitMs - elapsed))
+        void runPendingRefresh()
+      }, delay)
     },
     async flush(): Promise<void> {
-      if (timer !== null) {
-        clearTimeout(timer)
-        timer = null
-      }
-
-      await run()
+      clearTimer()
+      await runPendingRefresh()
     },
     cancel(): void {
-      if (timer !== null) {
-        clearTimeout(timer)
-        timer = null
-      }
+      clearTimer()
+      pendingRefresh = false
     }
   }
 }
@@ -290,7 +293,7 @@ const Proxies: React.FC = () => {
     autoCloseConnection = true,
     proxyCols = 'auto',
     groupOrder = [],
-    autoDelayTestOnShow = false,
+    autoDelayTestOnShow = true,
     autoDelayTestInterval = 0,
     delayTestConcurrency = DEFAULT_DELAY_TEST_CONCURRENCY
   } = appConfig || {}
@@ -521,6 +524,11 @@ const Proxies: React.FC = () => {
         ...Object.fromEntries(latestGroups.map((group) => [group.name, true]))
       }))
       console.debug('[proxy-delay:auto] start', latestGroups.map((group) => group.name))
+      const mutateBatcher = createMutateBatcher(
+        () => mutateRef.current(),
+        DELAY_TEST_MUTATE_BATCH_MS
+      )
+
       const tasks = delayTargets.map((target) => async (): Promise<void> => {
         if (!isCurrentAutoTest(runId)) return
         console.debug('[proxy-delay:auto] test proxy', target.proxyName, target.sourceGroups)
@@ -528,10 +536,15 @@ const Proxies: React.FC = () => {
         await mihomoProxyDelay(target.proxyName, target.testUrl).catch((error) => {
           console.warn('[proxy-delay:auto] failed', target.proxyName, error)
         })
+
+        if (isCurrentAutoTest(runId)) {
+          mutateBatcher.schedule()
+        }
       })
 
       await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrencyRef.current))
       if (!isCurrentAutoTest(runId)) {
+        mutateBatcher.cancel()
         if (autoTestGenerationRef.current === runId) {
           isTestingRef.current = false
         }
@@ -540,7 +553,7 @@ const Proxies: React.FC = () => {
 
       isTestingRef.current = false
       console.debug('[proxy-delay:auto] finished')
-      await mutateRef.current()
+      await mutateBatcher.flush()
       if (!isCurrentAutoTest(runId)) return false
 
       setDelaying((prev) => ({

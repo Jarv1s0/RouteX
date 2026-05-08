@@ -120,16 +120,20 @@ export function getResolvedProxyTargets(proxy?: ProxyDelayTarget): ControllerPro
   const seen = new Set<string>()
   const current = getResolvedProxyTarget(proxy)
 
-  if (current) {
-    targets.set(current.name, current)
+  const addTarget = (target: ControllerProxiesDetail): void => {
+    if (!targets.has(target.name)) {
+      targets.set(target.name, target)
+    }
   }
+
+  if (current) addTarget(current)
 
   const visit = (target: ProxyDelayTarget): void => {
     if (seen.has(target.name)) return
     seen.add(target.name)
 
     if (!isProxyGroup(target)) {
-      targets.set(target.name, target)
+      addTarget(target)
       return
     }
 

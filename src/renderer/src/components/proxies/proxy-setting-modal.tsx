@@ -67,7 +67,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
     delayTestTimeout,
     delayThresholds = { good: 200, fair: 500 },
     groupOrder = [],
-    autoDelayTestOnShow = false
+    autoDelayTestOnShow = true
   } = appConfig || {}
 
   // 过滤掉 GLOBAL 组
