@@ -1,0 +1,14 @@
+[[permission]]
+identifier = "allow-desktop-invoke"
+description = "Allows the main window to call the RouteX desktop IPC dispatcher."
+commands.allow = ["desktop_invoke"]
+
+[[permission]]
+identifier = "allow-desktop-check-update"
+description = "Allows the main window to check for RouteX updates through the Rust updater bridge."
+commands.allow = ["desktop_check_update"]
+
+[[permission]]
+identifier = "allow-desktop-icon-data-urls"
+description = "Allows the main window to request icon data URLs through the Rust icon bridge."
+commands.allow = ["desktop_get_icon_data_urls"]

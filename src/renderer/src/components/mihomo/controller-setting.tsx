@@ -141,7 +141,7 @@ const ControllerSetting: React.FC = () => {
     'external-ui-url': externalUiUrl = '',
     'external-ui-name': externalUiName = '',
     'external-controller-cors': externalControllerCors,
-    secret
+    secret = ''
   } = controledMihomoConfig || {}
   const {
     'allow-origins': allowOrigins = [],

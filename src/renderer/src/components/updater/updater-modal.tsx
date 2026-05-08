@@ -5,15 +5,15 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Code,
   Progress
 } from '@heroui/react'
-import ReactMarkdown from 'react-markdown'
-import React, { useState } from 'react'
+import React, { Suspense, useState } from 'react'
 import { downloadAndInstallUpdate } from '@renderer/api/app'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { FiX, FiDownload } from 'react-icons/fi'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+
+const ReleaseNotesMarkdown = React.lazy(() => import('./release-notes-markdown'))
 
 interface Props {
   version: string
@@ -112,16 +112,9 @@ const UpdaterModal: React.FC<Props> = (props) => {
           )}
           {!updateStatus?.downloading && (
             <div className="markdown-body select-text">
-              <ReactMarkdown
-                components={{
-                  a: ({ ...props }) => <a target="_blank" className="text-primary" {...props} />,
-                  code: ({ children }) => <Code size="sm">{children}</Code>,
-                  h3: ({ ...props }) => <h3 className="text-lg font-bold" {...props} />,
-                  li: ({ children }) => <li className="list-disc list-inside">{children}</li>
-                }}
-              >
-                {releaseNotes}
-              </ReactMarkdown>
+              <Suspense fallback={<div className="text-sm text-default-500">加载更新日志...</div>}>
+                <ReleaseNotesMarkdown>{releaseNotes}</ReleaseNotesMarkdown>
+              </Suspense>
             </div>
           )}
         </ModalBody>

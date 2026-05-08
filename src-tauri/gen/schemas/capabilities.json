@@ -1,1 +1,1 @@
-{}
+{"main-window":{"identifier":"main-window","description":"Allow the local main window to access RouteX desktop IPC and deep-link integration.","local":true,"windows":["main"],"permissions":["core:default","deep-link:default","allow-desktop-invoke","allow-desktop-check-update","allow-desktop-icon-data-urls"]}}

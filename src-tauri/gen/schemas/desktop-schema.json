@@ -177,6 +177,24 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Allows the main window to check for RouteX updates through the Rust updater bridge.",
+          "type": "string",
+          "const": "allow-desktop-check-update",
+          "markdownDescription": "Allows the main window to check for RouteX updates through the Rust updater bridge."
+        },
+        {
+          "description": "Allows the main window to request icon data URLs through the Rust icon bridge.",
+          "type": "string",
+          "const": "allow-desktop-icon-data-urls",
+          "markdownDescription": "Allows the main window to request icon data URLs through the Rust icon bridge."
+        },
+        {
+          "description": "Allows the main window to call the RouteX desktop IPC dispatcher.",
+          "type": "string",
+          "const": "allow-desktop-invoke",
+          "markdownDescription": "Allows the main window to call the RouteX desktop IPC dispatcher."
+        },
+        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",
