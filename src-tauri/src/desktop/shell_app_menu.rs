@@ -198,8 +198,7 @@ fn handle_application_menu_event(
         APP_MENU_RESTART_APP_ID => relaunch_current_app(app, state),
         APP_MENU_QUIT_ID => {
             if request_quit_confirmation(app, state)? {
-                shutdown_runtime_once(app);
-                app.exit(0);
+                exit_app(app)?;
             }
             Ok(())
         }
@@ -234,4 +233,3 @@ fn handle_application_menu_event(
         _ => Ok(()),
     }
 }
-

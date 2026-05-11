@@ -25,14 +25,12 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
         }
         "quitApp" => {
             if request_quit_confirmation(app, state)? {
-                shutdown_runtime_once(app);
-                app.exit(0);
+                exit_app(app)?;
             }
             Ok(Value::Null)
         }
         "notDialogQuit" => {
-            shutdown_runtime_once(app);
-            app.exit(0);
+            exit_app(app)?;
             Ok(Value::Null)
         }
         "showMainWindow" => {

@@ -43,6 +43,12 @@ fn exit_app_without_core(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+fn exit_app(app: &tauri::AppHandle) -> Result<(), String> {
+    shutdown_runtime_once(app);
+    app.exit(0);
+    Ok(())
+}
+
 fn resolve_quit_confirmation(state: &State<'_, CoreState>, confirmed: bool) -> Result<(), String> {
     let sender = state
         .quit_confirm_sender
@@ -228,4 +234,3 @@ fn trigger_main_window(app: &tauri::AppHandle) -> Result<(), String> {
 
     show_main_window(app)
 }
-

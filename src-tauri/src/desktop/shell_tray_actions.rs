@@ -248,8 +248,7 @@ fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> R
             return Ok(());
         }
         id if id == TRAY_MENU_QUIT_ID => {
-            shutdown_runtime_once(app);
-            app.exit(0);
+            exit_app(app)?;
             return Ok(());
         }
         _ => Ok(()),
@@ -258,4 +257,3 @@ fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> R
     refresh_native_tray_shell(app)?;
     Ok(())
 }
-
