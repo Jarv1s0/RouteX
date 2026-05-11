@@ -109,7 +109,9 @@ pub(super) const MAX_TRAFFIC_DAILY_RECORDS: usize = 30;
 pub(super) static APP_STARTED_AT: OnceLock<Instant> = OnceLock::new();
 pub(super) static ICON_DATA_URL_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
 pub(super) static MIHOMO_HTTP_CLIENT: OnceLock<Result<Client, String>> = OnceLock::new();
-pub(super) static PROFILE_RUNTIME_CONFIG_CACHE: OnceLock<Mutex<Option<Value>>> = OnceLock::new();
+pub(super) static PROFILE_RUNTIME_CONFIG_CACHE: OnceLock<Mutex<Option<ProfileRuntimeConfigCache>>> =
+    OnceLock::new();
+pub(super) static PROFILE_RUNTIME_CONFIG_REVISION: AtomicU64 = AtomicU64::new(0);
 // 最后一次成功通过 `mihomo -t` 检查的 config yaml 内容哈希（SHA-256 hex）。
 // 若本次写入的 config_yaml 哈希与缓存相同，则跳过 check_runtime_profile，节省 ~0.5-2s。
 pub(super) static PROFILE_CHECK_CACHE: OnceLock<Mutex<Option<String>>> = OnceLock::new();

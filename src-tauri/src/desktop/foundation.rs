@@ -88,24 +88,44 @@ fn runtime_config_modified_at_ms(path: &Path) -> Option<u64> {
         .map(|duration| duration.as_millis() as u64)
 }
 
-fn profile_runtime_config_cache() -> &'static Mutex<Option<Value>> {
+struct ProfileRuntimeConfigCache {
+    revision: u64,
+    value: Value,
+}
+
+fn profile_runtime_config_cache() -> &'static Mutex<Option<ProfileRuntimeConfigCache>> {
     PROFILE_RUNTIME_CONFIG_CACHE.get_or_init(|| Mutex::new(None))
 }
 
-fn read_cached_profile_runtime_config() -> Option<Value> {
+fn current_profile_runtime_config_revision() -> u64 {
+    PROFILE_RUNTIME_CONFIG_REVISION.load(AtomicOrdering::SeqCst)
+}
+
+fn read_cached_profile_runtime_config(revision: u64) -> Option<Value> {
     profile_runtime_config_cache()
         .lock()
         .ok()
-        .and_then(|cache| cache.clone())
+        .and_then(|cache| {
+            cache
+                .as_ref()
+                .filter(|cached| cached.revision == revision)
+                .map(|cached| cached.value.clone())
+        })
 }
 
-fn write_cached_profile_runtime_config(value: &Value) {
+fn write_cached_profile_runtime_config(revision: u64, value: &Value) {
     if let Ok(mut cache) = profile_runtime_config_cache().lock() {
-        *cache = Some(value.clone());
+        if current_profile_runtime_config_revision() == revision {
+            *cache = Some(ProfileRuntimeConfigCache {
+                revision,
+                value: value.clone(),
+            });
+        }
     }
 }
 
 fn invalidate_profile_runtime_config_cache() {
+    PROFILE_RUNTIME_CONFIG_REVISION.fetch_add(1, AtomicOrdering::SeqCst);
     if let Ok(mut cache) = profile_runtime_config_cache().lock() {
         *cache = None;
     }

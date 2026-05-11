@@ -251,3 +251,21 @@ function main(config) {
         "unexpected error: {error}"
     );
 }
+
+#[test]
+fn stale_profile_runtime_config_cache_write_is_ignored() {
+    invalidate_profile_runtime_config_cache();
+    let stale_revision = current_profile_runtime_config_revision();
+    let stale_value = json!({ "mode": "rule" });
+    let fresh_value = json!({ "mode": "global" });
+
+    invalidate_profile_runtime_config_cache();
+    let fresh_revision = current_profile_runtime_config_revision();
+    write_cached_profile_runtime_config(fresh_revision, &fresh_value);
+    write_cached_profile_runtime_config(stale_revision, &stale_value);
+
+    let cached = read_cached_profile_runtime_config(fresh_revision)
+        .expect("fresh cache entry should remain available");
+    assert_eq!(cached.get("mode").and_then(Value::as_str), Some("global"));
+    assert!(read_cached_profile_runtime_config(stale_revision).is_none());
+}

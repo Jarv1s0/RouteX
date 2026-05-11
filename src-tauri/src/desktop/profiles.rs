@@ -1243,7 +1243,8 @@ fn apply_overrides_to_profile(
 }
 
 fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, String> {
-    if let Some(cached) = read_cached_profile_runtime_config() {
+    let cache_revision = current_profile_runtime_config_revision();
+    if let Some(cached) = read_cached_profile_runtime_config(cache_revision) {
         return Ok(cached);
     }
 
@@ -1326,7 +1327,7 @@ fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, Strin
     merge_json(&mut profile_value, &controlled_config);
     inject_chain_proxies(&mut profile_value, app)?;
     sanitize_runtime_profile_value(&mut profile_value, control_dns, control_sniff);
-    write_cached_profile_runtime_config(&profile_value);
+    write_cached_profile_runtime_config(cache_revision, &profile_value);
 
     Ok(profile_value)
 }
