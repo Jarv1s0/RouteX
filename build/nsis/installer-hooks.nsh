@@ -1,18 +1,71 @@
-!macro NSIS_HOOK_PREINSTALL
+!macro ROUTEX_CLOSE_RUNNING_PROCESSES
   Push $0
   Push $1
+  Push $2
   DetailPrint "正在关闭已运行的 RouteX..."
-  nsExec::ExecToStack `powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$sidecarDir = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetFullPath('$INSTDIR')) 'extra\sidecar')); function Get-RouteXProcess($name) { $procs = @(Get-Process -Name $name -ErrorAction SilentlyContinue); if ($name -eq 'routex') { return $procs }; return @($procs | Where-Object { try { [System.IO.Path]::GetFullPath($_.Path).StartsWith($sidecarDir, [System.StringComparison]::OrdinalIgnoreCase) } catch { $false } }) }; $failed = @(); foreach ($name in @('routex', 'mihomo', 'mihomo-alpha')) { $procs = @(Get-RouteXProcess $name); if ($procs.Count -eq 0) { continue }; $procs | Stop-Process -Force -ErrorAction SilentlyContinue; Wait-Process -Id ($procs.Id) -Timeout 15 -ErrorAction SilentlyContinue; if (@(Get-RouteXProcess $name).Count -gt 0) { $failed += $name } }; if ($failed.Count -gt 0) { exit 1 } else { exit 0 }"`
+  InitPluginsDir
+  StrCpy $2 "$PLUGINSDIR\routex-close-processes.ps1"
+  FileOpen $1 "$2" w
+  FileWrite $1 "$$installDir = [System.IO.Path]::GetFullPath($$args[0])$\r$\n"
+  FileWrite $1 "$$candidateDirs = @((Join-Path $$installDir 'extra\sidecar'))$\r$\n"
+  FileWrite $1 "foreach ($$base in @($$env:APPDATA, $$env:LOCALAPPDATA)) {$\r$\n"
+  FileWrite $1 "  if ([string]::IsNullOrWhiteSpace($$base)) { continue }$\r$\n"
+  FileWrite $1 "  $$candidateDirs += (Join-Path $$base 'routex.app\runtime-assets\sidecar')$\r$\n"
+  FileWrite $1 "  $$candidateDirs += (Join-Path $$base 'com.jarv1s0.routex.tauri\runtime-assets\sidecar')$\r$\n"
+  FileWrite $1 "}$\r$\n"
+  FileWrite $1 "$$candidateDirs = @($$candidateDirs | ForEach-Object { try { [System.IO.Path]::GetFullPath($$_).TrimEnd('\', '/') } catch { $$null } } | Where-Object { $$_ })$\r$\n"
+  FileWrite $1 "function Test-UnderRouteXDir($$path) {$\r$\n"
+  FileWrite $1 "  if ([string]::IsNullOrWhiteSpace($$path)) { return $$false }$\r$\n"
+  FileWrite $1 "  try {$\r$\n"
+  FileWrite $1 "    $$full = [System.IO.Path]::GetFullPath($$path).TrimEnd('\', '/')$\r$\n"
+  FileWrite $1 "    foreach ($$dir in $$candidateDirs) {$\r$\n"
+  FileWrite $1 "      if ($$full.Equals($$dir, [System.StringComparison]::OrdinalIgnoreCase) -or $$full.StartsWith($$dir + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) { return $$true }$\r$\n"
+  FileWrite $1 "    }$\r$\n"
+  FileWrite $1 "  } catch {}$\r$\n"
+  FileWrite $1 "  return $$false$\r$\n"
+  FileWrite $1 "}$\r$\n"
+  FileWrite $1 "function Get-ProcessPath($$proc) {$\r$\n"
+  FileWrite $1 "  try { if (-not [string]::IsNullOrWhiteSpace($$proc.Path)) { return $$proc.Path } } catch {}$\r$\n"
+  FileWrite $1 "  try { return (Get-CimInstance Win32_Process -Filter ('ProcessId = ' + $$proc.Id) -ErrorAction SilentlyContinue).ExecutablePath } catch { return $$null }$\r$\n"
+  FileWrite $1 "}$\r$\n"
+  FileWrite $1 "function Get-RouteXProcess($$name) {$\r$\n"
+  FileWrite $1 "  $$procs = @(Get-Process -Name $$name -ErrorAction SilentlyContinue)$\r$\n"
+  FileWrite $1 "  if ($$name -eq 'routex') { return $$procs }$\r$\n"
+  FileWrite $1 "  return @($$procs | Where-Object { Test-UnderRouteXDir (Get-ProcessPath $$_) })$\r$\n"
+  FileWrite $1 "}$\r$\n"
+  FileWrite $1 "$$failed = @()$\r$\n"
+  FileWrite $1 "foreach ($$name in @('routex', 'mihomo', 'mihomo-alpha')) {$\r$\n"
+  FileWrite $1 "  $$procs = @(Get-RouteXProcess $$name)$\r$\n"
+  FileWrite $1 "  if ($$procs.Count -eq 0) { continue }$\r$\n"
+  FileWrite $1 "  $$procs | Stop-Process -Force -ErrorAction SilentlyContinue$\r$\n"
+  FileWrite $1 "  foreach ($$proc in $$procs) { Wait-Process -Id $$proc.Id -Timeout 15 -ErrorAction SilentlyContinue }$\r$\n"
+  FileWrite $1 "  if (@(Get-RouteXProcess $$name).Count -gt 0) { $$failed += $$name }$\r$\n"
+  FileWrite $1 "}$\r$\n"
+  FileWrite $1 "if ($$failed.Count -gt 0) { exit 1 }$\r$\n"
+  FileWrite $1 "exit 0$\r$\n"
+  FileClose $1
+  nsExec::ExecToStack `powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$2" "$INSTDIR"`
   Pop $0
   Pop $1
+  Delete "$2"
   ${If} $0 != 0
     MessageBox MB_ICONSTOP|MB_OK "无法关闭正在运行的 RouteX 或 Mihomo 内核。$\r$\n$\r$\n请先完全退出 RouteX（包括托盘后台），并确认 Mihomo 内核已停止后重试。$\r$\n如果 RouteX 是以管理员身份运行，请右键安装包选择“以管理员身份运行”后重试。"
+    Pop $2
     Pop $1
     Pop $0
     Abort
   ${EndIf}
+  Pop $2
   Pop $1
   Pop $0
+!macroend
+
+!macro NSIS_HOOK_PREINSTALL
+  !insertmacro ROUTEX_CLOSE_RUNNING_PROCESSES
+!macroend
+
+!macro NSIS_HOOK_PREUNINSTALL
+  !insertmacro ROUTEX_CLOSE_RUNNING_PROCESSES
 !macroend
 
 !macro NSIS_HOOK_POSTUNINSTALL
