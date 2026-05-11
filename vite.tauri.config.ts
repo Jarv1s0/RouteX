@@ -32,16 +32,6 @@ const manualChunkRules: Array<[string, string[]]> = [
     ]
   ],
   ['vendor-motion', ['/node_modules/framer-motion/']],
-  [
-    'vendor-ui',
-    [
-      '/node_modules/@heroui/',
-      '/node_modules/@react-aria/',
-      '/node_modules/@react-stately/',
-      '/node_modules/@react-types/',
-      '/node_modules/@internationalized/'
-    ]
-  ],
   ['vendor-chart', ['/node_modules/echarts/', '/node_modules/zrender/']],
   ['vendor-editor', ['/node_modules/@codemirror/', '/node_modules/@lezer/', '/node_modules/style-mod/']],
   [
