@@ -5,6 +5,7 @@ import { Button, Tooltip } from '@heroui/react'
 
 import { quitApp, quitWithoutCore, resetAppConfig } from '@renderer/api/app'
 import { version } from '@renderer/utils/init'
+import { ROUTEX_BUILD_VARIANT } from '../../../../shared/build'
 import { IoIosHelpCircle } from 'react-icons/io'
 import ConfirmModal from '../base/base-confirm'
 
@@ -47,6 +48,7 @@ import AppearanceConfig from './appearance-config'
 
 const AdvancedSettings: React.FC = () => {
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const displayVersion = ROUTEX_BUILD_VARIANT === 'autobuild' ? `v${version} (autobuild)` : `v${version}`
 
   return (
     <div className="flex flex-col gap-2">
@@ -107,8 +109,8 @@ const AdvancedSettings: React.FC = () => {
             退出应用
           </Button>
         </SettingItem>
-        <SettingItem title="应用版本">
-          <div>v{version}</div>
+        <SettingItem title="软件版本">
+          <div>{displayVersion}</div>
         </SettingItem>
       </SettingCard>
     </div>

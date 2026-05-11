@@ -95,9 +95,8 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          SHORT_HASH=$(git rev-parse --short HEAD)
           RELEASE_TAG="autobuild-${GITHUB_REF_NAME}"
-          RELEASE_TITLE="RouteX v${VERSION} (Autobuild ${GITHUB_REF_NAME} ${SHORT_HASH})"
+          RELEASE_TITLE="Autobuild ${GITHUB_REF_NAME}"
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
@@ -331,6 +330,7 @@ jobs:
           rm -rf "$artifact_dir"
           mkdir -p "$artifact_dir"
           version=$(node -p "require('./package.json').version")
+          short_hash=$(git rev-parse --short=8 HEAD)
           artifact_prefix="RouteX-${version}"
 
           case "${{ matrix.platform }}" in
@@ -341,7 +341,7 @@ jobs:
                 echo "Missing Windows NSIS setup artifact"
                 exit 1
               fi
-              cp "$setup_file" "$artifact_dir/${artifact_prefix}-windows-x64-setup.exe"
+              cp "$setup_file" "$artifact_dir/${artifact_prefix}-windows-x64-setup-${short_hash}.exe"
 
               portable_dir="$artifact_dir/RouteX-portable"
               mkdir -p "$portable_dir"
@@ -359,10 +359,10 @@ jobs:
               elif [ -x "/c/Program Files/7-Zip/7z.exe" ]; then
                 seven_zip="/c/Program Files/7-Zip/7z.exe"
               else
-                echo "7-Zip is required to create ${artifact_prefix}-windows-x64-portable.7z"
+                echo "7-Zip is required to create ${artifact_prefix}-windows-x64-portable-${short_hash}.7z"
                 exit 1
               fi
-              (cd "$portable_dir" && "$seven_zip" a -t7z "../${artifact_prefix}-windows-x64-portable.7z" .)
+              (cd "$portable_dir" && "$seven_zip" a -t7z "../${artifact_prefix}-windows-x64-portable-${short_hash}.7z" .)
               rm -rf "$portable_dir"
               ;;
             linux)
@@ -376,9 +376,9 @@ jobs:
                 exit 1
               fi
 
-              cp "$deb_file" "$artifact_dir/${artifact_prefix}-linux-amd64.deb"
-              cp "$appimage_file" "$artifact_dir/${artifact_prefix}-linux-x86_64.AppImage"
-              cp "$rpm_file" "$artifact_dir/${artifact_prefix}-linux-x86_64.rpm"
+              cp "$deb_file" "$artifact_dir/${artifact_prefix}-linux-amd64-${short_hash}.deb"
+              cp "$appimage_file" "$artifact_dir/${artifact_prefix}-linux-x86_64-${short_hash}.AppImage"
+              cp "$rpm_file" "$artifact_dir/${artifact_prefix}-linux-x86_64-${short_hash}.rpm"
               ;;
             macos)
               bundle_dirs=()
@@ -408,8 +408,8 @@ jobs:
                 exit 1
               fi
 
-              cp "$dmg_file" "$artifact_dir/${artifact_prefix}-macos-arm64.dmg"
-              xcrun productbuild --component "$app_file" /Applications "$artifact_dir/${artifact_prefix}-macos-arm64.pkg"
+              cp "$dmg_file" "$artifact_dir/${artifact_prefix}-macos-arm64-${short_hash}.dmg"
+              xcrun productbuild --component "$app_file" /Applications "$artifact_dir/${artifact_prefix}-macos-arm64-${short_hash}.pkg"
               ;;
             *)
               echo "Unsupported platform: ${{ matrix.platform }}"
@@ -420,13 +420,13 @@ jobs:
           expected_files=()
           case "${{ matrix.platform }}" in
             windows)
-              expected_files=("${artifact_prefix}-windows-x64-portable.7z" "${artifact_prefix}-windows-x64-setup.exe")
+              expected_files=("${artifact_prefix}-windows-x64-portable-${short_hash}.7z" "${artifact_prefix}-windows-x64-setup-${short_hash}.exe")
               ;;
             linux)
-              expected_files=("${artifact_prefix}-linux-amd64.deb" "${artifact_prefix}-linux-x86_64.AppImage" "${artifact_prefix}-linux-x86_64.rpm")
+              expected_files=("${artifact_prefix}-linux-amd64-${short_hash}.deb" "${artifact_prefix}-linux-x86_64-${short_hash}.AppImage" "${artifact_prefix}-linux-x86_64-${short_hash}.rpm")
               ;;
             macos)
-              expected_files=("${artifact_prefix}-macos-arm64.dmg" "${artifact_prefix}-macos-arm64.pkg")
+              expected_files=("${artifact_prefix}-macos-arm64-${short_hash}.dmg" "${artifact_prefix}-macos-arm64-${short_hash}.pkg")
               ;;
           esac
 
