@@ -1,207 +1,45 @@
 #[cfg(target_os = "windows")]
+const MB_OK: u32 = 0x00000000;
+#[cfg(target_os = "windows")]
+const MB_ICONWARNING: u32 = 0x00000030;
+#[cfg(target_os = "windows")]
+const MB_SETFOREGROUND: u32 = 0x00010000;
+#[cfg(target_os = "windows")]
+const MB_TOPMOST: u32 = 0x00040000;
+
+#[cfg(target_os = "windows")]
+#[link(name = "user32")]
+unsafe extern "system" {
+    fn MessageBoxW(
+        hwnd: *mut std::ffi::c_void,
+        text: *const u16,
+        caption: *const u16,
+        message_type: u32,
+    ) -> i32;
+}
+
+#[cfg(target_os = "windows")]
+fn to_wide_null(value: &str) -> Vec<u16> {
+    value.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+#[cfg(target_os = "windows")]
 fn show_windows_startup_dialog(title: &str, heading: &str, message: &str, detail: Option<&str>) {
-    let title = powershell_single_quoted(title);
-    let heading = powershell_single_quoted(heading);
-    let message = powershell_single_quoted(message);
-    let detail = powershell_single_quoted(detail.unwrap_or_default());
-    let script = format!(
-        r##"
-Add-Type -AssemblyName PresentationFramework
-Add-Type -AssemblyName PresentationCore
-Add-Type -AssemblyName WindowsBase
+    let text = match detail.filter(|value| !value.trim().is_empty()) {
+        Some(detail) => format!("{heading}\r\n\r\n{message}\r\n\r\n{detail}"),
+        None => format!("{heading}\r\n\r\n{message}"),
+    };
+    let title = to_wide_null(title);
+    let text = to_wide_null(&text);
 
-$title = {title}
-$heading = {heading}
-$message = {message}
-$detail = {detail}
-
-$window = New-Object System.Windows.Window
-$window.Title = $title
-$window.Width = 720
-$window.SizeToContent = 'Height'
-$window.WindowStartupLocation = 'CenterScreen'
-$window.ResizeMode = 'NoResize'
-$window.WindowStyle = 'None'
-$window.AllowsTransparency = $true
-$window.Background = 'Transparent'
-$window.Topmost = $true
-$window.FontFamily = 'Microsoft YaHei UI'
-
-$shadow = New-Object System.Windows.Media.Effects.DropShadowEffect
-$shadow.BlurRadius = 40
-$shadow.ShadowDepth = 12
-$shadow.Opacity = 0.2
-$shadow.Color = [System.Windows.Media.Color]::FromRgb(31, 41, 55)
-
-$card = New-Object System.Windows.Controls.Border
-$card.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#F4F5F3')
-$card.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#EEF0ED')
-$card.BorderThickness = 1
-$card.CornerRadius = 16
-$card.Padding = '0'
-$card.Effect = $shadow
-
-$grid = New-Object System.Windows.Controls.Grid
-$grid.RowDefinitions.Add((New-Object System.Windows.Controls.RowDefinition -Property @{{ Height = 'Auto' }}))
-$grid.RowDefinitions.Add((New-Object System.Windows.Controls.RowDefinition -Property @{{ Height = 'Auto' }}))
-$grid.RowDefinitions.Add((New-Object System.Windows.Controls.RowDefinition -Property @{{ Height = 'Auto' }}))
-
-$header = New-Object System.Windows.Controls.Grid
-$header.Margin = '32,26,24,20'
-$header.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{{ Width = '*' }}))
-$header.ColumnDefinitions.Add((New-Object System.Windows.Controls.ColumnDefinition -Property @{{ Width = 'Auto' }}))
-
-$titleStack = New-Object System.Windows.Controls.StackPanel
-[System.Windows.Controls.Grid]::SetColumn($titleStack, 0)
-
-$titleText = New-Object System.Windows.Controls.TextBlock
-$titleText.Text = $title
-$titleText.FontSize = 22
-$titleText.FontWeight = 'Bold'
-$titleText.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#11A45D')
-$titleStack.Children.Add($titleText) | Out-Null
-
-$subtitleText = New-Object System.Windows.Controls.TextBlock
-$subtitleText.Text = $heading
-$subtitleText.FontSize = 13.5
-$subtitleText.FontWeight = 'SemiBold'
-$subtitleText.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#9CA3AF')
-$subtitleText.Margin = '0,8,0,0'
-$subtitleText.TextWrapping = 'Wrap'
-$titleStack.Children.Add($subtitleText) | Out-Null
-$header.Children.Add($titleStack) | Out-Null
-
-$closeButton = New-Object System.Windows.Controls.Border
-$closeButton.Width = 42
-$closeButton.Height = 42
-$closeButton.CornerRadius = 21
-$closeButton.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#F9FAFB')
-$closeButton.Cursor = 'Hand'
-$closeButton.ToolTip = '关闭'
-$closeShadow = New-Object System.Windows.Media.Effects.DropShadowEffect
-$closeShadow.BlurRadius = 14
-$closeShadow.ShadowDepth = 2
-$closeShadow.Opacity = 0.18
-$closeShadow.Color = [System.Windows.Media.Color]::FromRgb(31, 41, 55)
-$closeButton.Effect = $closeShadow
-$closeText = New-Object System.Windows.Controls.TextBlock
-$closeText.Text = '×'
-$closeText.FontSize = 24
-$closeText.LineHeight = 24
-$closeText.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#6B7280')
-$closeText.HorizontalAlignment = 'Center'
-$closeText.VerticalAlignment = 'Center'
-$closeButton.Child = $closeText
-$closeButton.Add_MouseEnter({{ $closeButton.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FFFFFF') }})
-$closeButton.Add_MouseLeave({{ $closeButton.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#F9FAFB') }})
-$closeButton.Add_MouseLeftButtonUp({{ $window.Close() }})
-[System.Windows.Controls.Grid]::SetColumn($closeButton, 1)
-$header.Children.Add($closeButton) | Out-Null
-$grid.Children.Add($header) | Out-Null
-
-$content = New-Object System.Windows.Controls.StackPanel
-$content.Margin = '32,0,32,16'
-[System.Windows.Controls.Grid]::SetRow($content, 1)
-
-$messageCard = New-Object System.Windows.Controls.Border
-$messageCard.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FBFBFC')
-$messageCard.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#E9ECEF')
-$messageCard.BorderThickness = 1
-$messageCard.CornerRadius = 12
-$messageCard.Padding = '24,20,24,22'
-$messageCard.Margin = '0,0,0,14'
-$messageShadow = New-Object System.Windows.Media.Effects.DropShadowEffect
-$messageShadow.BlurRadius = 12
-$messageShadow.ShadowDepth = 2
-$messageShadow.Opacity = 0.08
-$messageShadow.Color = [System.Windows.Media.Color]::FromRgb(31, 41, 55)
-$messageCard.Effect = $messageShadow
-
-$messageStack = New-Object System.Windows.Controls.StackPanel
-
-$messageText = New-Object System.Windows.Controls.TextBlock
-$messageText.Text = $message
-$messageText.FontSize = 14
-$messageText.LineHeight = 26
-$messageText.TextWrapping = 'Wrap'
-$messageText.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#4B5563')
-$messageStack.Children.Add($messageText) | Out-Null
-$messageCard.Child = $messageStack
-$content.Children.Add($messageCard) | Out-Null
-
-if ($detail.Trim().Length -gt 0) {{
-  $detailBox = New-Object System.Windows.Controls.Border
-  $detailBox.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#FBFBFC')
-  $detailBox.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#E9ECEF')
-  $detailBox.BorderThickness = 1
-  $detailBox.CornerRadius = 12
-  $detailBox.Padding = '24,18,24,20'
-  $detailBox.Margin = '0,0,0,0'
-  $detailBox.Effect = $messageShadow
-  $detailText = New-Object System.Windows.Controls.TextBlock
-  $detailText.Text = $detail
-  $detailText.FontSize = 12
-  $detailText.LineHeight = 22
-  $detailText.TextWrapping = 'Wrap'
-  $detailText.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#6B7280')
-  $detailBox.Child = $detailText
-  $content.Children.Add($detailBox) | Out-Null
-}}
-
-$buttonBar = New-Object System.Windows.Controls.Border
-$buttonBar.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#EEF0ED')
-$buttonBar.BorderBrush = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#E3E6E1')
-$buttonBar.BorderThickness = '0,1,0,0'
-$buttonBar.Padding = '32,18,32,18'
-[System.Windows.Controls.Grid]::SetRow($buttonBar, 2)
-
-$buttonPanel = New-Object System.Windows.Controls.StackPanel
-$buttonPanel.HorizontalAlignment = 'Right'
-$buttonPanel.Orientation = 'Horizontal'
-$okButton = New-Object System.Windows.Controls.Border
-$okButton.Width = 118
-$okButton.Height = 44
-$okButton.CornerRadius = 16
-$okButton.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#11A45D')
-$okButton.BorderThickness = 0
-$okButton.Cursor = 'Hand'
-$okShadow = New-Object System.Windows.Media.Effects.DropShadowEffect
-$okShadow.BlurRadius = 22
-$okShadow.ShadowDepth = 7
-$okShadow.Opacity = 0.26
-$okShadow.Color = [System.Windows.Media.Color]::FromRgb(17, 164, 93)
-$okButton.Effect = $okShadow
-$okText = New-Object System.Windows.Controls.TextBlock
-$okText.Text = '完成'
-$okText.FontSize = 14
-$okText.FontWeight = 'SemiBold'
-$okText.Foreground = [System.Windows.Media.Brushes]::White
-$okText.HorizontalAlignment = 'Center'
-$okText.VerticalAlignment = 'Center'
-$okButton.Child = $okText
-$okButton.Add_MouseEnter({{ $okButton.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#0F9655') }})
-$okButton.Add_MouseLeave({{ $okButton.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString('#11A45D') }})
-$okButton.Add_MouseLeftButtonUp({{ $window.Close() }})
-$buttonPanel.Children.Add($okButton) | Out-Null
-$buttonBar.Child = $buttonPanel
-$grid.Children.Add($content) | Out-Null
-$grid.Children.Add($buttonBar) | Out-Null
-
-$card.Child = $grid
-$window.Content = $card
-$window.Add_MouseLeftButtonDown({{
-  try {{ $window.DragMove() }} catch {{}}
-}})
-$window.Add_KeyDown({{
-  if ($_.Key -eq 'Escape' -or $_.Key -eq 'Enter') {{
-    $window.Close()
-  }}
-}})
-$window.ShowDialog() | Out-Null
-"##
-    );
-
-    let _ = run_interactive_powershell_script(&script);
+    unsafe {
+        MessageBoxW(
+            std::ptr::null_mut(),
+            text.as_ptr(),
+            title.as_ptr(),
+            MB_OK | MB_ICONWARNING | MB_SETFOREGROUND | MB_TOPMOST,
+        );
+    }
 }
 
 #[cfg(target_os = "windows")]
