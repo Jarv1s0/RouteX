@@ -3,8 +3,7 @@ name: Tauri Auto Build
 on:
   push:
     branches:
-      - develop
-      - tauri-develop
+      - main
   workflow_dispatch:
 
 concurrency:
