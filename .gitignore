@@ -3,9 +3,13 @@ resources/files
 resources/sidecar
 extra
 dist
+dist-tauri
 out
 .DS_Store
 *.log*
+*.tsbuildinfo
+.tmp-*
+.codex-tmp/
 .idea
 *.ttf
 .ai_memory/
