@@ -28,6 +28,16 @@ const MIN_TAURI_CONNECTION_INTERVAL = 500
 let tauriRuntimeConfigRevision = 0
 
 const CHECK_LATEST_VERSION_CACHE_MS = 3 * 60 * 1000
+type TauriSocketKey = keyof typeof tauriSockets
+
+type RetainTauriBridgeOptions = {
+  key: TauriSocketKey
+  retainReason: string
+  getRefCount: () => number
+  setRefCount: (value: number) => void
+  startSocket: (controllerUrl: string, version: number) => void
+  shouldStartSocket?: () => boolean
+}
 
 function isTauriHost(): boolean {
   return __ROUTEX_HOST__ === 'tauri'
@@ -209,16 +219,25 @@ export function onTauriBridgeConnectionsReady(listener: () => void): () => void 
   }
 }
 
-export function retainTauriConnectionsBridge(): () => void {
+function retainTauriBridge({
+  key,
+  retainReason,
+  getRefCount,
+  setRefCount,
+  startSocket,
+  shouldStartSocket = () => true
+}: RetainTauriBridgeOptions): () => void {
   if (!isTauriHost()) {
     return () => undefined
   }
 
-  tauriConnectionsBridgeRefCount += 1
+  setRefCount(getRefCount() + 1)
   if (tauriBridgeActiveControllerUrl) {
-    startTauriConnectionsSocket(tauriBridgeActiveControllerUrl, tauriBridgeStartVersion)
+    if (shouldStartSocket()) {
+      startSocket(tauriBridgeActiveControllerUrl, tauriBridgeStartVersion)
+    }
   } else {
-    startTauriMihomoEventBridge('connections-retain')
+    startTauriMihomoEventBridge(retainReason)
   }
 
   let released = false
@@ -228,67 +247,50 @@ export function retainTauriConnectionsBridge(): () => void {
     }
 
     released = true
-    tauriConnectionsBridgeRefCount = Math.max(0, tauriConnectionsBridgeRefCount - 1)
-    if (tauriConnectionsBridgeRefCount === 0) {
-      closeTauriSocket('connections')
+    const nextRefCount = Math.max(0, getRefCount() - 1)
+    setRefCount(nextRefCount)
+    if (nextRefCount === 0) {
+      closeTauriSocket(key)
     }
   }
+}
+
+export function retainTauriConnectionsBridge(): () => void {
+  return retainTauriBridge({
+    key: 'connections',
+    retainReason: 'connections-retain',
+    getRefCount: () => tauriConnectionsBridgeRefCount,
+    setRefCount: (value) => {
+      tauriConnectionsBridgeRefCount = value
+    },
+    startSocket: startTauriConnectionsSocket
+  })
 }
 
 export function retainTauriMemoryBridge(): () => void {
-  if (!isTauriHost()) {
-    return () => undefined
-  }
-
-  tauriMemoryBridgeRefCount += 1
-  if (tauriBridgeActiveControllerUrl) {
-    if (!tauriSockets.memory) {
-      startTauriMemorySocket(tauriBridgeActiveControllerUrl, tauriBridgeStartVersion)
-    }
-  } else {
-    startTauriMihomoEventBridge('memory-retain')
-  }
-
-  let released = false
-  return () => {
-    if (released) {
-      return
-    }
-
-    released = true
-    tauriMemoryBridgeRefCount = Math.max(0, tauriMemoryBridgeRefCount - 1)
-    if (tauriMemoryBridgeRefCount === 0) {
-      closeTauriSocket('memory')
-    }
-  }
+  return retainTauriBridge({
+    key: 'memory',
+    retainReason: 'memory-retain',
+    getRefCount: () => tauriMemoryBridgeRefCount,
+    setRefCount: (value) => {
+      tauriMemoryBridgeRefCount = value
+    },
+    startSocket: startTauriMemorySocket,
+    shouldStartSocket: () => !tauriSockets.memory
+  })
 }
 
 export function retainTauriLogsBridge(): () => void {
-  if (!isTauriHost()) {
-    return () => undefined
-  }
-
-  tauriLogsBridgeRefCount += 1
-  if (tauriBridgeActiveControllerUrl) {
-    if (!tauriSockets.logs) {
-      startTauriLogsSocket(tauriBridgeActiveControllerUrl, tauriBridgeStartVersion)
-    }
-  } else {
-    startTauriMihomoEventBridge('logs-retain')
-  }
-
-  let released = false
-  return () => {
-    if (released) {
-      return
-    }
-
-    released = true
-    tauriLogsBridgeRefCount = Math.max(0, tauriLogsBridgeRefCount - 1)
-    if (tauriLogsBridgeRefCount === 0) {
-      closeTauriSocket('logs')
-    }
-  }
+  return retainTauriBridge({
+    key: 'logs',
+    retainReason: 'logs-retain',
+    getRefCount: () => tauriLogsBridgeRefCount,
+    setRefCount: (value) => {
+      tauriLogsBridgeRefCount = value
+    },
+    startSocket: startTauriLogsSocket,
+    shouldStartSocket: () => !tauriSockets.logs
+  })
 }
 
 function emitTauriBridgeConnectionsReady(): void {

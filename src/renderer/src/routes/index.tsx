@@ -3,11 +3,10 @@ import { Navigate, type NavigateFunction } from 'react-router-dom'
 import { RulesProvider } from '@renderer/hooks/use-rules'
 import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
 import { debugLog } from '@renderer/utils/logger'
-import Connections from '@renderer/pages/connections'
 
 type LazyRouteModule = { default: React.ComponentType }
 
-const routeLoaders: Record<string, () => Promise<LazyRouteModule>> = {
+const routeLoaders = {
   '/mihomo': () => import('@renderer/pages/mihomo'),
   '/sysproxy': () => import('@renderer/pages/sysproxy'),
   '/tun': () => import('@renderer/pages/tun'),
@@ -16,12 +15,20 @@ const routeLoaders: Record<string, () => Promise<LazyRouteModule>> = {
   '/dns': () => import('@renderer/pages/dns'),
   '/sniffer': () => import('@renderer/pages/sniffer'),
   '/logs': () => import('@renderer/pages/logs'),
+  '/connections': () => import('@renderer/pages/connections'),
   '/profiles': () => import('@renderer/pages/profiles'),
   '/settings': () => import('@renderer/pages/settings'),
   '/stats': () => import('@renderer/pages/stats'),
   '/tools': () => import('@renderer/pages/tools'),
   '/map': () => import('@renderer/pages/map')
-}
+} satisfies Record<string, () => Promise<LazyRouteModule>>
+
+type RoutePath = keyof typeof routeLoaders
+type LazyRouteComponent = React.LazyExoticComponent<React.ComponentType>
+
+const routeComponents = Object.fromEntries(
+  Object.entries(routeLoaders).map(([path, loader]) => [path, React.lazy(loader)])
+) as Record<RoutePath, LazyRouteComponent>
 
 const preloadedRoutes = new Set<string>()
 
@@ -32,7 +39,7 @@ function getRoutePath(path: string): string {
 
 export function preloadSidebarRoute(path: string): void {
   const routePath = getRoutePath(path)
-  const loader = routeLoaders[routePath]
+  const loader = routeLoaders[routePath as RoutePath]
 
   if (!loader || preloadedRoutes.has(routePath)) {
     return
@@ -63,20 +70,6 @@ export function preloadSidebarRoutes(): void {
   scheduleNext()
 }
 
-const Proxies = React.lazy(routeLoaders['/proxies'])
-const Rules = React.lazy(routeLoaders['/rules'])
-const Settings = React.lazy(routeLoaders['/settings'])
-const Profiles = React.lazy(routeLoaders['/profiles'])
-const Logs = React.lazy(routeLoaders['/logs'])
-const Mihomo = React.lazy(routeLoaders['/mihomo'])
-const Sysproxy = React.lazy(routeLoaders['/sysproxy'])
-const Tun = React.lazy(routeLoaders['/tun'])
-const DNS = React.lazy(routeLoaders['/dns'])
-const Sniffer = React.lazy(routeLoaders['/sniffer'])
-const Stats = React.lazy(routeLoaders['/stats'])
-const Tools = React.lazy(routeLoaders['/tools'])
-const MapPage = React.lazy(routeLoaders['/map'])
-
 // ─── 模块级 navigate 引用，供 navigateSidebarRoute 使用 ───
 let _navigate: NavigateFunction | null = null
 
@@ -95,7 +88,9 @@ function LazyRoute({ children }: { children: React.ReactNode }): React.JSX.Eleme
   return <React.Suspense fallback={null}>{children}</React.Suspense>
 }
 
-function lazyElement(Component: React.LazyExoticComponent<React.ComponentType>): React.JSX.Element {
+function lazyElement(routePath: RoutePath): React.JSX.Element {
+  const Component = routeComponents[routePath]
+
   return (
     <LazyRoute>
       <Component />
@@ -134,6 +129,8 @@ export function navigateSidebarRoute(path: string): void {
 }
 
 function RulesRoute(): React.JSX.Element {
+  const Rules = routeComponents['/rules']
+
   return (
     <LazyRoute>
       <RulesProvider>
@@ -144,6 +141,8 @@ function RulesRoute(): React.JSX.Element {
 }
 
 function ProfilesRoute(): React.JSX.Element {
+  const Profiles = routeComponents['/profiles']
+
   return (
     <LazyRoute>
       <OverrideConfigProvider>
@@ -156,19 +155,19 @@ function ProfilesRoute(): React.JSX.Element {
 const routes = [
   {
     path: '/mihomo',
-    element: lazyElement(Mihomo)
+    element: lazyElement('/mihomo')
   },
   {
     path: '/sysproxy',
-    element: lazyElement(Sysproxy)
+    element: lazyElement('/sysproxy')
   },
   {
     path: '/tun',
-    element: lazyElement(Tun)
+    element: lazyElement('/tun')
   },
   {
     path: '/proxies',
-    element: lazyElement(Proxies)
+    element: lazyElement('/proxies')
   },
   {
     path: '/rules',
@@ -177,23 +176,19 @@ const routes = [
 
   {
     path: '/dns',
-    element: lazyElement(DNS)
+    element: lazyElement('/dns')
   },
   {
     path: '/sniffer',
-    element: lazyElement(Sniffer)
+    element: lazyElement('/sniffer')
   },
   {
     path: '/logs',
-    element: lazyElement(Logs)
+    element: lazyElement('/logs')
   },
   {
     path: '/connections',
-    element: (
-      <LazyRoute>
-        <Connections />
-      </LazyRoute>
-    )
+    element: lazyElement('/connections')
   },
   {
     path: '/override',
@@ -205,19 +200,19 @@ const routes = [
   },
   {
     path: '/settings',
-    element: lazyElement(Settings)
+    element: lazyElement('/settings')
   },
   {
     path: '/stats',
-    element: lazyElement(Stats)
+    element: lazyElement('/stats')
   },
   {
     path: '/tools',
-    element: lazyElement(Tools)
+    element: lazyElement('/tools')
   },
   {
     path: '/map',
-    element: lazyElement(MapPage)
+    element: lazyElement('/map')
   },
   {
     path: '/',

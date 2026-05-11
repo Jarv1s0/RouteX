@@ -27,7 +27,7 @@ import {
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getHash } from '@renderer/utils/hash'
 import { Virtuoso } from 'react-virtuoso'
-import type { KeyboardEvent } from 'react'
+import type { Key, KeyboardEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MdContentPaste, MdTune } from 'react-icons/md'
 import {
@@ -81,6 +81,10 @@ function normalizeManagementTab(tab: string | null): ManagementTab {
     return tab
   }
   return 'profiles'
+}
+
+function getFileName(filePath: string): string | undefined {
+  return filePath.split('/').pop()?.split('\\').pop()
 }
 
 const ProfilesPage: React.FC = () => {
@@ -264,6 +268,97 @@ const ProfilesPage: React.FC = () => {
       setOverrideImporting(false)
     }
   }, [addOverrideItem, overrideUrl])
+
+  const handleProfileCreateAction = useCallback(
+    async (key: Key): Promise<void> => {
+      switch (key) {
+        case 'open': {
+          try {
+            const files = await getFilePath(['yml', 'yaml'])
+            if (!files?.length) return
+
+            const content = await readTextFile(files[0])
+            await addProfileItem({ name: getFileName(files[0]), type: 'local', file: content })
+          } catch (e) {
+            notifyError(e)
+          }
+          break
+        }
+        case 'new':
+          await addProfileItem({
+            name: '新配置',
+            type: 'local',
+            file: 'proxies: []\nproxy-groups: []\nrules: []'
+          })
+          break
+        case 'import':
+          setEditingItem({
+            id: '',
+            name: '',
+            type: 'remote',
+            url: '',
+            useProxy: false,
+            autoUpdate: true
+          })
+          setShowEditModal(true)
+          break
+      }
+    },
+    [addProfileItem]
+  )
+
+  const handleOverrideCreateAction = useCallback(
+    async (key: Key): Promise<void> => {
+      switch (key) {
+        case 'open': {
+          try {
+            const files = await getFilePath(OVERRIDE_FILE_EXTENSIONS)
+            if (!files?.length) return
+
+            const content = await readTextFile(files[0])
+            const fileName = getFileName(files[0])
+            await addOverrideItem({
+              name: fileName,
+              type: 'local',
+              file: content,
+              ext: inferOverrideExt(fileName)
+            })
+          } catch (e) {
+            notifyError(e, { title: '打开本地覆写失败' })
+          }
+          break
+        }
+        case 'new-yaml':
+          await addOverrideItem({
+            name: '新建 YAML',
+            type: 'local',
+            file: '# https://mihomo.party/docs/guide/override/yaml',
+            ext: 'yaml'
+          })
+          break
+        case 'new-js':
+          await addOverrideItem({
+            name: '新建 JavaScript',
+            type: 'local',
+            file: DEFAULT_JAVASCRIPT_OVERRIDE,
+            ext: 'js'
+          })
+          break
+        case 'import':
+          setEditingOverrideItem({
+            id: '',
+            name: '',
+            type: 'remote',
+            url: '',
+            ext: 'yaml',
+            updated: Date.now()
+          })
+          setShowOverrideEditModal(true)
+          break
+      }
+    },
+    [addOverrideItem]
+  )
 
   const onToggleOverride = useCallback(
     async (id: string, active: boolean): Promise<void> => {
@@ -647,46 +742,7 @@ const ProfilesPage: React.FC = () => {
                     <FaPlus />
                   </Button>
                 </DropdownTrigger>
-                <DropdownMenu
-                  onAction={async (key) => {
-                    switch (key) {
-                      case 'open': {
-                        try {
-                          const files = await getFilePath(['yml', 'yaml'])
-                          if (files?.length) {
-                            const content = await readTextFile(files[0])
-                            const fileName = files[0].split('/').pop()?.split('\\').pop()
-                            await addProfileItem({ name: fileName, type: 'local', file: content })
-                          }
-                        } catch (e) {
-                          notifyError(e)
-                        }
-                        break
-                      }
-                      case 'new': {
-                        await addProfileItem({
-                          name: '新配置',
-                          type: 'local',
-                          file: 'proxies: []\nproxy-groups: []\nrules: []'
-                        })
-                        break
-                      }
-                      case 'import': {
-                        const newRemoteProfile: ProfileItem = {
-                          id: '',
-                          name: '',
-                          type: 'remote',
-                          url: '',
-                          useProxy: false,
-                          autoUpdate: true
-                        }
-                        setEditingItem(newRemoteProfile)
-                        setShowEditModal(true)
-                        break
-                      }
-                    }
-                  }}
-                >
+                <DropdownMenu onAction={(key) => void handleProfileCreateAction(key)}>
                   <DropdownItem key="open">打开本地配置</DropdownItem>
                   <DropdownItem key="new">新建本地配置</DropdownItem>
                   <DropdownItem key="import">导入远程配置</DropdownItem>
@@ -736,52 +792,7 @@ const ProfilesPage: React.FC = () => {
                     <FaPlus />
                   </Button>
                 </DropdownTrigger>
-                <DropdownMenu
-                  onAction={async (key) => {
-                    if (key === 'open') {
-                      try {
-                        const files = await getFilePath(OVERRIDE_FILE_EXTENSIONS)
-                        if (files?.length) {
-                          const content = await readTextFile(files[0])
-                          const fileName = files[0].split('/').pop()?.split('\\').pop()
-                          await addOverrideItem({
-                            name: fileName,
-                            type: 'local',
-                            file: content,
-                            ext: inferOverrideExt(fileName)
-                          })
-                        }
-                      } catch (e) {
-                        notifyError(e, { title: '打开本地覆写失败' })
-                      }
-                    } else if (key === 'new-yaml') {
-                      await addOverrideItem({
-                        name: '新建 YAML',
-                        type: 'local',
-                        file: '# https://mihomo.party/docs/guide/override/yaml',
-                        ext: 'yaml'
-                      })
-                    } else if (key === 'new-js') {
-                      await addOverrideItem({
-                        name: '新建 JavaScript',
-                        type: 'local',
-                        file: DEFAULT_JAVASCRIPT_OVERRIDE,
-                        ext: 'js'
-                      })
-                    } else if (key === 'import') {
-                      const newRemoteOverride: OverrideItem = {
-                        id: '',
-                        name: '',
-                        type: 'remote',
-                        url: '',
-                        ext: 'yaml',
-                        updated: Date.now()
-                      }
-                      setEditingOverrideItem(newRemoteOverride)
-                      setShowOverrideEditModal(true)
-                    }
-                  }}
-                >
+                <DropdownMenu onAction={(key) => void handleOverrideCreateAction(key)}>
                   <DropdownItem key="open">打开本地覆写</DropdownItem>
                   <DropdownItem key="import">导入远程覆写</DropdownItem>
                   <DropdownItem key="new-yaml">新建 YAML</DropdownItem>
