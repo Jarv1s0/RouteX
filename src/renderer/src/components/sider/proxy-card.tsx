@@ -6,7 +6,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getFlag, removeFlag, cleanNodeName } from '@renderer/utils/flags'
 import React, { useMemo } from 'react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { navigateSidebarRoute } from '@renderer/routes'
+import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 
 interface Props {
   iconOnly?: boolean
@@ -28,6 +28,9 @@ const ProxyCard: React.FC<Props> = (props) => {
 
   const handleCardClick = (): void => {
     navigateSidebarRoute('/proxies')
+  }
+  const handlePreload = (): void => {
+    preloadSidebarRoute('/proxies')
   }
 
   const allProxies = useMemo(() => {
@@ -92,6 +95,8 @@ const ProxyCard: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
+            onFocus={handlePreload}
+            onMouseEnter={handlePreload}
             onPress={handleCardClick}
           >
             <LuRocket className="text-[16px]" />
@@ -105,6 +110,7 @@ const ProxyCard: React.FC<Props> = (props) => {
       <Card
         fullWidth
         isPressable
+        onMouseEnter={handlePreload}
         onPress={handleCardClick}
         className={`
           ${CARD_STYLES.BASE}

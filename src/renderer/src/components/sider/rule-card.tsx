@@ -11,7 +11,7 @@ import {
   mihomoRuleProviders,
   mihomoUpdateRuleProviders
 } from '@renderer/utils/mihomo-ipc'
-import { navigateSidebarRoute } from '@renderer/routes'
+import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 
 interface Props {
   iconOnly?: boolean
@@ -123,6 +123,9 @@ const RuleCard: React.FC<Props> = (props) => {
   const startupSignatureRef = useRef('')
   const handleNavigate = (): void => {
     navigateSidebarRoute('/rules')
+  }
+  const handlePreload = (): void => {
+    preloadSidebarRoute('/rules')
   }
 
   const clearRetryTimer = useCallback((): void => {
@@ -411,6 +414,8 @@ const RuleCard: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
+            onFocus={handlePreload}
+            onMouseEnter={handlePreload}
             onPress={handleNavigate}
           >
             <LuGitBranch className="text-[16px]" />
@@ -425,6 +430,7 @@ const RuleCard: React.FC<Props> = (props) => {
       className={`rule-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
+      onMouseEnter={handlePreload}
       onClick={handleNavigate}
     >
       <div className="flex items-center justify-between h-7">
@@ -437,7 +443,7 @@ const RuleCard: React.FC<Props> = (props) => {
           <h3
             className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}
           >
-            路由规则
+            规则
           </h3>
         </div>
         <div

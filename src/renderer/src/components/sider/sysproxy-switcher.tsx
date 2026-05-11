@@ -6,7 +6,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { triggerSysProxy } from '@renderer/utils/mihomo-ipc'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { navigateSidebarRoute } from '@renderer/routes'
+import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { LuGlobe } from 'react-icons/lu'
 import React from 'react'
 
@@ -30,6 +30,9 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
   const { 'mixed-port': mixedPort } = controledMihomoConfig || {}
 
   const disabled = mixedPort == 0
+  const handlePreload = (): void => {
+    preloadSidebarRoute('/sysproxy')
+  }
   const onChange = async (enable: boolean): Promise<void> => {
     if (mode == 'manual' && disabled) return
     try {
@@ -51,6 +54,8 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
+            onFocus={handlePreload}
+            onMouseEnter={handlePreload}
             onPress={() => {
               navigateSidebarRoute('/sysproxy')
             }}
@@ -65,6 +70,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
   if (compact) {
     return (
       <div
+        onMouseEnter={handlePreload}
         onClick={() => navigateSidebarRoute('/sysproxy')}
         className={`${sysproxyCardStatus} sysproxy-card flex h-full flex-1 items-center justify-between gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors group ${
           match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
@@ -92,6 +98,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
 
   return (
     <div
+      onMouseEnter={handlePreload}
       onClick={() => navigateSidebarRoute('/sysproxy')}
       className={`${sysproxyCardStatus} sysproxy-card flex flex-1 items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM

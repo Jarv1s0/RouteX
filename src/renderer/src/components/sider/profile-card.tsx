@@ -6,7 +6,7 @@ import { LuCloud, LuFileCode, LuRotateCw, LuRss } from 'react-icons/lu'
 import React, { Suspense, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { navigateSidebarRoute } from '@renderer/routes'
+import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 
 const ConfigViewer = React.lazy(() => import('./config-viewer'))
 const relativeTimeFormatter = new Intl.RelativeTimeFormat('zh-CN', { numeric: 'auto' })
@@ -62,6 +62,9 @@ const ProfileCard: React.FC<Props> = (props) => {
   const handleNavigate = (): void => {
     navigateSidebarRoute('/profiles')
   }
+  const handlePreload = (): void => {
+    preloadSidebarRoute('/profiles')
+  }
   const [updating, setUpdating] = useState(false)
   const [showRuntimeConfig, setShowRuntimeConfig] = useState(false)
   const { profileConfig, addProfileItem } = useProfileConfig()
@@ -88,6 +91,8 @@ const ProfileCard: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
+            onFocus={handlePreload}
+            onMouseEnter={handlePreload}
             onPress={handleNavigate}
           >
             <LuRss className="text-[17px]" />
@@ -102,6 +107,7 @@ const ProfileCard: React.FC<Props> = (props) => {
       className={`profile-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
+      onMouseEnter={handlePreload}
       onClick={handleNavigate}
     >
       {showRuntimeConfig && (

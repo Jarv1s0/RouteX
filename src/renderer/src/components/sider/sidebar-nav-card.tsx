@@ -1,7 +1,7 @@
 import { Button, Tooltip } from '@heroui/react'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React from 'react'
-import { navigateSidebarRoute } from '@renderer/routes'
+import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { useLocation } from 'react-router-dom'
 
 export interface SidebarNavItemProps {
@@ -30,6 +30,17 @@ const SidebarNavCard: React.FC<Props> = ({
   const handleNavigate = (): void => {
     navigateSidebarRoute(path)
   }
+  const handlePreload = (): void => {
+    preloadSidebarRoute(path)
+  }
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return
+    }
+
+    event.preventDefault()
+    handleNavigate()
+  }
 
   if (iconOnly) {
     return (
@@ -40,6 +51,8 @@ const SidebarNavCard: React.FC<Props> = ({
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
+            onFocus={handlePreload}
+            onMouseEnter={handlePreload}
             onPress={handleNavigate}
           >
             <Icon className={iconOnlySizeClass} />
@@ -54,7 +67,13 @@ const SidebarNavCard: React.FC<Props> = ({
       className={`app-nodrag flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-colors group ${className} ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
+      onFocus={handlePreload}
       onClick={handleNavigate}
+      onMouseEnter={handlePreload}
+      onMouseDown={handlePreload}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
     >
       <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
         <Icon className="text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-primary" />

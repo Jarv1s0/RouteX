@@ -8,7 +8,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { getIconDataURL } from '@renderer/utils/resource-ipc'
 import { platform } from '@renderer/utils/init'
-import { navigateSidebarRoute } from '@renderer/routes'
+import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
 import TrafficChart from './traffic-chart'
 
@@ -33,6 +33,9 @@ const ConnCard: React.FC<Props> = (props) => {
   const match = location.pathname.includes('/connections')
   const handleNavigate = (): void => {
     navigateSidebarRoute('/connections')
+  }
+  const handlePreload = (): void => {
+    preloadSidebarRoute('/connections')
   }
 
   const [upload, setUpload] = useState(0)
@@ -110,6 +113,8 @@ const ConnCard: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
+            onFocus={handlePreload}
+            onMouseEnter={handlePreload}
             onPress={handleNavigate}
           >
             <LuPlug className="text-[16px]" />
@@ -124,6 +129,7 @@ const ConnCard: React.FC<Props> = (props) => {
       <Card
         fullWidth
         isPressable
+        onMouseEnter={handlePreload}
         onPress={handleNavigate}
         className={`
           ${CARD_STYLES.BASE}

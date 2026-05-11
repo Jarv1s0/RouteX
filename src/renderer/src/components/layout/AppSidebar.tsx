@@ -22,7 +22,7 @@ import MihomoIcon from '@renderer/components/base/mihomo-icon'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { navigateSidebarRoute } from '@renderer/routes'
+import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 
 interface LatestVersion {
   version: string
@@ -48,6 +48,9 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
 
     const handleSettingsNavigate = (): void => {
       navigateSidebarRoute('/settings')
+    }
+    const handleSettingsPreload = (): void => {
+      preloadSidebarRoute('/settings')
     }
 
     const isNarrow = width === narrowWidth
@@ -88,6 +91,8 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
               isIconOnly
               color={location.pathname.includes('/settings') ? 'primary' : 'default'}
               variant={location.pathname.includes('/settings') ? 'solid' : 'light'}
+              onFocus={handleSettingsPreload}
+              onMouseEnter={handleSettingsPreload}
               onPress={handleSettingsNavigate}
             >
               <IoSettings className="text-[20px]" />
@@ -122,6 +127,8 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
                 className="app-nodrag group"
                 isIconOnly
                 variant="light"
+                onFocus={handleSettingsPreload}
+                onMouseEnter={handleSettingsPreload}
                 onPress={handleSettingsNavigate}
               >
                 <IoSettings

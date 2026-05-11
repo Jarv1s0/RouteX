@@ -1,7 +1,7 @@
 import { useTheme } from 'next-themes'
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useRoutes } from 'react-router-dom'
-import routes, { setRouterNavigate } from '@renderer/routes'
+import routes, { preloadSidebarRoutes, setRouterNavigate } from '@renderer/routes'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
@@ -160,6 +160,10 @@ const App: React.FC = () => {
 
     startTauriMihomoEventBridge()
     ensureTauriTrafficRecorder()
+  }, [])
+
+  useEffect(() => {
+    return scheduleIdleDeferredTask(preloadSidebarRoutes, 2000, 8000)
   }, [])
 
   useEffect(() => {

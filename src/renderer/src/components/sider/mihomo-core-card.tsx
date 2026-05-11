@@ -14,7 +14,7 @@ import PubSub from 'pubsub-js'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { navigateSidebarRoute } from '@renderer/routes'
+import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 
 interface Props {
   iconOnly?: boolean
@@ -37,6 +37,9 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   const match = location.pathname.includes('/mihomo')
   const handleNavigate = (): void => {
     navigateSidebarRoute('/mihomo')
+  }
+  const handlePreload = (): void => {
+    preloadSidebarRoute('/mihomo')
   }
 
   const [mem, setMem] = useState(0)
@@ -150,12 +153,14 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
-        <Tooltip content="内核设置" placement="right">
+        <Tooltip content="内核" placement="right">
           <Button
             size="sm"
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant="flat"
+            onFocus={handlePreload}
+            onMouseEnter={handlePreload}
             onPress={handleNavigate}
           >
             <LuCpu className="text-[16px]" />
@@ -170,6 +175,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
       className={`mihomo-core-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
+      onMouseEnter={handlePreload}
       onClick={handleNavigate}
     >
       <div className="flex items-center justify-between h-7">
@@ -182,7 +188,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
           <h3
             className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}
           >
-            内核设置
+            内核
           </h3>
         </div>
         <div

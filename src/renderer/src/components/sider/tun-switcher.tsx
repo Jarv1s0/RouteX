@@ -9,7 +9,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { navigateSidebarRoute } from '@renderer/routes'
+import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { notifyError } from '@renderer/utils/notify'
 import { checkElevateTask } from '@renderer/utils/service-ipc'
 
@@ -43,6 +43,9 @@ const TunSwitcher: React.FC<Props> = (props) => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { tun, dns } = controledMihomoConfig || {}
   const { enable } = tun || {}
+  const handlePreload = (): void => {
+    preloadSidebarRoute('/tun')
+  }
 
   const onChange = async (enable: boolean): Promise<void> => {
     try {
@@ -104,6 +107,8 @@ const TunSwitcher: React.FC<Props> = (props) => {
             isIconOnly
             color={match ? 'primary' : 'default'}
             variant={match ? 'solid' : 'light'}
+            onFocus={handlePreload}
+            onMouseEnter={handlePreload}
             onPress={() => {
               navigateSidebarRoute('/tun')
             }}
@@ -118,6 +123,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
   if (compact) {
     return (
       <div
+        onMouseEnter={handlePreload}
         onClick={() => navigateSidebarRoute('/tun')}
         className={`${tunCardStatus} tun-card flex h-full flex-1 items-center justify-between gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors group ${
           match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
@@ -144,6 +150,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
 
   return (
     <div
+      onMouseEnter={handlePreload}
       onClick={() => navigateSidebarRoute('/tun')}
       className={`${tunCardStatus} tun-card flex flex-1 items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
