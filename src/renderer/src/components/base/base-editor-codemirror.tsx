@@ -63,6 +63,14 @@ const mergeHeaderClassName =
   'grid shrink-0 grid-cols-2 border-b border-default-200/70 bg-content1 text-xs font-medium text-default-600'
 const mergeHeaderItemClassName = 'px-4 py-2'
 const mergeContainerClassName = 'min-h-0 flex-1 w-full overflow-auto'
+const getSelectionBackground = (isLight: boolean): string =>
+  isLight
+    ? 'hsl(var(--heroui-primary) / 0.92) !important'
+    : 'hsl(var(--heroui-primary) / 0.78) !important'
+const getSelectionMatchBackground = (isLight: boolean): string =>
+  isLight
+    ? 'hsl(var(--heroui-primary) / 0.12) !important'
+    : 'hsl(var(--heroui-primary) / 0.10) !important'
 
 const createFoldMarker = (open: boolean): HTMLElement => {
   const marker = document.createElement('span')
@@ -158,7 +166,13 @@ const createTheme = (isLight: boolean, disableAnimation: boolean): Extension =>
           : 'hsl(var(--heroui-default-100) / 0.18)'
       },
       '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
-        backgroundColor: 'hsl(var(--heroui-primary) / 0.24)'
+        backgroundColor: getSelectionBackground(isLight)
+      },
+      '&.cm-focused ::selection': {
+        backgroundColor: getSelectionBackground(isLight)
+      },
+      '.cm-selectionMatch': {
+        backgroundColor: getSelectionMatchBackground(isLight)
       },
       '.cm-cursor': {
         borderLeftColor: 'hsl(var(--heroui-primary))'
