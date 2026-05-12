@@ -154,7 +154,17 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="进入页面时自动测速" divider>
+            <SettingItem
+              title={
+                <>
+                  进入页面智能测速
+                  <span className="text-xs text-foreground-400 font-normal ml-1">
+                    (仅测当前选中节点，展开组后补测组内节点)
+                  </span>
+                </>
+              }
+              divider
+            >
               <Switch
                 size="sm"
                 isSelected={autoDelayTestOnShow}
@@ -166,9 +176,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
             <SettingItem
               title={
                 <>
-                  停留页面周期测速间隔
+                  停留页面周期智能测速间隔
                   <span className="text-xs text-foreground-400 font-normal ml-1">
-                    (分钟，0 为禁用)
+                    (分钟，0 为禁用；仅重测过期的当前选中节点)
                   </span>
                 </>
               }
