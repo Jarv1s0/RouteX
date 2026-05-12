@@ -11,6 +11,7 @@ import { debugLog, warnLog } from '@renderer/utils/logger'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
+  mihomoGroupDelay,
   mihomoProxyDelay
 } from '@renderer/utils/mihomo-ipc'
 import { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react'
@@ -200,7 +201,6 @@ function getAutoDelayGroupSignature(groups: ControllerMixedGroup[]): string {
 type ResolvedDelayTarget = {
   proxyName: string
   testUrl?: string
-  sourceGroups: string[]
 }
 
 function getUniqueResolvedDelayTargets(groups: ControllerMixedGroup[]): ResolvedDelayTarget[] {
@@ -210,17 +210,11 @@ function getUniqueResolvedDelayTargets(groups: ControllerMixedGroup[]): Resolved
     const groupTargets = getResolvedProxyTargets(group)
 
     groupTargets.forEach((target) => {
-      const key = `${target.name}\u0000${group.testUrl ?? ''}`
-      const existing = targets.get(key)
-      if (existing) {
-        existing.sourceGroups.push(group.name)
-        return
-      }
+      if (targets.has(target.name)) return
 
-      targets.set(key, {
+      targets.set(target.name, {
         proxyName: target.name,
-        testUrl: group.testUrl,
-        sourceGroups: [group.name]
+        testUrl: group.testUrl
       })
     })
   })
@@ -437,17 +431,11 @@ const Proxies: React.FC = () => {
 
       try {
         const group = groupsRef.current.find((item) => item.name === groupName)
-        const targets = getResolvedProxyTargets(group)
-        const tasks = targets.map((target) => async (): Promise<void> => {
-          await mihomoProxyDelay(target.name, group?.testUrl).catch((error) => {
-            warnLog('[proxy-delay:group] failed', groupName, target.name, error)
-          })
-          mutateBatcher.schedule()
-        })
-        await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrencyRef.current))
+        await mihomoGroupDelay(groupName, group?.testUrl)
+        mutateBatcher.schedule()
         await mutateBatcher.flush()
-      } catch {
-        // ignore
+      } catch (error) {
+        warnLog('[proxy-delay:group] failed', groupName, error)
       } finally {
         mutateBatcher.cancel()
         setDelaying((prev) => ({ ...prev, [groupName]: false }))
@@ -532,7 +520,7 @@ const Proxies: React.FC = () => {
 
       const tasks = delayTargets.map((target) => async (): Promise<void> => {
         if (!isCurrentAutoTest(runId)) return
-        debugLog('[proxy-delay:auto] test proxy', target.proxyName, target.sourceGroups)
+        debugLog('[proxy-delay:auto] test proxy', target.proxyName)
 
         await mihomoProxyDelay(target.proxyName, target.testUrl).catch((error) => {
           warnLog('[proxy-delay:auto] failed', target.proxyName, error)

@@ -60,6 +60,82 @@ fn desktop_invoke_channels_match_typescript_contract() {
 }
 
 #[test]
+fn mihomo_groups_expand_nested_group_children() {
+    let proxies = json!({
+        "proxies": {
+            "ALL": {
+                "name": "ALL",
+                "type": "Selector",
+                "now": "HK",
+                "all": ["HK"],
+                "history": [],
+                "extra": {}
+            },
+            "HK": {
+                "name": "HK",
+                "type": "Selector",
+                "now": "HK 01",
+                "all": ["HK 01", "HK 02"],
+                "history": [],
+                "extra": {}
+            },
+            "HK 01": {
+                "name": "HK 01",
+                "type": "Shadowsocks",
+                "history": [{ "time": "2026-05-12T07:00:00.000Z", "delay": 120 }]
+            },
+            "HK 02": {
+                "name": "HK 02",
+                "type": "Shadowsocks",
+                "history": [{ "time": "2026-05-12T07:00:00.000Z", "delay": 180 }]
+            }
+        }
+    });
+    let runtime = json!({
+        "mode": "rule",
+        "proxy-groups": [
+            { "name": "ALL", "type": "Selector", "proxies": ["HK"], "url": "http://all.test/generate_204" },
+            { "name": "HK", "type": "Selector", "proxies": ["HK 01", "HK 02"], "url": "http://hk.test/generate_204", "icon": "hk-icon" }
+        ]
+    });
+
+    let groups = build_mihomo_groups_value(&proxies, &runtime);
+    let all_group = groups
+        .as_array()
+        .and_then(|items| {
+            items
+                .iter()
+                .find(|group| group.get("name").and_then(Value::as_str) == Some("ALL"))
+        })
+        .expect("ALL group should exist");
+    let hk_group = all_group
+        .get("all")
+        .and_then(Value::as_array)
+        .and_then(|items| items.first())
+        .expect("ALL should contain HK group");
+
+    assert_eq!(hk_group.get("name").and_then(Value::as_str), Some("HK"));
+    assert_eq!(
+        hk_group.get("testUrl").and_then(Value::as_str),
+        Some("http://hk.test/generate_204")
+    );
+    assert_eq!(
+        hk_group.get("icon").and_then(Value::as_str),
+        Some("hk-icon")
+    );
+
+    let nested_names = hk_group
+        .get("all")
+        .and_then(Value::as_array)
+        .expect("HK children should be expanded")
+        .iter()
+        .filter_map(value_name)
+        .collect::<Vec<_>>();
+
+    assert_eq!(nested_names, vec!["HK 01".to_string(), "HK 02".to_string()]);
+}
+
+#[test]
 fn sysproxy_service_commands_use_nested_command_group() {
     let args = service_command_args(false, "disable", Vec::new());
     let args = args.iter().map(String::as_str).collect::<Vec<_>>();

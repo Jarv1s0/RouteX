@@ -143,4 +143,19 @@ describe('proxy delay display', () => {
       'Hong Kong 02'
     ])
   })
+
+  it('finds leaf proxies through string members after another group exposes the nested group', () => {
+    const hongKong01 = proxy('Hong Kong 01')
+    const hongKong02 = proxy('Hong Kong 02')
+    const hongKong = group('Hong Kong', 'Hong Kong 01', [hongKong01, hongKong02])
+    const all = group('ALL', 'Hong Kong', ['Hong Kong'] as unknown as ControllerMixedGroup['all'])
+
+    useGroupsStore.setState({ groups: [all, hongKong] })
+
+    expect(getResolvedProxyTarget(all)?.name).toBe('Hong Kong 01')
+    expect(getResolvedProxyTargets(all).map((item) => item.name)).toEqual([
+      'Hong Kong 01',
+      'Hong Kong 02'
+    ])
+  })
 })

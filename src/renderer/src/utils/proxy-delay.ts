@@ -15,6 +15,11 @@ function isResolvedProxy(value: unknown): value is ProxyDelayTarget {
   return Boolean(value && typeof value === 'object' && 'name' in value)
 }
 
+function resolveProxyChild(child: unknown): ProxyDelayTarget | undefined {
+  if (isResolvedProxy(child)) return child
+  return typeof child === 'string' ? getGlobalProxy(child) : undefined
+}
+
 export function getLatestDelay(proxy?: { history?: ControllerProxiesHistory[] }): number {
   return proxy?.history?.length ? proxy.history[proxy.history.length - 1].delay : -1
 }
@@ -22,10 +27,28 @@ export function getLatestDelay(proxy?: { history?: ControllerProxiesHistory[] })
 function getGlobalProxy(name: string): ProxyDelayTarget | undefined {
   const groups = useGroupsStore.getState().groups
   if (!groups) return undefined
+  const visited = new WeakSet<object>()
+
+  const findInTarget = (target: ProxyDelayTarget): ProxyDelayTarget | undefined => {
+    if (visited.has(target)) return undefined
+    visited.add(target)
+
+    if (target.name === name) return target
+    if (!isProxyGroup(target)) return undefined
+
+    for (const child of target.all || []) {
+      const candidate = isResolvedProxy(child) ? child : undefined
+      if (!candidate) continue
+      const found = findInTarget(candidate)
+      if (found) return found
+    }
+
+    return undefined
+  }
+
   for (const group of groups) {
-    if (group.name === name) return group
-    const child = group.all?.find((p) => p.name === name)
-    if (child) return child
+    const found = findInTarget(group)
+    if (found) return found
   }
   return undefined
 }
@@ -138,7 +161,7 @@ export function getResolvedProxyTargets(proxy?: ProxyDelayTarget): ControllerPro
     }
 
     for (const child of target.all || []) {
-      const candidate = isResolvedProxy(child) ? child : getGlobalProxy(String(child))
+      const candidate = resolveProxyChild(child)
       if (candidate) {
         visit(candidate)
       }
