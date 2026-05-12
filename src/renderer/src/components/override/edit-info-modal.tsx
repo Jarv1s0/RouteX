@@ -69,7 +69,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1024 })}
       >
         <ModalHeader className="flex app-drag">
-          {item.id ? '编辑覆写信息' : '导入远程覆写'}
+          {item.id ? '编辑覆写属性' : '导入远程覆写'}
         </ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-y-auto">
           <SettingItem title="名称">

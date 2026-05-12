@@ -96,21 +96,21 @@ const OverrideItem: React.FC<Props> = (props) => {
     list.push(
       {
         key: 'edit-info',
-        label: '编辑信息',
+        label: '编辑属性',
         showDivider: false,
         color: 'default',
         className: ''
       },
       {
         key: 'edit-file',
-        label: '编辑文件',
+        label: '编辑内容',
         showDivider: false,
         color: 'default',
         className: ''
       },
       {
         key: 'open-file',
-        label: '打开文件',
+        label: '使用外部程序打开',
         showDivider: false,
         color: 'default',
         className: ''

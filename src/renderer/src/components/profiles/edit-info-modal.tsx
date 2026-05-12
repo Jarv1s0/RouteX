@@ -83,7 +83,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1024 })}
       >
-        <ModalHeader className="flex app-drag">{item.id ? '编辑信息' : '导入远程配置'}</ModalHeader>
+        <ModalHeader className="flex app-drag">{item.id ? '编辑属性' : '导入远程配置'}</ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-y-auto">
           <SettingItem title="名称">
             <Input
