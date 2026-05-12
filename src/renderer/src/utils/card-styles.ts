@@ -44,6 +44,15 @@ export const CARD_STYLES = {
   // Glass card style (used for tooltips etc)
   GLASS_CARD: "bg-background/78 dark:bg-default-100/78 border border-default-200/45 dark:border-white/8 shadow-lg backdrop-blur-[8px]",
 
+  // Management card typography
+  MANAGEMENT_TITLE: "text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] text-foreground",
+  MANAGEMENT_ACTION_ICON: "text-[24px] text-foreground",
+  MANAGEMENT_STATUS_BUTTON: "h-6 min-w-0 px-3 text-[12px]",
+  MANAGEMENT_STATUS_INACTIVE: "border-default-200 bg-default-100/70 text-default-500 shadow-none hover:border-default-300 hover:bg-default-200/70 dark:border-white/10 dark:bg-white/[0.06] dark:text-default-400 dark:hover:bg-white/[0.09]",
+  MANAGEMENT_META_TEXT: "text-sm text-foreground",
+  MANAGEMENT_META_BUTTON: "h-[20px] p-1 m-0 text-xs text-foreground",
+  MANAGEMENT_FOOTER_ROW: "flex items-center justify-between text-sm text-foreground",
+
   // Select style: Matches GLASS_INPUT
   GLASS_SELECT: {
     trigger: "bg-default-200/50 dark:bg-default-100/50 shadow-none border border-default-200/50 dark:border-transparent data-[hover=true]:bg-default-200/80 rounded-2xl h-8 min-h-8 transition-[background-color,border-color,box-shadow]",

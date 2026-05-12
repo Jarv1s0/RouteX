@@ -2,7 +2,7 @@ import {
   Button,
   Card,
   CardBody,
-  Chip,
+  CardFooter,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -72,28 +72,7 @@ const OverrideItem: React.FC<Props> = (props) => {
   const wasDraggingRef = useRef(false)
 
   const menuItems: MenuItem[] = useMemo(() => {
-    const list: MenuItem[] = []
-    
-    // Restore toggle-override menu item
-    if (!info.global) {
-        list.push({
-            key: 'toggle-override',
-            label: isActive ? '禁用覆写' : '启用覆写',
-            showDivider: true,
-            color: isActive ? 'danger' : 'default',
-            className: isActive ? 'text-danger' : ''
-        })
-    }
-    
-    list.push({
-        key: 'toggle-global',
-        label: info.global ? '取消全局覆写' : '设为全局覆写',
-        showDivider: true,
-        color: 'default',
-        className: ''
-      })
-    
-    list.push(
+    const list: MenuItem[] = [
       {
         key: 'edit-info',
         label: '编辑属性',
@@ -136,7 +115,7 @@ const OverrideItem: React.FC<Props> = (props) => {
         color: 'danger',
         className: 'text-danger'
       }
-    )
+    ]
     if (info.ext === 'yaml') {
       const execLogIndex = list.findIndex(i => i.key === 'exec-log')
       if (execLogIndex !== -1) list.splice(execLogIndex, 1)
@@ -146,33 +125,53 @@ const OverrideItem: React.FC<Props> = (props) => {
       if (rollbackIndex !== -1) list.splice(rollbackIndex, 1)
     }
     return list
-  }, [info, isActive, rollbackAvailable])
+  }, [info.ext, rollbackAvailable])
+
+  const statusLabel = info.global ? '全局' : isActive ? '已启用' : '未启用'
+  const statusClassName = info.global || isActive
+    ? 'bg-yellow-400 text-black font-bold shadow-sm'
+    : CARD_STYLES.MANAGEMENT_STATUS_INACTIVE
+
+  const setLocalOverrideActive = async (active: boolean): Promise<void> => {
+    if (!onToggleOverride || active === !!isActive) return
+    await onToggleOverride(info.id, !!isActive)
+  }
+
+  const setGlobalOverride = async (global: boolean): Promise<void> => {
+    if (info.global === global) return
+    await updateOverrideItem({ ...info, global })
+    mutateOverrideConfig()
+    restartCoreInBackground('应用覆写失败')
+  }
+
+  const onStatusAction = async (key: Key): Promise<void> => {
+    try {
+      setUpdating(true)
+      switch (key) {
+        case 'disabled': {
+          await setGlobalOverride(false)
+          await setLocalOverrideActive(false)
+          break
+        }
+        case 'enabled': {
+          await setGlobalOverride(false)
+          await setLocalOverrideActive(true)
+          break
+        }
+        case 'global': {
+          await setGlobalOverride(true)
+          break
+        }
+      }
+    } catch (e) {
+      alert(e)
+    } finally {
+      setUpdating(false)
+    }
+  }
 
   const onMenuAction = async (key: Key): Promise<void> => {
     switch (key) {
-      case 'toggle-override': {
-        if (onToggleOverride) {
-          setUpdating(true)
-          try {
-            await onToggleOverride(info.id, !!isActive)
-          } catch (e) {
-            alert(e)
-          } finally {
-            setUpdating(false)
-          }
-        }
-        break
-      }
-      case 'toggle-global': {
-        try {
-          await updateOverrideItem({ ...info, global: !info.global })
-          mutateOverrideConfig()
-          restartCoreInBackground('应用覆写失败')
-        } catch (e) {
-          alert(e)
-        }
-        break
-      }
       case 'edit-info': {
         setOpenInfoEditor(true)
         break
@@ -326,16 +325,18 @@ const OverrideItem: React.FC<Props> = (props) => {
             <Spinner size="sm" />
           </div>
         )}
-        <div ref={setNodeRef} {...attributes} {...listeners} className="h-full w-full">
-          <CardBody className="pb-2">
-            <div className="flex justify-between h-[32px]">
-              <h3
-                title={info?.name}
-                className={`text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] text-foreground`}
-              >
-                {info?.name}
-              </h3>
-              <div className="flex" onClick={(e) => e.stopPropagation()}>
+        <div ref={setNodeRef} {...attributes} {...listeners} className="w-full h-full">
+          <CardBody className="pb-1 overflow-hidden">
+            <div className="flex min-h-[32px] items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h3
+                  title={info?.name}
+                  className={CARD_STYLES.MANAGEMENT_TITLE}
+                >
+                  {info?.name}
+                </h3>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                 {info.type === 'remote' && (
                   <Button
                     isIconOnly
@@ -359,7 +360,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                     }}
                   >
                     <IoMdRefresh
-                      className={`text-[20px] text-foreground-500 ${updating ? 'animate-spin' : ''}`}
+                      className={`${CARD_STYLES.MANAGEMENT_ACTION_ICON} ${updating ? 'animate-spin' : ''}`}
                     />
                   </Button>
                 )}
@@ -367,7 +368,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                 <Dropdown>
                   <DropdownTrigger>
                     <Button isIconOnly size="sm" variant="light" color="default">
-                      <IoMdMore className={`text-[20px] text-foreground-500`} />
+                      <IoMdMore className={CARD_STYLES.MANAGEMENT_ACTION_ICON} />
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu onAction={onMenuAction}>
@@ -385,42 +386,36 @@ const OverrideItem: React.FC<Props> = (props) => {
                 </Dropdown>
               </div>
             </div>
-            <div className="flex justify-between items-end mt-2">
-              <div className={`flex justify-start items-center gap-2`}>
-                {info.global ? (
-                  <Chip
-                    size="sm"
-                    variant="solid"
-                    className={`bg-yellow-400 text-black font-bold shadow-sm`}
-                  >
-                    全局
-                  </Chip>
-                ) : (
-                   isActive && (
-                    <Chip
-                        size="sm"
-                        variant="solid"
-                        className={`bg-yellow-400 text-black font-bold shadow-sm`}
+          </CardBody>
+          <CardFooter className="pt-0">
+            <div className={`w-full mt-2 ${CARD_STYLES.MANAGEMENT_FOOTER_ROW}`}>
+              <div className={`flex justify-start items-center gap-2`} onClick={(e) => e.stopPropagation()}>
+                <Dropdown placement="bottom-start">
+                  <DropdownTrigger>
+                    <Button
+                      size="sm"
+                      radius="full"
+                      variant={info.global || isActive ? 'solid' : 'bordered'}
+                      className={`${CARD_STYLES.MANAGEMENT_STATUS_BUTTON} ${statusClassName}`}
+                      isDisabled={updating || rollingBack}
                     >
-                        已启用
-                    </Chip>
-                   )
-                )}
-                <Chip
-                  size="sm"
-                  variant="bordered"
-                  className={`border-default-400 text-default-600`}
-                >
-                  {info.ext === 'yaml' ? 'YAML' : 'JavaScript'}
-                </Chip>
+                      {statusLabel}
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu onAction={onStatusAction} selectedKeys={[info.global ? 'global' : isActive ? 'enabled' : 'disabled']}>
+                    <DropdownItem key="disabled">不启用覆写</DropdownItem>
+                    <DropdownItem key="enabled">启用覆写</DropdownItem>
+                    <DropdownItem key="global">设为全局覆写</DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
               </div>
               {info.type === 'remote' && (
-                <div className={`flex justify-end text-foreground-400`}>
+                <div className="flex justify-end">
                   <small>{dayjs(info.updated).fromNow()}</small>
                 </div>
               )}
             </div>
-          </CardBody>
+          </CardFooter>
         </div>
       </Card>
     </div>
