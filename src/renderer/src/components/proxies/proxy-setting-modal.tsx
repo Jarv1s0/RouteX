@@ -155,14 +155,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               />
             </SettingItem>
             <SettingItem
-              title={
-                <>
-                  进入页面智能测速
-                  <span className="text-xs text-foreground-400 font-normal ml-1">
-                    (仅测当前选中节点，展开组后补测组内节点)
-                  </span>
-                </>
-              }
+              title="智能自动测速"
               divider
             >
               <Switch
@@ -170,36 +163,6 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 isSelected={autoDelayTestOnShow}
                 onValueChange={(v) => {
                   patchAppConfig({ autoDelayTestOnShow: v })
-                }}
-              />
-            </SettingItem>
-            <SettingItem
-              title={
-                <>
-                  停留页面周期智能测速间隔
-                  <span className="text-xs text-foreground-400 font-normal ml-1">
-                    (分钟，0 为禁用；仅重测过期的当前选中节点)
-                  </span>
-                </>
-              }
-              divider
-            >
-              <Input
-                type="number"
-                size="sm"
-                className="w-[120px]"
-                classNames={numberInputClassNames}
-                min={0}
-                max={60}
-                value={appConfig?.autoDelayTestInterval?.toString() ?? '0'}
-                placeholder="默认 0"
-                onValueChange={(v) => {
-                  const parsed = Number.parseInt(v, 10)
-                  patchAppConfig({
-                    autoDelayTestInterval: Number.isFinite(parsed)
-                      ? Math.min(60, Math.max(0, parsed))
-                      : 0
-                  })
                 }}
               />
             </SettingItem>

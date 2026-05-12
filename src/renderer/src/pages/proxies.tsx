@@ -345,7 +345,6 @@ const Proxies: React.FC = () => {
     proxyCols = 'auto',
     groupOrder = [],
     autoDelayTestOnShow = true,
-    autoDelayTestInterval = 0,
     delayTestConcurrency = DEFAULT_DELAY_TEST_CONCURRENCY
   } = appConfig || {}
   // 根据模式过滤显示的组
@@ -574,7 +573,7 @@ const Proxies: React.FC = () => {
     const currentGroups = groupsRef.current
     if (currentGroups.length === 0) return
     // 既不启用首次测速，也不启用周期测速时，直接返回
-    if (!autoDelayTestOnShow && autoDelayTestInterval === 0) return
+    if (!autoDelayTestOnShow) return
 
     let disposed = false
     const resetAutoDelayState = (): void => {
@@ -679,17 +678,7 @@ const Proxies: React.FC = () => {
     }
 
     // 设置周期测速定时器
-    let intervalId: NodeJS.Timeout | null = null
     let idleBackfillTimer: NodeJS.Timeout | null = null
-    if (autoDelayTestInterval > 0) {
-      // interval 转换为毫秒
-      const intervalMs = autoDelayTestInterval * 60 * 1000
-      intervalId = setInterval(() => {
-        if (!document.hidden && !isTestingRef.current) {
-          void doAutoDelayTest()
-        }
-      }, intervalMs)
-    }
 
     idleBackfillTimer = setTimeout(() => {
       if (disposed || document.hidden || isTestingRef.current || isBackfillingRef.current) return
@@ -711,14 +700,12 @@ const Proxies: React.FC = () => {
       disposed = true
       autoTestGenerationRef.current += 1
       isTestingRef.current = false
-      if (intervalId) clearInterval(intervalId)
       if (idleBackfillTimer) clearTimeout(idleBackfillTimer)
       isBackfillingRef.current = false
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       resetAutoDelayState()
     }
-    // 注意：签名只包含组名和成员名，不包含 now/history，避免测速刷新或 url-test 自动切换时重置 effect。
-  }, [autoDelayGroupSignature, autoDelayTestOnShow, autoDelayTestInterval, runDelayTargets])
+  }, [autoDelayGroupSignature, autoDelayTestOnShow, runDelayTargets])
 
   const renderItem = useCallback(
     (_index: number, item: FlatItem) => {
