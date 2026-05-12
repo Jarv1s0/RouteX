@@ -5,6 +5,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
   getGroupCurrentDelay,
   getProxyDisplayDelay,
+  getResolvedProxyTarget,
   getResolvedProxyTargets
 } from '@renderer/utils/proxy-delay'
 import { debugLog, warnLog } from '@renderer/utils/logger'
@@ -29,6 +30,8 @@ import { ProxyCardSkeleton } from '@renderer/components/base/skeleton'
 const DEFAULT_DELAY_TEST_CONCURRENCY = 4
 const MAX_DELAY_TEST_CONCURRENCY = 8
 const DELAY_TEST_MUTATE_BATCH_MS = 700
+const AUTO_DELAY_TTL_MS = 5 * 60 * 1000
+const AUTO_DELAY_IDLE_BACKFILL_MS = 5000
 
 // ----------------------------------------
 // ProxyRowChunk: 独立的 Grid 块渲染组件，用于性能优化
@@ -187,6 +190,29 @@ function getDelayVersion(groups: ControllerMixedGroup[]): string {
   return groups.map(visit).join('\n')
 }
 
+function shouldAutoDelay(proxy?: ControllerProxiesDetail): boolean {
+  if (!proxy) return false
+
+  const latest = proxy.history?.[proxy.history.length - 1]
+  if (!latest) return true
+
+  const time = Date.parse(latest.time)
+  if (!Number.isFinite(time)) return true
+
+  return Date.now() - time > AUTO_DELAY_TTL_MS
+}
+
+function getGroupAvailableCount(group: ControllerMixedGroup): number {
+  return (group.all || []).reduce((count, proxy) => {
+    const delay = getProxyDisplayDelay(proxy)
+
+    // delay === 0 是 Mihomo 测速失败/超时的明确结果；未测速 delay === -1 不应被当成不可用。
+    if (delay === 0) return count
+
+    return count + 1
+  }, 0)
+}
+
 function getAutoDelayGroupSignature(groups: ControllerMixedGroup[]): string {
   return groups
     .map((group) => {
@@ -203,19 +229,49 @@ type ResolvedDelayTarget = {
   testUrl?: string
 }
 
-function getUniqueResolvedDelayTargets(groups: ControllerMixedGroup[]): ResolvedDelayTarget[] {
+function pushAutoDelayTarget(
+  targets: Map<string, ResolvedDelayTarget>,
+  proxy: ControllerProxiesDetail | undefined,
+  testUrl?: string,
+  options: { respectTtl?: boolean } = {}
+): void {
+  if (!proxy) return
+  if (options.respectTtl !== false && !shouldAutoDelay(proxy)) return
+  if (targets.has(proxy.name)) return
+
+  targets.set(proxy.name, {
+    proxyName: proxy.name,
+    testUrl
+  })
+}
+
+function getCurrentSelectedDelayTargets(groups: ControllerMixedGroup[]): ResolvedDelayTarget[] {
   const targets = new Map<string, ResolvedDelayTarget>()
 
   groups.forEach((group) => {
-    const groupTargets = getResolvedProxyTargets(group)
+    pushAutoDelayTarget(targets, getResolvedProxyTarget(group), group.testUrl)
+  })
 
-    groupTargets.forEach((target) => {
-      if (targets.has(target.name)) return
+  return Array.from(targets.values())
+}
 
-      targets.set(target.name, {
-        proxyName: target.name,
-        testUrl: group.testUrl
-      })
+function getDirectGroupDelayTargets(group: ControllerMixedGroup): ResolvedDelayTarget[] {
+  const targets = new Map<string, ResolvedDelayTarget>()
+
+  for (const proxy of group.all || []) {
+    const target = 'now' in proxy ? getResolvedProxyTarget(proxy) : proxy
+    pushAutoDelayTarget(targets, target, group.testUrl)
+  }
+
+  return Array.from(targets.values())
+}
+
+function getAutoBackfillDelayTargets(groups: ControllerMixedGroup[]): ResolvedDelayTarget[] {
+  const targets = new Map<string, ResolvedDelayTarget>()
+
+  groups.forEach((group) => {
+    getResolvedProxyTargets(group).forEach((target) => {
+      pushAutoDelayTarget(targets, target, group.testUrl)
     })
   })
 
@@ -316,17 +372,9 @@ const Proxies: React.FC = () => {
     const metrics = new Map<string, { currentDelay: number; liveCount: number }>()
 
     renderGroups.forEach((group) => {
-      let liveCount = 0
-      const proxies = group.all || []
-      proxies.forEach((proxy) => {
-        if (getProxyDisplayDelay(proxy) > 0) {
-          liveCount += 1
-        }
-      })
-
       metrics.set(group.name, {
         currentDelay: getGroupCurrentDelay(group),
-        liveCount
+        liveCount: getGroupAvailableCount(group)
       })
     })
 
@@ -403,6 +451,54 @@ const Proxies: React.FC = () => {
 
 
 
+  const runDelayTargets = useCallback(
+    async (
+      delayTargets: ResolvedDelayTarget[],
+      options: { groupsForLoading?: ControllerMixedGroup[]; logScope: string; concurrency?: number }
+    ): Promise<boolean> => {
+      if (delayTargets.length === 0) return false
+
+      const loadingGroups = options.groupsForLoading || []
+      if (loadingGroups.length > 0) {
+        setDelaying((prev) => ({
+          ...prev,
+          ...Object.fromEntries(loadingGroups.map((group) => [group.name, true]))
+        }))
+      }
+
+      const mutateBatcher = createMutateBatcher(
+        () => mutateRef.current(),
+        DELAY_TEST_MUTATE_BATCH_MS
+      )
+
+      try {
+        const tasks = delayTargets.map((target) => async (): Promise<void> => {
+          debugLog(`[proxy-delay:${options.logScope}] test proxy`, target.proxyName)
+          await mihomoProxyDelay(target.proxyName, target.testUrl).catch((error) => {
+            warnLog(`[proxy-delay:${options.logScope}] failed`, target.proxyName, error)
+          })
+          mutateBatcher.schedule()
+        })
+
+        await runWithConcurrency(
+          tasks,
+          normalizeDelayTestConcurrency(options.concurrency ?? delayTestConcurrencyRef.current)
+        )
+        await mutateBatcher.flush()
+        return true
+      } finally {
+        mutateBatcher.cancel()
+        if (loadingGroups.length > 0) {
+          setDelaying((prev) => ({
+            ...prev,
+            ...Object.fromEntries(loadingGroups.map((group) => [group.name, false]))
+          }))
+        }
+      }
+    },
+    []
+  )
+
   const onChangeProxy = useCallback(
     async (group: string, proxy: string): Promise<void> => {
       await mihomoChangeProxy(group, proxy)
@@ -444,13 +540,34 @@ const Proxies: React.FC = () => {
     [mutate]
   )
 
+  const delayOpenedGroup = useCallback(
+    async (groupName: string): Promise<void> => {
+      const group = groupsRef.current.find((item) => item.name === groupName)
+      if (!group) return
+
+      const delayTargets = getDirectGroupDelayTargets(group)
+      await runDelayTargets(delayTargets, {
+        groupsForLoading: [group],
+        logScope: 'open-group'
+      })
+    },
+    [runDelayTargets]
+  )
+
   const toggleOpen = useCallback((groupName: string) => {
-    setIsOpen((prev) => ({ ...prev, [groupName]: !prev[groupName] }))
-  }, [])
+    setIsOpen((prev) => {
+      const nextOpen = !prev[groupName]
+      if (nextOpen) {
+        void delayOpenedGroup(groupName)
+      }
+      return { ...prev, [groupName]: nextOpen }
+    })
+  }, [delayOpenedGroup])
 
   // 首次进入页面时自动测速，及周期性定时测速
   const hasInitialTestRef = useRef(false)
   const isTestingRef = useRef(false)
+  const isBackfillingRef = useRef(false)
   const autoTestGenerationRef = useRef(0)
 
   useEffect(() => {
@@ -498,9 +615,9 @@ const Proxies: React.FC = () => {
       const latestGroups = groupsRef.current
       if (latestGroups.length === 0) return false
 
-      const delayTargets = getUniqueResolvedDelayTargets(latestGroups)
+      const delayTargets = getCurrentSelectedDelayTargets(latestGroups)
       if (delayTargets.length === 0) {
-        debugLog('[proxy-delay:auto] skip: no resolved proxy targets')
+        debugLog('[proxy-delay:auto] skip: no stale selected proxy targets')
         return false
       }
 
@@ -563,6 +680,7 @@ const Proxies: React.FC = () => {
 
     // 设置周期测速定时器
     let intervalId: NodeJS.Timeout | null = null
+    let idleBackfillTimer: NodeJS.Timeout | null = null
     if (autoDelayTestInterval > 0) {
       // interval 转换为毫秒
       const intervalMs = autoDelayTestInterval * 60 * 1000
@@ -573,16 +691,34 @@ const Proxies: React.FC = () => {
       }, intervalMs)
     }
 
+    idleBackfillTimer = setTimeout(() => {
+      if (disposed || document.hidden || isTestingRef.current || isBackfillingRef.current) return
+
+      const latestGroups = groupsRef.current
+      const delayTargets = getAutoBackfillDelayTargets(latestGroups)
+      if (delayTargets.length === 0) return
+
+      isBackfillingRef.current = true
+      void runDelayTargets(delayTargets, {
+        logScope: 'backfill',
+        concurrency: Math.min(2, normalizeDelayTestConcurrency(delayTestConcurrencyRef.current))
+      }).finally(() => {
+        isBackfillingRef.current = false
+      })
+    }, AUTO_DELAY_IDLE_BACKFILL_MS)
+
     return () => {
       disposed = true
       autoTestGenerationRef.current += 1
       isTestingRef.current = false
       if (intervalId) clearInterval(intervalId)
+      if (idleBackfillTimer) clearTimeout(idleBackfillTimer)
+      isBackfillingRef.current = false
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       resetAutoDelayState()
     }
     // 注意：签名只包含组名和成员名，不包含 now/history，避免测速刷新或 url-test 自动切换时重置 effect。
-  }, [autoDelayGroupSignature, autoDelayTestOnShow, autoDelayTestInterval])
+  }, [autoDelayGroupSignature, autoDelayTestOnShow, autoDelayTestInterval, runDelayTargets])
 
   const renderItem = useCallback(
     (_index: number, item: FlatItem) => {
