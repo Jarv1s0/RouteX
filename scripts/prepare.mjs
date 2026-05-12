@@ -27,6 +27,9 @@ const ROUTEX_RUN_ASSETS = {
 const DEFAULT_TASK_RETRY = 5
 const platform = process.platform
 const debugPrepare = process.env.ROUTEX_PREPARE_DEBUG === '1'
+const reuseExistingResources =
+  process.env.ROUTEX_REUSE_EXISTING_RESOURCES === '1' ||
+  process.env.ROUTEX_REUSE_EXISTING_RESOURCES === 'true'
 const OPTIONAL_EXTRA_PATHS = [
   path.join(cwd, 'extra', 'sidecar', platform === 'win32' ? 'mihomo-alpha.exe' : 'mihomo-alpha'),
   path.join(cwd, 'extra', 'files', 'enableLoopback.exe'),
@@ -79,6 +82,11 @@ if (process.env.SKIP_PREPARE === '1') {
 }
 
 function cleanupOptionalExtraResources() {
+  if (reuseExistingResources) {
+    console.log('[INFO]: optional extra resources cleanup skipped by ROUTEX_REUSE_EXISTING_RESOURCES')
+    return
+  }
+
   for (const targetPath of OPTIONAL_EXTRA_PATHS) {
     const label = path.relative(cwd, targetPath) || targetPath
     tryRemoveExisting(targetPath, label)
@@ -278,19 +286,25 @@ if (process.env.ROUTEX_SKIP_RESOURCE_REFRESH === 'true' || process.env.ROUTEX_SK
  */
 async function createMihomoBinaryInfo(name, versionUrl, isAlpha) {
   const isWin = platform === 'win32'
+  const targetFile = `${name}${isWin ? '.exe' : ''}`
+  const sidecarPath = path.join(cwd, 'extra', 'sidecar', targetFile)
+
+  if (reuseExistingResources && fs.existsSync(sidecarPath)) {
+    console.log(`[INFO]: ${targetFile} reused from existing resources`)
+    return null
+  }
+
   try {
     const version = await getLatestVersion(versionUrl, isAlpha ? 'alpha' : 'release')
     const asset = await resolveReleaseAsset(version, isAlpha)
 
     return {
       name,
-      targetFile: `${name}${isWin ? '.exe' : ''}`,
+      targetFile,
       zipFile: asset.name,
       downloadURL: asset.browser_download_url
     }
   } catch (error) {
-    const targetFile = `${name}${isWin ? '.exe' : ''}`
-    const sidecarPath = path.join(cwd, 'extra', 'sidecar', targetFile)
     if (fs.existsSync(sidecarPath)) {
       console.warn(
         `[WARN]: failed to refresh ${name}, keeping existing binary: ${error.message}`
@@ -392,6 +406,14 @@ async function resolveResource(binInfo) {
   const targetPath = path.join(resDir, file)
   const hadExisting = fs.existsSync(targetPath)
   const tempPath = `${targetPath}.tmp`
+
+  if (reuseExistingResources && hadExisting) {
+    if (needExecutable && platform !== 'win32') {
+      execSync(`chmod 755 ${targetPath}`)
+    }
+    console.log(`[INFO]: ${file} reused from existing resources`)
+    return
+  }
 
   try {
     await downloadFile(downloadURL, tempPath)
@@ -521,6 +543,9 @@ const resolveFont = async () => {
   const targetPath = path.join(cwd, 'src', 'renderer', 'src', 'assets', 'twemoji.ttf')
 
   if (fs.existsSync(targetPath)) {
+    if (reuseExistingResources) {
+      console.log('[INFO]: twemoji.ttf reused from existing resources')
+    }
     return
   }
   try {

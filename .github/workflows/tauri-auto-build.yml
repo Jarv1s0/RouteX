@@ -66,6 +66,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          cache-on-failure: true
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -193,31 +199,23 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
-      - name: Setup Tauri Linux bundler cache
-        if: matrix.platform == 'linux'
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          cache-on-failure: true
+
+      - name: Setup bundled resource cache
+        id: resource-cache
         uses: actions/cache@v5
         with:
-          path: ~/.cache/tauri
-          key: ${{ runner.os }}-tauri-bundler-tools-v2
+          path: |
+            extra/files
+            extra/sidecar
+            src/renderer/src/assets/twemoji.ttf
+          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-${{ hashFiles('scripts/prepare.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-tauri-bundler-tools-
-
-      - name: Prefetch Tauri AppImage runtime
-        if: matrix.platform == 'linux'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          mkdir -p "$HOME/.cache/tauri"
-          apprun="$HOME/.cache/tauri/AppRun-x86_64"
-
-          if [ ! -s "$apprun" ]; then
-            curl --fail --location --retry 5 --retry-all-errors --retry-delay 10 \
-              --output "$apprun" \
-              https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64
-          fi
-
-          chmod +x "$apprun"
+            ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -226,6 +224,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROUTEX_REUSE_EXISTING_RESOURCES: ${{ steps.resource-cache.outputs.cache-hit == 'true' && '1' || '0' }}
         shell: bash
         run: |
           if [ "${{ matrix.platform }}" = "macos" ]; then
@@ -292,6 +291,8 @@ jobs:
           GH_REPO: ${{ github.repository }}
           ROUTEX_AUTO_BUILD: 'true'
           ROUTEX_TAURI_BUILD_VARIANT: autobuild
+          CARGO_PROFILE_RELEASE_LTO: 'false'
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: '16'
         shell: bash
         run: |
           case "${{ matrix.platform }}" in
@@ -300,17 +301,6 @@ jobs:
               ;;
             linux)
               pnpm tauri build --bundles deb rpm
-              for attempt in 1 2 3; do
-                if pnpm tauri build --bundles appimage; then
-                  break
-                fi
-
-                if [ "$attempt" -eq 3 ]; then
-                  exit 1
-                fi
-
-                sleep $((attempt * 20))
-              done
               ;;
             macos)
               pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg
@@ -369,15 +359,13 @@ jobs:
               bundle_dir="src-tauri/target/release/bundle"
               deb_file=$(find "$bundle_dir/deb" -type f -name '*.deb' -print -quit)
               rpm_file=$(find "$bundle_dir/rpm" -type f -name '*.rpm' -print -quit)
-              appimage_file=$(find "$bundle_dir/appimage" -type f -name '*.AppImage' -print -quit)
 
-              if [ -z "$deb_file" ] || [ -z "$rpm_file" ] || [ -z "$appimage_file" ]; then
+              if [ -z "$deb_file" ] || [ -z "$rpm_file" ]; then
                 echo "Missing one or more Linux artifacts"
                 exit 1
               fi
 
               cp "$deb_file" "$artifact_dir/${artifact_prefix}-linux-amd64-${short_hash}.deb"
-              cp "$appimage_file" "$artifact_dir/${artifact_prefix}-linux-x86_64-${short_hash}.AppImage"
               cp "$rpm_file" "$artifact_dir/${artifact_prefix}-linux-x86_64-${short_hash}.rpm"
               ;;
             macos)
@@ -423,7 +411,7 @@ jobs:
               expected_files=("${artifact_prefix}-windows-x64-portable-${short_hash}.7z" "${artifact_prefix}-windows-x64-setup-${short_hash}.exe")
               ;;
             linux)
-              expected_files=("${artifact_prefix}-linux-amd64-${short_hash}.deb" "${artifact_prefix}-linux-x86_64-${short_hash}.AppImage" "${artifact_prefix}-linux-x86_64-${short_hash}.rpm")
+              expected_files=("${artifact_prefix}-linux-amd64-${short_hash}.deb" "${artifact_prefix}-linux-x86_64-${short_hash}.rpm")
               ;;
             macos)
               expected_files=("${artifact_prefix}-macos-arm64-${short_hash}.dmg" "${artifact_prefix}-macos-arm64-${short_hash}.pkg")
