@@ -593,6 +593,116 @@ fn refine_core_start_error(
     }
 }
 
+fn reload_core_config_process(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    close_connections: bool,
+) -> Result<Value, String> {
+    let (binary_path, work_dir, config_path, controller_address) = {
+        let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+        let binary_path = runtime
+            .binary_path
+            .clone()
+            .ok_or_else(|| "Mihomo core is not running".to_string())?;
+        let work_dir = runtime
+            .work_dir
+            .clone()
+            .ok_or_else(|| "Mihomo work dir is not available".to_string())?;
+        let config_path = runtime
+            .config_path
+            .clone()
+            .ok_or_else(|| "Mihomo config path is not available".to_string())?;
+        let controller_address = runtime
+            .cached_runtime_config
+            .as_ref()
+            .and_then(|config| configured_external_controller_address(Some(&config.value)))
+            .or_else(|| {
+                runtime
+                    .controller_url
+                    .as_deref()
+                    .map(controller_connect_address)
+            })
+            .filter(|value| !value.trim().is_empty())
+            .ok_or_else(|| "Mihomo controller is not available".to_string())?;
+
+        (binary_path, work_dir, config_path, controller_address)
+    };
+
+    if let Some(configured_controller) =
+        configured_external_controller_address(Some(&read_controlled_config_store(app)?))
+    {
+        if configured_controller != controller_address {
+            return Err("外部控制器地址变更需要重启内核".to_string());
+        }
+    }
+
+    let runtime_config =
+        normalize_runtime_config(Some(&current_profile_runtime_config(app)?), &controller_address);
+    let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
+    let test_dir = work_dir
+        .parent()
+        .ok_or_else(|| "Mihomo test dir is not available".to_string())?
+        .join("test");
+
+    prepare_runtime_data_dir(app, &work_dir)?;
+    prepare_runtime_data_dir(app, &test_dir)?;
+
+    let safe_paths = read_safe_paths(app)?;
+    let check_path = work_dir.join(format!("config-hot-reload-{}.yaml", current_timestamp_ms()));
+    fs::write(&check_path, &config_yaml).map_err(|e| e.to_string())?;
+    let check_result = check_runtime_profile(&binary_path, &check_path, &test_dir, &safe_paths);
+    let _ = fs::remove_file(&check_path);
+    check_result?;
+
+    let previous_config = fs::read(&config_path).ok();
+    fs::write(&config_path, &config_yaml).map_err(|e| e.to_string())?;
+
+    let query = [("force", "true".to_string())];
+    let reload_result = core_request(
+        state,
+        reqwest::Method::PUT,
+        "/configs",
+        Some(&query),
+        Some(json!({ "path": config_path.to_string_lossy() })),
+    );
+
+    if let Err(error) = reload_result {
+        if let Some(previous_config) = previous_config {
+            let _ = fs::write(&config_path, previous_config);
+        }
+        return Err(format!("Mihomo 热重载失败: {error}"));
+    }
+
+    {
+        let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+        if runtime.config_path.as_ref() == Some(&config_path) {
+            runtime.cached_runtime_config = Some(CachedRuntimeConfig {
+                path: config_path.clone(),
+                modified_at_ms: runtime_config_modified_at_ms(&config_path),
+                value: runtime_config.clone(),
+            });
+        }
+    }
+
+    if let Err(error) = wait_for_renderer_data_ready(state, &runtime_config) {
+        eprintln!("[desktop.core_reload] renderer data not fully ready yet: {error}");
+    }
+
+    if close_connections {
+        if let Err(error) = core_request(state, reqwest::Method::DELETE, "/connections", None, None)
+        {
+            eprintln!("[desktop.core_reload] failed to close connections: {error}");
+        }
+    }
+
+    Ok(json!({
+        "binaryPath": binary_path.to_string_lossy(),
+        "workDir": work_dir.to_string_lossy(),
+        "configPath": config_path.to_string_lossy(),
+        "controller": controller_address,
+    }))
+}
+
 fn restart_core_process(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,

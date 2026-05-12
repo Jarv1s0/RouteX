@@ -23,6 +23,7 @@ export const MIHOMO_IPC_INVOKE_CHANNELS = {
   mihomoUpgradeUI: 'mihomoUpgradeUI',
   mihomoVersion: 'mihomoVersion',
   patchMihomoConfig: 'patchMihomoConfig',
+  reloadCoreConfig: 'reloadCoreConfig',
   restartCore: 'restartCore',
   restartMihomoConnections: 'restartMihomoConnections'
 } as const

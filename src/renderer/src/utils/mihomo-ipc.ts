@@ -1031,6 +1031,14 @@ export async function patchMihomoConfig(patch: Partial<MihomoConfig>): Promise<v
   clearInFlightMihomoRequests(C.getRuntimeConfig)
 }
 
+export async function reloadCoreConfig(closeConnections = false): Promise<void> {
+  await invokeSafe(C.reloadCoreConfig, closeConnections)
+  if (isTauriHost()) {
+    invalidateTauriRuntimeConfigCache()
+  }
+  clearInFlightMihomoRequests(C.getRuntimeConfig)
+}
+
 export async function getRuntimeConfigStr(): Promise<string> {
   if (isTauriHost()) {
     if (tauriRuntimeConfigStrCache) {

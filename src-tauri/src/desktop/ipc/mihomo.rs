@@ -1,3 +1,8 @@
+fn emit_mihomo_config_updated(app: &tauri::AppHandle) {
+    emit_ipc_event(app, "groupsUpdated", Value::Null);
+    emit_ipc_event(app, "rulesUpdated", Value::Null);
+}
+
 fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, state: &State<'_, CoreState>, channel: &str, args: &[Value]) -> Result<Option<Value>, String> {
     let result: Result<Value, String> = match channel {
         "ensureMihomoCoreAvailable" => {
@@ -26,7 +31,7 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
         ),
         "mihomoRuleProviders" => {
             core_request(state, reqwest::Method::GET, "/providers/rules", None, None)
-        }
+        },
         "patchMihomoConfig" => core_request(
             state,
             reqwest::Method::PATCH,
@@ -35,10 +40,15 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
             Some(args.first().cloned().unwrap_or(Value::Null)),
         )
         .map(|_| {
-            emit_ipc_event(app, "groupsUpdated", Value::Null);
-            emit_ipc_event(app, "rulesUpdated", Value::Null);
+            emit_mihomo_config_updated(app);
             Value::Null
         }),
+        "reloadCoreConfig" => {
+            let close_connections = args.first().and_then(Value::as_bool).unwrap_or(false);
+            reload_core_config_process(app, state, close_connections).inspect(|_value| {
+                emit_mihomo_config_updated(app);
+            })
+        },
         "mihomoChangeProxy" => {
             let group = args
                 .first()

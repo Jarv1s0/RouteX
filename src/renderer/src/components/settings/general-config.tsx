@@ -45,7 +45,8 @@ const GeneralConfig: React.FC = () => {
     controlSniff = true,
     pauseSSID,
     autoLightweight = false,
-    autoLightweightMode = 'core'
+    autoLightweightMode = 'core',
+    hotReloadCoreOnSave = true
   } = appConfig || {}
 
   const pauseSSIDArray = pauseSSID ?? emptyArray
@@ -352,6 +353,25 @@ const GeneralConfig: React.FC = () => {
           >
             {controlSniff ? CONTROL_STATUS_TEXT.enabled : CONTROL_STATUS_TEXT.disabled}
           </Button>
+        </SettingItem>
+        <SettingItem
+          title="保存配置后热重载"
+          actions={
+            <Tooltip content="保存订阅、覆写和接管配置后使用 Mihomo 热重载；热重载后默认断开连接重连，失败时提示错误">
+              <Button isIconOnly size="sm" variant="light">
+                <IoIosHelpCircle className="text-lg" />
+              </Button>
+            </Tooltip>
+          }
+          divider
+        >
+          <Switch
+            size="sm"
+            isSelected={hotReloadCoreOnSave}
+            onValueChange={(v) => {
+              patchAppConfig({ hotReloadCoreOnSave: v })
+            }}
+          />
         </SettingItem>
         <SettingItem title="在特定的 WiFi SSID 下直连" divider>
           <div className="flex items-center gap-2">

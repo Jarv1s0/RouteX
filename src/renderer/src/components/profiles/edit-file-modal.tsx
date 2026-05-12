@@ -14,6 +14,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import ConfirmModal from '../base/base-confirm'
+import { notifyError } from '@renderer/utils/notify'
+import { restartCoreInBackground } from '@renderer/utils/core-restart'
 
 interface Props {
   id: string
@@ -30,6 +32,7 @@ const EditFileModal: React.FC<Props> = (props) => {
   const [isDiff, setIsDiff] = useState(false)
   const [sideBySide, setSideBySide] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
 
   const isModified = currData !== originalData
@@ -128,9 +131,18 @@ const EditFileModal: React.FC<Props> = (props) => {
             <Button
               size="sm"
               color="primary"
+              isLoading={saving}
+              isDisabled={!isModified || saving}
               onPress={async () => {
-                await setProfileStr(id, currData)
-                onClose()
+                setSaving(true)
+                try {
+                  await setProfileStr(id, currData)
+                  onClose()
+                  restartCoreInBackground('应用订阅配置失败')
+                } catch (e) {
+                  notifyError(e, { title: '保存订阅失败' })
+                  setSaving(false)
+                }
               }}
             >
               保存

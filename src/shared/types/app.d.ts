@@ -81,6 +81,7 @@ interface AppConfig {
   autoCheckUpdate: boolean
   silentStart: boolean
   autoCloseConnection: boolean
+  hotReloadCoreOnSave?: boolean
   sysProxy: ISysProxyConfig
   maxLogDays: number
   userAgent?: string

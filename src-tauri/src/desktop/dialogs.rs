@@ -61,6 +61,7 @@ fn run_powershell_script(script: &str) -> Result<String, String> {
 }
 
 #[cfg(target_os = "windows")]
+#[allow(dead_code)]
 fn run_interactive_powershell_script(script: &str) -> Result<std::process::Output, String> {
     let encoded = encode_powershell_script(script);
     powershell_command()
