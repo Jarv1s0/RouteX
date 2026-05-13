@@ -225,7 +225,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
               </Tabs>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 space-y-3 min-h-[180px] max-h-[300px]">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-1 min-h-[180px]">
               {currentRanking.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-foreground-400 gap-2">
                   <div className="text-4xl opacity-30">📋</div>
@@ -246,7 +246,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                   return (
                     <div
                       key={item.name}
-                      className="flex items-center gap-3 group cursor-pointer hover:bg-default-100/50 p-2 -mx-2 rounded-xl transition-all"
+                      className="flex items-center gap-3 group cursor-pointer hover:bg-default-100/50 py-1.5 px-2 -mx-2 rounded-xl transition-all"
                       onClick={() => rankingTab === 'rule' && onSelectRule(item.name)}
                     >
                       {/* Rank Badge */}
