@@ -166,9 +166,8 @@ export function useDerivedConnections({
   const deferredOrder = useDeferredValue(connectionOrderBy)
   const deferredDirection = useDeferredValue(connectionDirection)
   const sourceConnections = tab === 'active' ? activeConnections : closedConnections
-  const deferredSourceConnections = useDeferredValue(sourceConnections)
   const throttledSourceConnections = useThrottledValue(
-    deferredSourceConnections,
+    sourceConnections,
     CONNECTION_DERIVED_THROTTLE_MS,
     tab
   )
