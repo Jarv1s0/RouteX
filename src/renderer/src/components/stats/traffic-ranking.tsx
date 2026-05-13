@@ -29,49 +29,65 @@ const RANKING_PALETTE = [
     badge: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
     bar: 'linear-gradient(90deg, #0f766e 0%, #22d3ee 100%)',
     glow: 'rgba(34, 211, 238, 0.22)',
-    track: 'rgba(15, 118, 110, 0.08)'
+    track: 'rgba(15, 118, 110, 0.08)',
+    text: '#0f766e',
+    soft: 'rgba(15, 118, 110, 0.12)'
   },
   {
     badge: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)',
     bar: 'linear-gradient(90deg, #2563eb 0%, #7dd3fc 100%)',
     glow: 'rgba(96, 165, 250, 0.2)',
-    track: 'rgba(37, 99, 235, 0.08)'
+    track: 'rgba(37, 99, 235, 0.08)',
+    text: '#2563eb',
+    soft: 'rgba(37, 99, 235, 0.12)'
   },
   {
     badge: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)',
     bar: 'linear-gradient(90deg, #7c3aed 0%, #c4b5fd 100%)',
     glow: 'rgba(167, 139, 250, 0.2)',
-    track: 'rgba(124, 58, 237, 0.08)'
+    track: 'rgba(124, 58, 237, 0.08)',
+    text: '#7c3aed',
+    soft: 'rgba(124, 58, 237, 0.12)'
   },
   {
     badge: 'linear-gradient(135deg, #be123c 0%, #fb7185 100%)',
     bar: 'linear-gradient(90deg, #e11d48 0%, #fda4af 100%)',
     glow: 'rgba(251, 113, 133, 0.18)',
-    track: 'rgba(225, 29, 72, 0.08)'
+    track: 'rgba(225, 29, 72, 0.08)',
+    text: '#e11d48',
+    soft: 'rgba(225, 29, 72, 0.12)'
   },
   {
     badge: 'linear-gradient(135deg, #c2410c 0%, #fb923c 100%)',
     bar: 'linear-gradient(90deg, #ea580c 0%, #fdba74 100%)',
     glow: 'rgba(251, 146, 60, 0.18)',
-    track: 'rgba(234, 88, 12, 0.08)'
+    track: 'rgba(234, 88, 12, 0.08)',
+    text: '#ea580c',
+    soft: 'rgba(234, 88, 12, 0.12)'
   },
   {
     badge: 'linear-gradient(135deg, #a16207 0%, #facc15 100%)',
     bar: 'linear-gradient(90deg, #ca8a04 0%, #fde047 100%)',
     glow: 'rgba(250, 204, 21, 0.18)',
-    track: 'rgba(202, 138, 4, 0.08)'
+    track: 'rgba(202, 138, 4, 0.08)',
+    text: '#ca8a04',
+    soft: 'rgba(202, 138, 4, 0.12)'
   },
   {
     badge: 'linear-gradient(135deg, #166534 0%, #4ade80 100%)',
     bar: 'linear-gradient(90deg, #16a34a 0%, #86efac 100%)',
     glow: 'rgba(74, 222, 128, 0.18)',
-    track: 'rgba(22, 163, 74, 0.08)'
+    track: 'rgba(22, 163, 74, 0.08)',
+    text: '#16a34a',
+    soft: 'rgba(22, 163, 74, 0.12)'
   },
   {
     badge: 'linear-gradient(135deg, #0f766e 0%, #67e8f9 100%)',
     bar: 'linear-gradient(90deg, #0891b2 0%, #a5f3fc 100%)',
     glow: 'rgba(103, 232, 249, 0.18)',
-    track: 'rgba(8, 145, 178, 0.08)'
+    track: 'rgba(8, 145, 178, 0.08)',
+    text: '#0891b2',
+    soft: 'rgba(8, 145, 178, 0.12)'
   }
 ] as const
 
@@ -251,10 +267,10 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                     >
                       {/* Rank Badge */}
                       <span
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 shadow-sm"
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                         style={{
-                          background: palette.badge,
-                          boxShadow: `0 4px 12px ${palette.glow}`
+                          backgroundColor: palette.soft,
+                          color: palette.text
                         }}
                       >
                         {index + 1}
@@ -288,7 +304,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
 
                         {/* Progress Bar */}
                         <div
-                          className="w-full h-1.5 rounded-full overflow-hidden"
+                          className="w-full h-1 rounded-full overflow-hidden"
                           style={{ backgroundColor: palette.track }}
                         >
                           <div
@@ -299,8 +315,8 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                             }}
                           >
                             <div
-                              className="absolute inset-0 opacity-50"
-                              style={{ boxShadow: `0 0 8px ${palette.glow}` }}
+                              className="absolute inset-0 opacity-30"
+                              style={{ boxShadow: `0 0 6px ${palette.glow}` }}
                             />
                           </div>
                         </div>
