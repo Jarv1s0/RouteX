@@ -8,6 +8,7 @@ import { primaryInputClassNames } from '@renderer/components/settings/advanced-s
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
+import { useI18n } from '@renderer/i18n'
 
 interface SnifferEditorValues {
   parsePureIP: boolean
@@ -84,6 +85,7 @@ function buildInitialValues(
 }
 
 export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
+  const { t } = useI18n()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
 
   const initialValues = useMemo(
@@ -115,7 +117,7 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
           'skip-src-address': values.skipSrcAddress
         }
       })
-      restartCoreInBackground('应用嗅探配置失败')
+      restartCoreInBackground(t('sniffer.applyFailed'))
     } catch (error) {
       notifyError(error)
     }
@@ -147,11 +149,12 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
 }
 
 export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditorState }> = ({ editor }) => {
+  const { t } = useI18n()
   const { values, setValues, handleSniffPortChange } = editor
 
   return (
     <SettingCard>
-      <SettingItem title="覆盖连接地址" divider>
+      <SettingItem title={t('sniffer.overrideDestination')} divider>
         <Switch
           size="sm"
           isSelected={values.overrideDestination}
@@ -171,7 +174,7 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
           }}
         />
       </SettingItem>
-      <SettingItem title="对真实 IP 映射嗅探" divider>
+      <SettingItem title={t('sniffer.forceDnsMapping')} divider>
         <Switch
           size="sm"
           isSelected={values.forceDNSMapping}
@@ -180,7 +183,7 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
           }}
         />
       </SettingItem>
-      <SettingItem title="对未映射 IP 地址嗅探" divider>
+      <SettingItem title={t('sniffer.parsePureIp')} divider>
         <Switch
           size="sm"
           isSelected={values.parsePureIP}
@@ -189,62 +192,62 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
           }}
         />
       </SettingItem>
-      <SettingItem title="HTTP 端口嗅探" divider>
+      <SettingItem title={t('sniffer.httpPorts')} divider>
         <Input
           size="sm"
           className="w-[50%]"
           classNames={primaryInputClassNames}
-          placeholder="端口号，使用逗号分割多个值"
+          placeholder={t('sniffer.portPlaceholder')}
           value={values.sniff.HTTP?.ports.join(',')}
           onValueChange={(value) => handleSniffPortChange('HTTP', value)}
         />
       </SettingItem>
-      <SettingItem title="TLS 端口嗅探" divider>
+      <SettingItem title={t('sniffer.tlsPorts')} divider>
         <Input
           size="sm"
           className="w-[50%]"
           classNames={primaryInputClassNames}
-          placeholder="端口号，使用逗号分割多个值"
+          placeholder={t('sniffer.portPlaceholder')}
           value={values.sniff.TLS?.ports.join(',')}
           onValueChange={(value) => handleSniffPortChange('TLS', value)}
         />
       </SettingItem>
-      <SettingItem title="QUIC 端口嗅探" divider>
+      <SettingItem title={t('sniffer.quicPorts')} divider>
         <Input
           size="sm"
           className="w-[50%]"
           classNames={primaryInputClassNames}
-          placeholder="端口号，使用逗号分割多个值"
+          placeholder={t('sniffer.portPlaceholder')}
           value={values.sniff.QUIC?.ports.join(',')}
           onValueChange={(value) => handleSniffPortChange('QUIC', value)}
         />
       </SettingItem>
       <EditableList
-        title="跳过域名嗅探"
+        title={t('sniffer.skipDomain')}
         items={values.skipDomain}
         onChange={(list) => setValues({ ...values, skipDomain: list as string[] })}
-        placeholder="例：+.push.apple.com"
+        placeholder={t('sniffer.placeholder.skipDomain')}
         inputClassNames={primaryInputClassNames}
       />
       <EditableList
-        title="强制域名嗅探"
+        title={t('sniffer.forceDomain')}
         items={values.forceDomain}
         onChange={(list) => setValues({ ...values, forceDomain: list as string[] })}
-        placeholder="例：v2ex.com"
+        placeholder={t('sniffer.placeholder.forceDomain')}
         inputClassNames={primaryInputClassNames}
       />
       <EditableList
-        title="跳过目标地址嗅探"
+        title={t('sniffer.skipDstAddress')}
         items={values.skipDstAddress}
         onChange={(list) => setValues({ ...values, skipDstAddress: list as string[] })}
-        placeholder="例：1.1.1.1/32"
+        placeholder={t('sniffer.placeholder.skipDstAddress')}
         inputClassNames={primaryInputClassNames}
       />
       <EditableList
-        title="跳过来源地址嗅探"
+        title={t('sniffer.skipSrcAddress')}
         items={values.skipSrcAddress}
         onChange={(list) => setValues({ ...values, skipSrcAddress: list as string[] })}
-        placeholder="例：192.168.1.1/24"
+        placeholder={t('sniffer.placeholder.skipSrcAddress')}
         divider={false}
         inputClassNames={primaryInputClassNames}
       />

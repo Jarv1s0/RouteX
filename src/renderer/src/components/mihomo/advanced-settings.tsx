@@ -9,8 +9,10 @@ import { useState } from 'react'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { numberInputClassNames, secondaryInputClassNames } from '../settings/advanced-settings'
 import EditableList from '../base/base-list-editor'
+import { useI18n } from '@renderer/i18n'
 
 const AdvancedSetting: React.FC = () => {
+  const { t } = useI18n()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
@@ -45,9 +47,9 @@ const AdvancedSetting: React.FC = () => {
   }
 
   return (
-    <SettingCard title="高级设置" collapsible>
+    <SettingCard title={t('mihomo.advancedSettings')} collapsible>
 
-          <SettingItem title="查找进程" divider>
+          <SettingItem title={t('mihomo.findProcess')} divider>
         <Tabs
           size="sm"
           color="primary"
@@ -58,12 +60,12 @@ const AdvancedSetting: React.FC = () => {
             onChangeNeedRestart({ 'find-process-mode': key as FindProcessMode })
           }}
         >
-          <Tab key="strict" title="自动"></Tab>
-          <Tab key="off" title="关闭"></Tab>
-          <Tab key="always" title="开启"></Tab>
+          <Tab key="strict" title={t('common.auto')}></Tab>
+          <Tab key="off" title={t('common.disable')}></Tab>
+          <Tab key="always" title={t('common.enable')}></Tab>
         </Tabs>
       </SettingItem>
-      <SettingItem title="存储选择节点" divider>
+      <SettingItem title={t('mihomo.storeSelected')} divider>
         <Switch
           size="sm"
           isSelected={storeSelected}
@@ -72,7 +74,7 @@ const AdvancedSetting: React.FC = () => {
           }}
         />
       </SettingItem>
-      <SettingItem title="存储 FakeIP" divider>
+      <SettingItem title={t('mihomo.storeFakeIp')} divider>
         <Switch
           size="sm"
           isSelected={storeFakeIp}
@@ -82,9 +84,9 @@ const AdvancedSetting: React.FC = () => {
         />
       </SettingItem>
       <SettingItem
-        title="使用 RTT 延迟测试"
+        title={t('mihomo.unifiedDelay')}
         actions={
-          <Tooltip content="开启后会使用统一延迟测试来获取节点延迟，以消除不同节点握手时间的影响">
+          <Tooltip content={t('mihomo.unifiedDelayHelp')}>
             <Button isIconOnly size="sm" variant="light">
               <IoIosHelpCircle className="text-lg" />
             </Button>
@@ -101,9 +103,9 @@ const AdvancedSetting: React.FC = () => {
         />
       </SettingItem>
       <SettingItem
-        title="TCP 并发"
+        title={t('mihomo.tcpConcurrent')}
         actions={
-          <Tooltip content="对 dns 解析出的多个 IP 地址进行 TCP 并发连接，使用握手时间最短的连接">
+          <Tooltip content={t('mihomo.tcpConcurrentHelp')}>
             <Button isIconOnly size="sm" variant="light">
               <IoIosHelpCircle className="text-lg" />
             </Button>
@@ -119,7 +121,7 @@ const AdvancedSetting: React.FC = () => {
           }}
         />
       </SettingItem>
-      <SettingItem title="TCP Keep Alive 设置" divider>
+      <SettingItem title={t('mihomo.keepAlive')} divider>
         <Switch
           size="sm"
           isSelected={!disableKeepAlive}
@@ -131,7 +133,7 @@ const AdvancedSetting: React.FC = () => {
       {!disableKeepAlive && (
         <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
           <div className="ml-4 text-sm">
-            <SettingItem title="TCP Keep Alive 间隔">
+            <SettingItem title={t('mihomo.keepAliveInterval')}>
               <div className="flex">
                 {intervalInput !== interval && (
                   <Button
@@ -142,7 +144,7 @@ const AdvancedSetting: React.FC = () => {
                       await onChangeNeedRestart({ 'keep-alive-interval': intervalInput })
                     }}
                   >
-                    确认
+                    {t('common.confirm')}
                   </Button>
                 )}
                 <Input
@@ -158,7 +160,7 @@ const AdvancedSetting: React.FC = () => {
                 />
               </div>
             </SettingItem>
-            <SettingItem title="TCP Keep Alive 空闲">
+            <SettingItem title={t('mihomo.keepAliveIdle')}>
               <div className="flex">
                 {idleInput !== idle && (
                   <Button
@@ -169,7 +171,7 @@ const AdvancedSetting: React.FC = () => {
                       await onChangeNeedRestart({ 'keep-alive-idle': idleInput })
                     }}
                   >
-                    确认
+                    {t('common.confirm')}
                   </Button>
                 )}
                 <Input
@@ -189,9 +191,9 @@ const AdvancedSetting: React.FC = () => {
         </div>
       )}
       <SettingItem
-        title="断网时停止内核"
+        title={t('mihomo.stopCoreWhenOffline')}
         actions={
-          <Tooltip content="开启后，应用会在检测到网络断开时自动停止内核，并在网络恢复后自动重启内核">
+          <Tooltip content={t('mihomo.stopCoreWhenOfflineHelp')}>
             <Button isIconOnly size="sm" variant="light">
               <IoIosHelpCircle className="text-lg" />
             </Button>
@@ -215,7 +217,7 @@ const AdvancedSetting: React.FC = () => {
       {networkDetection && (
         <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
           <div className="ml-4 text-sm">
-            <SettingItem title="断网检测间隔">
+            <SettingItem title={t('mihomo.networkDetectionInterval')}>
               <div className="flex">
                 {detectionInterval !== networkDetectionInterval && (
                   <Button
@@ -227,7 +229,7 @@ const AdvancedSetting: React.FC = () => {
                       await startNetworkDetection()
                     }}
                   >
-                    确认
+                    {t('common.confirm')}
                   </Button>
                 )}
                 <Input
@@ -235,7 +237,7 @@ const AdvancedSetting: React.FC = () => {
                   type="number"
                   className="w-[100px]"
                   classNames={numberInputClassNames}
-                  endContent="秒"
+                  endContent={t('common.seconds')}
                   value={detectionInterval.toString()}
                   min={1}
                   onValueChange={(v) => {
@@ -244,7 +246,7 @@ const AdvancedSetting: React.FC = () => {
                 />
               </div>
             </SettingItem>
-            <SettingItem title="绕过检测的接口">
+            <SettingItem title={t('mihomo.networkDetectionBypass')}>
               {bypass.length != networkDetectionBypass.length && (
                 <Button
                   size="sm"
@@ -254,7 +256,7 @@ const AdvancedSetting: React.FC = () => {
                     await startNetworkDetection()
                   }}
                 >
-                  确认
+                  {t('common.confirm')}
                 </Button>
               )}
             </SettingItem>
@@ -271,7 +273,7 @@ const AdvancedSetting: React.FC = () => {
         </div>
       )}
 
-      <SettingItem title="指定出站接口">
+      <SettingItem title={t('mihomo.outboundInterface')}>
         <InterfaceSelect
           value={interfaceName}
           exclude={[device, 'lo']}

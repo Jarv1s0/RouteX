@@ -10,6 +10,7 @@ import { IoMdCloudDownload, IoMdRefresh } from 'react-icons/io'
 import { HiExternalLink } from 'react-icons/hi'
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai'
 import { isValidListenAddress } from '@renderer/utils/validate'
+import { useI18n } from '@renderer/i18n'
 
 const inputClassNames = {
   input: 'bg-transparent',
@@ -134,6 +135,7 @@ function resolveExternalUiOpenUrl(
 }
 
 const ControllerSetting: React.FC = () => {
+  const { t } = useI18n()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const {
     'external-controller': externalController = '',
@@ -158,7 +160,7 @@ const ControllerSetting: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [externalControllerError, setExternalControllerError] = useState<string | null>(() => {
     const r = isValidListenAddress(externalController)
-    return r.ok ? null : (r.error ?? '格式错误')
+    return r.ok ? null : (r.error ?? t('common.formatError'))
   })
   const persistedExternalController = externalController.trim()
   const persistedExternalUi = normalizeExternalUiPath(externalUi)
@@ -186,14 +188,14 @@ const ControllerSetting: React.FC = () => {
     setEnableExternalUi(externalUi.trim() !== '')
 
     const result = isValidListenAddress(externalController)
-    setExternalControllerError(result.ok ? null : (result.error ?? '格式错误'))
-  }, [allowOrigins, externalController, externalUi, externalUiUrl, secret])
+    setExternalControllerError(result.ok ? null : (result.error ?? t('common.formatError')))
+  }, [allowOrigins, externalController, externalUi, externalUiUrl, secret, t])
 
   const upgradeUI = async (): Promise<void> => {
     try {
       setUpgrading(true)
       await mihomoUpgradeUI()
-      new Notification('面板更新成功')
+      new Notification(t('mihomo.controllerUiUpdated'))
     } catch (e) {
       alert(e)
     } finally {
@@ -215,8 +217,8 @@ const ControllerSetting: React.FC = () => {
   }
 
   return (
-    <SettingCard title="外部控制器" collapsible>
-      <SettingItem title="监听地址" divider>
+    <SettingCard title={t('mihomo.externalController')} collapsible>
+      <SettingItem title={t('mihomo.listenAddress')} divider>
         <div className="flex">
           {externalControllerInput != externalController && !externalControllerError && (
             <Button
@@ -230,7 +232,7 @@ const ControllerSetting: React.FC = () => {
                 })
               }}
             >
-              确认
+              {t('common.confirm')}
             </Button>
           )}
           <Tooltip
@@ -249,19 +251,19 @@ const ControllerSetting: React.FC = () => {
               onValueChange={(v) => {
                 setExternalControllerInput(v)
                 const r = isValidListenAddress(v)
-                setExternalControllerError(r.ok ? null : (r.error ?? '格式错误'))
+                setExternalControllerError(r.ok ? null : (r.error ?? t('common.formatError')))
               }}
             />
           </Tooltip>
         </div>
       </SettingItem>
       <SettingItem
-        title="访问密钥"
+        title={t('mihomo.secret')}
         actions={
           <Button
             size="sm"
             isIconOnly
-            title="生成密钥"
+            title={t('mihomo.generateSecret')}
             variant="light"
             onPress={() => setSecretInput(generateRandomString(32))}
           >
@@ -280,7 +282,7 @@ const ControllerSetting: React.FC = () => {
                 onChangeNeedRestart({ secret: secretInput })
               }}
             >
-              确认
+              {t('common.confirm')}
             </Button>
           )}
           <Input
@@ -306,7 +308,7 @@ const ControllerSetting: React.FC = () => {
           />
         </div>
       </SettingItem>
-      <SettingItem title="启用控制器面板" divider>
+      <SettingItem title={t('mihomo.enableControllerUi')} divider>
         <Switch
           size="sm"
           isSelected={enableExternalUi}
@@ -321,14 +323,14 @@ const ControllerSetting: React.FC = () => {
       </SettingItem>
       {enableExternalUi && (
         <SettingItem
-          title="控制器面板"
+          title={t('mihomo.controllerUi')}
           divider
           actions={
             <>
               <Button
                 size="sm"
                 isIconOnly
-                title="更新面板"
+                title={t('mihomo.updateControllerUi')}
                 variant="light"
                 isLoading={upgrading}
                 onPress={upgradeUI}
@@ -336,7 +338,7 @@ const ControllerSetting: React.FC = () => {
                 <IoMdCloudDownload className="text-lg" />
               </Button>
               <Button
-                title="在浏览器中打开"
+                title={t('mihomo.openInBrowser')}
                 isIconOnly
                 size="sm"
                 className="app-nodrag"
@@ -344,7 +346,7 @@ const ControllerSetting: React.FC = () => {
                 isDisabled={upgrading || !browserOpenUrl || externalUiPathChanged}
                 onPress={() => {
                   if (!browserOpenUrl) {
-                    alert('当前控制器面板地址无效，请先确认监听地址和面板配置已生效')
+                    alert(t('mihomo.invalidControllerUiAddress'))
                     return
                   }
 
@@ -376,7 +378,7 @@ const ControllerSetting: React.FC = () => {
                   })
                 }}
               >
-                确认
+                {t('common.confirm')}
               </Button>
             )}
             <Select
@@ -400,7 +402,7 @@ const ControllerSetting: React.FC = () => {
           </div>
         </SettingItem>
       )}
-      <SettingItem title="允许私有网络访问" divider>
+      <SettingItem title={t('mihomo.allowPrivateNetwork')} divider>
         <Switch
           size="sm"
           isSelected={allowPrivateNetwork}
@@ -414,7 +416,7 @@ const ControllerSetting: React.FC = () => {
           }}
         />
       </SettingItem>
-      <SettingItem title="允许的来源" divider={false}>
+      <SettingItem title={t('mihomo.allowedOrigins')} divider={false}>
         {allowOriginsInput.join(',') != initialAllowOrigins.join(',') && (
           <Button
             size="sm"
@@ -429,7 +431,7 @@ const ControllerSetting: React.FC = () => {
               })
             }}
           >
-            确认
+            {t('common.confirm')}
           </Button>
         )}
         <EditableList

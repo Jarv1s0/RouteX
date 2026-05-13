@@ -7,6 +7,7 @@ import { getFlag, removeFlag, cleanNodeName } from '@renderer/utils/flags'
 import React, { useMemo } from 'react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   iconOnly?: boolean
@@ -20,6 +21,7 @@ type ProxyLookupItem = {
 
 const ProxyCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
+  const { t } = useI18n()
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { mode } = controledMihomoConfig || {}
   const location = useLocation()
@@ -53,8 +55,8 @@ const ProxyCard: React.FC<Props> = (props) => {
 
   const currentGroupLabel = useMemo(() => {
     const groupName = firstGroup?.now
-    return groupName ? cleanNodeName(groupName) : '代理组'
-  }, [firstGroup])
+    return groupName ? cleanNodeName(groupName) : t('sidebar.proxyGroups')
+  }, [firstGroup, t])
 
   const currentGroupFlag = useMemo(() => {
     const groupName = firstGroup?.now
@@ -89,7 +91,7 @@ const ProxyCard: React.FC<Props> = (props) => {
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
-        <Tooltip content="代理组" placement="right">
+        <Tooltip content={t('sidebar.proxyGroups')} placement="right">
           <Button
             size="sm"
             isIconOnly
@@ -126,7 +128,7 @@ const ProxyCard: React.FC<Props> = (props) => {
               />
             </span>
             <h3 className={`text-sm font-semibold text-foreground dark:text-foreground/90`}>
-              代理组
+              {t('sidebar.proxyGroups')}
             </h3>
           </div>
 

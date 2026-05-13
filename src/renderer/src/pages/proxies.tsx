@@ -26,6 +26,7 @@ import { useGroups } from '@renderer/hooks/use-groups'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { ProxyGroupCard } from '@renderer/components/proxies/proxy-group-card'
 import { ProxyCardSkeleton } from '@renderer/components/base/skeleton'
+import { useI18n } from '@renderer/i18n'
 
 const DEFAULT_DELAY_TEST_CONCURRENCY = 4
 const MAX_DELAY_TEST_CONCURRENCY = 8
@@ -341,6 +342,7 @@ function createMutateBatcher(mutate: () => void | Promise<void>, waitMs: number)
 }
 
 const Proxies: React.FC = () => {
+  const { t } = useI18n()
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { mode = 'rule' } = controledMihomoConfig || {}
   const { groups: allGroups = [], mutate, isLoading } = useGroups()
@@ -757,7 +759,7 @@ const Proxies: React.FC = () => {
 
   return (
     <BasePage
-      title="代理组"
+      title={t('page.proxies.title')}
       header={
 
         <div className="flex items-center gap-1 app-nodrag">
@@ -765,7 +767,7 @@ const Proxies: React.FC = () => {
             size="sm"
             isIconOnly
             variant="light"
-            title="管理代理链"
+            title={t('page.proxies.manageChains')}
             onPress={() => setIsChainModalOpen(true)}
           >
             <MdLink className="text-lg" />
@@ -774,7 +776,7 @@ const Proxies: React.FC = () => {
             size="sm"
             isIconOnly
             variant="light"
-            title="代理组设置"
+            title={t('page.proxies.settings')}
             onPress={() => setIsSettingModalOpen(true)}
           >
             <MdTune className="text-lg" />
@@ -787,8 +789,8 @@ const Proxies: React.FC = () => {
       {mode === 'direct' ? (
         <EmptyState
           icon={<TbBolt className="!text-[40px] text-teal-500" />}
-          title="直连模式"
-          description="所有流量将直接连接，不经过代理"
+          title={t('page.proxies.directMode')}
+          description={t('page.proxies.directModeDescription')}
         />
       ) : isLoading && (!allGroups || allGroups.length === 0) ? (
         <div className="p-4 space-y-4">
@@ -801,8 +803,8 @@ const Proxies: React.FC = () => {
       ) : renderGroups.length === 0 ? (
         <EmptyState
           icon={<MdLink className="!text-[40px] text-default-400" />}
-          title="暂无代理组"
-          description="当前运行配置未返回可显示的代理组"
+          title={t('page.proxies.emptyTitle')}
+          description={t('page.proxies.emptyDescription')}
         />
       ) : (
         <div className="h-[calc(100vh-50px)]">

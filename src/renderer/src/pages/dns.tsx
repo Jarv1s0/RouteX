@@ -3,13 +3,15 @@ import { Button } from '@heroui/react'
 
 import BasePage from '@renderer/components/base/base-page'
 import { DnsSettingsFormFields, useDnsSettingsEditor } from '@renderer/components/dns/dns-settings-editor'
+import { useI18n } from '@renderer/i18n'
 
 const DNS: React.FC = () => {
+  const { t } = useI18n()
   const editor = useDnsSettingsEditor()
 
   return (
     <BasePage
-      title="DNS 设置"
+      title={t('page.dns.title')}
       header={
         editor.changed && (
           <Button
@@ -19,7 +21,7 @@ const DNS: React.FC = () => {
             isDisabled={editor.saveDisabled}
             onPress={() => void editor.save()}
           >
-            保存
+            {t('common.save')}
           </Button>
         )
       }

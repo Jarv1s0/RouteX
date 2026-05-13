@@ -6,6 +6,7 @@ import type { PressEvent } from '@react-types/shared'
 import { CgClose, CgTrash } from 'react-icons/cg'
 import { IoEyeOff, IoEye, IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { getFlag, cleanNodeName } from '@renderer/utils/flags'
+import { useI18n } from '@renderer/i18n'
 
 const SELECTED_CARD_CLASS =
   'bg-primary/[0.08] dark:bg-primary/[0.12] border border-primary/24 shadow-[0_4px_14px_rgba(16,185,129,0.08)]'
@@ -86,6 +87,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
   timeRefreshTrigger,
   onContextMenu
 }) => {
+  const { t } = useI18n()
   const isSelected = info.id === selectedId
   const processName = displayName || info.metadata.process?.replace(/\.exe$/, '') || info.metadata.sourceIP || '-'
   const destination = info.metadata.host || info.metadata.destinationIP || info.metadata.remoteDestination || '-'
@@ -152,7 +154,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
               <div className="flex-1 min-w-0 flex items-center gap-2 text-sm truncate mr-4">
                 <span className="font-medium text-foreground-700 flex items-center gap-1.5">
                   {processName}
-                  {isHidden && <IoEyeOff className="text-[12px] text-default-400" title="该连接已被隐藏" />}
+                  {isHidden && <IoEyeOff className="text-[12px] text-default-400" title={t('connections.hiddenTitle')} />}
                 </span>
                 <span className="text-foreground-300 text-[10px]">→</span>
                 <span className="text-foreground-600 truncate">{destination}</span>
@@ -172,7 +174,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
                       size="sm"
                       className={`h-6 w-6 min-w-[24px] transition-all ${isHidden ? 'shadow-lg shadow-primary/40' : 'bg-default-100 hover:bg-default-200 text-default-500'}`}
                       onPress={handleHide}
-                      title={isHidden ? '取消隐藏' : '隐藏连接'}
+                      title={isHidden ? t('connections.unhideConnection') : t('connections.hideConnection')}
                     >
                       {isHidden ? <IoEye className="text-[13px]" /> : <IoEyeOff className="text-[13px]" />}
                     </Button>

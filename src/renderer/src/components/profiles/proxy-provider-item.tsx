@@ -5,6 +5,7 @@ import { MdEditDocument } from 'react-icons/md'
 import dayjs from 'dayjs'
 import React from 'react'
 import { calcTraffic } from '@renderer/utils/calc'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   provider: ControllerProxyProviderDetail
@@ -15,6 +16,8 @@ interface Props {
 }
 
 const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdate, onView }) => {
+  const { t } = useI18n()
+
   return (
     <div className="w-full px-2 pb-2">
       <Card className="hover:bg-primary/30 transition-all duration-200">
@@ -48,7 +51,7 @@ const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdat
               </span>
               <Button
                 isIconOnly
-                title={provider.vehicleType === 'File' ? '编辑' : '查看'}
+                title={provider.vehicleType === 'File' ? t('common.edit') : t('common.view')}
                 size="sm"
                 onPress={onView}
               >
@@ -60,7 +63,7 @@ const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdat
               </Button>
               <Button
                 isIconOnly
-                title="更新"
+                title={t('common.update')}
                 size="sm"
                 onPress={onUpdate}
               >

@@ -20,6 +20,7 @@ import {
   retainLogsView,
   useLogsStore
 } from '@renderer/store/use-logs-store'
+import { useI18n } from '@renderer/i18n'
 
 import { includesIgnoreCase } from '@renderer/utils/includes'
 
@@ -33,6 +34,7 @@ function normalizeLogDaysInput(value: string): number {
 }
 
 const Logs: React.FC = () => {
+  const { t } = useI18n()
   const logs = useLogsStore((state) => state.logs)
   const paused = useLogsStore((state) => state.paused)
   const setPaused = useLogsStore((state) => state.setPaused)
@@ -94,7 +96,7 @@ const Logs: React.FC = () => {
   }, [filteredLogs, paused])
 
   return (
-    <BasePage title="实时日志">
+    <BasePage title={t('page.logs.title')}>
       {selectedLog && (
         <LogDetailModal
           log={selectedLog}
@@ -119,7 +121,7 @@ const Logs: React.FC = () => {
               }}
               className="w-[75px]"
               size="sm"
-              aria-label="日志等级"
+              aria-label={t('page.logs.level')}
               selectedKeys={new Set([logLevel])}
               disallowEmptySelection={true}
               onSelectionChange={async (v) => {
@@ -127,11 +129,11 @@ const Logs: React.FC = () => {
                 await restartCore()
               }}
             >
-              <SelectItem key="silent">静默</SelectItem>
-              <SelectItem key="error">错误</SelectItem>
-              <SelectItem key="warning">警告</SelectItem>
-              <SelectItem key="info">信息</SelectItem>
-              <SelectItem key="debug">调试</SelectItem>
+              <SelectItem key="silent">{t('page.logs.silent')}</SelectItem>
+              <SelectItem key="error">{t('page.logs.error')}</SelectItem>
+              <SelectItem key="warning">{t('page.logs.warning')}</SelectItem>
+              <SelectItem key="info">{t('page.logs.info')}</SelectItem>
+              <SelectItem key="debug">{t('page.logs.debug')}</SelectItem>
             </Select>
 
             <div className="w-1 h-1 rounded-full bg-default-300/50" />
@@ -145,7 +147,7 @@ const Logs: React.FC = () => {
                   ...CARD_STYLES.GLASS_INPUT,
                   input: `${CARD_STYLES.GLASS_INPUT.input} text-center [&::-webkit-inner-spin-button]:appearance-none`
                 }}
-                aria-label="保留天数"
+                aria-label={t('page.logs.retentionDays')}
                 min={1}
                 value={logDaysInput}
                 onValueChange={setLogDaysInput}
@@ -155,7 +157,7 @@ const Logs: React.FC = () => {
                   patchAppConfig({ maxLogDays: val })
                 }}
               />
-              <span className="text-[10px] text-default-400 pl-0.5">天</span>
+              <span className="text-[10px] text-default-400 pl-0.5">{t('page.logs.days')}</span>
             </div>
           </div>
 
@@ -166,7 +168,7 @@ const Logs: React.FC = () => {
             variant="flat"
             size="sm"
             value={filter}
-            placeholder="搜索..."
+            placeholder={t('common.search')}
             isClearable
             startContent={<IoJournalOutline className="text-default-400 text-sm" />}
             onValueChange={setFilter}
@@ -179,7 +181,7 @@ const Logs: React.FC = () => {
             <Button
               size="sm"
               isIconOnly
-              title={paused ? "恢复并锁定底部" : "暂停并停止滚动"}
+              title={paused ? t('page.logs.resume') : t('page.logs.pause')}
               className={`min-w-8 w-8 h-8 rounded-full transition-transform active:scale-95 ${paused ? 'text-warning bg-warning/10' : 'text-primary bg-primary/10'}`}
               variant="light"
               onPress={() => {
@@ -196,7 +198,7 @@ const Logs: React.FC = () => {
             <Button
               size="sm"
               isIconOnly
-              title="清空日志"
+              title={t('page.logs.clear')}
               className="min-w-8 w-8 h-8 rounded-full text-default-400 hover:text-danger hover:bg-danger/10 transition-colors"
               variant="light"
               onPress={() => {
@@ -209,7 +211,7 @@ const Logs: React.FC = () => {
             <Button
               size="sm"
               isIconOnly
-              title="导出日志"
+              title={t('page.logs.export')}
               className="min-w-8 w-8 h-8 rounded-full text-default-400 hover:text-primary hover:bg-primary/10 transition-colors"
               variant="light"
               isDisabled={filteredLogs.length === 0}
@@ -224,8 +226,8 @@ const Logs: React.FC = () => {
         {filteredLogs.length === 0 ? (
           <EmptyState
             icon={<IoJournalOutline />}
-            title="暂无日志"
-            description="日志信息将在这里显示"
+            title={t('page.logs.emptyTitle')}
+            description={t('page.logs.emptyDescription')}
           />
         ) : (
           <Virtuoso

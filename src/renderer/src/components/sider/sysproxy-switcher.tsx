@@ -9,6 +9,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { LuGlobe } from 'react-icons/lu'
 import React from 'react'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   iconOnly?: boolean
@@ -17,6 +18,7 @@ interface Props {
 
 const SysproxySwitcher: React.FC<Props> = (props) => {
   const { iconOnly, compact } = props
+  const { t } = useI18n()
   const location = useLocation()
   const match = location.pathname.includes('/sysproxy')
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -48,7 +50,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
-        <Tooltip content="系统代理" placement="right">
+        <Tooltip content={t('sidebar.sysProxy')} placement="right">
           <Button
             size="sm"
             isIconOnly
@@ -81,7 +83,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
             <LuGlobe className={`text-[15px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
           </span>
           <span className={`text-sm font-semibold whitespace-nowrap leading-none transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}>
-            系统代理
+            {t('sidebar.sysProxy')}
           </span>
         </div>
         <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center pr-0 -mr-0.5">
@@ -109,7 +111,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
           <LuGlobe className={`text-[16px] transition-colors ${match ? 'text-primary' : 'text-default-500 group-hover:text-primary'}`} />
         </span>
         <h3 className={`text-sm font-semibold transition-colors ${match ? 'text-primary' : 'text-foreground/90 group-hover:text-primary'}`}>
-          系统代理
+          {t('sidebar.sysProxy')}
         </h3>
       </div>
       <div onClick={(e) => e.stopPropagation()}>

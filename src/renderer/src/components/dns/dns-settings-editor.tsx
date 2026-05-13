@@ -10,6 +10,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
+import { useI18n } from '@renderer/i18n'
 import {
   isValidDomainWildcard,
   isValidDnsServer,
@@ -100,6 +101,7 @@ function buildInitialValues(
 }
 
 export function useDnsSettingsEditor(): DnsSettingsEditorState {
+  const { t } = useI18n()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
 
@@ -116,11 +118,11 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
   useEffect(() => {
     setValuesState(initialValues)
     const range4 = isValidIPv4Cidr(initialValues.fakeIPRange)
-    setFakeIPRangeError(range4.ok ? null : (range4.error ?? '格式错误'))
+    setFakeIPRangeError(range4.ok ? null : (range4.error ?? t('common.formatError')))
     const range6 = isValidIPv6Cidr(initialValues.fakeIPRange6)
-    setFakeIPRange6Error(range6.ok ? null : (range6.error ?? '格式错误'))
+    setFakeIPRange6Error(range6.ok ? null : (range6.error ?? t('common.formatError')))
     setAdvancedDnsError(false)
-  }, [initialValues])
+  }, [initialValues, t])
 
   const changed = useMemo(() => {
     return JSON.stringify(values) !== JSON.stringify(initialValues)
@@ -177,7 +179,7 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
         },
         hosts: hostsObject
       })
-      restartCoreInBackground('应用 DNS 配置失败')
+      restartCoreInBackground(t('dns.applyFailed'))
     } catch (error) {
       notifyError(error)
     }
@@ -198,6 +200,7 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
 }
 
 export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }> = ({ editor }) => {
+  const { t } = useI18n()
   const {
     values,
     setValues,
@@ -218,20 +221,20 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
             onValueChange={(value) => setValues({ ...values, ipv6: value })}
           />
         </SettingItem>
-        <SettingItem title="域名映射模式" divider>
+        <SettingItem title={t('dns.enhancedMode')} divider>
           <Tabs
             classNames={CARD_STYLES.GLASS_TABS}
             selectedKey={values.enhancedMode}
             onSelectionChange={(key: Key) => setValues({ ...values, enhancedMode: key as DnsMode })}
           >
-            <Tab key="fake-ip" title="虚假 IP" />
-            <Tab key="redir-host" title="真实 IP" />
-            <Tab key="normal" title="取消映射" />
+            <Tab key="fake-ip" title={t('dns.fakeIp')} />
+            <Tab key="redir-host" title={t('dns.redirHost')} />
+            <Tab key="normal" title={t('dns.normal')} />
           </Tabs>
         </SettingItem>
         {values.enhancedMode === 'fake-ip' && (
           <>
-            <SettingItem title="虚假 IP 范围 (IPv4)" divider>
+            <SettingItem title={t('dns.fakeIpRange4')} divider>
               <Tooltip
                 content={fakeIPRangeError}
                 placement="right"
@@ -247,18 +250,18 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
                     (fakeIPRangeError ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : '')
                   }
                   classNames={fakeIPRangeError ? undefined : primaryInputClassNames}
-                  placeholder="例：198.18.0.1/16"
+                  placeholder={t('dns.placeholder.fakeIpRange4')}
                   value={values.fakeIPRange}
                   onValueChange={(value) => {
                     setValues({ ...values, fakeIPRange: value })
                     const result = isValidIPv4Cidr(value)
-                    setFakeIPRangeError(result.ok ? null : (result.error ?? '格式错误'))
+                    setFakeIPRangeError(result.ok ? null : (result.error ?? t('common.formatError')))
                   }}
                 />
               </Tooltip>
             </SettingItem>
             {values.ipv6 && (
-              <SettingItem title="虚假 IP 范围 (IPv6)" divider>
+              <SettingItem title={t('dns.fakeIpRange6')} divider>
                 <Tooltip
                   content={fakeIPRange6Error}
                   placement="right"
@@ -274,47 +277,47 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
                       (fakeIPRange6Error ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : '')
                     }
                     classNames={fakeIPRange6Error ? undefined : primaryInputClassNames}
-                    placeholder="例：fc00::/18"
+                    placeholder={t('dns.placeholder.fakeIpRange6')}
                     value={values.fakeIPRange6}
                     onValueChange={(value) => {
                       setValues({ ...values, fakeIPRange6: value })
                       const result = isValidIPv6Cidr(value)
-                      setFakeIPRange6Error(result.ok ? null : (result.error ?? '格式错误'))
+                      setFakeIPRange6Error(result.ok ? null : (result.error ?? t('common.formatError')))
                     }}
                   />
                 </Tooltip>
               </SettingItem>
             )}
             <EditableList
-              title="虚假 IP 过滤器"
+              title={t('dns.fakeIpFilter')}
               items={values.fakeIPFilter}
               validate={(part) => isValidDomainWildcard(part as string)}
               onChange={(list) => {
                 setValues({ ...values, fakeIPFilter: list as string[] })
               }}
-              placeholder="例：+.lan"
+              placeholder={t('dns.placeholder.fakeIpFilter')}
               inputClassNames={primaryInputClassNames}
             />
           </>
         )}
         <EditableList
-          title="基础服务器"
+          title={t('dns.baseNameserver')}
           items={values.defaultNameserver}
           validate={(part) => isValidDnsServer(part as string, true)}
           onChange={(list) => {
             setValues({ ...values, defaultNameserver: list as string[] })
           }}
-          placeholder="例：223.5.5.5"
+          placeholder={t('dns.placeholder.baseNameserver')}
           inputClassNames={primaryInputClassNames}
         />
         <EditableList
-          title="默认解析服务器"
+          title={t('dns.defaultNameserver')}
           items={values.nameserver}
           validate={(part) => isValidDnsServer(part as string)}
           onChange={(list) => {
             setValues({ ...values, nameserver: list as string[] })
           }}
-          placeholder="例：tls://dns.alidns.com"
+          placeholder={t('dns.placeholder.nameserver')}
           divider={false}
           inputClassNames={primaryInputClassNames}
         />

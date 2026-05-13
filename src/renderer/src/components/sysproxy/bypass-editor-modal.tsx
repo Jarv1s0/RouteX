@@ -4,6 +4,7 @@ import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from
 import { BaseEditor } from '../base/base-editor-lazy'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   bypass: string[]
@@ -16,6 +17,7 @@ interface ParsedYaml {
 }
 
 const ByPassEditorModal: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const { bypass, onCancel, onConfirm } = props
   const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
     useAppConfig()
@@ -29,10 +31,10 @@ const ByPassEditorModal: React.FC<Props> = (props) => {
       if (parsed && Array.isArray(parsed.bypass)) {
         onConfirm(parsed.bypass)
       } else {
-        alert('YAML 格式错误')
+        alert(t('sysproxy.yamlFormatError'))
       }
     } catch (e) {
-      alert('YAML 解析失败：' + e)
+      alert(t('sysproxy.yamlParseFailed', { error: String(e) }))
     }
   }
 
@@ -55,7 +57,7 @@ const ByPassEditorModal: React.FC<Props> = (props) => {
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
       >
-        <ModalHeader className="flex pb-0 app-drag">编辑绕过列表 (YAML)</ModalHeader>
+        <ModalHeader className="flex pb-0 app-drag">{t('sysproxy.editBypassYaml')}</ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-hidden">
           <BaseEditor
             language="yaml"
@@ -65,10 +67,10 @@ const ByPassEditorModal: React.FC<Props> = (props) => {
         </ModalBody>
         <ModalFooter className="pt-0">
           <Button size="sm" variant="light" onPress={onCancel}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button size="sm" color="primary" onPress={handleConfirm}>
-            确认
+            {t('common.confirm')}
           </Button>
         </ModalFooter>
       </ModalContent>

@@ -23,6 +23,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
+import { useI18n } from '@renderer/i18n'
 
 interface LatestVersion {
   version: string
@@ -40,6 +41,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
   ({ width, narrowWidth, latest }, ref) => {
     const fillCardClassName = 'flex-1'
     const location = useLocation()
+    const { t } = useI18n()
     const { appConfig } = useAppConfig()
     const {
       useWindowFrame = false,
@@ -94,6 +96,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
               onFocus={handleSettingsPreload}
               onMouseEnter={handleSettingsPreload}
               onPress={handleSettingsNavigate}
+              title={t('sidebar.settings')}
             >
               <IoSettings className="text-[20px]" />
             </Button>
@@ -130,6 +133,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
                 onFocus={handleSettingsPreload}
                 onMouseEnter={handleSettingsPreload}
                 onPress={handleSettingsNavigate}
+                title={t('sidebar.settings')}
               >
                 <IoSettings
                   className={`text-[20px] transition-all duration-300 group-hover:rotate-90 group-hover:text-primary group-hover:drop-shadow-[0_0_4px_rgba(0,112,243,0.4)] ${location.pathname.includes('/settings') ? 'text-primary' : 'text-slate-500'}`}

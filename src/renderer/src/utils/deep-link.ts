@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { addOverrideItem } from './override-ipc'
 import { addProfileItem } from './profile-ipc'
 import { showMainWindow } from './window-ipc'
+import { translate } from '@renderer/i18n'
 
 interface InstallConfirmPayload {
   requestId: string
@@ -110,7 +111,7 @@ function parseInstallTarget(url: string): { targetUrl?: string; targetName?: str
 async function handleProfileInstall(url: string): Promise<void> {
   const { targetUrl, targetName } = parseInstallTarget(url)
   if (!targetUrl) {
-    throw new Error('缺少参数 url')
+    throw new Error(translate('deepLink.missingUrl'))
   }
 
   const confirmed = await waitForCustomConfirm(
@@ -131,13 +132,13 @@ async function handleProfileInstall(url: string): Promise<void> {
     url: targetUrl
   })
 
-  toast.success('订阅导入成功')
+  toast.success(translate('profiles.importSuccess'))
 }
 
 async function handleOverrideInstall(url: string): Promise<void> {
   const { targetUrl, targetName } = parseInstallTarget(url)
   if (!targetUrl) {
-    throw new Error('缺少参数 url')
+    throw new Error(translate('deepLink.missingUrl'))
   }
 
   const inferredName = inferNameFromUrl(targetUrl, targetName)
@@ -161,7 +162,7 @@ async function handleOverrideInstall(url: string): Promise<void> {
     ext: overrideUrlObject.pathname.endsWith('.js') ? 'js' : 'yaml'
   })
 
-  toast.success('覆写导入成功')
+  toast.success(translate('override.importSuccess'))
 }
 
 async function handleDeepLink(url: string): Promise<void> {
@@ -189,7 +190,7 @@ async function processDeepLinks(urls: string[]): Promise<void> {
     try {
       await handleDeepLink(url)
     } catch (error) {
-      toast.error('处理链接失败', {
+      toast.error(translate('deepLink.handleFailed'), {
         description: error instanceof Error ? error.message : String(error)
       })
     }

@@ -3,13 +3,13 @@ import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useLocation } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
 import { LuCloud, LuFileCode, LuRotateCw, LuRss } from 'react-icons/lu'
-import React, { Suspense, useState } from 'react'
+import React, { Suspense, useMemo, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
+import { useI18n } from '@renderer/i18n'
 
 const ConfigViewer = React.lazy(() => import('./config-viewer'))
-const relativeTimeFormatter = new Intl.RelativeTimeFormat('zh-CN', { numeric: 'auto' })
 const RELATIVE_TIME_RANGES: Array<[Intl.RelativeTimeFormatUnit, number]> = [
   ['year', 60 * 60 * 24 * 365],
   ['month', 60 * 60 * 24 * 30],
@@ -19,7 +19,11 @@ const RELATIVE_TIME_RANGES: Array<[Intl.RelativeTimeFormatUnit, number]> = [
   ['minute', 60]
 ]
 
-function formatRelativeTime(timestamp?: number): string {
+function formatRelativeTime(
+  timestamp: number | undefined,
+  formatter: Intl.RelativeTimeFormat,
+  t: ReturnType<typeof useI18n>['t']
+): string {
   if (!timestamp) {
     return '-'
   }
@@ -28,14 +32,14 @@ function formatRelativeTime(timestamp?: number): string {
   const absSeconds = Math.abs(diffSeconds)
 
   if (absSeconds < 45) {
-    return diffSeconds >= 0 ? '几秒后' : '几秒前'
+    return diffSeconds >= 0 ? t('time.inFewSeconds') : t('time.fewSecondsAgo')
   }
 
   const [unit, secondsPerUnit] =
     RELATIVE_TIME_RANGES.find(([, secondsPerUnit]) => absSeconds >= secondsPerUnit) ??
     RELATIVE_TIME_RANGES[RELATIVE_TIME_RANGES.length - 1]
 
-  return relativeTimeFormatter.format(Math.round(diffSeconds / secondsPerUnit), unit)
+  return formatter.format(Math.round(diffSeconds / secondsPerUnit), unit)
 }
 
 function formatShortDateFromUnixSeconds(timestamp: number): string {
@@ -55,6 +59,7 @@ interface Props {
 
 const ProfileCard: React.FC<Props> = (props) => {
   const { appConfig, patchAppConfig } = useAppConfig()
+  const { t, locale } = useI18n()
   const { iconOnly, compact, className = '' } = props
   const { profileDisplayDate = 'expire' } = appConfig || {}
   const location = useLocation()
@@ -69,13 +74,17 @@ const ProfileCard: React.FC<Props> = (props) => {
   const [showRuntimeConfig, setShowRuntimeConfig] = useState(false)
   const { profileConfig, addProfileItem } = useProfileConfig()
   const { current, items, actives } = profileConfig ?? {}
+  const relativeTimeFormatter = useMemo(
+    () => new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }),
+    [locale]
+  )
   const activeIds = actives && actives.length > 0 ? actives : current ? [current] : []
   const activeCount = activeIds.length
   
   const info = items?.find((item) => item.id === current) ?? {
     id: 'default',
     type: 'local',
-    name: '空白订阅'
+    name: t('sidebar.blankProfile')
   }
 
   const extra = info?.extra
@@ -85,7 +94,7 @@ const ProfileCard: React.FC<Props> = (props) => {
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
-        <Tooltip content="订阅管理" placement="right">
+        <Tooltip content={t('sidebar.profiles')} placement="right">
           <Button
             size="sm"
             isIconOnly
@@ -133,14 +142,14 @@ const ProfileCard: React.FC<Props> = (props) => {
             isIconOnly
             size="sm"
             className={`${compact ? 'w-5 h-5' : 'w-6 h-6'} min-w-0`}
-            title="查看当前运行时配置"
+            title={t('sidebar.runtimeConfig')}
             variant="light"
             onPress={() => setShowRuntimeConfig(true)}
           >
             <LuFileCode className={compact ? 'text-[13px]' : 'text-[14px]'} />
           </Button>
           {info.type === 'remote' && (
-            <Tooltip delay={300} placement="left" content={formatRelativeTime(info.updated)}>
+            <Tooltip delay={300} placement="left" content={formatRelativeTime(info.updated, relativeTimeFormatter, t)}>
               <Button
                 isIconOnly
                 size="sm"
@@ -171,21 +180,21 @@ const ProfileCard: React.FC<Props> = (props) => {
             }}
           >
             {profileDisplayDate === 'expire'
-              ? (extra.expire ? formatShortDateFromUnixSeconds(extra.expire) : '长期')
-              : formatRelativeTime(info.updated)}
+              ? (extra.expire ? formatShortDateFromUnixSeconds(extra.expire) : t('sidebar.longTerm'))
+              : formatRelativeTime(info.updated, relativeTimeFormatter, t)}
           </span>
         </div>
       )}
 
       {info.type === 'remote' && !extra && (
         <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
-          <span>远程配置</span>
-          <span>{formatRelativeTime(info.updated)}</span>
+          <span>{t('sidebar.remoteProfile')}</span>
+          <span>{formatRelativeTime(info.updated, relativeTimeFormatter, t)}</span>
         </div>
       )}
       {info.type === 'local' && (
         <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
-          <span>本地配置</span>
+          <span>{t('sidebar.localProfile')}</span>
         </div>
       )}
     </div>

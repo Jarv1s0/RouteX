@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { translate } from '@renderer/i18n'
 
 export type DialogType = 'info' | 'error' | 'warning' | 'success'
 
@@ -31,7 +32,7 @@ export const GlobalDialogModal: React.FC = () => {
       const { type = 'error', title, content } = customEvent.detail || {}
       showDialog({
         type,
-        title: title || (type === 'error' ? '错误' : '提示'),
+        title: title || translate(type === 'error' ? 'dialog.error' : 'dialog.info'),
         content: content || ''
       })
     }
@@ -40,7 +41,7 @@ export const GlobalDialogModal: React.FC = () => {
       const detail = (event as CustomEvent<Partial<DialogDetails>>).detail
       showDialog({
         type: 'error',
-        title: detail?.title || '错误',
+        title: detail?.title || translate('dialog.error'),
         content: detail?.content || ''
       })
     }

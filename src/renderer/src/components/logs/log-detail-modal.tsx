@@ -8,6 +8,7 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   log: ControllerLog & { time?: string }
@@ -16,6 +17,7 @@ interface Props {
 
 const LogDetailModal: React.FC<Props> = (props) => {
   const { log, onClose } = props
+  const { t } = useI18n()
   const {
     appConfig: {
       disableAnimation = false,
@@ -54,7 +56,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
       <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 800 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold">日志详情</span>
+            <span className="text-sm font-bold">{t('page.logs.detail')}</span>
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -64,7 +66,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
               className="app-nodrag min-w-0 px-3 h-7 bg-default-100/50 hover:bg-default-200/50 text-xs"
               onPress={handleCopy}
             >
-              复制
+              {t('common.copy')}
             </Button>
             <SecondaryModalCloseButton onPress={onClose} className="h-7 w-7 min-w-7" />
           </div>

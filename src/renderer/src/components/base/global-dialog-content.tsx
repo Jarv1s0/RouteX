@@ -9,6 +9,7 @@ import {
 } from 'react-icons/md'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 import type { DialogDetails, DialogType } from './global-dialog-modal'
 
 const DIALOG_UI: Record<
@@ -53,6 +54,7 @@ interface GlobalDialogContentProps {
 }
 
 const GlobalDialogContent: React.FC<GlobalDialogContentProps> = ({ isOpen, details, onClose }) => {
+  const { t } = useI18n()
   const [isCopied, setIsCopied] = useState(false)
 
   const handleClose = (): void => {
@@ -110,7 +112,7 @@ const GlobalDialogContent: React.FC<GlobalDialogContentProps> = ({ isOpen, detai
                 className="font-medium text-default-500"
                 startContent={!isCopied && <MdContentCopy size={18} />}
               >
-                {isCopied ? '已复制' : '复制'}
+                {isCopied ? t('common.copied') : t('common.copy')}
               </Button>
               <Button
                 color={dialogUi.buttonColor}
@@ -118,7 +120,7 @@ const GlobalDialogContent: React.FC<GlobalDialogContentProps> = ({ isOpen, detai
                 onPress={handleClose}
                 className="font-medium"
               >
-                关闭
+                {t('common.close')}
               </Button>
             </ModalFooter>
           </>

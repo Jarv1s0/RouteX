@@ -4,6 +4,7 @@ import { IoGlobeOutline, IoArrowUp, IoArrowDown, IoServerOutline } from 'react-i
 import { RiAppsLine } from 'react-icons/ri'
 import { calcTraffic } from '@renderer/utils/calc'
 import dayjs from 'dayjs'
+import { useI18n } from '@renderer/i18n'
 
 interface RuleHitDetail {
   id: string
@@ -20,12 +21,13 @@ interface RuleDetailListProps {
 }
 
 const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
+  const { t } = useI18n()
   
   if (!details || details.length === 0) {
     return (
         <div className="flex flex-col items-center justify-center h-[300px] text-foreground-400 gap-2">
             <div className="text-4xl opacity-20">📭</div>
-            <span className="text-sm">暂无详细记录</span>
+            <span className="text-sm">{t('stats.noDetailRecords')}</span>
         </div>
     )
   }

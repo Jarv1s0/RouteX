@@ -14,16 +14,18 @@ import { IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
 import { MdEditDocument } from 'react-icons/md'
 import ShortcutConfigModal from './shortcut-config-modal'
 import CSSEditorModal from './css-editor-modal'
+import { useI18n } from '@renderer/i18n'
 
 
 const ShortcutConfigContent: React.FC = () => {
+  const { t } = useI18n()
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false)
 
   return (
     <>
-      <SettingItem title="快捷键设置" divider>
+      <SettingItem title={t('settings.appearance.shortcutSettings')} divider>
         <Button size="sm" variant="flat" onPress={() => setIsShortcutModalOpen(true)}>
-          配置
+          {t('settings.appearance.configure')}
         </Button>
       </SettingItem>
       <ShortcutConfigModal isOpen={isShortcutModalOpen} onOpenChange={setIsShortcutModalOpen} />
@@ -32,6 +34,7 @@ const ShortcutConfigContent: React.FC = () => {
 }
 
 const AppearanceConfig: React.FC = () => {
+  const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
   const [customThemes, setCustomThemes] = useState<{ key: string; label: string }[]>()
   const [openCSSEditor, setOpenCSSEditor] = useState(false)
@@ -82,11 +85,11 @@ const AppearanceConfig: React.FC = () => {
           }}
         />
       )}
-      <SettingCard title="外观设置">
+      <SettingCard title={t('settings.appearance.title')}>
         <SettingItem
-          title="显示悬浮窗"
+          title={t('settings.appearance.showFloating')}
           actions={
-            <Tooltip content="未禁用GPU加速的情况下，悬浮窗可能会导致应用崩溃">
+            <Tooltip content={t('settings.appearance.showFloatingHelp')}>
               <Button isIconOnly size="sm" variant="light">
                 <IoIosHelpCircle className="text-lg" />
               </Button>
@@ -119,7 +122,7 @@ const AppearanceConfig: React.FC = () => {
         </SettingItem>
         {localShowFloating && (
           <>
-            <SettingItem title="根据网速旋转悬浮窗图标" divider>
+            <SettingItem title={t('settings.appearance.spinFloatingIcon')} divider>
               <Switch
                 size="sm"
                 isSelected={spinFloatingIcon}
@@ -129,7 +132,7 @@ const AppearanceConfig: React.FC = () => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="禁用托盘图标" divider>
+            <SettingItem title={t('settings.appearance.disableTray')} divider>
               <Switch
                 size="sm"
                 isSelected={disableTray}
@@ -147,7 +150,7 @@ const AppearanceConfig: React.FC = () => {
         )}
         {platform !== 'linux' && (
           <>
-            <SettingItem title="托盘菜单显示节点信息" divider>
+            <SettingItem title={t('settings.appearance.proxyInTray')} divider>
               <Switch
                 size="sm"
                 isSelected={proxyInTray}
@@ -157,7 +160,11 @@ const AppearanceConfig: React.FC = () => {
               />
             </SettingItem>
             <SettingItem
-              title={`${platform === 'win32' ? '任务栏' : '状态栏'}显示网速信息`}
+              title={t(
+                platform === 'win32'
+                  ? 'settings.appearance.trafficInTaskbar'
+                  : 'settings.appearance.trafficInStatusbar'
+              )}
               divider
             >
               <Switch
@@ -172,7 +179,7 @@ const AppearanceConfig: React.FC = () => {
           </>
         )}
         {platform === 'darwin' && (
-          <SettingItem title="显示 Dock 图标" divider>
+          <SettingItem title={t('settings.appearance.showDock')} divider>
             <Switch
               size="sm"
               isSelected={useDockIcon}
@@ -185,7 +192,7 @@ const AppearanceConfig: React.FC = () => {
         )}
 
 
-        <SettingItem title="折叠侧边栏" divider>
+        <SettingItem title={t('settings.appearance.collapseSidebar')} divider>
           <Switch
             size="sm"
             isSelected={collapseSidebar}
@@ -195,7 +202,7 @@ const AppearanceConfig: React.FC = () => {
           />
         </SettingItem>
         <ShortcutConfigContent />
-        <SettingItem title="背景色" divider>
+        <SettingItem title={t('settings.appearance.background')} divider>
           <Tabs
             size="sm"
             color="primary"
@@ -207,20 +214,20 @@ const AppearanceConfig: React.FC = () => {
               patchAppConfig({ appTheme: key as AppTheme })
             }}
           >
-            <Tab key="system" title="自动" />
-            <Tab key="dark" title="深色" />
-            <Tab key="light" title="浅色" />
+            <Tab key="system" title={t('common.auto')} />
+            <Tab key="dark" title={t('settings.appearance.dark')} />
+            <Tab key="light" title={t('settings.appearance.light')} />
           </Tabs>
         </SettingItem>
         <SettingItem
-          title="主题"
+          title={t('settings.appearance.theme')}
           actions={
             <>
               <Button
                 size="sm"
                 isLoading={fetching}
                 isIconOnly
-                title="拉取主题"
+                title={t('settings.appearance.fetchTheme')}
                 variant="light"
                 onPress={async () => {
                   setFetching(true)
@@ -239,7 +246,7 @@ const AppearanceConfig: React.FC = () => {
               <Button
                 size="sm"
                 isIconOnly
-                title="导入主题"
+                title={t('settings.appearance.importTheme')}
                 variant="light"
                 onPress={async () => {
                   const files = await getFilePath(['css'])
@@ -257,7 +264,7 @@ const AppearanceConfig: React.FC = () => {
               <Button
                 size="sm"
                 isIconOnly
-                title="编辑主题"
+                title={t('settings.appearance.editTheme')}
                 variant="light"
                 onPress={async () => {
                   setOpenCSSEditor(true)

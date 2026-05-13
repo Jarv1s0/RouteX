@@ -23,6 +23,7 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n, type TranslationKey } from '@renderer/i18n'
 
 interface Props {
   profileId: string
@@ -32,25 +33,25 @@ interface Props {
 }
 
 const RULE_TYPES = [
-  { key: 'DOMAIN', label: 'DOMAIN', desc: '完整域名匹配' },
-  { key: 'DOMAIN-SUFFIX', label: 'DOMAIN-SUFFIX', desc: '域名后缀匹配' },
-  { key: 'DOMAIN-KEYWORD', label: 'DOMAIN-KEYWORD', desc: '域名关键字匹配' },
-  { key: 'DOMAIN-WILDCARD', label: 'DOMAIN-WILDCARD', desc: '域名通配符匹配' },
-  { key: 'DOMAIN-REGEX', label: 'DOMAIN-REGEX', desc: '域名正则匹配' },
-  { key: 'IP-CIDR', label: 'IP-CIDR', desc: 'IPv4 CIDR 匹配' },
-  { key: 'IP-CIDR6', label: 'IP-CIDR6', desc: 'IPv6 CIDR 匹配' },
-  { key: 'IP-SUFFIX', label: 'IP-SUFFIX', desc: 'IP 后缀匹配' },
-  { key: 'IP-ASN', label: 'IP-ASN', desc: 'IP ASN 匹配' },
-  { key: 'GEOIP', label: 'GEOIP', desc: '目标 IP 地理位置' },
-  { key: 'SRC-GEOIP', label: 'SRC-GEOIP', desc: '源 IP 地理位置' },
-  { key: 'PROCESS-NAME', label: 'PROCESS-NAME', desc: '进程名匹配' },
-  { key: 'PROCESS-PATH', label: 'PROCESS-PATH', desc: '进程路径匹配' },
-  { key: 'PROCESS-NAME-REGEX', label: 'PROCESS-NAME-REGEX', desc: '进程名正则匹配' },
-  { key: 'PROCESS-PATH-REGEX', label: 'PROCESS-PATH-REGEX', desc: '进程路径正则匹配' },
-  { key: 'DST-PORT', label: 'DST-PORT', desc: '目标端口匹配' },
-  { key: 'SRC-PORT', label: 'SRC-PORT', desc: '源端口匹配' },
-  { key: 'NETWORK', label: 'NETWORK', desc: '网络协议（tcp/udp）' },
-  { key: 'GEOSITE', label: 'GEOSITE', desc: 'GeoSite 域名集合' }
+  { key: 'DOMAIN', label: 'DOMAIN', descKey: 'rules.desc.domain' },
+  { key: 'DOMAIN-SUFFIX', label: 'DOMAIN-SUFFIX', descKey: 'rules.desc.domainSuffix' },
+  { key: 'DOMAIN-KEYWORD', label: 'DOMAIN-KEYWORD', descKey: 'rules.desc.domainKeyword' },
+  { key: 'DOMAIN-WILDCARD', label: 'DOMAIN-WILDCARD', descKey: 'rules.desc.domainWildcard' },
+  { key: 'DOMAIN-REGEX', label: 'DOMAIN-REGEX', descKey: 'rules.desc.domainRegex' },
+  { key: 'IP-CIDR', label: 'IP-CIDR', descKey: 'rules.desc.ipCidr4' },
+  { key: 'IP-CIDR6', label: 'IP-CIDR6', descKey: 'rules.desc.ipCidr6' },
+  { key: 'IP-SUFFIX', label: 'IP-SUFFIX', descKey: 'rules.desc.ipSuffix' },
+  { key: 'IP-ASN', label: 'IP-ASN', descKey: 'rules.desc.ipAsn' },
+  { key: 'GEOIP', label: 'GEOIP', descKey: 'rules.desc.geoip' },
+  { key: 'SRC-GEOIP', label: 'SRC-GEOIP', descKey: 'rules.desc.srcGeoip' },
+  { key: 'PROCESS-NAME', label: 'PROCESS-NAME', descKey: 'rules.desc.processName' },
+  { key: 'PROCESS-PATH', label: 'PROCESS-PATH', descKey: 'rules.desc.processPath' },
+  { key: 'PROCESS-NAME-REGEX', label: 'PROCESS-NAME-REGEX', descKey: 'rules.desc.processNameRegex' },
+  { key: 'PROCESS-PATH-REGEX', label: 'PROCESS-PATH-REGEX', descKey: 'rules.desc.processPathRegex' },
+  { key: 'DST-PORT', label: 'DST-PORT', descKey: 'rules.desc.dstPort' },
+  { key: 'SRC-PORT', label: 'SRC-PORT', descKey: 'rules.desc.srcPort' },
+  { key: 'NETWORK', label: 'NETWORK', descKey: 'rules.desc.network' },
+  { key: 'GEOSITE', label: 'GEOSITE', descKey: 'rules.desc.geosite' }
 ] as const
 
 const COMMON_PROXIES = ['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS']
@@ -72,6 +73,7 @@ const getSuggestedValue = (ruleType: string): string => {
 }
 
 const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSaved }) => {
+  const { t } = useI18n()
   const { groups = [] } = useGroups()
   const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const isEditing = Boolean(rule)
@@ -136,7 +138,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
       await onSaved()
       onClose()
     } catch (error) {
-      alert(`${isEditing ? '修改' : '创建'}本地规则失败: ${error}`)
+      alert(t(isEditing ? 'rules.updateFailed' : 'rules.createFailed', { error: String(error) }))
     } finally {
       setIsSubmitting(false)
     }
@@ -167,9 +169,9 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
         <>
           <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
             <div className="flex flex-col gap-0.5">
-              <span>{isEditing ? '编辑本地规则' : '新建本地规则'}</span>
+              <span>{isEditing ? t('rules.localEditTitle') : t('rules.localCreateTitle')}</span>
               <span className="text-xs font-normal text-foreground-500">
-                写入当前配置的本地规则，优先级最高。
+                {t('rules.localHelp')}
               </span>
             </div>
             <SecondaryModalCloseButton onPress={onClose} />
@@ -178,7 +180,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
           <ModalBody className="px-6 py-4">
             <div className="flex flex-col gap-3">
               <Select
-                label={`规则类型 - ${RULE_TYPES.find((item) => item.key === ruleType)?.desc || ''}`}
+                label={`${t('rules.ruleType')} - ${t((RULE_TYPES.find((item) => item.key === ruleType)?.descKey || 'rules.desc.domain') as TranslationKey)}`}
                 selectedKeys={new Set([ruleType])}
                 onSelectionChange={(value) => {
                   const selectedKey = value.currentKey as string
@@ -196,22 +198,22 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
               >
                 {RULE_TYPES.map((item) => (
                   <SelectItem key={item.key} textValue={item.label}>
-                    {item.label} - {item.desc}
+                    {item.label} - {t(item.descKey as TranslationKey)}
                   </SelectItem>
                 ))}
               </Select>
 
               <Input
-                label="规则值"
+                label={t('rules.ruleValue')}
                 value={ruleValue}
                 onValueChange={setRuleValue}
                 size="md"
-                placeholder="输入规则值"
+                placeholder={t('rules.ruleValuePlaceholder')}
                 classNames={secondaryInputClassNames}
               />
 
               <Autocomplete
-                label="目标代理/策略组"
+                label={t('rules.targetProxy')}
                 inputValue={proxyTarget}
                 onInputChange={setProxyTarget}
                 onSelectionChange={(key) => {
@@ -221,7 +223,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
                 }}
                 size="md"
                 allowsCustomValue
-                placeholder="选择或输入代理组名称"
+                placeholder={t('rules.targetProxyPlaceholder')}
                 variant="bordered"
                 classNames={{
                   selectorButton: 'text-default-500',
@@ -238,7 +240,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
                 <div className="flex items-center justify-between gap-4 rounded-2xl border border-default-200/70 bg-content1/60 px-4 py-3 shadow-sm">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-sm font-medium text-foreground-700">no-resolve</span>
-                    <span className="text-xs text-foreground-500">不解析域名，直接匹配 IP。</span>
+                    <span className="text-xs text-foreground-500">{t('rules.noResolveHelp')}</span>
                   </div>
                   <Switch
                     size="sm"
@@ -251,7 +253,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
 
               {ruleString && (
                 <div className="rounded-2xl border border-default-200/70 bg-content1/60 p-4 shadow-sm">
-                  <div className="mb-2 text-xs font-medium text-foreground-500">规则预览</div>
+                  <div className="mb-2 text-xs font-medium text-foreground-500">{t('rules.preview')}</div>
                   <code className="break-all font-mono text-sm text-primary">{ruleString}</code>
                 </div>
               )}
@@ -265,7 +267,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
               isDisabled={isSubmitting}
               className="font-medium px-8"
             >
-              退出
+              {t('rules.exit')}
             </Button>
             <Button
               color="primary"
@@ -275,7 +277,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
               isLoading={isSubmitting}
               className="font-medium px-8"
             >
-              {isEditing ? '保存修改' : '创建规则'}
+              {isEditing ? t('rules.saveChanges') : t('rules.createRule')}
             </Button>
           </ModalFooter>
         </>

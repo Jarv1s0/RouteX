@@ -1,5 +1,6 @@
 import { IPC_INVOKE_CHANNELS, type IpcInvokeChannel } from '../../../shared/ipc'
 import { desktop } from '@renderer/api/desktop'
+import { translate } from '@renderer/i18n'
 
 function ipcErrorWrapper<T>(response: T | { invokeError: unknown }): T {
   if (response !== null && typeof response === 'object' && 'invokeError' in response) {
@@ -43,7 +44,7 @@ export function installGlobalAlert(): void {
 
     window.dispatchEvent(
       new CustomEvent('show-global-dialog', {
-        detail: { type: 'info', title: '提示', content }
+        detail: { type: 'info', title: translate('common.notice'), content }
       })
     )
   }) as typeof window.alert

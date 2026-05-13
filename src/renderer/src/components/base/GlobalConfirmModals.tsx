@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { platform } from '@renderer/utils/init'
 import { ON, SEND, onIpc, sendIpc } from '@renderer/utils/ipc-channels'
+import { useI18n } from '@renderer/i18n'
 
 const ConfirmModal = React.lazy(() => import('@renderer/components/base/base-confirm'))
 
@@ -22,6 +23,7 @@ function dispatchInstallConfirmResult(eventName: string, requestId: string, conf
 }
 
 const GlobalConfirmModals: React.FC = () => {
+  const { t } = useI18n()
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)
   const [showProfileInstallConfirm, setShowProfileInstallConfirm] = useState(false)
   const [showOverrideInstallConfirm, setShowOverrideInstallConfirm] = useState(false)
@@ -148,18 +150,20 @@ const GlobalConfirmModals: React.FC = () => {
     <React.Suspense fallback={null}>
       {showQuitConfirm && (
         <ConfirmModal
-          title="确定要退出 RouteX 吗？"
+          title={t('confirm.quitTitle')}
           description={
             <div>
               <p></p>
-              <p className="text-sm text-gray-500 mt-2">退出后代理功能将停止工作</p>
+              <p className="text-sm text-gray-500 mt-2">{t('confirm.quitDescription')}</p>
               <p className="text-sm text-gray-400 mt-1">
-                快按两次或长按 {platform === 'darwin' ? '⌘Q' : 'Ctrl+Q'} 可直接退出
+                {t('confirm.quitShortcut', {
+                  shortcut: platform === 'darwin' ? '⌘Q' : 'Ctrl+Q'
+                })}
               </p>
             </div>
           }
-          confirmText="退出"
-          cancelText="取消"
+          confirmText={t('common.quit')}
+          cancelText={t('common.cancel')}
           onChange={(open) => {
             if (!open) {
               handleQuitConfirm(false)
@@ -170,20 +174,22 @@ const GlobalConfirmModals: React.FC = () => {
       )}
       {showProfileInstallConfirm && profileInstallData && (
         <ConfirmModal
-          title="确定要导入订阅配置吗？"
+          title={t('confirm.importProfileTitle')}
           description={
             <div>
               <p className="text-sm text-gray-600 mb-2">
-                名称：{profileInstallData.name || '未命名'}
+                {t('confirm.name')}: {profileInstallData.name || t('confirm.unnamed')}
               </p>
-              <p className="text-sm text-gray-600 mb-2">链接：{profileInstallData.url}</p>
+              <p className="text-sm text-gray-600 mb-2">
+                {t('confirm.link')}: {profileInstallData.url}
+              </p>
               <p className="text-sm text-orange-500 mt-2">
-                请确保订阅配置来源可信，恶意配置可能影响您的网络安全
+                {t('confirm.profileTrustWarning')}
               </p>
             </div>
           }
-          confirmText="导入"
-          cancelText="取消"
+          confirmText={t('common.import')}
+          cancelText={t('common.cancel')}
           onChange={(open) => {
             if (!open) {
               handleProfileInstallConfirm(false)
@@ -195,20 +201,22 @@ const GlobalConfirmModals: React.FC = () => {
       )}
       {showOverrideInstallConfirm && overrideInstallData && (
         <ConfirmModal
-          title="确定要导入覆写文件吗？"
+          title={t('confirm.importOverrideTitle')}
           description={
             <div>
               <p className="text-sm text-gray-600 mb-2">
-                名称：{overrideInstallData.name || '未命名'}
+                {t('confirm.name')}: {overrideInstallData.name || t('confirm.unnamed')}
               </p>
-              <p className="text-sm text-gray-600 mb-2">链接：{overrideInstallData.url}</p>
+              <p className="text-sm text-gray-600 mb-2">
+                {t('confirm.link')}: {overrideInstallData.url}
+              </p>
               <p className="text-sm text-orange-500 mt-2">
-                请确保覆写文件来源可信，恶意覆写文件可能影响您的网络安全
+                {t('confirm.overrideTrustWarning')}
               </p>
             </div>
           }
-          confirmText="导入"
-          cancelText="取消"
+          confirmText={t('common.import')}
+          cancelText={t('common.cancel')}
           onChange={(open) => {
             if (!open) {
               handleOverrideInstallConfirm(false)

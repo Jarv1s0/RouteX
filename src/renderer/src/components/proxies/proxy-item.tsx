@@ -5,6 +5,7 @@ import React, { useMemo, useState, memo } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getProxyDisplayDelay, getResolvedProxyTarget } from '@renderer/utils/proxy-delay'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   mutateProxies: () => void
@@ -43,6 +44,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
     delayVersion
   } = props
 
+  const { t } = useI18n()
   const { appConfig } = useAppConfig()
   const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
 
@@ -69,8 +71,8 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
   }
 
   function delayText(delay: number): string {
-    if (delay === -1) return '测试'
-    if (delay === 0) return '超时'
+    if (delay === -1) return t('proxies.test')
+    if (delay === 0) return t('proxies.timeout')
     return delay.toString()
   }
 
@@ -146,7 +148,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 {fixed && (
                   <Button
                     isIconOnly
-                    title="取消固定"
+                    title={t('proxies.unfix')}
                     color="danger"
                     onPress={async () => {
                       await mihomoUnfixedProxy(group.name)
@@ -212,7 +214,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   <div className="flex items-center">
                     <Button
                       isIconOnly
-                      title="取消固定"
+                      title={t('proxies.unfix')}
                       color="danger"
                       onPress={async () => {
                         await mihomoUnfixedProxy(group.name)

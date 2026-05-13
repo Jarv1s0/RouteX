@@ -12,6 +12,7 @@ import {
   mihomoUpdateRuleProviders
 } from '@renderer/utils/mihomo-ipc'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   iconOnly?: boolean
@@ -105,6 +106,7 @@ function scheduleIdleTask(task: () => void, delay = 0, timeout = 4000): () => vo
 
 const RuleCard: React.FC<Props> = (props) => {
   const { iconOnly, compact, className = '' } = props
+  const { t } = useI18n()
   const location = useLocation()
   const match = location.pathname.includes('/rules')
   const [updating, setUpdating] = useState(false)
@@ -214,23 +216,25 @@ const RuleCard: React.FC<Props> = (props) => {
   const displayCounts = useMemo<RuleCardDisplayCounts>(() => {
     if (startupCountsReady) {
       return {
-        providerText: `${providerCount.toLocaleString()} 个规则集`,
-        ruleText: `${ruleCount.toLocaleString()} 条规则`
+        providerText: t('sidebar.ruleProviders', { count: providerCount.toLocaleString() }),
+        ruleText: t('sidebar.rulesCount', { count: ruleCount.toLocaleString() })
       }
     }
 
     if (cachedCounts) {
       return {
-        providerText: `${cachedCounts.providerCount.toLocaleString()} 个规则集`,
-        ruleText: `${cachedCounts.ruleCount.toLocaleString()} 条规则`
+        providerText: t('sidebar.ruleProviders', {
+          count: cachedCounts.providerCount.toLocaleString()
+        }),
+        ruleText: t('sidebar.rulesCount', { count: cachedCounts.ruleCount.toLocaleString() })
       }
     }
 
     return {
-      providerText: '规则集加载中',
-      ruleText: '规则加载中'
+      providerText: t('sidebar.ruleProvidersLoading'),
+      ruleText: t('sidebar.rulesLoading')
     }
-  }, [cachedCounts, providerCount, ruleCount, startupCountsReady])
+  }, [cachedCounts, providerCount, ruleCount, startupCountsReady, t])
 
   useEffect(() => {
     if (ruleCardFetchReady) {
@@ -272,11 +276,11 @@ const RuleCard: React.FC<Props> = (props) => {
       await Promise.all(updatableProviderNames.map((name) => mihomoUpdateRuleProviders(name)))
       await Promise.all([mutateProviders(), mutateRuntimeConfig()])
     } catch (e) {
-      new Notification(`规则集合更新失败\n${e}`)
+      new Notification(`${t('sidebar.ruleProviderUpdateFailed')}\n${e}`)
     } finally {
       setUpdating(false)
     }
-  }, [mutateProviders, mutateRuntimeConfig, updatableProviderNames, updating])
+  }, [mutateProviders, mutateRuntimeConfig, t, updatableProviderNames, updating])
 
   useEffect(() => {
     const refresh = (): void => {
@@ -408,7 +412,7 @@ const RuleCard: React.FC<Props> = (props) => {
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
-        <Tooltip content="规则" placement="right">
+        <Tooltip content={t('sidebar.rules')} placement="right">
           <Button
             size="sm"
             isIconOnly
@@ -443,7 +447,7 @@ const RuleCard: React.FC<Props> = (props) => {
           <h3
             className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground`}
           >
-            规则
+            {t('sidebar.rules')}
           </h3>
         </div>
         <div

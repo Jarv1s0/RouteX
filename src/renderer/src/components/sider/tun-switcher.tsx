@@ -12,6 +12,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { notifyError } from '@renderer/utils/notify'
 import { checkElevateTask } from '@renderer/utils/service-ipc'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   iconOnly?: boolean
@@ -36,6 +37,7 @@ function isLikelyPermissionError(message: string): boolean {
 
 const TunSwitcher: React.FC<Props> = (props) => {
   const { iconOnly, compact } = props
+  const { t } = useI18n()
   const location = useLocation()
   const match = location.pathname.includes('/tun') || false
   const { appConfig } = useAppConfig()
@@ -57,7 +59,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
       ) {
         const hasElevateTask = await checkElevateTask()
         if (!hasElevateTask) {
-          await showToastError('TUN模式启动失败', '请先到内核设置里注册提权任务，再启用虚拟网卡')
+          await showToastError(t('tun.startFailed'), t('tray.enableTunFirst'))
           return
         }
       }
@@ -85,23 +87,23 @@ const TunSwitcher: React.FC<Props> = (props) => {
       const errorMessage = error instanceof Error ? error.message : String(error)
 
       if (enable && isLikelyPermissionError(errorMessage)) {
-        await showToastError('TUN模式启动失败', '当前错误是权限不足，请以管理员身份运行 RouteX')
+        await showToastError(t('tun.startFailed'), t('tun.permissionDenied'))
       } else if (enable && errorMessage.includes('现有虚拟网卡状态')) {
-        await showToastError('TUN模式启动失败', '当前更像是旧的 Wintun/核心状态残留，请先关闭旧实例后再试')
+        await showToastError(t('tun.startFailed'), t('tun.staleState'))
       } else if (enable) {
-        notifyError(error, { title: 'TUN模式启动失败' })
+        notifyError(error, { title: t('tun.startFailed') })
       } else {
-        notifyError(error, { title: 'TUN模式关闭失败' })
+        notifyError(error, { title: t('tun.stopFailed') })
       }
 
-      console.error('TUN切换失败:', error)
+      console.error('Failed to toggle TUN:', error)
     }
   }
 
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
-        <Tooltip content="虚拟网卡" placement="right">
+        <Tooltip content={t('sidebar.tun')} placement="right">
           <Button
             size="sm"
             isIconOnly
@@ -134,7 +136,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
             <LuNetwork className={`text-[15px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
           </span>
           <span className={`text-sm font-semibold whitespace-nowrap leading-none transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}>
-            虚拟网卡
+            {t('sidebar.tun')}
           </span>
         </div>
         <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center pr-0 -mr-0.5">
@@ -161,7 +163,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
           <LuNetwork className={`text-[16px] transition-colors ${match ? 'text-primary' : 'text-default-500 group-hover:text-primary'}`} />
         </span>
         <h3 className={`text-sm font-semibold transition-colors ${match ? 'text-primary' : 'text-foreground/90 group-hover:text-primary'}`}>
-          虚拟网卡
+          {t('sidebar.tun')}
         </h3>
       </div>
       <div onClick={(e) => e.stopPropagation()}>

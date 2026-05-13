@@ -5,6 +5,7 @@ import { Virtuoso } from 'react-virtuoso'
 import React, { useCallback } from 'react'
 import { IoLink } from 'react-icons/io5'
 import { getConnectionHideRule, type ConnectionOrderBy, type ConnectionTab, type ConnectionViewMode, type VisibleRange } from '@renderer/components/connections/shared'
+import { useI18n } from '@renderer/i18n'
 
 interface ConnectionsContentProps {
   tab: ConnectionTab
@@ -55,6 +56,7 @@ export default function ConnectionsContent({
   handleVisibleRangeChange,
   handleTableSort
 }: ConnectionsContentProps): React.ReactNode {
+  const { t } = useI18n()
   const renderConnectionItem = useCallback(
     (index: number, connection: ControllerConnectionDetail) => {
       const processPath = connection.metadata.processPath || ''
@@ -109,8 +111,8 @@ export default function ConnectionsContent({
       <div className="h-[calc(100vh-100px)] overflow-y-auto">
         <EmptyState
           icon={<IoLink />}
-          title={tab === 'active' ? '暂无活动连接' : '暂无已关闭连接'}
-          description="连接信息将在这里显示"
+          title={tab === 'active' ? t('connections.emptyActive') : t('connections.emptyClosed')}
+          description={t('connections.emptyDescription')}
         />
       </div>
     )

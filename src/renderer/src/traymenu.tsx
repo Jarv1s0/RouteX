@@ -11,6 +11,7 @@ import { GroupsProvider } from './hooks/use-groups'
 import { useTheme } from 'next-themes'
 import { useAppConfig } from './hooks/use-app-config'
 import { applyTheme } from './utils/theme-ipc'
+import { I18nProvider } from './i18n'
 
 const TrayMenuThemeBridge: React.FC = () => {
   const { appConfig } = useAppConfig()
@@ -40,12 +41,14 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
       <ErrorBoundary>
         <AppConfigProvider>
-          <ControledMihomoConfigProvider>
-            <GroupsProvider>
-              <TrayMenuThemeBridge />
-              <TrayMenuApp />
-            </GroupsProvider>
-          </ControledMihomoConfigProvider>
+          <I18nProvider>
+            <ControledMihomoConfigProvider>
+              <GroupsProvider>
+                <TrayMenuThemeBridge />
+                <TrayMenuApp />
+              </GroupsProvider>
+            </ControledMihomoConfigProvider>
+          </I18nProvider>
         </AppConfigProvider>
       </ErrorBoundary>
     </NextThemesProvider>

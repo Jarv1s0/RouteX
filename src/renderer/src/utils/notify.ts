@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { translate } from '@renderer/i18n'
 
 type DialogType = 'info' | 'error' | 'warning' | 'success'
 
@@ -43,7 +44,7 @@ function shouldUseDialog(message: string): boolean {
 
 export function notifyError(error: unknown, options?: NotifyOptions): void {
   const message = normalizeMessage(error)
-  const title = options?.title || '操作失败'
+  const title = options?.title || translate('common.operationFailed')
 
   if (shouldUseDialog(message)) {
     showGlobalDialog('error', title, message)
@@ -55,7 +56,7 @@ export function notifyError(error: unknown, options?: NotifyOptions): void {
 
 export function notifyInfo(message: unknown, options?: NotifyOptions): void {
   const normalized = normalizeMessage(message)
-  const title = options?.title || '提示'
+  const title = options?.title || translate('common.notice')
 
   if (shouldUseDialog(normalized)) {
     showGlobalDialog('info', title, normalized)

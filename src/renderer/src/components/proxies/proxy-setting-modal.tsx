@@ -41,6 +41,7 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 const DEFAULT_DELAY_TEST_CONCURRENCY = 4
 const MAX_DELAY_TEST_CONCURRENCY = 8
@@ -52,6 +53,7 @@ interface Props {
 
 const ProxySettingModal: React.FC<Props> = (props) => {
   const { onClose } = props
+  const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
   const { groups: allGroups = [] } = useGroups()
 
@@ -104,11 +106,11 @@ const ProxySettingModal: React.FC<Props> = (props) => {
       >
         <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 820 })}>
           <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-            <span>代理组设置</span>
+            <span>{t('page.proxies.settings')}</span>
             <SecondaryModalCloseButton onPress={onClose} />
           </ModalHeader>
           <ModalBody className="py-2 gap-1 pb-2 px-6">
-            <SettingItem title="代理节点展示列数" divider>
+            <SettingItem title={t('proxies.columns')} divider>
               <Select
                 classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
                 className="w-[150px]"
@@ -119,14 +121,14 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                   await patchAppConfig({ proxyCols: v.currentKey as 'auto' | '1' | '2' | '3' | '4' })
                 }}
               >
-                <SelectItem key="auto">自动</SelectItem>
-                <SelectItem key="1">一列</SelectItem>
-                <SelectItem key="2">两列</SelectItem>
-                <SelectItem key="3">三列</SelectItem>
-                <SelectItem key="4">四列</SelectItem>
+                <SelectItem key="auto">{t('proxies.column.auto')}</SelectItem>
+                <SelectItem key="1">{t('proxies.column.one')}</SelectItem>
+                <SelectItem key="2">{t('proxies.column.two')}</SelectItem>
+                <SelectItem key="3">{t('proxies.column.three')}</SelectItem>
+                <SelectItem key="4">{t('proxies.column.four')}</SelectItem>
               </Select>
             </SettingItem>
-            <SettingItem title="节点排序方式" divider>
+            <SettingItem title={t('proxies.sortMode')} divider>
               <Tabs
                 size="sm"
                 color="primary"
@@ -139,13 +141,13 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                   })
                 }}
               >
-                <Tab key="default" title="默认" />
-                <Tab key="delay" title="延迟" />
-                <Tab key="name" title="名称" />
+                <Tab key="default" title={t('proxies.sort.default')} />
+                <Tab key="delay" title={t('proxies.sort.delay')} />
+                <Tab key="name" title={t('proxies.sort.name')} />
               </Tabs>
             </SettingItem>
 
-            <SettingItem title="切换节点时断开连接" divider>
+            <SettingItem title={t('proxies.autoCloseConnection')} divider>
               <Switch
                 size="sm"
                 isSelected={autoCloseConnection}
@@ -155,7 +157,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               />
             </SettingItem>
             <SettingItem
-              title="智能自动测速"
+              title={t('proxies.autoDelayTest')}
               divider
             >
               <Switch
@@ -166,13 +168,13 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="延迟测试地址" divider>
+            <SettingItem title={t('proxies.delayTestUrl')} divider>
               <Input
                 size="sm"
                 className="w-[350px]"
                 classNames={secondaryInputClassNames}
                 value={url}
-                placeholder="默认 http://cp.cloudflare.com/generate_204"
+                placeholder={t('proxies.delayTestUrlPlaceholder')}
                 onValueChange={(v) => {
                   setUrl(v)
                   setUrlDebounce(v)
@@ -182,9 +184,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
             <SettingItem
               title={
                 <>
-                  延迟测试并发数量
+                  {t('proxies.delayTestConcurrency')}
                   <span className="text-xs text-foreground-400 font-normal ml-1">
-                    (默认 4，最多 8)
+                    {t('proxies.delayTestConcurrencyHelp')}
                   </span>
                 </>
               }
@@ -198,7 +200,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 min={1}
                 max={MAX_DELAY_TEST_CONCURRENCY}
                 value={delayTestConcurrency?.toString()}
-                placeholder={`默认 ${DEFAULT_DELAY_TEST_CONCURRENCY}`}
+                placeholder={t('connections.defaultInterval', { value: DEFAULT_DELAY_TEST_CONCURRENCY })}
                 onValueChange={(v) => {
                   const parsed = Number.parseInt(v, 10)
                   patchAppConfig({
@@ -212,9 +214,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
             <SettingItem
               title={
                 <>
-                  延迟测试超时时间
+                  {t('proxies.delayTestTimeout')}
                   <span className="text-xs text-foreground-400 font-normal ml-1">
-                    (默认 5000，建议 4000-6000 ms)
+                    {t('proxies.delayTestTimeoutHelp')}
                   </span>
                 </>
               }
@@ -226,7 +228,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 className="w-[120px]"
                 classNames={numberInputClassNames}
                 value={delayTestTimeout?.toString()}
-                placeholder={`默认 ${DEFAULT_DELAY_TEST_TIMEOUT}`}
+                placeholder={t('connections.defaultInterval', { value: DEFAULT_DELAY_TEST_TIMEOUT })}
                 onValueChange={(v) => {
                   const parsed = Number.parseInt(v, 10)
                   patchAppConfig({
@@ -235,11 +237,11 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="延迟颜色阈值" divider>
+            <SettingItem title={t('proxies.delayThresholds')} divider>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                  <span className="text-xs text-foreground-500">优秀</span>
+                  <span className="text-xs text-foreground-500">{t('proxies.delayExcellent')}</span>
                   <Input
                     size="sm"
                     type="number"
@@ -258,7 +260,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                  <span className="text-xs text-foreground-500">良好</span>
+                  <span className="text-xs text-foreground-500">{t('proxies.delayGood')}</span>
                   <Input
                     size="sm"
                     type="number"
@@ -276,7 +278,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 </div>
               </div>
             </SettingItem>
-            <SettingItem title="代理组排序" divider>
+            <SettingItem title={t('proxies.groupOrder')} divider>
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
@@ -285,7 +287,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                   startContent={<MdSort className="text-lg" />}
                   onPress={() => setShowSortModal(true)}
                 >
-                  调整顺序
+                  {t('proxies.adjustOrder')}
                 </Button>
                 <Button
                   size="sm"
@@ -297,7 +299,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                     patchAppConfig({ groupOrder: [] })
                   }}
                 >
-                  重置
+                  {t('common.reset')}
                 </Button>
               </div>
             </SettingItem>
@@ -313,6 +315,8 @@ const ProxySettingModal: React.FC<Props> = (props) => {
           patchAppConfig={patchAppConfig}
           collapseSidebar={collapseSidebar}
           siderWidth={siderWidth}
+          title={t('proxies.adjustGroupOrder')}
+          description={t('proxies.dragToReorder')}
         />
       )}
 
@@ -329,6 +333,8 @@ interface GroupSortModalProps {
   patchAppConfig: (value: Partial<AppConfig>) => Promise<void>
   collapseSidebar: boolean
   siderWidth: number
+  title: string
+  description: string
 }
 
 const GroupSortModal: React.FC<GroupSortModalProps> = ({
@@ -337,7 +343,9 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
   onClose,
   patchAppConfig,
   collapseSidebar,
-  siderWidth
+  siderWidth,
+  title,
+  description
 }) => {
   const sortedGroupNames = useMemo(() => {
     const names = groups.map(g => g.name)
@@ -375,8 +383,8 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
       <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 520 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-end gap-2">
-            <span>调整代理组顺序</span>
-            <span className="text-xs text-foreground-500 font-normal mb-0.5">拖拽调整顺序</span>
+            <span>{title}</span>
+            <span className="text-xs text-foreground-500 font-normal mb-0.5">{description}</span>
           </div>
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>

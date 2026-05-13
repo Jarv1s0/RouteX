@@ -24,6 +24,7 @@ import { IoIosHelpCircle } from 'react-icons/io'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   item: ProfileItem
@@ -33,6 +34,7 @@ interface Props {
 }
 
 const EditInfoModal: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const { item, isCurrent, updateProfileItem, onClose } = props
   const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
     useAppConfig()
@@ -55,11 +57,13 @@ const EditInfoModal: React.FC<Props> = (props) => {
 
       await updateProfileItem(itemToSave)
       if (item.id && isCurrent) {
-        restartCoreInBackground('应用订阅配置失败')
+        restartCoreInBackground(t('profiles.applyProfileFailed'))
       }
       onClose()
     } catch (e) {
-      notifyError(e, { title: item.id ? '保存订阅信息失败' : '导入远程配置失败' })
+      notifyError(e, {
+        title: item.id ? t('profiles.saveInfoFailed') : t('profiles.importRemoteProfileFailed')
+      })
       setSaving(false)
     }
   }
@@ -83,9 +87,11 @@ const EditInfoModal: React.FC<Props> = (props) => {
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1024 })}
       >
-        <ModalHeader className="flex app-drag">{item.id ? '编辑属性' : '导入远程配置'}</ModalHeader>
+        <ModalHeader className="flex app-drag">
+          {item.id ? t('profiles.editInfo') : t('page.profiles.importRemote')}
+        </ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-y-auto">
-          <SettingItem title="名称">
+          <SettingItem title={t('confirm.name')}>
             <Input
               size="sm"
               className={cn(inputWidth)}
@@ -97,7 +103,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
           </SettingItem>
           {values.type === 'remote' && (
             <>
-              <SettingItem title="订阅地址">
+              <SettingItem title={t('profiles.url')}>
                 <Input
                   size="sm"
                   className={cn(inputWidth)}
@@ -107,7 +113,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   }}
                 />
               </SettingItem>
-              <SettingItem title="证书指纹">
+              <SettingItem title={t('profiles.fingerprint')}>
                 <Input
                   size="sm"
                   className={cn(inputWidth)}
@@ -117,7 +123,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   }}
                 />
               </SettingItem>
-              <SettingItem title="指定 UA">
+              <SettingItem title={t('profiles.customUa')}>
                 <Input
                   size="sm"
                   className={cn(inputWidth)}
@@ -127,7 +133,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   }}
                 />
               </SettingItem>
-              <SettingItem title="验证订阅格式">
+              <SettingItem title={t('profiles.verifyFormat')}>
                 <Switch
                   size="sm"
                   isSelected={values.verify ?? false}
@@ -136,7 +142,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   }}
                 />
               </SettingItem>
-              <SettingItem title="使用代理更新">
+              <SettingItem title={t('profiles.useProxyUpdate')}>
                 <Switch
                   size="sm"
                   isSelected={values.useProxy ?? false}
@@ -145,7 +151,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   }}
                 />
               </SettingItem>
-              <SettingItem title="自动更新">
+              <SettingItem title={t('profiles.autoUpdate')}>
                 <Switch
                   size="sm"
                   isSelected={values.autoUpdate ?? false}
@@ -156,10 +162,10 @@ const EditInfoModal: React.FC<Props> = (props) => {
               </SettingItem>
               {values.autoUpdate && (
                 <SettingItem
-                  title="更新间隔（分钟）"
+                  title={t('profiles.updateIntervalMinutes')}
                   actions={
                     values.locked && (
-                      <Tooltip content="当前更新间隔由远程管理">
+                      <Tooltip content={t('profiles.remoteManagedInterval')}>
                         <Button isIconOnly size="sm" variant="light">
                           <IoIosHelpCircle className="text-lg" />
                         </Button>
@@ -179,12 +185,12 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   />
                 </SettingItem>
               )}
-              <SettingItem title="流量结算日">
+              <SettingItem title={t('profiles.resetDay')}>
                 <Input
                   size="sm"
                   className={cn(inputWidth)}
                   inputMode="numeric"
-                  placeholder="默认为 1（每月1日重置）"
+                  placeholder={t('profiles.resetDayPlaceholder')}
                   value={values.resetDay?.toString() ?? ''}
                   onValueChange={(v) => {
                     if (!v || v === '') {
@@ -200,7 +206,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
               </SettingItem>
             </>
           )}
-          <SettingItem title="覆写">
+          <SettingItem title={t('profiles.overrides')}>
             <div>
               {overrideItems
                 .filter((i) => i.global)
@@ -208,7 +214,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   return (
                     <div className="flex mb-2" key={i.id}>
                       <Button disabled fullWidth variant="flat" size="sm">
-                        {i.name} (全局)
+                        {i.name} ({t('profiles.globalSuffix')})
                       </Button>
                     </div>
                   )
@@ -245,7 +251,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu
-                  emptyContent="没有可用的覆写"
+                  emptyContent={t('profiles.noOverrides')}
                   onAction={(key) => {
                     setValues({
                       ...values,
@@ -265,10 +271,10 @@ const EditInfoModal: React.FC<Props> = (props) => {
         </ModalBody>
         <ModalFooter>
           <Button size="sm" variant="light" onPress={onClose}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button size="sm" color="primary" isLoading={saving} onPress={onSave}>
-            {item.id ? '保存' : '导入'}
+            {item.id ? t('common.save') : t('common.import')}
           </Button>
         </ModalFooter>
       </ModalContent>

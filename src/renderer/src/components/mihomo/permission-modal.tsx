@@ -21,6 +21,7 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   onChange: (open: boolean) => void
@@ -29,6 +30,7 @@ interface Props {
 }
 
 const PermissionModal: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const { onChange, onRevoke, onGrant } = props
   const {
     appConfig: {
@@ -102,9 +104,11 @@ const PermissionModal: React.FC<Props> = (props) => {
   }
 
   const getStatusText = (coreName: 'mihomo' | 'mihomo-alpha'): string => {
-    if (hasPermission === null) return '检查中'
-    if (typeof hasPermission === 'boolean') return hasPermission ? '已授权' : '未授权'
-    return hasPermission[coreName] ? '已授权' : '未授权'
+    if (hasPermission === null) return t('mihomo.permission.checking')
+    if (typeof hasPermission === 'boolean') {
+      return hasPermission ? t('mihomo.permission.authorized') : t('mihomo.permission.unauthorized')
+    }
+    return hasPermission[coreName] ? t('mihomo.permission.authorized') : t('mihomo.permission.unauthorized')
   }
 
   const getStatusColor = (coreName: 'mihomo' | 'mihomo-alpha'): string => {
@@ -133,7 +137,7 @@ const PermissionModal: React.FC<Props> = (props) => {
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 450 })}
       >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span>{isWindows ? '任务计划管理' : '内核授权管理'}</span>
+          <span>{isWindows ? t('mihomo.permission.taskTitle') : t('mihomo.permission.coreTitle')}</span>
           <SecondaryModalCloseButton onPress={() => onChange(false)} />
         </ModalHeader>
         <ModalBody>
@@ -147,7 +151,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                   <CardBody className="py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">任务计划状态</span>
+                        <span className="text-sm font-medium">{t('mihomo.permission.taskStatus')}</span>
                       </div>
                       <Chip
                         color={
@@ -161,12 +165,12 @@ const PermissionModal: React.FC<Props> = (props) => {
                         size="sm"
                       >
                         {hasPermission === null
-                          ? '检查中...'
+                          ? t('mihomo.permission.checkingDots')
                           : typeof hasPermission === 'boolean'
                             ? hasPermission
-                              ? '已注册'
-                              : '未注册'
-                            : '未知'}
+                              ? t('mihomo.permission.registered')
+                              : t('mihomo.permission.unregistered')
+                            : t('common.unknown')}
                       </Chip>
                     </div>
                   </CardBody>
@@ -177,15 +181,15 @@ const PermissionModal: React.FC<Props> = (props) => {
                 <div className="text-xs text-default-500 space-y-2">
                   <div className="flex items-start gap-2">
                     <span className="mt-0.5">•</span>
-                    <span>任务计划将以特权拉起客户端自身</span>
+                    <span>{t('mihomo.permission.taskHint1')}</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="mt-0.5">•</span>
-                    <span>可以让内核以管理员权限运行，无需每次 UAC 提示</span>
+                    <span>{t('mihomo.permission.taskHint2')}</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="mt-0.5">•</span>
-                    <span>取消注册后可能需要手动提权才能使用某些功能</span>
+                    <span>{t('mihomo.permission.taskHint3')}</span>
                   </div>
                 </div>
               </>
@@ -196,7 +200,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                     <CardHeader className="pb-0 pt-4 px-4 flex-col items-start">
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-medium">内置正式版</h4>
+                          <h4 className="font-semibold text-medium">{t('mihomo.permission.stableCore')}</h4>
                         </div>
                         <Chip
                           color={getStatusColor('mihomo') === 'bg-success' ? 'success' : 'warning'}
@@ -217,7 +221,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                           isLoading={loading.mihomo}
                           fullWidth
                         >
-                          撤销授权
+                          {t('mihomo.permission.revoke')}
                         </Button>
                       ) : (
                         <Button
@@ -228,7 +232,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                           isLoading={loading.mihomo}
                           fullWidth
                         >
-                          授权内核
+                          {t('mihomo.permission.grant')}
                         </Button>
                       )}
                     </CardBody>
@@ -238,7 +242,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                     <CardHeader className="pb-0 pt-4 px-4 flex-col items-start">
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-medium">内置预览版</h4>
+                          <h4 className="font-semibold text-medium">{t('mihomo.permission.alphaCore')}</h4>
                         </div>
                         <Chip
                           color={
@@ -261,7 +265,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                           isLoading={loading['mihomo-alpha']}
                           fullWidth
                         >
-                          撤销授权
+                          {t('mihomo.permission.revoke')}
                         </Button>
                       ) : (
                         <Button
@@ -272,7 +276,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                           isLoading={loading['mihomo-alpha']}
                           fullWidth
                         >
-                          授权内核
+                          {t('mihomo.permission.grant')}
                         </Button>
                       )}
                     </CardBody>
@@ -281,10 +285,10 @@ const PermissionModal: React.FC<Props> = (props) => {
 
                 <div className="text-xs text-default-500 space-y-2">
                   <div className="flex items-start gap-2">
-                    <span>授权后内核将获得必要的系统权限</span>
+                    <span>{t('mihomo.permission.coreHint1')}</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span>可以使用 TUN 等高级网络功能</span>
+                    <span>{t('mihomo.permission.coreHint2')}</span>
                   </div>
                 </div>
               </>
@@ -298,7 +302,7 @@ const PermissionModal: React.FC<Props> = (props) => {
             onPress={() => onChange(false)}
             isDisabled={Object.values(loading).some((v) => v)}
           >
-            关闭
+            {t('common.close')}
           </Button>
           {isWindows &&
             (() => {
@@ -312,7 +316,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                   onPress={() => handleAction(onRevoke)}
                   isLoading={isLoading}
                 >
-                  取消注册
+                  {t('mihomo.permission.unregisterTask')}
                 </Button>
               ) : (
                 <Button
@@ -321,7 +325,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                   onPress={() => handleAction(onGrant)}
                   isLoading={isLoading}
                 >
-                  注册计划
+                  {t('mihomo.permission.registerTask')}
                 </Button>
               )
             })()}

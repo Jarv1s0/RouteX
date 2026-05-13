@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import debounce from '@renderer/utils/debounce'
 import WebdavRestoreModal from './webdav-restore-modal'
 import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   isOpen: boolean
@@ -13,6 +14,7 @@ interface Props {
 }
 
 const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
+  const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     collapseSidebar = false,
@@ -38,7 +40,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     setBackuping(true)
     try {
       await webdavBackup()
-      toast.success('备份成功')
+      toast.success(t('settings.webdav.backupSuccess'))
     } catch (e) { toast.error(String(e)) }
     finally { setBackuping(false) }
   }
@@ -47,7 +49,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     try {
       const files = await listWebdavBackups()
       setFilenames(files); setRestoreOpen(true)
-    } catch (e) { toast.error(`获取备份失败: ${e}`) }
+    } catch (e) { toast.error(t('settings.webdav.listFailed', { error: String(e) })) }
   }
 
   // 辅助组件：配置项卡片
@@ -109,34 +111,34 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
             <>
               <ModalHeader className="flex flex-col gap-1 py-2 px-4">
                 <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                  WebDAV 云备份
+                  {t('settings.webdav.title')}
                 </span>
                 <span className="text-small text-default-400 font-normal">
-                  配置 WebDAV 服务器以同步和恢复应用配置
+                  {t('settings.webdav.description')}
                 </span>
               </ModalHeader>
               <ModalBody className="py-2 px-4">
                 <div className="flex flex-col gap-2">
                   <ConfigInputCard 
-                    title="服务器地址" 
-                    subtitle="WebDAV 服务端 URL" 
+                    title={t('settings.webdav.url')}
+                    subtitle={t('settings.webdav.urlHelp')}
                     field="webdavUrl" 
                     placeholder="https://example.com/webdav"
                   />
                   <ConfigInputCard 
-                    title="备份目录" 
-                    subtitle="云端存储路径" 
+                    title={t('settings.webdav.dir')}
+                    subtitle={t('settings.webdav.dirHelp')}
                     field="webdavDir" 
                     placeholder="routex"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <ConfigInputCard 
-                      title="用户名" 
+                      title={t('settings.webdav.username')}
                       field="webdavUsername" 
                       placeholder="Username"
                     />
                     <ConfigInputCard 
-                      title="密码" 
+                      title={t('settings.webdav.password')}
                       field="webdavPassword" 
                       type="password"
                       placeholder="Password"
@@ -151,7 +153,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                       onPress={handleBackup}
                       className="font-medium"
                     >
-                      立即备份
+                      {t('settings.webdav.backupNow')}
                     </Button>
                     <Button 
                       color="secondary" 
@@ -159,7 +161,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                       onPress={handleOpenRestore}
                       className="font-medium"
                     >
-                      从备份恢复
+                      {t('settings.webdav.restore')}
                     </Button>
                   </div>
                 </div>
@@ -171,7 +173,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                   onPress={onClose}
                   className="font-medium px-8"
                 >
-                  完成
+                  {t('common.done')}
                 </Button>
               </ModalFooter>
             </>

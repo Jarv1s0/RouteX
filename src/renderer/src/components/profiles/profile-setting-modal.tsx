@@ -24,6 +24,7 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   onClose: () => void
@@ -31,6 +32,7 @@ interface Props {
 
 const ProfileSettingModal: React.FC<Props> = (props) => {
   const { onClose } = props
+  const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
 
   const {
@@ -78,11 +80,11 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 560 })}
       >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span>订阅设置</span>
+          <span>{t('page.profiles.settings')}</span>
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="px-6 py-2 gap-1 pb-4 pt-0">
-          <SettingItem title="显示日期" divider>
+          <SettingItem title={t('profiles.displayDate')} divider>
             <Tabs
               size="sm"
               color="primary"
@@ -95,14 +97,14 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
                 })
               }}
             >
-              <Tab key="update" title="更新时间" />
-              <Tab key="expire" title="到期时间" />
+              <Tab key="update" title={t('profiles.updateTime')} />
+              <Tab key="expire" title={t('profiles.expireTime')} />
             </Tabs>
           </SettingItem>
           <SettingItem
-            title="为不同订阅分别指定工作目录"
+            title={t('profiles.diffWorkDir')}
             actions={
-              <Tooltip content="开启后可以避免不同订阅中存在相同代理组名时无法分别保存选择的节点">
+              <Tooltip content={t('profiles.diffWorkDirHelp')}>
                 <Button isIconOnly size="sm" variant="light">
                   <IoIosHelpCircle className="text-lg" />
                 </Button>
@@ -118,12 +120,12 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
               }}
             />
           </SettingItem>
-          <SettingItem title="订阅拉取 UA" divider>
+          <SettingItem title={t('profiles.userAgent')} divider>
             <Input
               size="sm"
               className="w-[60%]"
               value={ua}
-              placeholder={`默认 ${defaultUserAgent}`}
+              placeholder={t('connections.defaultInterval', { value: defaultUserAgent })}
               onValueChange={(v) => {
                 setUa(v)
                 setUaDebounce(v)
@@ -131,10 +133,10 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
             />
           </SettingItem>
           <SettingItem
-            title="同步运行时配置到 Gist"
+            title={t('profiles.syncGist')}
             actions={
               <Button
-                title="复制 Gist URL"
+                title={t('profiles.copyGistUrl')}
                 isIconOnly
                 size="sm"
                 variant="light"

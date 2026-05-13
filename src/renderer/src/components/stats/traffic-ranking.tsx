@@ -3,6 +3,7 @@ import { Card, CardBody, Tabs, Tab } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import TrafficOverview from './traffic-overview'
+import { useI18n } from '@renderer/i18n'
 
 interface TrafficRankingProps {
   session: { upload: number; download: number }
@@ -78,6 +79,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
   ruleHitDetails,
   onSelectRule
 }) => {
+  const { t } = useI18n()
   const [rankingTab, setRankingTab] = useState<'rule' | 'process' | 'host'>('rule')
 
   // Ranking Logic
@@ -172,13 +174,13 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
       <CardBody className="p-4">
         <div className="flex flex-col md:flex-row gap-6 h-full">
             {/* Left: Traffic Summary */}
-            <div className="flex-1 flex flex-col gap-4">
+            <div className="min-w-0 flex-1 flex flex-col gap-4">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                           <div className="w-1.5 h-3.5 bg-primary/80 rounded-full" />
                         </div>
-                        <span className="text-base font-bold text-foreground">流量汇总</span>
+                        <span className="text-base font-bold text-foreground">{t('stats.summary')}</span>
                     </div>
                 </div>
 
@@ -199,13 +201,13 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
             <div className="hidden md:block w-px bg-default-100 mx-2 self-stretch" />
 
             {/* Right: Ranking List */}
-            <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+            <div className="min-w-0 flex-1 flex flex-col gap-4 overflow-hidden">
                  <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <div className="p-1.5 rounded-lg bg-secondary/10 text-secondary">
                           <div className="w-1.5 h-3.5 bg-secondary/80 rounded-full" />
                         </div>
-                       <span className="text-base font-bold text-foreground">排行榜</span>
+                       <span className="text-base font-bold text-foreground">{t('stats.ranking')}</span>
                     </div>
                     <Tabs
                         size="sm"
@@ -213,9 +215,9 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                         selectedKey={rankingTab}
                         onSelectionChange={(key) => setRankingTab(key as 'rule' | 'process' | 'host')}
                     >
-                        <Tab key="rule" title="策略" />
-                        <Tab key="process" title="进程" />
-                        <Tab key="host" title="主机" />
+                        <Tab key="rule" title={t('stats.rule')} />
+                        <Tab key="process" title={t('stats.process')} />
+                        <Tab key="host" title={t('stats.host')} />
                     </Tabs>
                 </div>
                 
@@ -223,7 +225,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                     {currentRanking.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-foreground-400 gap-2">
                             <div className="text-4xl opacity-30">📋</div>
-                            <div className="text-sm">暂无数据</div>
+                            <div className="text-sm">{t('common.noData')}</div>
                         </div>
                     ) : (
                         currentRanking.map((item, index) => {
@@ -268,7 +270,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
                                   <div className="text-sm font-medium tabular-nums whitespace-nowrap flex-shrink-0 w-[90px] text-right">
                                     {rankingTab === 'rule' && (
                                          <span className="text-xs text-foreground-400 tabular-nums mr-1">
-                                            {(item as { hits?: number }).hits}次
+                                            {(item as { hits?: number }).hits}{t('stats.hitsSuffix')}
                                          </span>
                                       )}
                                     {calcTraffic(item.traffic)}

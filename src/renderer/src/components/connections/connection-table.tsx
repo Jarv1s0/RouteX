@@ -9,6 +9,7 @@ import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
 import { Virtuoso } from 'react-virtuoso'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getConnectionHideRule } from './shared'
+import { useI18n, type TranslationKey } from '@renderer/i18n'
 
 
 // 列配置 - 默认宽度
@@ -53,24 +54,24 @@ interface Props {
 // ... (existing code)
 
 // 列标签
-const COLUMN_LABELS: Record<string, string> = {
-  close: '关闭',
-  host: '主机',
-  process: '进程',
-  type: '类型',
-  rule: '规则',
-  chains: '代理链',
-  downloadSpeed: '↓速度',
-  uploadSpeed: '↑速度',
-  download: '下载',
-  upload: '上传',
-  time: '时间',
-  sourceIP: '源IP',
-  sourcePort: '源端口',
-  destinationIP: '目标IP',
-  sniffHost: '嗅探主机',
-  inboundName: '入站名称',
-  inboundUser: '入站用户'
+const COLUMN_LABEL_KEYS: Record<string, TranslationKey> = {
+  close: 'connections.column.close',
+  host: 'connections.column.host',
+  process: 'connections.column.process',
+  type: 'connections.column.type',
+  rule: 'connections.column.rule',
+  chains: 'connections.column.chains',
+  downloadSpeed: 'connections.column.shortDownloadSpeed',
+  uploadSpeed: 'connections.column.shortUploadSpeed',
+  download: 'connections.column.download',
+  upload: 'connections.column.upload',
+  time: 'connections.column.time',
+  sourceIP: 'connections.column.sourceIP',
+  sourcePort: 'connections.column.sourcePort',
+  destinationIP: 'connections.column.destinationIP',
+  sniffHost: 'connections.column.sniffHost',
+  inboundName: 'connections.column.inboundName',
+  inboundUser: 'connections.column.inboundUser'
 }
 
 // 右对齐的列
@@ -132,6 +133,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
   onVisibleRangeChange,
   hiddenRules
 }) => {
+  const { t, locale } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
   const { 
     connectionTableColumns = DEFAULT_COLUMNS,
@@ -164,7 +166,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
 
   // 过滤有效的列
   const visibleColumns = useMemo(() => {
-    return connectionTableColumns.filter(col => COLUMN_LABELS[col])
+    return connectionTableColumns.filter(col => COLUMN_LABEL_KEYS[col])
   }, [connectionTableColumns])
 
   // 直接使用本地列宽，不进行自动布局计算，避免 resizing 时的联动
@@ -223,8 +225,10 @@ const ConnectionTableComponent: React.FC<Props> = ({
       displayAppName={displayAppName}
       onContextMenu={onContextMenu}
       hiddenRules={hiddenRules}
+      t={t}
+      locale={locale}
     />
-  ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName, onContextMenu, hiddenRules])
+  ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName, onContextMenu, hiddenRules, t, locale])
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -239,7 +243,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
               onClick={() => onSort?.(col)}
             >
               <div className={`flex items-center gap-1 ${RIGHT_ALIGN_COLUMNS.includes(col) ? 'justify-end' : ''}`}>
-                <span>{COLUMN_LABELS[col]}</span>
+                <span>{t(COLUMN_LABEL_KEYS[col])}</span>
                 {sortBy === col && (
                   sortDirection === 'asc' 
                     ? <HiSortAscending className="text-primary" />
@@ -284,6 +288,8 @@ interface RowProps {
   displayAppName: boolean
   onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
   hiddenRules?: Set<string>
+  t: (key: TranslationKey, values?: Record<string, string | number>) => string
+  locale: string
 }
 
 const connectionRowRenderKeyCache = new WeakMap<ControllerConnectionDetail, string>()
@@ -309,13 +315,16 @@ function getConnectionChainDisplay(conn: ControllerConnectionDetail): string {
   return next
 }
 
-function formatDurationFromStartMs(startMs: number): string {
+function formatDurationFromStartMs(
+  startMs: number,
+  t: (key: TranslationKey, values?: Record<string, string | number>) => string
+): string {
   const seconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000))
-  if (seconds < 60) return `${seconds}秒前`
+  if (seconds < 60) return t('connections.time.secondsAgo', { value: seconds })
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}分钟前`
+  if (minutes < 60) return t('connections.time.minutesAgo', { value: minutes })
   const hours = Math.floor(minutes / 60)
-  return `${hours}小时前`
+  return t('connections.time.hoursAgo', { value: hours })
 }
 
 function getConnectionHost(conn: ControllerConnectionDetail): string {
@@ -372,7 +381,8 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
   displayIcon,
   displayAppName,
   onContextMenu,
-  hiddenRules
+  hiddenRules,
+  t
 }) => {
   const isHidden = useMemo(() => {
     if (!hiddenRules) return false
@@ -404,7 +414,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
       case 'upload':
         return calcTraffic(conn.upload)
       case 'time':
-        return formatDurationFromStartMs(getConnectionStartTime(conn))
+        return formatDurationFromStartMs(getConnectionStartTime(conn), t)
       case 'sourceIP':
         return conn.metadata.sourceIP || '-'
       case 'sourcePort':
@@ -456,7 +466,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
           )}
           <span className="truncate flex items-center gap-1.5" title={processName}>
             {processName}
-            {isHidden && <span className="text-default-400 opacity-50" title="该连接已被隐藏">
+            {isHidden && <span className="text-default-400 opacity-50" title={t('connections.hiddenTitle')}>
               <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="12px" width="12px" xmlns="http://www.w3.org/2000/svg"><path d="M256 128a113.84 113.84 0 00-111.94 90.11c-.13.52-.25 1.05-.36 1.58a112.51 112.51 0 001.32 50 114.7 114.7 0 0013.9 33.68l42.6-42.6A63.85 63.85 0 01192 256v-.06a64 64 0 01103.11-51.11L332 168.06A113.59 113.59 0 00256 128zM315.65 244.35l42.6-42.6a113.62 113.62 0 0116.07 101.44 115.35 115.35 0 01-11.95 24.31l-42.6-42.6a64.31 64.31 0 00-4.12-40.55zm-143.24 64h.14L114.61 366.3a256.78 256.78 0 01-38.62-31.54C34.72 297.43 16 256 16 256s18.72-41.43 51.3-71.8a257.65 257.65 0 0153.11-37.58l45 45a64 64 0 007 86.73zM512 256s-18.72 41.43-51.3 71.8a257.65 257.65 0 01-53.11 37.58L362.59 320.4a64.09 64.09 0 00-7-86.73h-.14l57.94-57.94a256.78 256.78 0 0138.62 31.54C477.28 214.57 496 256 496 256s-18.73 41.43-51.31 71.8a256.88 256.88 0 01-32.9 26.65l38.42 38.42a420.9 420.9 0 0041.52-38C496 323.23 512 284 512 256zM80 64l368 384"></path></svg>
             </span>}
           </span>
@@ -547,7 +557,8 @@ const ConnectionRow = memo(ConnectionRowComponent, (prev, next) => {
     prev.appNameCache === next.appNameCache &&
     prev.displayIcon === next.displayIcon &&
     prev.displayAppName === next.displayAppName &&
-    prev.hiddenRules === next.hiddenRules
+    prev.hiddenRules === next.hiddenRules &&
+    prev.locale === next.locale
   )
 })
 

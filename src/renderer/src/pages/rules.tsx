@@ -25,6 +25,7 @@ import useSWR from 'swr'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useRulesStore } from '@renderer/store/use-rules-store'
 import { RulesProvider } from '@renderer/hooks/use-rules'
+import { useI18n } from '@renderer/i18n'
 
 const normalizeRuleType = (type: string): string => type.replace(/[^a-z0-9]/gi, '').toLowerCase()
 
@@ -51,6 +52,7 @@ const getProxyColor = (
 }
 
 const RulesPage: React.FC = () => {
+  const { t } = useI18n()
   const { rules, mutate: mutateRules } = useRules()
   const [filter, setFilter] = useState('')
   const deferredFilter = useDeferredValue(filter)
@@ -211,7 +213,7 @@ const RulesPage: React.FC = () => {
       await mihomoUpdateRuleProviders(name)
       mutate()
     } catch (e) {
-      new Notification(`${name} 更新失败\n${e}`)
+      new Notification(t('rules.updateProviderFailed', { name, error: String(e) }))
     } finally {
       setUpdating((prev) => ({ ...prev, [name]: false }))
     }
@@ -356,15 +358,17 @@ const RulesPage: React.FC = () => {
           void mutateRules()
         }, 250)
       } catch (error) {
-        alert(`切换状态失败: ${error}`)
+        alert(t('rules.toggleFailed', { error: String(error) }))
       }
     },
-    [currentProfileId, mutateQuickRules, mutateRules]
+    [currentProfileId, mutateQuickRules, mutateRules, t]
   )
 
   const handleDeleteQuickRule = useCallback(
     async (rule: QuickRule) => {
-      const confirmDelete = window.confirm(`确认删除这条本地规则？\n\n${formatQuickRule(rule)}`)
+      const confirmDelete = window.confirm(
+        t('rules.deleteConfirm', { rule: formatQuickRule(rule) })
+      )
       if (!confirmDelete) return
 
       try {
@@ -374,14 +378,14 @@ const RulesPage: React.FC = () => {
           void mutateRules()
         }, 250)
       } catch (error) {
-        alert(`删除本地规则失败: ${error}`)
+        alert(t('rules.deleteFailed', { error: String(error) }))
       }
     },
-    [currentProfileId, mutateQuickRules, mutateRules]
+    [currentProfileId, mutateQuickRules, mutateRules, t]
   )
 
   return (
-    <BasePage title="规则">
+    <BasePage title={t('page.rules.title')}>
       <div className="sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
         <div
           className={`w-full px-2 py-1.5 flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
@@ -399,7 +403,7 @@ const RulesPage: React.FC = () => {
               title={
                 <div className="flex items-center gap-2 px-1">
                   <IoListOutline className="text-lg" />
-                  <span>本地规则</span>
+                  <span>{t('page.rules.local')}</span>
                 </div>
               }
             />
@@ -409,7 +413,7 @@ const RulesPage: React.FC = () => {
               title={
                 <div className="flex items-center gap-2 px-1">
                   <IoCubeOutline className="text-lg" />
-                  <span>远程规则</span>
+                  <span>{t('page.rules.remote')}</span>
                 </div>
               }
             />
@@ -429,7 +433,7 @@ const RulesPage: React.FC = () => {
               variant="flat"
               size="sm"
               value={filter}
-              placeholder="筛选过滤"
+              placeholder={t('common.filter')}
               isClearable
               onValueChange={setFilter}
               className="flex-1"
@@ -438,12 +442,12 @@ const RulesPage: React.FC = () => {
           )}
           {activeTab === 'local' && (
             <Button size="sm" color="primary" className="ml-auto" onPress={openCreateQuickRule}>
-              新建规则
+              {t('page.rules.create')}
             </Button>
           )}
           {activeTab === 'remote' && (
             <Button size="sm" color="primary" onPress={updateAll}>
-              更新全部
+              {t('common.updateAll')}
             </Button>
           )}
         </div>
@@ -468,9 +472,9 @@ const RulesPage: React.FC = () => {
                   color="warning"
                   classNames={{ content: 'text-[10px] font-medium' }}
                 >
-                  已停用
+                  {t('rules.disabledBadge')}
                 </Chip>
-                <span>当前 profile 的本地规则处于全局停用状态，以下规则暂不会注入当前配置。</span>
+                <span>{t('rules.disabledDescription')}</span>
               </div>
             )}
             {filteredQuickRules.length > 0 ? (
@@ -571,13 +575,13 @@ const RulesPage: React.FC = () => {
 
                           {/* 操作按钮组 */}
                           <div className="ml-2 flex items-center flex-shrink-0 gap-2 pr-1">
-                            <Tooltip content="编辑" delay={500}>
+                            <Tooltip content={t('common.edit')} delay={500}>
                               <Button
                                 isIconOnly
                                 size="sm"
                                 variant="light"
-                                title="编辑规则"
-                                aria-label="编辑规则"
+                                title={t('page.rules.edit')}
+                                aria-label={t('page.rules.edit')}
                                 className="min-w-8 w-8 h-8 text-default-500"
                                 onPress={() => openEditQuickRule(rule)}
                               >
@@ -585,14 +589,14 @@ const RulesPage: React.FC = () => {
                               </Button>
                             </Tooltip>
 
-                            <Tooltip content="删除" delay={500} color="danger">
+                            <Tooltip content={t('page.rules.delete')} delay={500} color="danger">
                               <Button
                                 isIconOnly
                                 size="sm"
                                 color="danger"
                                 variant="light"
-                                title="删除规则"
-                                aria-label="删除规则"
+                                title={t('page.rules.delete')}
+                                aria-label={t('page.rules.delete')}
                                 className="min-w-8 w-8 h-8"
                                 onPress={() => void handleDeleteQuickRule(rule)}
                               >
@@ -608,7 +612,7 @@ const RulesPage: React.FC = () => {
               </div>
             ) : (
               <div className="mx-2 rounded-lg border border-dashed border-default-200/70 bg-background/50 px-4 py-8 text-center text-sm text-foreground-400 dark:border-white/10">
-                {deferredFilter ? '没有匹配的本地规则。' : '暂无本地规则，点击右上角按钮创建。'}
+                {deferredFilter ? t('rules.noMatchedLocal') : t('rules.emptyLocal')}
               </div>
             )}
           </div>

@@ -10,8 +10,10 @@ import { Button } from '@heroui/react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { MdTune } from 'react-icons/md'
 import { IoAddCircleOutline, IoPause } from 'react-icons/io5'
+import { useI18n } from '@renderer/i18n'
 
 const Connections: React.FC = () => {
+  const { t } = useI18n()
   const {
     activeConnections,
     closedConnections,
@@ -86,14 +88,14 @@ const Connections: React.FC = () => {
 
   return (
     <BasePage
-      title="连接"
+      title={t('page.connections.title')}
       header={
         <Button
           size="sm"
           isIconOnly
           className="app-nodrag"
           variant="light"
-          title="连接设置"
+          title={t('page.connections.settings')}
           onPress={() => setIsSettingModalOpen(true)}
         >
           <MdTune className="text-lg" />
@@ -141,7 +143,7 @@ const Connections: React.FC = () => {
                 }
               }}
             >
-              新建规则
+              {t('page.connections.createRule')}
             </Button>
           </div>
         </CustomContextMenu>
@@ -152,7 +154,7 @@ const Connections: React.FC = () => {
       {isPaused && (
         <div className="sticky top-0 z-50 bg-warning/10 border-b border-warning/30 px-4 py-2 flex items-center justify-center gap-2">
           <IoPause className="text-warning text-sm" />
-          <span className="text-xs text-warning font-medium">连接列表已暂停刷新</span>
+          <span className="text-xs text-warning font-medium">{t('page.connections.paused')}</span>
         </div>
       )}
 

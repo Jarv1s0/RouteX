@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
 import { tryRecoverDynamicImport } from '@renderer/utils/boot-renderer'
+import { translate } from '@renderer/i18n'
 
 interface Props {
   children?: ReactNode
@@ -50,10 +51,10 @@ class ErrorBoundary extends Component<Props, State> {
             
             <div className="space-y-2">
               <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
-                遇到了一点问题
+                {translate('errorBoundary.title')}
               </h2>
               <p className="text-default-500 text-base leading-relaxed max-w-[90%] mx-auto">
-                应用运行过程中遇到了意外错误。这可能只是暂时的，您可以尝试刷新页面。
+                {translate('errorBoundary.description')}
               </p>
             </div>
 
@@ -73,7 +74,7 @@ class ErrorBoundary extends Component<Props, State> {
                 className="min-h-12 flex-1 rounded-2xl border border-default-200 px-4 text-sm font-medium text-default-700 transition-colors hover:bg-default-100"
                 onClick={this.handleCopyError}
               >
-                复制错误信息
+                {translate('errorBoundary.copy')}
               </button>
               <button
                 type="button"
@@ -83,7 +84,7 @@ class ErrorBoundary extends Component<Props, State> {
                   window.location.reload()
                 }}
               >
-                立即重启
+                {translate('errorBoundary.restart')}
               </button>
             </div>
           </div>

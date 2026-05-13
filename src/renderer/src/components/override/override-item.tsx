@@ -24,6 +24,7 @@ import ExecLogModal from './exec-log-modal'
 import 'dayjs/locale/zh-cn'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
+import { useI18n } from '@renderer/i18n'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -49,6 +50,7 @@ interface MenuItem {
 const OverrideItem: React.FC<Props> = (props) => {
   const { info, isActive, addOverrideItem, removeOverrideItem, mutateOverrideConfig, updateOverrideItem, onToggleOverride } =
     props
+  const { t } = useI18n()
   const [updating, setUpdating] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
@@ -75,42 +77,42 @@ const OverrideItem: React.FC<Props> = (props) => {
     const list: MenuItem[] = [
       {
         key: 'edit-info',
-        label: '编辑属性',
+        label: t('override.editInfo'),
         showDivider: false,
         color: 'default',
         className: ''
       },
       {
         key: 'edit-file',
-        label: '编辑内容',
+        label: t('override.editContent'),
         showDivider: false,
         color: 'default',
         className: ''
       },
       {
         key: 'open-file',
-        label: '使用外部程序打开',
+        label: t('override.openExternal'),
         showDivider: false,
         color: 'default',
         className: ''
       },
       {
         key: 'exec-log',
-        label: '执行日志',
+        label: t('override.execLog'),
         showDivider: true,
         color: 'default',
         className: ''
       },
       {
         key: 'rollback',
-        label: '回滚上次保存',
+        label: t('override.rollback'),
         showDivider: true,
         color: 'warning',
         className: 'text-warning'
       },
       {
         key: 'delete',
-        label: '删除',
+        label: t('common.delete'),
         showDivider: false,
         color: 'danger',
         className: 'text-danger'
@@ -125,9 +127,13 @@ const OverrideItem: React.FC<Props> = (props) => {
       if (rollbackIndex !== -1) list.splice(rollbackIndex, 1)
     }
     return list
-  }, [info.ext, rollbackAvailable])
+  }, [info.ext, rollbackAvailable, t])
 
-  const statusLabel = info.global ? '全局' : isActive ? '已启用' : '未启用'
+  const statusLabel = info.global
+    ? t('override.status.global')
+    : isActive
+      ? t('override.status.enabled')
+      : t('override.status.disabled')
   const statusClassName = info.global || isActive
     ? 'bg-yellow-400 text-black font-bold shadow-sm'
     : CARD_STYLES.MANAGEMENT_STATUS_INACTIVE
@@ -141,7 +147,7 @@ const OverrideItem: React.FC<Props> = (props) => {
     if (info.global === global) return
     await updateOverrideItem({ ...info, global })
     mutateOverrideConfig()
-    restartCoreInBackground('应用覆写失败')
+    restartCoreInBackground(t('profiles.applyOverrideFailed'))
   }
 
   const onStatusAction = async (key: Key): Promise<void> => {
@@ -195,7 +201,7 @@ const OverrideItem: React.FC<Props> = (props) => {
           mutateOverrideConfig()
           setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
           if (info.global || isActive) {
-            restartCoreInBackground('应用覆写回滚失败')
+            restartCoreInBackground(t('override.rollbackFailed'))
           }
         } catch (e) {
           alert(e)
@@ -289,14 +295,14 @@ const OverrideItem: React.FC<Props> = (props) => {
       {confirmOpen && (
         <ConfirmModal
           onChange={setConfirmOpen}
-          title="确认删除覆写？"
-          confirmText="确认删除"
-          cancelText="取消"
+          title={t('override.deleteTitle')}
+          confirmText={t('settings.advanced.confirmDelete')}
+          cancelText={t('common.cancel')}
           onConfirm={() => {
             void removeOverrideItem(info.id).then(() => {
               mutateOverrideConfig()
               if (info.global || isActive) {
-                restartCoreInBackground('应用覆写删除失败')
+                restartCoreInBackground(t('override.deleteApplyFailed'))
               }
             })
           }}
@@ -350,7 +356,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                       await addOverrideItem(info)
                       setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
                       if (info.global || isActive) {
-                        restartCoreInBackground('应用远程覆写失败')
+                        restartCoreInBackground(t('override.remoteApplyFailed'))
                       }
                     } catch (e) {
                         alert(e)
@@ -403,9 +409,9 @@ const OverrideItem: React.FC<Props> = (props) => {
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu onAction={onStatusAction} selectedKeys={[info.global ? 'global' : isActive ? 'enabled' : 'disabled']}>
-                    <DropdownItem key="disabled">不启用覆写</DropdownItem>
-                    <DropdownItem key="enabled">启用覆写</DropdownItem>
-                    <DropdownItem key="global">设为全局覆写</DropdownItem>
+                    <DropdownItem key="disabled">{t('override.disable')}</DropdownItem>
+                    <DropdownItem key="enabled">{t('override.enable')}</DropdownItem>
+                    <DropdownItem key="global">{t('override.setGlobal')}</DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
               </div>

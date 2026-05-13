@@ -16,6 +16,7 @@ import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import ConfirmModal from '../base/base-confirm'
 import { notifyError } from '@renderer/utils/notify'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   id: string
@@ -24,6 +25,7 @@ interface Props {
 }
 
 const EditFileModal: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const { id, isRemote, onClose } = props
   const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
     useAppConfig()
@@ -72,10 +74,10 @@ const EditFileModal: React.FC<Props> = (props) => {
     >
       {isConfirmOpen && (
         <ConfirmModal
-          title="确认取消"
-          description="您有未保存的修改，确定要取消吗？"
-          confirmText="放弃修改"
-          cancelText="继续编辑"
+          title={t('override.cancelTitle')}
+          description={t('override.unsavedDescription')}
+          confirmText={t('override.discardChanges')}
+          cancelText={t('override.continueEditing')}
           onChange={setIsConfirmOpen}
           onConfirm={onClose}
         />
@@ -86,10 +88,10 @@ const EditFileModal: React.FC<Props> = (props) => {
       >
         <ModalHeader className="flex pb-0 app-drag">
           <div className="flex justify-start">
-            <div className="flex items-center">编辑订阅</div>
+            <div className="flex items-center">{t('profiles.editProfile')}</div>
             {isRemote && (
               <small className="ml-2 text-foreground-500">
-                注意：此处编辑配置更新订阅后会还原，如需要自定义配置请使用
+                {t('profiles.remoteEditWarningPrefix')}
                 <Button
                   size="sm"
                   color="primary"
@@ -99,9 +101,9 @@ const EditFileModal: React.FC<Props> = (props) => {
                     navigate('/override')
                   }}
                 >
-                  覆写
+                  {t('profiles.overrides')}
                 </Button>
-                功能
+                {t('profiles.remoteEditWarningSuffix')}
               </small>
             )}
           </div>
@@ -118,15 +120,15 @@ const EditFileModal: React.FC<Props> = (props) => {
         <ModalFooter className="pt-0 flex justify-between">
           <div className="flex items-center space-x-2">
             <Switch size="sm" isSelected={isDiff} onValueChange={setIsDiff}>
-              显示修改
+              {t('override.showChanges')}
             </Switch>
             <Switch size="sm" isSelected={sideBySide} onValueChange={setSideBySide}>
-              侧边显示
+              {t('override.sideBySide')}
             </Switch>
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="light" onPress={handleClose}>
-              取消
+              {t('common.cancel')}
             </Button>
             <Button
               size="sm"
@@ -138,14 +140,14 @@ const EditFileModal: React.FC<Props> = (props) => {
                 try {
                   await setProfileStr(id, currData)
                   onClose()
-                  restartCoreInBackground('应用订阅配置失败')
+                  restartCoreInBackground(t('profiles.applyProfileFailed'))
                 } catch (e) {
-                  notifyError(e, { title: '保存订阅失败' })
+                  notifyError(e, { title: t('profiles.saveProfileFailed') })
                   setSaving(false)
                 }
               }}
             >
-              保存
+              {t('common.save')}
             </Button>
           </div>
         </ModalFooter>

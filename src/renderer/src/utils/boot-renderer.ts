@@ -71,6 +71,9 @@ export function traceBootStep(entryName: string, step: string, detail?: unknown)
 function renderFatalScreen(entryName: string, error: unknown): void {
   const { message, stack } = normalizeError(error)
   const root = document.getElementById('root')
+  const loadFailedTitle = navigator.language.toLowerCase().startsWith('en')
+    ? `${entryName} entry failed to load`
+    : `${entryName} 入口加载失败`
 
   if (!root) {
     console.error(`[boot:${entryName}] root container not found`, error)
@@ -81,7 +84,7 @@ function renderFatalScreen(entryName: string, error: unknown): void {
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#0f172a;color:#e2e8f0;font-family:'JetBrains Mono','Consolas',monospace;">
       <div style="width:min(960px,100%);background:rgba(15,23,42,0.92);border:1px solid rgba(148,163,184,0.28);border-radius:20px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,0.35);">
         <div style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#fda4af;margin-bottom:12px;">Renderer Boot Failed</div>
-        <div style="font-size:24px;font-weight:700;color:#f8fafc;margin-bottom:12px;">${entryName} 入口加载失败</div>
+        <div style="font-size:24px;font-weight:700;color:#f8fafc;margin-bottom:12px;">${loadFailedTitle}</div>
         <div style="font-size:14px;line-height:1.6;color:#cbd5e1;margin-bottom:16px;">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
         ${
           stack

@@ -7,8 +7,10 @@ import { restartCore } from '@renderer/utils/mihomo-ipc'
 import EditableList from '../base/base-list-editor'
 import { platform } from '@renderer/utils/init'
 import { secondaryInputClassNames } from '../settings/advanced-settings'
+import { useI18n } from '@renderer/i18n'
 
 const EnvSetting: React.FC = () => {
+  const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     disableLoopbackDetector,
@@ -30,8 +32,8 @@ const EnvSetting: React.FC = () => {
   const [safePathsInput, setSafePathsInput] = useState(safePaths)
 
   return (
-    <SettingCard title="环境变量" collapsible>
-          <SettingItem title="禁用系统 CA" divider>
+    <SettingCard title={t('mihomo.env')} collapsible>
+          <SettingItem title={t('mihomo.disableSystemCA')} divider>
         <Switch
           size="sm"
           isSelected={disableSystemCA}
@@ -40,7 +42,7 @@ const EnvSetting: React.FC = () => {
           }}
         />
       </SettingItem>
-      <SettingItem title="禁用内置 CA" divider>
+      <SettingItem title={t('mihomo.disableEmbedCA')} divider>
         <Switch
           size="sm"
           isSelected={disableEmbedCA}
@@ -49,7 +51,7 @@ const EnvSetting: React.FC = () => {
           }}
         />
       </SettingItem>
-      <SettingItem title="禁用回环检测" divider>
+      <SettingItem title={t('mihomo.disableLoopbackDetector')} divider>
         <Switch
           size="sm"
           isSelected={disableLoopbackDetector}
@@ -59,7 +61,7 @@ const EnvSetting: React.FC = () => {
         />
       </SettingItem>
       {platform == 'linux' && (
-        <SettingItem title="禁用 nftables" divider>
+        <SettingItem title={t('mihomo.disableNftables')} divider>
           <Switch
             size="sm"
             isSelected={disableNftables}
@@ -69,7 +71,7 @@ const EnvSetting: React.FC = () => {
           />
         </SettingItem>
       )}
-      <SettingItem title="可信路径">
+      <SettingItem title={t('mihomo.safePaths')}>
         <Switch
           size="sm"
           isSelected={safePathsInput.length > 0}
@@ -84,7 +86,7 @@ const EnvSetting: React.FC = () => {
       {safePathsInput.length > 0 && (
         <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
           <div className="ml-2 text-sm">
-            <SettingItem title="可信路径列表">
+            <SettingItem title={t('mihomo.safePathList')}>
               {safePathsInput.join('') != safePaths.join('') && (
                 <Button
                   size="sm"
@@ -93,7 +95,7 @@ const EnvSetting: React.FC = () => {
                     handleConfigChangeWithRestart('safePaths', safePathsInput)
                   }}
                 >
-                  确认
+                  {t('common.confirm')}
                 </Button>
               )}
             </SettingItem>

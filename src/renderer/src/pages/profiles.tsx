@@ -54,6 +54,7 @@ import {
   inferOverrideExt,
   OVERRIDE_FILE_EXTENSIONS
 } from '@renderer/utils/override-format'
+import { useI18n } from '@renderer/i18n'
 
 const emptyProfileItems: ProfileItem[] = []
 const emptyOverrideItems: OverrideItem[] = []
@@ -88,6 +89,7 @@ function getFileName(filePath: string): string | undefined {
 }
 
 const ProfilesPage: React.FC = () => {
+  const { t } = useI18n()
   const {
     profileConfig,
     setProfileConfig,
@@ -189,7 +191,7 @@ const ProfilesPage: React.FC = () => {
       await mihomoUpdateProxyProviders(name)
       mutateProviders()
     } catch (e) {
-      notifyError(`${name} 更新失败\n${e}`)
+      notifyError(t('profiles.providerUpdateFailed', { name, error: String(e) }))
     } finally {
       setProviderUpdating((prev) => {
         const next = [...prev]
@@ -241,7 +243,7 @@ const ProfilesPage: React.FC = () => {
     [searchParams, setSearchParams]
   )
 
-  const scheduleCoreRestart = useMemo(() => createQueuedCoreRestartRunner('应用覆写失败'), [])
+  const scheduleCoreRestart = useMemo(() => createQueuedCoreRestartRunner(t('profiles.applyOverrideFailed')), [t])
 
   const handleImport = async (importUrl: string): Promise<void> => {
     setImporting(true)
@@ -263,11 +265,11 @@ const ProfilesPage: React.FC = () => {
       })
       setOverrideUrl('')
     } catch (e) {
-      notifyError(e, { title: '导入远程覆写失败' })
+      notifyError(e, { title: t('profiles.importOverrideFailed') })
     } finally {
       setOverrideImporting(false)
     }
-  }, [addOverrideItem, overrideUrl])
+  }, [addOverrideItem, overrideUrl, t])
 
   const handleProfileCreateAction = useCallback(
     async (key: Key): Promise<void> => {
@@ -286,7 +288,7 @@ const ProfilesPage: React.FC = () => {
         }
         case 'new':
           await addProfileItem({
-            name: '新配置',
+            name: t('profiles.newProfileName'),
             type: 'local',
             file: 'proxies: []\nproxy-groups: []\nrules: []'
           })
@@ -304,7 +306,7 @@ const ProfilesPage: React.FC = () => {
           break
       }
     },
-    [addProfileItem]
+    [addProfileItem, t]
   )
 
   const handleOverrideCreateAction = useCallback(
@@ -324,13 +326,13 @@ const ProfilesPage: React.FC = () => {
               ext: inferOverrideExt(fileName)
             })
           } catch (e) {
-            notifyError(e, { title: '打开本地覆写失败' })
+            notifyError(e, { title: t('profiles.openLocalOverrideFailed') })
           }
           break
         }
         case 'new-yaml':
           await addOverrideItem({
-            name: '新建 YAML',
+            name: t('profiles.newYamlOverride'),
             type: 'local',
             file: '# https://mihomo.party/docs/guide/override/yaml',
             ext: 'yaml'
@@ -338,7 +340,7 @@ const ProfilesPage: React.FC = () => {
           break
         case 'new-js':
           await addOverrideItem({
-            name: '新建 JavaScript',
+            name: t('profiles.newJsOverride'),
             type: 'local',
             file: DEFAULT_JAVASCRIPT_OVERRIDE,
             ext: 'js'
@@ -357,7 +359,7 @@ const ProfilesPage: React.FC = () => {
           break
       }
     },
-    [addOverrideItem]
+    [addOverrideItem, t]
   )
 
   const onToggleOverride = useCallback(
@@ -539,10 +541,12 @@ const ProfilesPage: React.FC = () => {
                 ext: file.name.endsWith('.js') ? 'js' : 'yaml'
               })
             } catch (e) {
-              notifyError(`文件导入失败: ${e}`, { title: '导入失败' })
+              notifyError(t('profiles.fileImportFailed', { error: String(e) }), {
+                title: t('profiles.importFailed')
+              })
             }
           } else {
-            notifyError('不支持的文件类型', { title: '导入失败' })
+            notifyError(t('profiles.unsupportedFileType'), { title: t('profiles.importFailed') })
           }
           return
         }
@@ -560,10 +564,10 @@ const ProfilesPage: React.FC = () => {
             const content = await readTextFile(path)
             await addProfileItem({ name: file.name, type: 'local', file: content })
           } catch (e) {
-            notifyError(`文件导入失败${e}`)
+            notifyError(t('profiles.fileImportFailed', { error: String(e) }))
           }
         } else {
-          notifyError('不支持的文件类型')
+          notifyError(t('profiles.unsupportedFileType'))
         }
       } finally {
         isProcessingDrop.current = false
@@ -580,7 +584,7 @@ const ProfilesPage: React.FC = () => {
       pageElement.removeEventListener('dragleave', handleDragLeave)
       pageElement.removeEventListener('drop', handleDrop)
     }
-  }, [activeTab, addOverrideItem, addProfileItem])
+  }, [activeTab, addOverrideItem, addProfileItem, t])
 
   useEffect(() => {
     setSortedItems(itemsArray)
@@ -591,7 +595,11 @@ const ProfilesPage: React.FC = () => {
   }, [overrideItemsArray])
 
   const pageTitle =
-    activeTab === 'overrides' ? '覆写管理' : activeTab === 'providers' ? '代理集合' : '订阅管理'
+    activeTab === 'overrides'
+      ? t('page.profiles.overridesTitle')
+      : activeTab === 'providers'
+        ? t('page.profiles.providersTitle')
+        : t('page.profiles.title')
 
   const pageHeader =
     activeTab === 'overrides' ? (
@@ -599,7 +607,7 @@ const ProfilesPage: React.FC = () => {
         <Button
           size="sm"
           variant="light"
-          title="使用文档"
+          title={t('page.profiles.docs')}
           isIconOnly
           className="app-nodrag"
           onPress={() => {
@@ -610,7 +618,7 @@ const ProfilesPage: React.FC = () => {
         </Button>
         <Button
           className="app-nodrag"
-          title="常用覆写仓库"
+          title={t('page.profiles.overrideHub')}
           isIconOnly
           variant="light"
           size="sm"
@@ -624,7 +632,7 @@ const ProfilesPage: React.FC = () => {
     ) : activeTab === 'profiles' ? (
       <Button
         size="sm"
-        title="订阅设置"
+        title={t('page.profiles.settings')}
         className="app-nodrag"
         variant="light"
         isIconOnly
@@ -686,9 +694,9 @@ const ProfilesPage: React.FC = () => {
             onSelectionChange={(key) => handleTabChange(String(key))}
             classNames={CARD_STYLES.GLASS_TABS}
           >
-            <Tab key="profiles" title="订阅" />
-            <Tab key="overrides" title="覆写" />
-            <Tab key="providers" title="代理集合" />
+            <Tab key="profiles" title={t('page.profiles.profilesTab')} />
+            <Tab key="overrides" title={t('page.profiles.overridesTab')} />
+            <Tab key="providers" title={t('page.profiles.providersTab')} />
           </Tabs>
 
           {activeTab === 'profiles' && (
@@ -720,7 +728,7 @@ const ProfilesPage: React.FC = () => {
                       checked={useProxy}
                       onValueChange={setUseProxy}
                     >
-                      代理
+                      {t('page.profiles.useProxy')}
                     </Checkbox>
                   </>
                 }
@@ -734,7 +742,7 @@ const ProfilesPage: React.FC = () => {
                 isLoading={importing}
                 onPress={() => handleImport(url)}
               >
-                导入
+                {t('common.import')}
               </Button>
               <Dropdown>
                 <DropdownTrigger>
@@ -743,9 +751,9 @@ const ProfilesPage: React.FC = () => {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu onAction={(key) => void handleProfileCreateAction(key)}>
-                  <DropdownItem key="open">打开本地配置</DropdownItem>
-                  <DropdownItem key="new">新建本地配置</DropdownItem>
-                  <DropdownItem key="import">导入远程配置</DropdownItem>
+                  <DropdownItem key="open">{t('page.profiles.openLocal')}</DropdownItem>
+                  <DropdownItem key="new">{t('page.profiles.newLocal')}</DropdownItem>
+                  <DropdownItem key="import">{t('page.profiles.importRemote')}</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </>
@@ -784,7 +792,7 @@ const ProfilesPage: React.FC = () => {
                 isLoading={overrideImporting}
                 onPress={() => void handleOverrideImport()}
               >
-                导入
+                {t('common.import')}
               </Button>
               <Dropdown>
                 <DropdownTrigger>
@@ -793,10 +801,10 @@ const ProfilesPage: React.FC = () => {
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu onAction={(key) => void handleOverrideCreateAction(key)}>
-                  <DropdownItem key="open">打开本地覆写</DropdownItem>
-                  <DropdownItem key="import">导入远程覆写</DropdownItem>
-                  <DropdownItem key="new-yaml">新建 YAML</DropdownItem>
-                  <DropdownItem key="new-js">新建 JavaScript</DropdownItem>
+                  <DropdownItem key="open">{t('profiles.openLocalOverride')}</DropdownItem>
+                  <DropdownItem key="import">{t('profiles.importRemoteOverride')}</DropdownItem>
+                  <DropdownItem key="new-yaml">{t('profiles.newYamlOverride')}</DropdownItem>
+                  <DropdownItem key="new-js">{t('profiles.newJsOverride')}</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </>
@@ -808,7 +816,7 @@ const ProfilesPage: React.FC = () => {
               isIconOnly
               color="primary"
               isLoading={updating}
-              title="更新全部订阅"
+              title={t('page.profiles.updateAllProfiles')}
               onPress={async () => {
                 setUpdating(true)
                 for (const item of itemsArray) {
@@ -832,7 +840,7 @@ const ProfilesPage: React.FC = () => {
               size="sm"
               isIconOnly
               color="primary"
-              title="更新全部代理集合"
+              title={t('page.profiles.updateAllProviders')}
               onPress={updateAllProviders}
             >
               <IoMdRefresh className="text-lg" />

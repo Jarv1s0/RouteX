@@ -8,12 +8,14 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 interface Props {
   script: string
   onCancel: () => void
   onConfirm: (script: string) => void
 }
 const PacEditorModal: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const { script, onCancel, onConfirm } = props
   const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
     useAppConfig()
@@ -41,7 +43,7 @@ const PacEditorModal: React.FC<Props> = (props) => {
         })}
       >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span>编辑 PAC 脚本</span>
+          <span>{t('sysproxy.editPac')}</span>
           <SecondaryModalCloseButton onPress={onCancel} />
         </ModalHeader>
         <ModalBody className="h-full">
@@ -53,10 +55,10 @@ const PacEditorModal: React.FC<Props> = (props) => {
         </ModalBody>
         <ModalFooter className="pt-0">
           <Button size="sm" variant="light" onPress={onCancel}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button size="sm" color="primary" onPress={() => onConfirm(currData)}>
-            确认
+            {t('common.confirm')}
           </Button>
         </ModalFooter>
       </ModalContent>

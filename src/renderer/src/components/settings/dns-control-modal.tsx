@@ -18,6 +18,7 @@ import { patchControledMihomoConfig } from '@renderer/utils/mihomo-ipc'
 import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import { toast } from 'sonner'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   isOpen: boolean
@@ -28,6 +29,7 @@ const CARD_CLASS =
   'group flex items-center justify-between gap-4 rounded-xl border border-default-100 bg-content1/50 p-3 shadow-sm transition-all duration-300 hover:border-default-200 hover:bg-content1 hover:shadow-md'
 
 const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
+  const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     collapseSidebar = false,
@@ -41,7 +43,7 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     try {
       await patchAppConfig({ controlDns: value })
       await patchControledMihomoConfig({})
-      restartCoreInBackground('应用 DNS 接管设置失败')
+      restartCoreInBackground(t('settings.dnsControl.applyFailed'))
     } catch (error) {
       toast.error(String(error))
     }
@@ -69,10 +71,10 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
           <>
             <ModalHeader className="flex flex-col gap-1 px-4 py-2">
               <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-xl font-bold text-transparent">
-                接管 DNS 设置
+                {t('settings.dnsControl.title')}
               </span>
               <span className="text-small font-normal text-default-400">
-                在这里直接管理 DNS 接管开关和完整的 DNS 解析配置
+                {t('settings.dnsControl.description')}
               </span>
             </ModalHeader>
 
@@ -81,10 +83,10 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                 <div className={CARD_CLASS}>
                   <div className="flex flex-col gap-0.5 overflow-hidden">
                     <span className="whitespace-nowrap font-medium text-foreground-600 transition-colors group-hover:text-foreground-900">
-                      接管 DNS 配置
+                      {t('settings.dnsControl.control')}
                     </span>
                     <span className="whitespace-nowrap text-xs text-default-400 transition-colors group-hover:text-default-500">
-                      开启后应用会接管配置文件中的 dns 配置段
+                      {t('settings.dnsControl.controlDescription')}
                     </span>
                   </div>
                   <Switch
@@ -99,10 +101,10 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                   <div className={CARD_CLASS}>
                     <div className="flex flex-col gap-0.5 overflow-hidden">
                       <span className="whitespace-nowrap font-medium text-foreground-600 transition-colors group-hover:text-foreground-900">
-                        系统 DNS 处理方式
+                        {t('settings.dnsControl.systemDnsMode')}
                       </span>
                       <span className="whitespace-nowrap text-xs text-default-400 transition-colors group-hover:text-default-500">
-                        TUN 启用时系统 DNS 的自动设置模式
+                        {t('settings.dnsControl.systemDnsModeDescription')}
                       </span>
                     </div>
                     <Select
@@ -124,9 +126,9 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                         }
                       }}
                     >
-                      <SelectItem key="none">不自动设置</SelectItem>
-                      <SelectItem key="exec">执行命令</SelectItem>
-                      <SelectItem key="service">服务模式</SelectItem>
+                      <SelectItem key="none">{t('settings.autoDns.none')}</SelectItem>
+                      <SelectItem key="exec">{t('settings.autoDns.exec')}</SelectItem>
+                      <SelectItem key="service">{t('settings.autoDns.service')}</SelectItem>
                     </Select>
                   </div>
                 )}
@@ -137,7 +139,7 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
 
             <ModalFooter className="px-4 py-2">
               <Button variant="light" className="px-6 font-medium" onPress={onClose}>
-                关闭
+                {t('common.close')}
               </Button>
               <Button
                 color="primary"
@@ -151,7 +153,7 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                   onClose()
                 }}
               >
-                {dnsEditor.changed ? '保存' : '完成'}
+                {dnsEditor.changed ? t('common.save') : t('common.done')}
               </Button>
             </ModalFooter>
           </>

@@ -7,6 +7,7 @@ import { getAppUptime, getNetworkHealthStats, startNetworkHealthMonitor, stopNet
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { retainTauriMemoryBridge } from '@renderer/utils/mihomo-ipc'
+import { useI18n } from '@renderer/i18n'
 
 const LATENCY_VALUE_CLASS = 'font-mono tracking-tight'
 
@@ -32,6 +33,7 @@ const getLatencyValueClass = (
 }
 
 const StatusGrid: React.FC = () => {
+  const { t } = useI18n()
   const [uptime, setUptime] = useState<string>('00:00:00')
   const [dnsLatency, setDnsLatency] = useState<number>(-1)
   const [networkLatency, setNetworkLatency] = useState<number>(-1)
@@ -73,7 +75,7 @@ const StatusGrid: React.FC = () => {
         const minutes = Math.floor((diff % 3600) / 60)
         const secs = diff % 60
         let timeStr = ''
-        if (days > 0) timeStr += `${days}天 `
+        if (days > 0) timeStr += `${days}${t('stats.days')} `
         timeStr += `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
         setUptime(timeStr)
       }
@@ -111,39 +113,39 @@ const StatusGrid: React.FC = () => {
       offNetworkHealth()
       void stopNetworkHealthMonitor()
     }
-  }, [])
+  }, [t])
 
   const stats = [
     {
-      label: '运行时间',
+      label: t('stats.uptime'),
       value: uptime || '00:00:00',
       icon: IoTime,
       iconClass: 'bg-cyan-500/10 text-cyan-500',
       valueClass: 'text-cyan-500 font-mono tracking-tight'
     },
     {
-      label: '连接数',
+      label: t('stats.connections'),
       value: connectionCount ?? 0,
       icon: IoSwapHorizontal,
       iconClass: 'bg-purple-500/10 text-purple-500',
       valueClass: 'text-purple-500 font-mono tracking-tight'
     },
     {
-      label: '内存占用',
+      label: t('stats.memory'),
       value: memoryUsage || '0 B',
       icon: IoServer,
       iconClass: 'bg-emerald-500/10 text-emerald-500',
       valueClass: 'text-emerald-500 font-mono tracking-tight'
     },
     {
-      label: '网络延迟',
+      label: t('stats.networkLatency'),
       value: formatLatency(networkLatency),
       icon: IoGlobe,
       iconClass: 'bg-amber-500/10 text-amber-500',
       valueClass: getLatencyValueClass(networkLatency, { good: 200, fair: 500 })
     },
     {
-      label: 'DNS 延迟',
+      label: t('stats.dnsLatency'),
       value: formatLatency(dnsLatency),
       icon: IoTimer,
       iconClass: 'bg-rose-500/10 text-rose-500',

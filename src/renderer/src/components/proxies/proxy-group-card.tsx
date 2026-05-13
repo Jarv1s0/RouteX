@@ -4,6 +4,7 @@ import { getImageDataURL } from '@renderer/utils/resource-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useEffect, memo } from 'react'
 import { addFlag } from '@renderer/utils/flags'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   group: ControllerMixedGroup
@@ -28,6 +29,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
   mutate
 }) => {
   const { appConfig } = useAppConfig()
+  const { t } = useI18n()
   const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
 
   const delayColor =
@@ -134,7 +136,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                 {/* Delay Value */}
                 <div className="flex items-center justify-center min-w-[54px] px-2">
                   <span className={`text-sm font-bold font-mono ${delayColor}`}>
-                    {currentDelay === -1 ? '--' : currentDelay === 0 ? '超时' : `${currentDelay}`}
+                    {currentDelay === -1 ? '--' : currentDelay === 0 ? t('proxies.timeout') : `${currentDelay}`}
                   </span>
                   {currentDelay !== -1 && currentDelay !== 0 && (
                     <span className="text-[10px] font-medium text-foreground-400 ml-[1px]">ms</span>

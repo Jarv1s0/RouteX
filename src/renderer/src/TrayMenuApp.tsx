@@ -24,19 +24,15 @@ import {
   triggerMainWindow
 } from './utils/window-ipc'
 import { checkElevateTask } from './utils/service-ipc'
+import { useI18n } from './i18n'
 
 interface TrafficData {
   up: number
   down: number
 }
 
-const MODE_OPTIONS = [
-  { key: 'rule', label: '规则' },
-  { key: 'global', label: '全局' },
-  { key: 'direct', label: '直连' }
-] as const
-
 const TrayMenuApp: React.FC = () => {
+  const { t } = useI18n()
   const { groups, mutate } = useGroups()
   const { appConfig, patchAppConfig } = useAppConfig()
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -54,6 +50,15 @@ const TrayMenuApp: React.FC = () => {
 
   const sysProxyEnabled = sysProxy?.enable ?? false
   const tunEnabled = tun?.enable ?? false
+  const modeOptions = useMemo(
+    () =>
+      [
+        { key: 'rule', label: t('outbound.rule') },
+        { key: 'global', label: t('outbound.global') },
+        { key: 'direct', label: t('outbound.direct') }
+      ] as const,
+    [t]
+  )
 
   useEffect(() => {
     return subscribeDesktopTraffic((info) => {
@@ -116,7 +121,7 @@ const TrayMenuApp: React.FC = () => {
       if (enable && platform === 'win32' && __ROUTEX_HOST__ === 'tauri') {
         const hasElevateTask = await checkElevateTask()
         if (!hasElevateTask) {
-          throw new Error('请先到内核设置里注册提权任务，再启用虚拟网卡')
+          throw new Error(t('tray.enableTunFirst'))
         }
       }
 
@@ -228,7 +233,7 @@ const TrayMenuApp: React.FC = () => {
           <div className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_16px_rgba(14,165,233,0.65)]" />
           <div className="flex flex-col leading-none">
             <span className="text-[13px] font-semibold tracking-[0.14em] text-default-500 uppercase">RouteX</span>
-            <span className="mt-1 text-[15px] font-semibold text-foreground">快速控制台</span>
+            <span className="mt-1 text-[15px] font-semibold text-foreground">{t('tray.title')}</span>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -261,7 +266,7 @@ const TrayMenuApp: React.FC = () => {
           isLoading={busyAction === 'main-window'}
           className="rounded-2xl bg-white/75 font-medium text-foreground shadow-sm hover:bg-white dark:bg-white/6 dark:hover:bg-white/10"
         >
-          切换主窗口
+          {t('tray.showMainWindow')}
         </Button>
         <Button
           size="sm"
@@ -270,10 +275,10 @@ const TrayMenuApp: React.FC = () => {
           isLoading={busyAction === 'floating-window'}
           className={`rounded-2xl font-medium shadow-sm ${showFloating ? '' : 'bg-white/75 text-foreground hover:bg-white dark:bg-white/6 dark:hover:bg-white/10'}`}
         >
-          {showFloating ? '关闭悬浮窗' : '显示悬浮窗'}
+          {showFloating ? t('tray.closeFloatingWindow') : t('tray.showFloatingWindow')}
         </Button>
         <div className="flex items-center justify-between rounded-2xl border border-default-200/70 bg-white/78 px-3 py-2 shadow-sm dark:border-white/8 dark:bg-white/6">
-          <span className="text-xs font-medium">系统代理</span>
+          <span className="text-xs font-medium">{t('sidebar.sysProxy')}</span>
           <Switch
             size="sm"
             isSelected={sysProxyEnabled}
@@ -282,7 +287,7 @@ const TrayMenuApp: React.FC = () => {
           />
         </div>
         <div className="flex items-center justify-between rounded-2xl border border-default-200/70 bg-white/78 px-3 py-2 shadow-sm dark:border-white/8 dark:bg-white/6">
-          <span className="text-xs font-medium">虚拟网卡</span>
+          <span className="text-xs font-medium">{t('sidebar.tun')}</span>
           <Switch
             size="sm"
             isSelected={tunEnabled}
@@ -294,7 +299,7 @@ const TrayMenuApp: React.FC = () => {
 
       <div className="border-b border-default-200/70 bg-default-50/45 px-4 py-3 dark:border-white/8 dark:bg-white/[0.025]">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-medium uppercase tracking-[0.14em] text-default-500">出站模式</span>
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-default-500">{t('tray.outboundMode')}</span>
           <Button
             size="sm"
             variant="light"
@@ -302,11 +307,11 @@ const TrayMenuApp: React.FC = () => {
             onPress={handleQuitApp}
             isLoading={busyAction === 'quit-app'}
           >
-            退出
+            {t('common.quit')}
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {MODE_OPTIONS.map((option) => {
+          {modeOptions.map((option) => {
             const isActive = mode === option.key
             return (
               <Button
@@ -340,7 +345,7 @@ const TrayMenuApp: React.FC = () => {
       <ScrollShadow className="traymenu-scroll flex-1 overflow-y-auto px-2 pb-2 pt-1">
         {!groups || groups.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-default-400">
-            暂无数据
+            {t('common.noData')}
           </div>
         ) : (
           <Accordion

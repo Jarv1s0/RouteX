@@ -5,6 +5,7 @@ import EditableList from '../base/base-list-editor'
 import { Switch, Tabs, Tab } from '@heroui/react'
 import { isValidDnsServer, isValidDomainWildcard } from '@renderer/utils/validate'
 import { primaryInputClassNames } from '../settings/advanced-settings'
+import { useI18n } from '@renderer/i18n'
 
 interface AdvancedDnsSettingProps {
   respectRules: boolean
@@ -45,6 +46,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
   onHostsChange,
   onErrorChange
 }) => {
+  const { t } = useI18n()
   const [directNameserverError, setDirectNameserverError] = useState<string | null>(null)
   const [proxyNameserverError, setProxyNameserverError] = useState<string | null>(null)
   const [nameserverPolicyError, setNameserverPolicyError] = useState<string | null>(null)
@@ -64,8 +66,8 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
   ])
 
   return (
-    <SettingCard title="更多设置">
-      <SettingItem title="FakeIP 过滤列表模式" divider>
+    <SettingCard title={t('dns.more')}>
+      <SettingItem title={t('dns.fakeIpFilterMode')} divider>
         <Tabs
           size="sm"
           color="primary"
@@ -74,12 +76,12 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
           selectedKey={fakeIpFilterMode}
           onSelectionChange={(key) => onFakeIpFilterModeChange(key as FilterMode)}
         >
-          <Tab key="blacklist" title="黑名单" />
-          <Tab key="whitelist" title="白名单" />
-          <Tab key="rule" title="规则模式" />
+          <Tab key="blacklist" title={t('dns.blacklist')} />
+          <Tab key="whitelist" title={t('dns.whitelist')} />
+          <Tab key="rule" title={t('dns.ruleMode')} />
         </Tabs>
       </SettingItem>
-      <SettingItem title="连接遵守规则" divider>
+      <SettingItem title={t('dns.respectRules')} divider>
         <Switch
           size="sm"
           isSelected={respectRules}
@@ -88,7 +90,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
         />
       </SettingItem>
       <EditableList
-        title="直连解析服务器"
+        title={t('dns.directNameserver')}
         items={directNameserver}
         validate={(part) => isValidDnsServer(part as string)}
         onChange={(list) => {
@@ -96,14 +98,14 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
           onDirectNameserverChange(arr)
           const firstInvalid = arr.find((f) => !isValidDnsServer(f).ok)
           setDirectNameserverError(
-            firstInvalid ? (isValidDnsServer(firstInvalid).error ?? '格式错误') : null
+            firstInvalid ? (isValidDnsServer(firstInvalid).error ?? t('common.formatError')) : null
           )
         }}
-        placeholder="例：tls://dns.alidns.com"
+        placeholder={t('dns.placeholder.nameserver')}
         inputClassNames={primaryInputClassNames}
       />
       <EditableList
-        title="代理节点解析服务器"
+        title={t('dns.proxyServerNameserver')}
         items={proxyServerNameserver}
         validate={(part) => isValidDnsServer(part as string)}
         onChange={(list) => {
@@ -111,15 +113,15 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
           onProxyNameserverChange(arr)
           const firstInvalid = arr.find((f) => !isValidDnsServer(f).ok)
           setProxyNameserverError(
-            firstInvalid ? (isValidDnsServer(firstInvalid).error ?? '格式错误') : null
+            firstInvalid ? (isValidDnsServer(firstInvalid).error ?? t('common.formatError')) : null
           )
         }}
-        placeholder="例：tls://dns.alidns.com"
+        placeholder={t('dns.placeholder.nameserver')}
         inputClassNames={primaryInputClassNames}
       />
 
       <EditableList
-        title="域名解析策略"
+        title={t('dns.nameserverPolicy')}
         items={nameserverPolicy}
         validatePart1={(part1) => isValidDomainWildcard(part1)}
         validatePart2={(part2) => {
@@ -141,7 +143,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
             const rec = newValue as Record<string, string | string[]>
             for (const domain of Object.keys(rec)) {
               if (!isValidDomainWildcard(domain).ok) {
-                setNameserverPolicyError(isValidDomainWildcard(domain).error ?? '域名格式错误')
+                setNameserverPolicyError(isValidDomainWildcard(domain).error ?? t('common.formatError'))
                 return
               }
             }
@@ -149,7 +151,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
               if (Array.isArray(v)) {
                 for (const vv of v) {
                   if (!isValidDnsServer(vv).ok) {
-                    setNameserverPolicyError(isValidDnsServer(vv).error ?? '格式错误')
+                    setNameserverPolicyError(isValidDnsServer(vv).error ?? t('common.formatError'))
                     return
                   }
                 }
@@ -160,7 +162,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
                   .filter(Boolean)
                 for (const p of parts) {
                   if (!isValidDnsServer(p).ok) {
-                    setNameserverPolicyError(isValidDnsServer(p).error ?? '格式错误')
+                    setNameserverPolicyError(isValidDnsServer(p).error ?? t('common.formatError'))
                     return
                   }
                 }
@@ -168,18 +170,18 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
             }
             setNameserverPolicyError(null)
           } catch {
-            setNameserverPolicyError('策略格式错误')
+            setNameserverPolicyError(t('common.formatError'))
           }
         }}
-        placeholder="域名"
-        part2Placeholder="DNS 服务器，用逗号分隔"
+        placeholder={t('dns.placeholder.domain')}
+        part2Placeholder={t('dns.placeholder.dnsServers')}
         objectMode="record"
         inputClassNames={primaryInputClassNames}
       />
-      <SettingItem title="使用系统 Hosts" divider>
+      <SettingItem title={t('dns.useSystemHosts')} divider>
         <Switch size="sm" isSelected={useSystemHosts} onValueChange={onUseSystemHostsChange} />
       </SettingItem>
-      <SettingItem title="自定义 Hosts">
+      <SettingItem title={t('dns.customHosts')}>
         <Switch size="sm" isSelected={useHosts} onValueChange={onUseHostsChange} />
       </SettingItem>
       {useHosts && (
@@ -196,14 +198,14 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
             onHostsChange(hostArr)
             for (const domain of Object.keys(rec as Record<string, string | string[]>)) {
               if (!isValidDomainWildcard(domain).ok) {
-                setHostsError(isValidDomainWildcard(domain).error ?? '域名格式错误')
+                setHostsError(isValidDomainWildcard(domain).error ?? t('common.formatError'))
                 return
               }
             }
             setHostsError(null)
           }}
-          placeholder="域名"
-          part2Placeholder="域名或 IP，用逗号分隔多个值"
+          placeholder={t('dns.placeholder.domain')}
+          part2Placeholder={t('dns.placeholder.hostValues')}
           objectMode="record"
           divider={false}
           inputClassNames={primaryInputClassNames}

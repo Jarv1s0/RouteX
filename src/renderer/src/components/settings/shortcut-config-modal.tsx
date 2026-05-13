@@ -17,6 +17,7 @@ import {
   createSecondaryModalClassNames,
   getMainPaneModalContentStyle
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   isOpen: boolean
@@ -61,6 +62,7 @@ const ShortcutInput: React.FC<{
   action: string
   patchAppConfig: (value: Partial<AppConfig>) => Promise<void>
 }> = (props) => {
+  const { t } = useI18n()
   const { value, action, patchAppConfig } = props
   const [inputValue, setInputValue] = useState(value)
   const [isFocused, setIsFocused] = useState(false)
@@ -106,7 +108,7 @@ const ShortcutInput: React.FC<{
   return (
     <div className="relative w-full group">
       <Input
-        placeholder="未设置"
+        placeholder={t('settings.shortcut.unset')}
         onKeyDown={(e) => parseShortcut(e, setInputValue)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
@@ -155,6 +157,7 @@ const ShortcutInput: React.FC<{
 }
 
 const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
+  const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     collapseSidebar = false,
@@ -171,23 +174,23 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   } = appConfig || {}
 
   const items = [
-    { title: '打开/关闭窗口', action: 'showWindowShortcut', value: showWindowShortcut },
+    { title: t('settings.shortcut.toggleWindow'), action: 'showWindowShortcut', value: showWindowShortcut },
     {
-      title: '打开/关闭悬浮窗',
+      title: t('settings.shortcut.toggleFloating'),
       action: 'showFloatingWindowShortcut',
       value: showFloatingWindowShortcut
     },
     {
-      title: '打开/关闭系统代理',
+      title: t('settings.shortcut.toggleSysProxy'),
       action: 'triggerSysProxyShortcut',
       value: triggerSysProxyShortcut
     },
-    { title: '打开/关闭虚拟网卡', action: 'triggerTunShortcut', value: triggerTunShortcut },
-    { title: '切换规则模式', action: 'ruleModeShortcut', value: ruleModeShortcut },
-    { title: '切换全局模式', action: 'globalModeShortcut', value: globalModeShortcut },
-    { title: '切换直连模式', action: 'directModeShortcut', value: directModeShortcut },
-    { title: '保留内核退出', action: 'quitWithoutCoreShortcut', value: quitWithoutCoreShortcut },
-    { title: '重启应用', action: 'restartAppShortcut', value: restartAppShortcut }
+    { title: t('settings.shortcut.toggleTun'), action: 'triggerTunShortcut', value: triggerTunShortcut },
+    { title: t('settings.shortcut.ruleMode'), action: 'ruleModeShortcut', value: ruleModeShortcut },
+    { title: t('settings.shortcut.globalMode'), action: 'globalModeShortcut', value: globalModeShortcut },
+    { title: t('settings.shortcut.directMode'), action: 'directModeShortcut', value: directModeShortcut },
+    { title: t('settings.shortcut.quitWithoutCore'), action: 'quitWithoutCoreShortcut', value: quitWithoutCoreShortcut },
+    { title: t('settings.shortcut.restartApp'), action: 'restartAppShortcut', value: restartAppShortcut }
   ]
 
   return (
@@ -205,10 +208,10 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
           <>
             <ModalHeader className="flex flex-col gap-1 py-2 px-4">
               <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                全局快捷键配置
+                {t('settings.shortcut.title')}
               </span>
               <span className="text-small text-default-400 font-normal">
-                点击输入框按下组合键即可设置，支持 Ctrl, Shift, Alt, Meta 组合
+                {t('settings.shortcut.description')}
               </span>
             </ModalHeader>
             <ModalBody className="py-2 px-4">
@@ -239,7 +242,7 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                 onPress={onClose}
                 className="font-medium px-8"
               >
-                完成
+                {t('common.done')}
               </Button>
             </ModalFooter>
           </>

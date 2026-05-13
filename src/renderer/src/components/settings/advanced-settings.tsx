@@ -8,6 +8,7 @@ import { version } from '@renderer/utils/init'
 import { ROUTEX_BUILD_VARIANT } from '../../../../shared/build'
 import { IoIosHelpCircle } from 'react-icons/io'
 import ConfirmModal from '../base/base-confirm'
+import { useI18n } from '@renderer/i18n'
 
 // 通用输入框样式，用于二级菜单中的输入框
 export const secondaryInputClassNames = {
@@ -47,6 +48,7 @@ export const selectClassNames = {
 import AppearanceConfig from './appearance-config'
 
 const AdvancedSettings: React.FC = () => {
+  const { t } = useI18n()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const displayVersion = ROUTEX_BUILD_VARIANT === 'autobuild' ? `v${version} (autobuild)` : `v${version}`
 
@@ -55,28 +57,27 @@ const AdvancedSettings: React.FC = () => {
       {confirmOpen && (
         <ConfirmModal
           onChange={setConfirmOpen}
-          title="确认删除配置？"
+          title={t('settings.advanced.confirmResetTitle')}
           description={
             <>
-              ⚠️ 删除配置，
-              <span className="text-red-500">操作不可撤销</span>
+              {t('settings.advanced.confirmResetDescription')}
             </>
           }
-          confirmText="确认删除"
-          cancelText="取消"
+          confirmText={t('settings.advanced.confirmDelete')}
+          cancelText={t('common.cancel')}
           onConfirm={resetAppConfig}
         />
       )}
       <AppearanceConfig />
       
 
-      <SettingCard title="更多设置">
+      <SettingCard title={t('settings.advanced.more')}>
         {/* WebDAV moved to GeneralConfig */}
 
         <SettingItem
-          title="重置软件"
+          title={t('settings.advanced.resetApp')}
           actions={
-            <Tooltip content="删除所有配置，将软件恢复初始状态">
+            <Tooltip content={t('settings.advanced.resetAppHelp')}>
               <Button isIconOnly size="sm" variant="light">
                 <IoIosHelpCircle className="text-lg" />
               </Button>
@@ -85,14 +86,14 @@ const AdvancedSettings: React.FC = () => {
           divider
         >
           <Button size="sm" color="danger" className="bg-danger/80" onPress={() => setConfirmOpen(true)}>
-            重置软件
+            {t('settings.advanced.resetApp')}
           </Button>
         </SettingItem>
 
         <SettingItem
-          title="保留内核退出"
+          title={t('settings.advanced.quitWithoutCore')}
           actions={
-            <Tooltip content="完全退出软件，只保留内核进程">
+            <Tooltip content={t('settings.advanced.quitWithoutCoreHelp')}>
               <Button isIconOnly size="sm" variant="light">
                 <IoIosHelpCircle className="text-lg" />
               </Button>
@@ -101,15 +102,15 @@ const AdvancedSettings: React.FC = () => {
           divider
         >
           <Button size="sm" color="danger" className="bg-danger/80" onPress={quitWithoutCore}>
-            退出
+            {t('common.quit')}
           </Button>
         </SettingItem>
-        <SettingItem title="退出应用" divider>
+        <SettingItem title={t('settings.advanced.quitApp')} divider>
           <Button size="sm" color="danger" className="bg-danger/80" onPress={quitApp}>
-            退出应用
+            {t('settings.advanced.quitApp')}
           </Button>
         </SettingItem>
-        <SettingItem title="软件版本">
+        <SettingItem title={t('settings.advanced.appVersion')}>
           <div>{displayVersion}</div>
         </SettingItem>
       </SettingCard>

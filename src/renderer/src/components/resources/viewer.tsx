@@ -11,6 +11,7 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
 type ResourceYamlEntry = {
   payload?: unknown
@@ -26,6 +27,7 @@ interface Props {
   behavior?: string
 }
 const Viewer: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const { type, path, title, format, privderType, behavior, onClose } = props
   const {
     appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
@@ -114,7 +116,7 @@ const Viewer: React.FC<Props> = (props) => {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-full gap-4">
               <Spinner size="lg" />
-              <p className="text-default-500">加载中...</p>
+              <p className="text-default-500">{t('resources.loading')}</p>
             </div>
           ) : (
             <BaseEditor
@@ -127,7 +129,7 @@ const Viewer: React.FC<Props> = (props) => {
         </ModalBody>
         <ModalFooter className="pt-0">
           <Button size="sm" variant="light" onPress={onClose}>
-            关闭
+            {t('common.close')}
           </Button>
           {type == 'File' && (
             <Button
@@ -138,7 +140,7 @@ const Viewer: React.FC<Props> = (props) => {
                 onClose()
               }}
             >
-              保存
+              {t('common.save')}
             </Button>
           )}
         </ModalFooter>

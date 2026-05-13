@@ -20,6 +20,7 @@ import { clsx } from 'clsx'
 import dayjs from 'dayjs'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   connection: ControllerConnectionDetail
@@ -29,6 +30,7 @@ interface Props {
 
 const ConnectionDetailModal: React.FC<Props> = (props) => {
   const { connection, onClose, onDisconnect } = props
+  const { t } = useI18n()
   const {
     appConfig: {
       disableAnimation = false,
@@ -77,9 +79,9 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
   const processName = connection.metadata.process || 'Unknown Process'
   const processPath = connection.metadata.processPath
   const sniffSummary = connection.metadata.sniffHost
-    ? '已嗅探'
+    ? t('connections.detail.sniffed')
     : connection.metadata.host
-      ? '域名'
+      ? t('connections.detail.domain')
       : 'IP'
 
   // 1. Duration Timer Logic
@@ -184,7 +186,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                       startContent={<IoUnlink className="text-sm" />}
                       onPress={() => onDisconnect(connection.id)}
                     >
-                      断开
+                      {t('connections.detail.disconnect')}
                     </Button>
                   )}
                 </div>
@@ -225,7 +227,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                   </div>
                 </div>
                 <div className="ml-auto">
-                  <InlineSummary label="嗅探" value={sniffSummary} tone="warning" />
+                  <InlineSummary label={t('connections.detail.sniff')} value={sniffSummary} tone="warning" />
                 </div>
               </div>
             </div>
@@ -237,7 +239,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                   <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-500">
                     <FaNetworkWired className="text-sm" />
                   </div>
-                  <span className="text-xs font-bold text-blue-500/80 uppercase tracking-wide">目标地址</span>
+                  <span className="text-xs font-bold text-blue-500/80 uppercase tracking-wide">{t('connections.detail.destination')}</span>
                 </div>
                 <span className="text-base font-bold text-foreground font-mono break-all leading-tight block pr-6">
                   {destination}
@@ -266,8 +268,8 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                {/* 源地址 — 绿色主题 */}
                <InfoCard 
                 icon={<IoPerson />} 
-                label="源地址" 
-                value={source} 
+                label={t('connections.detail.source')}
+                value={source}
                 subValue={connection.metadata.sourceGeoIP?.join(' ') || 'Local Network'}
                 theme="green"
               />
@@ -277,21 +279,21 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               <InfoCard 
                 icon={<IoShieldCheckmark />} 
-                label="规则" 
-                value={connection.rule || 'N/A'} 
+                label={t('connections.detail.rule')}
+                value={connection.rule || 'N/A'}
                 subValue={
                   connection.rulePayload
-                    ? `命中值: ${connection.rulePayload}`
+                    ? t('connections.detail.matchedValue', { value: connection.rulePayload })
                     : connection.rule
-                      ? '无规则值'
+                      ? t('connections.detail.noRulePayload')
                       : undefined
                 }
                 theme="purple"
               />
               <InfoCard 
                 icon={<IoEarth />} 
-                label="DNS 模式" 
-                value={connection.metadata.dnsMode} 
+                label={t('connections.detail.dnsMode')}
+                value={connection.metadata.dnsMode}
                 subValue={connection.metadata.sniffHost ? `Sniffed: ${connection.metadata.sniffHost}` : undefined}
                 theme="orange"
               />
@@ -303,14 +305,14 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                 <div className="p-1 rounded-md bg-secondary/15 text-secondary">
                   <IoServer className="text-sm" />
                 </div>
-                <span className="text-xs font-bold text-secondary/80 uppercase tracking-wide">入站详情</span>
+                <span className="text-xs font-bold text-secondary/80 uppercase tracking-wide">{t('connections.detail.inbound')}</span>
               </div>
               <div className="divide-y divide-default-200/40 dark:divide-white/5">
                 {[
-                  { label: '入站名称', value: connection.metadata.inboundName },
-                  { label: '入站端口', value: connection.metadata.inboundPort?.toString() },
-                  { label: '入站 IP', value: connection.metadata.inboundIP },
-                  { label: '用户 ID', value: connection.metadata.uid?.toString() },
+                  { label: t('connections.detail.inboundName'), value: connection.metadata.inboundName },
+                  { label: t('connections.detail.inboundPort'), value: connection.metadata.inboundPort?.toString() },
+                  { label: t('connections.detail.inboundIp'), value: connection.metadata.inboundIP },
+                  { label: t('connections.detail.userId'), value: connection.metadata.uid?.toString() },
                   { label: 'DSCP', value: connection.metadata.dscp?.toString() },
                 ].filter(item => item.value !== undefined && item.value !== '').map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between px-4 py-2 hover:bg-default-100/50 transition-colors">
@@ -334,7 +336,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
               <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
                  <MdTimeline className="text-lg" />
               </div>
-              <span className="font-bold text-foreground tracking-wide">连接链路</span>
+              <span className="font-bold text-foreground tracking-wide">{t('connections.detail.chain')}</span>
             </div>
             
             <ScrollShadow className="flex-1 -mr-4 pr-4 relative z-10 pb-4">
@@ -350,9 +352,9 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                 {(connection.rule || connection.rulePayload) && (
                   <TimelineNode
                     type="proxy"
-                    title={connection.rule || '规则'}
-                    subtitle={connection.rulePayload ? `命中值: ${connection.rulePayload}` : undefined}
-                    tagLabel="规则"
+                    title={connection.rule || t('connections.detail.rule')}
+                    subtitle={connection.rulePayload ? t('connections.detail.matchedValue', { value: connection.rulePayload }) : undefined}
+                    tagLabel={t('connections.detail.rule')}
                     tagClassName="text-warning bg-warning/10"
                   />
                 )}
@@ -380,7 +382,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                       key={index}
                       type={'proxy'}
                       title={name}
-                      subtitle={group?.now ? `当前: ${group.now}` : undefined}
+                      subtitle={group?.now ? t('connections.detail.current', { value: group.now }) : undefined}
                       delay={delay}
                       delayColorClass={delay === undefined ? undefined : getDelayColorClass(delay)}
                       isGroup={!!group}
@@ -396,7 +398,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                   title={connection.metadata.host || connection.metadata.destinationIP || destination}
                   subtitle={
                     connection.metadata.destinationPort
-                      ? `端口 ${connection.metadata.destinationPort}`
+                      ? t('connections.detail.port', { value: connection.metadata.destinationPort })
                       : undefined
                   }
                   isLast
@@ -516,6 +518,7 @@ interface TimelineNodeProps {
 const TimelineNode: React.FC<TimelineNodeProps> = ({ 
   type, title, subtitle, time, delay, delayColorClass, isLast, isGroup, groupType, icon, tagLabel, tagClassName
 }) => {
+  const { t } = useI18n()
   const nonGroupInsetClass = isGroup ? '' : 'px-3'
   
   return (
@@ -551,8 +554,8 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           {/* 顶部标签行 */}
         <div className={clsx("grid grid-cols-[minmax(0,1fr)_88px] items-center gap-2 mb-1", nonGroupInsetClass)}>
             <div className="flex min-w-0 items-center gap-1.5">
-            {type === 'source' && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-500/10 px-1.5 rounded">起点</span>}
-            {type === 'destination' && <span className="text-[10px] font-bold text-purple-500 uppercase bg-purple-500/10 px-1.5 rounded">终点</span>}
+            {type === 'source' && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-500/10 px-1.5 rounded">{t('connections.detail.start')}</span>}
+            {type === 'destination' && <span className="text-[10px] font-bold text-purple-500 uppercase bg-purple-500/10 px-1.5 rounded">{t('connections.detail.end')}</span>}
             {tagLabel && !isGroup && type !== 'source' && type !== 'destination' && (
               <span className={clsx("text-[10px] font-bold uppercase px-1.5 rounded", tagClassName || "text-default-400 bg-default-100")}>
                 {tagLabel}
@@ -560,11 +563,11 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             )}
             {isGroup && (
                <span className="text-[10px] font-bold text-primary uppercase bg-primary/10 px-1.5 rounded">
-                 {groupType || '策略组'}
+                 {groupType || t('connections.detail.policyGroup')}
                </span>
             )}
             {!isGroup && type === 'proxy' && (
-              <span className="text-[10px] font-bold text-default-400 uppercase bg-default-100 px-1.5 rounded">节点</span>
+              <span className="text-[10px] font-bold text-default-400 uppercase bg-default-100 px-1.5 rounded">{t('connections.detail.node')}</span>
             )}
           </div>
           

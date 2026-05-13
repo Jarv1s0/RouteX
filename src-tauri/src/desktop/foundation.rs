@@ -658,7 +658,7 @@ fn patch_requires_shell_surface_sync(patch: &Value) -> bool {
         return false;
     };
 
-    ["disableTray", "showFloatingWindow", "proxyInTray"]
+    ["disableTray", "showFloatingWindow", "proxyInTray", "language"]
         .iter()
         .any(|key| patch_map.contains_key(*key))
         || patch_map.contains_key("sysProxy")

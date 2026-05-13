@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { Select, SelectItem } from '@heroui/react'
 import { getInterfaces } from '@renderer/utils/mihomo-ipc'
+import { useI18n } from '@renderer/i18n'
 const InterfaceSelect: React.FC<{
   value: string
   exclude?: string[]
   onChange: (iface: string) => void
 }> = ({ value, onChange, exclude = [] }) => {
+  const { t } = useI18n()
   const [ifaces, setIfaces] = useState<string[]>([])
   useEffect(() => {
     const fetchInterfaces = async (): Promise<void> => {
@@ -23,7 +25,7 @@ const InterfaceSelect: React.FC<{
       disallowEmptySelection={true}
       onSelectionChange={(v) => onChange(v.currentKey as string)}
     >
-      <SelectItem key="">禁用</SelectItem>
+      <SelectItem key="">{t('common.disable')}</SelectItem>
       <>
         {ifaces.map((name) => (
           <SelectItem key={name}>{name}</SelectItem>

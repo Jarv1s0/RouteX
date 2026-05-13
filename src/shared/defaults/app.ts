@@ -16,6 +16,7 @@ export function createDefaultAppConfig(
     updateChannel: 'stable',
     silentStart: false,
     appTheme: 'system',
+    language: 'system',
     useWindowFrame: false,
     proxyInTray: true,
     useCustomTrayMenu: false,

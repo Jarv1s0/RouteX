@@ -4,6 +4,7 @@ import type { EChartsCoreOption } from 'echarts/core'
 import { IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { useI18n } from '@renderer/i18n'
 
 const TrafficEChart = React.lazy(() => import('./traffic-echart'))
 
@@ -53,6 +54,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
   hourlyData,
   dailyData
 }) => {
+  const { t } = useI18n()
   const [historyTab, setHistoryTab] = useState<HistoryTab>('realtime')
   const latestTraffic = trafficHistory.at(-1)
 
@@ -238,7 +240,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         },
         series: [
           {
-            name: '上传速度',
+            name: t('stats.uploadSpeed'),
             type: 'line',
             color: uploadColor,
             smooth: true,
@@ -269,7 +271,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
             }
           },
           {
-            name: '下载速度',
+            name: t('stats.downloadSpeed'),
             type: 'line',
             color: downloadColor,
             smooth: true,
@@ -333,7 +335,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
       },
       series: [
         {
-          name: '上传',
+          name: t('stats.upload'),
           type: 'bar',
           barMaxWidth: 18,
           itemStyle: {
@@ -343,7 +345,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
           data: chartData.map((item) => item.upload)
         },
         {
-          name: '下载',
+          name: t('stats.download'),
           type: 'bar',
           barMaxWidth: 18,
           itemStyle: {
@@ -359,7 +361,8 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
     formattedHourlyData,
     formattedMonthlyData,
     historyTab,
-    realtimeData
+    realtimeData,
+    t
   ])
 
   return (
@@ -373,10 +376,10 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
               selectedKey={historyTab}
               onSelectionChange={(key) => setHistoryTab(key as HistoryTab)}
             >
-              <Tab key="realtime" title="实时" />
-              <Tab key="hourly" title="24小时" />
-              <Tab key="daily" title="7天" />
-              <Tab key="monthly" title="30天" />
+              <Tab key="realtime" title={t('stats.realtime')} />
+              <Tab key="hourly" title={t('stats.hourly')} />
+              <Tab key="daily" title={t('stats.daily')} />
+              <Tab key="monthly" title={t('stats.monthly')} />
             </Tabs>
           </div>
           {historyTab === 'realtime' && (
@@ -393,14 +396,14 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
           )}
           {historyTab === 'daily' && (
             <div className="text-xs text-foreground-400">
-              总计: <span className="text-cyan-500">↑{calcTraffic(totalUpload7d)}</span>
+              {t('stats.total')}: <span className="text-cyan-500">↑{calcTraffic(totalUpload7d)}</span>
               {' / '}
               <span className="text-purple-500">↓{calcTraffic(totalDownload7d)}</span>
             </div>
           )}
           {historyTab === 'monthly' && (
             <div className="text-xs text-foreground-400">
-              总计: <span className="text-cyan-500">↑{calcTraffic(totalUpload)}</span>
+              {t('stats.total')}: <span className="text-cyan-500">↑{calcTraffic(totalUpload)}</span>
               {' / '}
               <span className="text-purple-500">↓{calcTraffic(totalDownload)}</span>
             </div>

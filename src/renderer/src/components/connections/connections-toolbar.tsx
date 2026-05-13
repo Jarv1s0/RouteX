@@ -28,6 +28,7 @@ import {
   IoPulseOutline,
   IoTimeOutline
 } from 'react-icons/io5'
+import { useI18n, type TranslationKey } from '@renderer/i18n'
 
 interface ConnectionsToolbarProps {
   activeCount: number
@@ -59,6 +60,20 @@ const VIEW_MODE_ICONS: Record<ConnectionViewMode, React.ReactNode> = {
 const COUNT_BADGE_CLASS =
   'text-[11px] font-medium leading-none tabular-nums text-current'
 
+const ORDER_OPTIONS: {
+  key: ConnectionOrderBy
+  labelKey: TranslationKey
+}[] = [
+  { key: 'upload', labelKey: 'connections.order.upload' },
+  { key: 'download', labelKey: 'connections.order.download' },
+  { key: 'uploadSpeed', labelKey: 'connections.order.uploadSpeed' },
+  { key: 'downloadSpeed', labelKey: 'connections.order.downloadSpeed' },
+  { key: 'time', labelKey: 'connections.order.time' },
+  { key: 'process', labelKey: 'connections.order.process' },
+  { key: 'type', labelKey: 'connections.order.type' },
+  { key: 'rule', labelKey: 'connections.order.rule' }
+]
+
 export default function ConnectionsToolbar({
   activeCount,
   closedCount,
@@ -80,6 +95,8 @@ export default function ConnectionsToolbar({
   onBulkAction,
   onClearAllHidden
 }: ConnectionsToolbarProps): React.ReactNode {
+  const { t } = useI18n()
+
   return (
     <div className="overflow-x-auto sticky top-0 z-40 w-full pb-2 px-2 pt-2 pointer-events-none">
       <div
@@ -98,7 +115,7 @@ export default function ConnectionsToolbar({
             title={
               <div className="flex items-center gap-2 px-2">
                 <IoPulseOutline className="text-lg" />
-                <span>活动中</span>
+                <span>{t('connections.active')}</span>
                 <span className={COUNT_BADGE_CLASS}>
                   {activeCount}
                 </span>
@@ -110,7 +127,7 @@ export default function ConnectionsToolbar({
             title={
               <div className="flex items-center gap-2 px-2">
                 <IoTimeOutline className="text-lg" />
-                <span>已关闭</span>
+                <span>{t('connections.closed')}</span>
                 {closedCount > 0 && (
                   <span className={COUNT_BADGE_CLASS}>
                     {closedCount}
@@ -127,15 +144,19 @@ export default function ConnectionsToolbar({
           className="min-w-[120px] flex-1"
           classNames={CARD_STYLES.GLASS_INPUT}
           value={filter}
-          placeholder="筛选过滤"
+          placeholder={t('common.filter')}
           isClearable
           onValueChange={setFilter}
         />
 
         <Select
-          classNames={CARD_STYLES.GLASS_SELECT}
+          classNames={{
+            ...CARD_STYLES.GLASS_SELECT,
+            popoverContent: `${CARD_STYLES.GLASS_SELECT.popoverContent} min-w-[160px]`,
+            listbox: 'min-w-[160px]'
+          }}
           size="sm"
-          className="w-[110px] min-w-[110px]"
+          className="w-[140px] min-w-[140px]"
           selectedKeys={new Set([connectionOrderBy])}
           disallowEmptySelection={true}
           onSelectionChange={(keys) => {
@@ -145,14 +166,11 @@ export default function ConnectionsToolbar({
             }
           }}
         >
-          <SelectItem key="upload">上传量</SelectItem>
-          <SelectItem key="download">下载量</SelectItem>
-          <SelectItem key="uploadSpeed">上传速度</SelectItem>
-          <SelectItem key="downloadSpeed">下载速度</SelectItem>
-          <SelectItem key="time">时间</SelectItem>
-          <SelectItem key="process">进程名称</SelectItem>
-          <SelectItem key="type">类型</SelectItem>
-          <SelectItem key="rule">规则</SelectItem>
+          {ORDER_OPTIONS.map((option) => (
+            <SelectItem key={option.key} textValue={t(option.labelKey)}>
+              {t(option.labelKey)}
+            </SelectItem>
+          ))}
         </Select>
 
         <Button size="sm" isIconOnly className="bg-content2" onPress={() => void onDirectionToggle()}>
@@ -170,7 +188,7 @@ export default function ConnectionsToolbar({
             </Button>
           </DropdownTrigger>
           <DropdownMenu
-            aria-label="视图切换"
+            aria-label={t('connections.viewSwitch')}
             selectionMode="single"
             selectedKeys={new Set([viewMode])}
             onSelectionChange={(keys) => {
@@ -181,10 +199,10 @@ export default function ConnectionsToolbar({
             }}
           >
             <DropdownItem key="list" startContent={<IoList />}>
-              卡片视图
+              {t('connections.cardView')}
             </DropdownItem>
             <DropdownItem key="table" startContent={<IoGrid />}>
-              表格视图
+              {t('connections.tableView')}
             </DropdownItem>
           </DropdownMenu>
         </Dropdown>
@@ -194,7 +212,7 @@ export default function ConnectionsToolbar({
           isIconOnly
           variant="flat"
           color={isPaused ? 'success' : 'warning'}
-          title={isPaused ? '继续刷新' : '暂停刷新'}
+          title={isPaused ? t('connections.resume') : t('connections.pause')}
           onPress={() => setPaused(!isPaused)}
         >
           {isPaused ? <IoPlay className="text-lg" /> : <IoPause className="text-lg" />}
@@ -205,7 +223,7 @@ export default function ConnectionsToolbar({
           isIconOnly
           variant="flat"
           color="danger"
-          title={tab === 'active' ? '关闭全部' : '清空记录'}
+          title={tab === 'active' ? t('connections.closeAll') : t('connections.clearRecords')}
           onPress={onBulkAction}
         >
           {tab === 'active' ? <CgClose className="text-lg" /> : <CgTrash className="text-lg" />}
@@ -220,8 +238,8 @@ export default function ConnectionsToolbar({
               color={showHidden ? 'primary' : 'default'}
               title={
                 showHidden
-                  ? `隐藏已过滤项 (${hiddenRulesCount})`
-                  : `显示隐藏条目 (${hiddenRulesCount})`
+                  ? t('connections.hideFiltered', { count: hiddenRulesCount })
+                  : t('connections.showHidden', { count: hiddenRulesCount })
               }
               onPress={() => setShowHidden(!showHidden)}
             >
@@ -232,7 +250,7 @@ export default function ConnectionsToolbar({
               isIconOnly
               variant="flat"
               color="warning"
-              title="清除所有隐藏"
+              title={t('connections.clearHidden')}
               onPress={onClearAllHidden}
             >
               <CgTrash className="text-lg" />

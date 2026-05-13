@@ -23,6 +23,7 @@ import {
 } from '@renderer/utils/quick-rules-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { useI18n, type TranslationKey } from '@renderer/i18n'
 interface Props {
   connection: ControllerConnectionDetail
   onClose: () => void
@@ -45,50 +46,51 @@ function ruleToString(rule: RuleDraft): string {
 // mihomo 支持的规则类型
 const RULE_TYPES = [
   // 域名类
-  { key: 'DOMAIN', label: 'DOMAIN', desc: '完整域名匹配', category: 'domain' },
-  { key: 'DOMAIN-SUFFIX', label: 'DOMAIN-SUFFIX', desc: '域名后缀匹配', category: 'domain' },
-  { key: 'DOMAIN-KEYWORD', label: 'DOMAIN-KEYWORD', desc: '域名关键字匹配', category: 'domain' },
+  { key: 'DOMAIN', label: 'DOMAIN', descKey: 'rules.desc.domain', category: 'domain' },
+  { key: 'DOMAIN-SUFFIX', label: 'DOMAIN-SUFFIX', descKey: 'rules.desc.domainSuffix', category: 'domain' },
+  { key: 'DOMAIN-KEYWORD', label: 'DOMAIN-KEYWORD', descKey: 'rules.desc.domainKeyword', category: 'domain' },
   {
     key: 'DOMAIN-WILDCARD',
     label: 'DOMAIN-WILDCARD',
-    desc: '域名通配符匹配',
+    descKey: 'rules.desc.domainWildcard',
     category: 'domain'
   },
-  { key: 'DOMAIN-REGEX', label: 'DOMAIN-REGEX', desc: '域名正则匹配', category: 'domain' },
+  { key: 'DOMAIN-REGEX', label: 'DOMAIN-REGEX', descKey: 'rules.desc.domainRegex', category: 'domain' },
   // IP 类
-  { key: 'IP-CIDR', label: 'IP-CIDR', desc: 'IPv4 CIDR 匹配', category: 'ip' },
-  { key: 'IP-CIDR6', label: 'IP-CIDR6', desc: 'IPv6 CIDR 匹配', category: 'ip' },
-  { key: 'IP-SUFFIX', label: 'IP-SUFFIX', desc: 'IP 后缀匹配', category: 'ip' },
-  { key: 'IP-ASN', label: 'IP-ASN', desc: 'IP ASN 匹配', category: 'ip' },
-  { key: 'GEOIP', label: 'GEOIP', desc: '目标 IP 地理位置', category: 'ip' },
-  { key: 'SRC-GEOIP', label: 'SRC-GEOIP', desc: '源 IP 地理位置', category: 'ip' },
+  { key: 'IP-CIDR', label: 'IP-CIDR', descKey: 'rules.desc.ipCidr4', category: 'ip' },
+  { key: 'IP-CIDR6', label: 'IP-CIDR6', descKey: 'rules.desc.ipCidr6', category: 'ip' },
+  { key: 'IP-SUFFIX', label: 'IP-SUFFIX', descKey: 'rules.desc.ipSuffix', category: 'ip' },
+  { key: 'IP-ASN', label: 'IP-ASN', descKey: 'rules.desc.ipAsn', category: 'ip' },
+  { key: 'GEOIP', label: 'GEOIP', descKey: 'rules.desc.geoip', category: 'ip' },
+  { key: 'SRC-GEOIP', label: 'SRC-GEOIP', descKey: 'rules.desc.srcGeoip', category: 'ip' },
   // 进程类
-  { key: 'PROCESS-NAME', label: 'PROCESS-NAME', desc: '进程名匹配', category: 'process' },
-  { key: 'PROCESS-PATH', label: 'PROCESS-PATH', desc: '进程路径匹配', category: 'process' },
+  { key: 'PROCESS-NAME', label: 'PROCESS-NAME', descKey: 'rules.desc.processName', category: 'process' },
+  { key: 'PROCESS-PATH', label: 'PROCESS-PATH', descKey: 'rules.desc.processPath', category: 'process' },
   {
     key: 'PROCESS-NAME-REGEX',
     label: 'PROCESS-NAME-REGEX',
-    desc: '进程名正则匹配',
+    descKey: 'rules.desc.processNameRegex',
     category: 'process'
   },
   {
     key: 'PROCESS-PATH-REGEX',
     label: 'PROCESS-PATH-REGEX',
-    desc: '进程路径正则匹配',
+    descKey: 'rules.desc.processPathRegex',
     category: 'process'
   },
   // 端口/网络类
-  { key: 'DST-PORT', label: 'DST-PORT', desc: '目标端口匹配', category: 'port' },
-  { key: 'SRC-PORT', label: 'SRC-PORT', desc: '源端口匹配', category: 'port' },
-  { key: 'NETWORK', label: 'NETWORK', desc: '网络协议（tcp/udp）', category: 'port' },
+  { key: 'DST-PORT', label: 'DST-PORT', descKey: 'rules.desc.dstPort', category: 'port' },
+  { key: 'SRC-PORT', label: 'SRC-PORT', descKey: 'rules.desc.srcPort', category: 'port' },
+  { key: 'NETWORK', label: 'NETWORK', descKey: 'rules.desc.network', category: 'port' },
   // GEO 类
-  { key: 'GEOSITE', label: 'GEOSITE', desc: 'GeoSite 域名集合', category: 'geo' }
+  { key: 'GEOSITE', label: 'GEOSITE', descKey: 'rules.desc.geosite', category: 'geo' }
 ] as const
 
 // 常用规则快捷选项
 const COMMON_PROXIES = ['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS']
 
 const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
+  const { t } = useI18n()
   const { groups = [] } = useGroups()
   const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -303,7 +305,12 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
       }
       onClose()
     } catch (e) {
-      alert(`${editingIndex >= 0 ? '修改' : '创建'}规则失败: ${e}`)
+      alert(
+        t('connections.ruleSaveFailed', {
+          action: editingIndex >= 0 ? t('common.update') : t('common.create'),
+          error: String(e)
+        })
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -318,6 +325,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
     existingRules,
     profileId,
     onClose
+    , t
   ])
 
   // 删除一条规则
@@ -337,12 +345,12 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
           setEditingIndex(editingIndex - 1)
         }
       } catch (e) {
-        alert(`删除规则失败: ${e}`)
+        alert(t('connections.deleteRuleFailed', { error: String(e) }))
       } finally {
         setIsSubmitting(false)
       }
     },
-    [existingRules, editingIndex, profileId]
+    [existingRules, editingIndex, profileId, t]
   )
 
   // 点击编辑规则：将规则内容填充到表单
@@ -370,10 +378,10 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
     <>
       <div className="flex flex-col gap-0.5 mb-2">
         <span className="text-large font-medium">
-          {editingIndex >= 0 ? '编辑规则' : '新建规则'}
+          {editingIndex >= 0 ? t('page.rules.edit') : t('page.rules.create')}
         </span>
         <span className="text-small text-foreground-400 font-normal">
-          从连接信息快速创建路由规则
+          {t('connections.createRuleHelp')}
         </span>
       </div>
 
@@ -381,7 +389,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
       <div className="flex flex-wrap gap-1.5 mb-2">
         {host && (
           <Chip size="sm" variant="flat" color="primary">
-            域名: {host}
+            {t('connections.summary.domain', { value: host })}
           </Chip>
         )}
         {destIP && (
@@ -391,12 +399,12 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
         )}
         {process && (
           <Chip size="sm" variant="flat" color="warning">
-            进程: {process}
+            {t('connections.summary.process', { value: process })}
           </Chip>
         )}
         {connection.rule && (
           <Chip size="sm" variant="flat" color="danger">
-            当前规则: {connection.rule} {connection.rulePayload}
+            {t('connections.summary.currentRule', { value: `${connection.rule} ${connection.rulePayload}` })}
           </Chip>
         )}
         {connection.chains?.[0] && (
@@ -408,7 +416,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
               color: 'rgb(5, 150, 105)'
             }}
           >
-            当前代理: {connection.chains[0]}
+            {t('connections.summary.currentProxy', { value: connection.chains[0] })}
           </Chip>
         )}
       </div>
@@ -416,7 +424,9 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
       <div className="flex flex-col gap-2">
         {/* 规则类型选择 */}
         <Select
-          label={`规则类型 - ${RULE_TYPES.find((r) => r.key === ruleType)?.desc || ''}`}
+          label={t('connections.ruleTypeLabel', {
+            description: t((RULE_TYPES.find((r) => r.key === ruleType)?.descKey || 'rules.desc.domain') as TranslationKey)
+          })}
           selectedKeys={new Set([ruleType])}
           onSelectionChange={(v) => {
             const selectedKey = v.currentKey as string
@@ -427,23 +437,23 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
         >
           {RULE_TYPES.map((r) => (
             <SelectItem key={r.key} textValue={r.label}>
-              {r.label} - {r.desc}
+              {r.label} - {t(r.descKey)}
             </SelectItem>
           ))}
         </Select>
 
         {/* 规则值输入 */}
         <Input
-          label="规则值"
+          label={t('rules.ruleValue')}
           value={ruleValue}
           onValueChange={setRuleValue}
           size="md"
-          placeholder="输入规则值"
+          placeholder={t('rules.ruleValuePlaceholder')}
         />
 
         {/* 目标代理/策略组选择 */}
         <Autocomplete
-          label="目标代理/策略组"
+          label={t('rules.targetProxy')}
           defaultInputValue={proxyTarget}
           onInputChange={setProxyTarget}
           onSelectionChange={(key) => {
@@ -451,7 +461,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
           }}
           size="md"
           allowsCustomValue
-          placeholder="选择或输入代理组名称"
+          placeholder={t('rules.targetProxyPlaceholder')}
         >
           {proxyOptions.map((option) => (
             <AutocompleteItem key={option}>{option}</AutocompleteItem>
@@ -469,7 +479,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
               className="rounded"
             />
             <label htmlFor="no-resolve" className="text-sm text-foreground-500">
-              no-resolve（不解析域名，直接匹配 IP）
+              {t('connections.noResolveOption')}
             </label>
           </div>
         )}
@@ -477,7 +487,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
         {/* 规则预览 */}
         {ruleString && (
           <div className="p-3 rounded-lg bg-default-100">
-            <div className="text-xs text-foreground-400 mb-1">规则预览</div>
+            <div className="text-xs text-foreground-400 mb-1">{t('rules.preview')}</div>
             <code className="text-sm font-mono text-primary break-all">{ruleString}</code>
           </div>
         )}
@@ -486,7 +496,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
         <div>
           <Divider />
           <div className="text-sm font-semibold mt-2 mb-2 text-warning">
-            已有快速规则 ({existingRules.length})
+            {t('connections.existingQuickRules', { count: existingRules.length })}
           </div>
 
           {existingRules.length > 0 ? (
@@ -504,7 +514,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
                     {ruleToString(rule)}
                   </code>
                   <div className="flex gap-1 flex-shrink-0">
-                    <Tooltip content="编辑">
+                    <Tooltip content={t('common.edit')}>
                       <Button
                         size="sm"
                         variant="light"
@@ -516,7 +526,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
                         ✏️
                       </Button>
                     </Tooltip>
-                    <Tooltip content="删除">
+                    <Tooltip content={t('common.delete')}>
                       <Button
                         size="sm"
                         variant="light"
@@ -535,7 +545,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
             </div>
           ) : (
             <div className="text-xs text-foreground-400 text-center py-1 bg-default-50 rounded-lg border border-dashed border-default-200">
-              暂无快速规则
+              {t('connections.noQuickRules')}
             </div>
           )}
         </div>
@@ -544,11 +554,11 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
       <div className="flex justify-end gap-2 mt-2">
         {editingIndex >= 0 && (
           <Button variant="flat" onPress={handleCancelEdit} isDisabled={isSubmitting}>
-            取消编辑
+            {t('connections.cancelEdit')}
           </Button>
         )}
         <Button variant="light" onPress={onClose}>
-          关闭
+          {t('common.close')}
         </Button>
         <Button
           color="primary"
@@ -556,7 +566,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
           isDisabled={!ruleValue || !proxyTarget}
           isLoading={isSubmitting}
         >
-          {editingIndex >= 0 ? '保存修改' : '创建规则'}
+          {editingIndex >= 0 ? t('rules.saveChanges') : t('rules.createRule')}
         </Button>
       </div>
     </>

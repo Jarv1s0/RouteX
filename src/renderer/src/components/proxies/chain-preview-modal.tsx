@@ -20,6 +20,7 @@ import {
   SECONDARY_MODAL_HEADER_CLASSNAME,
   SECONDARY_MODAL_ICON_CLOSE_BUTTON_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   chains: ChainItem[]
@@ -66,6 +67,9 @@ interface NodeCardProps {
   variant: VariantKey
   index?: number
   targetGroups?: string[]
+  groupTypeLabels: Partial<Record<string, string>>
+  appliedGroupsLabel: string
+  nodeCountLabel: (count: number) => string
   groupInfo?: {
     isGroup: boolean
     activeNode?: string
@@ -81,6 +85,9 @@ const NodeCard = React.memo(function NodeCard({
   variant,
   index = 0,
   targetGroups,
+  groupTypeLabels,
+  appliedGroupsLabel,
+  nodeCountLabel,
   groupInfo
 }: NodeCardProps) {
   const styles = STYLE_VARIANTS[variant]
@@ -88,11 +95,7 @@ const NodeCard = React.memo(function NodeCard({
   const getTypeLabel = () => {
     if (!groupInfo?.isGroup) return null
     const { groupType } = groupInfo
-    if (groupType === 'URLTest') return '自动测速'
-    if (groupType === 'Selector') return '手动指定'
-    if (groupType === 'Fallback') return '故障转移'
-    if (groupType === 'LoadBalance') return '负载均衡'
-    return groupType
+    return groupType ? groupTypeLabels[groupType] || groupType : null
   }
 
   return (
@@ -126,7 +129,7 @@ const NodeCard = React.memo(function NodeCard({
         {(targetGroups && targetGroups.length > 0) ? (
           <div className="w-full flex justify-center">
             <div className={`px-3 py-1.5 rounded-xl text-center border shadow-inner max-w-full ${styles.badge}`}>
-              <div className="opacity-80 mb-0.5 text-[9px] font-bold uppercase tracking-widest leading-none">应用策略组</div>
+              <div className="opacity-80 mb-0.5 text-[9px] font-bold uppercase tracking-widest leading-none">{appliedGroupsLabel}</div>
               <div className="text-xs font-bold truncate drop-shadow-sm" title={targetGroups.join(', ')}>
                 {targetGroups.join(', ')}
               </div>
@@ -135,7 +138,7 @@ const NodeCard = React.memo(function NodeCard({
         ) : (groupInfo?.isGroup && groupInfo.nodeCount !== undefined) ? (
           <div className="w-full flex justify-center">
             <div className={`px-4 py-1.5 rounded-full text-[11px] font-black tracking-wide border shadow-inner ${styles.badge}`}>
-              {groupInfo.nodeCount} 节点
+              {nodeCountLabel(groupInfo.nodeCount)}
             </div>
           </div>
         ) : null}
@@ -216,6 +219,7 @@ const ScaleWrapper = React.memo(function ScaleWrapper({ children }: { children: 
 ScaleWrapper.displayName = 'ScaleWrapper'
 
 const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
+  const { t } = useI18n()
   const { groups } = useGroups()
   const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [selectedChainId, setSelectedChainId] = useState<string>(
@@ -258,6 +262,29 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
     }
   }, [findGroupByName])
 
+  const groupTypeLabels = useMemo<Partial<Record<string, string>>>(() => ({
+    URLTest: t('proxyChains.type.urlTest'),
+    Selector: t('proxyChains.type.selector'),
+    Fallback: t('proxyChains.type.fallback'),
+    LoadBalance: t('proxyChains.type.loadBalance')
+  }), [t])
+
+  const legendItems = useMemo(
+    () => [
+      { variant: 'user', label: t('proxyChains.user'), color: 'bg-blue-500' },
+      { variant: 'dialer', label: t('proxyChains.dialerNode'), color: 'bg-violet-500' },
+      { variant: 'target', label: t('proxyChains.targetNode'), color: 'bg-orange-500' },
+      { variant: 'internet', label: t('proxyChains.internet'), color: 'bg-emerald-500' }
+    ],
+    [t]
+  )
+
+  const nodeCardLabels = {
+    appliedGroupsLabel: t('proxyChains.appliedGroups'),
+    nodeCountLabel: (count: number) => t('proxyChains.nodeCount', { count }),
+    groupTypeLabels
+  }
+
   return (
     <Modal
       backdrop="blur"
@@ -274,16 +301,16 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-center gap-2">
             <MdLink className="text-xl text-primary" />
-            <span className="font-bold">链路预览</span>
+            <span className="font-bold">{t('proxyChains.preview')}</span>
             <span className="text-xs font-medium text-default-400 opacity-80 bg-default-100 px-2 py-0.5 rounded-md ml-2">
-              节点总数: {chains.length}
+              {t('proxyChains.totalNodes', { count: chains.length })}
             </span>
           </div>
           <Button
             isIconOnly
             size="sm"
             variant="light"
-            aria-label="关闭"
+            aria-label={t('common.close')}
             className={SECONDARY_MODAL_ICON_CLOSE_BUTTON_CLASSNAME}
             onPress={onClose}
           >
@@ -296,12 +323,12 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
               <div className="p-4 rounded-full bg-default-100 dark:bg-white/5 mb-4">
                 <TbPlugConnected className="text-5xl opacity-50" />
               </div>
-              <p className="font-medium text-default-500">暂无配置的代理链</p>
+              <p className="font-medium text-default-500">{t('proxyChains.emptyTitle')}</p>
             </div>
           ) : (
             <>
               <div className="flex items-center gap-3 mb-4 select-none px-1">
-                <span className="text-sm font-semibold text-default-600 whitespace-nowrap">匹配链路选择</span>
+                <span className="text-sm font-semibold text-default-600 whitespace-nowrap">{t('proxyChains.selectChain')}</span>
                 <Select
                   size="sm"
                   className="w-[280px]"
@@ -331,43 +358,47 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
                       <div className="flex items-center justify-center min-w-max pb-4 px-4">
                         <NodeCard 
                           icon={IoPerson} 
-                          title="用户" 
-                          name="本机"
+                          title={t('proxyChains.user')}
+                          name={t('proxyChains.localMachine')}
                           variant="user"
                           index={0}
+                          {...nodeCardLabels}
                         />
 
                         <ConnectionLine delay={0} index={0} />
 
                         <NodeCard 
                           icon={TbServer} 
-                          title="前置节点" 
+                          title={t('proxyChains.dialerNode')}
                           name={selectedChain.dialerProxy}
                           variant="dialer"
                           index={1}
                           groupInfo={getGroupInfo(selectedChain.dialerProxy)}
+                          {...nodeCardLabels}
                         />
 
                         <ConnectionLine delay={0.4} index={1} />
 
                         <NodeCard 
                           icon={TbServer} 
-                          title="落地节点" 
+                          title={t('proxyChains.targetNode')}
                           name={selectedChain.targetProxy}
                           variant="target"
                           index={2}
                           groupInfo={getGroupInfo(selectedChain.targetProxy)}
+                          {...nodeCardLabels}
                         />
 
                         <ConnectionLine delay={0.8} index={2} />
 
                         <NodeCard 
                           icon={IoGlobeOutline} 
-                          title="互联网" 
-                          name="目标站点"
+                          title={t('proxyChains.internet')}
+                          name={t('proxyChains.destinationSite')}
                           variant="internet"
                           index={3}
                           targetGroups={selectedChain.targetGroups}
+                          {...nodeCardLabels}
                         />
                       </div>
                     </ScaleWrapper>
@@ -375,12 +406,7 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
                   
                   <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
                     <div className="flex gap-6 px-6 py-2.5 rounded-2xl bg-background/80 dark:bg-content1/80 backdrop-blur-md border border-default-200 dark:border-white/10 shadow-sm">
-                      {[
-                        { variant: 'user', label: '用户', color: 'bg-blue-500' },
-                        { variant: 'dialer', label: '前置节点', color: 'bg-violet-500' },
-                        { variant: 'target', label: '落地节点', color: 'bg-orange-500' },
-                        { variant: 'internet', label: '互联网', color: 'bg-emerald-500' }
-                      ].map((item, i) => (
+                      {legendItems.map((item, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
                           <span className="text-xs font-semibold text-default-600">{item.label}</span>

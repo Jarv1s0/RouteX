@@ -4,14 +4,17 @@ import { IoLogoGithub, IoSettingsOutline, IoBuildOutline } from 'react-icons/io5
 import GeneralConfig from '@renderer/components/settings/general-config'
 import AdvancedSettings from '@renderer/components/settings/advanced-settings'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { useI18n } from '@renderer/i18n'
 
 
 
 
 const Settings: React.FC = () => {
+  const { t } = useI18n()
+
   return (
     <BasePage
-      title="应用设置"
+      title={t('page.settings.title')}
       header={
         <>
           <Button
@@ -19,7 +22,7 @@ const Settings: React.FC = () => {
             size="sm"
             variant="light"
             className="app-nodrag"
-            title="GitHub 仓库"
+            title={t('page.settings.github')}
             onPress={() => {
               window.open('https://github.com/Jarv1s0/RouteX')
             }}
@@ -46,7 +49,7 @@ const Settings: React.FC = () => {
             title={
               <div className="flex items-center gap-2">
                 <IoSettingsOutline className="text-lg" />
-                <span>通用</span>
+                <span>{t('page.settings.general')}</span>
               </div>
             }
           >
@@ -60,7 +63,7 @@ const Settings: React.FC = () => {
             title={
               <div className="flex items-center gap-2">
                 <IoBuildOutline className="text-lg" />
-                <span>高级</span>
+                <span>{t('page.settings.advanced')}</span>
               </div>
             }
           >

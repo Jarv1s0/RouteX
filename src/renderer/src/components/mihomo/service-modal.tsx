@@ -20,6 +20,7 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   onChange: (open: boolean) => void
@@ -35,6 +36,7 @@ type ServiceStatusType = 'running' | 'stopped' | 'not-installed' | 'unknown' | '
 type ConnectionStatusType = 'connected' | 'disconnected' | 'checking' | 'unknown'
 
 const ServiceModal: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const { onChange, onInit, onInstall, onUninstall, onStart, onStop, onRestart } = props
   const {
     appConfig: {
@@ -115,31 +117,31 @@ const ServiceModal: React.FC<Props> = (props) => {
   }
 
   const getStatusText = (): string => {
-    if (status === null) return '检查中'
+    if (status === null) return t('mihomo.permission.checking')
     switch (status) {
       case 'running':
-        return '运行中'
+        return t('mihomo.service.running')
       case 'stopped':
-        return '已停止'
+        return t('mihomo.service.stopped')
       case 'not-installed':
-        return '未安装'
+        return t('mihomo.service.notInstalled')
       case 'need-init':
-        return '需要初始化'
+        return t('mihomo.service.needInit')
       default:
-        return '未知状态'
+        return t('mihomo.service.unknownStatus')
     }
   }
 
   const getConnectionStatusText = (): string => {
     switch (connectionStatus) {
       case 'connected':
-        return '已连接'
+        return t('mihomo.service.connected')
       case 'disconnected':
-        return '未连接'
+        return t('mihomo.service.disconnected')
       case 'checking':
-        return '检测中'
+        return t('mihomo.service.checking')
       default:
-        return '未知'
+        return t('common.unknown')
     }
   }
 
@@ -161,7 +163,7 @@ const ServiceModal: React.FC<Props> = (props) => {
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 450 })}
       >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span>RouteX 服务管理</span>
+          <span>{t('mihomo.service.title')}</span>
           <SecondaryModalCloseButton onPress={() => onChange(false)} />
         </ModalHeader>
         <ModalBody>
@@ -173,7 +175,7 @@ const ServiceModal: React.FC<Props> = (props) => {
               <CardBody className="py-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">服务状态</span>
+                    <span className="text-sm font-medium">{t('mihomo.service.serviceStatus')}</span>
                   </div>
                   {status === null ? (
                     <Chip
@@ -182,7 +184,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                       size="sm"
                       startContent={<Spinner size="sm" color="current" />}
                     >
-                      检查中...
+                      {t('mihomo.permission.checkingDots')}
                     </Chip>
                   ) : (
                     <Chip
@@ -207,7 +209,7 @@ const ServiceModal: React.FC<Props> = (props) => {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">连接状态</span>
+                    <span className="text-sm font-medium">{t('mihomo.service.connectionStatus')}</span>
                   </div>
                   {connectionStatus === 'checking' ? (
                     <Chip
@@ -216,7 +218,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                       size="sm"
                       startContent={<Spinner size="sm" color="current" />}
                     >
-                      检测中...
+                      {t('mihomo.service.checkingDots')}
                     </Chip>
                   ) : (
                     <Chip
@@ -241,16 +243,16 @@ const ServiceModal: React.FC<Props> = (props) => {
 
             <div className="text-xs text-default-500 space-y-2">
               <div className="flex items-start gap-2">
-                <span>为系统代理设置和核心进程管理提供服务权限</span>
+                <span>{t('mihomo.service.hint1')}</span>
               </div>
               <div className="flex items-start gap-2">
-                <span>安装后可通过服务模式执行需要提权的操作</span>
+                <span>{t('mihomo.service.hint2')}</span>
               </div>
               <div className="flex items-start gap-2">
-                <span>未安装服务时，部分高级功能将无法使用</span>
+                <span>{t('mihomo.service.hint3')}</span>
               </div>
               <div className="flex items-start gap-2">
-                <span>当前支持安装、启动、停止、重启和卸载服务</span>
+                <span>{t('mihomo.service.hint4')}</span>
               </div>
             </div>
           </div>
@@ -262,7 +264,7 @@ const ServiceModal: React.FC<Props> = (props) => {
             onPress={() => onChange(false)}
             isDisabled={loading}
           >
-            关闭
+            {t('common.close')}
           </Button>
 
           {status === 'unknown' ? null : status === 'not-installed' ? (
@@ -273,7 +275,7 @@ const ServiceModal: React.FC<Props> = (props) => {
               onPress={() => handleAction(onInstall)}
               isLoading={loading}
             >
-              安装服务
+              {t('mihomo.service.install')}
             </Button>
           ) : (
             <>
@@ -284,7 +286,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                 onPress={() => handleAction(onInit)}
                 isLoading={loading}
               >
-                初始化
+                {t('mihomo.service.init')}
               </Button>
               <Button
                 size="sm"
@@ -293,7 +295,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                 onPress={() => handleAction(onRestart)}
                 isLoading={loading}
               >
-                重启
+                {t('mihomo.service.restart')}
               </Button>
               {status === 'running' || status === 'need-init' ? (
                 <Button
@@ -303,7 +305,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                   onPress={() => handleAction(onStop)}
                   isLoading={loading}
                 >
-                  停止
+                  {t('mihomo.service.stop')}
                 </Button>
               ) : (
                 <Button
@@ -313,7 +315,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                   onPress={() => handleAction(onStart, true)}
                   isLoading={loading}
                 >
-                  启动
+                  {t('mihomo.service.start')}
                 </Button>
               )}
               <Button
@@ -323,7 +325,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                 onPress={() => handleAction(onUninstall)}
                 isLoading={loading}
               >
-                卸载
+                {t('mihomo.service.uninstall')}
               </Button>
             </>
           )}

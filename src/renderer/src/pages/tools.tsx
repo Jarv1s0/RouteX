@@ -30,6 +30,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { IPCheckModal } from '@renderer/components/tools/ip-check-modal'
 import { IpCheckerPanel } from '@renderer/components/tools/ip-checker-panel'
 import { RemoteImage } from '@renderer/components/base/remote-image'
+import { useI18n } from '@renderer/i18n'
 
 interface CombinedTestTarget {
   id: string
@@ -83,7 +84,7 @@ const defaultTargets = [
     url: 'https://twitter.com',
     icon: 'https://cdn.jsdelivr.net/gh/Koolson/Qure/IconSet/Color/Twitter.png'
   },
-  { name: '百度', url: 'https://www.baidu.com', icon: 'https://www.baidu.com/favicon.ico' }
+  { name: 'Baidu', url: 'https://www.baidu.com', icon: 'https://www.baidu.com/favicon.ico' }
 ]
 
 const defaultStreamingServices = [
@@ -145,6 +146,7 @@ const PROBE_NAME_MAP: Record<string, string> = {
 }
 
 const Tools: React.FC = () => {
+  const { t } = useI18n()
   // DNS 查询
   const [dnsQuery, setDnsQuery] = useState('')
   const [dnsType, setDnsType] = useState<'A' | 'AAAA' | 'CNAME' | 'MX' | 'TXT'>('A')
@@ -207,7 +209,7 @@ const Tools: React.FC = () => {
           setDnsResult(ips.map((ip) => ({ ip })))
         }
       } else {
-        setDnsError('无解析结果')
+        setDnsError(t('tools.noDnsResult'))
       }
     } catch (e) {
       setDnsError(String(e))
@@ -226,7 +228,7 @@ const Tools: React.FC = () => {
       if (result && result.rule) {
         setRuleResult(result)
       } else {
-        setRuleError('未能获取规则匹配结果')
+        setRuleError(t('tools.noRuleResult'))
       }
     } catch (e) {
       setRuleError(String(e))
@@ -329,10 +331,10 @@ const Tools: React.FC = () => {
           lon: data.lon || 0
         })
       } else {
-        setIpError(data.message || '获取失败')
+        setIpError(data.message || t('tools.fetchFailed'))
       }
     } catch {
-      setIpError('网络错误')
+      setIpError(t('tools.networkError'))
     } finally {
       setIpLoading(false)
     }
@@ -357,16 +359,16 @@ const Tools: React.FC = () => {
   // 复制 IP 信息
   const copyIpInfo = useCallback(async () => {
     if (!ipInfo) return
-    let info = `原生本机 IP: ${ipInfo.ip}
-地理位置: ${ipInfo.country} ${ipInfo.city}, ${ipInfo.region}
-时区: ${ipInfo.timezone}
+    let info = `${t('tools.nativeIp')}: ${ipInfo.ip}
+${t('tools.location')}: ${ipInfo.country} ${ipInfo.city}, ${ipInfo.region}
+${t('tools.timezone')}: ${ipInfo.timezone}
 ISP: ${ipInfo.isp}
 ASN: ${ipInfo.as}`
 
     if (Object.keys(probeResults).length > 0) {
-      info += '\n\n--- 探针检测结果 ---\n'
+      info += `\n\n--- ${t('tools.probeResults')} ---\n`
       Object.entries(probeResults).forEach(([id, res]) => {
-        info += `[${PROBE_NAME_MAP[id] || id}] IP: ${res.ip} | 归属: ${res.location} ${res.isp}\n`
+        info += `[${PROBE_NAME_MAP[id] || id}] IP: ${res.ip} | ${t('tools.probeBelongsTo')}: ${res.location} ${res.isp}\n`
       })
     }
 
@@ -399,14 +401,14 @@ ASN: ${ipInfo.as}`
   }, [])
 
   const ipLocationText = ipInfo
-    ? [ipInfo.country, ipInfo.region, ipInfo.city].filter(Boolean).join(' · ') || '未知'
-    : '未知'
-  const ipAsnText = ipInfo?.as || '未知'
-  const ipIspText = ipInfo?.isp || '未知'
-  const ipTimezoneText = ipInfo?.timezone || '未知'
+    ? [ipInfo.country, ipInfo.region, ipInfo.city].filter(Boolean).join(' · ') || t('common.unknown')
+    : t('common.unknown')
+  const ipAsnText = ipInfo?.as || t('common.unknown')
+  const ipIspText = ipInfo?.isp || t('common.unknown')
+  const ipTimezoneText = ipInfo?.timezone || t('common.unknown')
 
   return (
-    <BasePage title="工具">
+    <BasePage title={t('page.tools.title')}>
       <IPCheckModal isOpen={showIpCheckModal} onClose={() => setShowIpCheckModal(false)} />
       <div className="p-2 space-y-2">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
@@ -419,16 +421,16 @@ ASN: ${ipInfo.as}`
                 <div className="p-2 rounded-lg bg-primary/20">
                   <IoGlobe className="text-primary text-lg" />
                 </div>
-                <span className="font-medium">DNS 查询</span>
+                <span className="font-medium">{t('tools.dnsQuery')}</span>
                 <span className="text-foreground-400 text-xs">
-                  （A: IPv4, AAAA: IPv6, CNAME: 别名）
+                  {t('tools.dnsQueryHelp')}
                 </span>
               </div>
 
               <div className="flex items-center gap-2 mb-3">
                 <Input
                   size="sm"
-                  placeholder="输入域名，如 google.com"
+                  placeholder={t('tools.domainPlaceholder')}
                   value={dnsQuery}
                   onValueChange={setDnsQuery}
                   onKeyDown={(e) => e.key === 'Enter' && handleDnsQuery()}
@@ -495,14 +497,14 @@ ASN: ${ipInfo.as}`
                 <div className="p-2 rounded-lg bg-warning/20">
                   <IoShield className="text-warning text-lg" />
                 </div>
-                <span className="font-medium">规则测试</span>
-                <span className="text-foreground-400 text-xs">（发起请求测试实际匹配规则）</span>
+                <span className="font-medium">{t('tools.ruleTest')}</span>
+                <span className="text-foreground-400 text-xs">{t('tools.ruleTestHelp')}</span>
               </div>
 
               <div className="flex items-center gap-2 mb-3">
                 <Input
                   size="sm"
-                  placeholder="输入域名，如 google.com"
+                  placeholder={t('tools.domainPlaceholder')}
                   value={ruleQuery}
                   onValueChange={setRuleQuery}
                   onKeyDown={(e) => e.key === 'Enter' && handleRuleTest()}
@@ -525,14 +527,14 @@ ASN: ${ipInfo.as}`
               {ruleResult && (
                 <div className="p-3 rounded-xl bg-content2/50 border border-default-200/50 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex flex-col gap-1">
-                    <span className="text-foreground-400 text-xs">匹配规则</span>
+                    <span className="text-foreground-400 text-xs">{t('tools.matchedRule')}</span>
                     <div className="font-mono text-sm bg-background/50 p-1.5 rounded-lg border border-default-100">
                       {ruleResult.rule}
                       {ruleResult.rulePayload ? `,${ruleResult.rulePayload}` : ''}
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-foreground-400 text-xs">出站代理</span>
+                    <span className="text-foreground-400 text-xs">{t('tools.outboundProxy')}</span>
                     <div>
                       <Chip size="sm" variant="flat" color="success" className="h-6">
                         {ruleResult.proxy}
@@ -555,7 +557,7 @@ ASN: ${ipInfo.as}`
                 <div className="p-2 rounded-lg bg-success/20">
                   <IoWifi className="text-success text-lg" />
                 </div>
-                <span className="font-medium">网络与服务检测</span>
+                <span className="font-medium">{t('tools.networkTest')}</span>
               </div>
               <Button
                 size="sm"
@@ -565,7 +567,7 @@ ASN: ${ipInfo.as}`
                 onPress={testAll}
                 startContent={!allTesting && <IoRefresh />}
               >
-                全部测试
+                {t('tools.testAll')}
               </Button>
             </div>
 
@@ -585,7 +587,7 @@ ASN: ${ipInfo.as}`
                     />
                     <div className="text-xs font-medium mb-2">{target.name}</div>
                     {target.status === 'testing' ? (
-                      <div className="text-primary text-xs animate-pulse">检测中...</div>
+                      <div className="text-primary text-xs animate-pulse">{t('tools.testing')}</div>
                     ) : target.status === 'success' || target.status === 'unlocked' ? (
                       <div className="animate-in fade-in duration-200">
                         <div className="flex justify-center mb-1">
@@ -594,7 +596,7 @@ ASN: ${ipInfo.as}`
                         <div className="text-success text-xs">
                           {target.type === 'connectivity'
                             ? `${target.latency}ms`
-                            : target.region || '已解锁'}
+                            : target.region || t('tools.unlocked')}
                         </div>
                       </div>
                     ) : target.status === 'locked' ? (
@@ -602,7 +604,7 @@ ASN: ${ipInfo.as}`
                         <div className="flex justify-center mb-1">
                           <IoCloseCircle className="text-danger text-xl animate-in zoom-in duration-200" />
                         </div>
-                        <div className="text-danger text-xs">未解锁</div>
+                        <div className="text-danger text-xs">{t('tools.locked')}</div>
                       </div>
                     ) : target.status === 'error' ? (
                       <div className="animate-in fade-in duration-200">
@@ -610,11 +612,11 @@ ASN: ${ipInfo.as}`
                           <IoCloseCircle className="text-warning text-xl animate-in zoom-in duration-200" />
                         </div>
                         <div className="text-warning text-xs" title={target.error}>
-                          检测失败
+                          {t('tools.testFailed')}
                         </div>
                       </div>
                     ) : (
-                      <div className="text-primary text-xs">点击测试</div>
+                      <div className="text-primary text-xs">{t('tools.clickToTest')}</div>
                     )}
                   </CardBody>
                 </Card>
@@ -633,7 +635,7 @@ ASN: ${ipInfo.as}`
                 <div className="p-2 rounded-lg bg-primary/20">
                   <IoLocation className="text-primary text-lg" />
                 </div>
-                <span className="font-medium">IP 信息</span>
+                <span className="font-medium">{t('tools.ipInfo')}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Button
@@ -641,7 +643,7 @@ ASN: ${ipInfo.as}`
                   isIconOnly
                   variant="light"
                   onPress={() => setShowIp(!showIp)}
-                  title={showIp ? '隐藏 IP' : '显示 IP'}
+                  title={showIp ? t('tools.hideIp') : t('tools.showIp')}
                 >
                   {showIp ? <IoEyeOff className="text-base" /> : <IoEye className="text-base" />}
                 </Button>
@@ -651,7 +653,7 @@ ASN: ${ipInfo.as}`
                   variant={ipInfoCopied ? 'flat' : 'light'}
                   color={ipInfoCopied ? 'success' : 'default'}
                   onPress={copyIpInfo}
-                  title={ipInfoCopied ? '已复制' : '复制 IP 信息'}
+                  title={ipInfoCopied ? t('common.copied') : t('tools.copyIpInfo')}
                   isDisabled={!ipInfo}
                 >
                   {ipInfoCopied ? (
@@ -666,7 +668,7 @@ ASN: ${ipInfo.as}`
                   variant="light"
                   isLoading={ipLoading}
                   onPress={fetchIpInfo}
-                  title="刷新"
+                  title={t('common.refresh')}
                 >
                   <IoRefresh className="text-base" />
                 </Button>
@@ -690,12 +692,12 @@ ASN: ${ipInfo.as}`
                           <IoGlobe className="text-lg" />
                         </div>
                         <div>
-                          <div className="text-xs font-medium text-foreground-400">公开 IP</div>
+                          <div className="text-xs font-medium text-foreground-400">{t('tools.publicIp')}</div>
                         </div>
                       </div>
                       <div
                         className="max-w-full truncate font-mono text-2xl font-bold leading-tight text-foreground-900"
-                        title={showIp ? ipInfo.ip : 'IP 已隐藏'}
+                        title={showIp ? ipInfo.ip : t('tools.ipHidden')}
                       >
                         {showIp ? ipInfo.ip : '•••.•••.•••.•••'}
                       </div>
@@ -706,7 +708,7 @@ ASN: ${ipInfo.as}`
                       variant="flat"
                       color={ipInfoCopied ? 'success' : 'primary'}
                       onPress={copyIpInfo}
-                      title={ipInfoCopied ? '已复制' : '复制完整 IP 信息'}
+                      title={ipInfoCopied ? t('common.copied') : t('tools.copyFullIpInfo')}
                       isDisabled={!ipInfo}
                       startContent={
                         ipInfoCopied ? (
@@ -716,7 +718,7 @@ ASN: ${ipInfo.as}`
                         )
                       }
                     >
-                      {ipInfoCopied ? '已复制' : '复制'}
+                      {ipInfoCopied ? t('common.copied') : t('common.copy')}
                     </Button>
                   </div>
 
@@ -724,7 +726,7 @@ ASN: ${ipInfo.as}`
                     <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
                       <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
                         <IoMap className="text-success" />
-                        <span>位置</span>
+                        <span>{t('tools.location')}</span>
                       </div>
                       <div className="truncate text-sm font-semibold" title={ipLocationText}>
                         {ipLocationText}
@@ -734,7 +736,7 @@ ASN: ${ipInfo.as}`
                     <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
                       <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
                         <IoTime className="text-warning" />
-                        <span>时区</span>
+                        <span>{t('tools.timezone')}</span>
                       </div>
                       <div className="truncate text-sm font-semibold" title={ipTimezoneText}>
                         {ipTimezoneText}

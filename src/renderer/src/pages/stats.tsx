@@ -15,6 +15,7 @@ import TrafficRanking from '@renderer/components/stats/traffic-ranking'
 import RuleDetailList from '@renderer/components/stats/rule-detail-list'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { notifyError } from '@renderer/utils/notify'
+import { useI18n } from '@renderer/i18n'
 
 interface RuleHitDetail {
   id: string
@@ -81,6 +82,7 @@ const RuleDetailsModalSection = React.memo(
       selectedRule ? (state.ruleHitDetails.get(selectedRule) ?? EMPTY_RULE_HIT_DETAILS) : EMPTY_RULE_HIT_DETAILS
     ) as RuleHitDetail[]
     const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+    const { t } = useI18n()
 
     return (
       <Modal
@@ -101,8 +103,8 @@ const RuleDetailsModalSection = React.memo(
             <>
               <ModalHeader className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 pr-8">
-                  <span>规则详情: {selectedRule}</span>
-                  <span className="text-[10px] font-normal text-foreground-400 bg-default-100 px-1.5 py-0.5 rounded">Top 50 · 时间倒序</span>
+                  <span>{t('stats.ruleDetail', { rule: selectedRule || '' })}</span>
+                  <span className="text-[10px] font-normal text-foreground-400 bg-default-100 px-1.5 py-0.5 rounded">{t('stats.top50ByTime')}</span>
                 </div>
                 <Button
                   isIconOnly
@@ -126,6 +128,7 @@ const RuleDetailsModalSection = React.memo(
 )
 
 const Stats: React.FC = () => {
+  const { t } = useI18n()
   const clearStats = useTrafficStore((state) => state.clearStats)
   
   // 清除统计数据状态
@@ -140,23 +143,25 @@ const Stats: React.FC = () => {
       await clearTrafficStats()
       clearStats() // Clear local store
     } catch (e) {
-      notifyError(`清除失败: ${e}`, { title: '清除统计失败' })
+      notifyError(t('page.stats.clearFailed', { error: String(e) }), {
+        title: t('page.stats.clearFailedTitle')
+      })
     } finally {
       setClearingStats(false)
       setShowClearConfirm(false)
     }
-  }, [clearStats])
+  }, [clearStats, t])
 
   return (
     <BasePage 
-      title="统计"
+      title={t('page.stats.title')}
       header={
         <Button
           size="sm"
           variant="light"
           color="danger"
           isIconOnly
-          title="清除统计数据"
+          title={t('page.stats.clear')}
           isLoading={clearingStats}
           onPress={() => setShowClearConfirm(true)}
           className="app-nodrag"
@@ -168,10 +173,10 @@ const Stats: React.FC = () => {
       {showClearConfirm && (
         <ConfirmModal
           onChange={setShowClearConfirm}
-          title="确认清除统计数据？"
-          description="此操作将清除所有流量统计数据，此操作不可恢复。"
-          confirmText="确认清除"
-          cancelText="取消"
+          title={t('page.stats.confirmClearTitle')}
+          description={t('page.stats.confirmClearDescription')}
+          confirmText={t('page.stats.confirmClear')}
+          cancelText={t('common.cancel')}
           onConfirm={handleClearStats}
         />
       )}

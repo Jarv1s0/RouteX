@@ -24,6 +24,7 @@ import { openFile } from '@renderer/utils/file-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import ConfirmModal from '../base/base-confirm'
+import { useI18n } from '@renderer/i18n'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -65,6 +66,7 @@ const ProfileItem: React.FC<Props> = (props) => {
     isEnabled,
     canDisable
   } = props
+  const { t } = useI18n()
   const extra = info?.extra
   const usage = (extra?.upload ?? 0) + (extra?.download ?? 0)
   const total = extra?.total ?? 0
@@ -91,7 +93,11 @@ const ProfileItem: React.FC<Props> = (props) => {
   const dragReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wasDraggingRef = useRef(false)
 
-  const statusLabel = isCurrent ? '主用' : isEnabled ? '已合并' : '未合并'
+  const statusLabel = isCurrent
+    ? t('profiles.status.primary')
+    : isEnabled
+      ? t('profiles.status.enabled')
+      : t('profiles.status.disabled')
   const statusClassName = isCurrent
     ? 'bg-yellow-400 text-black font-bold shadow-sm'
     : isEnabled
@@ -102,28 +108,28 @@ const ProfileItem: React.FC<Props> = (props) => {
     const list = [
       {
         key: 'edit-info',
-        label: '编辑属性',
+        label: t('profiles.editInfo'),
         showDivider: false,
         color: 'default',
         className: ''
       } as MenuItem,
       {
         key: 'edit-file',
-        label: '编辑内容',
+        label: t('profiles.editContent'),
         showDivider: false,
         color: 'default',
         className: ''
       } as MenuItem,
       {
         key: 'open-file',
-        label: '使用外部程序打开',
+        label: t('profiles.openExternal'),
         showDivider: true,
         color: 'default',
         className: ''
       } as MenuItem,
       {
         key: 'delete',
-        label: '删除',
+        label: t('common.delete'),
         showDivider: false,
         color: 'danger',
         className: 'text-danger'
@@ -132,7 +138,7 @@ const ProfileItem: React.FC<Props> = (props) => {
     if (info.home) {
       list.unshift({
         key: 'home',
-        label: '主页',
+        label: t('profiles.home'),
         showDivider: false,
         color: 'default',
         className: ''
@@ -140,7 +146,7 @@ const ProfileItem: React.FC<Props> = (props) => {
     }
 
     return list
-  }, [info])
+  }, [info, t])
 
   const onMenuAction = async (key: Key): Promise<void> => {
     switch (key) {
@@ -214,11 +220,11 @@ const ProfileItem: React.FC<Props> = (props) => {
         ]}
       >
         <DropdownItem key="primary">
-          设为主用
+          {t('profiles.setPrimary')}
         </DropdownItem>
-        <DropdownItem key="enabled">加入合并</DropdownItem>
-        <DropdownItem key="disabled" description={disableActionDisabled ? '至少保留一个启用订阅' : undefined}>
-          取消合并
+        <DropdownItem key="enabled">{t('profiles.enableMerge')}</DropdownItem>
+        <DropdownItem key="disabled" description={disableActionDisabled ? t('profiles.keepOneEnabled') : undefined}>
+          {t('profiles.disableMerge')}
         </DropdownItem>
       </DropdownMenu>
     </Dropdown>
@@ -280,9 +286,9 @@ const ProfileItem: React.FC<Props> = (props) => {
       {confirmOpen && (
         <ConfirmModal
           onChange={setConfirmOpen}
-          title="确认删除配置？"
-          confirmText="确认删除"
-          cancelText="取消"
+          title={t('settings.advanced.confirmResetTitle')}
+          confirmText={t('settings.advanced.confirmDelete')}
+          cancelText={t('common.cancel')}
           onConfirm={() => {
             removeProfileItem(info.id)
             mutateProfileConfig()
@@ -386,7 +392,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                       await patchAppConfig({ profileDisplayDate: 'update' })
                     }}
                   >
-                    {extra.expire ? dayjs.unix(extra.expire).format('YYYY-MM-DD') : '长期有效'}
+                    {extra.expire ? dayjs.unix(extra.expire).format('YYYY-MM-DD') : t('profiles.longTermValid')}
                   </Button>
                 ) : (
                   <Button

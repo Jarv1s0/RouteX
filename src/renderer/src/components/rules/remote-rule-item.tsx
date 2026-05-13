@@ -5,6 +5,7 @@ import { LuFilePenLine } from 'react-icons/lu'
 import dayjs from 'dayjs'
 import React from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
+import { useI18n } from '@renderer/i18n'
 
 interface RemoteRuleItemProps {
   rule?: ControllerRulesDetail
@@ -27,6 +28,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
   onUpdate,
   onView
 }) => {
+  const { t } = useI18n()
   const { groups = [] } = useGroups()
 
   // 递归查找最终节点
@@ -178,7 +180,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                       <Button
                         isIconOnly
                         variant="light"
-                        title={provider.vehicleType === 'File' ? '编辑' : '查看'}
+                        title={provider.vehicleType === 'File' ? t('common.edit') : t('common.view')}
                         size="sm"
                         onPress={onView}
                         className="min-w-8 w-8 h-8"
@@ -193,7 +195,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                     <Button
                       isIconOnly
                       variant="light"
-                      title="更新"
+                      title={t('common.update')}
                       size="sm"
                       onPress={onUpdate}
                       className="min-w-8 w-8 h-8"

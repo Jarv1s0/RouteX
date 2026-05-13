@@ -2,6 +2,7 @@ import React from 'react'
 import { Button, Divider, Input, Tooltip } from '@heroui/react'
 import { MdDeleteForever } from 'react-icons/md'
 import type { ValidationResult } from '@renderer/utils/validate'
+import { translate } from '@renderer/i18n'
 
 interface EditableListProps {
   title?: string
@@ -129,7 +130,7 @@ const EditableList: React.FC<EditableListProps> = ({
             isExtra || isEmpty ? true : validate ? validate(entry.part1, entry.part2) : true
           const validation: ValidationResult =
             typeof rawValidation === 'boolean'
-              ? { ok: rawValidation, error: rawValidation ? undefined : '格式错误' }
+              ? { ok: rawValidation, error: rawValidation ? undefined : translate('common.formatError') }
               : rawValidation
 
           // part1 单独验证
@@ -141,7 +142,7 @@ const EditableList: React.FC<EditableListProps> = ({
                 : true
           const validation1: ValidationResult =
             typeof rawValidation1 === 'boolean'
-              ? { ok: rawValidation1, error: rawValidation1 ? undefined : '格式错误' }
+              ? { ok: rawValidation1, error: rawValidation1 ? undefined : translate('common.formatError') }
               : rawValidation1
 
           // part2 单独验证
@@ -153,7 +154,7 @@ const EditableList: React.FC<EditableListProps> = ({
                 : true
           const validation2: ValidationResult =
             typeof rawValidation2 === 'boolean'
-              ? { ok: rawValidation2, error: rawValidation2 ? undefined : '格式错误' }
+              ? { ok: rawValidation2, error: rawValidation2 ? undefined : translate('common.formatError') }
               : rawValidation2
 
           // 使用单独验证优先，如果没有则使用整体验证
@@ -168,7 +169,7 @@ const EditableList: React.FC<EditableListProps> = ({
                 <>
                   <div className="w-1/3">
                     <Tooltip
-                      content={part1Error ?? '格式错误'}
+                      content={part1Error ?? translate('common.formatError')}
                       placement="left"
                       isOpen={!part1Valid}
                       showArrow={true}
@@ -192,7 +193,7 @@ const EditableList: React.FC<EditableListProps> = ({
                   <span className="mx-1">:</span>
                   <div className="flex-1">
                     <Tooltip
-                      content={part2Error ?? '格式错误'}
+                      content={part2Error ?? translate('common.formatError')}
                       placement="left"
                       isOpen={!part2Valid}
                       showArrow={true}
@@ -216,7 +217,7 @@ const EditableList: React.FC<EditableListProps> = ({
                 </>
               ) : (
                 <Tooltip
-                  content={part1Error ?? '格式错误'}
+                  content={part1Error ?? translate('common.formatError')}
                   placement="left"
                   isOpen={!part1Valid}
                   showArrow={true}

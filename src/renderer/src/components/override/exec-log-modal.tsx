@@ -14,6 +14,7 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   id: string
@@ -22,6 +23,7 @@ interface Props {
 
 const ExecLogModal: React.FC<Props> = (props) => {
   const { id, onClose } = props
+  const { t } = useI18n()
   const {
     appConfig: {
       disableAnimation = false,
@@ -51,7 +53,7 @@ const ExecLogModal: React.FC<Props> = (props) => {
     >
       <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span>执行日志</span>
+          <span>{t('override.execLog')}</span>
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="pb-6">

@@ -11,6 +11,7 @@ import { platform } from '@renderer/utils/init'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
 import TrafficChart from './traffic-chart'
+import { useI18n } from '@renderer/i18n'
 
 let currentUpload: number | undefined = undefined
 let currentDownload: number | undefined = undefined
@@ -24,6 +25,7 @@ interface Props {
 
 const ConnCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
+  const { t } = useI18n()
   const { appConfig } = useAppConfig()
   const { showTraffic = false } = appConfig || {}
   const showTrafficRef = useRef(showTraffic)
@@ -107,7 +109,7 @@ const ConnCard: React.FC<Props> = (props) => {
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
-        <Tooltip content="连接" placement="right">
+        <Tooltip content={t('sidebar.connections')} placement="right">
           <Button
             size="sm"
             isIconOnly
@@ -151,7 +153,7 @@ const ConnCard: React.FC<Props> = (props) => {
                 />
               </span>
               <h3 className={`text-sm font-semibold text-foreground dark:text-foreground/90`}>
-                连接
+                {t('sidebar.connections')}
               </h3>
             </div>
           </div>

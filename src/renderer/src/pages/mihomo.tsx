@@ -39,8 +39,10 @@ import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
 import useSWR from 'swr'
 import { notifyError, notifyInfo, notifySuccess } from '@renderer/utils/notify'
+import { useI18n } from '@renderer/i18n'
 
 const Mihomo: React.FC = () => {
+  const { t } = useI18n()
   const isTauriHost = __ROUTEX_HOST__ === 'tauri'
   const { appConfig, patchAppConfig } = useAppConfig()
   const { core = 'mihomo', corePermissionMode = 'elevated' } = appConfig || {}
@@ -116,7 +118,7 @@ const Mihomo: React.FC = () => {
       setTimeout(() => PubSub.publish('mihomo-core-changed'), 2000)
     } catch (e) {
       if (typeof e === 'string' && e.includes('already using latest version')) {
-        notifyInfo('已经是最新版本')
+        notifyInfo(t('mihomo.latest'))
       } else {
         notifyError(e)
       }
@@ -157,22 +159,22 @@ const Mihomo: React.FC = () => {
   const unGrantButtons: ConfirmButton[] = [
     {
       key: 'cancel',
-      text: '取消',
+      text: t('common.cancel'),
       variant: 'light',
       onPress: () => {}
     },
     {
       key: 'confirm',
-      text: platform === 'win32' ? '不重启取消' : '确认撤销',
+      text: platform === 'win32' ? t('mihomo.cancelWithoutRestart') : t('mihomo.confirmRevoke'),
       color: 'warning',
       onPress: async () => {
         try {
           if (platform === 'win32') {
             await deleteElevateTask()
-            notifySuccess('任务计划已取消注册')
+            notifySuccess(t('mihomo.taskUnregistered'))
           } else {
             await revokeCorePermission()
-            notifySuccess('内核权限已撤销')
+            notifySuccess(t('mihomo.permissionRevoked'))
           }
           await patchAppConfig({
             corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
@@ -188,12 +190,12 @@ const Mihomo: React.FC = () => {
       ? [
           {
             key: 'cancel-and-restart',
-            text: '取消并重启',
+            text: t('mihomo.cancelAndRestart'),
             color: 'danger' as const,
             onPress: async () => {
               try {
                 await deleteElevateTask()
-                notifySuccess('任务计划已取消注册')
+                notifySuccess(t('mihomo.taskUnregistered'))
                 await patchAppConfig({
                   corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
                 })
@@ -208,12 +210,12 @@ const Mihomo: React.FC = () => {
   ]
 
   return (
-    <BasePage title="内核">
+    <BasePage title={t('page.mihomo.title')}>
       {showGrantConfirm && (
         <ConfirmModal
           onChange={setShowGrantConfirm}
-          title="确认使用任务计划？"
-          description="确认后将退出应用，请手动使用管理员运行一次程序"
+          title={t('mihomo.confirmTaskTitle')}
+          description={t('mihomo.confirmTaskDescription')}
           onConfirm={async () => {
             await patchAppConfig({
               corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
@@ -225,8 +227,8 @@ const Mihomo: React.FC = () => {
       {showUnGrantConfirm && (
         <ConfirmModal
           onChange={setShowUnGrantConfirm}
-          title="确认取消任务计划？"
-          description="取消任务计划后，虚拟网卡等功能可能无法正常工作。确定要继续吗？"
+          title={t('mihomo.confirmCancelTaskTitle')}
+          description={t('mihomo.confirmCancelTaskDescription')}
           buttons={unGrantButtons}
         />
       )}
@@ -236,16 +238,16 @@ const Mihomo: React.FC = () => {
           onRevoke={async () => {
             if (platform === 'win32') {
               await deleteElevateTask()
-              notifySuccess('任务计划已取消注册')
+              notifySuccess(t('mihomo.taskUnregistered'))
             } else {
               await revokeCorePermission()
-              notifySuccess('内核权限已撤销')
+              notifySuccess(t('mihomo.permissionRevoked'))
             }
             await restartCore()
           }}
           onGrant={async () => {
             await manualGrantCorePermition()
-            notifySuccess('内核授权成功')
+            notifySuccess(t('mihomo.permissionGranted'))
             await restartCore()
           }}
         />
@@ -255,27 +257,27 @@ const Mihomo: React.FC = () => {
           onChange={setShowServiceModal}
           onInit={async () => {
             await initService()
-            notifySuccess('服务初始化成功')
+            notifySuccess(t('mihomo.serviceInitSuccess'))
           }}
           onInstall={async () => {
             await installService()
-            notifySuccess('服务安装成功')
+            notifySuccess(t('mihomo.serviceInstallSuccess'))
           }}
           onUninstall={async () => {
             await uninstallService()
-            notifySuccess('服务卸载成功')
+            notifySuccess(t('mihomo.serviceUninstallSuccess'))
           }}
           onStart={async () => {
             await startService()
-            notifySuccess('服务启动成功')
+            notifySuccess(t('mihomo.serviceStartSuccess'))
           }}
           onRestart={async () => {
             await restartService()
-            notifySuccess('服务重启成功')
+            notifySuccess(t('mihomo.serviceRestartSuccess'))
           }}
           onStop={async () => {
             await stopService()
-            notifySuccess('服务停止成功')
+            notifySuccess(t('mihomo.serviceStopSuccess'))
           }}
         />
       )}
@@ -284,10 +286,10 @@ const Mihomo: React.FC = () => {
           <SettingItem
             title={
               <div className="flex items-center gap-2">
-                <span>内核版本</span>
+                <span>{t('mihomo.coreVersion')}</span>
                 {hasNewVersion() && (
                   <Chip size="sm" color="success" variant="flat">
-                    新版本 {latestVersion}
+                    {t('mihomo.newVersion', { version: latestVersion || '' })}
                   </Chip>
                 )}
               </div>
@@ -297,8 +299,8 @@ const Mihomo: React.FC = () => {
                 <Button
                   size="sm"
                   isIconOnly
-                  aria-label="升级内核"
-                  title="升级内核"
+                  aria-label={t('mihomo.upgradeCore')}
+                  title={t('mihomo.upgradeCore')}
                   variant="light"
                   isLoading={upgrading}
                   onPress={handleCoreUpgrade}
@@ -310,7 +312,7 @@ const Mihomo: React.FC = () => {
             divider
           >
             <Select
-              aria-label="选择内核版本"
+              aria-label={t('mihomo.selectCore')}
               classNames={{
                 trigger:
                   'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50'
@@ -325,41 +327,41 @@ const Mihomo: React.FC = () => {
               <SelectItem key="mihomo-alpha">Mihomo Alpha</SelectItem>
             </Select>
           </SettingItem>
-          <SettingItem title="运行模式" divider>
+          <SettingItem title={t('mihomo.runMode')} divider>
             <Tabs
-              aria-label="选择内核运行模式"
+              aria-label={t('mihomo.selectRunMode')}
               classNames={CARD_STYLES.GLASS_TABS}
               selectedKey={corePermissionMode}
               disabledKeys={isTauriHost ? [] : ['service']}
               onSelectionChange={(key) => handlePermissionModeChange(key as string)}
             >
-              <Tab key="elevated" title={platform === 'win32' ? '任务计划' : '授权运行'} />
-              <Tab key="service" title="系统服务" />
+              <Tab key="elevated" title={platform === 'win32' ? t('mihomo.taskSchedule') : t('mihomo.authorizedRun')} />
+              <Tab key="service" title={t('mihomo.systemService')} />
             </Tabs>
           </SettingItem>
-          <SettingItem title={platform === 'win32' ? '任务状态' : '授权状态'} divider>
+          <SettingItem title={platform === 'win32' ? t('mihomo.taskStatus') : t('mihomo.permissionStatus')} divider>
             <Button
               size="sm"
               color="primary"
-              aria-label={platform === 'win32' ? '管理任务状态' : '管理授权状态'}
+              aria-label={platform === 'win32' ? t('mihomo.manageTaskStatus') : t('mihomo.managePermissionStatus')}
               onPress={() => setShowPermissionModal(true)}
             >
-              管理
+              {t('common.manage')}
             </Button>
           </SettingItem>
-          <SettingItem title="服务状态" divider>
+          <SettingItem title={t('mihomo.serviceStatus')} divider>
             <Button
               size="sm"
               color="primary"
-              aria-label="管理服务状态"
+              aria-label={t('mihomo.manageServiceStatus')}
               onPress={() => setShowServiceModal(true)}
             >
-              管理
+              {t('common.manage')}
             </Button>
           </SettingItem>
           <SettingItem title="IPv6">
             <Switch
-              aria-label="切换 IPv6"
+              aria-label={t('mihomo.toggleIpv6')}
               size="sm"
               isSelected={ipv6}
               onValueChange={(v) => onChangeNeedRestart({ ipv6: v })}

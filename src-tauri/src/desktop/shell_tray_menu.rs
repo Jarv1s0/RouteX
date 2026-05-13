@@ -4,11 +4,117 @@ fn hide_traymenu_window(app: &tauri::AppHandle) {
     }
 }
 
-fn tray_mode_label(mode: &str) -> &'static str {
+#[derive(Clone, Copy)]
+struct NativeTrayLabels {
+    rule: &'static str,
+    global: &'static str,
+    direct: &'static str,
+    retest: &'static str,
+    profiles: &'static str,
+    no_profiles: &'static str,
+    primary_profile: &'static str,
+    no_primary_profile: &'static str,
+    open_dir: &'static str,
+    app_dir: &'static str,
+    work_dir: &'static str,
+    core_dir: &'static str,
+    log_dir: &'static str,
+    copy_env: &'static str,
+    show_window: &'static str,
+    show_floating: &'static str,
+    close_floating: &'static str,
+    sys_proxy: &'static str,
+    tun: &'static str,
+    rule_mode: &'static str,
+    global_mode: &'static str,
+    direct_mode: &'static str,
+    outbound_mode: &'static str,
+    quit_without_core: &'static str,
+    restart_app: &'static str,
+    quit_app: &'static str,
+}
+
+const NATIVE_TRAY_LABELS_ZH: NativeTrayLabels = NativeTrayLabels {
+    rule: "规则",
+    global: "全局",
+    direct: "直连",
+    retest: "重新测试",
+    profiles: "订阅配置",
+    no_profiles: "暂无订阅",
+    primary_profile: "主订阅",
+    no_primary_profile: "暂无可用主订阅",
+    open_dir: "打开目录",
+    app_dir: "应用目录",
+    work_dir: "工作目录",
+    core_dir: "内核目录",
+    log_dir: "日志目录",
+    copy_env: "复制环境变量",
+    show_window: "显示窗口",
+    show_floating: "显示悬浮窗",
+    close_floating: "关闭悬浮窗",
+    sys_proxy: "系统代理",
+    tun: "虚拟网卡",
+    rule_mode: "规则模式",
+    global_mode: "全局模式",
+    direct_mode: "直连模式",
+    outbound_mode: "出站模式",
+    quit_without_core: "保留内核退出",
+    restart_app: "重启应用",
+    quit_app: "退出应用",
+};
+
+const NATIVE_TRAY_LABELS_EN: NativeTrayLabels = NativeTrayLabels {
+    rule: "Rule",
+    global: "Global",
+    direct: "Direct",
+    retest: "Retest",
+    profiles: "Profiles",
+    no_profiles: "No profiles",
+    primary_profile: "Primary profile",
+    no_primary_profile: "No available primary profile",
+    open_dir: "Open directory",
+    app_dir: "App directory",
+    work_dir: "Work directory",
+    core_dir: "Core directory",
+    log_dir: "Log directory",
+    copy_env: "Copy environment variables",
+    show_window: "Show window",
+    show_floating: "Show floating window",
+    close_floating: "Close floating window",
+    sys_proxy: "System proxy",
+    tun: "TUN",
+    rule_mode: "Rule mode",
+    global_mode: "Global mode",
+    direct_mode: "Direct mode",
+    outbound_mode: "Outbound mode",
+    quit_without_core: "Quit and keep core",
+    restart_app: "Restart app",
+    quit_app: "Quit app",
+};
+
+fn use_english_native_tray_labels(app_config: &Value) -> bool {
+    match app_config.get("language").and_then(Value::as_str) {
+        Some("en-US") => true,
+        Some("zh-CN") => false,
+        _ => std::env::var("LANG")
+            .map(|lang| lang.to_ascii_lowercase().starts_with("en"))
+            .unwrap_or(false),
+    }
+}
+
+fn native_tray_labels(app_config: &Value) -> NativeTrayLabels {
+    if use_english_native_tray_labels(app_config) {
+        NATIVE_TRAY_LABELS_EN
+    } else {
+        NATIVE_TRAY_LABELS_ZH
+    }
+}
+
+fn tray_mode_label(mode: &str, labels: NativeTrayLabels) -> &'static str {
     match mode {
-        "global" => "全局",
-        "direct" => "直连",
-        _ => "规则",
+        "global" => labels.global,
+        "direct" => labels.direct,
+        _ => labels.rule,
     }
 }
 
@@ -133,6 +239,7 @@ fn load_native_tray_groups(app: &tauri::AppHandle) -> Result<Vec<Value>, String>
 fn append_native_tray_group_menus(
     app: &tauri::AppHandle,
     menu: &Menu<tauri::Wry>,
+    labels: NativeTrayLabels,
 ) -> Result<bool, String> {
     let groups = load_native_tray_groups(app)?;
     if groups.is_empty() {
@@ -165,7 +272,7 @@ fn append_native_tray_group_menus(
         let retest = MenuItem::with_id(
             app,
             build_tray_group_test_id(name),
-            "重新测试",
+            labels.retest,
             true,
             None::<&str>,
         )
@@ -211,18 +318,19 @@ fn append_native_tray_group_menus(
 fn append_native_tray_profile_menu(
     app: &tauri::AppHandle,
     menu: &Menu<tauri::Wry>,
+    labels: NativeTrayLabels,
 ) -> Result<(), String> {
     let profile_config = read_profile_config(app)?;
     let active_ids = active_profile_ids(&profile_config);
     let current_id = primary_profile_id(&profile_config, &active_ids);
 
-    let profile_menu = Submenu::new(app, "订阅配置", true).map_err(|e| e.to_string())?;
+    let profile_menu = Submenu::new(app, labels.profiles, true).map_err(|e| e.to_string())?;
 
     if profile_config.items.is_empty() {
         let empty_item = MenuItem::with_id(
             app,
             TRAY_MENU_PROFILE_EMPTY_ID,
-            "暂无订阅",
+            labels.no_profiles,
             false,
             None::<&str>,
         )
@@ -250,7 +358,8 @@ fn append_native_tray_profile_menu(
     let separator = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     profile_menu.append(&separator).map_err(|e| e.to_string())?;
 
-    let current_menu = Submenu::new(app, "主订阅", true).map_err(|e| e.to_string())?;
+    let current_menu =
+        Submenu::new(app, labels.primary_profile, true).map_err(|e| e.to_string())?;
     let current_items = profile_config
         .items
         .iter()
@@ -261,7 +370,7 @@ fn append_native_tray_profile_menu(
         let empty_item = MenuItem::with_id(
             app,
             TRAY_MENU_PROFILE_CURRENT_EMPTY_ID,
-            "暂无可用主订阅",
+            labels.no_primary_profile,
             false,
             None::<&str>,
         )
@@ -308,16 +417,17 @@ fn append_tray_text_items(
 fn append_native_tray_open_dir_menu(
     app: &tauri::AppHandle,
     menu: &Menu<tauri::Wry>,
+    labels: NativeTrayLabels,
 ) -> Result<(), String> {
-    let open_dir_menu = Submenu::new(app, "打开目录", true).map_err(|e| e.to_string())?;
+    let open_dir_menu = Submenu::new(app, labels.open_dir, true).map_err(|e| e.to_string())?;
     append_tray_text_items(
         app,
         &open_dir_menu,
         &[
-            (TRAY_MENU_OPEN_APP_DIR_ID, "应用目录"),
-            (TRAY_MENU_OPEN_WORK_DIR_ID, "工作目录"),
-            (TRAY_MENU_OPEN_CORE_DIR_ID, "内核目录"),
-            (TRAY_MENU_OPEN_LOG_DIR_ID, "日志目录"),
+            (TRAY_MENU_OPEN_APP_DIR_ID, labels.app_dir),
+            (TRAY_MENU_OPEN_WORK_DIR_ID, labels.work_dir),
+            (TRAY_MENU_OPEN_CORE_DIR_ID, labels.core_dir),
+            (TRAY_MENU_OPEN_LOG_DIR_ID, labels.log_dir),
         ],
     )?;
     menu.append(&open_dir_menu).map_err(|e| e.to_string())
@@ -326,6 +436,7 @@ fn append_native_tray_open_dir_menu(
 fn append_native_tray_copy_env_menu(
     app: &tauri::AppHandle,
     menu: &Menu<tauri::Wry>,
+    labels: NativeTrayLabels,
 ) -> Result<(), String> {
     let env_types = read_tray_env_types(app)?;
 
@@ -337,7 +448,7 @@ fn append_native_tray_copy_env_menu(
         let copy_env_item = MenuItem::with_id(
             app,
             build_tray_copy_env_id(&shell_type),
-            "复制环境变量",
+            labels.copy_env,
             true,
             None::<&str>,
         )
@@ -345,7 +456,7 @@ fn append_native_tray_copy_env_menu(
         return menu.append(&copy_env_item).map_err(|e| e.to_string());
     }
 
-    let env_menu = Submenu::new(app, "复制环境变量", true).map_err(|e| e.to_string())?;
+    let env_menu = Submenu::new(app, labels.copy_env, true).map_err(|e| e.to_string())?;
     for shell_type in env_types {
         let item = MenuItem::with_id(
             app,
@@ -363,6 +474,7 @@ fn append_native_tray_copy_env_menu(
 
 fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, String> {
     let app_config = read_app_config_store(app)?;
+    let labels = native_tray_labels(&app_config);
     let controlled_config = read_controlled_config_store(app)?;
     let proxy_in_tray = app_config
         .get("proxyInTray")
@@ -393,7 +505,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     let show_window = MenuItem::with_id(
         app,
         TRAY_MENU_SHOW_WINDOW_ID,
-        "显示窗口",
+        labels.show_window,
         true,
         None::<&str>,
     )
@@ -402,9 +514,9 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
         app,
         TRAY_MENU_TOGGLE_FLOATING_ID,
         if show_floating {
-            "关闭悬浮窗"
+            labels.close_floating
         } else {
-            "显示悬浮窗"
+            labels.show_floating
         },
         true,
         None::<&str>,
@@ -413,7 +525,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     let sys_proxy = CheckMenuItem::with_id(
         app,
         TRAY_MENU_TOGGLE_SYS_PROXY_ID,
-        "系统代理",
+        labels.sys_proxy,
         true,
         sys_proxy_enabled,
         None::<&str>,
@@ -422,7 +534,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     let tun = CheckMenuItem::with_id(
         app,
         TRAY_MENU_TOGGLE_TUN_ID,
-        "虚拟网卡",
+        labels.tun,
         true,
         tun_enabled,
         None::<&str>,
@@ -431,7 +543,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     let rule_mode = CheckMenuItem::with_id(
         app,
         TRAY_MENU_MODE_RULE_ID,
-        "规则模式",
+        labels.rule_mode,
         true,
         mode == "rule",
         None::<&str>,
@@ -440,7 +552,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     let global_mode = CheckMenuItem::with_id(
         app,
         TRAY_MENU_MODE_GLOBAL_ID,
-        "全局模式",
+        labels.global_mode,
         true,
         mode == "global",
         None::<&str>,
@@ -449,7 +561,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     let direct_mode = CheckMenuItem::with_id(
         app,
         TRAY_MENU_MODE_DIRECT_ID,
-        "直连模式",
+        labels.direct_mode,
         true,
         mode == "direct",
         None::<&str>,
@@ -457,7 +569,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     .map_err(|e| e.to_string())?;
     let mode_menu = Submenu::with_items(
         app,
-        format!("出站模式 ({})", tray_mode_label(mode)),
+        format!("{} ({})", labels.outbound_mode, tray_mode_label(mode, labels)),
         true,
         &[&rule_mode, &global_mode, &direct_mode],
     )
@@ -465,7 +577,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     let quit_without_core = MenuItem::with_id(
         app,
         TRAY_MENU_QUIT_WITHOUT_CORE_ID,
-        "保留内核退出",
+        labels.quit_without_core,
         true,
         None::<&str>,
     )
@@ -473,12 +585,12 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     let restart_app = MenuItem::with_id(
         app,
         TRAY_MENU_RESTART_APP_ID,
-        "重启应用",
+        labels.restart_app,
         true,
         None::<&str>,
     )
     .map_err(|e| e.to_string())?;
-    let quit = MenuItem::with_id(app, TRAY_MENU_QUIT_ID, "退出应用", true, None::<&str>)
+    let quit = MenuItem::with_id(app, TRAY_MENU_QUIT_ID, labels.quit_app, true, None::<&str>)
         .map_err(|e| e.to_string())?;
     let separator_1 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
     let separator_2 = PredefinedMenuItem::separator(app).map_err(|e| e.to_string())?;
@@ -497,7 +609,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     menu.append(&mode_menu).map_err(|e| e.to_string())?;
 
     let appended_groups = if proxy_in_tray && !cfg!(target_os = "linux") {
-        append_native_tray_group_menus(app, &menu).unwrap_or(false)
+        append_native_tray_group_menus(app, &menu, labels).unwrap_or(false)
     } else {
         false
     };
@@ -507,10 +619,10 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     }
 
     menu.append(&separator_4).map_err(|e| e.to_string())?;
-    append_native_tray_profile_menu(app, &menu)?;
+    append_native_tray_profile_menu(app, &menu, labels)?;
     menu.append(&separator_5).map_err(|e| e.to_string())?;
-    append_native_tray_open_dir_menu(app, &menu)?;
-    append_native_tray_copy_env_menu(app, &menu)?;
+    append_native_tray_open_dir_menu(app, &menu, labels)?;
+    append_native_tray_copy_env_menu(app, &menu, labels)?;
     menu.append(&separator_6).map_err(|e| e.to_string())?;
     menu.append(&quit_without_core).map_err(|e| e.to_string())?;
     menu.append(&restart_app).map_err(|e| e.to_string())?;
@@ -536,4 +648,3 @@ fn refresh_native_tray_shell(app: &tauri::AppHandle) -> Result<(), String> {
     update_tray_icon_for_state(app)?;
     refresh_native_tray_menu(app)
 }
-

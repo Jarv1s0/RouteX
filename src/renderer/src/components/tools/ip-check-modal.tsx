@@ -16,22 +16,15 @@ import { useGroups } from '@renderer/hooks/use-groups'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoOpenOutline, IoReload } from 'react-icons/io5'
 import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   isOpen: boolean
   onClose: () => void
 }
 
-const SITES = [
-  { name: 'Ping0 (IP纯净度)', url: 'https://ping0.cc/' },
-  { name: 'IP.SB (IP信息)', url: 'https://ip.sb/' },
-  { name: 'Whoer (匿名度)', url: 'https://whoer.net/' },
-  { name: 'IP138 (国内查询)', url: 'https://www.ip138.com/' },
-  { name: '自定义网址', url: 'custom' },
-]
-
-
 export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
+  const { t } = useI18n()
   const { groups = [], mutate } = useGroups()
   const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const isTauriHost = __ROUTEX_HOST__ === 'tauri'
@@ -47,6 +40,16 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [selectedGroup, setSelectedGroup] = useState<string>('') // The group user is currently controlling
   const [loadingMatch, setLoadingMatch] = useState(false)
   const iframeRef = useRef<Electron.WebviewTag | HTMLIFrameElement | null>(null)
+  const sites = useMemo(
+    () => [
+      { name: `Ping0 (${t('tools.ipCheck.purity')})`, url: 'https://ping0.cc/' },
+      { name: `IP.SB (${t('tools.ipCheck.ipInfo')})`, url: 'https://ip.sb/' },
+      { name: `Whoer (${t('tools.ipCheck.anonymity')})`, url: 'https://whoer.net/' },
+      { name: `IP138 (${t('tools.ipCheck.domesticQuery')})`, url: 'https://www.ip138.com/' },
+      { name: t('tools.ipCheck.customUrl'), url: 'custom' }
+    ],
+    [t]
+  )
 
   const reloadCurrentFrame = useCallback(() => {
     const frame = iframeRef.current
@@ -155,7 +158,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     onChange={(e) => handleSiteChange(e.target.value)}
                     aria-label="Select Site"
                 >
-                    {SITES.map((site) => (
+                    {sites.map((site) => (
                         <SelectItem key={site.url} textValue={site.name}>
                             {site.name}
                         </SelectItem>
@@ -165,7 +168,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 {isCustom && (
                     <Input 
                         size="sm"
-                        placeholder="输入网址，如 https://google.com"
+                        placeholder={t('tools.ipCheck.customUrlPlaceholder')}
                         value={customUrl}
                         onValueChange={handleCustomUrlSubmit}
                         className="flex-1 max-w-sm"
@@ -179,7 +182,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
                         onPress={reloadCurrentFrame}
                         startContent={<IoReload />}
                     >
-                        刷新
+                        {t('common.refresh')}
                     </Button>
                     <Button 
                         size="sm" 
@@ -188,7 +191,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
                         onPress={() => window.open(activeUrl, '_blank')}
                         startContent={<IoOpenOutline />}
                     >
-                        浏览器打开
+                        {t('tools.ipCheck.openBrowser')}
                     </Button>
                 </div>
             </div>
@@ -199,7 +202,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
             
             {/* 1. Group Selector */}
             <div className="flex items-center gap-2 min-w-[200px]">
-                <span className="text-foreground-500 shrink-0">代理组:</span>
+                <span className="text-foreground-500 shrink-0">{t('tools.ipCheck.proxyGroup')}</span>
                 <Select
                     size="sm"
                     aria-label="Select Proxy Group"
@@ -210,7 +213,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 >
                     {groups.filter(g => g.type === 'Selector' || g.name === 'GLOBAL').map((g) => (
                         <SelectItem key={g.name} textValue={g.name}>
-                            {g.name} {autoMatchGroup === g.name ? '(自动匹配)' : ''}
+                            {g.name} {autoMatchGroup === g.name ? `(${t('tools.ipCheck.autoMatched')})` : ''}
                         </SelectItem>
                     ))}
                 </Select>
@@ -219,7 +222,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
             {/* 2. Node Selector (if applicable) */}
             {currentGroupDetail && isSelectable ? (
                 <div className="flex items-center gap-2 flex-1 border-l border-default-200 pl-4">
-                    <span className="text-foreground-500 shrink-0">选择节点:</span>
+                    <span className="text-foreground-500 shrink-0">{t('tools.ipCheck.selectNode')}</span>
                     <Select 
                         size="sm" 
                         aria-label="Select Node" 
@@ -236,8 +239,8 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 </div>
             ) : (
                 <div className="flex items-center gap-2 flex-1 border-l border-default-200 pl-4 text-foreground-400">
-                    <span>当前节点: {currentNode || '无'}</span>
-                    <span className="text-xs text-warning ml-1">(此组不可手动切换)</span>
+                    <span>{t('tools.ipCheck.currentNode', { node: currentNode || t('common.none') })}</span>
+                    <span className="text-xs text-warning ml-1">({t('tools.ipCheck.notSwitchable')})</span>
                 </div>
             )}
 
@@ -245,7 +248,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
             {loadingMatch && (
                 <div className="flex items-center gap-2 text-xs text-primary bg-primary/10 px-2 py-1 rounded-lg">
                     <Spinner size="sm" color="current" />
-                    <span>分析路由中...</span>
+                    <span>{t('tools.ipCheck.analyzingRoute')}</span>
                 </div>
             )}
           </div>

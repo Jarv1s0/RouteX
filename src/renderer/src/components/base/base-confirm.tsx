@@ -1,6 +1,7 @@
 import React from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useI18n } from '@renderer/i18n'
 import { motion } from 'framer-motion'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
@@ -24,12 +25,13 @@ interface Props {
 }
 
 const ConfirmModal: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const {
     onChange,
-    title = '请确认',
+    title = t('confirm.title'),
     description,
-    confirmText = '确认',
-    cancelText = '取消',
+    confirmText = t('common.confirm'),
+    cancelText = t('common.cancel'),
     onConfirm,
     buttons,
     className

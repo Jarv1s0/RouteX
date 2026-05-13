@@ -14,12 +14,14 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   onClose: () => void
 }
 
 const InterfaceModal: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const { onClose } = props
   const {
     appConfig: {
@@ -49,7 +51,7 @@ const InterfaceModal: React.FC<Props> = (props) => {
     >
       <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 560 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span>网络信息</span>
+          <span>{t('mihomo.networkInfo')}</span>
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="pb-6">

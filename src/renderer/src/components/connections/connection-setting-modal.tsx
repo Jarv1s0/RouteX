@@ -38,26 +38,27 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n, type TranslationKey } from '@renderer/i18n'
 
 // 所有可用的表格列
 const ALL_COLUMNS = [
-  { key: 'close', label: '关闭' },
-  { key: 'host', label: '主机' },
-  { key: 'process', label: '进程' },
-  { key: 'type', label: '类型' },
-  { key: 'rule', label: '规则' },
-  { key: 'chains', label: '代理链' },
-  { key: 'downloadSpeed', label: '下载速度' },
-  { key: 'uploadSpeed', label: '上传速度' },
-  { key: 'download', label: '下载' },
-  { key: 'upload', label: '上传' },
-  { key: 'time', label: '连接时间' },
-  { key: 'sourceIP', label: '源IP' },
-  { key: 'sourcePort', label: '源端口' },
-  { key: 'destinationIP', label: '目标IP' },
-  { key: 'sniffHost', label: '嗅探主机' },
-  { key: 'inboundName', label: '入站名称' },
-  { key: 'inboundUser', label: '入站用户' }
+  { key: 'close', labelKey: 'connections.column.close' },
+  { key: 'host', labelKey: 'connections.column.host' },
+  { key: 'process', labelKey: 'connections.column.process' },
+  { key: 'type', labelKey: 'connections.column.type' },
+  { key: 'rule', labelKey: 'connections.column.rule' },
+  { key: 'chains', labelKey: 'connections.column.chains' },
+  { key: 'downloadSpeed', labelKey: 'connections.column.downloadSpeed' },
+  { key: 'uploadSpeed', labelKey: 'connections.column.uploadSpeed' },
+  { key: 'download', labelKey: 'connections.column.download' },
+  { key: 'upload', labelKey: 'connections.column.upload' },
+  { key: 'time', labelKey: 'connections.column.time' },
+  { key: 'sourceIP', labelKey: 'connections.column.sourceIP' },
+  { key: 'sourcePort', labelKey: 'connections.column.sourcePort' },
+  { key: 'destinationIP', labelKey: 'connections.column.destinationIP' },
+  { key: 'sniffHost', labelKey: 'connections.column.sniffHost' },
+  { key: 'inboundName', labelKey: 'connections.column.inboundName' },
+  { key: 'inboundUser', labelKey: 'connections.column.inboundUser' }
 ]
 
 // 默认显示的列
@@ -120,6 +121,7 @@ const SortableChip: React.FC<{
 
 const ConnectionSettingModal: React.FC<Props> = (props) => {
   const { onClose } = props
+  const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
   const MIN_CONNECTION_INTERVAL = 500
 
@@ -202,12 +204,12 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
     >
       <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span className="text-lg font-semibold">连接设置</span>
+          <span className="text-lg font-semibold">{t('page.connections.settings')}</span>
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="px-6 gap-4 pb-4 pt-0">
           <div className="space-y-1">
-            <SettingItem title="显示应用图标" divider>
+            <SettingItem title={t('connections.showAppIcon')} divider>
               <Switch
                 size="sm"
                 isSelected={displayIcon}
@@ -216,7 +218,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem title="显示应用名称" divider>
+            <SettingItem title={t('connections.showAppName')} divider>
               <Switch
                 size="sm"
                 isSelected={displayAppName}
@@ -228,7 +230,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
             <SettingItem
               title={
                 <>
-                  刷新间隔
+                  {t('connections.refreshInterval')}
                   <span className="text-xs text-foreground-400 font-normal ml-1">
                     (ms)
                   </span>
@@ -240,7 +242,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                 className="w-[120px]"
                 classNames={secondaryInputClassNames}
                 value={interval}
-                placeholder={`默认 ${MIN_CONNECTION_INTERVAL}`}
+                placeholder={t('connections.defaultInterval', { value: MIN_CONNECTION_INTERVAL })}
                 onValueChange={(v) => {
                   // 允许空值以便用户删除
                   if (v === '') {
@@ -260,8 +262,8 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
           <Divider className="-mt-2 mb-1" />
           
           <div>
-            <div className="text-sm font-medium mb-3">自定义表格列</div>
-            <div className="text-xs text-foreground-400 mb-3">拖拽调整顺序，点击切换显示</div>
+            <div className="text-sm font-medium mb-3">{t('connections.customColumns')}</div>
+            <div className="text-xs text-foreground-400 mb-3">{t('connections.customColumnsHelp')}</div>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -276,7 +278,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                       <SortableChip
                         key={col.key}
                         id={col.key}
-                        label={col.label}
+                        label={t(col.labelKey as TranslationKey)}
                         isSelected={connectionTableColumns.includes(col.key)}
                         onToggle={() => toggleColumn(col.key)}
                       />

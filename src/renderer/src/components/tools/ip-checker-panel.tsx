@@ -3,6 +3,7 @@ import { Button, Chip, Skeleton } from '@heroui/react'
 import { IoAlertCircle, IoCheckmarkCircle, IoCloseCircle, IoCopy, IoRefresh } from 'react-icons/io5'
 import * as isIp from 'is-ip'
 import { httpGet } from '@renderer/utils/tools-ipc'
+import { translate, useI18n } from '@renderer/i18n'
 
 interface ProviderResult {
   ip: string
@@ -14,7 +15,7 @@ interface ProviderResult {
 interface IpProvider {
   id: string
   name: string
-  type: '国内' | '国际'
+  type: 'domestic' | 'international'
   check: () => Promise<ProviderResult>
 }
 
@@ -28,7 +29,7 @@ const providers: IpProvider[] = [
   {
     id: 'ipip',
     name: 'IPIP.net',
-    type: '国内',
+    type: 'domestic',
     check: async () => {
       const start = Date.now()
       const res = await httpGet('https://myip.ipip.net/json', 5000)
@@ -45,7 +46,7 @@ const providers: IpProvider[] = [
   {
     id: 'ipsb',
     name: 'IP.SB',
-    type: '国际',
+    type: 'international',
     check: async () => {
       const start = Date.now()
       const res = await httpGet('https://api.ip.sb/geoip', 5000)
@@ -61,7 +62,7 @@ const providers: IpProvider[] = [
   {
     id: 'ifconfig',
     name: 'ifconfig.co',
-    type: '国际',
+    type: 'international',
     check: async () => {
       const start = Date.now()
       const res = await httpGet('https://ifconfig.co/json', 5000)
@@ -91,22 +92,22 @@ const getReadableError = (error: string): string => {
   const message = error.toLowerCase()
 
   if (message.includes('timeout') || message.includes('timed out') || message.includes('超时')) {
-    return '请求超时'
+    return translate('tools.ipChecker.timeout')
   }
 
   if (message.includes('json') || message.includes('parse') || message.includes('解析')) {
-    return '响应解析失败'
+    return translate('tools.ipChecker.parseFailed')
   }
 
   if (message.includes('network') || message.includes('fetch') || message.includes('网络')) {
-    return '网络请求失败'
+    return translate('tools.ipChecker.networkFailed')
   }
 
   if (message.includes('http')) {
-    return '服务返回异常'
+    return translate('tools.ipChecker.httpFailed')
   }
 
-  return error ? '无法确认失败原因' : '无错误详情'
+  return error ? translate('tools.ipChecker.unknownReason') : translate('tools.ipChecker.noErrorDetail')
 }
 
 export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
@@ -114,6 +115,7 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
   onResultsChange,
   enabled = true
 }) => {
+  const { t } = useI18n()
   const [providerResults, setProviderResults] = useState<Record<string, ProviderState>>({})
   const [copiedProviderId, setCopiedProviderId] = useState<string | null>(null)
   const copiedProviderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -134,7 +136,7 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
         ...prev,
         [provider.id]: isValidIp(normalizedResult.ip)
           ? { status: 'success', data: normalizedResult }
-          : { status: 'invalid', data: normalizedResult, error: '无有效 IP' }
+          : { status: 'invalid', data: normalizedResult, error: t('tools.ipChecker.noValidIp') }
       }))
     } catch (e) {
       setProviderResults((prev) => ({
@@ -142,7 +144,7 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
         [provider.id]: { status: 'error', error: e instanceof Error ? e.message : String(e) }
       }))
     }
-  }, [])
+  }, [t])
 
   const fetchProviders = useCallback(() => {
     providers.forEach((provider) => {
@@ -215,10 +217,10 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-default-200/40 bg-default-50/50">
       <div className="grid grid-cols-[minmax(112px,0.9fr)_72px_minmax(128px,1fr)_minmax(92px,0.7fr)] items-center gap-3 border-b border-default-200/50 px-3 py-2 text-[11px] font-medium text-foreground-400">
-        <div>来源</div>
-        <div>类型</div>
-        <div>结果</div>
-        <div className="text-right">延迟 / 操作</div>
+        <div>{t('tools.ipChecker.source')}</div>
+        <div>{t('tools.ipChecker.type')}</div>
+        <div>{t('tools.ipChecker.result')}</div>
+        <div className="text-right">{t('tools.ipChecker.latencyAction')}</div>
       </div>
       {providers.map((provider) => {
         const state = providerResults[provider.id]
@@ -268,10 +270,10 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
             <Chip
               size="sm"
               variant="flat"
-              color={provider.type === '国内' ? 'primary' : 'success'}
+              color={provider.type === 'domestic' ? 'primary' : 'success'}
               className="h-5 justify-self-start px-1.5 text-[10px]"
             >
-              {provider.type}
+              {provider.type === 'domestic' ? t('tools.ipChecker.domestic') : t('tools.ipChecker.international')}
             </Chip>
 
             <div className="min-w-0">
@@ -301,7 +303,7 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
                       isIconOnly
                       color={copiedProviderId === provider.id ? 'success' : 'default'}
                       className="h-6 w-6 min-w-6 shrink-0"
-                      title={copiedProviderId === provider.id ? '已复制' : '复制该来源返回的 IP'}
+                      title={copiedProviderId === provider.id ? t('common.copied') : t('tools.ipChecker.copyProviderIp')}
                       onPress={() => copyProviderIp(provider.id, state.data.ip)}
                     >
                       {copiedProviderId === provider.id ? (
@@ -336,7 +338,7 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
                   variant="light"
                   isIconOnly
                   className="h-7 w-7 min-w-7 text-danger"
-                  title="重试该检测源"
+                  title={t('tools.ipChecker.retryProvider')}
                   onPress={() => fetchProvider(provider)}
                 >
                   <IoRefresh className="text-sm" />

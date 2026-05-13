@@ -7,6 +7,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { MdOutlineAltRoute } from 'react-icons/md'
 import { TbWorld, TbBolt } from 'react-icons/tb'
 import clsx from 'clsx'
+import { useI18n, type TranslationKey } from '@renderer/i18n'
 
 interface Props {
   iconOnly?: boolean
@@ -15,6 +16,7 @@ interface Props {
 
 const OutboundModeSwitcher: React.FC<Props> = (props) => {
   const { iconOnly, isMinimal } = props
+  const { t } = useI18n()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { mutate: mutateGroups } = useGroups()
   const { appConfig } = useAppConfig()
@@ -35,9 +37,9 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
   if (!mode) return null
 
   const modes = [
-    { key: 'rule', label: '规则', icon: MdOutlineAltRoute },
-    { key: 'global', label: '全局', icon: TbWorld },
-    { key: 'direct', label: '直连', icon: TbBolt }
+    { key: 'rule', labelKey: 'outbound.rule', icon: MdOutlineAltRoute },
+    { key: 'global', labelKey: 'outbound.global', icon: TbWorld },
+    { key: 'direct', labelKey: 'outbound.direct', icon: TbBolt }
   ] as const
 
   if (iconOnly) {
@@ -61,7 +63,7 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
           >
             <span className="flex items-center gap-1.5">
               <m.icon className={clsx('text-base', isActive ? 'text-foreground/70 dark:text-foreground/60' : 'text-default-600 dark:text-default-300')} />
-              {m.label}
+              {t(m.labelKey as TranslationKey)}
             </span>
           </button>
         )

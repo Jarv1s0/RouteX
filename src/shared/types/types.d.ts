@@ -3,6 +3,7 @@ type LogLevel = 'info' | 'debug' | 'warning' | 'error' | 'silent'
 type SysProxyMode = 'auto' | 'manual'
 type CardStatus = 'col-span-2' | 'col-span-1' | 'hidden'
 type AppTheme = 'system' | 'light' | 'dark'
+type AppLanguage = 'system' | 'zh-CN' | 'en-US'
 type Priority =
   | 'PRIORITY_LOW'
   | 'PRIORITY_BELOW_NORMAL'

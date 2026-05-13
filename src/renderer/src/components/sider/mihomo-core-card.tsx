@@ -15,6 +15,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   iconOnly?: boolean
@@ -29,6 +30,7 @@ async function showToastError(message: string): Promise<void> {
 
 const MihomoCoreCard: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
+  const { t } = useI18n()
   const { iconOnly, compact, className = '' } = props
   const { core = 'mihomo' } = appConfig || {}
   const [version, setVersion] = useState<ControllerVersion | null>(null)
@@ -153,7 +155,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   if (iconOnly) {
     return (
       <div className={`flex justify-center`}>
-        <Tooltip content="内核" placement="right">
+        <Tooltip content={t('sidebar.core')} placement="right">
           <Button
             size="sm"
             isIconOnly
@@ -188,7 +190,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
           <h3
             className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}
           >
-            内核
+            {t('sidebar.core')}
           </h3>
         </div>
         <div
@@ -226,7 +228,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
         <div className="flex items-center">
           {version?.version ?? '-'}
           {hasNewVersion() && (
-            <Tooltip content={`新版本 ${latestVersion}`} placement="top">
+            <Tooltip content={t('sidebar.newVersion', { version: latestVersion ?? '' })} placement="top">
               <span
                 className={`inline-block ml-1.5 w-2 h-2 rounded-full animate-pulse align-middle bg-success`}
               />

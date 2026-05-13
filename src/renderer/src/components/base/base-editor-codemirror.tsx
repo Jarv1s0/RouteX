@@ -31,6 +31,7 @@ import {
 import { useTheme } from 'next-themes'
 import { load } from 'js-yaml'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { translate } from '@renderer/i18n'
 import type { BaseEditorProps, Language } from './base-editor.shared'
 
 type YamlParseError = {
@@ -109,7 +110,7 @@ const yamlParseLinter = linter((view) => {
         from,
         to: Math.min(from + 1, view.state.doc.length),
         severity: 'error',
-        message: parseError.message || 'YAML 解析失败'
+        message: parseError.message || translate('sysproxy.yamlFormatError')
       } satisfies Diagnostic
     ]
   }
@@ -373,8 +374,8 @@ const CodeMirrorEditorView: React.FC<CodeMirrorEditorViewProps> = ({
 const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
   value,
   originalValue = '',
-  diffOriginalLabel = '对比源',
-  diffModifiedLabel = '当前内容',
+  diffOriginalLabel = translate('configViewer.diffSource'),
+  diffModifiedLabel = translate('configViewer.diffModified'),
   language,
   extensions,
   suppressChangeRef

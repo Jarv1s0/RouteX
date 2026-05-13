@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Switch, Tooltip, Tabs, Tab, Input } from '@heroui/react'
+import { Button, Switch, Tooltip, Tabs, Tab, Input, Select, SelectItem } from '@heroui/react'
 import useSWR from 'swr'
 import {
   checkAutoRun,
@@ -20,6 +20,7 @@ import ConfirmModal from '../base/base-confirm'
 import { toast } from 'sonner'
 import { platform } from '@renderer/utils/init'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
+import { useI18n, type LanguagePreference, type TranslationKey } from '@renderer/i18n'
 
 import WebdavConfigModal from './webdav-config-modal'
 import DnsControlModal from './dns-control-modal'
@@ -28,13 +29,18 @@ import SniffControlModal from './sniff-control-modal'
 const UpdaterModal = React.lazy(() => import('../updater/updater-modal'))
 
 const emptyArray: string[] = []
-const CONTROL_STATUS_TEXT: Record<'enabled' | 'disabled', string> = {
-  enabled: '正在接管',
-  disabled: '尚未接管'
-}
+const LANGUAGE_OPTIONS: {
+  key: LanguagePreference
+  labelKey: TranslationKey
+}[] = [
+  { key: 'system', labelKey: 'common.system' },
+  { key: 'zh-CN', labelKey: 'common.language.zhCN' },
+  { key: 'en-US', labelKey: 'common.language.enUS' }
+]
 
 const GeneralConfig: React.FC = () => {
   const isTauriHost = __ROUTEX_HOST__ === 'tauri'
+  const { t, language, setLanguage } = useI18n()
   const { data: enable, mutate: mutateEnable } = useSWR('checkAutoRun', checkAutoRun)
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
@@ -110,14 +116,14 @@ const GeneralConfig: React.FC = () => {
       )}
       {showRestartConfirm && (
         <ConfirmModal
-          title="确定要重启应用吗？"
+          title={t('settings.system.restartTitle')}
           description={
             <div>
-              <p>修改 GPU 加速设置需要重启应用才能生效</p>
+              <p>{t('settings.system.restartDescription')}</p>
             </div>
           }
-          confirmText="重启"
-          cancelText="取消"
+          confirmText={t('settings.system.restart')}
+          cancelText={t('common.cancel')}
           onChange={(open) => {
             if (!open) {
               setPendingDisableGPU(disableGPU)
@@ -133,8 +139,8 @@ const GeneralConfig: React.FC = () => {
           }}
         />
       )}
-      <SettingCard title="系统设置">
-        <SettingItem title="开机自启" divider>
+      <SettingCard title={t('settings.system.title')}>
+        <SettingItem title={t('settings.system.autoLaunch')} divider>
           <Switch
             size="sm"
             isSelected={enable}
@@ -153,7 +159,7 @@ const GeneralConfig: React.FC = () => {
             }}
           />
         </SettingItem>
-        <SettingItem title="静默启动" divider>
+        <SettingItem title={t('settings.system.silentStart')} divider>
           <Switch
             size="sm"
             isSelected={silentStart}
@@ -162,7 +168,27 @@ const GeneralConfig: React.FC = () => {
             }}
           />
         </SettingItem>
-        <SettingItem title="检查更新" divider>
+        <SettingItem title={t('settings.system.language')} divider>
+          <Select
+            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+            className="w-[190px]"
+            size="sm"
+            selectedKeys={new Set([language])}
+            disallowEmptySelection={true}
+            aria-label={t('settings.system.language')}
+            onSelectionChange={(selection) => {
+              const nextLanguage = selection.currentKey as LanguagePreference | undefined
+              if (nextLanguage) {
+                void setLanguage(nextLanguage)
+              }
+            }}
+          >
+            {LANGUAGE_OPTIONS.map((option) => (
+              <SelectItem key={option.key}>{t(option.labelKey)}</SelectItem>
+            ))}
+          </Select>
+        </SettingItem>
+        <SettingItem title={t('settings.system.checkUpdate')} divider>
           <Button
             size="sm"
             variant="flat"
@@ -176,12 +202,14 @@ const GeneralConfig: React.FC = () => {
                   setReleaseNotes(version.releaseNotes)
                   setOpenUpdate(true)
                 } else {
-                  toast.success('当前已是最新版本')
+                  toast.success(t('settings.system.upToDate'))
                 }
               } catch (e) {
                 const errorMsg = String(e)
                 if (errorMsg.includes('404')) {
-                  toast.error('检查更新失败', { description: '暂无可用更新' })
+                  toast.error(t('settings.system.checkFailed'), {
+                    description: t('settings.system.noUpdate')
+                  })
                 } else {
                   toast.error(String(e))
                 }
@@ -190,15 +218,15 @@ const GeneralConfig: React.FC = () => {
               }
             }}
           >
-            立即检查
+            {t('settings.system.checkNow')}
           </Button>
         </SettingItem>
 
         {!isTauriHost && (
           <SettingItem
-            title="禁用 GPU 加速"
+            title={t('settings.system.disableGpu')}
             actions={
-              <Tooltip content="开启后，应用将禁用 GPU 加速，可能会提高稳定性，但会降低性能">
+              <Tooltip content={t('settings.system.disableGpuHelp')}>
                 <Button isIconOnly size="sm" variant="light">
                   <IoIosHelpCircle className="text-lg" />
                 </Button>
@@ -217,9 +245,9 @@ const GeneralConfig: React.FC = () => {
           </SettingItem>
         )}
         <SettingItem
-          title="禁用动画"
+          title={t('settings.system.disableAnimation')}
           actions={
-            <Tooltip content="开启后，应用将减轻绝大部分动画效果，可能会提高性能">
+            <Tooltip content={t('settings.system.disableAnimationHelp')}>
               <Button isIconOnly size="sm" variant="light">
                 <IoIosHelpCircle className="text-lg" />
               </Button>
@@ -236,8 +264,8 @@ const GeneralConfig: React.FC = () => {
         </SettingItem>
       </SettingCard>
 
-      <SettingCard title="Clash 设置">
-        <SettingItem title="打开配置文件目录" divider>
+      <SettingCard title={t('settings.clash.title')}>
+        <SettingItem title={t('settings.clash.openConfigDir')} divider>
           <Button
             size="sm"
             variant="flat"
@@ -249,13 +277,13 @@ const GeneralConfig: React.FC = () => {
               }
             }}
           >
-            打开目录
+            {t('settings.clash.openDir')}
           </Button>
         </SettingItem>
         <SettingItem
-          title="自动开启轻量模式"
+          title={t('settings.clash.autoLightweight')}
           actions={
-            <Tooltip content="关闭窗口指定时间后自动进入轻量模式">
+            <Tooltip content={t('settings.clash.autoLightweightHelp')}>
               <Button isIconOnly size="sm" variant="light">
                 <IoIosHelpCircle className="text-lg" />
               </Button>
@@ -274,7 +302,7 @@ const GeneralConfig: React.FC = () => {
         {autoLightweight && (
           <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-2">
             <div className="ml-2 text-sm">
-              <SettingItem title="轻量模式行为" divider>
+              <SettingItem title={t('settings.clash.lightweightBehavior')} divider>
                 <Tabs
                   size="sm"
                   color="primary"
@@ -288,11 +316,11 @@ const GeneralConfig: React.FC = () => {
                     }
                   }}
                 >
-                  <Tab key="core" title="仅保留内核" />
-                  <Tab key="tray" title="仅关闭渲染进程" />
+                  <Tab key="core" title={t('settings.clash.keepCore')} />
+                  <Tab key="tray" title={t('settings.clash.closeRenderer')} />
                 </Tabs>
               </SettingItem>
-              <SettingItem title="自动开启轻量模式延时" divider>
+              <SettingItem title={t('settings.clash.lightweightDelay')} divider>
                 <Input
                   size="sm"
                   className="w-[100px]"
@@ -302,7 +330,7 @@ const GeneralConfig: React.FC = () => {
                       'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
                   }}
                   type="number"
-                  endContent="秒"
+                  endContent={t('settings.clash.seconds')}
                   value={appConfig?.autoLightweightDelay?.toString()}
                   onValueChange={async (v: string) => {
                     let num = parseInt(v)
@@ -314,7 +342,7 @@ const GeneralConfig: React.FC = () => {
             </div>
           </div>
         )}
-        <SettingItem title="复制终端代理命令" divider>
+        <SettingItem title={t('settings.clash.copyTerminalProxy')} divider>
           <Button
             size="sm"
             variant="flat"
@@ -323,41 +351,41 @@ const GeneralConfig: React.FC = () => {
               copyEnv(type)
             }}
           >
-            复制命令
+            {t('settings.clash.copyCommand')}
           </Button>
         </SettingItem>
         {platform === 'win32' && (
-          <SettingItem title="UWP 工具" divider>
+          <SettingItem title={t('settings.clash.uwpTools')} divider>
             <Button size="sm" variant="flat" onPress={() => openUWPTool()}>
-              打开工具
+              {t('settings.clash.openTools')}
             </Button>
           </SettingItem>
         )}
 
-        <SettingItem title="接管 DNS 设置" divider>
+        <SettingItem title={t('settings.clash.controlDns')} divider>
           <Button
             size="sm"
             variant="flat"
             color={controlDns ? 'success' : 'default'}
             onPress={() => setIsDnsModalOpen(true)}
           >
-            {controlDns ? CONTROL_STATUS_TEXT.enabled : CONTROL_STATUS_TEXT.disabled}
+            {controlDns ? t('common.enabled') : t('common.disabled')}
           </Button>
         </SettingItem>
-        <SettingItem title="接管域名嗅探设置" divider>
+        <SettingItem title={t('settings.clash.controlSniff')} divider>
           <Button
             size="sm"
             variant="flat"
             color={controlSniff ? 'success' : 'default'}
             onPress={() => setIsSniffModalOpen(true)}
           >
-            {controlSniff ? CONTROL_STATUS_TEXT.enabled : CONTROL_STATUS_TEXT.disabled}
+            {controlSniff ? t('common.enabled') : t('common.disabled')}
           </Button>
         </SettingItem>
         <SettingItem
-          title="保存配置后热重载"
+          title={t('settings.clash.hotReloadOnSave')}
           actions={
-            <Tooltip content="保存订阅、覆写和接管配置后使用 Mihomo 热重载；热重载后默认断开连接重连，失败时提示错误">
+            <Tooltip content={t('settings.clash.hotReloadOnSaveHelp')}>
               <Button isIconOnly size="sm" variant="light">
                 <IoIosHelpCircle className="text-lg" />
               </Button>
@@ -373,7 +401,7 @@ const GeneralConfig: React.FC = () => {
             }}
           />
         </SettingItem>
-        <SettingItem title="在特定的 WiFi SSID 下直连" divider>
+        <SettingItem title={t('settings.clash.pauseBySsid')} divider>
           <div className="flex items-center gap-2">
             {pauseSSIDInput.join('') !== pauseSSIDArray.join('') && (
               <Button
@@ -383,7 +411,7 @@ const GeneralConfig: React.FC = () => {
                   patchAppConfig({ pauseSSID: pauseSSIDInput })
                 }}
               >
-                确认
+                {t('common.confirm')}
               </Button>
             )}
             <Input
@@ -394,7 +422,7 @@ const GeneralConfig: React.FC = () => {
                 inputWrapper:
                   'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
               }}
-              placeholder="输入 SSID，逗号分隔"
+              placeholder={t('settings.clash.ssidPlaceholder')}
               value={pauseSSIDInput.join(',')}
               onValueChange={(v) => {
                 setPauseSSIDInput(v ? v.split(',').map((s) => s.trim()) : [])
@@ -402,9 +430,9 @@ const GeneralConfig: React.FC = () => {
             />
           </div>
         </SettingItem>
-        <SettingItem title="WebDAV 备份设置">
+        <SettingItem title={t('settings.clash.webdav')}>
           <Button size="sm" variant="flat" onPress={() => setIsWebdavModalOpen(true)}>
-            同步配置
+            {t('settings.clash.syncConfig')}
           </Button>
         </SettingItem>
         <DnsControlModal isOpen={isDnsModalOpen} onOpenChange={setIsDnsModalOpen} />

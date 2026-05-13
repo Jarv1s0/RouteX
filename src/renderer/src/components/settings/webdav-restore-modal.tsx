@@ -10,11 +10,13 @@ import {
   getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 interface Props {
   filenames: string[]
   onClose: () => void
 }
 const WebdavRestoreModal: React.FC<Props> = (props) => {
+  const { t } = useI18n()
   const { filenames: names, onClose } = props
   const {
     appConfig: {
@@ -38,12 +40,12 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
     >
       <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 640 })}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span>恢复备份</span>
+          <span>{t('settings.webdav.restoreTitle')}</span>
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="pb-6">
           {filenames.length === 0 ? (
-            <div className="flex justify-center">还没有备份</div>
+            <div className="flex justify-center">{t('settings.webdav.empty')}</div>
           ) : (
             filenames.map((filename) => (
               <div className="flex" key={filename}>
@@ -58,7 +60,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
                       await webdavRestore(filename)
                       await relaunchApp()
                     } catch (e) {
-                      alert(`恢复失败：${e}`)
+                      alert(t('settings.webdav.restoreFailed', { error: String(e) }))
                     } finally {
                       setRestoring(false)
                     }
@@ -76,7 +78,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
                       await webdavDelete(filename)
                       setFilenames(filenames.filter((name) => name !== filename))
                     } catch (e) {
-                      alert(`删除失败：${e}`)
+                      alert(t('settings.webdav.deleteFailed', { error: String(e) }))
                     }
                   }}
                 >

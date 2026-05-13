@@ -17,6 +17,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
+import { useI18n } from '@renderer/i18n'
 interface Props {
   item: OverrideItem
   updateOverrideItem: (item: OverrideItem) => Promise<void>
@@ -25,6 +26,7 @@ interface Props {
 
 const EditInfoModal: React.FC<Props> = (props) => {
   const { item, updateOverrideItem, onClose } = props
+  const { t } = useI18n()
   const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
     useAppConfig()
   const [values, setValues] = useState(item)
@@ -40,11 +42,11 @@ const EditInfoModal: React.FC<Props> = (props) => {
 
       await updateOverrideItem(itemToSave)
       if (item.id) {
-        restartCoreInBackground('应用覆写失败')
+        restartCoreInBackground(t('profiles.applyOverrideFailed'))
       }
       onClose()
     } catch (e) {
-      notifyError(e, { title: item.id ? '保存覆写信息失败' : '导入远程覆写失败' })
+      notifyError(e, { title: item.id ? t('override.saveInfoFailed') : t('profiles.importOverrideFailed') })
       setSaving(false)
     }
   }
@@ -69,10 +71,10 @@ const EditInfoModal: React.FC<Props> = (props) => {
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1024 })}
       >
         <ModalHeader className="flex app-drag">
-          {item.id ? '编辑覆写属性' : '导入远程覆写'}
+          {item.id ? t('override.editTitle') : t('override.importRemote')}
         </ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-y-auto">
-          <SettingItem title="名称">
+          <SettingItem title={t('override.name')}>
             <Input
               size="sm"
               className={cn(inputWidth)}
@@ -84,7 +86,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
           </SettingItem>
           {values.type === 'remote' && (
             <>
-              <SettingItem title="覆写地址">
+              <SettingItem title={t('override.url')}>
                 <Input
                   size="sm"
                   className={cn(inputWidth)}
@@ -94,7 +96,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   }}
                 />
               </SettingItem>
-              <SettingItem title="证书指纹">
+              <SettingItem title={t('override.fingerprint')}>
                 <Input
                   size="sm"
                   className={cn(inputWidth)}
@@ -106,7 +108,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
               </SettingItem>
             </>
           )}
-          <SettingItem title="文件类型">
+          <SettingItem title={t('override.fileType')}>
             <Select
               size="sm"
               className={cn(inputWidth)}
@@ -120,7 +122,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
               <SelectItem key="js">JavaScript</SelectItem>
             </Select>
           </SettingItem>
-          <SettingItem title="全局覆写">
+          <SettingItem title={t('override.global')}>
             <Switch
               size="sm"
               isSelected={values.global ?? false}
@@ -132,10 +134,10 @@ const EditInfoModal: React.FC<Props> = (props) => {
         </ModalBody>
         <ModalFooter>
           <Button size="sm" variant="light" onPress={onClose}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button size="sm" color="primary" isLoading={saving} onPress={onSave}>
-            {item.id ? '保存' : '导入'}
+            {item.id ? t('common.save') : t('common.import')}
           </Button>
         </ModalFooter>
       </ModalContent>

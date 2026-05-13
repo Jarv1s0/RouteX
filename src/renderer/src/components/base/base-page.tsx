@@ -11,6 +11,7 @@ import {
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { LuPin } from 'react-icons/lu'
 import { VscChromeClose, VscChromeMaximize, VscChromeMinimize } from 'react-icons/vsc'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   title?: React.ReactNode
@@ -26,6 +27,7 @@ let saveOnTop = false
 
 const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
   const { appConfig } = useAppConfig()
+  const { t } = useI18n()
   const { useWindowFrame = false } = appConfig || {}
 
   const [onTop, setOnTop] = useState(saveOnTop)
@@ -71,7 +73,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
                     : 'text-foreground-500 hover:text-foreground-700 hover:bg-default-200/60'
                 }`}
                 isIconOnly
-                title="窗口置顶"
+                title={t('basePage.alwaysOnTop')}
                 variant="light"
                 onPress={() => {
                   const newState = !onTop
@@ -90,7 +92,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
                     size="sm"
                     className="min-w-8 w-8 h-8 rounded-lg text-foreground hover:bg-default-200 active:scale-90 transition-all basic-hover-transition"
                     isIconOnly
-                    title="最小化"
+                    title={t('basePage.minimize')}
                     variant="light"
                     onPress={() => windowMin()}
                   >
@@ -100,7 +102,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
                     size="sm"
                     className="min-w-8 w-8 h-8 rounded-lg text-foreground hover:bg-default-200 active:scale-90 transition-all basic-hover-transition"
                     isIconOnly
-                    title="最大化"
+                    title={t('basePage.maximize')}
                     variant="light"
                     onPress={() => windowMax()}
                   >
@@ -110,7 +112,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
                     size="sm"
                     className="min-w-8 w-8 h-8 rounded-lg text-foreground hover:!bg-red-500 hover:!text-white active:scale-90 transition-all basic-hover-transition"
                     isIconOnly
-                    title="关闭"
+                    title={t('basePage.close')}
                     variant="light"
                     onPress={() => closeMainWindow()}
                   >

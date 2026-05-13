@@ -17,6 +17,7 @@ import { getProfileConfig, getRawProfileStr } from '@renderer/utils/profile-ipc'
 import useSWR from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { useI18n } from '@renderer/i18n'
 
 interface Props {
   onClose: () => void
@@ -25,6 +26,7 @@ interface Props {
 type DiffSource = 'raw' | 'override'
 
 const ConfigViewer: React.FC<Props> = ({ onClose }) => {
+  const { t } = useI18n()
   const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
     useAppConfig()
   const [runtimeConfig, setRuntimeConfig] = useState('')
@@ -48,11 +50,11 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
 
   const diffSourceConfig = {
     raw: {
-      label: '配置文件原文',
+      label: t('configViewer.rawProfile'),
       value: rawProfile
     },
     override: {
-      label: '覆写后文本',
+      label: t('configViewer.overrideText'),
       value: overrideConfig
     }
   } satisfies Record<DiffSource, { label: string; value: string }>
@@ -78,7 +80,7 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
       >
-        <ModalHeader className="flex pb-0 app-drag">当前运行时配置</ModalHeader>
+        <ModalHeader className="flex pb-0 app-drag">{t('configViewer.title')}</ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-hidden">
           <BaseEditor
             language="yaml"
@@ -86,14 +88,14 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
             originalValue={originalValue}
             readOnly
             diffRenderSideBySide={sideBySide}
-            diffOriginalLabel={`对比源：${selectedDiffSource.label}`}
-            diffModifiedLabel="当前运行时配置"
+            diffOriginalLabel={t('configViewer.diffOriginal', { source: selectedDiffSource.label })}
+            diffModifiedLabel={t('configViewer.diffModified')}
           />
         </ModalBody>
         <ModalFooter className="pt-0 flex items-center justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <Switch size="sm" isSelected={isDiff} onValueChange={setIsDiff}>
-              对比配置差异
+              {t('configViewer.diffToggle')}
             </Switch>
             <Switch
               size="sm"
@@ -101,10 +103,10 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
               isDisabled={!isDiff}
               onValueChange={setSideBySide}
             >
-              并排对比
+              {t('configViewer.sideBySide')}
             </Switch>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-default-500">对比源</span>
+              <span className="text-sm text-default-500">{t('configViewer.diffSource')}</span>
               <Tabs
                 size="sm"
                 variant="bordered"
@@ -112,13 +114,13 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
                 isDisabled={!isDiff}
                 onSelectionChange={(key) => setDiffSource(key as DiffSource)}
               >
-                <Tab key="raw" title="配置文件原文" />
-                <Tab key="override" title="覆写后文本" />
+                <Tab key="raw" title={t('configViewer.rawProfile')} />
+                <Tab key="override" title={t('configViewer.overrideText')} />
               </Tabs>
             </div>
           </div>
           <Button size="sm" variant="light" onPress={onClose}>
-            关闭
+            {t('common.close')}
           </Button>
         </ModalFooter>
       </ModalContent>
