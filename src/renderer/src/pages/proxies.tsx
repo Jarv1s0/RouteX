@@ -229,6 +229,13 @@ type ResolvedDelayTarget = {
   testUrl?: string
 }
 
+type RunDelayTargetsOptions = {
+  groupsForLoading?: ControllerMixedGroup[]
+  logScope: string
+  concurrency?: number
+  shouldContinue?: () => boolean
+}
+
 function pushAutoDelayTarget(
   targets: Map<string, ResolvedDelayTarget>,
   proxy: ControllerProxiesDetail | undefined,
@@ -399,6 +406,19 @@ const Proxies: React.FC = () => {
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [isChainModalOpen, setIsChainModalOpen] = useState(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
+
+  const setGroupsDelaying = useCallback(
+    (targetGroups: ControllerMixedGroup[], value: boolean): void => {
+      if (targetGroups.length === 0) return
+
+      setDelaying((prev) => ({
+        ...prev,
+        ...Object.fromEntries(targetGroups.map((group) => [group.name, value]))
+      }))
+    },
+    []
+  )
+
   // 扁平化数据结构
   type FlatItem =
     | { type: 'header'; groupIndex: number }
@@ -453,17 +473,13 @@ const Proxies: React.FC = () => {
   const runDelayTargets = useCallback(
     async (
       delayTargets: ResolvedDelayTarget[],
-      options: { groupsForLoading?: ControllerMixedGroup[]; logScope: string; concurrency?: number }
+      options: RunDelayTargetsOptions
     ): Promise<boolean> => {
       if (delayTargets.length === 0) return false
+      if (options.shouldContinue && !options.shouldContinue()) return false
 
       const loadingGroups = options.groupsForLoading || []
-      if (loadingGroups.length > 0) {
-        setDelaying((prev) => ({
-          ...prev,
-          ...Object.fromEntries(loadingGroups.map((group) => [group.name, true]))
-        }))
-      }
+      setGroupsDelaying(loadingGroups, true)
 
       const mutateBatcher = createMutateBatcher(
         () => mutateRef.current(),
@@ -472,10 +488,14 @@ const Proxies: React.FC = () => {
 
       try {
         const tasks = delayTargets.map((target) => async (): Promise<void> => {
+          if (options.shouldContinue && !options.shouldContinue()) return
+
           debugLog(`[proxy-delay:${options.logScope}] test proxy`, target.proxyName)
           await mihomoProxyDelay(target.proxyName, target.testUrl).catch((error) => {
             warnLog(`[proxy-delay:${options.logScope}] failed`, target.proxyName, error)
           })
+
+          if (options.shouldContinue && !options.shouldContinue()) return
           mutateBatcher.schedule()
         })
 
@@ -483,19 +503,16 @@ const Proxies: React.FC = () => {
           tasks,
           normalizeDelayTestConcurrency(options.concurrency ?? delayTestConcurrencyRef.current)
         )
+        if (options.shouldContinue && !options.shouldContinue()) return false
+
         await mutateBatcher.flush()
-        return true
+        return options.shouldContinue ? options.shouldContinue() : true
       } finally {
         mutateBatcher.cancel()
-        if (loadingGroups.length > 0) {
-          setDelaying((prev) => ({
-            ...prev,
-            ...Object.fromEntries(loadingGroups.map((group) => [group.name, false]))
-          }))
-        }
+        setGroupsDelaying(loadingGroups, false)
       }
     },
-    []
+    [setGroupsDelaying]
   )
 
   const onChangeProxy = useCallback(
@@ -556,12 +573,12 @@ const Proxies: React.FC = () => {
   const toggleOpen = useCallback((groupName: string) => {
     setIsOpen((prev) => {
       const nextOpen = !prev[groupName]
-      if (nextOpen) {
+      if (nextOpen && autoDelayTestOnShow) {
         void delayOpenedGroup(groupName)
       }
       return { ...prev, [groupName]: nextOpen }
     })
-  }, [delayOpenedGroup])
+  }, [autoDelayTestOnShow, delayOpenedGroup])
 
   // 首次进入页面时自动测速，及周期性定时测速
   const hasInitialTestRef = useRef(false)
@@ -577,13 +594,7 @@ const Proxies: React.FC = () => {
 
     let disposed = false
     const resetAutoDelayState = (): void => {
-      setDelaying((prev) => {
-        const resetGroups = groupsRef.current.map((group) => group.name)
-        return {
-          ...prev,
-          ...Object.fromEntries(resetGroups.map((name) => [name, false]))
-        }
-      })
+      setGroupsDelaying(groupsRef.current, false)
     }
     const isCurrentAutoTest = (runId: number): boolean => {
       return !disposed && autoTestGenerationRef.current === runId && !document.hidden
@@ -623,49 +634,24 @@ const Proxies: React.FC = () => {
       const runId = autoTestGenerationRef.current + 1
       autoTestGenerationRef.current = runId
       isTestingRef.current = true
-      
-      setDelaying((prev) => ({
-        ...prev,
-        ...Object.fromEntries(latestGroups.map((group) => [group.name, true]))
-      }))
       debugLog('[proxy-delay:auto] start', latestGroups.map((group) => group.name))
-      const mutateBatcher = createMutateBatcher(
-        () => mutateRef.current(),
-        DELAY_TEST_MUTATE_BATCH_MS
-      )
 
-      const tasks = delayTargets.map((target) => async (): Promise<void> => {
-        if (!isCurrentAutoTest(runId)) return
-        debugLog('[proxy-delay:auto] test proxy', target.proxyName)
-
-        await mihomoProxyDelay(target.proxyName, target.testUrl).catch((error) => {
-          warnLog('[proxy-delay:auto] failed', target.proxyName, error)
+      try {
+        const completed = await runDelayTargets(delayTargets, {
+          groupsForLoading: latestGroups,
+          logScope: 'auto',
+          shouldContinue: () => isCurrentAutoTest(runId)
         })
 
-        if (isCurrentAutoTest(runId)) {
-          mutateBatcher.schedule()
+        if (completed) {
+          debugLog('[proxy-delay:auto] finished')
         }
-      })
-
-      await runWithConcurrency(tasks, normalizeDelayTestConcurrency(delayTestConcurrencyRef.current))
-      if (!isCurrentAutoTest(runId)) {
-        mutateBatcher.cancel()
+        return completed
+      } finally {
         if (autoTestGenerationRef.current === runId) {
           isTestingRef.current = false
         }
-        return false
       }
-
-      isTestingRef.current = false
-      debugLog('[proxy-delay:auto] finished')
-      await mutateBatcher.flush()
-      if (!isCurrentAutoTest(runId)) return false
-
-      setDelaying((prev) => ({
-        ...prev,
-        ...Object.fromEntries(latestGroups.map((group) => [group.name, false]))
-      }))
-      return true
     }
 
     // 触发首次测速
@@ -705,7 +691,7 @@ const Proxies: React.FC = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       resetAutoDelayState()
     }
-  }, [autoDelayGroupSignature, autoDelayTestOnShow, runDelayTargets])
+  }, [autoDelayGroupSignature, autoDelayTestOnShow, runDelayTargets, setGroupsDelaying])
 
   const renderItem = useCallback(
     (_index: number, item: FlatItem) => {
