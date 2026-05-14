@@ -102,13 +102,11 @@ export function buildExternalUiOpenUrl(
   const uiBaseUrl = new URL('/ui/', controllerUrl)
   const isMetaCubeXD = getIsMetaCubeXD(normalizedUiPath, externalUiUrl)
   const isZashboard = getIsZashboard(normalizedUiPath, externalUiUrl)
-  const uiCacheKey = isMetaCubeXD ? 'metacubexd' : isZashboard ? 'zashboard' : 'custom'
 
   if (isMetaCubeXD) {
     uiBaseUrl.hostname = isolateMetaCubeXDLoopbackHost(host)
   }
 
-  uiBaseUrl.searchParams.set('_routex_ui', uiCacheKey)
   uiBaseUrl.searchParams.set('_routex', Date.now().toString())
 
   if (isZashboard) {
@@ -135,7 +133,6 @@ export function buildExternalUiOpenUrl(
     for (const [key, value] of setupParams) {
       uiBaseUrl.searchParams.set(key, value)
     }
-    uiBaseUrl.hash = `/setup?${setupParams.toString()}`
     return uiBaseUrl.toString()
   }
 
