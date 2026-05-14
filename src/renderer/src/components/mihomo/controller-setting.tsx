@@ -63,7 +63,7 @@ function normalizeControllerForBrowser(value: string): string {
   return trimmed
 }
 
-function buildExternalUiOpenUrl(
+export function buildExternalUiOpenUrl(
   controller: string,
   uiPath: string,
   externalUiUrl: string,
@@ -97,14 +97,12 @@ function buildExternalUiOpenUrl(
   }
 
   if (normalizedUiPath.includes('metacubexd') || externalUiUrl.includes('metacubexd')) {
-    const hashParams = new URLSearchParams({
-      hostname: host,
-      port
-    })
+    uiBaseUrl.searchParams.set('hostname', host)
+    uiBaseUrl.searchParams.set('port', port)
     if (secret) {
-      hashParams.set('secret', secret)
+      uiBaseUrl.searchParams.set('secret', secret)
     }
-    uiBaseUrl.hash = `/setup?${hashParams.toString()}`
+    uiBaseUrl.hash = '/setup'
     return uiBaseUrl.toString()
   }
 
