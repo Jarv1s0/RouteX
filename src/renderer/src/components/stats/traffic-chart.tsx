@@ -1,6 +1,7 @@
 import React, { Suspense, useMemo, useState } from 'react'
 import { Card, CardBody, Tabs, Tab } from '@heroui/react'
 import type { EChartsCoreOption } from 'echarts/core'
+import { useTheme } from 'next-themes'
 import { IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
@@ -17,7 +18,6 @@ interface TrafficDataPoint {
 interface TrafficChartProps {
   trafficHistory: TrafficDataPoint[]
   hourlyData: { hour: string; upload: number; download: number }[]
-  dailyData: { date: string; upload: number; download: number }[]
 }
 
 interface TooltipSeriesParam {
@@ -27,7 +27,7 @@ interface TooltipSeriesParam {
   value: number | string | [string | number, number]
 }
 
-type HistoryTab = 'realtime' | 'hourly' | 'daily' | 'monthly'
+type HistoryTab = 'realtime' | 'hourly'
 
 function splitTrafficText(value: number, speed: boolean): { amount: string; unit: string } {
   const formatted = calcTraffic(value)
@@ -49,12 +49,10 @@ const calcTrafficInt = (byte: number): string => {
   return `${Math.round(byte)} TB`
 }
 
-const TrafficChart: React.FC<TrafficChartProps> = ({
-  trafficHistory,
-  hourlyData,
-  dailyData
-}) => {
+const TrafficChart: React.FC<TrafficChartProps> = ({ trafficHistory, hourlyData }) => {
   const { t } = useI18n()
+  const { theme, systemTheme } = useTheme()
+  const isDark = (theme === 'system' ? systemTheme : theme) === 'dark'
   const [historyTab, setHistoryTab] = useState<HistoryTab>('realtime')
   const latestTraffic = trafficHistory.at(-1)
 
@@ -66,38 +64,12 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
     return parts.length >= 4 ? `${parts[3]}:00` : hour
   }
 
-  const formatDateLabel = (date: string): string => {
-    const parts = date.split('-')
-    return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : date
-  }
-
   const formattedHourlyData = useMemo(() => {
     return (hourlyData || []).map((item) => ({
       ...item,
       label: formatHourLabel(item.hour)
     }))
   }, [hourlyData])
-
-  const recentDailyData = useMemo(() => (dailyData || []).slice(-7), [dailyData])
-
-  const formattedDailyData = useMemo(() => {
-    return recentDailyData.map((item) => ({
-      ...item,
-      label: formatDateLabel(item.date)
-    }))
-  }, [recentDailyData])
-
-  const formattedMonthlyData = useMemo(() => {
-    return (dailyData || []).map((item) => ({
-      ...item,
-      label: formatDateLabel(item.date)
-    }))
-  }, [dailyData])
-
-  const totalUpload7d = recentDailyData.reduce((sum, d) => sum + d.upload, 0)
-  const totalDownload7d = recentDailyData.reduce((sum, d) => sum + d.download, 0)
-  const totalUpload = (dailyData || []).reduce((sum, d) => sum + d.upload, 0)
-  const totalDownload = (dailyData || []).reduce((sum, d) => sum + d.download, 0)
 
   const realtimeData = useMemo(
     () =>
@@ -117,16 +89,20 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
     const axisLabelColor = '#94a3b8'
     const splitLineColor = 'rgba(148, 163, 184, 0.16)'
     const uploadColor = '#06b6d4'
-    const downloadColor = '#a855f7'
+    const downloadColor = isDark ? '#9b8bd8' : '#a855f7'
+    const downloadAreaStart = isDark ? 'rgba(155,139,216,0.22)' : 'rgba(168,85,247,0.40)'
+    const downloadAreaEnd = isDark ? 'rgba(155,139,216,0.03)' : 'rgba(168,85,247,0.05)'
 
-    const createTooltipFormatter = (speed = false) => (params: unknown) => {
-      const tooltipParams = (Array.isArray(params) ? params : [params]) as TooltipSeriesParam[]
-      const rows = tooltipParams
-        .map((entry) => {
-          const rawValue = Array.isArray(entry.value) ? entry.value[1] : entry.value
-          const value = Number(rawValue)
-          const { amount, unit } = splitTrafficText(value, speed)
-          return `
+    const createTooltipFormatter =
+      (speed = false) =>
+      (params: unknown) => {
+        const tooltipParams = (Array.isArray(params) ? params : [params]) as TooltipSeriesParam[]
+        const rows = tooltipParams
+          .map((entry) => {
+            const rawValue = Array.isArray(entry.value) ? entry.value[1] : entry.value
+            const value = Number(rawValue)
+            const { amount, unit } = splitTrafficText(value, speed)
+            return `
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;">
               <div style="display:flex;align-items:center;gap:8px;min-width:0;">
                 <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;flex:none;"></span>
@@ -138,26 +114,26 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
               </div>
             </div>
           `
-        })
-        .join('')
+          })
+          .join('')
 
-      const label = tooltipParams[0]?.axisValueLabel ?? ''
-      return `
+        const label = tooltipParams[0]?.axisValueLabel ?? ''
+        return `
         <div style="padding:2px 0;min-width:148px;">
           <div style="font-size:12px;font-weight:700;line-height:1.1;color:#475569;margin-bottom:${rows ? '8px' : '0'};">${label}</div>
           ${rows}
         </div>
       `
-    }
+      }
 
     const baseOption = {
       animation: false,
       grid: {
         top: 36,
         right: 12,
-        bottom: 8,
+        bottom: 24,
         left: 48,
-        containLabel: true
+        containLabel: false
       },
       legend: {
         top: 0,
@@ -206,6 +182,8 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         axisLabel: {
           color: axisLabelColor,
           fontSize: 10,
+          inside: false,
+          margin: 8,
           formatter: (value: number) => calcTrafficInt(value)
         }
       }
@@ -292,8 +270,8 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
                 x2: 0,
                 y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'rgba(168,85,247,0.40)' },
-                  { offset: 1, color: 'rgba(168,85,247,0.05)' }
+                  { offset: 0, color: downloadAreaStart },
+                  { offset: 1, color: downloadAreaEnd }
                 ]
               }
             },
@@ -305,12 +283,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
       } as EChartsCoreOption
     }
 
-    const chartData =
-      historyTab === 'hourly'
-        ? formattedHourlyData
-        : historyTab === 'daily'
-          ? formattedDailyData
-          : formattedMonthlyData
+    const chartData = formattedHourlyData
 
     return {
       ...baseOption,
@@ -330,7 +303,7 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
         axisLabel: {
           color: axisLabelColor,
           fontSize: 10,
-          interval: historyTab === 'hourly' ? 2 : historyTab === 'monthly' ? 4 : 0
+          interval: 2
         }
       },
       series: [
@@ -357,16 +330,17 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
       ]
     } as EChartsCoreOption
   }, [
-    formattedDailyData,
     formattedHourlyData,
-    formattedMonthlyData,
     historyTab,
+    isDark,
     realtimeData,
     t
   ])
 
   return (
-    <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}>
+    <Card
+      className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
+    >
       <CardBody className="p-4">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
@@ -378,8 +352,6 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
             >
               <Tab key="realtime" title={t('stats.realtime')} />
               <Tab key="hourly" title={t('stats.hourly')} />
-              <Tab key="daily" title={t('stats.daily')} />
-              <Tab key="monthly" title={t('stats.monthly')} />
             </Tabs>
           </div>
           {historyTab === 'realtime' && (
@@ -389,23 +361,11 @@ const TrafficChart: React.FC<TrafficChartProps> = ({
                 <span className="text-cyan-500 font-bold">{calcTraffic(currentUploadSpeed)}/s</span>
               </div>
               <div className="flex items-center gap-1">
-                <IoArrowDown className="text-purple-500 text-sm" />
-                <span className="text-purple-500 font-bold">{calcTraffic(currentDownloadSpeed)}/s</span>
+                <IoArrowDown className="stats-download-accent text-sm" />
+                <span className="stats-download-accent font-bold">
+                  {calcTraffic(currentDownloadSpeed)}/s
+                </span>
               </div>
-            </div>
-          )}
-          {historyTab === 'daily' && (
-            <div className="text-xs text-foreground-400">
-              {t('stats.total')}: <span className="text-cyan-500">↑{calcTraffic(totalUpload7d)}</span>
-              {' / '}
-              <span className="text-purple-500">↓{calcTraffic(totalDownload7d)}</span>
-            </div>
-          )}
-          {historyTab === 'monthly' && (
-            <div className="text-xs text-foreground-400">
-              {t('stats.total')}: <span className="text-cyan-500">↑{calcTraffic(totalUpload)}</span>
-              {' / '}
-              <span className="text-purple-500">↓{calcTraffic(totalDownload)}</span>
             </div>
           )}
         </div>

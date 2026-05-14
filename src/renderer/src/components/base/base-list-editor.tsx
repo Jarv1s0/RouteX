@@ -130,7 +130,10 @@ const EditableList: React.FC<EditableListProps> = ({
             isExtra || isEmpty ? true : validate ? validate(entry.part1, entry.part2) : true
           const validation: ValidationResult =
             typeof rawValidation === 'boolean'
-              ? { ok: rawValidation, error: rawValidation ? undefined : translate('common.formatError') }
+              ? {
+                  ok: rawValidation,
+                  error: rawValidation ? undefined : translate('common.formatError')
+                }
               : rawValidation
 
           // part1 单独验证
@@ -142,7 +145,10 @@ const EditableList: React.FC<EditableListProps> = ({
                 : true
           const validation1: ValidationResult =
             typeof rawValidation1 === 'boolean'
-              ? { ok: rawValidation1, error: rawValidation1 ? undefined : translate('common.formatError') }
+              ? {
+                  ok: rawValidation1,
+                  error: rawValidation1 ? undefined : translate('common.formatError')
+                }
               : rawValidation1
 
           // part2 单独验证
@@ -154,7 +160,10 @@ const EditableList: React.FC<EditableListProps> = ({
                 : true
           const validation2: ValidationResult =
             typeof rawValidation2 === 'boolean'
-              ? { ok: rawValidation2, error: rawValidation2 ? undefined : translate('common.formatError') }
+              ? {
+                  ok: rawValidation2,
+                  error: rawValidation2 ? undefined : translate('common.formatError')
+                }
               : rawValidation2
 
           // 使用单独验证优先，如果没有则使用整体验证

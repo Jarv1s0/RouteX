@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildRendererCsp } from './csp'
 
 function cspDirective(csp: string, name: string): string[] {
-  const directive = csp
-    .split('; ')
-    .find((part) => part.startsWith(`${name} `))
+  const directive = csp.split('; ').find((part) => part.startsWith(`${name} `))
 
   return directive?.split(' ').slice(1) ?? []
 }

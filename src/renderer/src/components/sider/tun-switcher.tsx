@@ -51,12 +51,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
 
   const onChange = async (enable: boolean): Promise<void> => {
     try {
-      if (
-        enable &&
-        platform === 'win32' &&
-        __ROUTEX_HOST__ === 'tauri' &&
-        !import.meta.env.DEV
-      ) {
+      if (enable && platform === 'win32' && __ROUTEX_HOST__ === 'tauri' && !import.meta.env.DEV) {
         const hasElevateTask = await checkElevateTask()
         if (!hasElevateTask) {
           await showToastError(t('tun.startFailed'), t('tray.enableTunFirst'))
@@ -133,18 +128,21 @@ const TunSwitcher: React.FC<Props> = (props) => {
       >
         <div className="flex items-center gap-1.5">
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-            <LuNetwork className={`text-[15px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
+            <LuNetwork
+              className={`text-[15px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`}
+            />
           </span>
-          <span className={`text-sm font-semibold whitespace-nowrap leading-none transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}>
+          <span
+            className={`text-sm font-semibold whitespace-nowrap leading-none transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}
+          >
             {t('sidebar.tun')}
           </span>
         </div>
-        <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center pr-0 -mr-0.5">
-          <Switch
-            size="sm"
-            isSelected={enable}
-            onValueChange={onChange}
-          />
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0 flex items-center pr-0 -mr-0.5"
+        >
+          <Switch size="sm" isSelected={enable} onValueChange={onChange} />
         </div>
       </div>
     )
@@ -160,18 +158,18 @@ const TunSwitcher: React.FC<Props> = (props) => {
     >
       <div className="flex items-center gap-1.5">
         <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-          <LuNetwork className={`text-[16px] transition-colors ${match ? 'text-primary' : 'text-default-500 group-hover:text-primary'}`} />
+          <LuNetwork
+            className={`text-[16px] transition-colors ${match ? 'text-primary' : 'text-default-500 group-hover:text-primary'}`}
+          />
         </span>
-        <h3 className={`text-sm font-semibold transition-colors ${match ? 'text-primary' : 'text-foreground/90 group-hover:text-primary'}`}>
+        <h3
+          className={`text-sm font-semibold transition-colors ${match ? 'text-primary' : 'text-foreground/90 group-hover:text-primary'}`}
+        >
           {t('sidebar.tun')}
         </h3>
       </div>
       <div onClick={(e) => e.stopPropagation()}>
-        <BorderSwitch
-          isShowBorder={match && enable}
-          isSelected={enable}
-          onValueChange={onChange}
-        />
+        <BorderSwitch isShowBorder={match && enable} isSelected={enable} onValueChange={onChange} />
       </div>
     </div>
   )

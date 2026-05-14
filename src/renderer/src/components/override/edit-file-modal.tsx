@@ -26,8 +26,9 @@ interface Props {
 const EditFileModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { id, language, onClose } = props
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
   const [currData, setCurrData] = useState('')
   const [originalData, setOriginalData] = useState('')
   const [isDiff, setIsDiff] = useState(false)
@@ -85,7 +86,9 @@ const EditFileModal: React.FC<Props> = (props) => {
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
       >
         <ModalHeader className="flex pb-0 app-drag">
-          {language === 'javascript' ? t('override.editScriptTitle') : t('override.editConfigTitle')}
+          {language === 'javascript'
+            ? t('override.editScriptTitle')
+            : t('override.editConfigTitle')}
         </ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-hidden">
           <BaseEditor

@@ -1,10 +1,4 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  Divider
-} from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, Divider } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
 import { getOverride } from '@renderer/utils/override-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -25,11 +19,7 @@ const ExecLogModal: React.FC<Props> = (props) => {
   const { id, onClose } = props
   const { t } = useI18n()
   const {
-    appConfig: {
-      disableAnimation = false,
-      collapseSidebar = false,
-      siderWidth = 250
-    } = {}
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
   } = useAppConfig()
   const [logs, setLogs] = useState<string[]>([])
 
@@ -51,7 +41,9 @@ const ExecLogModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}>
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>{t('override.execLog')}</span>
           <SecondaryModalCloseButton onPress={onClose} />

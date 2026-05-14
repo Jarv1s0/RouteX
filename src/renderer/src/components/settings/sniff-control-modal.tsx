@@ -1,10 +1,24 @@
 import React from 'react'
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Switch } from '@heroui/react'
+import {
+  Button,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Switch
+} from '@heroui/react'
 
-import { SnifferSettingsFormFields, useSnifferSettingsEditor } from '@renderer/components/sniffer/sniffer-settings-editor'
+import {
+  SnifferSettingsFormFields,
+  useSnifferSettingsEditor
+} from '@renderer/components/sniffer/sniffer-settings-editor'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { patchControledMihomoConfig } from '@renderer/utils/mihomo-ipc'
-import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import {
+  createSecondaryModalClassNames,
+  getMainPaneModalContentStyle
+} from '@renderer/utils/modal-styles'
 import { toast } from 'sonner'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
@@ -20,11 +34,7 @@ const CARD_CLASS =
 const SniffControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const {
-    collapseSidebar = false,
-    siderWidth = 250,
-    controlSniff = true
-  } = appConfig || {}
+  const { collapseSidebar = false, siderWidth = 250, controlSniff = true } = appConfig || {}
   const sniffEditor = useSnifferSettingsEditor()
 
   const handleToggleControlSniff = async (value: boolean): Promise<void> => {
@@ -46,7 +56,9 @@ const SniffControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
       scrollBehavior="inside"
       classNames={createSecondaryModalClassNames()}
     >
-      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1100 })}>
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1100 })}
+      >
         {(onClose) => (
           <>
             <ModalHeader className="flex flex-col gap-1 px-4 py-2">

@@ -36,8 +36,9 @@ const ConfirmModal: React.FC<Props> = (props) => {
     buttons,
     className
   } = props
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
 
   const renderButtons = () => {
     if (buttons && buttons.length > 0) {

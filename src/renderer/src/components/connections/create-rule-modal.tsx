@@ -47,15 +47,30 @@ function ruleToString(rule: RuleDraft): string {
 const RULE_TYPES = [
   // 域名类
   { key: 'DOMAIN', label: 'DOMAIN', descKey: 'rules.desc.domain', category: 'domain' },
-  { key: 'DOMAIN-SUFFIX', label: 'DOMAIN-SUFFIX', descKey: 'rules.desc.domainSuffix', category: 'domain' },
-  { key: 'DOMAIN-KEYWORD', label: 'DOMAIN-KEYWORD', descKey: 'rules.desc.domainKeyword', category: 'domain' },
+  {
+    key: 'DOMAIN-SUFFIX',
+    label: 'DOMAIN-SUFFIX',
+    descKey: 'rules.desc.domainSuffix',
+    category: 'domain'
+  },
+  {
+    key: 'DOMAIN-KEYWORD',
+    label: 'DOMAIN-KEYWORD',
+    descKey: 'rules.desc.domainKeyword',
+    category: 'domain'
+  },
   {
     key: 'DOMAIN-WILDCARD',
     label: 'DOMAIN-WILDCARD',
     descKey: 'rules.desc.domainWildcard',
     category: 'domain'
   },
-  { key: 'DOMAIN-REGEX', label: 'DOMAIN-REGEX', descKey: 'rules.desc.domainRegex', category: 'domain' },
+  {
+    key: 'DOMAIN-REGEX',
+    label: 'DOMAIN-REGEX',
+    descKey: 'rules.desc.domainRegex',
+    category: 'domain'
+  },
   // IP 类
   { key: 'IP-CIDR', label: 'IP-CIDR', descKey: 'rules.desc.ipCidr4', category: 'ip' },
   { key: 'IP-CIDR6', label: 'IP-CIDR6', descKey: 'rules.desc.ipCidr6', category: 'ip' },
@@ -64,8 +79,18 @@ const RULE_TYPES = [
   { key: 'GEOIP', label: 'GEOIP', descKey: 'rules.desc.geoip', category: 'ip' },
   { key: 'SRC-GEOIP', label: 'SRC-GEOIP', descKey: 'rules.desc.srcGeoip', category: 'ip' },
   // 进程类
-  { key: 'PROCESS-NAME', label: 'PROCESS-NAME', descKey: 'rules.desc.processName', category: 'process' },
-  { key: 'PROCESS-PATH', label: 'PROCESS-PATH', descKey: 'rules.desc.processPath', category: 'process' },
+  {
+    key: 'PROCESS-NAME',
+    label: 'PROCESS-NAME',
+    descKey: 'rules.desc.processName',
+    category: 'process'
+  },
+  {
+    key: 'PROCESS-PATH',
+    label: 'PROCESS-PATH',
+    descKey: 'rules.desc.processPath',
+    category: 'process'
+  },
   {
     key: 'PROCESS-NAME-REGEX',
     label: 'PROCESS-NAME-REGEX',
@@ -324,8 +349,8 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
     editingIndex,
     existingRules,
     profileId,
-    onClose
-    , t
+    onClose,
+    t
   ])
 
   // 删除一条规则
@@ -404,7 +429,9 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
         )}
         {connection.rule && (
           <Chip size="sm" variant="flat" color="danger">
-            {t('connections.summary.currentRule', { value: `${connection.rule} ${connection.rulePayload}` })}
+            {t('connections.summary.currentRule', {
+              value: `${connection.rule} ${connection.rulePayload}`
+            })}
           </Chip>
         )}
         {connection.chains?.[0] && (
@@ -425,7 +452,10 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
         {/* 规则类型选择 */}
         <Select
           label={t('connections.ruleTypeLabel', {
-            description: t((RULE_TYPES.find((r) => r.key === ruleType)?.descKey || 'rules.desc.domain') as TranslationKey)
+            description: t(
+              (RULE_TYPES.find((r) => r.key === ruleType)?.descKey ||
+                'rules.desc.domain') as TranslationKey
+            )
           })}
           selectedKeys={new Set([ruleType])}
           onSelectionChange={(v) => {

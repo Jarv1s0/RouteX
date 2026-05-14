@@ -192,8 +192,7 @@ module.exports = [
       'no-restricted-syntax': [
         'error',
         {
-          selector:
-            "ImportExpression[source.type='Literal'][source.value='@renderer/utils/ipc']",
+          selector: "ImportExpression[source.type='Literal'][source.value='@renderer/utils/ipc']",
           message: '请改为动态导入对应的 *-ipc 模块。'
         },
         {

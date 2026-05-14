@@ -48,8 +48,15 @@ interface MenuItem {
 }
 
 const OverrideItem: React.FC<Props> = (props) => {
-  const { info, isActive, addOverrideItem, removeOverrideItem, mutateOverrideConfig, updateOverrideItem, onToggleOverride } =
-    props
+  const {
+    info,
+    isActive,
+    addOverrideItem,
+    removeOverrideItem,
+    mutateOverrideConfig,
+    updateOverrideItem,
+    onToggleOverride
+  } = props
   const { t } = useI18n()
   const [updating, setUpdating] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
@@ -119,7 +126,7 @@ const OverrideItem: React.FC<Props> = (props) => {
       }
     ]
     if (info.ext === 'yaml') {
-      const execLogIndex = list.findIndex(i => i.key === 'exec-log')
+      const execLogIndex = list.findIndex((i) => i.key === 'exec-log')
       if (execLogIndex !== -1) list.splice(execLogIndex, 1)
     }
     if (!rollbackAvailable) {
@@ -134,9 +141,10 @@ const OverrideItem: React.FC<Props> = (props) => {
     : isActive
       ? t('override.status.enabled')
       : t('override.status.disabled')
-  const statusClassName = info.global || isActive
-    ? 'bg-yellow-400 text-black font-bold shadow-sm'
-    : CARD_STYLES.MANAGEMENT_STATUS_INACTIVE
+  const statusClassName =
+    info.global || isActive
+      ? 'bg-yellow-400 text-black font-bold shadow-sm'
+      : CARD_STYLES.MANAGEMENT_STATUS_INACTIVE
 
   const setLocalOverrideActive = async (active: boolean): Promise<void> => {
     if (!onToggleOverride || active === !!isActive) return
@@ -315,11 +323,7 @@ const OverrideItem: React.FC<Props> = (props) => {
         isPressable
         className={`
           ${CARD_STYLES.BASE}
-          ${
-            info.global || isActive
-              ? CARD_STYLES.ACTIVE
-              : CARD_STYLES.INACTIVE
-          }
+          ${info.global || isActive ? CARD_STYLES.ACTIVE : CARD_STYLES.INACTIVE}
         `}
         onPress={() => {
           if (disableOpen) return
@@ -335,14 +339,14 @@ const OverrideItem: React.FC<Props> = (props) => {
           <CardBody className="pb-1 overflow-hidden">
             <div className="flex min-h-[32px] items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h3
-                  title={info?.name}
-                  className={CARD_STYLES.MANAGEMENT_TITLE}
-                >
+                <h3 title={info?.name} className={CARD_STYLES.MANAGEMENT_TITLE}>
                   {info?.name}
                 </h3>
               </div>
-              <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="flex shrink-0 items-center gap-1.5"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {info.type === 'remote' && (
                   <Button
                     isIconOnly
@@ -351,14 +355,14 @@ const OverrideItem: React.FC<Props> = (props) => {
                     color="default"
                     disabled={updating || rollingBack}
                     onPress={async () => {
-                    setUpdating(true)
-                    try {
-                      await addOverrideItem(info)
-                      setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
-                      if (info.global || isActive) {
-                        restartCoreInBackground(t('override.remoteApplyFailed'))
-                      }
-                    } catch (e) {
+                      setUpdating(true)
+                      try {
+                        await addOverrideItem(info)
+                        setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
+                        if (info.global || isActive) {
+                          restartCoreInBackground(t('override.remoteApplyFailed'))
+                        }
+                      } catch (e) {
                         alert(e)
                       } finally {
                         setUpdating(false)
@@ -395,7 +399,10 @@ const OverrideItem: React.FC<Props> = (props) => {
           </CardBody>
           <CardFooter className="pt-0">
             <div className={`w-full mt-2 ${CARD_STYLES.MANAGEMENT_FOOTER_ROW}`}>
-              <div className={`flex justify-start items-center gap-2`} onClick={(e) => e.stopPropagation()}>
+              <div
+                className={`flex justify-start items-center gap-2`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Dropdown placement="bottom-start">
                   <DropdownTrigger>
                     <Button
@@ -408,7 +415,10 @@ const OverrideItem: React.FC<Props> = (props) => {
                       {statusLabel}
                     </Button>
                   </DropdownTrigger>
-                  <DropdownMenu onAction={onStatusAction} selectedKeys={[info.global ? 'global' : isActive ? 'enabled' : 'disabled']}>
+                  <DropdownMenu
+                    onAction={onStatusAction}
+                    selectedKeys={[info.global ? 'global' : isActive ? 'enabled' : 'disabled']}
+                  >
                     <DropdownItem key="disabled">{t('override.disable')}</DropdownItem>
                     <DropdownItem key="enabled">{t('override.enable')}</DropdownItem>
                     <DropdownItem key="global">{t('override.setGlobal')}</DropdownItem>

@@ -89,13 +89,14 @@ const ConnectionItemComponent: React.FC<Props> = ({
 }) => {
   const { t } = useI18n()
   const isSelected = info.id === selectedId
-  const processName = displayName || info.metadata.process?.replace(/\.exe$/, '') || info.metadata.sourceIP || '-'
-  const destination = info.metadata.host || info.metadata.destinationIP || info.metadata.remoteDestination || '-'
-  
+  const processName =
+    displayName || info.metadata.process?.replace(/\.exe$/, '') || info.metadata.sourceIP || '-'
+  const destination =
+    info.metadata.host || info.metadata.destinationIP || info.metadata.remoteDestination || '-'
+
   const timeAgo = useMemo(() => {
     return formatCompactDurationFromStartMs(getConnectionItemStartTime(info))
   }, [info, timeRefreshTrigger])
-
 
   const uploadSpeed = useMemo(() => calcTraffic(info.uploadSpeed || 0), [info.uploadSpeed])
   const downloadSpeed = useMemo(() => calcTraffic(info.downloadSpeed || 0), [info.downloadSpeed])
@@ -106,27 +107,35 @@ const ConnectionItemComponent: React.FC<Props> = ({
     setIsDetailModalOpen?.(true)
   }, [setSelected, setIsDetailModalOpen, info])
 
-  const handleClose = useCallback((_e: PressEvent) => {
-    close?.(info.id)
-  }, [close, info.id])
+  const handleClose = useCallback(
+    (_e: PressEvent) => {
+      close?.(info.id)
+    },
+    [close, info.id]
+  )
 
-  const handleHide = useCallback((_e: PressEvent) => {
-    const id = info.id
-    if (isHidden) {
-      unhide?.(id)
-    } else {
-      hide?.(id)
-    }
-  }, [isHidden, hide, unhide, info.id])
+  const handleHide = useCallback(
+    (_e: PressEvent) => {
+      const id = info.id
+      if (isHidden) {
+        unhide?.(id)
+      } else {
+        hide?.(id)
+      }
+    },
+    [isHidden, hide, unhide, info.id]
+  )
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    onContextMenu?.(info, e)
-  }, [onContextMenu, info])
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      onContextMenu?.(info, e)
+    },
+    [onContextMenu, info]
+  )
 
   return (
     <div className="px-2 pb-2.5" onContextMenu={handleContextMenu}>
-
       <Card
         as="div"
         isPressable
@@ -147,25 +156,34 @@ const ConnectionItemComponent: React.FC<Props> = ({
               className="flex-shrink-0 bg-transparent shadow-none border-none"
             />
           )}
-          
+
           <div className="flex-1 min-w-0 flex flex-col gap-1">
             {/* Header Row */}
             <div className="flex items-center justify-between w-full relative">
               <div className="flex-1 min-w-0 flex items-center gap-2 text-sm truncate mr-4">
                 <span className="font-medium text-foreground-700 flex items-center gap-1.5">
                   {processName}
-                  {isHidden && <IoEyeOff className="text-[12px] text-default-400" title={t('connections.hiddenTitle')} />}
+                  {isHidden && (
+                    <IoEyeOff
+                      className="text-[12px] text-default-400"
+                      title={t('connections.hiddenTitle')}
+                    />
+                  )}
                 </span>
                 <span className="text-foreground-300 text-[10px]">→</span>
                 <span className="text-foreground-600 truncate">{destination}</span>
               </div>
-              
+
               <div className="flex items-center justify-end shrink-0 relative h-6 w-[60px] group/actions">
-                <span className={`font-mono text-[10px] text-foreground-400 font-medium ${META_BADGE_CLASS} px-2 py-0.5 rounded-md transition-opacity ${isHidden ? 'opacity-0' : 'group-hover:opacity-0'}`}>
+                <span
+                  className={`font-mono text-[10px] text-foreground-400 font-medium ${META_BADGE_CLASS} px-2 py-0.5 rounded-md transition-opacity ${isHidden ? 'opacity-0' : 'group-hover:opacity-0'}`}
+                >
                   {timeAgo}
                 </span>
 
-                <div className={`absolute right-0 top-0 flex items-center justify-end gap-1 transition-all duration-200 ${isHidden ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`}>
+                <div
+                  className={`absolute right-0 top-0 flex items-center justify-end gap-1 transition-all duration-200 ${isHidden ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`}
+                >
                   {(hide || unhide) && (
                     <Button
                       color={isHidden ? 'primary' : 'default'}
@@ -174,9 +192,17 @@ const ConnectionItemComponent: React.FC<Props> = ({
                       size="sm"
                       className={`h-6 w-6 min-w-[24px] transition-all ${isHidden ? 'shadow-lg shadow-primary/40' : 'bg-default-100 hover:bg-default-200 text-default-500'}`}
                       onPress={handleHide}
-                      title={isHidden ? t('connections.unhideConnection') : t('connections.hideConnection')}
+                      title={
+                        isHidden
+                          ? t('connections.unhideConnection')
+                          : t('connections.hideConnection')
+                      }
                     >
-                      {isHidden ? <IoEye className="text-[13px]" /> : <IoEyeOff className="text-[13px]" />}
+                      {isHidden ? (
+                        <IoEye className="text-[13px]" />
+                      ) : (
+                        <IoEyeOff className="text-[13px]" />
+                      )}
                     </Button>
                   )}
                   <Button
@@ -187,7 +213,11 @@ const ConnectionItemComponent: React.FC<Props> = ({
                     className={`h-6 w-6 min-w-[24px] ${info.isActive ? 'bg-warning/10 text-warning hover:bg-warning/20' : 'bg-danger/10 text-danger hover:bg-danger/20'} ${isHidden ? 'hidden group-hover/actions:flex' : ''}`}
                     onPress={handleClose}
                   >
-                    {info.isActive ? <CgClose className="text-[13px]" /> : <CgTrash className="text-[13px]" />}
+                    {info.isActive ? (
+                      <CgClose className="text-[13px]" />
+                    ) : (
+                      <CgTrash className="text-[13px]" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -197,12 +227,15 @@ const ConnectionItemComponent: React.FC<Props> = ({
             <div className="flex items-center gap-2 flex-wrap relative">
               {/* Status Indicator */}
               <div className={`flex items-center gap-1.5 px-2 py-0.5 ${META_PILL_CLASS}`}>
-                <span 
+                <span
                   className={`w-1.5 h-1.5 rounded-full shadow-sm ${
-                    !info.isActive ? 'bg-danger shadow-danger/50' :
-                    info.metadata.type === 'Inner' ? 'bg-warning shadow-warning/50' :
-                    info.metadata.type === 'Tun' ? 'bg-primary shadow-primary/50' :
-                    'bg-default-400'
+                    !info.isActive
+                      ? 'bg-danger shadow-danger/50'
+                      : info.metadata.type === 'Inner'
+                        ? 'bg-warning shadow-warning/50'
+                        : info.metadata.type === 'Tun'
+                          ? 'bg-primary shadow-primary/50'
+                          : 'bg-default-400'
                   }`}
                 />
                 <span className="text-[10px] font-semibold tracking-wide text-foreground-600">
@@ -216,22 +249,36 @@ const ConnectionItemComponent: React.FC<Props> = ({
                 style={{ filter: 'saturate(0.68)' }}
               >
                 {getFlag(info.chains[0]) && (
-                  <span className="flag-emoji text-[12px] leading-none">{getFlag(info.chains[0])}</span>
+                  <span className="flag-emoji text-[12px] leading-none">
+                    {getFlag(info.chains[0])}
+                  </span>
                 )}
                 <span className="text-[10px] font-semibold">{cleanNodeName(info.chains[0])}</span>
               </div>
 
               {/* Speed Indicators */}
               {hasSpeed && (
-                <div className={`flex items-center gap-2 px-2 py-0.5 ml-1 shrink-0 ${META_PILL_CLASS}`}>
-                  <div className="flex items-center gap-1 group/speed" style={{ color: 'rgb(14, 165, 233)' }}>
+                <div
+                  className={`flex items-center gap-2 px-2 py-0.5 ml-1 shrink-0 ${META_PILL_CLASS}`}
+                >
+                  <div
+                    className="flex items-center gap-1 group/speed"
+                    style={{ color: 'rgb(14, 165, 233)' }}
+                  >
                     <IoArrowUp className="text-[10px] opacity-70 group-hover/speed:opacity-100 group-hover/speed:-translate-y-px transition-all" />
-                    <span className="text-[10px] font-data-numeric font-medium">{uploadSpeed || '0 B'}/s</span>
+                    <span className="text-[10px] font-data-numeric font-medium">
+                      {uploadSpeed || '0 B'}/s
+                    </span>
                   </div>
                   <div className="w-[1px] h-2 bg-default-200/50 dark:bg-default-200/20" />
-                  <div className="flex items-center gap-1 group/speed" style={{ color: 'rgb(168, 85, 247)' }}>
+                  <div
+                    className="flex items-center gap-1 group/speed"
+                    style={{ color: 'rgb(168, 85, 247)' }}
+                  >
                     <IoArrowDown className="text-[10px] opacity-70 group-hover/speed:opacity-100 group-hover/speed:translate-y-px transition-all" />
-                    <span className="text-[10px] font-data-numeric font-medium">{downloadSpeed || '0 B'}/s</span>
+                    <span className="text-[10px] font-data-numeric font-medium">
+                      {downloadSpeed || '0 B'}/s
+                    </span>
                   </div>
                 </div>
               )}

@@ -11,7 +11,7 @@ import { useI18n, type TranslationKey } from '@renderer/i18n'
 
 interface Props {
   iconOnly?: boolean
-  isMinimal? : boolean
+  isMinimal?: boolean
 }
 
 const OutboundModeSwitcher: React.FC<Props> = (props) => {
@@ -62,7 +62,14 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
             )}
           >
             <span className="flex items-center gap-1.5">
-              <m.icon className={clsx('text-base', isActive ? 'text-foreground/70 dark:text-foreground/60' : 'text-default-600 dark:text-default-300')} />
+              <m.icon
+                className={clsx(
+                  'text-base',
+                  isActive
+                    ? 'text-foreground/70 dark:text-foreground/60'
+                    : 'text-default-600 dark:text-default-300'
+                )}
+              />
               {t(m.labelKey as TranslationKey)}
             </span>
           </button>
@@ -76,9 +83,7 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
   }
 
   return (
-    <div className={`p-1 rounded-2xl ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}>
-      {content}
-    </div>
+    <div className={`p-1 rounded-2xl ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}>{content}</div>
   )
 }
 

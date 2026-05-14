@@ -11,11 +11,17 @@ import {
   Switch
 } from '@heroui/react'
 
-import { DnsSettingsFormFields, useDnsSettingsEditor } from '@renderer/components/dns/dns-settings-editor'
+import {
+  DnsSettingsFormFields,
+  useDnsSettingsEditor
+} from '@renderer/components/dns/dns-settings-editor'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { patchControledMihomoConfig } from '@renderer/utils/mihomo-ipc'
-import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import {
+  createSecondaryModalClassNames,
+  getMainPaneModalContentStyle
+} from '@renderer/utils/modal-styles'
 import { toast } from 'sonner'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
@@ -66,7 +72,9 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
       scrollBehavior="inside"
       classNames={createSecondaryModalClassNames()}
     >
-      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1100 })}>
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1100 })}
+      >
         {(onClose) => (
           <>
             <ModalHeader className="flex flex-col gap-1 px-4 py-2">
@@ -120,7 +128,11 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                           'rounded-2xl border border-default-200/60 bg-background/90 shadow-xl backdrop-blur-md'
                       }}
                       onSelectionChange={(keys) => {
-                        const nextValue = Array.from(keys)[0] as 'none' | 'exec' | 'service' | undefined
+                        const nextValue = Array.from(keys)[0] as
+                          | 'none'
+                          | 'exec'
+                          | 'service'
+                          | undefined
                         if (nextValue) {
                           void handleChangeAutoSetDnsMode(nextValue)
                         }

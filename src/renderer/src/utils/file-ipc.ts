@@ -17,7 +17,11 @@ export async function getFilePath(ext: string[]): Promise<string[] | undefined> 
   return invokeSafe(C.getFilePath, ext)
 }
 
-export async function saveFile(content: string, defaultName: string, ext: string): Promise<boolean> {
+export async function saveFile(
+  content: string,
+  defaultName: string,
+  ext: string
+): Promise<boolean> {
   if (isTauriHost()) {
     try {
       return invokeSafe(C.saveFile, content, defaultName, ext)

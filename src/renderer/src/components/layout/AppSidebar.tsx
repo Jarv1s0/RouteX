@@ -43,10 +43,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
     const location = useLocation()
     const { t } = useI18n()
     const { appConfig } = useAppConfig()
-    const {
-      useWindowFrame = false,
-      disableAnimation = false
-    } = appConfig || {}
+    const { useWindowFrame = false, disableAnimation = false } = appConfig || {}
 
     const handleSettingsNavigate = (): void => {
       navigateSidebarRoute('/settings')
@@ -65,9 +62,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           className="side relative z-[80] h-full shrink-0 pointer-events-auto flex flex-col bg-default-100/50 backdrop-blur-xl border-r border-default-200/50 dark:border-white/5 transition-[width] duration-300"
         >
           <div className="app-drag flex justify-center items-center z-40 bg-transparent h-[49px] shrink-0">
-            {platform !== 'darwin' && (
-              <MihomoIcon className="h-[32px] leading-[32px] text-lg" />
-            )}
+            {platform !== 'darwin' && <MihomoIcon className="h-[32px] leading-[32px] text-lg" />}
           </div>
           <div className="app-nodrag flex-1 overflow-y-auto no-scrollbar px-1">
             <div className="flex flex-col gap-2 py-1">
@@ -142,10 +137,12 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
             </div>
           </div>
         </div>
-        
+
         <div className="app-nodrag flex flex-col gap-2 p-2 flex-1">
           {/* Main Control Center */}
-          <div className={clsx("flex flex-col gap-1.5 p-2", CARD_STYLES.ROUNDED, CARD_STYLES.INACTIVE)}>
+          <div
+            className={clsx('flex flex-col gap-1.5 p-2', CARD_STYLES.ROUNDED, CARD_STYLES.INACTIVE)}
+          >
             <OutboundModeSwitcher isMinimal />
             <div className="h-[1px] mx-2 my-0.5 bg-default-200/55 dark:bg-white/10" />
             <div className="flex h-[80px] flex-col gap-1.5">
@@ -161,14 +158,18 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           </div>
 
           {/* Configuration Area */}
-          <div className={`flex h-[180px] shrink-0 flex-col gap-1.5 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
+          <div
+            className={`flex h-[180px] shrink-0 flex-col gap-1.5 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}
+          >
             <ProfileCard compact className="flex-1" />
             <MihomoCoreCard compact className="flex-1" />
             <RuleCard compact className="flex-1" />
           </div>
 
           {/* Navigation Menu Area */}
-          <div className={`flex shrink-0 flex-col gap-1.5 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
+          <div
+            className={`flex shrink-0 flex-col gap-1.5 px-2.5 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}
+          >
             <StatsCard className={fillCardClassName} />
             <ToolsCard className={fillCardClassName} />
             <LogCard className={fillCardClassName} />

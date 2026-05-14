@@ -17,8 +17,9 @@ interface Props {
 const PacEditorModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { script, onCancel, onConfirm } = props
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
   const [currData, setCurrData] = useState(script)
 
   return (

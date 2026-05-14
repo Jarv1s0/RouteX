@@ -30,10 +30,7 @@ const TrafficEChart: React.FC<TrafficEChartProps> = ({ option }) => {
     let resizeObserver: ResizeObserver | null = null
     let resizeChartHandler: (() => void) | null = null
     const win = window as Window & {
-      requestIdleCallback?: (
-        callback: IdleRequestCallback,
-        options?: IdleRequestOptions
-      ) => number
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number
       cancelIdleCallback?: (handle: number) => void
     }
 

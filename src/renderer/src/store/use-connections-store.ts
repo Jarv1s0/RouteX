@@ -163,9 +163,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
         const elapsedMs = previousSample ? Math.max(1, now - previousSample.at) : 0
         const downloadSpeed =
           previousSample && !isBaseline
-            ? Math.round(
-                (Math.max(0, conn.download - previousSample.download) * 1000) / elapsedMs
-              )
+            ? Math.round((Math.max(0, conn.download - previousSample.download) * 1000) / elapsedMs)
             : prev?.downloadSpeed || 0
         const uploadSpeed =
           previousSample && !isBaseline

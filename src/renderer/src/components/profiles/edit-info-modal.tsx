@@ -36,8 +36,9 @@ interface Props {
 const EditInfoModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { item, isCurrent, updateProfileItem, onClose } = props
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
   const { overrideConfig } = useOverrideConfig()
   const { items: overrideItems = [] } = overrideConfig || {}
   const [values, setValues] = useState({ ...item, autoUpdate: item.autoUpdate ?? true })

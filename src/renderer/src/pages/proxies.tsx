@@ -63,11 +63,7 @@ const ProxyRowChunk = memo(
   }: ProxyRowChunkProps) => {
     return (
       <div
-        style={
-          !isAuto
-            ? { gridTemplateColumns: `repeat(${chunkSize}, minmax(0, 1fr))` }
-            : {}
-        }
+        style={!isAuto ? { gridTemplateColumns: `repeat(${chunkSize}, minmax(0, 1fr))` } : {}}
         className={`w-full grid ${
           isAuto
             ? 'grid-cols-[repeat(auto-fill,minmax(200px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]'
@@ -104,26 +100,26 @@ const ProxyRowChunk = memo(
     if (prev.group.now !== next.group.now) return false
     if (prev.group.name !== next.group.name) return false
     if (prev.proxies.length !== next.proxies.length) return false
-    
+
     // 如果测速改变了 delay，我们需要依赖组件内部的 delay 更新或者判断 reference
     // 由于 proxy 对象包含 history 且可能频繁变化，我们需要检查每个代理的基础属性和历史记录最后一次延迟
     for (let i = 0; i < prev.proxies.length; i++) {
-        const p1 = prev.proxies[i]
-        const p2 = next.proxies[i]
-        if (p1.name !== p2.name) return false
-        if (p1.type !== p2.type) return false
-        
-        const d1 = p1.history?.length ? p1.history[p1.history.length - 1].delay : -1
-        const d2 = p2.history?.length ? p2.history[p2.history.length - 1].delay : -1
-        if (d1 !== d2) return false
+      const p1 = prev.proxies[i]
+      const p2 = next.proxies[i]
+      if (p1.name !== p2.name) return false
+      if (p1.type !== p2.type) return false
 
-        const p1Now = 'now' in p1 ? p1.now : undefined
-        const p2Now = 'now' in p2 ? p2.now : undefined
-        if (p1Now !== p2Now) return false
+      const d1 = p1.history?.length ? p1.history[p1.history.length - 1].delay : -1
+      const d2 = p2.history?.length ? p2.history[p2.history.length - 1].delay : -1
+      if (d1 !== d2) return false
 
-        const p1ChildrenCount = 'all' in p1 && Array.isArray(p1.all) ? p1.all.length : -1
-        const p2ChildrenCount = 'all' in p2 && Array.isArray(p2.all) ? p2.all.length : -1
-        if (p1ChildrenCount !== p2ChildrenCount) return false
+      const p1Now = 'now' in p1 ? p1.now : undefined
+      const p2Now = 'now' in p2 ? p2.now : undefined
+      if (p1Now !== p2Now) return false
+
+      const p1ChildrenCount = 'all' in p1 && Array.isArray(p1.all) ? p1.all.length : -1
+      const p2ChildrenCount = 'all' in p2 && Array.isArray(p2.all) ? p2.all.length : -1
+      if (p1ChildrenCount !== p2ChildrenCount) return false
     }
 
     return true
@@ -170,10 +166,7 @@ function getDelayVersion(groups: ControllerMixedGroup[]): string {
     if (visited.has(proxy)) return ''
     visited.add(proxy)
 
-    const base = [
-      proxy.name,
-      getHistoryVersion(proxy.history)
-    ]
+    const base = [proxy.name, getHistoryVersion(proxy.history)]
 
     if ('now' in proxy) {
       base.push(proxy.now)
@@ -217,9 +210,7 @@ function getGroupAvailableCount(group: ControllerMixedGroup): number {
 function getAutoDelayGroupSignature(groups: ControllerMixedGroup[]): string {
   return groups
     .map((group) => {
-      const childNames = (group.all || [])
-        .map((proxy) => proxy?.name || '')
-        .join('\u0002')
+      const childNames = (group.all || []).map((proxy) => proxy?.name || '').join('\u0002')
       return `${group.name}\u0000${childNames}`
     })
     .join('\u0001')
@@ -359,9 +350,9 @@ const Proxies: React.FC = () => {
   // 根据模式过滤显示的组
   const filteredGroups = useMemo(() => {
     if (mode === 'global') {
-      return allGroups.filter(group => group.name === 'GLOBAL')
+      return allGroups.filter((group) => group.name === 'GLOBAL')
     }
-    return allGroups.filter(group => group.name !== 'GLOBAL')
+    return allGroups.filter((group) => group.name !== 'GLOBAL')
   }, [allGroups, mode])
 
   // 根据 groupOrder 排序
@@ -424,15 +415,19 @@ const Proxies: React.FC = () => {
   // 扁平化数据结构
   type FlatItem =
     | { type: 'header'; groupIndex: number }
-    | { type: 'proxies'; groupIndex: number; proxies: (ControllerProxiesDetail | ControllerGroupDetail)[] }
+    | {
+        type: 'proxies'
+        groupIndex: number
+        proxies: (ControllerProxiesDetail | ControllerGroupDetail)[]
+      }
 
   const flatItems = useMemo(() => {
     const items: FlatItem[] = []
-    
+
     renderGroups.forEach((group, index) => {
       // 添加组头
       items.push({ type: 'header', groupIndex: index })
-      
+
       // 如果展开，添加代理行
       const isGroupOpen = !!isOpen[group.name]
 
@@ -469,8 +464,6 @@ const Proxies: React.FC = () => {
     })
     return items
   }, [renderGroups, isOpen, proxyDisplayOrder, chunkSize])
-
-
 
   const runDelayTargets = useCallback(
     async (
@@ -572,15 +565,18 @@ const Proxies: React.FC = () => {
     [runDelayTargets]
   )
 
-  const toggleOpen = useCallback((groupName: string) => {
-    setIsOpen((prev) => {
-      const nextOpen = !prev[groupName]
-      if (nextOpen && autoDelayTestOnShow) {
-        void delayOpenedGroup(groupName)
-      }
-      return { ...prev, [groupName]: nextOpen }
-    })
-  }, [autoDelayTestOnShow, delayOpenedGroup])
+  const toggleOpen = useCallback(
+    (groupName: string) => {
+      setIsOpen((prev) => {
+        const nextOpen = !prev[groupName]
+        if (nextOpen && autoDelayTestOnShow) {
+          void delayOpenedGroup(groupName)
+        }
+        return { ...prev, [groupName]: nextOpen }
+      })
+    },
+    [autoDelayTestOnShow, delayOpenedGroup]
+  )
 
   // 首次进入页面时自动测速，及周期性定时测速
   const hasInitialTestRef = useRef(false)
@@ -623,7 +619,7 @@ const Proxies: React.FC = () => {
 
     const doAutoDelayTest = async (): Promise<boolean> => {
       if (disposed || document.hidden || isTestingRef.current) return false
-      
+
       const latestGroups = groupsRef.current
       if (latestGroups.length === 0) return false
 
@@ -636,7 +632,10 @@ const Proxies: React.FC = () => {
       const runId = autoTestGenerationRef.current + 1
       autoTestGenerationRef.current = runId
       isTestingRef.current = true
-      debugLog('[proxy-delay:auto] start', latestGroups.map((group) => group.name))
+      debugLog(
+        '[proxy-delay:auto] start',
+        latestGroups.map((group) => group.name)
+      )
 
       try {
         const completed = await runDelayTargets(delayTargets, {
@@ -704,7 +703,7 @@ const Proxies: React.FC = () => {
         const metrics = group
           ? proxyGroupMetrics.get(group.name) || { currentDelay: -1, liveCount: 0 }
           : undefined
-        
+
         return group ? (
           <ProxyGroupCard
             group={group}
@@ -735,7 +734,7 @@ const Proxies: React.FC = () => {
             mutate={mutate}
             onProxyDelay={onProxyDelay}
             onChangeProxy={onChangeProxy}
-            proxyDisplayLayout={proxyDisplayLayout as "hidden" | "single" | "double"}
+            proxyDisplayLayout={proxyDisplayLayout as 'hidden' | 'single' | 'double'}
           />
         )
       }
@@ -761,7 +760,6 @@ const Proxies: React.FC = () => {
     <BasePage
       title={t('page.proxies.title')}
       header={
-
         <div className="flex items-center gap-1 app-nodrag">
           <Button
             size="sm"
@@ -808,11 +806,7 @@ const Proxies: React.FC = () => {
         />
       ) : (
         <div className="h-[calc(100vh-50px)]">
-          <Virtuoso
-            ref={virtuosoRef}
-            data={flatItems}
-            itemContent={renderItem}
-          />
+          <Virtuoso ref={virtuosoRef} data={flatItems} itemContent={renderItem} />
         </div>
       )}
     </BasePage>

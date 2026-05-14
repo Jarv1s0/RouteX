@@ -60,9 +60,17 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
         const previous = points[i - 1] ?? current
         const afterNext = points[i + 2] ?? next
 
-        const controlPoint1X = clamp(current.x + (next.x - previous.x) / 6, paddingX, width - paddingX)
+        const controlPoint1X = clamp(
+          current.x + (next.x - previous.x) / 6,
+          paddingX,
+          width - paddingX
+        )
         const controlPoint1Y = clamp(current.y + (next.y - previous.y) / 6, topY, bottomY)
-        const controlPoint2X = clamp(next.x - (afterNext.x - current.x) / 6, paddingX, width - paddingX)
+        const controlPoint2X = clamp(
+          next.x - (afterNext.x - current.x) / 6,
+          paddingX,
+          width - paddingX
+        )
         const controlPoint2Y = clamp(next.y - (afterNext.y - current.y) / 6, topY, bottomY)
 
         path += ` C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${next.x} ${next.y}`
@@ -109,11 +117,23 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
           <clipPath id={chartGeometry.chartClipId}>
             <rect x="0" y="0" width="100" height="100" rx="14" ry="14" />
           </clipPath>
-          <linearGradient id={isActive ? 'conn-upload-active' : 'conn-upload'} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient
+            id={isActive ? 'conn-upload-active' : 'conn-upload'}
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
             <stop offset="0%" stopColor={uploadColor} stopOpacity={0.4} />
             <stop offset="100%" stopColor={uploadColor} stopOpacity={0.05} />
           </linearGradient>
-          <linearGradient id={isActive ? 'conn-download-active' : 'conn-download'} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient
+            id={isActive ? 'conn-download-active' : 'conn-download'}
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
             <stop offset="0%" stopColor={downloadColor} stopOpacity={0.4} />
             <stop offset="100%" stopColor={downloadColor} stopOpacity={0.04} />
           </linearGradient>

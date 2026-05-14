@@ -42,13 +42,13 @@ export const CustomContextMenu: React.FC<Props> = ({ isOpen, onClose, position, 
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] pointer-events-none">
-       {/* 使用 pointer-events-auto 恢复菜单的点击交互 */}
-      <div 
+      {/* 使用 pointer-events-auto 恢复菜单的点击交互 */}
+      <div
         ref={menuRef}
         className="absolute pointer-events-auto"
-        style={{ 
-          left: position.x, 
-          top: position.y 
+        style={{
+          left: position.x,
+          top: position.y
         }}
       >
         <Card shadow="md" className="min-w-[140px] p-1">

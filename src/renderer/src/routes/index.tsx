@@ -110,7 +110,7 @@ export function navigateSidebarRoute(path: string): void {
       return
     }
 
-    const currentPath = _lastNavigatedPath || (window.location.hash?.slice(1) || '/')
+    const currentPath = _lastNavigatedPath || window.location.hash?.slice(1) || '/'
     debugLog('[nav]', currentPath, '→', normalizedPath)
     _lastNavigatedPath = normalizedPath
     _navigate(normalizedPath)

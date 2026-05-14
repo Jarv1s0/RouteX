@@ -174,7 +174,11 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   } = appConfig || {}
 
   const items = [
-    { title: t('settings.shortcut.toggleWindow'), action: 'showWindowShortcut', value: showWindowShortcut },
+    {
+      title: t('settings.shortcut.toggleWindow'),
+      action: 'showWindowShortcut',
+      value: showWindowShortcut
+    },
     {
       title: t('settings.shortcut.toggleFloating'),
       action: 'showFloatingWindowShortcut',
@@ -185,12 +189,32 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
       action: 'triggerSysProxyShortcut',
       value: triggerSysProxyShortcut
     },
-    { title: t('settings.shortcut.toggleTun'), action: 'triggerTunShortcut', value: triggerTunShortcut },
+    {
+      title: t('settings.shortcut.toggleTun'),
+      action: 'triggerTunShortcut',
+      value: triggerTunShortcut
+    },
     { title: t('settings.shortcut.ruleMode'), action: 'ruleModeShortcut', value: ruleModeShortcut },
-    { title: t('settings.shortcut.globalMode'), action: 'globalModeShortcut', value: globalModeShortcut },
-    { title: t('settings.shortcut.directMode'), action: 'directModeShortcut', value: directModeShortcut },
-    { title: t('settings.shortcut.quitWithoutCore'), action: 'quitWithoutCoreShortcut', value: quitWithoutCoreShortcut },
-    { title: t('settings.shortcut.restartApp'), action: 'restartAppShortcut', value: restartAppShortcut }
+    {
+      title: t('settings.shortcut.globalMode'),
+      action: 'globalModeShortcut',
+      value: globalModeShortcut
+    },
+    {
+      title: t('settings.shortcut.directMode'),
+      action: 'directModeShortcut',
+      value: directModeShortcut
+    },
+    {
+      title: t('settings.shortcut.quitWithoutCore'),
+      action: 'quitWithoutCoreShortcut',
+      value: quitWithoutCoreShortcut
+    },
+    {
+      title: t('settings.shortcut.restartApp'),
+      action: 'restartAppShortcut',
+      value: restartAppShortcut
+    }
   ]
 
   return (

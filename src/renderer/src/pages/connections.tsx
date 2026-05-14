@@ -65,10 +65,13 @@ const Connections: React.FC = () => {
     setContextMenu((previousState) => ({ ...previousState, isOpen: false }))
   }, [])
 
-  const handleContextMenu = useCallback((connection: ControllerConnectionDetail, event: React.MouseEvent) => {
-    event.preventDefault()
-    setContextMenu({ isOpen: true, x: event.clientX, y: event.clientY, conn: connection })
-  }, [])
+  const handleContextMenu = useCallback(
+    (connection: ControllerConnectionDetail, event: React.MouseEvent) => {
+      event.preventDefault()
+      setContextMenu({ isOpen: true, x: event.clientX, y: event.clientY, conn: connection })
+    },
+    []
+  )
 
   const handleCreateRule = useCallback((connection: ControllerConnectionDetail) => {
     setCreateRuleConnection(connection)
@@ -78,8 +81,9 @@ const Connections: React.FC = () => {
   useEffect(() => {
     if (!selected) return
 
-    const latestSelected = activeConnections.find((connection) => connection.id === selected.id)
-      || closedConnections.find((connection) => connection.id === selected.id)
+    const latestSelected =
+      activeConnections.find((connection) => connection.id === selected.id) ||
+      closedConnections.find((connection) => connection.id === selected.id)
 
     if (latestSelected && latestSelected !== selected) {
       setSelected(latestSelected)
@@ -149,7 +153,9 @@ const Connections: React.FC = () => {
         </CustomContextMenu>
       )}
 
-      {isSettingModalOpen && <ConnectionSettingModal onClose={() => setIsSettingModalOpen(false)} />}
+      {isSettingModalOpen && (
+        <ConnectionSettingModal onClose={() => setIsSettingModalOpen(false)} />
+      )}
 
       {isPaused && (
         <div className="sticky top-0 z-50 bg-warning/10 border-b border-warning/30 px-4 py-2 flex items-center justify-center gap-2">

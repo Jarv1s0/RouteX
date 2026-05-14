@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode
+} from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { enUS } from './locales/en-US'
 import { zhCN } from './locales/zh-CN'

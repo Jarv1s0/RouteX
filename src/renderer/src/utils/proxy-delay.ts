@@ -127,7 +127,9 @@ function getResolvedCurrentProxy(
   return current
 }
 
-export function getResolvedProxyTarget(proxy?: ProxyDelayTarget): ControllerProxiesDetail | undefined {
+export function getResolvedProxyTarget(
+  proxy?: ProxyDelayTarget
+): ControllerProxiesDetail | undefined {
   if (!proxy) return undefined
   if (!isProxyGroup(proxy)) return proxy
 

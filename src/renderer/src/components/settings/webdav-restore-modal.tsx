@@ -19,11 +19,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { filenames: names, onClose } = props
   const {
-    appConfig: {
-      disableAnimation = false,
-      collapseSidebar = false,
-      siderWidth = 250
-    } = {}
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
   } = useAppConfig()
   const [filenames, setFilenames] = useState<string[]>(names)
   const [restoring, setRestoring] = useState(false)
@@ -38,7 +34,9 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 640 })}>
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 640 })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>{t('settings.webdav.restoreTitle')}</span>
           <SecondaryModalCloseButton onPress={onClose} />

@@ -33,7 +33,7 @@ const EnvSetting: React.FC = () => {
 
   return (
     <SettingCard title={t('mihomo.env')} collapsible>
-          <SettingItem title={t('mihomo.disableSystemCA')} divider>
+      <SettingItem title={t('mihomo.disableSystemCA')} divider>
         <Switch
           size="sm"
           isSelected={disableSystemCA}

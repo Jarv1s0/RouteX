@@ -22,13 +22,13 @@ interface RuleDetailListProps {
 
 const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
   const { t } = useI18n()
-  
+
   if (!details || details.length === 0) {
     return (
-        <div className="flex flex-col items-center justify-center h-[300px] text-foreground-400 gap-2">
-            <div className="text-4xl opacity-20">📭</div>
-            <span className="text-sm">{t('stats.noDetailRecords')}</span>
-        </div>
+      <div className="flex flex-col items-center justify-center h-[300px] text-foreground-400 gap-2">
+        <div className="text-4xl opacity-20">📭</div>
+        <span className="text-sm">{t('stats.noDetailRecords')}</span>
+      </div>
     )
   }
 
@@ -43,7 +43,7 @@ const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
 
           return (
             <div key={hit.id || Math.random()} className="px-0.5 pb-1.5">
-              <Card 
+              <Card
                 as="div"
                 shadow="sm"
                 radius="lg"
@@ -53,7 +53,6 @@ const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
                   hover:bg-default-100/80 hover:shadow-md
                 `}
               >
-
                 <CardBody className="py-2 px-3">
                   {/* 第一行：标签 + 时间 + 流量 */}
                   <div className="flex items-center justify-between mb-1">
@@ -66,7 +65,9 @@ const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
                       {/* 进程 */}
                       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-default/30 text-default-500 bg-default/10 flex items-center gap-1">
                         <RiAppsLine size={10} />
-                        <span className="max-w-[80px] truncate">{hit.process ? hit.process.split('/').pop() : 'System'}</span>
+                        <span className="max-w-[80px] truncate">
+                          {hit.process ? hit.process.split('/').pop() : 'System'}
+                        </span>
                       </span>
                       {/* 时间 */}
                       <span className="text-default-400 text-[10px] font-mono tracking-tight">
@@ -80,7 +81,7 @@ const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
                         <span>{calcTraffic(hit.upload)}</span>
                       </div>
                       <div className="w-px h-2.5 bg-default-200" />
-                      <div className="flex items-center gap-0.5 text-purple-500">
+                      <div className="stats-download-accent flex items-center gap-0.5">
                         <IoArrowDown size={10} />
                         <span>{calcTraffic(hit.download)}</span>
                       </div>

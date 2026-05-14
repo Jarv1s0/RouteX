@@ -2,7 +2,10 @@ import { Button } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import React from 'react'
 
-import { SnifferSettingsFormFields, useSnifferSettingsEditor } from '@renderer/components/sniffer/sniffer-settings-editor'
+import {
+  SnifferSettingsFormFields,
+  useSnifferSettingsEditor
+} from '@renderer/components/sniffer/sniffer-settings-editor'
 import { useI18n } from '@renderer/i18n'
 
 const Sniffer: React.FC = () => {

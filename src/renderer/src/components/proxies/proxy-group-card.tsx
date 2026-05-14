@@ -107,7 +107,9 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
 
                 <div className="flex items-center gap-2">
                   <div className="flex items-center px-3 py-1 rounded-md bg-default-100/80 border border-default-200/50 hover:bg-default-200/50 transition-colors">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider mr-2 transition-colors duration-500 ${delayColor}`}>
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider mr-2 transition-colors duration-500 ${delayColor}`}
+                    >
                       Live
                     </span>
                     <span className="text-xs font-mono font-medium text-foreground/80">
@@ -136,7 +138,11 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                 {/* Delay Value */}
                 <div className="flex items-center justify-center min-w-[54px] px-2">
                   <span className={`text-sm font-bold font-mono ${delayColor}`}>
-                    {currentDelay === -1 ? '--' : currentDelay === 0 ? t('proxies.timeout') : `${currentDelay}`}
+                    {currentDelay === -1
+                      ? '--'
+                      : currentDelay === 0
+                        ? t('proxies.timeout')
+                        : `${currentDelay}`}
                   </span>
                   {currentDelay !== -1 && currentDelay !== 0 && (
                     <span className="text-[10px] font-medium text-foreground-400 ml-[1px]">ms</span>

@@ -48,7 +48,7 @@ class ErrorBoundary extends Component<Props, State> {
                 <span className="block text-5xl font-bold leading-none drop-shadow-sm">!</span>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
                 {translate('errorBoundary.title')}
@@ -59,13 +59,13 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="w-full bg-default-50/50 border border-default-100 p-5 rounded-2xl overflow-hidden text-left relative group hover:bg-default-100/50 transition-colors">
-               <div className="flex items-center gap-2 mb-2 opacity-50 text-xs font-semibold uppercase tracking-wider">
-                  <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
-                  Error Details
-               </div>
-               <code className="block text-xs font-mono text-default-600 break-words line-clamp-4 select-text font-medium leading-relaxed">
-                 {this.state.error?.message}
-               </code>
+              <div className="flex items-center gap-2 mb-2 opacity-50 text-xs font-semibold uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
+                Error Details
+              </div>
+              <code className="block text-xs font-mono text-default-600 break-words line-clamp-4 select-text font-medium leading-relaxed">
+                {this.state.error?.message}
+              </code>
             </div>
 
             <div className="flex gap-4 w-full pt-2">

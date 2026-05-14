@@ -8,15 +8,13 @@ let trafficStatsPromise: Promise<{
   sessionDownload: number
 }> | null = null
 let lastTrafficStatsAt = 0
-let lastTrafficStatsResult:
-  | {
-      hourly: { hour: string; upload: number; download: number }[]
-      daily: { date: string; upload: number; download: number }[]
-      lastUpdate: number
-      sessionUpload: number
-      sessionDownload: number
-    }
-  | null = null
+let lastTrafficStatsResult: {
+  hourly: { hour: string; upload: number; download: number }[]
+  daily: { date: string; upload: number; download: number }[]
+  lastUpdate: number
+  sessionUpload: number
+  sessionDownload: number
+} | null = null
 
 const TRAFFIC_STATS_CACHE_MS = 1000
 

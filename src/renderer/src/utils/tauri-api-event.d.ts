@@ -7,13 +7,7 @@ declare module '@tauri-apps/api/event' {
 
   export type UnlistenFn = () => void
 
-  export function listen<T>(
-    event: string,
-    handler: (event: Event<T>) => void
-  ): Promise<UnlistenFn>
+  export function listen<T>(event: string, handler: (event: Event<T>) => void): Promise<UnlistenFn>
 
-  export function once<T>(
-    event: string,
-    handler: (event: Event<T>) => void
-  ): Promise<UnlistenFn>
+  export function once<T>(event: string, handler: (event: Event<T>) => void): Promise<UnlistenFn>
 }

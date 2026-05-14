@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input } from '@heroui/react'
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input
+} from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { webdavBackup, listWebdavBackups } from '@renderer/utils/webdav-ipc'
 import { toast } from 'sonner'
 import debounce from '@renderer/utils/debounce'
 import WebdavRestoreModal from './webdav-restore-modal'
-import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import {
+  createSecondaryModalClassNames,
+  getMainPaneModalContentStyle
+} from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
 interface Props {
@@ -34,38 +45,41 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     setWebdav({ webdavUrl, webdavUsername, webdavPassword, webdavDir })
   }, [isOpen])
 
-  const debouncedPatch = debounce((patch: unknown) => patchAppConfig(patch as Partial<AppConfig>), 500)
+  const debouncedPatch = debounce(
+    (patch: unknown) => patchAppConfig(patch as Partial<AppConfig>),
+    500
+  )
 
   const handleBackup = async () => {
     setBackuping(true)
     try {
       await webdavBackup()
       toast.success(t('settings.webdav.backupSuccess'))
-    } catch (e) { toast.error(String(e)) }
-    finally { setBackuping(false) }
+    } catch (e) {
+      toast.error(String(e))
+    } finally {
+      setBackuping(false)
+    }
   }
 
   const handleOpenRestore = async () => {
     try {
       const files = await listWebdavBackups()
-      setFilenames(files); setRestoreOpen(true)
-    } catch (e) { toast.error(t('settings.webdav.listFailed', { error: String(e) })) }
+      setFilenames(files)
+      setRestoreOpen(true)
+    } catch (e) {
+      toast.error(t('settings.webdav.listFailed', { error: String(e) }))
+    }
   }
 
   // 辅助组件：配置项卡片
-  const ConfigInputCard: React.FC<{ 
-    title: string; 
-    subtitle?: string; 
-    field: string; 
-    type?: string; 
-    placeholder?: string 
-  }> = ({ 
-    title, 
-    subtitle, 
-    field, 
-    type = 'text', 
-    placeholder 
-  }) => (
+  const ConfigInputCard: React.FC<{
+    title: string
+    subtitle?: string
+    field: string
+    type?: string
+    placeholder?: string
+  }> = ({ title, subtitle, field, type = 'text', placeholder }) => (
     <div className="group flex items-center justify-between gap-4 p-3 rounded-xl bg-content1/50 hover:bg-content1 border border-default-100 hover:border-default-200 transition-all duration-300 shadow-sm hover:shadow-md">
       <div className="flex flex-col gap-0.5 overflow-hidden shrink-0">
         <span className="font-medium text-foreground-600 group-hover:text-foreground-900 transition-colors whitespace-nowrap">
@@ -78,19 +92,21 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
         )}
       </div>
       <Input
-        size="sm" 
-        className="w-64" 
+        size="sm"
+        className="w-64"
         type={type}
         variant="bordered"
         placeholder={placeholder}
-        classNames={{ 
-          input: "bg-transparent text-xs",
-          inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 h-8 min-h-8"
+        classNames={{
+          input: 'bg-transparent text-xs',
+          inputWrapper:
+            'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 h-8 min-h-8'
         }}
         value={webdav[field as keyof typeof webdav]}
         onValueChange={(v) => {
           const next = { ...webdav, [field]: v }
-          setWebdav(next); debouncedPatch({ [field]: v })
+          setWebdav(next)
+          debouncedPatch({ [field]: v })
         }}
       />
     </div>
@@ -98,15 +114,17 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
 
   return (
     <>
-      <Modal 
-        isOpen={isOpen} 
-        onOpenChange={onOpenChange} 
-        size="2xl" 
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        size="2xl"
         backdrop="blur"
         scrollBehavior="inside"
         classNames={createSecondaryModalClassNames()}
       >
-        <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 820 })}>
+        <ModalContent
+          style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 820 })}
+        >
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1 py-2 px-4">
@@ -119,45 +137,45 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
               </ModalHeader>
               <ModalBody className="py-2 px-4">
                 <div className="flex flex-col gap-2">
-                  <ConfigInputCard 
+                  <ConfigInputCard
                     title={t('settings.webdav.url')}
                     subtitle={t('settings.webdav.urlHelp')}
-                    field="webdavUrl" 
+                    field="webdavUrl"
                     placeholder="https://example.com/webdav"
                   />
-                  <ConfigInputCard 
+                  <ConfigInputCard
                     title={t('settings.webdav.dir')}
                     subtitle={t('settings.webdav.dirHelp')}
-                    field="webdavDir" 
+                    field="webdavDir"
                     placeholder="routex"
                   />
                   <div className="grid grid-cols-2 gap-2">
-                    <ConfigInputCard 
+                    <ConfigInputCard
                       title={t('settings.webdav.username')}
-                      field="webdavUsername" 
+                      field="webdavUsername"
                       placeholder="Username"
                     />
-                    <ConfigInputCard 
+                    <ConfigInputCard
                       title={t('settings.webdav.password')}
-                      field="webdavPassword" 
+                      field="webdavPassword"
                       type="password"
                       placeholder="Password"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 mt-2">
-                    <Button 
-                      color="primary" 
-                      variant="shadow" 
-                      isLoading={backuping} 
+                    <Button
+                      color="primary"
+                      variant="shadow"
+                      isLoading={backuping}
                       onPress={handleBackup}
                       className="font-medium"
                     >
                       {t('settings.webdav.backupNow')}
                     </Button>
-                    <Button 
-                      color="secondary" 
-                      variant="shadow" 
+                    <Button
+                      color="secondary"
+                      variant="shadow"
                       onPress={handleOpenRestore}
                       className="font-medium"
                     >
@@ -167,9 +185,9 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                 </div>
               </ModalBody>
               <ModalFooter className="py-2 px-4">
-                <Button 
-                  color="primary" 
-                  variant="shadow" 
+                <Button
+                  color="primary"
+                  variant="shadow"
                   onPress={onClose}
                   className="font-medium px-8"
                 >
@@ -180,7 +198,9 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
           )}
         </ModalContent>
       </Modal>
-      {restoreOpen && <WebdavRestoreModal filenames={filenames} onClose={() => setRestoreOpen(false)} />}
+      {restoreOpen && (
+        <WebdavRestoreModal filenames={filenames} onClose={() => setRestoreOpen(false)} />
+      )}
     </>
   )
 }

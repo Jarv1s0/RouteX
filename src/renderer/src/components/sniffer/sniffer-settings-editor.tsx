@@ -26,7 +26,10 @@ export interface SnifferSettingsEditorState {
   changed: boolean
   save: () => Promise<void>
   setValues: (next: SnifferEditorValues) => void
-  handleSniffPortChange: (protocol: keyof NonNullable<MihomoSnifferConfig['sniff']>, value: string) => void
+  handleSniffPortChange: (
+    protocol: keyof NonNullable<MihomoSnifferConfig['sniff']>,
+    value: string
+  ) => void
 }
 
 function buildInitialValues(
@@ -148,7 +151,9 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
   }
 }
 
-export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditorState }> = ({ editor }) => {
+export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditorState }> = ({
+  editor
+}) => {
   const { t } = useI18n()
   const { values, setValues, handleSniffPortChange } = editor
 

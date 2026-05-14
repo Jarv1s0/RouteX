@@ -19,8 +19,9 @@ interface ParsedYaml {
 const ByPassEditorModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { bypass, onCancel, onConfirm } = props
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
   const [currData, setCurrData] = useState<string>('')
   useEffect(() => {
     setCurrData(yaml.dump({ bypass }))

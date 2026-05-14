@@ -13,15 +13,10 @@ function delay(ms) {
 }
 
 function isRouteXViteHtml(html) {
-  const hasRouteXEntry = /<script\s+type="module"\s+src="\.\/main\.tsx(?:\?[^"]*)?"><\/script>/.test(
-    html
-  )
+  const hasRouteXEntry =
+    /<script\s+type="module"\s+src="\.\/main\.tsx(?:\?[^"]*)?"><\/script>/.test(html)
 
-  return (
-    html.includes('<title>RouteX</title>') &&
-    html.includes('/@vite/client') &&
-    hasRouteXEntry
-  )
+  return html.includes('<title>RouteX</title>') && html.includes('/@vite/client') && hasRouteXEntry
 }
 
 async function probeDevServer() {

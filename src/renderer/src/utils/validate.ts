@@ -73,7 +73,9 @@ export const isValidListenAddress = (s: string | undefined): ValidationResult =>
     if (/^[0-9.]+$/.test(host)) {
       return isIPv4(host)
     }
-    return /^[a-zA-Z0-9-.]+$/.test(host) ? { ok: true } : { ok: false, error: translate('validate.hostnameInvalidChars') }
+    return /^[a-zA-Z0-9-.]+$/.test(host)
+      ? { ok: true }
+      : { ok: false, error: translate('validate.hostnameInvalidChars') }
   }
   return { ok: false, error: translate('validate.hostnameInvalidChars') }
 }
@@ -164,7 +166,10 @@ export const isValidDnsServer = (s: string | undefined, ipOnly = false): Validat
         if (!allowedParams.includes(key)) {
           return {
             ok: false,
-            error: translate('validate.dnsParamUnsupported', { key, allowed: allowedParams.join(', ') })
+            error: translate('validate.dnsParamUnsupported', {
+              key,
+              allowed: allowedParams.join(', ')
+            })
           }
         }
         if (boolParams.includes(key) && value !== 'true' && value !== 'false') {
@@ -209,7 +214,9 @@ export const isValidDnsServer = (s: string | undefined, ipOnly = false): Validat
       'not_implemented',
       'refused'
     ])
-    return allowed.has(code) ? { ok: true } : { ok: false, error: translate('validate.rcodeInvalid') }
+    return allowed.has(code)
+      ? { ok: true }
+      : { ok: false, error: translate('validate.rcodeInvalid') }
   }
 
   if (/^https?:\/\//i.test(serverPart)) {

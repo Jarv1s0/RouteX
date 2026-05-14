@@ -11,7 +11,11 @@ interface CustomInstallConfirmDetail {
   name?: string | null
 }
 
-function dispatchInstallConfirmResult(eventName: string, requestId: string, confirmed: boolean): void {
+function dispatchInstallConfirmResult(
+  eventName: string,
+  requestId: string,
+  confirmed: boolean
+): void {
   window.dispatchEvent(
     new CustomEvent(eventName, {
       detail: {
@@ -183,9 +187,7 @@ const GlobalConfirmModals: React.FC = () => {
               <p className="text-sm text-gray-600 mb-2">
                 {t('confirm.link')}: {profileInstallData.url}
               </p>
-              <p className="text-sm text-orange-500 mt-2">
-                {t('confirm.profileTrustWarning')}
-              </p>
+              <p className="text-sm text-orange-500 mt-2">{t('confirm.profileTrustWarning')}</p>
             </div>
           }
           confirmText={t('common.import')}
@@ -210,9 +212,7 @@ const GlobalConfirmModals: React.FC = () => {
               <p className="text-sm text-gray-600 mb-2">
                 {t('confirm.link')}: {overrideInstallData.url}
               </p>
-              <p className="text-sm text-orange-500 mt-2">
-                {t('confirm.overrideTrustWarning')}
-              </p>
+              <p className="text-sm text-orange-500 mt-2">{t('confirm.overrideTrustWarning')}</p>
             </div>
           }
           confirmText={t('common.import')}

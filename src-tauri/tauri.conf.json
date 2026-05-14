@@ -42,9 +42,7 @@
     "windows": {
       "nsis": {
         "installMode": "perMachine",
-        "languages": [
-          "SimpChinese"
-        ],
+        "languages": ["SimpChinese"],
         "sidebarImage": "../resources/installerSidebar.bmp",
         "installerIcon": "../resources/installerIcon.ico",
         "installerHooks": "../build/nsis/installer-hooks.nsh"
@@ -53,11 +51,7 @@
         "language": "zh-CN"
       }
     },
-    "icon": [
-      "../resources/icon.png",
-      "../resources/icon.ico",
-      "../resources/icon.icns"
-    ]
+    "icon": ["../resources/icon.png", "../resources/icon.ico", "../resources/icon.icns"]
   },
   "plugins": {
     "updater": {
@@ -66,11 +60,7 @@
     },
     "deep-link": {
       "desktop": {
-        "schemes": [
-          "clash",
-          "mihomo",
-          "routex"
-        ]
+        "schemes": ["clash", "mihomo", "routex"]
       }
     }
   }

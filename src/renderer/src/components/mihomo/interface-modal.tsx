@@ -1,10 +1,4 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  Snippet
-} from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, Snippet } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
 import { getInterfaces } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -24,11 +18,7 @@ const InterfaceModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { onClose } = props
   const {
-    appConfig: {
-      disableAnimation = false,
-      collapseSidebar = false,
-      siderWidth = 250
-    } = {}
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
   } = useAppConfig()
   const [info, setInfo] = useState<Record<string, NetworkInterfaceInfo[]>>({})
   const getInfo = async (): Promise<void> => {
@@ -49,7 +39,9 @@ const InterfaceModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 560 })}>
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 560 })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>{t('mihomo.networkInfo')}</span>
           <SecondaryModalCloseButton onPress={onClose} />

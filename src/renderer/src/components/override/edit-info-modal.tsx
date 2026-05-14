@@ -27,8 +27,9 @@ interface Props {
 const EditInfoModal: React.FC<Props> = (props) => {
   const { item, updateOverrideItem, onClose } = props
   const { t } = useI18n()
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
   const [values, setValues] = useState(item)
   const [saving, setSaving] = useState(false)
   const inputWidth = 'w-[400px] md:w-[400px] lg:w-[600px] xl:w-[800px]'
@@ -46,7 +47,9 @@ const EditInfoModal: React.FC<Props> = (props) => {
       }
       onClose()
     } catch (e) {
-      notifyError(e, { title: item.id ? t('override.saveInfoFailed') : t('profiles.importOverrideFailed') })
+      notifyError(e, {
+        title: item.id ? t('override.saveInfoFailed') : t('profiles.importOverrideFailed')
+      })
       setSaving(false)
     }
   }

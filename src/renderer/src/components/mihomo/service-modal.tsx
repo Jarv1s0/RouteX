@@ -39,11 +39,7 @@ const ServiceModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { onChange, onInit, onInstall, onUninstall, onStart, onStop, onRestart } = props
   const {
-    appConfig: {
-      disableAnimation = false,
-      collapseSidebar = false,
-      siderWidth = 250
-    } = {}
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
   } = useAppConfig()
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<ServiceStatusType | null>(null)
@@ -209,7 +205,9 @@ const ServiceModal: React.FC<Props> = (props) => {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{t('mihomo.service.connectionStatus')}</span>
+                    <span className="text-sm font-medium">
+                      {t('mihomo.service.connectionStatus')}
+                    </span>
                   </div>
                   {connectionStatus === 'checking' ? (
                     <Chip
@@ -258,12 +256,7 @@ const ServiceModal: React.FC<Props> = (props) => {
           </div>
         </ModalBody>
         <ModalFooter className="space-x-2">
-          <Button
-            size="sm"
-            variant="light"
-            onPress={() => onChange(false)}
-            isDisabled={loading}
-          >
+          <Button size="sm" variant="light" onPress={() => onChange(false)} isDisabled={loading}>
             {t('common.close')}
           </Button>
 

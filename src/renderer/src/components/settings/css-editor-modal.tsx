@@ -13,8 +13,9 @@ interface Props {
 const CSSEditorModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { theme, onCancel, onConfirm } = props
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
   const [currData, setCurrData] = useState('')
 
   useEffect(() => {
@@ -44,7 +45,9 @@ const CSSEditorModal: React.FC<Props> = (props) => {
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
       >
-        <ModalHeader className="flex pb-0 app-drag">{t('settings.appearance.editTheme')}</ModalHeader>
+        <ModalHeader className="flex pb-0 app-drag">
+          {t('settings.appearance.editTheme')}
+        </ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-hidden">
           <BaseEditor
             language="css"

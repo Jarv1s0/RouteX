@@ -401,7 +401,8 @@ ASN: ${ipInfo.as}`
   }, [])
 
   const ipLocationText = ipInfo
-    ? [ipInfo.country, ipInfo.region, ipInfo.city].filter(Boolean).join(' · ') || t('common.unknown')
+    ? [ipInfo.country, ipInfo.region, ipInfo.city].filter(Boolean).join(' · ') ||
+      t('common.unknown')
     : t('common.unknown')
   const ipAsnText = ipInfo?.as || t('common.unknown')
   const ipIspText = ipInfo?.isp || t('common.unknown')
@@ -422,9 +423,7 @@ ASN: ${ipInfo.as}`
                   <IoGlobe className="text-primary text-lg" />
                 </div>
                 <span className="font-medium">{t('tools.dnsQuery')}</span>
-                <span className="text-foreground-400 text-xs">
-                  {t('tools.dnsQueryHelp')}
-                </span>
+                <span className="text-foreground-400 text-xs">{t('tools.dnsQueryHelp')}</span>
               </div>
 
               <div className="flex items-center gap-2 mb-3">
@@ -692,7 +691,9 @@ ASN: ${ipInfo.as}`
                           <IoGlobe className="text-lg" />
                         </div>
                         <div>
-                          <div className="text-xs font-medium text-foreground-400">{t('tools.publicIp')}</div>
+                          <div className="text-xs font-medium text-foreground-400">
+                            {t('tools.publicIp')}
+                          </div>
                         </div>
                       </div>
                       <div

@@ -73,10 +73,7 @@ function writeCachedRuleCardCounts(counts: CachedRuleCardCounts): void {
 function scheduleIdleTask(task: () => void, delay = 0, timeout = 4000): () => void {
   let idleId: number | null = null
   const win = window as Window & {
-    requestIdleCallback?: (
-      callback: IdleRequestCallback,
-      options?: IdleRequestOptions
-    ) => number
+    requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number
     cancelIdleCallback?: (handle: number) => void
   }
 
@@ -111,9 +108,7 @@ const RuleCard: React.FC<Props> = (props) => {
   const match = location.pathname.includes('/rules')
   const [updating, setUpdating] = useState(false)
   const [startupCountsReady, setStartupCountsReady] = useState(__ROUTEX_HOST__ !== 'tauri')
-  const [ruleCardFetchReady, setRuleCardFetchReady] = useState(
-    __ROUTEX_HOST__ !== 'tauri' || match
-  )
+  const [ruleCardFetchReady, setRuleCardFetchReady] = useState(__ROUTEX_HOST__ !== 'tauri' || match)
   const [cachedCounts, setCachedCounts] = useState<CachedRuleCardCounts | null>(() =>
     __ROUTEX_HOST__ === 'tauri' ? readCachedRuleCardCounts() : null
   )
@@ -169,14 +164,10 @@ const RuleCard: React.FC<Props> = (props) => {
     data: providersData,
     error: providersError,
     mutate: mutateProviders
-  } = useSWR(
-    ruleCardFetchReady ? 'mihomoRuleProviders' : null,
-    mihomoRuleProviders,
-    {
-      shouldRetryOnError: false,
-      refreshInterval: match ? 30000 : 0
-    }
-  )
+  } = useSWR(ruleCardFetchReady ? 'mihomoRuleProviders' : null, mihomoRuleProviders, {
+    shouldRetryOnError: false,
+    refreshInterval: match ? 30000 : 0
+  })
   const {
     data: runtimeConfig,
     error: runtimeConfigError,
@@ -203,9 +194,7 @@ const RuleCard: React.FC<Props> = (props) => {
     const providerRuleCount = providerMap
       ? Object.values(providerMap).reduce((total, provider) => total + (provider.ruleCount || 0), 0)
       : 0
-    const manualRuleCount = Array.isArray(runtimeConfig?.rules)
-      ? runtimeConfig.rules.length
-      : 0
+    const manualRuleCount = Array.isArray(runtimeConfig?.rules) ? runtimeConfig.rules.length : 0
     return providerRuleCount + manualRuleCount
   }, [providerMap, runtimeConfig])
 
@@ -246,14 +235,11 @@ const RuleCard: React.FC<Props> = (props) => {
       return
     }
 
-    return scheduleIdleTask(
-      () => {
-        if (!document.hidden) {
-          setRuleCardFetchReady(true)
-        }
-      },
-      RULE_CARD_IDLE_REFRESH_DELAY_MS
-    )
+    return scheduleIdleTask(() => {
+      if (!document.hidden) {
+        setRuleCardFetchReady(true)
+      }
+    }, RULE_CARD_IDLE_REFRESH_DELAY_MS)
   }, [match, ruleCardFetchReady])
 
   useEffect(() => {

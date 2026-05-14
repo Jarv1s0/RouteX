@@ -335,15 +335,25 @@ const Mihomo: React.FC = () => {
               disabledKeys={isTauriHost ? [] : ['service']}
               onSelectionChange={(key) => handlePermissionModeChange(key as string)}
             >
-              <Tab key="elevated" title={platform === 'win32' ? t('mihomo.taskSchedule') : t('mihomo.authorizedRun')} />
+              <Tab
+                key="elevated"
+                title={platform === 'win32' ? t('mihomo.taskSchedule') : t('mihomo.authorizedRun')}
+              />
               <Tab key="service" title={t('mihomo.systemService')} />
             </Tabs>
           </SettingItem>
-          <SettingItem title={platform === 'win32' ? t('mihomo.taskStatus') : t('mihomo.permissionStatus')} divider>
+          <SettingItem
+            title={platform === 'win32' ? t('mihomo.taskStatus') : t('mihomo.permissionStatus')}
+            divider
+          >
             <Button
               size="sm"
               color="primary"
-              aria-label={platform === 'win32' ? t('mihomo.manageTaskStatus') : t('mihomo.managePermissionStatus')}
+              aria-label={
+                platform === 'win32'
+                  ? t('mihomo.manageTaskStatus')
+                  : t('mihomo.managePermissionStatus')
+              }
               onPress={() => setShowPermissionModal(true)}
             >
               {t('common.manage')}

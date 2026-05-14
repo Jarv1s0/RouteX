@@ -24,19 +24,16 @@ const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdat
         <CardBody className="w-full py-2">
           <div className="flex items-center gap-2">
             {/* 序号 */}
-            <span className="text-foreground-400 text-sm w-5 flex-shrink-0">
-              {index + 1}
-            </span>
+            <span className="text-foreground-400 text-sm w-5 flex-shrink-0">{index + 1}</span>
             {/* 名称 */}
-            <span className="text-ellipsis whitespace-nowrap overflow-hidden">
-              {provider.name}
-            </span>
+            <span className="text-ellipsis whitespace-nowrap overflow-hidden">{provider.name}</span>
             {/* 代理数量 */}
             <Chip size="sm">{provider.proxies?.length || 0}</Chip>
             {/* 流量信息 */}
             {provider.subscriptionInfo && (
               <span className="text-foreground-400 text-sm flex-shrink-0">
-                {calcTraffic(provider.subscriptionInfo.Upload + provider.subscriptionInfo.Download)} / {calcTraffic(provider.subscriptionInfo.Total)}
+                {calcTraffic(provider.subscriptionInfo.Upload + provider.subscriptionInfo.Download)}{' '}
+                / {calcTraffic(provider.subscriptionInfo.Total)}
               </span>
             )}
             {/* 右侧信息 */}
@@ -61,12 +58,7 @@ const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdat
                   <CgLoadbarDoc className="text-lg" />
                 )}
               </Button>
-              <Button
-                isIconOnly
-                title={t('common.update')}
-                size="sm"
-                onPress={onUpdate}
-              >
+              <Button isIconOnly title={t('common.update')} size="sm" onPress={onUpdate}>
                 <IoMdRefresh className={`text-lg ${updating ? 'animate-spin' : ''}`} />
               </Button>
             </div>

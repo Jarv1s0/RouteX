@@ -78,9 +78,9 @@ interface NodeCardProps {
   }
 }
 
-const NodeCard = React.memo(function NodeCard({ 
-  icon: Icon, 
-  title, 
+const NodeCard = React.memo(function NodeCard({
+  icon: Icon,
+  title,
   name,
   variant,
   index = 0,
@@ -91,7 +91,7 @@ const NodeCard = React.memo(function NodeCard({
   groupInfo
 }: NodeCardProps) {
   const styles = STYLE_VARIANTS[variant]
-  
+
   const getTypeLabel = () => {
     if (!groupInfo?.isGroup) return null
     const { groupType } = groupInfo
@@ -105,39 +105,54 @@ const NodeCard = React.memo(function NodeCard({
       transition={{ duration: 0.4, delay: index * 0.1, ease: 'easeOut' }}
       className={`relative flex flex-col items-center p-6 w-[200px] h-[240px] rounded-3xl backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/20 dark:border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] hover:shadow-2xl transition-all duration-300 overflow-hidden hover:-translate-y-1 group ${styles.cardBg}`}
     >
-      <div className={`flex items-center justify-center w-14 h-14 rounded-2xl mb-4 border shadow-inner transition-transform duration-300 group-hover:-translate-y-0.5 ${styles.iconBg}`}>
-        <Icon className={`text-3xl drop-shadow-sm transition-transform duration-300 group-hover:scale-110 ${styles.iconText}`} />
+      <div
+        className={`flex items-center justify-center w-14 h-14 rounded-2xl mb-4 border shadow-inner transition-transform duration-300 group-hover:-translate-y-0.5 ${styles.iconBg}`}
+      >
+        <Icon
+          className={`text-3xl drop-shadow-sm transition-transform duration-300 group-hover:scale-110 ${styles.iconText}`}
+        />
       </div>
-      
+
       <div className="flex flex-col items-center w-full grow">
-        <span className="text-xs font-semibold text-default-400 tracking-wide mb-1 uppercase">{title}</span>
-        <span 
-          className="font-bold text-base text-foreground text-center break-words line-clamp-2 leading-snug drop-shadow-sm" 
+        <span className="text-xs font-semibold text-default-400 tracking-wide mb-1 uppercase">
+          {title}
+        </span>
+        <span
+          className="font-bold text-base text-foreground text-center break-words line-clamp-2 leading-snug drop-shadow-sm"
           title={groupInfo?.activeNode || name}
         >
           {groupInfo?.activeNode || name || title}
         </span>
-        
+
         {getTypeLabel() && (
           <span className="text-[10px] font-semibold text-default-500 mt-2 bg-default-200/50 dark:bg-white/5 backdrop-blur-md px-2 py-0.5 rounded-md border border-default-200/50 dark:border-white/5">
             {getTypeLabel()}
           </span>
         )}
       </div>
-      
+
       <div className="absolute w-full bottom-0 left-0 px-4 pb-4">
-        {(targetGroups && targetGroups.length > 0) ? (
+        {targetGroups && targetGroups.length > 0 ? (
           <div className="w-full flex justify-center">
-            <div className={`px-3 py-1.5 rounded-xl text-center border shadow-inner max-w-full ${styles.badge}`}>
-              <div className="opacity-80 mb-0.5 text-[9px] font-bold uppercase tracking-widest leading-none">{appliedGroupsLabel}</div>
-              <div className="text-xs font-bold truncate drop-shadow-sm" title={targetGroups.join(', ')}>
+            <div
+              className={`px-3 py-1.5 rounded-xl text-center border shadow-inner max-w-full ${styles.badge}`}
+            >
+              <div className="opacity-80 mb-0.5 text-[9px] font-bold uppercase tracking-widest leading-none">
+                {appliedGroupsLabel}
+              </div>
+              <div
+                className="text-xs font-bold truncate drop-shadow-sm"
+                title={targetGroups.join(', ')}
+              >
                 {targetGroups.join(', ')}
               </div>
             </div>
           </div>
-        ) : (groupInfo?.isGroup && groupInfo.nodeCount !== undefined) ? (
+        ) : groupInfo?.isGroup && groupInfo.nodeCount !== undefined ? (
           <div className="w-full flex justify-center">
-            <div className={`px-4 py-1.5 rounded-full text-[11px] font-black tracking-wide border shadow-inner ${styles.badge}`}>
+            <div
+              className={`px-4 py-1.5 rounded-full text-[11px] font-black tracking-wide border shadow-inner ${styles.badge}`}
+            >
               {nodeCountLabel(groupInfo.nodeCount)}
             </div>
           </div>
@@ -149,9 +164,15 @@ const NodeCard = React.memo(function NodeCard({
 
 NodeCard.displayName = 'NodeCard'
 
-const ConnectionLine = React.memo(function ConnectionLine({ delay, index = 0 }: { delay: number; index?: number }) {
+const ConnectionLine = React.memo(function ConnectionLine({
+  delay,
+  index = 0
+}: {
+  delay: number
+  index?: number
+}) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scaleX: 0 }}
       animate={{ opacity: 1, scaleX: 1 }}
       transition={{ duration: 0.6, delay: index * 0.15 + 0.2 }}
@@ -160,12 +181,13 @@ const ConnectionLine = React.memo(function ConnectionLine({ delay, index = 0 }: 
       <motion.div
         className="absolute top-0 bottom-0 w-1/2 rounded-full"
         style={{
-          background: 'linear-gradient(90deg, transparent, rgba(161, 161, 170, 0.4), rgba(161, 161, 170, 0.9), transparent)'
+          background:
+            'linear-gradient(90deg, transparent, rgba(161, 161, 170, 0.4), rgba(161, 161, 170, 0.9), transparent)'
         }}
         animate={{ left: ['-100%', '200%'] }}
-        transition={{ 
-          repeat: Infinity, 
-          duration: 2, 
+        transition={{
+          repeat: Infinity,
+          duration: 2,
           ease: 'linear',
           delay: delay
         }}
@@ -204,10 +226,13 @@ const ScaleWrapper = React.memo(function ScaleWrapper({ children }: { children: 
   }, [])
 
   return (
-    <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-visible">
-      <div 
-        ref={contentRef} 
-        style={{ transform: `scale(${scale})` }} 
+    <div
+      ref={containerRef}
+      className="w-full h-full flex items-center justify-center overflow-visible"
+    >
+      <div
+        ref={contentRef}
+        style={{ transform: `scale(${scale})` }}
         className="origin-center transition-transform duration-300 ease-out py-8"
       >
         {children}
@@ -231,43 +256,52 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
     [chains, selectedChainId]
   )
 
-  const findGroupByName = useCallback((searchName: string): ControllerMixedGroup | ControllerGroupDetail | undefined => {
-    if (!groups || !searchName) return undefined
-    
-    const topLevel = groups.find(g => g.name === searchName)
-    if (topLevel) return topLevel
-    
-    for (const group of groups) {
-      if (group.all) {
-        for (const item of group.all) {
-          if ('all' in item && item.name === searchName) {
-            return item as ControllerGroupDetail
+  const findGroupByName = useCallback(
+    (searchName: string): ControllerMixedGroup | ControllerGroupDetail | undefined => {
+      if (!groups || !searchName) return undefined
+
+      const topLevel = groups.find((g) => g.name === searchName)
+      if (topLevel) return topLevel
+
+      for (const group of groups) {
+        if (group.all) {
+          for (const item of group.all) {
+            if ('all' in item && item.name === searchName) {
+              return item as ControllerGroupDetail
+            }
           }
         }
       }
-    }
-    
-    return undefined
-  }, [groups])
 
-  const getGroupInfo = useCallback((name?: string) => {
-    if (!name) return undefined
-    const group = findGroupByName(name)
-    if (!group) return undefined
-    return {
-      isGroup: true,
-      activeNode: group.now,
-      nodeCount: 'all' in group ? (group as ControllerMixedGroup).all?.length : undefined,
-      groupType: group.type
-    }
-  }, [findGroupByName])
+      return undefined
+    },
+    [groups]
+  )
 
-  const groupTypeLabels = useMemo<Partial<Record<string, string>>>(() => ({
-    URLTest: t('proxyChains.type.urlTest'),
-    Selector: t('proxyChains.type.selector'),
-    Fallback: t('proxyChains.type.fallback'),
-    LoadBalance: t('proxyChains.type.loadBalance')
-  }), [t])
+  const getGroupInfo = useCallback(
+    (name?: string) => {
+      if (!name) return undefined
+      const group = findGroupByName(name)
+      if (!group) return undefined
+      return {
+        isGroup: true,
+        activeNode: group.now,
+        nodeCount: 'all' in group ? (group as ControllerMixedGroup).all?.length : undefined,
+        groupType: group.type
+      }
+    },
+    [findGroupByName]
+  )
+
+  const groupTypeLabels = useMemo<Partial<Record<string, string>>>(
+    () => ({
+      URLTest: t('proxyChains.type.urlTest'),
+      Selector: t('proxyChains.type.selector'),
+      Fallback: t('proxyChains.type.fallback'),
+      LoadBalance: t('proxyChains.type.loadBalance')
+    }),
+    [t]
+  )
 
   const legendItems = useMemo(
     () => [
@@ -328,7 +362,9 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
           ) : (
             <>
               <div className="flex items-center gap-3 mb-4 select-none px-1">
-                <span className="text-sm font-semibold text-default-600 whitespace-nowrap">{t('proxyChains.selectChain')}</span>
+                <span className="text-sm font-semibold text-default-600 whitespace-nowrap">
+                  {t('proxyChains.selectChain')}
+                </span>
                 <Select
                   size="sm"
                   className="w-[280px]"
@@ -338,7 +374,8 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
                     setSelectedChainId(id)
                   }}
                   classNames={{
-                    trigger: "bg-default-100 dark:bg-default-50/50 shadow-none border border-default-200 dark:border-white/5"
+                    trigger:
+                      'bg-default-100 dark:bg-default-50/50 shadow-none border border-default-200 dark:border-white/5'
                   }}
                 >
                   {chains.map((chain) => (
@@ -350,14 +387,12 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
               </div>
 
               {selectedChain && (
-                <div 
-                  className="flex-1 rounded-3xl p-8 flex items-center justify-center relative overflow-hidden bg-default-50/50 dark:bg-background/50 border border-default-200/60 dark:border-white/5 shadow-inner"
-                >
+                <div className="flex-1 rounded-3xl p-8 flex items-center justify-center relative overflow-hidden bg-default-50/50 dark:bg-background/50 border border-default-200/60 dark:border-white/5 shadow-inner">
                   <div className="w-full h-full relative z-10">
                     <ScaleWrapper>
                       <div className="flex items-center justify-center min-w-max pb-4 px-4">
-                        <NodeCard 
-                          icon={IoPerson} 
+                        <NodeCard
+                          icon={IoPerson}
                           title={t('proxyChains.user')}
                           name={t('proxyChains.localMachine')}
                           variant="user"
@@ -367,8 +402,8 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
 
                         <ConnectionLine delay={0} index={0} />
 
-                        <NodeCard 
-                          icon={TbServer} 
+                        <NodeCard
+                          icon={TbServer}
                           title={t('proxyChains.dialerNode')}
                           name={selectedChain.dialerProxy}
                           variant="dialer"
@@ -379,8 +414,8 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
 
                         <ConnectionLine delay={0.4} index={1} />
 
-                        <NodeCard 
-                          icon={TbServer} 
+                        <NodeCard
+                          icon={TbServer}
                           title={t('proxyChains.targetNode')}
                           name={selectedChain.targetProxy}
                           variant="target"
@@ -391,8 +426,8 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
 
                         <ConnectionLine delay={0.8} index={2} />
 
-                        <NodeCard 
-                          icon={IoGlobeOutline} 
+                        <NodeCard
+                          icon={IoGlobeOutline}
                           title={t('proxyChains.internet')}
                           name={t('proxyChains.destinationSite')}
                           variant="internet"
@@ -403,13 +438,15 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
                       </div>
                     </ScaleWrapper>
                   </div>
-                  
+
                   <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
                     <div className="flex gap-6 px-6 py-2.5 rounded-2xl bg-background/80 dark:bg-content1/80 backdrop-blur-md border border-default-200 dark:border-white/10 shadow-sm">
                       {legendItems.map((item, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
-                          <span className="text-xs font-semibold text-default-600">{item.label}</span>
+                          <span className="text-xs font-semibold text-default-600">
+                            {item.label}
+                          </span>
                         </div>
                       ))}
                     </div>

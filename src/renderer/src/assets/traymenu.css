@@ -76,7 +76,13 @@ body {
 }
 
 .traymenu-scroll {
-  mask-image: linear-gradient(to bottom, transparent 0, rgba(0, 0, 0, 1) 16px, rgba(0, 0, 0, 1) calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    rgba(0, 0, 0, 1) 16px,
+    rgba(0, 0, 0, 1) calc(100% - 18px),
+    transparent 100%
+  );
 }
 
 ::-webkit-scrollbar {

@@ -8,6 +8,9 @@ import { useI18n } from '@renderer/i18n'
 interface TrafficRankingProps {
   session: { upload: number; download: number }
   today: { upload: number; download: number }
+  week: { upload: number; download: number }
+  month: { upload: number; download: number }
+  route: { proxy: number; direct: number }
   ruleStats: Map<string, { hits: number; upload: number; download: number }>
   ruleHitDetails: Map<
     string,
@@ -42,12 +45,12 @@ const RANKING_PALETTE = [
     soft: 'rgba(37, 99, 235, 0.12)'
   },
   {
-    badge: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)',
-    bar: 'linear-gradient(90deg, #7c3aed 0%, #c4b5fd 100%)',
-    glow: 'rgba(167, 139, 250, 0.2)',
-    track: 'rgba(124, 58, 237, 0.08)',
-    text: '#7c3aed',
-    soft: 'rgba(124, 58, 237, 0.12)'
+    badge: 'linear-gradient(135deg, #5f559e 0%, #9b8bd8 100%)',
+    bar: 'linear-gradient(90deg, #6f62b8 0%, #a99ad6 100%)',
+    glow: 'rgba(155, 139, 216, 0.16)',
+    track: 'rgba(111, 98, 184, 0.08)',
+    text: '#6f62b8',
+    soft: 'rgba(111, 98, 184, 0.12)'
   },
   {
     badge: 'linear-gradient(135deg, #be123c 0%, #fb7185 100%)',
@@ -94,6 +97,9 @@ const RANKING_PALETTE = [
 const TrafficRanking: React.FC<TrafficRankingProps> = ({
   session,
   today,
+  week,
+  month,
+  route,
   ruleStats,
   ruleHitDetails,
   onSelectRule
@@ -126,7 +132,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
         }
       })
       .sort((a, b) => b.hits - a.hits) // Default sort by hits for rules? Or traffic? Let's use traffic for consistency with screenshot visual
-      .slice(0, 8)
+      .slice(0, 5)
   }, [ruleStats, ruleHitDetails])
 
   // 进程排行
@@ -149,7 +155,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
         traffic: stat.upload + stat.download
       }))
       .sort((a, b) => b.traffic - a.traffic)
-      .slice(0, 8)
+      .slice(0, 5)
   }, [ruleHitDetails])
 
   // 主机排行
@@ -173,7 +179,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
         traffic: stat.upload + stat.download
       }))
       .sort((a, b) => b.traffic - a.traffic)
-      .slice(0, 8)
+      .slice(0, 5)
   }, [ruleHitDetails])
 
   const currentRanking = useMemo(() => {
@@ -185,151 +191,155 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
       case 'rule':
       default:
         // 按命中次数排序
-        return ruleRanking.sort((a, b) => b.hits - a.hits).slice(0, 8)
+        return ruleRanking.sort((a, b) => b.hits - a.hits).slice(0, 5)
     }
   }, [rankingTab, ruleRanking, processRanking, hostRanking])
 
   return (
-    <Card
-      className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
-    >
-      <CardBody className="p-4">
-        <div className="flex flex-col md:flex-row gap-6 h-full">
-          {/* Left: Traffic Summary */}
-          <div className="min-w-0 flex-1 flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                  <div className="w-1.5 h-3.5 bg-primary/80 rounded-full" />
-                </div>
-                <span className="text-base font-bold text-foreground">{t('stats.summary')}</span>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-full">
+      {/* Left Card: Traffic Summary */}
+      <Card
+        className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
+      >
+        <CardBody className="p-4 flex flex-col gap-4 h-full">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <div className="w-1.5 h-3.5 bg-primary/80 rounded-full" />
               </div>
-            </div>
-
-            {/* Traffic Overview Component */}
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <TrafficOverview
-                sessionUpload={session.upload}
-                sessionDownload={session.download}
-                todayUpload={today.upload}
-                todayDownload={today.download}
-              />
+              <span className="text-base font-bold text-foreground">{t('stats.summary')}</span>
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="hidden md:block w-px bg-default-100 mx-2 self-stretch" />
+          <div className="flex-1 flex flex-col items-stretch justify-start">
+            <TrafficOverview
+              sessionUpload={session.upload}
+              sessionDownload={session.download}
+              todayUpload={today.upload}
+              todayDownload={today.download}
+              sessionProxy={route.proxy}
+              sessionDirect={route.direct}
+              weekUpload={week.upload}
+              weekDownload={week.download}
+              monthUpload={month.upload}
+              monthDownload={month.download}
+            />
+          </div>
+        </CardBody>
+      </Card>
 
-          {/* Right: Ranking List */}
-          <div className="min-w-0 flex-1 flex flex-col gap-4 overflow-hidden">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-secondary/10 text-secondary">
-                  <div className="w-1.5 h-3.5 bg-secondary/80 rounded-full" />
-                </div>
-                <span className="text-base font-bold text-foreground">{t('stats.ranking')}</span>
+      {/* Right Card: Ranking List */}
+      <Card
+        className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
+      >
+        <CardBody className="p-4 flex flex-col gap-4 h-full overflow-hidden">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="stats-download-icon-soft p-1.5 rounded-lg">
+                <div className="stats-download-bar w-1.5 h-3.5 rounded-full" />
               </div>
-              <Tabs
-                size="sm"
-                classNames={CARD_STYLES.GLASS_TABS}
-                selectedKey={rankingTab}
-                onSelectionChange={(key) => setRankingTab(key as 'rule' | 'process' | 'host')}
-              >
-                <Tab key="rule" title={t('stats.rule')} />
-                <Tab key="process" title={t('stats.process')} />
-                <Tab key="host" title={t('stats.host')} />
-              </Tabs>
+              <span className="text-base font-bold text-foreground">{t('stats.ranking')}</span>
             </div>
+            <Tabs
+              size="sm"
+              classNames={CARD_STYLES.GLASS_TABS}
+              selectedKey={rankingTab}
+              onSelectionChange={(key) => setRankingTab(key as 'rule' | 'process' | 'host')}
+            >
+              <Tab key="rule" title={t('stats.rule')} />
+              <Tab key="process" title={t('stats.process')} />
+              <Tab key="host" title={t('stats.host')} />
+            </Tabs>
+          </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 space-y-1 min-h-[180px]">
-              {currentRanking.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-foreground-400 gap-2">
-                  <div className="text-4xl opacity-30">📋</div>
-                  <div className="text-sm">{t('common.noData')}</div>
-                </div>
-              ) : (
-                currentRanking.map((item, index) => {
-                  const palette = RANKING_PALETTE[index % RANKING_PALETTE.length]
-                  // Rule tab: max is max hits, others: max traffic
-                  const maxMetric =
-                    rankingTab === 'rule'
-                      ? (currentRanking[0] as { hits?: number }).hits || 1
-                      : currentRanking[0]?.traffic || 1
-                  const currentMetric =
-                    rankingTab === 'rule' ? (item as { hits?: number }).hits || 0 : item.traffic
-                  const percentage = Math.max((currentMetric / maxMetric) * 100, 2)
+          <div className="flex-1 overflow-y-auto pr-2 space-y-1 min-h-[180px]">
+            {currentRanking.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-foreground-400 gap-2">
+                <div className="text-4xl opacity-30">📋</div>
+                <div className="text-sm">{t('common.noData')}</div>
+              </div>
+            ) : (
+              currentRanking.map((item, index) => {
+                const palette = RANKING_PALETTE[index % RANKING_PALETTE.length]
+                // Rule tab: max is max hits, others: max traffic
+                const maxMetric =
+                  rankingTab === 'rule'
+                    ? (currentRanking[0] as { hits?: number }).hits || 1
+                    : currentRanking[0]?.traffic || 1
+                const currentMetric =
+                  rankingTab === 'rule' ? (item as { hits?: number }).hits || 0 : item.traffic
+                const percentage = Math.max((currentMetric / maxMetric) * 100, 2)
 
-                  return (
-                    <div
-                      key={item.name}
-                      className="flex items-center gap-3 group cursor-pointer hover:bg-default-100/50 py-1.5 px-2 -mx-2 rounded-xl transition-all"
-                      onClick={() => rankingTab === 'rule' && onSelectRule(item.name)}
+                return (
+                  <div
+                    key={item.name}
+                    className="flex items-center gap-3 group cursor-pointer hover:bg-default-100/50 py-1.5 px-2 -mx-2 rounded-xl transition-all"
+                    onClick={() => rankingTab === 'rule' && onSelectRule(item.name)}
+                  >
+                    {/* Rank Badge */}
+                    <span
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{
+                        backgroundColor: palette.soft,
+                        color: palette.text
+                      }}
                     >
-                      {/* Rank Badge */}
-                      <span
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                        style={{
-                          backgroundColor: palette.soft,
-                          color: palette.text
-                        }}
-                      >
-                        {index + 1}
-                      </span>
+                      {index + 1}
+                    </span>
 
-                      {/* Main Content */}
-                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                        <div className="flex justify-between items-end gap-2">
-                          {/* Name */}
-                          <div
-                            className="text-sm font-medium text-foreground/90 truncate"
-                            title={item.name}
-                          >
-                            {item.name}
-                          </div>
-                          {/* Data */}
-                          <div className="text-sm tabular-nums whitespace-nowrap flex-shrink-0 flex items-center gap-1.5">
-                            {rankingTab === 'rule' && (
-                              <span className="text-xs text-foreground-400 font-normal">
-                                {(item as { hits?: number }).hits}
-                                <span className="text-[10px] ml-[2px] opacity-80">
-                                  {t('stats.hitsSuffix')}
-                                </span>
-                              </span>
-                            )}
-                            <span className="font-semibold text-foreground">
-                              {calcTraffic(item.traffic)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Progress Bar */}
+                    {/* Main Content */}
+                    <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                      <div className="flex justify-between items-end gap-2">
+                        {/* Name */}
                         <div
-                          className="w-full h-1 rounded-full overflow-hidden"
-                          style={{ backgroundColor: palette.track }}
+                          className="text-sm font-medium text-foreground/90 truncate"
+                          title={item.name}
+                        >
+                          {item.name}
+                        </div>
+                        {/* Data */}
+                        <div className="text-sm tabular-nums whitespace-nowrap flex-shrink-0 flex items-center gap-1.5">
+                          {rankingTab === 'rule' && (
+                            <span className="text-xs text-foreground-400 font-normal">
+                              {(item as { hits?: number }).hits}
+                              <span className="text-[10px] ml-[2px] opacity-80">
+                                {t('stats.hitsSuffix')}
+                              </span>
+                            </span>
+                          )}
+                          <span className="font-semibold text-foreground">
+                            {calcTraffic(item.traffic)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div
+                        className="w-full h-1 rounded-full overflow-hidden"
+                        style={{ backgroundColor: palette.track }}
+                      >
+                        <div
+                          className="h-full rounded-full transition-all duration-500 ease-out relative"
+                          style={{
+                            width: `${percentage}%`,
+                            background: palette.bar
+                          }}
                         >
                           <div
-                            className="h-full rounded-full transition-all duration-500 ease-out relative"
-                            style={{
-                              width: `${percentage}%`,
-                              background: palette.bar
-                            }}
-                          >
-                            <div
-                              className="absolute inset-0 opacity-30"
-                              style={{ boxShadow: `0 0 6px ${palette.glow}` }}
-                            />
-                          </div>
+                            className="absolute inset-0 opacity-30"
+                            style={{ boxShadow: `0 0 6px ${palette.glow}` }}
+                          />
                         </div>
                       </div>
                     </div>
-                  )
-                })
-              )}
-            </div>
+                  </div>
+                )
+              })
+            )}
           </div>
-        </div>
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+    </div>
   )
 }
 

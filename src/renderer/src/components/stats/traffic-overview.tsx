@@ -1,7 +1,6 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { motion } from 'framer-motion'
 import CountUp from 'react-countup'
-import { IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useI18n } from '@renderer/i18n'
 
@@ -10,37 +9,139 @@ interface TrafficOverviewProps {
   sessionDownload: number
   todayUpload: number
   todayDownload: number
+  sessionProxy: number
+  sessionDirect: number
+  weekUpload: number
+  weekDownload: number
+  monthUpload: number
+  monthDownload: number
 }
 
-const UPLOAD_COLOR = '#06b6d4'
-const UPLOAD_COLOR_SOFT = 'rgba(6, 182, 212, 0.10)'
-const UPLOAD_COLOR_BORDER = 'rgba(6, 182, 212, 0.22)'
-const UPLOAD_GLOW = 'rgba(6, 182, 212, 0.42)'
+const PROXY_GRADIENT = 'linear-gradient(90deg, #2563eb 0%, #38bdf8 100%)'
+const DIRECT_GRADIENT = 'linear-gradient(90deg, #16a34a 0%, #4ade80 100%)'
 
-const DOWNLOAD_COLOR = '#a855f7'
-const DOWNLOAD_COLOR_SOFT = 'rgba(168, 85, 247, 0.10)'
-const DOWNLOAD_COLOR_BORDER = 'rgba(168, 85, 247, 0.22)'
+interface FormattedTraffic {
+  val: number
+  unit: string
+}
 
-const METRIC_LABEL_CLASS =
-  'inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border px-2 py-0.5 text-left'
-const METRIC_LABEL_TEXT_CLASS = 'min-w-0 font-bold leading-tight tracking-wide'
-const METRIC_VALUE_CLASS = 'flex max-w-full items-baseline gap-1.5'
-const SECONDARY_METRIC_CLASS =
-  'text-default-400 font-medium mb-0.5 tracking-wider leading-tight'
+interface DetailMetricProps {
+  label: string
+  value: FormattedTraffic
+  marker: React.ReactNode
+}
+
+interface PeriodSummaryProps {
+  label: string
+  upload: number
+  download: number
+  uploadGradient: string
+  downloadGradient: string
+}
+
+interface SplitRatios {
+  primary: number
+  secondary: number
+}
+
+function calculateSplitRatios(primary: number, total: number, minVisible = 1): SplitRatios {
+  if (total <= 0) return { primary: 0, secondary: 0 }
+
+  const secondary = Math.max(0, total - primary)
+  if (primary <= 0) return { primary: 0, secondary: 100 }
+  if (secondary <= 0) return { primary: 100, secondary: 0 }
+
+  const primaryRatio = (primary / total) * 100
+  const safePrimary = Math.max(minVisible, Math.min(100 - minVisible, primaryRatio))
+  return { primary: safePrimary, secondary: 100 - safePrimary }
+}
+
+const DetailMetric: React.FC<DetailMetricProps> = ({ label, value, marker }) => {
+  return (
+    <div className="flex items-center gap-1.5 w-[96px] shrink-0">
+      <div className="flex items-center gap-1 text-[11px] leading-none font-medium text-default-500 uppercase tracking-wide shrink-0">
+        {marker}
+        <span>{label}</span>
+      </div>
+      <div className="flex items-baseline gap-0.5 leading-none tabular-nums">
+        <span className="text-sm leading-none font-semibold text-foreground/90 truncate">
+          <CountUp
+            end={value.val}
+            decimals={value.val % 1 !== 0 ? 1 : 0}
+            duration={1}
+            preserveValue
+          />
+        </span>
+        <span className="text-[10px] leading-none font-bold text-default-400 shrink-0">
+          {value.unit}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+const PeriodSummary: React.FC<PeriodSummaryProps> = ({
+  label,
+  upload,
+  download,
+  uploadGradient,
+  downloadGradient
+}) => {
+  const total = upload + download
+  const formattedTotal = calcTraffic(total)
+  const ratios = calculateSplitRatios(upload, total, 2)
+
+  return (
+    <div className="min-w-0 px-3 first:pl-0 last:pr-0">
+      <div className="mb-1.5 text-[11px] font-semibold leading-none tracking-wide text-default-500">
+        {label}
+      </div>
+      <div className="mb-2 text-sm font-bold leading-none text-foreground/85 tabular-nums">
+        {formattedTotal}
+      </div>
+      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-default-100/60">
+        {total > 0 ? (
+          <>
+            {upload > 0 && (
+              <div
+                className="h-full"
+                style={{ width: `${ratios.primary}%`, background: uploadGradient }}
+              />
+            )}
+            {download > 0 && (
+              <div
+                className="h-full"
+                style={{ width: `${ratios.secondary}%`, background: downloadGradient }}
+              />
+            )}
+          </>
+        ) : (
+          <div className="h-full w-full bg-default-200/50" />
+        )}
+      </div>
+    </div>
+  )
+}
 
 const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   sessionUpload,
   sessionDownload,
   todayUpload,
-  todayDownload
+  todayDownload,
+  sessionProxy,
+  sessionDirect,
+  weekUpload,
+  weekDownload,
+  monthUpload,
+  monthDownload
 }) => {
   const { t } = useI18n()
-  const [isHovered, setIsHovered] = useState(false)
 
   const sessionTotal = sessionUpload + sessionDownload
+  const sessionRouteTotal = sessionProxy + sessionDirect
 
   const formatTraffic = (value: number) => {
-    const formatted = calcTraffic(value) // e.g., "1.5 MB" or "0 B"
+    const formatted = calcTraffic(value)
     const parts = formatted.split(' ')
     const val = parseFloat(parts[0]) || 0
     const unit = parts[1] || 'B'
@@ -50,175 +151,164 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   const sessionTotalFormatted = formatTraffic(sessionTotal)
   const sessionUploadFormatted = formatTraffic(sessionUpload)
   const sessionDownloadFormatted = formatTraffic(sessionDownload)
-  const todayUploadFormatted = formatTraffic(todayUpload)
-  const todayDownloadFormatted = formatTraffic(todayDownload)
+  const sessionProxyFormatted = formatTraffic(sessionProxy)
+  const sessionDirectFormatted = formatTraffic(sessionDirect)
 
-  const uploadRatio = sessionTotal > 0 ? sessionUpload / sessionTotal : 0
+  const sessionRouteRatios = calculateSplitRatios(sessionProxy, sessionRouteTotal)
+  const sessionTransferRatios = calculateSplitRatios(sessionUpload, sessionTotal)
+
+  const UPLOAD_GRADIENT = 'linear-gradient(90deg, #0ea5e9 0%, #38bdf8 100%)'
+  const DOWNLOAD_GRADIENT = 'linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%)'
 
   return (
-    <div className="w-full h-full min-h-[160px] flex items-center justify-center p-2" style={{ containerType: 'inline-size' }}>
-      <div className="grid w-full max-w-[720px] grid-cols-[minmax(0,1fr)_minmax(120px,1.15fr)_minmax(0,1fr)] items-center gap-2 md:gap-4">
-        
-        {/* Left Block: Upload */}
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="flex min-w-0 flex-col items-end"
-          style={{ containerType: 'inline-size' }}
-        >
-          {/* 本次上传 */}
-          <div className="flex flex-col items-end w-full">
-            <div
-              className={`${METRIC_LABEL_CLASS} mb-1.5 justify-start`}
-              style={{ backgroundColor: UPLOAD_COLOR_SOFT, borderColor: UPLOAD_COLOR_BORDER }}
-            >
-              <IoArrowUp className="shrink-0 text-[clamp(12px,4cqi,16px)]" style={{ color: UPLOAD_COLOR }} />
-              <span
-                className={`${METRIC_LABEL_TEXT_CLASS} text-left`}
-                style={{ fontSize: 'clamp(11px, 4cqi, 14px)', color: UPLOAD_COLOR }}
-              >
-                {t('stats.sessionUpload')}
-              </span>
-            </div>
-            <div className={`${METRIC_VALUE_CLASS} justify-end`} style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
-              <span 
-                className="font-bold font-data-numeric tabular-nums leading-none bg-clip-text text-transparent bg-gradient-to-br from-cyan-300 to-cyan-600"
-              >
-                <CountUp end={sessionUploadFormatted.val} decimals={sessionUploadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
-              </span>
-              <span
-                className="font-medium tracking-widest translate-y-[-1px] opacity-70"
-                style={{ fontSize: 'clamp(10px, 3.5cqi, 14px)', color: UPLOAD_COLOR }}
-              >
-                {sessionUploadFormatted.unit}
-              </span>
-            </div>
-          </div>
-          
-          {/* 今日累计 (上传) */}
-          <div className="flex flex-col items-end w-full mt-3 opacity-70 transition-opacity duration-300 hover:opacity-100">
-            <span className={`${SECONDARY_METRIC_CLASS} text-right`} style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>
-              {t('stats.todayTotal')}
-            </span>
-            <div className={`${METRIC_VALUE_CLASS} justify-end`} style={{ fontSize: 'clamp(14px, 5cqi, 20px)' }}>
-              <span className="font-semibold text-default-600 tabular-nums leading-none">
-                <CountUp end={todayUploadFormatted.val} decimals={todayUploadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
-              </span>
-              <span className="text-default-500/70 uppercase font-medium tracking-widest" style={{ fontSize: 'clamp(9px, 3cqi, 12px)' }}>{todayUploadFormatted.unit}</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Center Chart: Responsive Full Circle Slim Donut with Framer Motion */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
-          className="relative flex min-w-0 cursor-default items-center justify-center"
-          style={{ containerType: 'inline-size' }}
-          onHoverStart={() => setIsHovered(true)}
-          onHoverEnd={() => setIsHovered(false)}
-        >
-          <svg viewBox="0 0 100 100" className="w-[90%] max-w-[200px] aspect-square -rotate-90 origin-center relative z-10 transition-transform duration-300 hover:scale-[1.03]">
-            {/* Background Ring (Purple - Download Track) - Tailwind Purple 500 equivalent: #a855f7 */}
-            <circle
-              cx="50"
-              cy="50"
-              r="46"
-              fill="transparent"
-              stroke={DOWNLOAD_COLOR}
-              strokeWidth="4"
-              strokeOpacity="0.38"
-            />
-            {/* Foreground Ring (Cyan - Upload Ratio) */}
-            <motion.circle
-              cx="50"
-              cy="50"
-              r="46"
-              fill="transparent"
-              stroke={UPLOAD_COLOR}
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeDasharray={2 * Math.PI * 46}
-              initial={{ strokeDashoffset: 2 * Math.PI * 46 }}
-              animate={{ strokeDashoffset: (2 * Math.PI * 46) * (1 - uploadRatio) }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
-              style={{
-                filter: isHovered ? `drop-shadow(0px 0px 8px ${UPLOAD_GLOW})` : 'none'
-              }}
-            />
-          </svg>
-          
-          {/* Centered Text inside Donut */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center z-20">
-            <span className="text-default-400 font-semibold tracking-[0.2em] opacity-80 mb-1 whitespace-nowrap" style={{ fontSize: 'clamp(10px, 3cqi, 13px)' }}>
+    <div className="w-full flex flex-col px-1 pt-0 pb-1 gap-6">
+      {/* Transfer Block */}
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="flex flex-col gap-3"
+      >
+        <div className="flex justify-between items-end">
+          <div className="flex flex-col">
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-default-500">
               {t('stats.sessionTotal')}
-            </span>
-            <div className="flex items-baseline justify-center" style={{ fontSize: 'clamp(22px, 10cqi, 40px)' }}>
-              <span className="font-bold font-data-numeric tabular-nums leading-none bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
-                <CountUp end={sessionTotalFormatted.val} decimals={sessionTotalFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
+            </div>
+            <div className="flex min-w-0 items-baseline gap-2">
+              <span className="font-data-numeric text-[40px] font-black leading-none tracking-tight text-foreground tabular-nums">
+                <CountUp
+                  end={sessionTotalFormatted.val}
+                  decimals={sessionTotalFormatted.val % 1 !== 0 ? 1 : 0}
+                  duration={1}
+                  preserveValue
+                />
               </span>
-              <span className="font-medium text-default-400/70 ml-2 translate-y-[-1px] uppercase tracking-widest" style={{ fontSize: 'clamp(10px, 3.5cqi, 14px)' }}>
+              <span className="text-sm font-bold uppercase tracking-wider text-default-400">
                 {sessionTotalFormatted.unit}
               </span>
             </div>
           </div>
-        </motion.div>
 
-        {/* Right Block: Download */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="flex min-w-0 flex-col items-start"
-          style={{ containerType: 'inline-size' }}
-        >
-          {/* 本次下载 */}
-          <div className="flex flex-col items-start w-full">
-            <div
-              className={`${METRIC_LABEL_CLASS} mb-1.5 justify-start`}
-              style={{ backgroundColor: DOWNLOAD_COLOR_SOFT, borderColor: DOWNLOAD_COLOR_BORDER }}
-            >
-              <IoArrowDown className="shrink-0 text-[clamp(12px,4cqi,16px)]" style={{ color: DOWNLOAD_COLOR }} />
-              <span
-                className={`${METRIC_LABEL_TEXT_CLASS} text-left`}
-                style={{ fontSize: 'clamp(11px, 4cqi, 14px)', color: DOWNLOAD_COLOR }}
-              >
-                {t('stats.sessionDownload')}
-              </span>
-            </div>
-            <div className={`${METRIC_VALUE_CLASS} justify-start`} style={{ fontSize: 'clamp(18px, 9cqi, 36px)' }}>
-              <span 
-                className="font-bold font-data-numeric tabular-nums leading-none bg-clip-text text-transparent bg-gradient-to-br from-purple-300 to-purple-600"
-              >
-                <CountUp end={sessionDownloadFormatted.val} decimals={sessionDownloadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
-              </span>
-              <span
-                className="font-medium tracking-widest translate-y-[-1px] opacity-70"
-                style={{ fontSize: 'clamp(10px, 3.5cqi, 14px)', color: DOWNLOAD_COLOR }}
-              >
-                {sessionDownloadFormatted.unit}
-              </span>
-            </div>
+          <div className="flex items-center justify-end gap-4 pb-2 shrink-0">
+            <DetailMetric
+              label={t('stats.upload')}
+              value={sessionUploadFormatted}
+              marker={<span className="font-sans text-sky-500 font-bold">↑</span>}
+            />
+            <DetailMetric
+              label={t('stats.download')}
+              value={sessionDownloadFormatted}
+              marker={<span className="font-sans text-purple-500 font-bold">↓</span>}
+            />
           </div>
-          
-          {/* 今日累计 (下载) */}
-          <div className="flex flex-col items-start w-full mt-3 opacity-70 transition-opacity duration-300 hover:opacity-100">
-            <span className={`${SECONDARY_METRIC_CLASS} text-left`} style={{ fontSize: 'clamp(10px, 3.5cqi, 13px)' }}>
-              {t('stats.todayTotal')}
-            </span>
-            <div className={`${METRIC_VALUE_CLASS} justify-start`} style={{ fontSize: 'clamp(14px, 5cqi, 20px)' }}>
-              <span className="font-semibold text-default-600 tabular-nums leading-none">
-                <CountUp end={todayDownloadFormatted.val} decimals={todayDownloadFormatted.val % 1 !== 0 ? 1 : 0} duration={1} preserveValue />
-              </span>
-              <span className="text-default-500/70 uppercase font-medium tracking-widest" style={{ fontSize: 'clamp(9px, 3cqi, 12px)' }}>{todayDownloadFormatted.unit}</span>
-            </div>
+        </div>
+
+        <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-default-100/60">
+          {sessionTotal > 0 ? (
+            <>
+              <motion.div
+                className="h-full"
+                style={{ width: `${sessionTransferRatios.primary}%`, background: UPLOAD_GRADIENT }}
+                initial={{ width: 0 }}
+                animate={{ width: `${sessionTransferRatios.primary}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+              />
+              <motion.div
+                className="h-full"
+                style={{ width: `${sessionTransferRatios.secondary}%`, background: DOWNLOAD_GRADIENT }}
+                initial={{ width: 0 }}
+                animate={{ width: `${sessionTransferRatios.secondary}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+              />
+            </>
+          ) : (
+            <div className="h-full w-full bg-default-200/50" />
+          )}
+        </div>
+      </motion.div>
+
+      {/* Route Distribution Block */}
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 }}
+        className="flex flex-col gap-3"
+      >
+        <div className="flex justify-between items-end">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-default-500 pb-2">
+            {t('stats.routeDistribution')}
           </div>
-        </motion.div>
-      </div>
+          <div className="flex items-center justify-end gap-4 pb-2 shrink-0">
+            <DetailMetric
+              label={t('page.profiles.useProxy')}
+              value={sessionProxyFormatted}
+              marker={
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.35)]" />
+              }
+            />
+            <DetailMetric
+              label={t('stats.directRoute')}
+              value={sessionDirectFormatted}
+              marker={
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.35)]" />
+              }
+            />
+          </div>
+        </div>
+
+        <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-default-100/60">
+          {sessionRouteTotal > 0 ? (
+            <>
+              <motion.div
+                className="h-full"
+                style={{ width: `${sessionRouteRatios.primary}%`, background: PROXY_GRADIENT }}
+                initial={{ width: 0 }}
+                animate={{ width: `${sessionRouteRatios.primary}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+              />
+              <motion.div
+                className="h-full"
+                style={{ width: `${sessionRouteRatios.secondary}%`, background: DIRECT_GRADIENT }}
+                initial={{ width: 0 }}
+                animate={{ width: `${sessionRouteRatios.secondary}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+              />
+            </>
+          ) : (
+            <div className="h-full w-full bg-default-200/50" />
+          )}
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut', delay: 0.18 }}
+        className="grid grid-cols-3 divide-x divide-default-100/60 pt-1"
+      >
+        <PeriodSummary
+          label={t('stats.today')}
+          upload={todayUpload}
+          download={todayDownload}
+          uploadGradient={UPLOAD_GRADIENT}
+          downloadGradient={DOWNLOAD_GRADIENT}
+        />
+        <PeriodSummary
+          label={t('stats.thisWeek')}
+          upload={weekUpload}
+          download={weekDownload}
+          uploadGradient={UPLOAD_GRADIENT}
+          downloadGradient={DOWNLOAD_GRADIENT}
+        />
+        <PeriodSummary
+          label={t('stats.thisMonth')}
+          upload={monthUpload}
+          download={monthDownload}
+          uploadGradient={UPLOAD_GRADIENT}
+          downloadGradient={DOWNLOAD_GRADIENT}
+        />
+      </motion.div>
     </div>
-
   )
 }
 

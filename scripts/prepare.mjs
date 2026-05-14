@@ -39,9 +39,7 @@ const OPTIONAL_EXTRA_PATHS = [
   path.join(cwd, 'extra', 'files', 'sub-store-frontend')
 ]
 let arch = process.arch
-const archArg = process.argv
-  .slice(2)
-  .find((arg) => arg && arg !== '--')
+const archArg = process.argv.slice(2).find((arg) => arg && arg !== '--')
 if (archArg) {
   arch = archArg.replace(/^--/, '')
 }
@@ -83,7 +81,9 @@ if (process.env.SKIP_PREPARE === '1') {
 
 function cleanupOptionalExtraResources() {
   if (reuseExistingResources) {
-    console.log('[INFO]: optional extra resources cleanup skipped by ROUTEX_REUSE_EXISTING_RESOURCES')
+    console.log(
+      '[INFO]: optional extra resources cleanup skipped by ROUTEX_REUSE_EXISTING_RESOURCES'
+    )
     return
   }
 
@@ -186,7 +186,10 @@ function pickBestReleaseAsset(assets, version, isAlpha, ext, prefixes) {
       const prefixIndexA = prefixes.findIndex((prefix) => a.name.startsWith(prefix))
       const prefixIndexB = prefixes.findIndex((prefix) => b.name.startsWith(prefix))
       if (prefixIndexA !== prefixIndexB) return prefixIndexA - prefixIndexB
-      return scoreAssetName(a.name, version, isAlpha, ext) - scoreAssetName(b.name, version, isAlpha, ext)
+      return (
+        scoreAssetName(a.name, version, isAlpha, ext) -
+        scoreAssetName(b.name, version, isAlpha, ext)
+      )
     })
 
   if (matched.length === 0) {
@@ -199,7 +202,9 @@ function pickBestReleaseAsset(assets, version, isAlpha, ext, prefixes) {
 function findExecutableEntry(entries, name) {
   return entries.find((entry) => {
     debugLog(`[DEBUG]: "${name}" entry name`, entry.entryName)
-    return !entry.isDirectory && (entry.entryName.endsWith('.exe') || entry.entryName.includes('mihomo'))
+    return (
+      !entry.isDirectory && (entry.entryName.endsWith('.exe') || entry.entryName.includes('mihomo'))
+    )
   })
 }
 
@@ -276,7 +281,10 @@ console.log(`[INFO]: Ensuring directories exist: ${sidecarDir}, ${resDir}`)
 fs.mkdirSync(sidecarDir, { recursive: true })
 fs.mkdirSync(resDir, { recursive: true })
 
-if (process.env.ROUTEX_SKIP_RESOURCE_REFRESH === 'true' || process.env.ROUTEX_SKIP_RESOURCE_REFRESH === '1') {
+if (
+  process.env.ROUTEX_SKIP_RESOURCE_REFRESH === 'true' ||
+  process.env.ROUTEX_SKIP_RESOURCE_REFRESH === '1'
+) {
   console.log('[INFO]: resource refresh skipped by ROUTEX_SKIP_RESOURCE_REFRESH')
   process.exit(0)
 }
@@ -306,9 +314,7 @@ async function createMihomoBinaryInfo(name, versionUrl, isAlpha) {
     }
   } catch (error) {
     if (fs.existsSync(sidecarPath)) {
-      console.warn(
-        `[WARN]: failed to refresh ${name}, keeping existing binary: ${error.message}`
-      )
+      console.warn(`[WARN]: failed to refresh ${name}, keeping existing binary: ${error.message}`)
       return null
     }
     throw error
@@ -556,7 +562,9 @@ const resolveFont = async () => {
     )
   } catch (error) {
     if (fs.existsSync(targetPath)) {
-      console.warn(`[WARN]: failed to refresh twemoji font, keeping existing file: ${error.message}`)
+      console.warn(
+        `[WARN]: failed to refresh twemoji font, keeping existing file: ${error.message}`
+      )
       return
     }
     throw error

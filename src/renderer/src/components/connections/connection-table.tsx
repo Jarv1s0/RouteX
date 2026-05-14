@@ -11,7 +11,6 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getConnectionHideRule } from './shared'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
 
-
 // 列配置 - 默认宽度
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   close: 40,
@@ -85,7 +84,7 @@ const ResizeHandle: React.FC<{
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    
+
     let startX = e.clientX
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -135,27 +134,28 @@ const ConnectionTableComponent: React.FC<Props> = ({
 }) => {
   const { t, locale } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { 
-    connectionTableColumns = DEFAULT_COLUMNS,
-    connectionTableColumnWidths = {}
-  } = appConfig || {}
+  const { connectionTableColumns = DEFAULT_COLUMNS, connectionTableColumnWidths = {} } =
+    appConfig || {}
 
   // 合并默认宽度和用户自定义宽度
-  const columnWidths = useMemo(() => ({
-    ...DEFAULT_COLUMN_WIDTHS,
-    ...connectionTableColumnWidths
-  }), [connectionTableColumnWidths])
+  const columnWidths = useMemo(
+    () => ({
+      ...DEFAULT_COLUMN_WIDTHS,
+      ...connectionTableColumnWidths
+    }),
+    [connectionTableColumnWidths]
+  )
 
   // 本地状态用于实时更新
   const [localWidths, setLocalWidths] = useState(columnWidths)
-  
+
   // 使用 ref 保存最新的 localWidths，解决闭包问题
   const localWidthsRef = useRef(localWidths)
   localWidthsRef.current = localWidths
 
   // 同步配置变化
   useEffect(() => {
-    setLocalWidths(prev => {
+    setLocalWidths((prev) => {
       const next = { ...DEFAULT_COLUMN_WIDTHS, ...connectionTableColumnWidths }
       if (JSON.stringify(prev) === JSON.stringify(next)) {
         return prev
@@ -166,25 +166,31 @@ const ConnectionTableComponent: React.FC<Props> = ({
 
   // 过滤有效的列
   const visibleColumns = useMemo(() => {
-    return connectionTableColumns.filter(col => COLUMN_LABEL_KEYS[col])
+    return connectionTableColumns.filter((col) => COLUMN_LABEL_KEYS[col])
   }, [connectionTableColumns])
 
   // 直接使用本地列宽，不进行自动布局计算，避免 resizing 时的联动
   const computedWidths = localWidths
 
-  const handleRowClick = useCallback((conn: ControllerConnectionDetail) => {
-    setSelected(conn)
-    setIsDetailModalOpen(true)
-  }, [setSelected, setIsDetailModalOpen])
+  const handleRowClick = useCallback(
+    (conn: ControllerConnectionDetail) => {
+      setSelected(conn)
+      setIsDetailModalOpen(true)
+    },
+    [setSelected, setIsDetailModalOpen]
+  )
 
-  const handleClose = useCallback((e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    close(id)
-  }, [close])
+  const handleClose = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.stopPropagation()
+      close(id)
+    },
+    [close]
+  )
 
   // 处理列宽调整
   const handleResize = useCallback((col: string, delta: number) => {
-    setLocalWidths(prev => {
+    setLocalWidths((prev) => {
       const newWidth = Math.max(40, (prev[col] || DEFAULT_COLUMN_WIDTHS[col]) + delta)
       return { ...prev, [col]: newWidth }
     })
@@ -202,7 +208,10 @@ const ConnectionTableComponent: React.FC<Props> = ({
     }
     // 也保留之前已保存但这次没改的列宽
     for (const col of Object.keys(connectionTableColumnWidths)) {
-      if (!(col in changedWidths) && connectionTableColumnWidths[col] !== DEFAULT_COLUMN_WIDTHS[col]) {
+      if (
+        !(col in changedWidths) &&
+        connectionTableColumnWidths[col] !== DEFAULT_COLUMN_WIDTHS[col]
+      ) {
         changedWidths[col] = connectionTableColumnWidths[col]
       }
     }
@@ -210,25 +219,42 @@ const ConnectionTableComponent: React.FC<Props> = ({
   }, [connectionTableColumnWidths, patchAppConfig])
 
   // 渲染单行的回调
-  const renderRow = useCallback((_index: number, conn: ControllerConnectionDetail) => (
-    <ConnectionRow
-      key={conn.id}
-      conn={conn}
-      isSelected={selected?.id === conn.id}
-      onRowClick={handleRowClick}
-      onClose={handleClose}
-      visibleColumns={visibleColumns}
-      columnWidths={computedWidths}
-      iconMap={iconMap}
-      appNameCache={appNameCache}
-      displayIcon={displayIcon}
-      displayAppName={displayAppName}
-      onContextMenu={onContextMenu}
-      hiddenRules={hiddenRules}
-      t={t}
-      locale={locale}
-    />
-  ), [selected, handleRowClick, handleClose, visibleColumns, computedWidths, iconMap, appNameCache, displayIcon, displayAppName, onContextMenu, hiddenRules, t, locale])
+  const renderRow = useCallback(
+    (_index: number, conn: ControllerConnectionDetail) => (
+      <ConnectionRow
+        key={conn.id}
+        conn={conn}
+        isSelected={selected?.id === conn.id}
+        onRowClick={handleRowClick}
+        onClose={handleClose}
+        visibleColumns={visibleColumns}
+        columnWidths={computedWidths}
+        iconMap={iconMap}
+        appNameCache={appNameCache}
+        displayIcon={displayIcon}
+        displayAppName={displayAppName}
+        onContextMenu={onContextMenu}
+        hiddenRules={hiddenRules}
+        t={t}
+        locale={locale}
+      />
+    ),
+    [
+      selected,
+      handleRowClick,
+      handleClose,
+      visibleColumns,
+      computedWidths,
+      iconMap,
+      appNameCache,
+      displayIcon,
+      displayAppName,
+      onContextMenu,
+      hiddenRules,
+      t,
+      locale
+    ]
+  )
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -242,13 +268,16 @@ const ConnectionTableComponent: React.FC<Props> = ({
               style={{ width: computedWidths[col] || DEFAULT_COLUMN_WIDTHS[col] }}
               onClick={() => onSort?.(col)}
             >
-              <div className={`flex items-center gap-1 ${RIGHT_ALIGN_COLUMNS.includes(col) ? 'justify-end' : ''}`}>
+              <div
+                className={`flex items-center gap-1 ${RIGHT_ALIGN_COLUMNS.includes(col) ? 'justify-end' : ''}`}
+              >
                 <span>{t(COLUMN_LABEL_KEYS[col])}</span>
-                {sortBy === col && (
-                  sortDirection === 'asc' 
-                    ? <HiSortAscending className="text-primary" />
-                    : <HiSortDescending className="text-primary" />
-                )}
+                {sortBy === col &&
+                  (sortDirection === 'asc' ? (
+                    <HiSortAscending className="text-primary" />
+                  ) : (
+                    <HiSortDescending className="text-primary" />
+                  ))}
               </div>
               {index < visibleColumns.length - 1 && (
                 <ResizeHandle
@@ -260,7 +289,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
           ))}
         </div>
       </div>
-      
+
       {/* 表体 - 使用虚拟滚动 */}
       <div className="flex-1">
         <Virtuoso
@@ -329,7 +358,13 @@ function formatDurationFromStartMs(
 
 function getConnectionHost(conn: ControllerConnectionDetail): string {
   const metadata = conn.metadata
-  return metadata.host || metadata.sniffHost || metadata.destinationIP || metadata.remoteDestination || '-'
+  return (
+    metadata.host ||
+    metadata.sniffHost ||
+    metadata.destinationIP ||
+    metadata.remoteDestination ||
+    '-'
+  )
 }
 
 function getConnectionType(conn: ControllerConnectionDetail): string {
@@ -337,7 +372,7 @@ function getConnectionType(conn: ControllerConnectionDetail): string {
 }
 
 function getConnectionRule(conn: ControllerConnectionDetail): string {
-  return conn.rulePayload ? `${conn.rule}: ${conn.rulePayload}` : (conn.rule || '-')
+  return conn.rulePayload ? `${conn.rule}: ${conn.rulePayload}` : conn.rule || '-'
 }
 
 function getConnectionRowRenderKey(conn: ControllerConnectionDetail): string {
@@ -391,7 +426,8 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
   const processPath = conn.metadata.processPath || ''
   const iconUrl = displayIcon ? iconMap[processPath] || '' : ''
   const appName = displayAppName && processPath ? appNameCache[processPath] : undefined
-  const processName = appName || conn.metadata.process?.replace(/\.exe$/, '') || conn.metadata.sourceIP || '-'
+  const processName =
+    appName || conn.metadata.process?.replace(/\.exe$/, '') || conn.metadata.sourceIP || '-'
 
   const getColumnValue = (col: string): string => {
     switch (col) {
@@ -466,9 +502,21 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
           )}
           <span className="truncate flex items-center gap-1.5" title={processName}>
             {processName}
-            {isHidden && <span className="text-default-400 opacity-50" title={t('connections.hiddenTitle')}>
-              <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="12px" width="12px" xmlns="http://www.w3.org/2000/svg"><path d="M256 128a113.84 113.84 0 00-111.94 90.11c-.13.52-.25 1.05-.36 1.58a112.51 112.51 0 001.32 50 114.7 114.7 0 0013.9 33.68l42.6-42.6A63.85 63.85 0 01192 256v-.06a64 64 0 01103.11-51.11L332 168.06A113.59 113.59 0 00256 128zM315.65 244.35l42.6-42.6a113.62 113.62 0 0116.07 101.44 115.35 115.35 0 01-11.95 24.31l-42.6-42.6a64.31 64.31 0 00-4.12-40.55zm-143.24 64h.14L114.61 366.3a256.78 256.78 0 01-38.62-31.54C34.72 297.43 16 256 16 256s18.72-41.43 51.3-71.8a257.65 257.65 0 0153.11-37.58l45 45a64 64 0 007 86.73zM512 256s-18.72 41.43-51.3 71.8a257.65 257.65 0 01-53.11 37.58L362.59 320.4a64.09 64.09 0 00-7-86.73h-.14l57.94-57.94a256.78 256.78 0 0138.62 31.54C477.28 214.57 496 256 496 256s-18.73 41.43-51.31 71.8a256.88 256.88 0 01-32.9 26.65l38.42 38.42a420.9 420.9 0 0041.52-38C496 323.23 512 284 512 256zM80 64l368 384"></path></svg>
-            </span>}
+            {isHidden && (
+              <span className="text-default-400 opacity-50" title={t('connections.hiddenTitle')}>
+                <svg
+                  stroke="currentColor"
+                  fill="currentColor"
+                  strokeWidth="0"
+                  viewBox="0 0 512 512"
+                  height="12px"
+                  width="12px"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M256 128a113.84 113.84 0 00-111.94 90.11c-.13.52-.25 1.05-.36 1.58a112.51 112.51 0 001.32 50 114.7 114.7 0 0013.9 33.68l42.6-42.6A63.85 63.85 0 01192 256v-.06a64 64 0 01103.11-51.11L332 168.06A113.59 113.59 0 00256 128zM315.65 244.35l42.6-42.6a113.62 113.62 0 0116.07 101.44 115.35 115.35 0 01-11.95 24.31l-42.6-42.6a64.31 64.31 0 00-4.12-40.55zm-143.24 64h.14L114.61 366.3a256.78 256.78 0 01-38.62-31.54C34.72 297.43 16 256 16 256s18.72-41.43 51.3-71.8a257.65 257.65 0 0153.11-37.58l45 45a64 64 0 007 86.73zM512 256s-18.72 41.43-51.3 71.8a257.65 257.65 0 01-53.11 37.58L362.59 320.4a64.09 64.09 0 00-7-86.73h-.14l57.94-57.94a256.78 256.78 0 0138.62 31.54C477.28 214.57 496 256 496 256s-18.73 41.43-51.31 71.8a256.88 256.88 0 01-32.9 26.65l38.42 38.42a420.9 420.9 0 0041.52-38C496 323.23 512 284 512 256zM80 64l368 384"></path>
+                </svg>
+              </span>
+            )}
           </span>
         </div>
       )
@@ -478,9 +526,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
       const chains = getColumnValue('chains')
       return (
         <div className="flex items-center truncate" title={chains}>
-          <span className={conn.chains[0] === 'DIRECT' ? '' : 'text-primary'}>
-            {chains}
-          </span>
+          <span className={conn.chains[0] === 'DIRECT' ? '' : 'text-primary'}>{chains}</span>
         </div>
       )
     }
@@ -488,7 +534,9 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
     if (col === 'downloadSpeed') {
       const downloadSpeed = getColumnValue('downloadSpeed')
       return (
-        <div className={`flex items-center justify-end font-data-numeric ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground-500'}`}>
+        <div
+          className={`flex items-center justify-end font-data-numeric ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground-500'}`}
+        >
           {downloadSpeed}
         </div>
       )
@@ -497,7 +545,9 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
     if (col === 'uploadSpeed') {
       const uploadSpeed = getColumnValue('uploadSpeed')
       return (
-        <div className={`flex items-center justify-end font-data-numeric ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground-500'}`}>
+        <div
+          className={`flex items-center justify-end font-data-numeric ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground-500'}`}
+        >
           {uploadSpeed}
         </div>
       )
@@ -505,22 +555,35 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
     const isRightAlign = RIGHT_ALIGN_COLUMNS.includes(col)
     const color = ['time'].includes(col) ? 'text-foreground-500' : ''
-    const isMono = ['sourceIP', 'sourcePort', 'destinationIP', 'sniffHost', 'download', 'upload'].includes(col)
+    const isMono = [
+      'sourceIP',
+      'sourcePort',
+      'destinationIP',
+      'sniffHost',
+      'download',
+      'upload'
+    ].includes(col)
     const isDataNumeric = ['download', 'upload'].includes(col)
 
     const value = getColumnValue(col)
 
     return (
-      <div className={`flex items-center truncate ${isRightAlign ? 'justify-end' : ''} ${color} ${isMono && !isDataNumeric ? 'font-mono' : ''} ${isDataNumeric ? 'font-data-numeric' : ''}`} title={value}>
+      <div
+        className={`flex items-center truncate ${isRightAlign ? 'justify-end' : ''} ${color} ${isMono && !isDataNumeric ? 'font-mono' : ''} ${isDataNumeric ? 'font-data-numeric' : ''}`}
+        title={value}
+      >
         {value}
       </div>
     )
   }
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    onContextMenu?.(conn, e)
-  }, [onContextMenu, conn])
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      onContextMenu?.(conn, e)
+    },
+    [onContextMenu, conn]
+  )
 
   return (
     <div
@@ -529,7 +592,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
       onClick={() => onRowClick(conn)}
       onContextMenu={handleContextMenu}
     >
-      {visibleColumns.map(col => (
+      {visibleColumns.map((col) => (
         <div
           key={col}
           className="flex-shrink-0 px-3 py-2.5 text-sm"

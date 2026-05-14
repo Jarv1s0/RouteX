@@ -19,7 +19,9 @@ export function restartCoreInBackground(errorTitle = translate('common.applyConf
   })
 }
 
-export function createQueuedCoreRestartRunner(errorTitle = translate('common.applyConfigFailed')): () => void {
+export function createQueuedCoreRestartRunner(
+  errorTitle = translate('common.applyConfigFailed')
+): () => void {
   return createQueuedAsyncRunner(applyCoreConfigChange, (error) => {
     notifyError(error, { title: errorTitle })
   })

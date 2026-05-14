@@ -7,14 +7,10 @@ const __filename = fileURLToPath(import.meta.url)
 const repoRoot = path.resolve(path.dirname(__filename), '..')
 const lockfile = path.join(repoRoot, 'src-tauri', 'Cargo.lock')
 
-const result = spawnSync(
-  'cargo',
-  ['audit', '--format', 'json', '--file', lockfile],
-  {
-    cwd: repoRoot,
-    encoding: 'utf8'
-  }
-)
+const result = spawnSync('cargo', ['audit', '--format', 'json', '--file', lockfile], {
+  cwd: repoRoot,
+  encoding: 'utf8'
+})
 
 if (result.error) {
   console.error(`[rust-audit] failed to run cargo audit: ${result.error.message}`)
@@ -95,8 +91,12 @@ function printTauriLinuxWebviewFollowUp(warningEntries) {
   console.log(
     `  chain: tauri@${readLockedVersion('tauri')} -> tauri-runtime-wry@${readLockedVersion('tauri-runtime-wry')} / wry@${readLockedVersion('wry')} -> webkit2gtk@${readLockedVersion('webkit2gtk')} / gtk@${readLockedVersion('gtk')} / glib@${readLockedVersion('glib')}`
   )
-  console.log(`  informational warnings in this chain: ${trackedWarnings.length} (${trackedPackageList})`)
-  console.log('  action: keep tracking compatible Tauri/Wry upgrades; this is not a direct app-code dependency')
+  console.log(
+    `  informational warnings in this chain: ${trackedWarnings.length} (${trackedPackageList})`
+  )
+  console.log(
+    '  action: keep tracking compatible Tauri/Wry upgrades; this is not a direct app-code dependency'
+  )
 }
 
 function formatPackage(item) {

@@ -125,7 +125,10 @@ function sortConnections(
       case 'downloadSpeed':
         return directionFactor * ((left.downloadSpeed || 0) - (right.downloadSpeed || 0))
       case 'process':
-        return directionFactor * (left.metadata.process || '').localeCompare(right.metadata.process || '')
+        return (
+          directionFactor *
+          (left.metadata.process || '').localeCompare(right.metadata.process || '')
+        )
       case 'type':
         return directionFactor * getConnectionType(left).localeCompare(getConnectionType(right))
       case 'rule':

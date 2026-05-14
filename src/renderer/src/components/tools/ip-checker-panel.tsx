@@ -107,7 +107,9 @@ const getReadableError = (error: string): string => {
     return translate('tools.ipChecker.httpFailed')
   }
 
-  return error ? translate('tools.ipChecker.unknownReason') : translate('tools.ipChecker.noErrorDetail')
+  return error
+    ? translate('tools.ipChecker.unknownReason')
+    : translate('tools.ipChecker.noErrorDetail')
 }
 
 export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
@@ -120,31 +122,34 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
   const [copiedProviderId, setCopiedProviderId] = useState<string | null>(null)
   const copiedProviderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchProvider = useCallback(async (provider: IpProvider) => {
-    setProviderResults((prev) => ({
-      ...prev,
-      [provider.id]: { status: 'loading' }
-    }))
+  const fetchProvider = useCallback(
+    async (provider: IpProvider) => {
+      setProviderResults((prev) => ({
+        ...prev,
+        [provider.id]: { status: 'loading' }
+      }))
 
-    try {
-      const result = await provider.check()
-      const normalizedResult = {
-        ...result,
-        ip: result.ip?.trim() || ''
+      try {
+        const result = await provider.check()
+        const normalizedResult = {
+          ...result,
+          ip: result.ip?.trim() || ''
+        }
+        setProviderResults((prev) => ({
+          ...prev,
+          [provider.id]: isValidIp(normalizedResult.ip)
+            ? { status: 'success', data: normalizedResult }
+            : { status: 'invalid', data: normalizedResult, error: t('tools.ipChecker.noValidIp') }
+        }))
+      } catch (e) {
+        setProviderResults((prev) => ({
+          ...prev,
+          [provider.id]: { status: 'error', error: e instanceof Error ? e.message : String(e) }
+        }))
       }
-      setProviderResults((prev) => ({
-        ...prev,
-        [provider.id]: isValidIp(normalizedResult.ip)
-          ? { status: 'success', data: normalizedResult }
-          : { status: 'invalid', data: normalizedResult, error: t('tools.ipChecker.noValidIp') }
-      }))
-    } catch (e) {
-      setProviderResults((prev) => ({
-        ...prev,
-        [provider.id]: { status: 'error', error: e instanceof Error ? e.message : String(e) }
-      }))
-    }
-  }, [t])
+    },
+    [t]
+  )
 
   const fetchProviders = useCallback(() => {
     providers.forEach((provider) => {
@@ -273,7 +278,9 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
               color={provider.type === 'domestic' ? 'primary' : 'success'}
               className="h-5 justify-self-start px-1.5 text-[10px]"
             >
-              {provider.type === 'domestic' ? t('tools.ipChecker.domestic') : t('tools.ipChecker.international')}
+              {provider.type === 'domestic'
+                ? t('tools.ipChecker.domestic')
+                : t('tools.ipChecker.international')}
             </Chip>
 
             <div className="min-w-0">
@@ -303,7 +310,11 @@ export const IpCheckerPanel: React.FC<IpCheckerPanelProps> = ({
                       isIconOnly
                       color={copiedProviderId === provider.id ? 'success' : 'default'}
                       className="h-6 w-6 min-w-6 shrink-0"
-                      title={copiedProviderId === provider.id ? t('common.copied') : t('tools.ipChecker.copyProviderIp')}
+                      title={
+                        copiedProviderId === provider.id
+                          ? t('common.copied')
+                          : t('tools.ipChecker.copyProviderIp')
+                      }
                       onPress={() => copyProviderIp(provider.id, state.data.ip)}
                     >
                       {copiedProviderId === provider.id ? (

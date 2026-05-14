@@ -19,18 +19,22 @@ interface TrafficState {
   hourlyData: { hour: string; upload: number; download: number }[]
   dailyData: { date: string; upload: number; download: number }[]
   sessionStats: { upload: number; download: number }
-  
+  routeStats: { proxy: number; direct: number }
+
   // Rule Stats
   ruleStats: Map<string, { hits: number; upload: number; download: number }>
-  ruleHitDetails: Map<string, Array<{
-    id: string
-    time: string
-    host: string
-    process: string
-    proxy: string
-    upload: number
-    download: number
-  }>>
+  ruleHitDetails: Map<
+    string,
+    Array<{
+      id: string
+      time: string
+      host: string
+      process: string
+      proxy: string
+      upload: number
+      download: number
+    }>
+  >
 
   // Actions
   initializeListeners: () => void
@@ -60,6 +64,10 @@ let currentConnectionsUnsubscribe: (() => void) | null = null
 let lastIpcTrafficEventAt = 0
 let lastIpcTrafficSample: { up: number; down: number; at: number } | null = null
 let lastConnectionTotals: { upload: number; download: number; at: number } | null = null
+let routeTrafficConnectionSamples = new Map<
+  string,
+  { upload: number; download: number; isDirect: boolean }
+>()
 
 function getTimeKey(): string {
   return new Date().toTimeString().split(' ')[0]
@@ -72,19 +80,25 @@ function clearTrafficStatsPolling() {
 }
 
 function unregisterTrafficHandlers() {
-    currentConnectionsThrottle?.cancel()
-    currentConnectionsThrottle = null
-    currentConnectionsUnsubscribe?.()
-    currentConnectionsUnsubscribe = null
-    currentTrafficUnsubscribe?.()
-    currentTrafficUnsubscribe = null
-    if (visibilityChangeHandler) {
-        document.removeEventListener('visibilitychange', visibilityChangeHandler)
-        visibilityChangeHandler = null
-    }
-    lastIpcTrafficEventAt = 0
-    lastIpcTrafficSample = null
-    lastConnectionTotals = null
+  currentConnectionsThrottle?.cancel()
+  currentConnectionsThrottle = null
+  currentConnectionsUnsubscribe?.()
+  currentConnectionsUnsubscribe = null
+  currentTrafficUnsubscribe?.()
+  currentTrafficUnsubscribe = null
+  if (visibilityChangeHandler) {
+    document.removeEventListener('visibilitychange', visibilityChangeHandler)
+    visibilityChangeHandler = null
+  }
+  lastIpcTrafficEventAt = 0
+  lastIpcTrafficSample = null
+  lastConnectionTotals = null
+  routeTrafficConnectionSamples.clear()
+}
+
+function isDirectConnection(conn: ControllerConnectionDetail): boolean {
+  const currentOutbound = conn.chains?.[0]?.trim().toUpperCase()
+  return !currentOutbound || currentOutbound === 'DIRECT'
 }
 
 export const useTrafficStore = create<TrafficState>((set, get) => ({
@@ -92,6 +106,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
   hourlyData: [],
   dailyData: [],
   sessionStats: { upload: 0, download: 0 },
+  routeStats: { proxy: 0, direct: 0 },
   ruleStats: new Map(),
   ruleHitDetails: new Map(),
 
@@ -115,7 +130,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       }
       const timeStr = getTimeKey()
 
-      set(state => {
+      set((state) => {
         const newPoint: TrafficDataPoint = {
           time: timeStr,
           upload: normalizedDisplay.up,
@@ -150,93 +165,120 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       applyTrafficSample(traffic, traffic)
     }
 
-    const handleConnections = throttle((snapshot: ControllerConnections): void => {
-      // 窗口不可见时跳过规则统计处理，降低 CPU 占用
-      if (document.hidden) return
+    const handleConnections = throttle(
+      (snapshot: ControllerConnections): void => {
+        // 窗口不可见时跳过规则统计处理，降低 CPU 占用
+        if (document.hidden) return
 
-      const connections = snapshot.connections || []
-      const timeStr = getTimeKey()
-      const now = Date.now()
-      const uploadTotal = Math.max(0, Math.trunc(snapshot.uploadTotal || 0))
-      const downloadTotal = Math.max(0, Math.trunc(snapshot.downloadTotal || 0))
-      const previousTotals = lastConnectionTotals
-      lastConnectionTotals = { upload: uploadTotal, download: downloadTotal, at: now }
+        const connections = snapshot.connections || []
+        const timeStr = getTimeKey()
+        const now = Date.now()
+        const uploadTotal = Math.max(0, Math.trunc(snapshot.uploadTotal || 0))
+        const downloadTotal = Math.max(0, Math.trunc(snapshot.downloadTotal || 0))
+        const previousTotals = lastConnectionTotals
+        lastConnectionTotals = { upload: uploadTotal, download: downloadTotal, at: now }
 
-      if (previousTotals && now - lastIpcTrafficEventAt > TRAFFIC_EVENT_STALE_MS) {
-        const uploadDelta = Math.max(0, uploadTotal - previousTotals.upload)
-        const downloadDelta = Math.max(0, downloadTotal - previousTotals.download)
+        if (previousTotals && now - lastIpcTrafficEventAt > TRAFFIC_EVENT_STALE_MS) {
+          const uploadDelta = Math.max(0, uploadTotal - previousTotals.upload)
+          const downloadDelta = Math.max(0, downloadTotal - previousTotals.download)
 
-        if (uploadDelta > 0 || downloadDelta > 0) {
-          const elapsedMs = Math.max(1, now - previousTotals.at)
-          applyTrafficSample(
-            {
-              up: Math.trunc((uploadDelta * 1000) / elapsedMs),
-              down: Math.trunc((downloadDelta * 1000) / elapsedMs)
-            },
-            {
-              up: uploadDelta,
-              down: downloadDelta
-            }
-          )
-        }
-      } else if (previousTotals && lastIpcTrafficSample) {
-        const uploadDelta = Math.max(0, uploadTotal - previousTotals.upload)
-        const downloadDelta = Math.max(0, downloadTotal - previousTotals.download)
-        const ipcSampleLooksStuck =
-          lastIpcTrafficSample.up === 0 &&
-          lastIpcTrafficSample.down === 0 &&
-          now - lastIpcTrafficSample.at <= TRAFFIC_EVENT_STALE_MS
-
-        if (ipcSampleLooksStuck && (uploadDelta > 0 || downloadDelta > 0)) {
-          const elapsedMs = Math.max(1, now - previousTotals.at)
-          applyTrafficSample(
-            {
-              up: Math.trunc((uploadDelta * 1000) / elapsedMs),
-              down: Math.trunc((downloadDelta * 1000) / elapsedMs)
-            },
-            {
-              up: uploadDelta,
-              down: downloadDelta
-            }
-          )
-        }
-      }
-
-      set(state => {
-        const newStats = new Map(state.ruleStats)
-        const newDetails = new Map(state.ruleHitDetails)
-        let hasChanges = false
-
-        connections.forEach((conn) => {
-          if (!conn.rule) return
-          
-          const ruleName = conn.rulePayload 
-            ? `${conn.rule},${conn.rulePayload}` 
-            : conn.rule
-          
-          let existing = newStats.get(ruleName)
-          if (!existing) {
-            existing = { hits: 0, upload: 0, download: 0 }
-            newStats.set(ruleName, existing)
-            hasChanges = true
+          if (uploadDelta > 0 || downloadDelta > 0) {
+            const elapsedMs = Math.max(1, now - previousTotals.at)
+            applyTrafficSample(
+              {
+                up: Math.trunc((uploadDelta * 1000) / elapsedMs),
+                down: Math.trunc((downloadDelta * 1000) / elapsedMs)
+              },
+              {
+                up: uploadDelta,
+                down: downloadDelta
+              }
+            )
           }
-          
-          if (!processedConnIds.has(conn.id)) {
-            existing.hits += 1
-            processedConnIds.add(conn.id)
-            hasChanges = true
-            
-            // Update Details
-            const ruleDetails = newDetails.get(ruleName) || []
-            
-            // Limit tracked rules count
-            if (newDetails.size >= MAX_RULES_TRACKED && !newDetails.has(ruleName)) {
-                 const firstKey = newDetails.keys().next().value
-                 if (firstKey) newDetails.delete(firstKey)
+        } else if (previousTotals && lastIpcTrafficSample) {
+          const uploadDelta = Math.max(0, uploadTotal - previousTotals.upload)
+          const downloadDelta = Math.max(0, downloadTotal - previousTotals.download)
+          const ipcSampleLooksStuck =
+            lastIpcTrafficSample.up === 0 &&
+            lastIpcTrafficSample.down === 0 &&
+            now - lastIpcTrafficSample.at <= TRAFFIC_EVENT_STALE_MS
+
+          if (ipcSampleLooksStuck && (uploadDelta > 0 || downloadDelta > 0)) {
+            const elapsedMs = Math.max(1, now - previousTotals.at)
+            applyTrafficSample(
+              {
+                up: Math.trunc((uploadDelta * 1000) / elapsedMs),
+                down: Math.trunc((downloadDelta * 1000) / elapsedMs)
+              },
+              {
+                up: uploadDelta,
+                down: downloadDelta
+              }
+            )
+          }
+        }
+
+        set((state) => {
+          const newStats = new Map(state.ruleStats)
+          const newDetails = new Map(state.ruleHitDetails)
+          const nextRouteSamples = new Map<
+            string,
+            { upload: number; download: number; isDirect: boolean }
+          >()
+          const routeDelta = { proxy: 0, direct: 0 }
+          let hasChanges = false
+
+          connections.forEach((conn) => {
+            const upload = Math.max(0, Math.trunc(conn.upload || 0))
+            const download = Math.max(0, Math.trunc(conn.download || 0))
+            const isDirect = isDirectConnection(conn)
+            const previousRouteSample = routeTrafficConnectionSamples.get(conn.id)
+            const uploadDelta = previousRouteSample
+              ? Math.max(0, upload - previousRouteSample.upload)
+              : upload
+            const downloadDelta = previousRouteSample
+              ? Math.max(0, download - previousRouteSample.download)
+              : download
+            const trafficDelta = uploadDelta + downloadDelta
+
+            nextRouteSamples.set(conn.id, { upload, download, isDirect })
+
+            if (trafficDelta > 0) {
+              if (isDirect) {
+                routeDelta.direct += trafficDelta
+              } else {
+                routeDelta.proxy += trafficDelta
+              }
+              hasChanges = true
             }
 
-            // Add new detail to start
-            ruleDetails.unshift({
+            if (!conn.rule) return
+
+            const ruleName = conn.rulePayload ? `${conn.rule},${conn.rulePayload}` : conn.rule
+
+            let existing = newStats.get(ruleName)
+            if (!existing) {
+              existing = { hits: 0, upload: 0, download: 0 }
+              newStats.set(ruleName, existing)
+              hasChanges = true
+            }
+
+            if (!processedConnIds.has(conn.id)) {
+              existing.hits += 1
+              processedConnIds.add(conn.id)
+              hasChanges = true
+
+              // Update Details
+              const ruleDetails = newDetails.get(ruleName) || []
+
+              // Limit tracked rules count
+              if (newDetails.size >= MAX_RULES_TRACKED && !newDetails.has(ruleName)) {
+                const firstKey = newDetails.keys().next().value
+                if (firstKey) newDetails.delete(firstKey)
+              }
+
+              // Add new detail to start
+              ruleDetails.unshift({
                 id: conn.id,
                 time: timeStr,
                 host: conn.metadata?.host || conn.metadata?.destinationIP || '-',
@@ -244,47 +286,60 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
                 proxy: conn.chains?.length ? conn.chains[0] : 'DIRECT',
                 upload: conn.upload,
                 download: conn.download
-            })
-            
-            if (ruleDetails.length > MAX_DETAILS_PER_RULE) {
-                 newDetails.set(ruleName, ruleDetails.slice(0, MAX_DETAILS_PER_RULE))
-            } else {
-                 newDetails.set(ruleName, ruleDetails)
-            }
-          }
-          
-          // Update upload/download max
-          if (conn.upload > existing.upload || conn.download > existing.download) {
-             existing.upload = Math.max(existing.upload, conn.upload)
-             existing.download = Math.max(existing.download, conn.download)
-             hasChanges = true
-          }
-        })
-        
-        // Prevent massive state growth
-        if (newStats.size > 2000) {
-             return {}
-        }
-        
-        // Garbage collect processedConnIds: remove IDs no longer in current connections
-        const currentIds = new Set(connections.map((c: ControllerConnectionDetail) => c.id))
-        for (const id of processedConnIds) {
-            if (!currentIds.has(id)) {
-                processedConnIds.delete(id)
-            }
-        }
+              })
 
-        return hasChanges ? { ruleStats: newStats, ruleHitDetails: newDetails } : {}
-      })
-    }, CONNECTION_SNAPSHOT_THROTTLE_MS, { leading: true, trailing: true })
+              if (ruleDetails.length > MAX_DETAILS_PER_RULE) {
+                newDetails.set(ruleName, ruleDetails.slice(0, MAX_DETAILS_PER_RULE))
+              } else {
+                newDetails.set(ruleName, ruleDetails)
+              }
+            }
+
+            // Update upload/download max
+            if (conn.upload > existing.upload || conn.download > existing.download) {
+              existing.upload = Math.max(existing.upload, conn.upload)
+              existing.download = Math.max(existing.download, conn.download)
+              hasChanges = true
+            }
+          })
+
+          // Prevent massive state growth
+          routeTrafficConnectionSamples = nextRouteSamples
+
+          if (newStats.size > 2000) {
+            return {}
+          }
+
+          // Garbage collect processedConnIds: remove IDs no longer in current connections
+          const currentIds = new Set(connections.map((c: ControllerConnectionDetail) => c.id))
+          for (const id of processedConnIds) {
+            if (!currentIds.has(id)) {
+              processedConnIds.delete(id)
+            }
+          }
+          return hasChanges
+            ? {
+                ruleStats: newStats,
+                ruleHitDetails: newDetails,
+                routeStats: {
+                  proxy: state.routeStats.proxy + routeDelta.proxy,
+                  direct: state.routeStats.direct + routeDelta.direct
+                }
+              }
+            : {}
+        })
+      },
+      CONNECTION_SNAPSHOT_THROTTLE_MS,
+      { leading: true, trailing: true }
+    )
 
     // Register Listeners
     try {
-        currentTrafficUnsubscribe = subscribeDesktopTraffic(handleTraffic)
-        currentConnectionsThrottle = handleConnections
-        currentConnectionsUnsubscribe = subscribeConnectionSnapshot(handleConnections)
-    } catch(e) {
-        console.error('Failed to register listeners:', e)
+      currentTrafficUnsubscribe = subscribeDesktopTraffic(handleTraffic)
+      currentConnectionsThrottle = handleConnections
+      currentConnectionsUnsubscribe = subscribeConnectionSnapshot(handleConnections)
+    } catch (e) {
+      console.error('Failed to register listeners:', e)
     }
 
     // Initial fetch of static stats
@@ -312,29 +367,31 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
   },
 
   fetchInitialStats: async () => {
-      try {
-        const stats = await getTrafficStats()
+    try {
+      const stats = await getTrafficStats()
 
-        set({
-            hourlyData: (stats.hourly || []).slice(-24),
-            dailyData: (stats.daily || []).slice(-30),
-            sessionStats: { upload: stats.sessionUpload, download: stats.sessionDownload }
-        })
-      } catch (e) {
-          console.error('Failed to fetch initial stats', e)
-      }
+      set({
+        hourlyData: (stats.hourly || []).slice(-24),
+        dailyData: (stats.daily || []).slice(-30),
+        sessionStats: { upload: stats.sessionUpload, download: stats.sessionDownload }
+      })
+    } catch (e) {
+      console.error('Failed to fetch initial stats', e)
+    }
   },
 
   clearStats: () => {
-      set({
-          trafficHistory: [],
-          hourlyData: [],
-          dailyData: [],
-          sessionStats: { upload: 0, download: 0 },
-          ruleStats: new Map(),
-          ruleHitDetails: new Map()
-      })
-      resetTauriTrafficRecorder()
-      processedConnIds.clear()
+    set({
+      trafficHistory: [],
+      hourlyData: [],
+      dailyData: [],
+      sessionStats: { upload: 0, download: 0 },
+      routeStats: { proxy: 0, direct: 0 },
+      ruleStats: new Map(),
+      ruleHitDetails: new Map()
+    })
+    resetTauriTrafficRecorder()
+    processedConnIds.clear()
+    routeTrafficConnectionSamples.clear()
   }
 }))

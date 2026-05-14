@@ -17,7 +17,7 @@ export default function AnimatedEdge({
     sourcePosition,
     targetX,
     targetY,
-    targetPosition,
+    targetPosition
   })
 
   const isDark = document.documentElement.classList.contains('dark')
@@ -37,39 +37,39 @@ export default function AnimatedEdge({
     <>
       {/* 底层静态路径 */}
       <BaseEdge
-          path={edgePath}
-          markerEnd={markerEnd}
-          style={{
-              ...style,
-              stroke: edgeColor,
-              strokeWidth: strokeWidth,
-              fill: 'none',
-          }}
+        path={edgePath}
+        markerEnd={markerEnd}
+        style={{
+          ...style,
+          stroke: edgeColor,
+          strokeWidth: strokeWidth,
+          fill: 'none'
+        }}
       />
 
       {/* 闪电脉搏：高亮电流快速扫过，然后短暂静默 */}
-{/* 闪电脉搏：高亮电流快速扫过，然后短暂静默 */}
+      {/* 闪电脉搏：高亮电流快速扫过，然后短暂静默 */}
       {isAnimated && (
-          <path
-              d={edgePath}
-              className="react-flow__edge-path"
-              style={{
-                  ...style,
-                  stroke: boltColor,
-                  strokeWidth: strokeWidth * 2.5, // 稍微加粗提高存在感
-                  strokeLinecap: 'round',
-                  fill: 'none',
-                  strokeDasharray: '30 2000', // 增加发光段的长度
-                  animation: 'lightning-bolt 6.5s linear infinite', // 减慢速度
-                  filter: `drop-shadow(0 0 5px ${boltColor})`, // 添加发光滤镜
-                  opacity: 1 // 确保完全不透明
-              }}
-          />
+        <path
+          d={edgePath}
+          className="react-flow__edge-path"
+          style={{
+            ...style,
+            stroke: boltColor,
+            strokeWidth: strokeWidth * 2.5, // 稍微加粗提高存在感
+            strokeLinecap: 'round',
+            fill: 'none',
+            strokeDasharray: '30 2000', // 增加发光段的长度
+            animation: 'lightning-bolt 6.5s linear infinite', // 减慢速度
+            filter: `drop-shadow(0 0 5px ${boltColor})`, // 添加发光滤镜
+            opacity: 1 // 确保完全不透明
+          }}
+        />
       )}
     </>
   )
 }
 
 export const edgeTypes = {
-    animated: AnimatedEdge
+  animated: AnimatedEdge
 }

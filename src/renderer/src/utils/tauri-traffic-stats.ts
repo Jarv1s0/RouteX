@@ -86,7 +86,10 @@ async function flushPendingTauriTrafficSample(): Promise<void> {
   }
 }
 
-export async function recordTauriTrafficSample(traffic: { up: number; down: number }): Promise<void> {
+export async function recordTauriTrafficSample(traffic: {
+  up: number
+  down: number
+}): Promise<void> {
   if (!isTauriHost()) {
     return
   }

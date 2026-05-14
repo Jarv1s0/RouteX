@@ -27,8 +27,9 @@ type DiffSource = 'raw' | 'override'
 
 const ConfigViewer: React.FC<Props> = ({ onClose }) => {
   const { t } = useI18n()
-  const { appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {} } =
-    useAppConfig()
+  const {
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+  } = useAppConfig()
   const [runtimeConfig, setRuntimeConfig] = useState('')
   const [rawProfile, setRawProfile] = useState('')
   const [overrideConfig, setOverrideConfig] = useState('')

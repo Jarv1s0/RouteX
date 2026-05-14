@@ -293,14 +293,14 @@ export function useResourceQueue(
       }
     }
 
-    if (
-      visibleIconRequestQueue.current.size > 0 ||
-      preloadIconRequestQueue.current.size > 0
-    ) {
-      processIconTimer.current = setTimeout(() => {
-        processIconTimer.current = null
-        void processIconQueue()
-      }, visibleIconRequestQueue.current.size > 0 ? 20 : 60)
+    if (visibleIconRequestQueue.current.size > 0 || preloadIconRequestQueue.current.size > 0) {
+      processIconTimer.current = setTimeout(
+        () => {
+          processIconTimer.current = null
+          void processIconQueue()
+        },
+        visibleIconRequestQueue.current.size > 0 ? 20 : 60
+      )
     }
   }, [filteredConnectionsFirstPath])
 
@@ -333,10 +333,7 @@ export function useResourceQueue(
     }
 
     // Start processing immediately if queue is not empty, otherwise ensure timer is cleared
-    if (
-      visibleIconRequestQueue.current.size > 0 ||
-      preloadIconRequestQueue.current.size > 0
-    ) {
+    if (visibleIconRequestQueue.current.size > 0 || preloadIconRequestQueue.current.size > 0) {
       if (processIconTimer.current) clearTimeout(processIconTimer.current)
       processIconTimer.current = setTimeout(() => {
         processIconTimer.current = null
@@ -380,7 +377,8 @@ export function useResourceQueue(
         iconMap[path] ||
         processingIcons.current.has(path) ||
         hasRecentResourceFailure(sharedIconFailureCache, path)
-      ) return
+      )
+        return
 
       const fromStorage = readCachedIcon(path)
       if (fromStorage) {
@@ -424,7 +422,8 @@ export function useResourceQueue(
         appNameCache[path] ||
         processingAppNames.current.has(path) ||
         hasRecentResourceFailure(sharedAppNameFailureCache, path)
-      ) return
+      )
+        return
 
       const fromMemory = sharedAppNameMemoryCache.get(path)
       if (fromMemory) {
@@ -434,11 +433,7 @@ export function useResourceQueue(
       }
 
       appNameRequestQueue.current.add(path)
-      if (
-        !processAppNameTimer.current &&
-        processingAppNames.current.size === 0 &&
-        displayAppName
-      ) {
+      if (!processAppNameTimer.current && processingAppNames.current.size === 0 && displayAppName) {
         processAppNameTimer.current = setTimeout(() => {
           processAppNameTimer.current = null
           void processAppNameQueue()

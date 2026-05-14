@@ -14,11 +14,19 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { IoTrash, IoAdd, IoEye, IoPencil } from 'react-icons/io5'
 import ChainPreviewModal from './chain-preview-modal'
 import { MdLink, MdLinkOff } from 'react-icons/md'
-import { getAllChains, addChainItem, updateChainItem, removeChainItem } from '@renderer/utils/chains-ipc'
+import {
+  getAllChains,
+  addChainItem,
+  updateChainItem,
+  removeChainItem
+} from '@renderer/utils/chains-ipc'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
-import { createSecondaryModalClassNames, getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import {
+  createSecondaryModalClassNames,
+  getMainPaneModalContentStyle
+} from '@renderer/utils/modal-styles'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
 
@@ -50,7 +58,6 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
   const [editingChain, setEditingChain] = useState<ChainItem | null>(null)
   const [isEditing, setIsEditing] = useState(false)
 
-
   // 编辑表单状态
   const [chainName, setChainName] = useState('')
   const [dialerProxy, setDialerProxy] = useState('')
@@ -74,9 +81,9 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
   // 所有可用的节点和组名称
   const allProxies = useMemo(() => {
     const proxies: string[] = ['DIRECT', 'REJECT']
-    groups.forEach(g => {
+    groups.forEach((g) => {
       if (!proxies.includes(g.name)) proxies.push(g.name)
-      g.all?.forEach(p => {
+      g.all?.forEach((p) => {
         if (!proxies.includes(p.name)) proxies.push(p.name)
       })
     })
@@ -85,7 +92,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
 
   // 可用的策略组
   const availableGroups = useMemo(() => {
-    return groups.filter(g => g.name !== 'GLOBAL').map(g => g.name)
+    return groups.filter((g) => g.name !== 'GLOBAL').map((g) => g.name)
   }, [groups])
 
   // 开始编辑/新建
@@ -141,34 +148,38 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
   }, [chainName, dialerProxy, targetProxy, targetGroups, editingChain, loadChains, setIsEditing, t])
 
   // 删除链
-  const handleDelete = useCallback(async (id: string) => {
-    setLoading(true)
-    try {
-      await removeChainItem(id)
-      await loadChains()
-      restartCoreInBackground(t('proxyChains.applyFailed'))
-    } catch (e) {
-      console.error('Failed to delete chain:', e)
-    } finally {
-      setLoading(false)
-    }
-  }, [loadChains, t])
+  const handleDelete = useCallback(
+    async (id: string) => {
+      setLoading(true)
+      try {
+        await removeChainItem(id)
+        await loadChains()
+        restartCoreInBackground(t('proxyChains.applyFailed'))
+      } catch (e) {
+        console.error('Failed to delete chain:', e)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [loadChains, t]
+  )
 
   // 切换启用状态
-  const handleToggle = useCallback(async (chain: ChainItem, enabled: boolean) => {
-    setLoading(true)
-    try {
-      await updateChainItem({ ...chain, enabled })
-      await loadChains()
-      restartCoreInBackground(t('proxyChains.applyFailed'))
-    } catch (e) {
-      console.error('Failed to toggle chain:', e)
-    } finally {
-      setLoading(false)
-    }
-  }, [loadChains, t])
-
-
+  const handleToggle = useCallback(
+    async (chain: ChainItem, enabled: boolean) => {
+      setLoading(true)
+      try {
+        await updateChainItem({ ...chain, enabled })
+        await loadChains()
+        restartCoreInBackground(t('proxyChains.applyFailed'))
+      } catch (e) {
+        console.error('Failed to toggle chain:', e)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [loadChains, t]
+  )
 
   return (
     <Modal
@@ -197,14 +208,16 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
               {isEditing
                 ? t('proxyChains.editHelp')
                 : t('proxyChains.manageHelp', {
-                    count: chains.length > 0 ? t('proxyChains.countSuffix', { count: chains.length }) : ''
+                    count:
+                      chains.length > 0
+                        ? t('proxyChains.countSuffix', { count: chains.length })
+                        : ''
                   })}
             </p>
           </div>
           <SecondaryModalCloseButton onPress={isEditing ? closeEditor : onClose} />
         </ModalHeader>
         <ModalBody className="px-4 py-2">
-
           {isEditing ? (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
@@ -220,7 +233,9 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
 
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <div className="text-xs font-medium text-default-600">{t('proxyChains.dialer')}</div>
+                  <div className="text-xs font-medium text-default-600">
+                    {t('proxyChains.dialer')}
+                  </div>
                   <Select
                     size="sm"
                     placeholder={t('proxyChains.dialerPlaceholder')}
@@ -228,14 +243,16 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                     classNames={polishedSelectClassNames}
                     onSelectionChange={(keys) => setDialerProxy(Array.from(keys)[0] as string)}
                   >
-                    {allProxies.map(p => (
+                    {allProxies.map((p) => (
                       <SelectItem key={p}>{p}</SelectItem>
                     ))}
                   </Select>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <div className="text-xs font-medium text-default-600">{t('proxyChains.target')}</div>
+                  <div className="text-xs font-medium text-default-600">
+                    {t('proxyChains.target')}
+                  </div>
                   <Select
                     size="sm"
                     placeholder={t('proxyChains.targetPlaceholder')}
@@ -243,7 +260,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                     classNames={polishedSelectClassNames}
                     onSelectionChange={(keys) => setTargetProxy(Array.from(keys)[0] as string)}
                   >
-                    {allProxies.map(p => (
+                    {allProxies.map((p) => (
                       <SelectItem key={p}>{p}</SelectItem>
                     ))}
                   </Select>
@@ -251,7 +268,9 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <div className="text-xs font-medium text-default-600">{t('proxyChains.targetGroups')}</div>
+                <div className="text-xs font-medium text-default-600">
+                  {t('proxyChains.targetGroups')}
+                </div>
                 <Select
                   size="sm"
                   placeholder={t('proxyChains.targetGroupsPlaceholder')}
@@ -271,7 +290,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                     }
                   }}
                 >
-                  {availableGroups.map(g => (
+                  {availableGroups.map((g) => (
                     <SelectItem key={g}>{g}</SelectItem>
                   ))}
                 </Select>
@@ -282,11 +301,13 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
               {chains.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-default-200 bg-content1/40 px-6 py-10 text-center text-default-400">
                   <MdLinkOff className="mx-auto mb-2 text-3xl opacity-50" />
-                  <p className="text-sm font-medium text-default-600">{t('proxyChains.emptyTitle')}</p>
+                  <p className="text-sm font-medium text-default-600">
+                    {t('proxyChains.emptyTitle')}
+                  </p>
                   <p className="mt-1 text-xs">{t('proxyChains.emptyDescription')}</p>
                 </div>
               ) : (
-                chains.map(chain => (
+                chains.map((chain) => (
                   <div
                     key={chain.id}
                     className="group flex items-center gap-3 p-3 rounded-xl bg-content1/50 hover:bg-content1 border border-default-100 hover:border-default-200 transition-all duration-300 shadow-sm hover:shadow-md"
@@ -300,7 +321,9 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                       </div>
                       <div className="mt-0.5 text-xs text-default-400 group-hover:text-default-500 transition-colors break-all">
                         {chain.dialerProxy} → {chain.targetProxy}
-                        {chain.targetGroups && chain.targetGroups.length > 0 && ` · ${chain.targetGroups.join('、')}`}
+                        {chain.targetGroups &&
+                          chain.targetGroups.length > 0 &&
+                          ` · ${chain.targetGroups.join('、')}`}
                       </div>
                     </div>
                     <div className="ml-auto flex items-center gap-2 shrink-0">
@@ -340,7 +363,9 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
         <ModalFooter className="py-2 px-4">
           {isEditing ? (
             <>
-              <Button size="sm" variant="flat" onPress={closeEditor}>{t('common.cancel')}</Button>
+              <Button size="sm" variant="flat" onPress={closeEditor}>
+                {t('common.cancel')}
+              </Button>
               <Button
                 size="sm"
                 color="primary"
@@ -363,24 +388,24 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
               >
                 {t('proxyChains.preview')}
               </Button>
-              <Button size="sm" color="primary" className="font-medium px-6" startContent={<IoAdd />} onPress={() => openEditor()}>
+              <Button
+                size="sm"
+                color="primary"
+                className="font-medium px-6"
+                startContent={<IoAdd />}
+                onPress={() => openEditor()}
+              >
                 {t('proxyChains.create')}
               </Button>
             </div>
           )}
         </ModalFooter>
       </ModalContent>
-      {showPreview && (
-        <ChainPreviewModal 
-          chains={chains} 
-          onClose={() => setShowPreview(false)} 
-        />
-      )}
+      {showPreview && <ChainPreviewModal chains={chains} onClose={() => setShowPreview(false)} />}
     </Modal>
   )
 }
 
 // 可拖拽的前置节点项
-
 
 export default ProxyChainModal

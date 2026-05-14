@@ -4,8 +4,21 @@ import SettingItem from '../base/base-setting-item'
 import { Button, Select, SelectItem, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
 import { BiSolidFileImport } from 'react-icons/bi'
 import { getFilePath } from '@renderer/utils/file-ipc'
-import { applyTheme, fetchThemes, importThemes, resolveThemes, writeTheme } from '@renderer/utils/theme-ipc'
-import { closeFloatingWindow, closeTrayIcon, setDockVisible, showFloatingWindow, showTrayIcon, startMonitor } from '@renderer/utils/window-ipc'
+import {
+  applyTheme,
+  fetchThemes,
+  importThemes,
+  resolveThemes,
+  writeTheme
+} from '@renderer/utils/theme-ipc'
+import {
+  closeFloatingWindow,
+  closeTrayIcon,
+  setDockVisible,
+  showFloatingWindow,
+  showTrayIcon,
+  startMonitor
+} from '@renderer/utils/window-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
@@ -15,7 +28,6 @@ import { MdEditDocument } from 'react-icons/md'
 import ShortcutConfigModal from './shortcut-config-modal'
 import CSSEditorModal from './css-editor-modal'
 import { useI18n } from '@renderer/i18n'
-
 
 const ShortcutConfigContent: React.FC = () => {
   const { t } = useI18n()
@@ -190,7 +202,6 @@ const AppearanceConfig: React.FC = () => {
             />
           </SettingItem>
         )}
-
 
         <SettingItem title={t('settings.appearance.collapseSidebar')} divider>
           <Switch

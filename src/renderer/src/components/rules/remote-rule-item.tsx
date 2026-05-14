@@ -180,7 +180,9 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                       <Button
                         isIconOnly
                         variant="light"
-                        title={provider.vehicleType === 'File' ? t('common.edit') : t('common.view')}
+                        title={
+                          provider.vehicleType === 'File' ? t('common.edit') : t('common.view')
+                        }
                         size="sm"
                         onPress={onView}
                         className="min-w-8 w-8 h-8"

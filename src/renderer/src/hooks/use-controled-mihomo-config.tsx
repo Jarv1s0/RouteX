@@ -24,16 +24,19 @@ export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = 
     () => getControledMihomoConfig()
   )
 
-  const patchControledMihomoConfig = React.useCallback(async (value: Partial<MihomoConfig>): Promise<void> => {
-    try {
-      await patch(value)
-    } catch (e) {
-      const { notifyError } = await import('@renderer/utils/notify')
-      notifyError(e, { title: t('common.updateConfigFailed') })
-    } finally {
-      mutateControledMihomoConfig()
-    }
-  }, [mutateControledMihomoConfig, t])
+  const patchControledMihomoConfig = React.useCallback(
+    async (value: Partial<MihomoConfig>): Promise<void> => {
+      try {
+        await patch(value)
+      } catch (e) {
+        const { notifyError } = await import('@renderer/utils/notify')
+        notifyError(e, { title: t('common.updateConfigFailed') })
+      } finally {
+        mutateControledMihomoConfig()
+      }
+    },
+    [mutateControledMihomoConfig, t]
+  )
 
   React.useEffect(() => {
     const handleConfigUpdated = (): void => {

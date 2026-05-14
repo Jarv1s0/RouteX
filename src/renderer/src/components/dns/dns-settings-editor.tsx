@@ -255,7 +255,9 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
                   onValueChange={(value) => {
                     setValues({ ...values, fakeIPRange: value })
                     const result = isValidIPv4Cidr(value)
-                    setFakeIPRangeError(result.ok ? null : (result.error ?? t('common.formatError')))
+                    setFakeIPRangeError(
+                      result.ok ? null : (result.error ?? t('common.formatError'))
+                    )
                   }}
                 />
               </Tooltip>
@@ -282,7 +284,9 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
                     onValueChange={(value) => {
                       setValues({ ...values, fakeIPRange6: value })
                       const result = isValidIPv6Cidr(value)
-                      setFakeIPRange6Error(result.ok ? null : (result.error ?? t('common.formatError')))
+                      setFakeIPRange6Error(
+                        result.ok ? null : (result.error ?? t('common.formatError'))
+                      )
                     }}
                   />
                 </Tooltip>

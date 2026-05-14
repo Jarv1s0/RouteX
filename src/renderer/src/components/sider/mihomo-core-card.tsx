@@ -228,7 +228,10 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
         <div className="flex items-center">
           {version?.version ?? '-'}
           {hasNewVersion() && (
-            <Tooltip content={t('sidebar.newVersion', { version: latestVersion ?? '' })} placement="top">
+            <Tooltip
+              content={t('sidebar.newVersion', { version: latestVersion ?? '' })}
+              placement="top"
+            >
               <span
                 className={`inline-block ml-1.5 w-2 h-2 rounded-full animate-pulse align-middle bg-success`}
               />

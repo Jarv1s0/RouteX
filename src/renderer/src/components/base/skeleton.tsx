@@ -7,15 +7,16 @@ interface SkeletonProps {
 }
 
 export const Skeleton: React.FC<SkeletonProps> = ({ className, rounded = 'lg' }) => {
-  const roundedClass = 
-    rounded === 'sm' ? 'rounded-sm' :
-    rounded === 'md' ? 'rounded-md' :
-    rounded === 'full' ? 'rounded-full' :
-    'rounded-lg'
+  const roundedClass =
+    rounded === 'sm'
+      ? 'rounded-sm'
+      : rounded === 'md'
+        ? 'rounded-md'
+        : rounded === 'full'
+          ? 'rounded-full'
+          : 'rounded-lg'
 
-  return (
-    <div className={`animate-pulse bg-default-200/50 ${roundedClass} ${className}`} />
-  )
+  return <div className={`animate-pulse bg-default-200/50 ${roundedClass} ${className}`} />
 }
 
 export const ProxyCardSkeleton: React.FC = () => {

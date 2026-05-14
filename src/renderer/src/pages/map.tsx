@@ -11,7 +11,9 @@ const MapPage: React.FC = () => {
   return (
     <BasePage title={t('page.map.title')}>
       <div className="flex flex-col h-full w-full p-2">
-        <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default flex-1 w-full`}>
+        <Card
+          className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default flex-1 w-full`}
+        >
           <CardBody className="p-0 overflow-hidden relative w-full h-full">
             <TopologyMap />
           </CardBody>

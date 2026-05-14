@@ -1,6 +1,12 @@
 import React, { createContext, useContext, ReactNode, useEffect } from 'react'
 import useSWR from 'swr'
-import { getOverrideConfig, setOverrideConfig as set, addOverrideItem as add, removeOverrideItem as remove, updateOverrideItem as update } from '@renderer/utils/override-ipc'
+import {
+  getOverrideConfig,
+  setOverrideConfig as set,
+  addOverrideItem as add,
+  removeOverrideItem as remove,
+  updateOverrideItem as update
+} from '@renderer/utils/override-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
@@ -22,45 +28,57 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     getOverrideConfig()
   )
 
-  const setOverrideConfig = React.useCallback(async (config: OverrideConfig): Promise<void> => {
-    try {
-      await set(config)
-    } catch (e) {
-      notifyError(e, { title: t('override.saveConfigFailed') })
-    } finally {
-      mutateOverrideConfig()
-    }
-  }, [mutateOverrideConfig, t])
+  const setOverrideConfig = React.useCallback(
+    async (config: OverrideConfig): Promise<void> => {
+      try {
+        await set(config)
+      } catch (e) {
+        notifyError(e, { title: t('override.saveConfigFailed') })
+      } finally {
+        mutateOverrideConfig()
+      }
+    },
+    [mutateOverrideConfig, t]
+  )
 
-  const addOverrideItem = React.useCallback(async (item: Partial<OverrideItem>): Promise<void> => {
-    try {
-      await add(item)
-    } catch (e) {
-      notifyError(e, { title: t('override.addFailed') })
-    } finally {
-      mutateOverrideConfig()
-    }
-  }, [mutateOverrideConfig, t])
+  const addOverrideItem = React.useCallback(
+    async (item: Partial<OverrideItem>): Promise<void> => {
+      try {
+        await add(item)
+      } catch (e) {
+        notifyError(e, { title: t('override.addFailed') })
+      } finally {
+        mutateOverrideConfig()
+      }
+    },
+    [mutateOverrideConfig, t]
+  )
 
-  const removeOverrideItem = React.useCallback(async (id: string): Promise<void> => {
-    try {
-      await remove(id)
-    } catch (e) {
-      notifyError(e, { title: t('override.deleteFailed') })
-    } finally {
-      mutateOverrideConfig()
-    }
-  }, [mutateOverrideConfig, t])
+  const removeOverrideItem = React.useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        await remove(id)
+      } catch (e) {
+        notifyError(e, { title: t('override.deleteFailed') })
+      } finally {
+        mutateOverrideConfig()
+      }
+    },
+    [mutateOverrideConfig, t]
+  )
 
-  const updateOverrideItem = React.useCallback(async (item: OverrideItem): Promise<void> => {
-    try {
-      await update(item)
-    } catch (e) {
-      notifyError(e, { title: t('override.updateFailed') })
-    } finally {
-      mutateOverrideConfig()
-    }
-  }, [mutateOverrideConfig, t])
+  const updateOverrideItem = React.useCallback(
+    async (item: OverrideItem): Promise<void> => {
+      try {
+        await update(item)
+      } catch (e) {
+        notifyError(e, { title: t('override.updateFailed') })
+      } finally {
+        mutateOverrideConfig()
+      }
+    },
+    [mutateOverrideConfig, t]
+  )
 
   useEffect(() => {
     const handleOverrideConfigUpdated = (): void => {
@@ -90,9 +108,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
   )
 
   return (
-    <OverrideConfigContext.Provider value={contextValue}>
-      {children}
-    </OverrideConfigContext.Provider>
+    <OverrideConfigContext.Provider value={contextValue}>{children}</OverrideConfigContext.Provider>
   )
 }
 

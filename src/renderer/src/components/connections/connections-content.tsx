@@ -4,7 +4,13 @@ import EmptyState from '@renderer/components/base/empty-state'
 import { Virtuoso } from 'react-virtuoso'
 import React, { useCallback } from 'react'
 import { IoLink } from 'react-icons/io5'
-import { getConnectionHideRule, type ConnectionOrderBy, type ConnectionTab, type ConnectionViewMode, type VisibleRange } from '@renderer/components/connections/shared'
+import {
+  getConnectionHideRule,
+  type ConnectionOrderBy,
+  type ConnectionTab,
+  type ConnectionViewMode,
+  type VisibleRange
+} from '@renderer/components/connections/shared'
 import { useI18n } from '@renderer/i18n'
 
 interface ConnectionsContentProps {

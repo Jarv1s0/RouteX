@@ -3,7 +3,12 @@ import { Card, CardBody } from '@heroui/react'
 import { IoTime, IoSwapHorizontal, IoServer, IoGlobe, IoTimer } from 'react-icons/io5'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { calcTraffic } from '@renderer/utils/calc'
-import { getAppUptime, getNetworkHealthStats, startNetworkHealthMonitor, stopNetworkHealthMonitor } from '@renderer/utils/stats-ipc'
+import {
+  getAppUptime,
+  getNetworkHealthStats,
+  startNetworkHealthMonitor,
+  stopNetworkHealthMonitor
+} from '@renderer/utils/stats-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { retainTauriMemoryBridge } from '@renderer/utils/mihomo-ipc'
@@ -24,10 +29,15 @@ const getLatencyValueClass = (
 ): string => {
   const value = latency ?? -1
   const colorClass =
-    value < 0 ? 'text-default-400' :
-    value === 0 ? 'text-rose-500' :
-    value < thresholds.good ? 'text-emerald-500' :
-    value < thresholds.fair ? 'text-amber-500' : 'text-rose-500'
+    value < 0
+      ? 'text-default-400'
+      : value === 0
+        ? 'text-rose-500'
+        : value < thresholds.good
+          ? 'text-emerald-500'
+          : value < thresholds.fair
+            ? 'text-amber-500'
+            : 'text-rose-500'
 
   return `${colorClass} ${LATENCY_VALUE_CLASS}`
 }
@@ -37,7 +47,7 @@ const StatusGrid: React.FC = () => {
   const [uptime, setUptime] = useState<string>('00:00:00')
   const [dnsLatency, setDnsLatency] = useState<number>(-1)
   const [networkLatency, setNetworkLatency] = useState<number>(-1)
-  
+
   const connectionCount = useConnectionsStore((state) => state.connectionCount)
   const [memory, setMemory] = useState(0)
   const memoryUsage = useMemo(() => calcTraffic(memory), [memory])
@@ -46,13 +56,15 @@ const StatusGrid: React.FC = () => {
     let startTime: number | null = null
     let cancelled = false
     let startHealthMonitorTimer: ReturnType<typeof setTimeout> | null = null
-    
+
     // Initial fetch
-    getAppUptime().then(seconds => {
-      startTime = Date.now() - (seconds * 1000)
-    }).catch(() => {
-      startTime = Date.now()
-    })
+    getAppUptime()
+      .then((seconds) => {
+        startTime = Date.now() - seconds * 1000
+      })
+      .catch(() => {
+        startTime = Date.now()
+      })
 
     const syncNetworkHealth = async (): Promise<void> => {
       try {
@@ -127,8 +139,8 @@ const StatusGrid: React.FC = () => {
       label: t('stats.connections'),
       value: connectionCount ?? 0,
       icon: IoSwapHorizontal,
-      iconClass: 'bg-purple-500/10 text-purple-500',
-      valueClass: 'text-purple-500 font-mono tracking-tight'
+      iconClass: 'stats-download-icon-soft',
+      valueClass: 'stats-download-accent font-mono tracking-tight'
     },
     {
       label: t('stats.memory'),
@@ -154,11 +166,16 @@ const StatusGrid: React.FC = () => {
   ]
 
   return (
-    <Card className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default w-full`}>
+    <Card
+      className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default w-full`}
+    >
       <CardBody className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:divide-x divide-default-100/50">
           {stats.map((stat, index) => (
-            <div key={stat.label} className={`flex flex-col items-center justify-center gap-2 ${index > 0 ? 'md:pl-4' : ''}`}>
+            <div
+              key={stat.label}
+              className={`flex flex-col items-center justify-center gap-2 ${index > 0 ? 'md:pl-4' : ''}`}
+            >
               <div className="flex items-center gap-2 mb-1">
                 <div className={`p-1.5 rounded-lg ${stat.iconClass}`}>
                   <stat.icon className="text-sm" />

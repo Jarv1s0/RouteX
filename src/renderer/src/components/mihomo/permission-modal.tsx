@@ -13,7 +13,12 @@ import {
   Divider
 } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { checkCorePermission, checkElevateTask, manualGrantCorePermition, revokeCorePermission } from '@renderer/utils/service-ipc'
+import {
+  checkCorePermission,
+  checkElevateTask,
+  manualGrantCorePermition,
+  revokeCorePermission
+} from '@renderer/utils/service-ipc'
 import { platform } from '@renderer/utils/init'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
@@ -33,11 +38,7 @@ const PermissionModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { onChange, onRevoke, onGrant } = props
   const {
-    appConfig: {
-      disableAnimation = false,
-      collapseSidebar = false,
-      siderWidth = 250
-    } = {}
+    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
   } = useAppConfig()
   const [loading, setLoading] = useState<{ mihomo?: boolean; 'mihomo-alpha'?: boolean }>({})
   const [hasPermission, setHasPermission] = useState<
@@ -108,7 +109,9 @@ const PermissionModal: React.FC<Props> = (props) => {
     if (typeof hasPermission === 'boolean') {
       return hasPermission ? t('mihomo.permission.authorized') : t('mihomo.permission.unauthorized')
     }
-    return hasPermission[coreName] ? t('mihomo.permission.authorized') : t('mihomo.permission.unauthorized')
+    return hasPermission[coreName]
+      ? t('mihomo.permission.authorized')
+      : t('mihomo.permission.unauthorized')
   }
 
   const getStatusColor = (coreName: 'mihomo' | 'mihomo-alpha'): string => {
@@ -137,7 +140,9 @@ const PermissionModal: React.FC<Props> = (props) => {
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 450 })}
       >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span>{isWindows ? t('mihomo.permission.taskTitle') : t('mihomo.permission.coreTitle')}</span>
+          <span>
+            {isWindows ? t('mihomo.permission.taskTitle') : t('mihomo.permission.coreTitle')}
+          </span>
           <SecondaryModalCloseButton onPress={() => onChange(false)} />
         </ModalHeader>
         <ModalBody>
@@ -151,7 +156,9 @@ const PermissionModal: React.FC<Props> = (props) => {
                   <CardBody className="py-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{t('mihomo.permission.taskStatus')}</span>
+                        <span className="text-sm font-medium">
+                          {t('mihomo.permission.taskStatus')}
+                        </span>
                       </div>
                       <Chip
                         color={
@@ -200,7 +207,9 @@ const PermissionModal: React.FC<Props> = (props) => {
                     <CardHeader className="pb-0 pt-4 px-4 flex-col items-start">
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-medium">{t('mihomo.permission.stableCore')}</h4>
+                          <h4 className="font-semibold text-medium">
+                            {t('mihomo.permission.stableCore')}
+                          </h4>
                         </div>
                         <Chip
                           color={getStatusColor('mihomo') === 'bg-success' ? 'success' : 'warning'}
@@ -242,7 +251,9 @@ const PermissionModal: React.FC<Props> = (props) => {
                     <CardHeader className="pb-0 pt-4 px-4 flex-col items-start">
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-medium">{t('mihomo.permission.alphaCore')}</h4>
+                          <h4 className="font-semibold text-medium">
+                            {t('mihomo.permission.alphaCore')}
+                          </h4>
                         </div>
                         <Chip
                           color={

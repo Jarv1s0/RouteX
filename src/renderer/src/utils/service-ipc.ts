@@ -22,11 +22,10 @@ function base64ToPem(base64: string, label: string): string {
 
 async function generateServiceAuthKey(): Promise<{ publicKey: string; privateKey: string }> {
   const algorithm = { name: 'Ed25519' } as AlgorithmIdentifier
-  const keyPair = (await window.crypto.subtle.generateKey(
-    algorithm,
-    true,
-    ['sign', 'verify']
-  )) as CryptoKeyPair
+  const keyPair = (await window.crypto.subtle.generateKey(algorithm, true, [
+    'sign',
+    'verify'
+  ])) as CryptoKeyPair
   const publicKeyBuffer = await window.crypto.subtle.exportKey('spki', keyPair.publicKey)
   const privateKeyBuffer = await window.crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
   const publicKey = arrayBufferToBase64(publicKeyBuffer)

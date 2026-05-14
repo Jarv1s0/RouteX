@@ -20,15 +20,23 @@ interface Props {
 }
 
 // 检查是否是子组（有 all 属性且是数组）
-const isSubGroup = (proxy: ControllerProxiesDetail | ControllerGroupDetail): proxy is ControllerGroupDetail => {
-  return 'all' in proxy && Array.isArray((proxy as ControllerGroupDetail).all) && (proxy as ControllerGroupDetail).all.length > 0
+const isSubGroup = (
+  proxy: ControllerProxiesDetail | ControllerGroupDetail
+): proxy is ControllerGroupDetail => {
+  return (
+    'all' in proxy &&
+    Array.isArray((proxy as ControllerGroupDetail).all) &&
+    (proxy as ControllerGroupDetail).all.length > 0
+  )
 }
 
 function getProxyNow(proxy: ControllerProxiesDetail | ControllerGroupDetail): string | undefined {
   return 'now' in proxy ? proxy.now : undefined
 }
 
-function getProxyTestUrl(proxy: ControllerProxiesDetail | ControllerGroupDetail): string | undefined {
+function getProxyTestUrl(
+  proxy: ControllerProxiesDetail | ControllerGroupDetail
+): string | undefined {
   return 'testUrl' in proxy ? proxy.testUrl : undefined
 }
 
@@ -79,7 +87,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
   const onDelay = (): void => {
     setLoading(true)
     const target = getResolvedProxyTarget(proxy)
-    const testUrl = isSubGroup(proxy) ? proxy.testUrl ?? group.testUrl : group.testUrl
+    const testUrl = isSubGroup(proxy) ? (proxy.testUrl ?? group.testUrl) : group.testUrl
     onProxyDelay(target?.name ?? proxy.name, testUrl).finally(() => {
       mutateProxies()
       setLoading(false)
@@ -96,11 +104,12 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
       fullWidth
       shadow="none"
       className={`
-        ${fixed 
-          ? 'bg-secondary/18 border border-secondary/40' 
-          : selected 
-            ? 'bg-primary/[0.08] dark:bg-primary/[0.12] border border-primary/24 shadow-[0_4px_14px_rgba(16,185,129,0.08)]' 
-            : 'bg-default-100/70 dark:bg-default-50/28 border border-default-200/60 dark:border-white/8 hover:bg-default-100/85 dark:hover:bg-default-100/36 hover:border-default-300/50 dark:hover:border-white/12 hover:shadow'
+        ${
+          fixed
+            ? 'bg-secondary/18 border border-secondary/40'
+            : selected
+              ? 'bg-primary/[0.08] dark:bg-primary/[0.12] border border-primary/24 shadow-[0_4px_14px_rgba(16,185,129,0.08)]'
+              : 'bg-default-100/70 dark:bg-default-50/28 border border-default-200/60 dark:border-white/8 hover:bg-default-100/85 dark:hover:bg-default-100/36 hover:border-default-300/50 dark:hover:border-white/12 hover:shadow'
         } 
         ${displayDelay === 0 ? 'opacity-70 grayscale-[30%] hover:grayscale-0' : ''}
         ${CARD_STYLES.BASE} data-[pressed=true]:scale-[0.995]
@@ -121,11 +130,14 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                       src={proxy.icon}
                       alt=""
                       onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none'
+                        ;(e.target as HTMLImageElement).style.display = 'none'
                       }}
                     />
                   )}
-                  <span className="flag-emoji font-medium tracking-wide text-[12.5px]" title={proxy.name}>
+                  <span
+                    className="flag-emoji font-medium tracking-wide text-[12.5px]"
+                    title={proxy.name}
+                  >
                     {proxy.name}
                   </span>
                 </div>
@@ -136,7 +148,12 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   {subGroupInfo && (
                     <>
                       <span className="text-default-300 dark:text-default-600/50">|</span>
-                      <span className="flag-emoji truncate text-[11.5px] font-medium tracking-wide leading-5 text-default-500" title={subGroupInfo.now}>{subGroupInfo.now}</span>
+                      <span
+                        className="flag-emoji truncate text-[11.5px] font-medium tracking-wide leading-5 text-default-500"
+                        title={subGroupInfo.now}
+                      >
+                        {subGroupInfo.now}
+                      </span>
                     </>
                   )}
                 </div>
@@ -168,7 +185,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   variant="light"
                   className="h-[28px] min-w-[48px] px-2 p-0 text-[11px] font-mono font-bold hover:bg-default-100/50"
                 >
-                   {loading ? (
+                  {loading ? (
                     <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-current border-t-transparent animate-spin opacity-70" />
                   ) : (
                     delayText(displayDelay)
@@ -185,22 +202,31 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                     src={proxy.icon}
                     alt=""
                     onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none'
+                      ;(e.target as HTMLImageElement).style.display = 'none'
                     }}
                   />
                 )}
-                <span className="flag-emoji font-medium tracking-wide text-[12.5px]" title={proxy.name}>
+                <span
+                  className="flag-emoji font-medium tracking-wide text-[12.5px]"
+                  title={proxy.name}
+                >
                   {proxy.name === 'COMPATIBLE' ? 'DIRECT' : proxy.name}
                 </span>
                 {proxyDisplayLayout === 'single' && (
-                  <span className="ml-2.5 text-[9px] px-1.5 py-[2px] rounded-md bg-default-100/80 dark:bg-default-50/50 text-default-500 uppercase font-bold tracking-wider border border-default-200/50" title={proxy.type}>
+                  <span
+                    className="ml-2.5 text-[9px] px-1.5 py-[2px] rounded-md bg-default-100/80 dark:bg-default-50/50 text-default-500 uppercase font-bold tracking-wider border border-default-200/50"
+                    title={proxy.type}
+                  >
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
                   </span>
                 )}
                 {subGroupInfo && (
                   <>
                     <span className="text-default-300 dark:text-default-600/50 ml-2">|</span>
-                    <span className="ml-1.5 text-[12px] font-medium tracking-wide text-default-500 flag-emoji truncate" title={subGroupInfo.now}>
+                    <span
+                      className="ml-1.5 text-[12px] font-medium tracking-wide text-default-500 flag-emoji truncate"
+                      title={subGroupInfo.now}
+                    >
                       {subGroupInfo.now}
                     </span>
                   </>
@@ -253,25 +279,25 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
 }
 
 const ProxyItem = memo(ProxyItemComponent, (prev, next) => {
-    // 精细化阻断不必要渲染。比如测速或者选择了其他节点，不要带动我这颗没变的节点重绘
-    const prevDelay = getProxyDisplayDelay(prev.proxy)
-    const nextDelay = getProxyDisplayDelay(next.proxy)
-    
-    return (
-        prev.selected === next.selected &&
-        prev.proxyDisplayLayout === next.proxyDisplayLayout &&
-        prev.delayVersion === next.delayVersion &&
-        prev.group.fixed === next.group.fixed &&
-        prev.group.name === next.group.name &&
-        prev.group.testUrl === next.group.testUrl &&
-        getProxyTestUrl(prev.proxy) === getProxyTestUrl(next.proxy) &&
-        prev.proxy.name === next.proxy.name &&
-        prev.proxy.type === next.proxy.type &&
-        prev.proxy.icon === next.proxy.icon &&
-        getProxyNow(prev.proxy) === getProxyNow(next.proxy) &&
-        prevDelay === nextDelay &&
-        prev.index === next.index
-    )
+  // 精细化阻断不必要渲染。比如测速或者选择了其他节点，不要带动我这颗没变的节点重绘
+  const prevDelay = getProxyDisplayDelay(prev.proxy)
+  const nextDelay = getProxyDisplayDelay(next.proxy)
+
+  return (
+    prev.selected === next.selected &&
+    prev.proxyDisplayLayout === next.proxyDisplayLayout &&
+    prev.delayVersion === next.delayVersion &&
+    prev.group.fixed === next.group.fixed &&
+    prev.group.name === next.group.name &&
+    prev.group.testUrl === next.group.testUrl &&
+    getProxyTestUrl(prev.proxy) === getProxyTestUrl(next.proxy) &&
+    prev.proxy.name === next.proxy.name &&
+    prev.proxy.type === next.proxy.type &&
+    prev.proxy.icon === next.proxy.icon &&
+    getProxyNow(prev.proxy) === getProxyNow(next.proxy) &&
+    prevDelay === nextDelay &&
+    prev.index === next.index
+  )
 })
 
 export default ProxyItem

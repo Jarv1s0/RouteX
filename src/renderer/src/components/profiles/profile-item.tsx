@@ -219,11 +219,12 @@ const ProfileItem: React.FC<Props> = (props) => {
           ...(disableActionDisabled ? ['disabled'] : [])
         ]}
       >
-        <DropdownItem key="primary">
-          {t('profiles.setPrimary')}
-        </DropdownItem>
+        <DropdownItem key="primary">{t('profiles.setPrimary')}</DropdownItem>
         <DropdownItem key="enabled">{t('profiles.enableMerge')}</DropdownItem>
-        <DropdownItem key="disabled" description={disableActionDisabled ? t('profiles.keepOneEnabled') : undefined}>
+        <DropdownItem
+          key="disabled"
+          description={disableActionDisabled ? t('profiles.keepOneEnabled') : undefined}
+        >
           {t('profiles.disableMerge')}
         </DropdownItem>
       </DropdownMenu>
@@ -313,7 +314,7 @@ const ProfileItem: React.FC<Props> = (props) => {
               ? CARD_STYLES.ACTIVE
               : isEnabled
                 ? CARD_STYLES.ACTIVE_SECONDARY
-              : CARD_STYLES.INACTIVE
+                : CARD_STYLES.INACTIVE
           }
         `}
       >
@@ -326,14 +327,14 @@ const ProfileItem: React.FC<Props> = (props) => {
           <CardBody className="pb-1 overflow-hidden">
             <div className="flex min-h-[32px] items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h3
-                  title={info?.name}
-                  className={CARD_STYLES.MANAGEMENT_TITLE}
-                >
+                <h3 title={info?.name} className={CARD_STYLES.MANAGEMENT_TITLE}>
                   {info?.name}
                 </h3>
               </div>
-              <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="flex shrink-0 items-center gap-1.5"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {info.type === 'remote' && (
                   <Button
                     isIconOnly
@@ -357,10 +358,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                 <Dropdown>
                   <DropdownTrigger>
                     <Button isIconOnly size="sm" variant="light" color="default">
-                      <IoMdMore
-                        color="default"
-                        className={CARD_STYLES.MANAGEMENT_ACTION_ICON}
-                      />
+                      <IoMdMore color="default" className={CARD_STYLES.MANAGEMENT_ACTION_ICON} />
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu onAction={onMenuAction}>
@@ -379,9 +377,7 @@ const ProfileItem: React.FC<Props> = (props) => {
               </div>
             </div>
             {info.type === 'remote' && extra && (
-              <div
-                className={`mt-2 flex justify-between ${CARD_STYLES.MANAGEMENT_META_TEXT}`}
-              >
+              <div className={`mt-2 flex justify-between ${CARD_STYLES.MANAGEMENT_META_TEXT}`}>
                 <small>{`${calcTraffic(usage)}/${calcTraffic(total)}`}</small>
                 {profileDisplayDate === 'expire' ? (
                   <Button
@@ -392,7 +388,9 @@ const ProfileItem: React.FC<Props> = (props) => {
                       await patchAppConfig({ profileDisplayDate: 'update' })
                     }}
                   >
-                    {extra.expire ? dayjs.unix(extra.expire).format('YYYY-MM-DD') : t('profiles.longTermValid')}
+                    {extra.expire
+                      ? dayjs.unix(extra.expire).format('YYYY-MM-DD')
+                      : t('profiles.longTermValid')}
                   </Button>
                 ) : (
                   <Button
@@ -411,11 +409,12 @@ const ProfileItem: React.FC<Props> = (props) => {
           </CardBody>
           <CardFooter className="pt-0">
             <div className="mt-2 flex w-full flex-col gap-2">
-              <div className={CARD_STYLES.MANAGEMENT_FOOTER_ROW} onClick={(e) => e.stopPropagation()}>
+              <div
+                className={CARD_STYLES.MANAGEMENT_FOOTER_ROW}
+                onClick={(e) => e.stopPropagation()}
+              >
                 {statusControl}
-                {info.type === 'remote' && !extra && (
-                  <small>{dayjs(info.updated).fromNow()}</small>
-                )}
+                {info.type === 'remote' && !extra && <small>{dayjs(info.updated).fromNow()}</small>}
               </div>
               {extra && (
                 <TrafficProgress

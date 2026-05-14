@@ -22,9 +22,7 @@ export const SECONDARY_MODAL_ICON_CLOSE_BUTTON_CLASSNAME =
 export const SECONDARY_MODAL_HEADER_CLASSNAME =
   'flex items-center justify-between gap-3 app-drag pl-6 pr-4 py-3'
 
-export function createSecondaryModalClassNames(
-  overrides: ModalClassNames = {}
-): ModalClassNames {
+export function createSecondaryModalClassNames(overrides: ModalClassNames = {}): ModalClassNames {
   return {
     base: mergeClassNames(`${CARD_STYLES.GLASS_CARD} shadow-2xl`, overrides.base),
     backdrop: mergeClassNames('top-[48px]', overrides.backdrop),
@@ -46,12 +44,7 @@ interface MainPaneModalContentStyleOptions {
 export function getMainPaneModalContentStyle(
   options: MainPaneModalContentStyleOptions = {}
 ): CSSProperties {
-  const {
-    collapseSidebar = false,
-    siderWidth = 250,
-    maxWidthPx,
-    viewportPaddingPx = 32
-  } = options
+  const { collapseSidebar = false, siderWidth = 250, maxWidthPx, viewportPaddingPx = 32 } = options
 
   const narrowWidth = platform === 'darwin' ? 70 : 60
   const activeSidebarWidth = collapseSidebar ? narrowWidth : siderWidth

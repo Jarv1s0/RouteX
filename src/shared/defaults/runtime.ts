@@ -4,8 +4,7 @@ export function createDefaultControledMihomoConfig(
   return {
     'external-controller': '',
     'external-ui': '',
-    'external-ui-url':
-      'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip',
+    'external-ui-url': 'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip',
     'external-ui-name': 'zashboard',
     'external-controller-cors': {
       'allow-origins': ['https://metacubex.github.io', 'https://board.zash.run.place'],
@@ -50,14 +49,7 @@ export function createDefaultControledMihomoConfig(
       'respect-rules': false,
       'enhanced-mode': 'fake-ip',
       'fake-ip-range': '198.18.0.1/16',
-      'fake-ip-filter': [
-        '*',
-        '+.lan',
-        '+.local',
-        'time.*.com',
-        'ntp.*.com',
-        '+.market.xiaomi.com'
-      ],
+      'fake-ip-filter': ['*', '+.lan', '+.local', 'time.*.com', 'ntp.*.com', '+.market.xiaomi.com'],
       'use-hosts': false,
       'use-system-hosts': false,
       'default-nameserver': ['tls://223.5.5.5'],
@@ -103,14 +95,10 @@ export function createDefaultControledMihomoConfig(
     'geo-update-interval': 24,
     'geodata-mode': false,
     'geox-url': {
-      geoip:
-        'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat',
-      geosite:
-        'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
-      mmdb:
-        'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
-      asn:
-        'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb'
+      geoip: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat',
+      geosite: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
+      mmdb: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
+      asn: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb'
     }
   }
 }

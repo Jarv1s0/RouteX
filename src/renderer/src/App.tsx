@@ -10,9 +10,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { checkUpdate, setNativeTheme } from '@renderer/api/app'
 import { applyTheme } from '@renderer/utils/theme-ipc'
-import {
-  startTauriMihomoEventBridge
-} from '@renderer/utils/mihomo-ipc'
+import { startTauriMihomoEventBridge } from '@renderer/utils/mihomo-ipc'
 import { ensureTauriTrafficRecorder } from '@renderer/utils/tauri-traffic-stats'
 import AppSidebar from '@renderer/components/layout/AppSidebar'
 import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
@@ -25,10 +23,7 @@ const SIDER_WIDTH_CSS_VAR = '--sider-width'
 function scheduleIdleDeferredTask(task: () => void, delay = 0, timeout = 4000): () => void {
   let idleId: number | null = null
   const win = window as Window & {
-    requestIdleCallback?: (
-      callback: IdleRequestCallback,
-      options?: IdleRequestOptions
-    ) => number
+    requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number
     cancelIdleCallback?: (handle: number) => void
   }
 
@@ -331,13 +326,8 @@ const App: React.FC = () => {
           className={`transition-colors duration-200 hover:bg-primary/50 ${resizing ? 'bg-primary' : ''}`}
         />
 
-        <div
-          ref={mainRef}
-          className="main relative z-0 min-w-0 flex-1 h-full overflow-y-auto"
-        >
-          <ErrorBoundary>
-            {page}
-          </ErrorBoundary>
+        <div ref={mainRef} className="main relative z-0 min-w-0 flex-1 h-full overflow-y-auto">
+          <ErrorBoundary>{page}</ErrorBoundary>
         </div>
       </div>
     </>

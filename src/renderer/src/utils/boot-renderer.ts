@@ -96,7 +96,10 @@ function renderFatalScreen(entryName: string, error: unknown): void {
   `
 }
 
-export async function bootRenderer(entryName: string, loader: () => Promise<unknown>): Promise<void> {
+export async function bootRenderer(
+  entryName: string,
+  loader: () => Promise<unknown>
+): Promise<void> {
   traceBootStep(entryName, 'entry:boot')
 
   window.addEventListener('error', (event) => {

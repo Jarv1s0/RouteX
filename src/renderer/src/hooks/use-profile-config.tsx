@@ -50,29 +50,47 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     [syncProfileConfig]
   )
 
-  const setProfileConfig = React.useCallback(async (config: ProfileConfig): Promise<void> => {
-    await runProfileMutation(() => set(config), t('profiles.saveConfigFailed'))
-  }, [runProfileMutation, t])
+  const setProfileConfig = React.useCallback(
+    async (config: ProfileConfig): Promise<void> => {
+      await runProfileMutation(() => set(config), t('profiles.saveConfigFailed'))
+    },
+    [runProfileMutation, t]
+  )
 
-  const addProfileItem = React.useCallback(async (item: Partial<ProfileItem>): Promise<void> => {
-    await runProfileMutation(() => add(item), t('profiles.addFailed'))
-  }, [runProfileMutation, t])
+  const addProfileItem = React.useCallback(
+    async (item: Partial<ProfileItem>): Promise<void> => {
+      await runProfileMutation(() => add(item), t('profiles.addFailed'))
+    },
+    [runProfileMutation, t]
+  )
 
-  const removeProfileItem = React.useCallback(async (id: string): Promise<void> => {
-    await runProfileMutation(() => remove(id), t('profiles.deleteFailed'))
-  }, [runProfileMutation, t])
+  const removeProfileItem = React.useCallback(
+    async (id: string): Promise<void> => {
+      await runProfileMutation(() => remove(id), t('profiles.deleteFailed'))
+    },
+    [runProfileMutation, t]
+  )
 
-  const updateProfileItem = React.useCallback(async (item: ProfileItem): Promise<void> => {
-    await runProfileMutation(() => update(item), t('profiles.updateFailed'))
-  }, [runProfileMutation, t])
+  const updateProfileItem = React.useCallback(
+    async (item: ProfileItem): Promise<void> => {
+      await runProfileMutation(() => update(item), t('profiles.updateFailed'))
+    },
+    [runProfileMutation, t]
+  )
 
-  const changeCurrentProfile = React.useCallback(async (id: string): Promise<void> => {
-    await runProfileMutation(() => change(id), t('profiles.changeFailed'))
-  }, [runProfileMutation, t])
+  const changeCurrentProfile = React.useCallback(
+    async (id: string): Promise<void> => {
+      await runProfileMutation(() => change(id), t('profiles.changeFailed'))
+    },
+    [runProfileMutation, t]
+  )
 
-  const setActiveProfiles = React.useCallback(async (ids: string[], current?: string): Promise<void> => {
-    await runProfileMutation(() => activate(ids, current), t('profiles.updateActiveFailed'))
-  }, [runProfileMutation, t])
+  const setActiveProfiles = React.useCallback(
+    async (ids: string[], current?: string): Promise<void> => {
+      await runProfileMutation(() => activate(ids, current), t('profiles.updateActiveFailed'))
+    },
+    [runProfileMutation, t]
+  )
 
   useEffect(() => {
     const handleProfileConfigUpdated = (): void => {
@@ -106,9 +124,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
   )
 
   return (
-    <ProfileConfigContext.Provider value={contextValue}>
-      {children}
-    </ProfileConfigContext.Provider>
+    <ProfileConfigContext.Provider value={contextValue}>{children}</ProfileConfigContext.Provider>
   )
 }
 

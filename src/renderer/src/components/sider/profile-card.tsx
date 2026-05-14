@@ -80,7 +80,7 @@ const ProfileCard: React.FC<Props> = (props) => {
   )
   const activeIds = actives && actives.length > 0 ? actives : current ? [current] : []
   const activeCount = activeIds.length
-  
+
   const info = items?.find((item) => item.id === current) ?? {
     id: 'default',
     type: 'local',
@@ -112,7 +112,7 @@ const ProfileCard: React.FC<Props> = (props) => {
   }
 
   return (
-    <div 
+    <div
       className={`profile-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-colors group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
@@ -124,11 +124,13 @@ const ProfileCard: React.FC<Props> = (props) => {
           <ConfigViewer onClose={() => setShowRuntimeConfig(false)} />
         </Suspense>
       )}
-      
+
       <div className="flex items-center justify-between h-7">
         <div className="flex items-center gap-1.5 overflow-hidden flex-1">
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-            <LuCloud className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
+            <LuCloud
+              className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`}
+            />
           </span>
           <h3
             className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold truncate transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}
@@ -137,7 +139,10 @@ const ProfileCard: React.FC<Props> = (props) => {
             {activeCount > 1 ? `${info.name} +${activeCount - 1}` : info.name}
           </h3>
         </div>
-        <div className="flex shrink-0 items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex shrink-0 items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
           <Button
             isIconOnly
             size="sm"
@@ -149,7 +154,11 @@ const ProfileCard: React.FC<Props> = (props) => {
             <LuFileCode className={compact ? 'text-[13px]' : 'text-[14px]'} />
           </Button>
           {info.type === 'remote' && (
-            <Tooltip delay={300} placement="left" content={formatRelativeTime(info.updated, relativeTimeFormatter, t)}>
+            <Tooltip
+              delay={300}
+              placement="left"
+              content={formatRelativeTime(info.updated, relativeTimeFormatter, t)}
+            >
               <Button
                 isIconOnly
                 size="sm"
@@ -162,7 +171,9 @@ const ProfileCard: React.FC<Props> = (props) => {
                   setUpdating(false)
                 }}
               >
-                <LuRotateCw className={`${compact ? 'text-[13px]' : 'text-[14px]'} ${updating ? 'animate-spin' : ''}`} />
+                <LuRotateCw
+                  className={`${compact ? 'text-[13px]' : 'text-[14px]'} ${updating ? 'animate-spin' : ''}`}
+                />
               </Button>
             </Tooltip>
           )}
@@ -170,30 +181,42 @@ const ProfileCard: React.FC<Props> = (props) => {
       </div>
 
       {info.type === 'remote' && extra && (
-        <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 dark:text-foreground/70 px-0.5`}>
-          <span>{calcTraffic(usage)} / {calcTraffic(total)}</span>
+        <div
+          className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 dark:text-foreground/70 px-0.5`}
+        >
+          <span>
+            {calcTraffic(usage)} / {calcTraffic(total)}
+          </span>
           <span
             className="cursor-pointer hover:text-primary transition-colors hover:underline"
             onClick={(e) => {
               e.stopPropagation()
-              patchAppConfig({ profileDisplayDate: profileDisplayDate === 'expire' ? 'update' : 'expire' })
+              patchAppConfig({
+                profileDisplayDate: profileDisplayDate === 'expire' ? 'update' : 'expire'
+              })
             }}
           >
             {profileDisplayDate === 'expire'
-              ? (extra.expire ? formatShortDateFromUnixSeconds(extra.expire) : t('sidebar.longTerm'))
+              ? extra.expire
+                ? formatShortDateFromUnixSeconds(extra.expire)
+                : t('sidebar.longTerm')
               : formatRelativeTime(info.updated, relativeTimeFormatter, t)}
           </span>
         </div>
       )}
 
       {info.type === 'remote' && !extra && (
-        <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
+        <div
+          className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}
+        >
           <span>{t('sidebar.remoteProfile')}</span>
           <span>{formatRelativeTime(info.updated, relativeTimeFormatter, t)}</span>
         </div>
       )}
       {info.type === 'local' && (
-        <div className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}>
+        <div
+          className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}
+        >
           <span>{t('sidebar.localProfile')}</span>
         </div>
       )}

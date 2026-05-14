@@ -341,16 +341,17 @@ const CodeMirrorEditorView: React.FC<CodeMirrorEditorViewProps> = ({
       parent: containerRef.current,
       state: EditorState.create({
         doc: value,
-        extensions: unifiedOriginalValue === undefined
-          ? extensions
-          : [
-              ...extensions,
-              unifiedMergeView({
-                original: unifiedOriginalValue,
-                gutter: true,
-                highlightChanges: true
-              })
-            ]
+        extensions:
+          unifiedOriginalValue === undefined
+            ? extensions
+            : [
+                ...extensions,
+                unifiedMergeView({
+                  original: unifiedOriginalValue,
+                  gutter: true,
+                  highlightChanges: true
+                })
+              ]
       })
     })
     viewRef.current = view
@@ -384,12 +385,13 @@ const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
   const mergeViewRef = useRef<MergeView | undefined>(undefined)
   const { disableAnimation, isLight } = useEditorSettings()
   const originalExtensions = useMemo(
-    () => createExtensions({
-      language,
-      readOnly: true,
-      isLight,
-      disableAnimation
-    }),
+    () =>
+      createExtensions({
+        language,
+        readOnly: true,
+        isLight,
+        disableAnimation
+      }),
     [disableAnimation, isLight, language]
   )
 
@@ -452,14 +454,15 @@ export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {
   }, [onChange])
 
   const extensions = useMemo(
-    () => createExtensions({
-      language,
-      readOnly,
-      isLight,
-      disableAnimation,
-      onChangeRef,
-      suppressChangeRef
-    }),
+    () =>
+      createExtensions({
+        language,
+        readOnly,
+        isLight,
+        disableAnimation,
+        onChangeRef,
+        suppressChangeRef
+      }),
     [disableAnimation, isLight, language, readOnly]
   )
 

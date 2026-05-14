@@ -11,7 +11,10 @@ function history(delay: number, time: string): ControllerProxiesHistory[] {
   return [{ delay, time }]
 }
 
-function extra(delay: number, time: string): { alive: boolean; history: ControllerProxiesHistory[] } {
+function extra(
+  delay: number,
+  time: string
+): { alive: boolean; history: ControllerProxiesHistory[] } {
   return { alive: delay > 0, history: history(delay, time) }
 }
 

@@ -243,7 +243,10 @@ const ProfilesPage: React.FC = () => {
     [searchParams, setSearchParams]
   )
 
-  const scheduleCoreRestart = useMemo(() => createQueuedCoreRestartRunner(t('profiles.applyOverrideFailed')), [t])
+  const scheduleCoreRestart = useMemo(
+    () => createQueuedCoreRestartRunner(t('profiles.applyOverrideFailed')),
+    [t]
+  )
 
   const handleImport = async (importUrl: string): Promise<void> => {
     setImporting(true)

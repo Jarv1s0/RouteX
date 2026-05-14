@@ -10,7 +10,11 @@ const __dirname = dirname(__filename)
 
 const tauriBuildVariant =
   process.env.ROUTEX_TAURI_BUILD_VARIANT ||
-  (process.env.ROUTEX_AUTO_BUILD === 'true' ? 'autobuild' : process.env.NODE_ENV === 'development' ? 'dev' : 'release')
+  (process.env.ROUTEX_AUTO_BUILD === 'true'
+    ? 'autobuild'
+    : process.env.NODE_ENV === 'development'
+      ? 'dev'
+      : 'release')
 
 const routexBuildDefines = {
   __ROUTEX_AUTO_BUILD__: JSON.stringify(process.env.ROUTEX_AUTO_BUILD === 'true'),
@@ -19,7 +23,8 @@ const routexBuildDefines = {
   __ROUTEX_PLATFORM__: JSON.stringify(process.platform)
 }
 
-const rendererCsp = process.env.NODE_ENV === 'development' ? DEV_RENDERER_META_CSP : PROD_RENDERER_META_CSP
+const rendererCsp =
+  process.env.NODE_ENV === 'development' ? DEV_RENDERER_META_CSP : PROD_RENDERER_META_CSP
 
 const manualChunkRules: Array<[string, string[]]> = [
   [
@@ -33,7 +38,10 @@ const manualChunkRules: Array<[string, string[]]> = [
   ],
   ['vendor-motion', ['/node_modules/framer-motion/']],
   ['vendor-chart', ['/node_modules/echarts/', '/node_modules/zrender/']],
-  ['vendor-editor', ['/node_modules/@codemirror/', '/node_modules/@lezer/', '/node_modules/style-mod/']],
+  [
+    'vendor-editor',
+    ['/node_modules/@codemirror/', '/node_modules/@lezer/', '/node_modules/style-mod/']
+  ],
   [
     'vendor-core',
     [

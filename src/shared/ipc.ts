@@ -12,11 +12,9 @@ export const IPC_INVOKE_CHANNELS = {
   ...SYSTEM_IPC_INVOKE_CHANNELS
 } as const
 
-export type IpcInvokeChannel =
-  (typeof IPC_INVOKE_CHANNELS)[keyof typeof IPC_INVOKE_CHANNELS]
+export type IpcInvokeChannel = (typeof IPC_INVOKE_CHANNELS)[keyof typeof IPC_INVOKE_CHANNELS]
 
-export type IpcSendChannel =
-  (typeof IPC_SEND_CHANNELS)[keyof typeof IPC_SEND_CHANNELS]
+export type IpcSendChannel = (typeof IPC_SEND_CHANNELS)[keyof typeof IPC_SEND_CHANNELS]
 
 export type IpcOnChannel = (typeof IPC_ON_CHANNELS)[keyof typeof IPC_ON_CHANNELS]
 

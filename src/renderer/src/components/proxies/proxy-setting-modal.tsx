@@ -19,7 +19,6 @@ import { useGroups } from '@renderer/hooks/use-groups'
 import debounce from '@renderer/utils/debounce'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 
-
 import { secondaryInputClassNames, numberInputClassNames } from '../settings/advanced-settings'
 import {
   DndContext,
@@ -73,16 +72,20 @@ const ProxySettingModal: React.FC<Props> = (props) => {
   } = appConfig || {}
 
   // 过滤掉 GLOBAL 组
-  const groups = useMemo(() => allGroups.filter(g => g.name !== 'GLOBAL'), [allGroups])
+  const groups = useMemo(() => allGroups.filter((g) => g.name !== 'GLOBAL'), [allGroups])
 
   const [url, setUrl] = useState(delayTestUrl ?? '')
   const [goodThreshold, setGoodThreshold] = useState(delayThresholds.good.toString())
   const [fairThreshold, setFairThreshold] = useState(delayThresholds.fair.toString())
   const [showSortModal, setShowSortModal] = useState(false)
 
-  const setUrlDebounce = useMemo(() => debounce((v: string) => {
-    patchAppConfig({ delayTestUrl: v })
-  }, 500), [patchAppConfig])
+  const setUrlDebounce = useMemo(
+    () =>
+      debounce((v: string) => {
+        patchAppConfig({ delayTestUrl: v })
+      }, 500),
+    [patchAppConfig]
+  )
 
   useEffect(() => {
     setUrl(delayTestUrl ?? '')
@@ -104,7 +107,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
         onOpenChange={onClose}
         scrollBehavior="inside"
       >
-        <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 820 })}>
+        <ModalContent
+          style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 820 })}
+        >
           <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
             <span>{t('page.proxies.settings')}</span>
             <SecondaryModalCloseButton onPress={onClose} />
@@ -118,7 +123,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 selectedKeys={new Set([proxyCols])}
                 disallowEmptySelection={true}
                 onSelectionChange={async (v) => {
-                  await patchAppConfig({ proxyCols: v.currentKey as 'auto' | '1' | '2' | '3' | '4' })
+                  await patchAppConfig({
+                    proxyCols: v.currentKey as 'auto' | '1' | '2' | '3' | '4'
+                  })
                 }}
               >
                 <SelectItem key="auto">{t('proxies.column.auto')}</SelectItem>
@@ -156,10 +163,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 }}
               />
             </SettingItem>
-            <SettingItem
-              title={t('proxies.autoDelayTest')}
-              divider
-            >
+            <SettingItem title={t('proxies.autoDelayTest')} divider>
               <Switch
                 size="sm"
                 isSelected={autoDelayTestOnShow}
@@ -200,7 +204,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 min={1}
                 max={MAX_DELAY_TEST_CONCURRENCY}
                 value={delayTestConcurrency?.toString()}
-                placeholder={t('connections.defaultInterval', { value: DEFAULT_DELAY_TEST_CONCURRENCY })}
+                placeholder={t('connections.defaultInterval', {
+                  value: DEFAULT_DELAY_TEST_CONCURRENCY
+                })}
                 onValueChange={(v) => {
                   const parsed = Number.parseInt(v, 10)
                   patchAppConfig({
@@ -228,7 +234,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 className="w-[120px]"
                 classNames={numberInputClassNames}
                 value={delayTestTimeout?.toString()}
-                placeholder={t('connections.defaultInterval', { value: DEFAULT_DELAY_TEST_TIMEOUT })}
+                placeholder={t('connections.defaultInterval', {
+                  value: DEFAULT_DELAY_TEST_TIMEOUT
+                })}
                 onValueChange={(v) => {
                   const parsed = Number.parseInt(v, 10)
                   patchAppConfig({
@@ -269,7 +277,10 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                     value={fairThreshold}
                     onValueChange={setFairThreshold}
                     onBlur={() => {
-                      const fair = Math.max(delayThresholds.good + 1, parseInt(fairThreshold) || 500)
+                      const fair = Math.max(
+                        delayThresholds.good + 1,
+                        parseInt(fairThreshold) || 500
+                      )
                       setFairThreshold(fair.toString())
                       patchAppConfig({ delayThresholds: { ...delayThresholds, fair } })
                     }}
@@ -303,7 +314,6 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 </Button>
               </div>
             </SettingItem>
-
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -319,11 +329,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
           description={t('proxies.dragToReorder')}
         />
       )}
-
     </>
   )
 }
-
 
 // 代理组排序弹窗
 interface GroupSortModalProps {
@@ -348,7 +356,7 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
   description
 }) => {
   const sortedGroupNames = useMemo(() => {
-    const names = groups.map(g => g.name)
+    const names = groups.map((g) => g.name)
     if (groupOrder.length === 0) return names
     const orderMap = new Map(groupOrder.map((name, index) => [name, index]))
     return [...names].sort((a, b) => {
@@ -380,7 +388,9 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 520 })}>
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 520 })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-end gap-2">
             <span>{title}</span>
@@ -397,11 +407,7 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
             <SortableContext items={sortedGroupNames} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-1.5 max-h-[400px] overflow-y-auto pr-1">
                 {sortedGroupNames.map((name, index) => (
-                  <SortableGroupItem
-                    key={name}
-                    name={name}
-                    index={index}
-                  />
+                  <SortableGroupItem key={name} name={name} index={index} />
                 ))}
               </div>
             </SortableContext>
@@ -418,18 +424,10 @@ interface SortableGroupItemProps {
   index: number
 }
 
-const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
-  name,
-  index
-}) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: name })
+const SortableGroupItem: React.FC<SortableGroupItemProps> = ({ name, index }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: name
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),

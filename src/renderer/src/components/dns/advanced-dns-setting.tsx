@@ -143,7 +143,9 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
             const rec = newValue as Record<string, string | string[]>
             for (const domain of Object.keys(rec)) {
               if (!isValidDomainWildcard(domain).ok) {
-                setNameserverPolicyError(isValidDomainWildcard(domain).error ?? t('common.formatError'))
+                setNameserverPolicyError(
+                  isValidDomainWildcard(domain).error ?? t('common.formatError')
+                )
                 return
               }
             }

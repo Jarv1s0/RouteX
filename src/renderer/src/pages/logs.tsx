@@ -42,7 +42,7 @@ const Logs: React.FC = () => {
 
   const [filter, setFilter] = useState('')
   const [selectedLog, setSelectedLog] = useState<(ControllerLog & { time?: string }) | null>(null)
-  
+
   const { appConfig, patchAppConfig } = useAppConfig()
   const { maxLogDays = 7 } = appConfig || {}
   const [logDaysInput, setLogDaysInput] = useState(maxLogDays.toString())
@@ -50,14 +50,17 @@ const Logs: React.FC = () => {
   const { 'log-level': logLevel = 'info' } = controledMihomoConfig || {}
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
-  
+
   // Use deferred filter to prevent input lagging and reduce frequent re-filters on high volume incoming logs
   const deferredFilter = useDeferredValue(filter)
 
   const filteredLogs = useMemo(() => {
     if (deferredFilter === '') return logs
     return logs.filter((log) => {
-      return includesIgnoreCase(log.payload, deferredFilter) || includesIgnoreCase(log.type, deferredFilter)
+      return (
+        includesIgnoreCase(log.payload, deferredFilter) ||
+        includesIgnoreCase(log.type, deferredFilter)
+      )
     })
   }, [logs, deferredFilter])
 
@@ -97,26 +100,22 @@ const Logs: React.FC = () => {
 
   return (
     <BasePage title={t('page.logs.title')}>
-      {selectedLog && (
-        <LogDetailModal
-          log={selectedLog}
-          onClose={() => setSelectedLog(null)}
-        />
-      )}
+      {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
       <div className="w-full pb-2 px-2 pt-2">
-        <div className={`w-full px-2 py-1.5 flex items-center gap-2 ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}>
-          
+        <div
+          className={`w-full px-2 py-1.5 flex items-center gap-2 ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
+        >
           {/* Left: Config Group */}
           <div className="flex items-center gap-2 pl-1">
             <Select
               classNames={CARD_STYLES.GLASS_SELECT}
               popoverProps={{
-                classNames: { content: "min-w-[100px]" }
+                classNames: { content: 'min-w-[100px]' }
               }}
               listboxProps={{
                 itemClasses: {
-                  base: "gap-2 px-2 rounded-lg data-[hover=true]:bg-default-100/50",
-                  selectedIcon: "w-3 h-3"
+                  base: 'gap-2 px-2 rounded-lg data-[hover=true]:bg-default-100/50',
+                  selectedIcon: 'w-3 h-3'
                 }
               }}
               className="w-[75px]"
@@ -188,13 +187,9 @@ const Logs: React.FC = () => {
                 setPaused(!paused)
               }}
             >
-              {paused ? (
-                <IoPlay className="text-lg" />
-              ) : (
-                <IoPause className="text-lg" />
-              )}
+              {paused ? <IoPlay className="text-lg" /> : <IoPause className="text-lg" />}
             </Button>
-            
+
             <Button
               size="sm"
               isIconOnly
@@ -207,7 +202,7 @@ const Logs: React.FC = () => {
             >
               <CgTrash className="text-lg" />
             </Button>
-            
+
             <Button
               size="sm"
               isIconOnly
@@ -250,7 +245,6 @@ const Logs: React.FC = () => {
           />
         )}
       </div>
-
     </BasePage>
   )
 }

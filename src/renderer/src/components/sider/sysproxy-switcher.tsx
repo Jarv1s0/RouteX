@@ -22,11 +22,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
   const location = useLocation()
   const match = location.pathname.includes('/sysproxy')
   const { appConfig, patchAppConfig } = useAppConfig()
-  const {
-    sysProxy,
-    sysproxyCardStatus = '',
-    onlyActiveDevice = false
-  } = appConfig || {}
+  const { sysProxy, sysproxyCardStatus = '', onlyActiveDevice = false } = appConfig || {}
   const { enable, mode } = sysProxy || {}
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { 'mixed-port': mixedPort } = controledMihomoConfig || {}
@@ -80,13 +76,20 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
       >
         <div className="flex items-center gap-1.5">
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-            <LuGlobe className={`text-[15px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`} />
+            <LuGlobe
+              className={`text-[15px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`}
+            />
           </span>
-          <span className={`text-sm font-semibold whitespace-nowrap leading-none transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}>
+          <span
+            className={`text-sm font-semibold whitespace-nowrap leading-none transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}
+          >
             {t('sidebar.sysProxy')}
           </span>
         </div>
-        <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center pr-0 -mr-0.5">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0 flex items-center pr-0 -mr-0.5"
+        >
           <Switch
             size="sm"
             isSelected={!(mode != 'auto' && disabled) && enable}
@@ -108,9 +111,13 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
     >
       <div className="flex items-center gap-1.5">
         <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-          <LuGlobe className={`text-[16px] transition-colors ${match ? 'text-primary' : 'text-default-500 group-hover:text-primary'}`} />
+          <LuGlobe
+            className={`text-[16px] transition-colors ${match ? 'text-primary' : 'text-default-500 group-hover:text-primary'}`}
+          />
         </span>
-        <h3 className={`text-sm font-semibold transition-colors ${match ? 'text-primary' : 'text-foreground/90 group-hover:text-primary'}`}>
+        <h3
+          className={`text-sm font-semibold transition-colors ${match ? 'text-primary' : 'text-foreground/90 group-hover:text-primary'}`}
+        >
           {t('sidebar.sysProxy')}
         </h3>
       </div>

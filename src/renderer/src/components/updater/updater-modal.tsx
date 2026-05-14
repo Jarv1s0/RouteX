@@ -114,7 +114,11 @@ const UpdaterModal: React.FC<Props> = (props) => {
           )}
           {!updateStatus?.downloading && (
             <div className="markdown-body select-text">
-              <Suspense fallback={<div className="text-sm text-default-500">{t('updater.loadingReleaseNotes')}</div>}>
+              <Suspense
+                fallback={
+                  <div className="text-sm text-default-500">{t('updater.loadingReleaseNotes')}</div>
+                }
+              >
                 <ReleaseNotesMarkdown>{releaseNotes}</ReleaseNotesMarkdown>
               </Suspense>
             </div>

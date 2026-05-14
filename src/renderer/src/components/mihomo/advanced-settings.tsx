@@ -3,7 +3,11 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import InterfaceSelect from '../base/interface-select'
-import { restartCore, startNetworkDetection, stopNetworkDetection } from '@renderer/utils/mihomo-ipc'
+import {
+  restartCore,
+  startNetworkDetection,
+  stopNetworkDetection
+} from '@renderer/utils/mihomo-ipc'
 import { Button, Input, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
 import { useState } from 'react'
 import { IoIosHelpCircle } from 'react-icons/io'
@@ -48,8 +52,7 @@ const AdvancedSetting: React.FC = () => {
 
   return (
     <SettingCard title={t('mihomo.advancedSettings')} collapsible>
-
-          <SettingItem title={t('mihomo.findProcess')} divider>
+      <SettingItem title={t('mihomo.findProcess')} divider>
         <Tabs
           size="sm"
           color="primary"
@@ -262,9 +265,9 @@ const AdvancedSetting: React.FC = () => {
             </SettingItem>
             <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1">
               <div className="ml-6">
-                <EditableList 
-                  items={bypass} 
-                  onChange={(list) => setBypass(list as string[])} 
+                <EditableList
+                  items={bypass}
+                  onChange={(list) => setBypass(list as string[])}
                   inputClassNames={secondaryInputClassNames}
                 />
               </div>
@@ -280,7 +283,6 @@ const AdvancedSetting: React.FC = () => {
           onChange={(iface) => onChangeNeedRestart({ 'interface-name': iface })}
         />
       </SettingItem>
-
     </SettingCard>
   )
 }

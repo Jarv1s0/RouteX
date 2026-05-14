@@ -143,103 +143,103 @@ const Sysproxy: React.FC = () => {
         />
       )}
       <div className="p-2">
-      <SettingCard className="sysproxy-settings">
-        <SettingItem title={t('sysproxy.host')} divider>
-          <Input
-            size="sm"
-            className="w-[50%]"
-            classNames={primaryInputClassNames}
-            value={values.host}
-            placeholder={t('sysproxy.hostPlaceholder')}
-            onValueChange={(v) => {
-              setValues({ ...values, host: v })
-            }}
-          />
-        </SettingItem>
-        <SettingItem title={t('sysproxy.mode')} divider>
-          <Tabs
-            classNames={CARD_STYLES.GLASS_TABS}
-            selectedKey={values.mode}
-            onSelectionChange={(key: Key) => setValues({ ...values, mode: key as SysProxyMode })}
-          >
-            <Tab key="manual" title={t('sysproxy.manual')} />
-            <Tab key="auto" title="PAC" />
-          </Tabs>
-        </SettingItem>
-        {platform === 'win32' && (
-          <SettingItem title={t('sysproxy.uwpTools')} divider>
-            <Button
+        <SettingCard className="sysproxy-settings">
+          <SettingItem title={t('sysproxy.host')} divider>
+            <Input
               size="sm"
-              onPress={async () => {
-                await openUWPTool()
+              className="w-[50%]"
+              classNames={primaryInputClassNames}
+              value={values.host}
+              placeholder={t('sysproxy.hostPlaceholder')}
+              onValueChange={(v) => {
+                setValues({ ...values, host: v })
               }}
-            >
-              {t('sysproxy.openUwpTools')}
-            </Button>
+            />
           </SettingItem>
-        )}
-        {platform == 'darwin' && (
-          <>
-            <SettingItem title={t('sysproxy.settingMode')} divider>
-              <Tabs
-                classNames={CARD_STYLES.GLASS_TABS}
-                selectedKey={values.settingMode}
-                onSelectionChange={(key) => {
-                  setValues({ ...values, settingMode: key as 'exec' | 'service' })
+          <SettingItem title={t('sysproxy.mode')} divider>
+            <Tabs
+              classNames={CARD_STYLES.GLASS_TABS}
+              selectedKey={values.mode}
+              onSelectionChange={(key: Key) => setValues({ ...values, mode: key as SysProxyMode })}
+            >
+              <Tab key="manual" title={t('sysproxy.manual')} />
+              <Tab key="auto" title="PAC" />
+            </Tabs>
+          </SettingItem>
+          {platform === 'win32' && (
+            <SettingItem title={t('sysproxy.uwpTools')} divider>
+              <Button
+                size="sm"
+                onPress={async () => {
+                  await openUWPTool()
                 }}
               >
-                <Tab key="exec" title={t('settings.autoDns.exec')} />
-                <Tab key="service" title={t('settings.autoDns.service')} />
-              </Tabs>
+                {t('sysproxy.openUwpTools')}
+              </Button>
             </SettingItem>
-            <SettingItem
-              title={t('sysproxy.onlyActiveDevice')}
-              actions={
-                <Tooltip
-                  content={
-                    <>
-                      <div>{t('sysproxy.onlyActiveDeviceHelp')}</div>
-                    </>
-                  }
+          )}
+          {platform == 'darwin' && (
+            <>
+              <SettingItem title={t('sysproxy.settingMode')} divider>
+                <Tabs
+                  classNames={CARD_STYLES.GLASS_TABS}
+                  selectedKey={values.settingMode}
+                  onSelectionChange={(key) => {
+                    setValues({ ...values, settingMode: key as 'exec' | 'service' })
+                  }}
                 >
-                  <Button isIconOnly size="sm" variant="light">
-                    <IoIosHelpCircle className="text-lg" />
-                  </Button>
-                </Tooltip>
-              }
-              divider
-            >
-              <Switch
-                size="sm"
-                isSelected={onlyActiveDevice}
-                isDisabled={!values.settingMode || values.settingMode !== 'service'}
-                onValueChange={(v) => {
-                  patchAppConfig({ onlyActiveDevice: v })
-                }}
-              />
+                  <Tab key="exec" title={t('settings.autoDns.exec')} />
+                  <Tab key="service" title={t('settings.autoDns.service')} />
+                </Tabs>
+              </SettingItem>
+              <SettingItem
+                title={t('sysproxy.onlyActiveDevice')}
+                actions={
+                  <Tooltip
+                    content={
+                      <>
+                        <div>{t('sysproxy.onlyActiveDeviceHelp')}</div>
+                      </>
+                    }
+                  >
+                    <Button isIconOnly size="sm" variant="light">
+                      <IoIosHelpCircle className="text-lg" />
+                    </Button>
+                  </Tooltip>
+                }
+                divider
+              >
+                <Switch
+                  size="sm"
+                  isSelected={onlyActiveDevice}
+                  isDisabled={!values.settingMode || values.settingMode !== 'service'}
+                  onValueChange={(v) => {
+                    patchAppConfig({ onlyActiveDevice: v })
+                  }}
+                />
+              </SettingItem>
+            </>
+          )}
+          {values.mode === 'auto' && (
+            <SettingItem title={t('sysproxy.mode')}>
+              <Button size="sm" onPress={() => setOpenPacEditor(true)}>
+                {t('sysproxy.editPac')}
+              </Button>
             </SettingItem>
-          </>
-        )}
-        {values.mode === 'auto' && (
-          <SettingItem title={t('sysproxy.mode')}>
-            <Button size="sm" onPress={() => setOpenPacEditor(true)}>
-              {t('sysproxy.editPac')}
-            </Button>
-          </SettingItem>
-        )}
-        {values.mode === 'manual' && (
-          <SettingItem title={t('sysproxy.bypass')}>
-            <Button
-              size="sm"
-              onPress={async () => {
-                setOpenEditor(true)
-              }}
-            >
-              {t('common.edit')}
-            </Button>
-          </SettingItem>
-        )}
-      </SettingCard>
+          )}
+          {values.mode === 'manual' && (
+            <SettingItem title={t('sysproxy.bypass')}>
+              <Button
+                size="sm"
+                onPress={async () => {
+                  setOpenEditor(true)
+                }}
+              >
+                {t('common.edit')}
+              </Button>
+            </SettingItem>
+          )}
+        </SettingCard>
       </div>
     </BasePage>
   )

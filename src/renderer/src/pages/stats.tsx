@@ -8,11 +8,11 @@ import ConfirmModal from '@renderer/components/base/base-confirm'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
-
 import StatusGrid from '@renderer/components/stats/status-grid'
 import TrafficChart from '@renderer/components/stats/traffic-chart'
 import TrafficRanking from '@renderer/components/stats/traffic-ranking'
 import RuleDetailList from '@renderer/components/stats/rule-detail-list'
+import RealtimeMetricsPanel from '@renderer/components/stats/realtime-metrics-panel'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
@@ -32,15 +32,8 @@ const EMPTY_RULE_HIT_DETAILS: RuleHitDetail[] = []
 const TrafficChartSection = React.memo(function TrafficChartSection() {
   const trafficHistory = useTrafficStore((state) => state.trafficHistory)
   const hourlyData = useTrafficStore((state) => state.hourlyData)
-  const dailyData = useTrafficStore((state) => state.dailyData)
 
-  return (
-    <TrafficChart
-      trafficHistory={trafficHistory}
-      hourlyData={hourlyData}
-      dailyData={dailyData}
-    />
-  )
+  return <TrafficChart trafficHistory={trafficHistory} hourlyData={hourlyData} />
 })
 
 const TrafficRankingSection = React.memo(function TrafficRankingSection({
@@ -49,6 +42,7 @@ const TrafficRankingSection = React.memo(function TrafficRankingSection({
   onSelectRule: (rule: string) => void
 }) {
   const sessionStats = useTrafficStore((state) => state.sessionStats)
+  const routeStats = useTrafficStore((state) => state.routeStats)
   const dailyData = useTrafficStore((state) => state.dailyData)
   const ruleStats = useTrafficStore((state) => state.ruleStats)
   const ruleHitDetails = useTrafficStore((state) => state.ruleHitDetails)
@@ -59,10 +53,46 @@ const TrafficRankingSection = React.memo(function TrafficRankingSection({
     return dailyData.find((item) => item.date === today) || { upload: 0, download: 0 }
   }, [dailyData])
 
+  const { weekStats, monthStats } = React.useMemo(() => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth()
+    const weekStart = new Date(currentYear, currentMonth, now.getDate())
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7))
+
+    return dailyData.reduce(
+      (acc, item) => {
+        const [year, month, day] = item.date.split('-').map(Number)
+        if (!year || !month || !day) {
+          return acc
+        }
+
+        const itemDate = new Date(year, month - 1, day)
+        if (itemDate >= weekStart && itemDate <= now) {
+          acc.weekStats.upload += item.upload
+          acc.weekStats.download += item.download
+        }
+        if (itemDate.getFullYear() === currentYear && itemDate.getMonth() === currentMonth) {
+          acc.monthStats.upload += item.upload
+          acc.monthStats.download += item.download
+        }
+
+        return acc
+      },
+      {
+        weekStats: { upload: 0, download: 0 },
+        monthStats: { upload: 0, download: 0 }
+      }
+    )
+  }, [dailyData])
+
   return (
     <TrafficRanking
       session={sessionStats}
       today={todayStats}
+      week={weekStats}
+      month={monthStats}
+      route={routeStats}
       ruleStats={ruleStats}
       ruleHitDetails={ruleHitDetails}
       onSelectRule={onSelectRule}
@@ -70,67 +100,71 @@ const TrafficRankingSection = React.memo(function TrafficRankingSection({
   )
 })
 
-const RuleDetailsModalSection = React.memo(
-  function RuleDetailsModalSection({
-    selectedRule,
-    onClose
-  }: {
-    selectedRule: string | null
-    onClose: () => void
-  }) {
-    const details = useTrafficStore((state) =>
-      selectedRule ? (state.ruleHitDetails.get(selectedRule) ?? EMPTY_RULE_HIT_DETAILS) : EMPTY_RULE_HIT_DETAILS
-    ) as RuleHitDetail[]
-    const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
-    const { t } = useI18n()
+const RuleDetailsModalSection = React.memo(function RuleDetailsModalSection({
+  selectedRule,
+  onClose
+}: {
+  selectedRule: string | null
+  onClose: () => void
+}) {
+  const details = useTrafficStore((state) =>
+    selectedRule
+      ? (state.ruleHitDetails.get(selectedRule) ?? EMPTY_RULE_HIT_DETAILS)
+      : EMPTY_RULE_HIT_DETAILS
+  ) as RuleHitDetail[]
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const { t } = useI18n()
 
-    return (
-      <Modal
-        isOpen={!!selectedRule}
-        onClose={onClose}
-        size="2xl"
-        backdrop="blur"
-        hideCloseButton
-        classNames={{
-          base: 'bg-background/95 dark:bg-default-50/95 backdrop-blur-2xl border border-default-200/50 shadow-2xl',
-          header: 'border-b border-default-200/80 dark:border-default-100/30',
-          body: 'pt-1.5 pb-4 px-3',
-          backdrop: 'bg-black/50 backdrop-blur-sm'
-        }}
+  return (
+    <Modal
+      isOpen={!!selectedRule}
+      onClose={onClose}
+      size="2xl"
+      backdrop="blur"
+      hideCloseButton
+      classNames={{
+        base: 'bg-background/95 dark:bg-default-50/95 backdrop-blur-2xl border border-default-200/50 shadow-2xl',
+        header: 'border-b border-default-200/80 dark:border-default-100/30',
+        body: 'pt-1.5 pb-4 px-3',
+        backdrop: 'bg-black/50 backdrop-blur-sm'
+      }}
+    >
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 900 })}
       >
-        <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 900 })}>
-          {(closeModal) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 pr-8">
-                  <span>{t('stats.ruleDetail', { rule: selectedRule || '' })}</span>
-                  <span className="text-[10px] font-normal text-foreground-400 bg-default-100 px-1.5 py-0.5 rounded">{t('stats.top50ByTime')}</span>
-                </div>
-                <Button
-                  isIconOnly
-                  size="sm"
-                  variant="light"
-                  onPress={closeModal}
-                  className="absolute right-4 top-4"
-                >
-                  <IoClose size={20} />
-                </Button>
-              </ModalHeader>
-              <ModalBody>
-                <RuleDetailList details={details.slice(0, 50)} />
-              </ModalBody>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-    )
-  }
-)
+        {(closeModal) => (
+          <>
+            <ModalHeader className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 pr-8">
+                <span>{t('stats.ruleDetail', { rule: selectedRule || '' })}</span>
+                <span className="text-[10px] font-normal text-foreground-400 bg-default-100 px-1.5 py-0.5 rounded">
+                  {t('stats.top50ByTime')}
+                </span>
+              </div>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                onPress={closeModal}
+                className="absolute right-4 top-4"
+              >
+                <IoClose size={20} />
+              </Button>
+            </ModalHeader>
+            <ModalBody>
+              <RuleDetailList details={details.slice(0, 50)} />
+            </ModalBody>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
+  )
+})
 
 const Stats: React.FC = () => {
   const { t } = useI18n()
   const clearStats = useTrafficStore((state) => state.clearStats)
-  
+
   // 清除统计数据状态
   const [clearingStats, setClearingStats] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
@@ -153,7 +187,7 @@ const Stats: React.FC = () => {
   }, [clearStats, t])
 
   return (
-    <BasePage 
+    <BasePage
       title={t('page.stats.title')}
       header={
         <Button
@@ -184,17 +218,21 @@ const Stats: React.FC = () => {
         {/* Row 1: Status Grid */}
         <StatusGrid />
 
-        {/* Row 2: Charts & Stats using CSS Grid */}
-        {/* Stack: Traffic Chart -> Traffic Ranking -> Provider Usage */}
+        {/* Row 2: Realtime traffic and live runtime curves */}
         <div className="flex flex-col gap-2">
-          {/* Traffic Chart */}
-          <TrafficChartSection />
-          
+          <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+            <TrafficChartSection />
+            <RealtimeMetricsPanel />
+          </div>
+
           <TrafficRankingSection onSelectRule={setSelectedRule} />
         </div>
 
         {/* 规则命中详情弹窗 */}
-        <RuleDetailsModalSection selectedRule={selectedRule} onClose={() => setSelectedRule(null)} />
+        <RuleDetailsModalSection
+          selectedRule={selectedRule}
+          onClose={() => setSelectedRule(null)}
+        />
       </div>
     </BasePage>
   )

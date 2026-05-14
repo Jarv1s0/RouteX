@@ -2,7 +2,10 @@ import React from 'react'
 import { Button } from '@heroui/react'
 
 import BasePage from '@renderer/components/base/base-page'
-import { DnsSettingsFormFields, useDnsSettingsEditor } from '@renderer/components/dns/dns-settings-editor'
+import {
+  DnsSettingsFormFields,
+  useDnsSettingsEditor
+} from '@renderer/components/dns/dns-settings-editor'
 import { useI18n } from '@renderer/i18n'
 
 const DNS: React.FC = () => {

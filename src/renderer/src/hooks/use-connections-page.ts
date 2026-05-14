@@ -122,18 +122,13 @@ export function useConnectionsPage(): UseConnectionsPageResult {
     localStorage.removeItem('hiddenConnectionRules')
   }, [updateHiddenRules])
 
-  const {
-    iconMap,
-    appNameCache,
-    firstItemRefreshTrigger,
-    loadIcon,
-    loadAppName
-  } = useResourceQueue(
-    displayIcon,
-    displayAppName,
-    findProcessMode,
-    filteredConnections[0]?.metadata?.processPath
-  )
+  const { iconMap, appNameCache, firstItemRefreshTrigger, loadIcon, loadAppName } =
+    useResourceQueue(
+      displayIcon,
+      displayAppName,
+      findProcessMode,
+      filteredConnections[0]?.metadata?.processPath
+    )
 
   const deferredFilter = filter
   const deferredOrder = connectionOrderBy
@@ -218,7 +213,6 @@ export function useConnectionsPage(): UseConnectionsPageResult {
       closeConnection(connection.id)
     })
   }, [closeAllConnections, closeConnection, filter, filteredConnections])
-
 
   return {
     activeConnections,

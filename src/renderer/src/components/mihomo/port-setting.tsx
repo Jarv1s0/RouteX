@@ -14,8 +14,10 @@ import InterfaceModal from '@renderer/components/mihomo/interface-modal'
 import { useI18n } from '@renderer/i18n'
 
 const portInputClassNames = {
-  input: "bg-transparent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-  inputWrapper: "border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50"
+  input:
+    'bg-transparent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+  inputWrapper:
+    'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
 }
 
 // 端口输入子组件，整合确认按钮和 Input
@@ -32,12 +34,7 @@ const PortInput: React.FC<{
   <SettingItem title={label} divider={divider}>
     <div className="flex items-center gap-2">
       {value !== current && (
-        <Button
-          size="sm"
-          color="primary"
-          isDisabled={hasConflict}
-          onPress={onSave}
-        >
+        <Button size="sm" color="primary" isDisabled={hasConflict} onPress={onSave}>
           {confirmText}
         </Button>
       )}
@@ -56,11 +53,12 @@ const PortInput: React.FC<{
 )
 
 // 子面板容器，统一嵌套区域的视觉样式
-const SubPanel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+const SubPanel: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className = ''
+}) => (
   <div className={`text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4 ${className}`}>
-    <div className="ml-2">
-      {children}
-    </div>
+    <div className="ml-2">{children}</div>
   </div>
 )
 
@@ -125,7 +123,6 @@ const PortSetting: React.FC = () => {
     <>
       {lanOpen && <InterfaceModal onClose={() => setLanOpen(false)} />}
       <SettingCard title={t('mihomo.portSettings')} collapsible>
-
         {/* ═══ 第一层：端口配置 ═══ */}
         <PortInput
           label={t('mihomo.mixedPort')}
@@ -189,12 +186,7 @@ const PortSetting: React.FC = () => {
         <SettingItem
           title={t('mihomo.allowLan')}
           actions={
-            <Button
-              size="sm"
-              isIconOnly
-              variant="light"
-              onPress={() => setLanOpen(true)}
-            >
+            <Button size="sm" isIconOnly variant="light" onPress={() => setLanOpen(true)}>
               <FaNetworkWired className="text-lg" />
             </Button>
           }
@@ -237,7 +229,9 @@ const PortSetting: React.FC = () => {
                 <Button
                   size="sm"
                   color="primary"
-                  onPress={() => onChangeNeedRestart({ 'lan-disallowed-ips': lanDisallowedIpsInput })}
+                  onPress={() =>
+                    onChangeNeedRestart({ 'lan-disallowed-ips': lanDisallowedIpsInput })
+                  }
                 >
                   {t('common.confirm')}
                 </Button>
@@ -306,7 +300,9 @@ const PortSetting: React.FC = () => {
                 <Button
                   size="sm"
                   color="primary"
-                  onPress={() => onChangeNeedRestart({ 'skip-auth-prefixes': skipAuthPrefixesInput })}
+                  onPress={() =>
+                    onChangeNeedRestart({ 'skip-auth-prefixes': skipAuthPrefixesInput })
+                  }
                 >
                   {t('common.confirm')}
                 </Button>
@@ -324,7 +320,6 @@ const PortSetting: React.FC = () => {
             </ListPanel>
           </SubPanel>
         )}
-
       </SettingCard>
     </>
   )

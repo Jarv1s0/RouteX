@@ -7,10 +7,7 @@ function isLegacyWindowsBuild(osRelease?: string): boolean {
   return Number.isFinite(build) && build <= 20000
 }
 
-export function createDefaultAppConfig(
-  platform: NodeJS.Platform,
-  osRelease?: string
-): AppConfig {
+export function createDefaultAppConfig(platform: NodeJS.Platform, osRelease?: string): AppConfig {
   return {
     core: 'mihomo',
     updateChannel: 'stable',

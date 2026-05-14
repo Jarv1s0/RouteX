@@ -46,8 +46,16 @@ const RULE_TYPES = [
   { key: 'SRC-GEOIP', label: 'SRC-GEOIP', descKey: 'rules.desc.srcGeoip' },
   { key: 'PROCESS-NAME', label: 'PROCESS-NAME', descKey: 'rules.desc.processName' },
   { key: 'PROCESS-PATH', label: 'PROCESS-PATH', descKey: 'rules.desc.processPath' },
-  { key: 'PROCESS-NAME-REGEX', label: 'PROCESS-NAME-REGEX', descKey: 'rules.desc.processNameRegex' },
-  { key: 'PROCESS-PATH-REGEX', label: 'PROCESS-PATH-REGEX', descKey: 'rules.desc.processPathRegex' },
+  {
+    key: 'PROCESS-NAME-REGEX',
+    label: 'PROCESS-NAME-REGEX',
+    descKey: 'rules.desc.processNameRegex'
+  },
+  {
+    key: 'PROCESS-PATH-REGEX',
+    label: 'PROCESS-PATH-REGEX',
+    descKey: 'rules.desc.processPathRegex'
+  },
   { key: 'DST-PORT', label: 'DST-PORT', descKey: 'rules.desc.dstPort' },
   { key: 'SRC-PORT', label: 'SRC-PORT', descKey: 'rules.desc.srcPort' },
   { key: 'NETWORK', label: 'NETWORK', descKey: 'rules.desc.network' },
@@ -165,7 +173,9 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
       hideCloseButton
       classNames={createSecondaryModalClassNames()}
     >
-      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 640 })}>
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 640 })}
+      >
         <>
           <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
             <div className="flex flex-col gap-0.5">
@@ -253,7 +263,9 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
 
               {ruleString && (
                 <div className="rounded-2xl border border-default-200/70 bg-content1/60 p-4 shadow-sm">
-                  <div className="mb-2 text-xs font-medium text-foreground-500">{t('rules.preview')}</div>
+                  <div className="mb-2 text-xs font-medium text-foreground-500">
+                    {t('rules.preview')}
+                  </div>
                   <code className="break-all font-mono text-sm text-primary">{ruleString}</code>
                 </div>
               )}

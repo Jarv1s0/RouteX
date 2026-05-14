@@ -15,9 +15,7 @@ export function isRefreshableProfileItem(
   return !!item && item.type === 'remote' && !!item.interval && item.autoUpdate !== false
 }
 
-export function createScheduledProfileRefresher(
-  deps: ScheduledProfileRefreshDeps
-) {
+export function createScheduledProfileRefresher(deps: ScheduledProfileRefreshDeps) {
   return async (id: string): Promise<ProfileItem | undefined> => {
     const latestItem = await deps.getProfileItem(id)
     if (!isRefreshableProfileItem(latestItem)) {

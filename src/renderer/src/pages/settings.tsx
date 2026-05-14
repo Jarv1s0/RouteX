@@ -6,9 +6,6 @@ import AdvancedSettings from '@renderer/components/settings/advanced-settings'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useI18n } from '@renderer/i18n'
 
-
-
-
 const Settings: React.FC = () => {
   const { t } = useI18n()
 
@@ -29,7 +26,6 @@ const Settings: React.FC = () => {
           >
             <IoLogoGithub className="text-lg" />
           </Button>
-
         </>
       }
     >
@@ -41,7 +37,7 @@ const Settings: React.FC = () => {
           radius="lg"
           classNames={{
             ...CARD_STYLES.GLASS_TABS,
-            tab: CARD_STYLES.GLASS_TABS.tab + ' px-4',
+            tab: CARD_STYLES.GLASS_TABS.tab + ' px-4'
           }}
         >
           <Tab
@@ -55,7 +51,6 @@ const Settings: React.FC = () => {
           >
             <div className="flex flex-col gap-2">
               <GeneralConfig />
-    
             </div>
           </Tab>
           <Tab

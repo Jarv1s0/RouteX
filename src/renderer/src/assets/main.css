@@ -15,7 +15,16 @@
 }
 
 html {
-  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    'Inter',
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
   font-size: 15px;
   width: 100%;
   height: 100%;
@@ -42,9 +51,21 @@ pre,
 }
 
 .font-data-numeric {
-  font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  font-family:
+    'Inter',
+    'Segoe UI Variable Text',
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif !important;
   font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
 }
 
 .driver-popover {
@@ -119,53 +140,40 @@ pre,
 }
 
 :where(
-    button,
-    a,
-    summary,
-    [role='button'],
-    [role='tab'],
-    [role='switch'],
-    [tabindex]:not([tabindex='-1'])
-  ):focus {
+  button,
+  a,
+  summary,
+  [role='button'],
+  [role='tab'],
+  [role='switch'],
+  [tabindex]:not([tabindex='-1'])
+):focus {
   outline: none;
 }
 
 :where(
-    button,
-    a,
-    summary,
-    [role='button'],
-    [role='tab'],
-    [role='switch'],
-    [tabindex]:not([tabindex='-1'])
-  ):focus-visible {
+  button,
+  a,
+  summary,
+  [role='button'],
+  [role='tab'],
+  [role='switch'],
+  [tabindex]:not([tabindex='-1'])
+):focus-visible {
   outline: 2px solid hsl(var(--heroui-primary));
   outline-offset: 2px;
 }
 
 .flag-emoji {
   font-family:
-    'twemoji',
-    'Apple Color Emoji',
-    'Segoe UI Emoji',
-    'Segoe UI Symbol',
-    'Noto Color Emoji',
-    system-ui,
-    sans-serif;
+    'twemoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji',
+    system-ui, sans-serif;
 }
 
 .font-mono.flag-emoji {
   font-family:
-    'JetBrains Mono',
-    'Fira Code',
-    Consolas,
-    'Courier New',
-    monospace,
-    'twemoji',
-    'Apple Color Emoji',
-    'Segoe UI Emoji',
-    'Segoe UI Symbol',
-    'Noto Color Emoji' !important;
+    'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace, 'twemoji',
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji' !important;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -183,7 +191,7 @@ pre,
 }
 
 /* Tooltip 统一样式 */
-[data-slot="content"][role="tooltip"] {
+[data-slot='content'][role='tooltip'] {
   font-size: 12px;
   padding: 6px 10px;
   border-radius: 6px;
@@ -191,19 +199,19 @@ pre,
 }
 
 /* 设置分组标题加粗 */
-[data-slot="base"]>[data-slot="body"]>div:first-child span {
+[data-slot='base'] > [data-slot='body'] > div:first-child span {
   font-weight: 700 !important;
 }
 
 /* 输入框聚焦效果 */
-[data-slot="input-wrapper"] {
+[data-slot='input-wrapper'] {
   transition: all 0.2s ease;
 }
 
-[data-slot="input-wrapper"],
-[data-slot="inner-wrapper"],
-[data-slot="input"],
-[data-slot="input"]::placeholder,
+[data-slot='input-wrapper'],
+[data-slot='inner-wrapper'],
+[data-slot='input'],
+[data-slot='input']::placeholder,
 input,
 input::placeholder,
 select,
@@ -215,7 +223,7 @@ textarea::placeholder {
   outline-color: transparent !important;
 }
 
-[data-slot="input"],
+[data-slot='input'],
 input,
 select,
 textarea {
@@ -238,13 +246,13 @@ input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none !important;
 }
 
-[data-slot="input-wrapper"]:focus,
-[data-slot="input-wrapper"]:focus-visible,
-[data-slot="inner-wrapper"]:focus,
-[data-slot="inner-wrapper"]:focus-visible,
-[data-slot="input"]:focus,
-[data-slot="input"]:focus-visible,
-[data-slot="input"]:active,
+[data-slot='input-wrapper']:focus,
+[data-slot='input-wrapper']:focus-visible,
+[data-slot='inner-wrapper']:focus,
+[data-slot='inner-wrapper']:focus-visible,
+[data-slot='input']:focus,
+[data-slot='input']:focus-visible,
+[data-slot='input']:active,
 input:focus,
 input:focus-visible,
 input:active,
@@ -261,29 +269,29 @@ textarea:focus-visible {
   border: none !important;
 }
 
-[data-slot="input-wrapper"]:focus-within {
+[data-slot='input-wrapper']:focus-within {
   border-color: hsl(var(--heroui-primary)) !important;
   box-shadow: 0 0 0 2px hsl(var(--heroui-primary) / 0.2);
 }
 
 /* 输入框 hover 效果 */
-[data-slot="input-wrapper"]:hover:not(:focus-within) {
+[data-slot='input-wrapper']:hover:not(:focus-within) {
   background: hsl(var(--heroui-default-200));
 }
 
 /* Chip/Badge 统一样式 */
-[data-slot="base"].chip {
+[data-slot='base'].chip {
   font-size: 12px;
   font-weight: 500;
 }
 
 /* 进度条美化 */
-[data-slot="track"] {
+[data-slot='track'] {
   height: 4px;
   border-radius: 2px;
 }
 
-[data-slot="indicator"] {
+[data-slot='indicator'] {
   border-radius: 2px;
 }
 
@@ -294,6 +302,24 @@ textarea:focus-visible {
   /* 卡片背景稍微亮一点 */
   --heroui-content1: 240 6% 15%;
   --heroui-content2: 240 5% 18%;
+  /* 降低危险色在深色背景下的亮度和饱和度 */
+  --heroui-danger-50: 2 30% 14%;
+  --heroui-danger-100: 2 28% 18%;
+  --heroui-danger-200: 2 26% 25%;
+  --heroui-danger-300: 2 28% 34%;
+  --heroui-danger-400: 2 32% 45%;
+  --heroui-danger-500: 2 36% 55%;
+  --heroui-danger-600: 2 40% 62%;
+  --heroui-danger-700: 2 44% 68%;
+  --heroui-danger-800: 2 48% 74%;
+  --heroui-danger-900: 2 54% 82%;
+  --heroui-danger: 2 36% 55%;
+  --heroui-danger-foreground: 0 0% 98%;
+  --app-danger-text: #d69a94;
+  --app-danger-fill: #9f5653;
+  --app-danger-border: rgba(214, 154, 148, 0.36);
+  --app-danger-ring: rgba(214, 154, 148, 0.42);
+  --stats-download-gradient: linear-gradient(90deg, #6f62b8 0%, #9b8bd8 100%);
 }
 
 /* 深色模式下的空状态文字 */
@@ -301,18 +327,106 @@ textarea:focus-visible {
   color: hsl(0 0% 60%);
 }
 
+.dark
+  :where(
+    .text-danger,
+    .text-red-500,
+    .text-red-600,
+    .text-rose-500,
+    [class~='dark:text-red-400'],
+    [class~='dark:text-rose-400']
+  ) {
+  color: var(--app-danger-text) !important;
+}
+
+.dark :where(.bg-danger, .bg-red-500, .bg-rose-500) {
+  background-color: var(--app-danger-fill) !important;
+}
+
+.dark
+  :where(
+    .border-danger,
+    .border-red-500,
+    .border-rose-500,
+    [class~='border-red-500/50'],
+    [class~='border-rose-500/50']
+  ) {
+  border-color: var(--app-danger-border) !important;
+}
+
+.dark :where(.ring-danger, .ring-red-500, .ring-rose-500) {
+  --tw-ring-color: var(--app-danger-ring) !important;
+}
+
+.dark [class~='hover:!bg-red-500']:hover {
+  background-color: var(--app-danger-fill) !important;
+}
+
+.dark [class~='shadow-danger/50'] {
+  --tw-shadow-color: rgba(214, 154, 148, 0.24) !important;
+}
+
+:root {
+  --stats-download-gradient: linear-gradient(90deg, #9333ea 0%, #c084fc 100%);
+}
+
+.stats-download-accent {
+  color: #a855f7;
+}
+
+.stats-download-dot {
+  background: #a855f7;
+  box-shadow: 0 0 6px rgba(168, 85, 247, 0.24);
+}
+
+.stats-download-dot-soft {
+  background: rgba(192, 132, 252, 0.8);
+}
+
+.stats-download-bar {
+  background: #c084fc;
+}
+
+.stats-download-icon-soft {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+}
+
+.dark .stats-download-accent {
+  color: #a99ad6;
+}
+
+.dark .stats-download-dot {
+  background: #9b8bd8;
+  box-shadow: 0 0 4px rgba(155, 139, 216, 0.16);
+}
+
+.dark .stats-download-dot-soft {
+  background: rgba(155, 139, 216, 0.72);
+}
+
+.dark .stats-download-bar {
+  background: #8f7fd0;
+}
+
+.dark .stats-download-icon-soft {
+  background: rgba(155, 139, 216, 0.12);
+  color: #a99ad6;
+}
+
 /* 深色模式下的分隔线 */
-.dark [data-slot="divider"] {
+.dark [data-slot='divider'] {
   background: hsl(240 5% 22%);
 }
 
 /* Switch 开关动画优化 */
-[data-slot="wrapper"] {
+[data-slot='wrapper'] {
   transition: background 0.15s ease !important;
 }
 
-[data-slot="thumb"] {
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+[data-slot='thumb'] {
+  transition:
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
     width 0.1s ease,
     margin 0.1s ease !important;
 }
@@ -323,7 +437,7 @@ textarea:focus-visible {
   border-radius: 14px !important;
 }
 
-.outbound-mode-card [data-slot="cursor"] {
+.outbound-mode-card [data-slot='cursor'] {
   margin-right: 1px !important;
 }
 
@@ -391,7 +505,9 @@ textarea:focus-visible {
   background: hsl(var(--heroui-default-100) / 0.5) !important;
 }
 
-.topology-controls.react-flow__controls .react-flow__controls-button + .react-flow__controls-button {
+.topology-controls.react-flow__controls
+  .react-flow__controls-button
+  + .react-flow__controls-button {
   border-top: 1px solid hsl(var(--heroui-default-200) / 0.5) !important;
 }
 

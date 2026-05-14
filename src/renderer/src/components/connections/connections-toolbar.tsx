@@ -57,8 +57,7 @@ const VIEW_MODE_ICONS: Record<ConnectionViewMode, React.ReactNode> = {
   list: <IoList className="text-lg" />
 }
 
-const COUNT_BADGE_CLASS =
-  'text-[11px] font-medium leading-none tabular-nums text-current'
+const COUNT_BADGE_CLASS = 'text-[11px] font-medium leading-none tabular-nums text-current'
 
 const ORDER_OPTIONS: {
   key: ConnectionOrderBy
@@ -116,9 +115,7 @@ export default function ConnectionsToolbar({
               <div className="flex items-center gap-2 px-2">
                 <IoPulseOutline className="text-lg" />
                 <span>{t('connections.active')}</span>
-                <span className={COUNT_BADGE_CLASS}>
-                  {activeCount}
-                </span>
+                <span className={COUNT_BADGE_CLASS}>{activeCount}</span>
               </div>
             }
           />
@@ -128,11 +125,7 @@ export default function ConnectionsToolbar({
               <div className="flex items-center gap-2 px-2">
                 <IoTimeOutline className="text-lg" />
                 <span>{t('connections.closed')}</span>
-                {closedCount > 0 && (
-                  <span className={COUNT_BADGE_CLASS}>
-                    {closedCount}
-                  </span>
-                )}
+                {closedCount > 0 && <span className={COUNT_BADGE_CLASS}>{closedCount}</span>}
               </div>
             }
           />
@@ -173,7 +166,12 @@ export default function ConnectionsToolbar({
           ))}
         </Select>
 
-        <Button size="sm" isIconOnly className="bg-content2" onPress={() => void onDirectionToggle()}>
+        <Button
+          size="sm"
+          isIconOnly
+          className="bg-content2"
+          onPress={() => void onDirectionToggle()}
+        >
           {connectionDirection === 'asc' ? (
             <HiSortAscending className="text-lg" />
           ) : (

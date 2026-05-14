@@ -62,7 +62,19 @@ const ALL_COLUMNS = [
 ]
 
 // 默认显示的列
-export const DEFAULT_COLUMNS = ['process', 'host', 'type', 'rule', 'chains', 'downloadSpeed', 'uploadSpeed', 'download', 'upload', 'time', 'close']
+export const DEFAULT_COLUMNS = [
+  'process',
+  'host',
+  'type',
+  'rule',
+  'chains',
+  'downloadSpeed',
+  'uploadSpeed',
+  'download',
+  'upload',
+  'time',
+  'close'
+]
 
 interface Props {
   onClose: () => void
@@ -75,14 +87,9 @@ const SortableChip: React.FC<{
   isSelected: boolean
   onToggle: () => void
 }> = ({ id, label, isSelected, onToggle }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -92,12 +99,7 @@ const SortableChip: React.FC<{
   }
 
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style}
-      {...attributes}
-      {...listeners}
-    >
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Chip
         variant={isSelected ? 'flat' : 'bordered'}
         color={isSelected ? 'primary' : 'default'}
@@ -105,7 +107,7 @@ const SortableChip: React.FC<{
         size="sm"
         className="cursor-grab active:cursor-grabbing select-none transition-all"
         classNames={{
-          content: "flex items-center gap-1 text-xs"
+          content: 'flex items-center gap-1 text-xs'
         }}
         startContent={<MdDragIndicator className="text-base opacity-60" />}
         onClick={(e) => {
@@ -133,8 +135,8 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
   const {
     collapseSidebar = false,
     siderWidth = 250,
-    displayIcon = true, 
-    displayAppName = true, 
+    displayIcon = true,
+    displayAppName = true,
     connectionInterval: rawConnectionInterval = MIN_CONNECTION_INTERVAL,
     connectionTableColumns = DEFAULT_COLUMNS
   } = appConfig || {}
@@ -146,13 +148,17 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
     setInterval(connectionInterval?.toString() ?? '')
   }, [connectionInterval])
 
-  const updateInterval = useMemo(() => debounce(async (v: string) => {
-    let num = parseInt(v)
-    if (isNaN(num)) num = MIN_CONNECTION_INTERVAL
-    if (num < MIN_CONNECTION_INTERVAL) num = MIN_CONNECTION_INTERVAL
-    await patchAppConfig({ connectionInterval: num })
-    await restartMihomoConnections()
-  }, 1000), [MIN_CONNECTION_INTERVAL, patchAppConfig])
+  const updateInterval = useMemo(
+    () =>
+      debounce(async (v: string) => {
+        let num = parseInt(v)
+        if (isNaN(num)) num = MIN_CONNECTION_INTERVAL
+        if (num < MIN_CONNECTION_INTERVAL) num = MIN_CONNECTION_INTERVAL
+        await patchAppConfig({ connectionInterval: num })
+        await restartMihomoConnections()
+      }, 1000),
+    [MIN_CONNECTION_INTERVAL, patchAppConfig]
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -167,14 +173,16 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
 
   // 获取所有列的排序顺序（已选中的在前，未选中的在后）
   const sortedColumns = React.useMemo(() => {
-    const selected = connectionTableColumns.filter(key => ALL_COLUMNS.find(c => c.key === key))
-    const unselected = ALL_COLUMNS.filter(c => !connectionTableColumns.includes(c.key)).map(c => c.key)
+    const selected = connectionTableColumns.filter((key) => ALL_COLUMNS.find((c) => c.key === key))
+    const unselected = ALL_COLUMNS.filter((c) => !connectionTableColumns.includes(c.key)).map(
+      (c) => c.key
+    )
     return [...selected, ...unselected]
   }, [connectionTableColumns])
 
   const toggleColumn = (key: string) => {
     const newColumns = connectionTableColumns.includes(key)
-      ? connectionTableColumns.filter(c => c !== key)
+      ? connectionTableColumns.filter((c) => c !== key)
       : [...connectionTableColumns, key]
     patchAppConfig({ connectionTableColumns: newColumns })
   }
@@ -186,9 +194,9 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
     const oldIndex = sortedColumns.indexOf(active.id as string)
     const newIndex = sortedColumns.indexOf(over.id as string)
     const newOrder = arrayMove(sortedColumns, oldIndex, newIndex)
-    
+
     // 只保存已选中的列，按新顺序
-    const newSelectedColumns = newOrder.filter(key => connectionTableColumns.includes(key))
+    const newSelectedColumns = newOrder.filter((key) => connectionTableColumns.includes(key))
     patchAppConfig({ connectionTableColumns: newSelectedColumns })
   }
 
@@ -202,7 +210,9 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
       hideCloseButton
     >
-      <ModalContent style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}>
+      <ModalContent
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}
+      >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span className="text-lg font-semibold">{t('page.connections.settings')}</span>
           <SecondaryModalCloseButton onPress={onClose} />
@@ -231,9 +241,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
               title={
                 <>
                   {t('connections.refreshInterval')}
-                  <span className="text-xs text-foreground-400 font-normal ml-1">
-                    (ms)
-                  </span>
+                  <span className="text-xs text-foreground-400 font-normal ml-1">(ms)</span>
                 </>
               }
             >
@@ -251,19 +259,21 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                   }
                   // 只允许输入数字
                   if (!/^\d*$/.test(v)) return
-                  
+
                   setInterval(v)
                   updateInterval(v)
                 }}
               />
             </SettingItem>
           </div>
-          
+
           <Divider className="-mt-2 mb-1" />
-          
+
           <div>
             <div className="text-sm font-medium mb-3">{t('connections.customColumns')}</div>
-            <div className="text-xs text-foreground-400 mb-3">{t('connections.customColumnsHelp')}</div>
+            <div className="text-xs text-foreground-400 mb-3">
+              {t('connections.customColumnsHelp')}
+            </div>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -271,8 +281,8 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
             >
               <SortableContext items={sortedColumns} strategy={rectSortingStrategy}>
                 <div className="flex flex-wrap gap-2">
-                  {sortedColumns.map(key => {
-                    const col = ALL_COLUMNS.find(c => c.key === key)
+                  {sortedColumns.map((key) => {
+                    const col = ALL_COLUMNS.find((c) => c.key === key)
                     if (!col) return null
                     return (
                       <SortableChip
