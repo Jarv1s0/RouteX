@@ -74,8 +74,7 @@ use self::{
     models::*,
     startup::{read_startup_alignment_config, run_startup_alignment},
     updater::{
-        cancel_update_download, check_update_manifest, download_and_install_update, fetch_text,
-        update_client,
+        cancel_update_download, check_update_manifest, download_and_install_update, update_client,
     },
 };
 

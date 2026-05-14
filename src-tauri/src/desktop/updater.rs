@@ -1,17 +1,5 @@
 use super::*;
 
-pub(super) fn fetch_text(url: &str, timeout_secs: u64) -> Result<String, String> {
-    let client = Client::builder()
-        .timeout(Duration::from_secs(timeout_secs))
-        .build()
-        .map_err(|e| e.to_string())?;
-    let response = client.get(url).send().map_err(|e| e.to_string())?;
-    if !response.status().is_success() {
-        return Err(format!("请求失败: {}", response.status()));
-    }
-    response.text().map_err(|e| e.to_string())
-}
-
 fn update_channel(app: &tauri::AppHandle) -> Result<String, String> {
     Ok(read_app_config_store(app)?
         .get("updateChannel")
@@ -42,14 +30,25 @@ fn update_manifest_url(app: &tauri::AppHandle) -> Result<String, String> {
 
 pub(super) fn update_client(app: &tauri::AppHandle, timeout_secs: u64) -> Result<Client, String> {
     let controlled_config = read_controlled_config_store(app)?;
+    let app_config = read_app_config_store(app)?;
+    let proxy_host = app_config
+        .get("sysProxy")
+        .and_then(Value::as_object)
+        .and_then(|value| value.get("host"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("127.0.0.1");
     let mixed_port = controlled_config
         .get("mixed-port")
         .and_then(Value::as_u64)
         .unwrap_or(7890);
 
-    let mut client_builder = Client::builder().timeout(Duration::from_secs(timeout_secs));
+    let mut client_builder = Client::builder()
+        .timeout(Duration::from_secs(timeout_secs))
+        .no_proxy();
     if mixed_port != 0 {
-        let proxy = reqwest::Proxy::http(format!("http://127.0.0.1:{mixed_port}"))
+        let proxy = reqwest::Proxy::all(format!("http://{proxy_host}:{mixed_port}"))
             .map_err(|e| e.to_string())?;
         client_builder = client_builder.proxy(proxy);
     }

@@ -3,6 +3,31 @@ fn emit_mihomo_config_updated(app: &tauri::AppHandle) {
     emit_ipc_event(app, "rulesUpdated", Value::Null);
 }
 
+fn upgrade_mihomo_core(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    is_alpha: bool,
+) -> Result<Value, String> {
+    let latest = latest_mihomo_version(app, is_alpha)?;
+    let current = core_request(state, reqwest::Method::GET, "/version", None, None)?;
+    let current_version = current
+        .get("version")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if current_version.contains(&latest) {
+        return Err(format!("already using latest version {latest}"));
+    }
+
+    let target_path = mihomo_core_target_path(app, is_alpha)?;
+    let (asset, bytes) = fetch_mihomo_core_archive(app, &latest, is_alpha)?;
+    stop_core_process(app, state)?;
+    write_mihomo_core_archive(&asset, bytes, &target_path)?;
+    restart_core_process(app, state, None).inspect(|value| {
+        emit_ipc_event(app, "core-started", value.clone());
+        emit_mihomo_config_updated(app);
+    })
+}
+
 fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, state: &State<'_, CoreState>, channel: &str, args: &[Value]) -> Result<Option<Value>, String> {
     let result: Result<Value, String> = match channel {
         "ensureMihomoCoreAvailable" => {
@@ -202,31 +227,7 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 Value::Null
             })
         }
-        "mihomoUpgrade" => {
-            if read_core_name(app)? == "mihomo-alpha" {
-                let latest = latest_mihomo_alpha_version()?;
-                let current = core_request(state, reqwest::Method::GET, "/version", None, None)?;
-                let current_version = current
-                    .get("version")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default();
-                if current_version.contains(&latest) {
-                    Err(format!("already using latest version {latest}"))
-                } else {
-                    stop_core_process(app, state)?;
-                    let target_path = mihomo_alpha_core_target_path(app)?;
-                    download_mihomo_alpha_core(app, &target_path)?;
-                    restart_core_process(app, state, None).inspect(|value| {
-                        emit_ipc_event(app, "core-started", value.clone());
-                        emit_ipc_event(app, "groupsUpdated", Value::Null);
-                        emit_ipc_event(app, "rulesUpdated", Value::Null);
-                    })
-                }
-            } else {
-                core_request(state, reqwest::Method::POST, "/upgrade", None, None)
-                    .map(|_| Value::Null)
-            }
-        }
+        "mihomoUpgrade" => upgrade_mihomo_core(app, state, read_core_name(app)? == "mihomo-alpha"),
         "mihomoUpgradeGeo" => {
             core_request(state, reqwest::Method::POST, "/upgrade/geo", None, None)
                 .map(|_| Value::Null)
@@ -240,7 +241,7 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
             } else {
                 "https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt"
             };
-            match fetch_text(url, 10) {
+            match fetch_text_with_update_client(app, url, 10) {
                 Ok(text) => Ok(json!(text.trim())),
                 Err(_) => Ok(Value::Null),
             }

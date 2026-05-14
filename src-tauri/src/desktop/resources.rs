@@ -414,9 +414,10 @@ fn get_mihomo_asset_prefix_candidates() -> Result<Vec<&'static str>, String> {
     }
 }
 
-fn mihomo_alpha_asset_matches(
+fn mihomo_asset_matches(
     asset_name: &str,
     version: &str,
+    is_alpha: bool,
     ext: &str,
     prefixes: &[&str],
 ) -> bool {
@@ -430,30 +431,54 @@ fn mihomo_alpha_asset_matches(
             return false;
         }
         let middle = &asset_name[prefix.len()..asset_name.len() - suffix.len()];
-        middle.is_empty() || middle == "-alpha" || middle.starts_with("-alpha-")
+        if is_alpha {
+            middle.is_empty() || middle == "-alpha" || middle.starts_with("-alpha-")
+        } else {
+            middle.is_empty()
+                || middle
+                    .strip_prefix("-go")
+                    .is_some_and(|suffix| !suffix.is_empty() && suffix.chars().all(|ch| ch.is_ascii_digit()))
+        }
     })
 }
 
-fn score_mihomo_alpha_asset_name(asset_name: &str, version: &str, ext: &str) -> i32 {
+fn score_mihomo_asset_name(asset_name: &str, version: &str, is_alpha: bool, ext: &str) -> i32 {
     let suffix = format!("-{version}{ext}");
     let middle = asset_name
         .strip_suffix(&suffix)
         .unwrap_or(asset_name);
-    if middle.ends_with("-alpha") {
-        return 0;
+    if is_alpha {
+        if middle.ends_with("-alpha") {
+            return 0;
+        }
+        if middle.contains("-alpha-go") {
+            return 1;
+        }
+        2
+    } else if middle.contains("-go") {
+        1
+    } else {
+        0
     }
-    if middle.contains("-alpha-go") {
-        return 1;
-    }
-    2
 }
 
-fn fetch_mihomo_alpha_release_assets(
+fn fetch_mihomo_release_assets(
     app: &tauri::AppHandle,
+    tag: &str,
 ) -> Result<Vec<GitHubReleaseAsset>, String> {
+    let release = fetch_mihomo_release(app, &format!("tags/{tag}"))?;
+    Ok(release.assets.unwrap_or_default())
+}
+
+fn fetch_mihomo_release(
+    app: &tauri::AppHandle,
+    release_path: &str,
+) -> Result<GitHubReleaseResponse, String> {
     let client = update_client(app, 30)?;
     let response = client
-        .get("https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/Prerelease-Alpha")
+        .get(format!(
+            "https://api.github.com/repos/MetaCubeX/mihomo/releases/{release_path}"
+        ))
         .header(reqwest::header::ACCEPT, "application/vnd.github+json")
         .header(reqwest::header::USER_AGENT, "RouteX-Tauri/1.0")
         .send()
@@ -464,33 +489,45 @@ fn fetch_mihomo_alpha_release_assets(
 
     Ok(response
         .json::<GitHubReleaseResponse>()
-        .map_err(|e| e.to_string())?
-        .assets
-        .unwrap_or_default())
+        .map_err(|e| e.to_string())?)
 }
 
-fn fallback_mihomo_alpha_asset(version: &str, prefixes: &[&str], ext: &str) -> GitHubReleaseAsset {
+fn fallback_mihomo_asset(
+    version: &str,
+    tag: &str,
+    prefixes: &[&str],
+    ext: &str,
+) -> GitHubReleaseAsset {
     let file_name = format!("{}-{version}{ext}", prefixes[0]);
     GitHubReleaseAsset {
         name: file_name.clone(),
         browser_download_url: format!(
-            "https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/{file_name}"
+            "https://github.com/MetaCubeX/mihomo/releases/download/{tag}/{file_name}"
         ),
     }
 }
 
-fn resolve_mihomo_alpha_asset(app: &tauri::AppHandle, version: &str) -> Result<GitHubReleaseAsset, String> {
+fn resolve_mihomo_asset(
+    app: &tauri::AppHandle,
+    version: &str,
+    is_alpha: bool,
+) -> Result<GitHubReleaseAsset, String> {
     let ext = if cfg!(target_os = "windows") {
         ".zip"
     } else {
         ".gz"
     };
     let prefixes = get_mihomo_asset_prefix_candidates()?;
+    let tag = if is_alpha {
+        "Prerelease-Alpha"
+    } else {
+        version
+    };
 
-    match fetch_mihomo_alpha_release_assets(app) {
+    match fetch_mihomo_release_assets(app, tag) {
         Ok(assets) => assets
             .into_iter()
-            .filter(|asset| mihomo_alpha_asset_matches(&asset.name, version, ext, &prefixes))
+            .filter(|asset| mihomo_asset_matches(&asset.name, version, is_alpha, ext, &prefixes))
             .min_by_key(|asset| {
                 let prefix_score = prefixes
                     .iter()
@@ -498,39 +535,64 @@ fn resolve_mihomo_alpha_asset(app: &tauri::AppHandle, version: &str) -> Result<G
                     .unwrap_or(prefixes.len());
                 (
                     prefix_score,
-                    score_mihomo_alpha_asset_name(&asset.name, version, ext),
+                    score_mihomo_asset_name(&asset.name, version, is_alpha, ext),
                 )
             })
-            .ok_or_else(|| format!("未找到匹配的 Mihomo Alpha 资源: {version}")),
-        Err(_) => Ok(fallback_mihomo_alpha_asset(version, &prefixes, ext)),
+            .ok_or_else(|| format!("未找到匹配的 Mihomo 资源: {version}")),
+        Err(_) => Ok(fallback_mihomo_asset(version, tag, &prefixes, ext)),
     }
 }
 
-fn download_with_update_client(app: &tauri::AppHandle, url: &str, timeout_secs: u64) -> Result<Vec<u8>, String> {
-    let send = |client: Client| -> Result<Vec<u8>, String> {
+fn send_with_update_client<T>(
+    app: &tauri::AppHandle,
+    url: &str,
+    timeout_secs: u64,
+    action_label: &str,
+    read_response: impl Fn(reqwest::blocking::Response) -> Result<T, String>,
+) -> Result<T, String> {
+    let send = |client: Client| -> Result<T, String> {
         let response = client
             .get(url)
             .header(reqwest::header::USER_AGENT, "RouteX-Tauri/1.0")
             .send()
             .map_err(|e| e.to_string())?;
         if !response.status().is_success() {
-            return Err(format!("下载失败: {}", response.status()));
+            return Err(format!("{action_label}失败: {}", response.status()));
         }
-        response.bytes().map(|bytes| bytes.to_vec()).map_err(|e| e.to_string())
+        read_response(response)
     };
 
     match update_client(app, timeout_secs).and_then(send) {
-        Ok(bytes) => Ok(bytes),
+        Ok(value) => Ok(value),
         Err(proxy_error) => {
             let client = Client::builder()
                 .timeout(Duration::from_secs(timeout_secs))
                 .build()
                 .map_err(|e| e.to_string())?;
             send(client).map_err(|direct_error| {
-                format!("代理下载失败: {proxy_error}; 直连下载失败: {direct_error}")
+                format!("代理{action_label}失败: {proxy_error}; 直连{action_label}失败: {direct_error}")
             })
         }
     }
+}
+
+fn download_with_update_client(
+    app: &tauri::AppHandle,
+    url: &str,
+    timeout_secs: u64,
+) -> Result<Vec<u8>, String> {
+    send_with_update_client(app, url, timeout_secs, "下载", |response| {
+        response
+            .bytes()
+            .map(|bytes| bytes.to_vec())
+            .map_err(|e| e.to_string())
+    })
+}
+
+fn fetch_text_with_update_client(app: &tauri::AppHandle, url: &str, timeout_secs: u64) -> Result<String, String> {
+    send_with_update_client(app, url, timeout_secs, "请求", |response| {
+        response.text().map_err(|e| e.to_string())
+    })
 }
 
 fn find_mihomo_zip_entry(archive: &mut ZipArchive<Cursor<Vec<u8>>>) -> Result<usize, String> {
@@ -548,7 +610,7 @@ fn find_mihomo_zip_entry(archive: &mut ZipArchive<Cursor<Vec<u8>>>) -> Result<us
             return Ok(index);
         }
     }
-    Err("Mihomo Alpha 下载完成但压缩包内未找到可执行文件".to_string())
+    Err("Mihomo 下载完成但压缩包内未找到可执行文件".to_string())
 }
 
 fn write_mihomo_zip_entry(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
@@ -603,48 +665,90 @@ fn write_mihomo_gzip_bytes(bytes: Vec<u8>, target_path: &Path) -> Result<(), Str
     fs::rename(&temp_path, target_path).map_err(|e| e.to_string())
 }
 
-fn download_mihomo_alpha_core(app: &tauri::AppHandle, target_path: &Path) -> Result<(), String> {
-    let version = latest_mihomo_alpha_version()?;
-    let asset = resolve_mihomo_alpha_asset(app, &version)?;
+fn fetch_mihomo_core_archive(
+    app: &tauri::AppHandle,
+    version: &str,
+    is_alpha: bool,
+) -> Result<(GitHubReleaseAsset, Vec<u8>), String> {
+    let asset = resolve_mihomo_asset(app, version, is_alpha)?;
     let bytes = download_with_update_client(app, &asset.browser_download_url, 120)?;
+    Ok((asset, bytes))
+}
+
+fn write_mihomo_core_archive(
+    asset: &GitHubReleaseAsset,
+    bytes: Vec<u8>,
+    target_path: &Path,
+) -> Result<(), String> {
     if asset.name.ends_with(".zip") {
         write_mihomo_zip_entry(bytes, target_path)?;
     } else if asset.name.ends_with(".gz") {
         #[cfg(target_os = "windows")]
         {
-            return Err(format!("不支持的 Mihomo Alpha 压缩格式: {}", asset.name));
+            return Err(format!("不支持的 Mihomo 压缩格式: {}", asset.name));
         }
         #[cfg(not(target_os = "windows"))]
         {
             write_mihomo_gzip_bytes(bytes, target_path)?;
         }
     } else {
-        return Err(format!("不支持的 Mihomo Alpha 资源格式: {}", asset.name));
+        return Err(format!("不支持的 Mihomo 资源格式: {}", asset.name));
     }
 
     Ok(())
 }
 
-fn latest_mihomo_alpha_version() -> Result<String, String> {
-    let version = fetch_text(
-        "https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt",
-        30,
-    )?
-    .trim()
-    .to_string();
+fn download_mihomo_alpha_core(app: &tauri::AppHandle, target_path: &Path) -> Result<(), String> {
+    let version = latest_mihomo_version(app, true)?;
+    let (asset, bytes) = fetch_mihomo_core_archive(app, &version, true)?;
+    write_mihomo_core_archive(&asset, bytes, target_path)
+}
+
+fn latest_mihomo_version(app: &tauri::AppHandle, is_alpha: bool) -> Result<String, String> {
+    let version = if is_alpha {
+        fetch_text_with_update_client(
+            app,
+            "https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt",
+            30,
+        )
+        .map(|text| text.trim().to_string())
+    } else {
+        fetch_mihomo_release(app, "latest")
+            .and_then(|release| {
+                release
+                    .tag_name
+                    .map(|tag| tag.trim().to_string())
+                    .filter(|tag| !tag.is_empty())
+                    .ok_or_else(|| "Mihomo latest release tag 为空".to_string())
+            })
+            .or_else(|_| {
+                fetch_text_with_update_client(
+                    app,
+                    "https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt",
+                    30,
+                )
+                .map(|text| text.trim().to_string())
+            })
+    }?;
     if version.is_empty() {
-        return Err("Mihomo Alpha version 为空".to_string());
+        let label = if is_alpha { "Mihomo Alpha" } else { "Mihomo" };
+        return Err(format!("{label} version 为空"));
     }
     Ok(version)
 }
 
-fn mihomo_alpha_core_target_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+fn mihomo_core_target_path(app: &tauri::AppHandle, is_alpha: bool) -> Result<PathBuf, String> {
     let extension = if cfg!(target_os = "windows") {
         ".exe"
     } else {
         ""
     };
-    runtime_core_binary_path(app, &format!("mihomo-alpha{extension}"))
+    let name = if is_alpha {
+        "mihomo-alpha"
+    } else {
+        "mihomo"
+    };
+    runtime_core_binary_path(app, &format!("{name}{extension}"))
 }
 
 fn ensure_mihomo_core_available(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, String> {
@@ -661,7 +765,7 @@ fn ensure_mihomo_core_available(app: &tauri::AppHandle, core: &str) -> Result<Pa
         return Err(format!("Mihomo core not found: {core}{extension}"));
     }
 
-    let target_path = mihomo_alpha_core_target_path(app)?;
+    let target_path = mihomo_core_target_path(app, true)?;
     download_mihomo_alpha_core(app, &target_path)?;
     resolve_core_binary(app, core)
 }

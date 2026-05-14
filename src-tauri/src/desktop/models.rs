@@ -253,6 +253,7 @@ pub(super) struct GitHubReleaseAsset {
 
 #[derive(Debug, Clone, Default, Deserialize)]
 pub(super) struct GitHubReleaseResponse {
+    pub(super) tag_name: Option<String>,
     pub(super) assets: Option<Vec<GitHubReleaseAsset>>,
 }
 
