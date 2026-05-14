@@ -19,6 +19,8 @@ interface TrafficOverviewProps {
 
 const PROXY_GRADIENT = 'linear-gradient(90deg, #2563eb 0%, #38bdf8 100%)'
 const DIRECT_GRADIENT = 'linear-gradient(90deg, #16a34a 0%, #4ade80 100%)'
+const SECTION_LABEL_CLASS =
+  'text-[9px] font-medium uppercase leading-none tracking-[0.12em] text-default-500'
 
 interface FormattedTraffic {
   val: number
@@ -58,7 +60,7 @@ function calculateSplitRatios(primary: number, total: number, minVisible = 1): S
 
 const DetailMetric: React.FC<DetailMetricProps> = ({ label, value, marker }) => {
   return (
-    <div className="flex items-center gap-1.5 w-[96px] shrink-0">
+    <div className="flex items-center gap-1.5 w-[108px] shrink-0">
       <div className="flex items-center gap-1 text-[11px] leading-none font-medium text-default-500 uppercase tracking-wide shrink-0">
         {marker}
         <span>{label}</span>
@@ -93,10 +95,8 @@ const PeriodSummary: React.FC<PeriodSummaryProps> = ({
 
   return (
     <div className="min-w-0 px-3 first:pl-0 last:pr-0">
-      <div className="mb-1.5 text-[11px] font-semibold leading-none tracking-wide text-default-500">
-        {label}
-      </div>
-      <div className="mb-2 text-sm font-bold leading-none text-foreground/85 tabular-nums">
+      <div className={`mb-1.5 truncate ${SECTION_LABEL_CLASS}`}>{label}</div>
+      <div className="mb-2 text-[13px] font-semibold leading-none text-foreground/85 tabular-nums">
         {formattedTotal}
       </div>
       <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-default-100/60">
@@ -171,11 +171,11 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
       >
         <div className="flex justify-between items-end">
           <div className="flex flex-col">
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-default-500">
+            <div className={`mb-1 ${SECTION_LABEL_CLASS}`}>
               {t('stats.sessionTotal')}
             </div>
             <div className="flex min-w-0 items-baseline gap-2">
-              <span className="font-data-numeric text-[40px] font-black leading-none tracking-tight text-foreground tabular-nums">
+              <span className="font-data-numeric text-[34px] font-bold leading-none tracking-normal text-foreground tabular-nums">
                 <CountUp
                   end={sessionTotalFormatted.val}
                   decimals={sessionTotalFormatted.val % 1 !== 0 ? 1 : 0}
@@ -183,7 +183,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
                   preserveValue
                 />
               </span>
-              <span className="text-sm font-bold uppercase tracking-wider text-default-400">
+              <span className="text-xs font-semibold uppercase tracking-wide text-default-400">
                 {sessionTotalFormatted.unit}
               </span>
             </div>
@@ -235,7 +235,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
         className="flex flex-col gap-3"
       >
         <div className="flex justify-between items-end">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-default-500 pb-2">
+          <div className={`pb-2 ${SECTION_LABEL_CLASS}`}>
             {t('stats.routeDistribution')}
           </div>
           <div className="flex items-center justify-end gap-4 pb-2 shrink-0">

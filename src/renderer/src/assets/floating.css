@@ -1,3 +1,5 @@
+@import './inter.css';
+
 html,
 body,
 #root {
@@ -77,6 +79,8 @@ body,
 
 .floating-text {
   font-family:
+    'Inter Variable',
+    'Inter',
     'Microsoft YaHei',
     system-ui,
     -apple-system,
