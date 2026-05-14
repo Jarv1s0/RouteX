@@ -20,7 +20,7 @@ vi.mock('@renderer/i18n', () => ({
 import { buildExternalUiOpenUrl } from './controller-setting'
 
 describe('buildExternalUiOpenUrl', () => {
-  it('puts MetaCubeXD connection params in the real query string', () => {
+  it('puts MetaCubeXD connection params in both query locations', () => {
     const url = new URL(
       buildExternalUiOpenUrl(
         '127.0.0.1:9090',
@@ -35,7 +35,7 @@ describe('buildExternalUiOpenUrl', () => {
     expect(url.searchParams.get('hostname')).toBe('127.0.0.1')
     expect(url.searchParams.get('port')).toBe('9090')
     expect(url.searchParams.get('secret')).toBe('token')
-    expect(url.hash).toBe('#/setup')
+    expect(url.hash).toBe('#/setup?hostname=127.0.0.1&port=9090&secret=token')
   })
 
   it('keeps zashboard connection params in the setup hash route', () => {

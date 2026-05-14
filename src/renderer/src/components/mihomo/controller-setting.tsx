@@ -97,12 +97,18 @@ export function buildExternalUiOpenUrl(
   }
 
   if (normalizedUiPath.includes('metacubexd') || externalUiUrl.includes('metacubexd')) {
-    uiBaseUrl.searchParams.set('hostname', host)
-    uiBaseUrl.searchParams.set('port', port)
+    const setupParams = new URLSearchParams({
+      hostname: host,
+      port
+    })
     if (secret) {
-      uiBaseUrl.searchParams.set('secret', secret)
+      setupParams.set('secret', secret)
     }
-    uiBaseUrl.hash = '/setup'
+
+    for (const [key, value] of setupParams) {
+      uiBaseUrl.searchParams.set(key, value)
+    }
+    uiBaseUrl.hash = `/setup?${setupParams.toString()}`
     return uiBaseUrl.toString()
   }
 
