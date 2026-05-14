@@ -63,6 +63,32 @@ function normalizeControllerForBrowser(value: string): string {
   return trimmed
 }
 
+function getIsMetaCubeXD(normalizedUiPath: string, externalUiUrl: string): boolean {
+  return normalizedUiPath.includes('metacubexd') || externalUiUrl.includes('metacubexd')
+}
+
+function getIsZashboard(normalizedUiPath: string, externalUiUrl: string): boolean {
+  return normalizedUiPath.includes('zashboard') || externalUiUrl.includes('zashboard')
+}
+
+function isolateMetaCubeXDLoopbackHost(host: string): string {
+  const normalizedHost = host.toLowerCase()
+
+  if (normalizedHost === '127.0.0.1') {
+    return 'localhost'
+  }
+
+  if (normalizedHost === 'localhost') {
+    return '127.0.0.1'
+  }
+
+  if (normalizedHost === '[::1]' || normalizedHost === '::1') {
+    return 'localhost'
+  }
+
+  return host
+}
+
 export function buildExternalUiOpenUrl(
   controller: string,
   uiPath: string,
@@ -74,19 +100,20 @@ export function buildExternalUiOpenUrl(
   const port = controllerUrl.port
   const normalizedUiPath = uiPath.trim() || 'ui'
   const uiBaseUrl = new URL('/ui/', controllerUrl)
-  const uiCacheKey =
-    normalizedUiPath.includes('metacubexd') || externalUiUrl.includes('metacubexd')
-      ? 'metacubexd'
-      : normalizedUiPath.includes('zashboard') || externalUiUrl.includes('zashboard')
-        ? 'zashboard'
-        : 'custom'
+  const isMetaCubeXD = getIsMetaCubeXD(normalizedUiPath, externalUiUrl)
+  const isZashboard = getIsZashboard(normalizedUiPath, externalUiUrl)
+  const uiCacheKey = isMetaCubeXD ? 'metacubexd' : isZashboard ? 'zashboard' : 'custom'
+
+  if (isMetaCubeXD) {
+    uiBaseUrl.hostname = isolateMetaCubeXDLoopbackHost(host)
+  }
 
   uiBaseUrl.searchParams.set('_routex_ui', uiCacheKey)
   uiBaseUrl.searchParams.set('_routex', Date.now().toString())
 
-  if (normalizedUiPath.includes('zashboard') || externalUiUrl.includes('zashboard')) {
+  if (isZashboard) {
     const hashParams = new URLSearchParams({
-      hostname: host,
+      hostname: uiBaseUrl.hostname,
       port
     })
     if (secret) {
@@ -96,9 +123,9 @@ export function buildExternalUiOpenUrl(
     return uiBaseUrl.toString()
   }
 
-  if (normalizedUiPath.includes('metacubexd') || externalUiUrl.includes('metacubexd')) {
+  if (isMetaCubeXD) {
     const setupParams = new URLSearchParams({
-      hostname: host,
+      hostname: uiBaseUrl.hostname,
       port
     })
     if (secret) {
@@ -112,7 +139,7 @@ export function buildExternalUiOpenUrl(
     return uiBaseUrl.toString()
   }
 
-  uiBaseUrl.searchParams.set('hostname', host)
+  uiBaseUrl.searchParams.set('hostname', uiBaseUrl.hostname)
   uiBaseUrl.searchParams.set('port', port)
   if (secret) {
     uiBaseUrl.searchParams.set('secret', secret)
