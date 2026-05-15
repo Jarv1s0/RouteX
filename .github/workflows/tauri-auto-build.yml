@@ -143,14 +143,18 @@ jobs:
           set -euo pipefail
 
           cargo_path="$(rustup which cargo)"
+          rustc_path="$(rustup which rustc)"
           cargo_bin="$RUNNER_TEMP/rust-bin"
           mkdir -p "$cargo_bin"
           ln -sf "$cargo_path" "$cargo_bin/cargo"
+          ln -sf "$rustc_path" "$cargo_bin/rustc"
 
           echo "CARGO=$cargo_path" >> "$GITHUB_ENV"
+          echo "RUSTC=$rustc_path" >> "$GITHUB_ENV"
           echo "$cargo_bin" >> "$GITHUB_PATH"
           rustup component add rust-src
           "$cargo_path" --version
+          "$rustc_path" -vV
 
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
