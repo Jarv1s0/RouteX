@@ -285,7 +285,8 @@ jobs:
         shell: bash
         run: |
           pnpm check:release-env
-          pnpm tauri build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":true}}'
+          node scripts/write-release-tauri-config.mjs
+          pnpm tauri build --bundles nsis --config src-tauri/tauri.release.conf.json
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -299,7 +300,8 @@ jobs:
         shell: bash
         run: |
           pnpm check:release-env
-          pnpm tauri build --bundles deb rpm --config '{"bundle":{"createUpdaterArtifacts":true}}'
+          node scripts/write-release-tauri-config.mjs
+          pnpm tauri build --bundles deb rpm --config src-tauri/tauri.release.conf.json
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -314,7 +316,8 @@ jobs:
         run: |
           set -euo pipefail
           pnpm check:release-env
-          pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":true}}'
+          node scripts/write-release-tauri-config.mjs
+          pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config src-tauri/tauri.release.conf.json
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

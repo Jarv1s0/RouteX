@@ -18,6 +18,7 @@ target
 .shared/
 *.code-workspace
 .tmp-edge-profile/
+src-tauri/tauri.release.conf.json
 
 .mihomo/
 .codex-ui-snapshots/
