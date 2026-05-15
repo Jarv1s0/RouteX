@@ -125,6 +125,7 @@ jobs:
 
           echo "CARGO=$cargo_path" >> "$GITHUB_ENV"
           echo "$cargo_bin" >> "$GITHUB_PATH"
+          rustup component add rust-src
           "$cargo_path" --version
 
       - name: Setup Rust cache
@@ -223,6 +224,7 @@ jobs:
 
           echo "CARGO=$cargo_path" >> "$GITHUB_ENV"
           echo "$cargo_bin" >> "$GITHUB_PATH"
+          rustup component add rust-src
           "$cargo_path" --version
 
       - name: Setup Rust cache
