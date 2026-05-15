@@ -96,11 +96,22 @@ fn finish_update_download(state: &State<'_, CoreState>) {
     }
 }
 
-fn updater_public_key() -> Result<&'static str, String> {
-    option_env!("ROUTEX_UPDATER_PUBLIC_KEY")
+fn updater_public_key() -> Result<String, String> {
+    let public_key = option_env!("ROUTEX_UPDATER_PUBLIC_KEY")
         .map(str::trim)
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| String::from("缺少 ROUTEX_UPDATER_PUBLIC_KEY，无法启用官方更新校验"))
+        .ok_or_else(|| String::from("缺少 ROUTEX_UPDATER_PUBLIC_KEY，无法启用官方更新校验"))?;
+
+    if public_key
+        .lines()
+        .next()
+        .map(|line| line.to_ascii_lowercase().contains("comment"))
+        .unwrap_or(false)
+    {
+        Ok(public_key.to_string())
+    } else {
+        Ok(format!("untrusted comment: tauri public key\n{public_key}"))
+    }
 }
 
 fn official_updater(
@@ -108,9 +119,10 @@ fn official_updater(
     timeout_secs: u64,
 ) -> Result<tauri_plugin_updater::Updater, String> {
     let endpoint = reqwest::Url::parse(&update_manifest_url(app)?).map_err(|e| e.to_string())?;
+    let public_key = updater_public_key()?;
     let mut builder = app
         .updater_builder()
-        .pubkey(updater_public_key()?)
+        .pubkey(&public_key)
         .endpoints(vec![endpoint])
         .map_err(|e| e.to_string())?
         .timeout(Duration::from_secs(timeout_secs));
