@@ -920,6 +920,7 @@ export const zhCN = {
   'tools.ipCheck.analyzingRoute': '分析路由中...',
   'tray.title': '快速控制台',
   'updater.versionReady': '{version} 版本就绪',
+  'updater.releaseNotes': '更新日志',
   'updater.openDownload': '前往下载',
   'updater.downloadProgress': '下载进度',
   'updater.loadingReleaseNotes': '加载更新日志...',

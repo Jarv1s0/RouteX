@@ -953,6 +953,7 @@ export const enUS: Record<TranslationKey, string> = {
   'tools.ipCheck.analyzingRoute': 'Analyzing route...',
   'tray.title': 'Quick console',
   'updater.versionReady': 'Version {version} is ready',
+  'updater.releaseNotes': 'Release notes',
   'updater.openDownload': 'Open download',
   'updater.downloadProgress': 'Download progress',
   'updater.loadingReleaseNotes': 'Loading release notes...',

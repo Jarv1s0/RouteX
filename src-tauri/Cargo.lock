@@ -3552,7 +3552,7 @@ dependencies = [
 
 [[package]]
 name = "routex"
-version = "4.0.1"
+version = "4.0.0"
 dependencies = [
  "base64 0.22.1",
  "boa_engine",

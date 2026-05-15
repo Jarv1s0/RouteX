@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "RouteX",
-  "version": "4.0.1",
+  "version": "4.0.0",
   "identifier": "com.jarv1s0.routex.tauri",
   "build": {
     "beforeBuildCommand": "corepack pnpm run build:tauri-web",

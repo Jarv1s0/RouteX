@@ -8,7 +8,7 @@ import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
-import { checkUpdate, setNativeTheme } from '@renderer/api/app'
+import { checkUpdate, setNativeTheme, UPDATE_CHECK_RESULT_EVENT } from '@renderer/api/app'
 import { applyTheme } from '@renderer/utils/theme-ipc'
 import { startTauriMihomoEventBridge } from '@renderer/utils/mihomo-ipc'
 import { ensureTauriTrafficRecorder } from '@renderer/utils/tauri-traffic-stats'
@@ -57,7 +57,6 @@ const App: React.FC = () => {
     appTheme = 'system',
     customTheme,
     siderWidth = 250,
-    autoCheckUpdate,
     updateChannel = 'stable',
     sysProxy,
     collapseSidebar = false
@@ -93,14 +92,9 @@ const App: React.FC = () => {
   }, [routerNavigate, location.pathname])
 
   useEffect(() => {
-    if (!autoCheckUpdate) {
-      setLatest(undefined)
-      lastUpdateCheckAtRef.current = 0
-      return
-    }
-
     let cancelled = false
     const MIN_CHECK_INTERVAL = 1000 * 60 * 10
+    lastUpdateCheckAtRef.current = 0
 
     const runUpdateCheck = async (force = false): Promise<void> => {
       const now = Date.now()
@@ -135,13 +129,31 @@ const App: React.FC = () => {
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    const checkInterval = window.setInterval(() => {
+      if (!document.hidden) {
+        void runUpdateCheck()
+      }
+    }, MIN_CHECK_INTERVAL)
 
     return () => {
       cancelled = true
       cancelInitialCheck()
+      window.clearInterval(checkInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [autoCheckUpdate, updateChannel])
+  }, [updateChannel])
+
+  useEffect(() => {
+    const handleUpdateCheckResult = (event: Event): void => {
+      const latestVersion = (event as CustomEvent<AppVersion | undefined>).detail
+      setLatest(latestVersion)
+    }
+
+    window.addEventListener(UPDATE_CHECK_RESULT_EVENT, handleUpdateCheckResult)
+    return () => {
+      window.removeEventListener(UPDATE_CHECK_RESULT_EVENT, handleUpdateCheckResult)
+    }
+  }, [])
 
   useEffect(() => {
     const nextWidth = collapseSidebar ? narrowWidth : siderWidth

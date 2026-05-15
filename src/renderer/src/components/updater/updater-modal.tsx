@@ -11,7 +11,10 @@ import React, { Suspense, useState } from 'react'
 import { downloadAndInstallUpdate } from '@renderer/api/app'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { FiX, FiDownload } from 'react-icons/fi'
-import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import {
+  createSecondaryModalClassNames,
+  getMainPaneModalContentStyle
+} from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
 const ReleaseNotesMarkdown = React.lazy(() => import('./release-notes-markdown'))
@@ -57,31 +60,45 @@ const UpdaterModal: React.FC<Props> = (props) => {
     <Modal
       backdrop={disableAnimation ? 'transparent' : 'blur'}
       disableAnimation={disableAnimation}
-      classNames={{ backdrop: 'top-[48px]' }}
       hideCloseButton
       isOpen={true}
       onOpenChange={onClose}
       scrollBehavior="inside"
       isDismissable={!isDownloading}
+      size="2xl"
+      classNames={createSecondaryModalClassNames({
+        body: 'p-0',
+        backdrop: 'top-[48px]',
+        footer: 'px-5 py-4'
+      })}
     >
       <ModalContent
-        className="h-full"
+        className="w-full max-h-[min(720px,calc(100vh-96px))]"
         style={getMainPaneModalContentStyle({
           collapseSidebar,
           siderWidth,
-          viewportPaddingPx: 100
+          maxWidthPx: 760,
+          viewportPaddingPx: 48
         })}
       >
-        <ModalHeader className="flex justify-between app-drag">
-          <div className="flex items-center gap-2">
-            <FiDownload className="text-lg" />
-            {t('updater.versionReady', { version })}
+        <ModalHeader className="flex items-center justify-between gap-4 app-drag px-5 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <FiDownload className="text-lg" />
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-xl font-semibold">
+                {t('updater.versionReady', { version })}
+              </div>
+              <div className="text-xs font-normal text-default-500">{t('updater.releaseNotes')}</div>
+            </div>
           </div>
           {!isDownloading && (
             <Button
               color="primary"
               size="sm"
-              className="flex app-nodrag"
+              variant="flat"
+              className="shrink-0 app-nodrag"
               onPress={() => {
                 if (version.includes('beta')) {
                   open('https://github.com/Jarv1s0/RouteX/releases/tag/pre-release')
@@ -94,9 +111,9 @@ const UpdaterModal: React.FC<Props> = (props) => {
             </Button>
           )}
         </ModalHeader>
-        <ModalBody className="h-full">
+        <ModalBody>
           {updateStatus?.downloading && (
-            <div className="space-y-3 mb-4">
+            <div className="space-y-3 p-5">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-default-600">{t('updater.downloadProgress')}</span>
                 <span className="text-sm font-medium">{updateStatus.progress}%</span>
@@ -113,7 +130,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
             </div>
           )}
           {!updateStatus?.downloading && (
-            <div className="markdown-body select-text">
+            <div className="markdown-body max-h-[520px] overflow-y-auto px-5 py-4 text-sm leading-6 select-text">
               <Suspense
                 fallback={
                   <div className="text-sm text-default-500">{t('updater.loadingReleaseNotes')}</div>

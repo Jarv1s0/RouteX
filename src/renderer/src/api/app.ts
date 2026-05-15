@@ -11,6 +11,7 @@ let lastCheckUpdateAt = 0
 let lastCheckUpdateResult: AppVersion | undefined
 
 const CHECK_UPDATE_CACHE_MS = 60 * 1000
+export const UPDATE_CHECK_RESULT_EVENT = 'routex:update-check-result'
 
 function isTauriHost(): boolean {
   return __ROUTEX_HOST__ === 'tauri'
@@ -44,6 +45,12 @@ function getDefaultTauriAppConfig(): AppConfig {
 
 function normalizeTauriAppConfig(config?: Partial<AppConfig>): AppConfig {
   return mergeAppConfig(getDefaultTauriAppConfig(), config || {})
+}
+
+function emitUpdateCheckResult(result: AppVersion | undefined): void {
+  window.dispatchEvent(
+    new CustomEvent<AppVersion | undefined>(UPDATE_CHECK_RESULT_EVENT, { detail: result })
+  )
 }
 
 export async function checkAutoRun(): Promise<boolean> {
@@ -103,6 +110,7 @@ export async function patchAppConfig(patch: Partial<AppConfig>): Promise<void> {
 export async function checkUpdate(): Promise<AppVersion | undefined> {
   const now = Date.now()
   if (now - lastCheckUpdateAt < CHECK_UPDATE_CACHE_MS && lastCheckUpdateResult !== undefined) {
+    emitUpdateCheckResult(lastCheckUpdateResult)
     return lastCheckUpdateResult
   }
 
@@ -114,6 +122,7 @@ export async function checkUpdate(): Promise<AppVersion | undefined> {
     .then((result) => {
       lastCheckUpdateAt = Date.now()
       lastCheckUpdateResult = result
+      emitUpdateCheckResult(result)
       return result
     })
     .finally(() => {
