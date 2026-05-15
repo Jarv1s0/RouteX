@@ -30,7 +30,9 @@ async function githubFetch(url, init = {}) {
   })
 
   if (!response.ok) {
-    throw new Error(`GitHub request failed: ${response.status} ${url}`)
+    const error = new Error(`GitHub request failed: ${response.status} ${url}`)
+    error.status = response.status
+    throw error
   }
 
   return response
@@ -38,7 +40,29 @@ async function githubFetch(url, init = {}) {
 
 async function fetchRelease() {
   const url = `https://api.github.com/repos/${repository}/releases/tags/${encodeURIComponent(tag)}`
-  return githubFetch(url).then((response) => response.json())
+  try {
+    return await githubFetch(url).then((response) => response.json())
+  } catch (error) {
+    if (error.status !== 404) {
+      throw error
+    }
+  }
+
+  for (let page = 1; page <= 5; page += 1) {
+    const releases = await githubFetch(
+      `https://api.github.com/repos/${repository}/releases?per_page=100&page=${page}`
+    ).then((response) => response.json())
+    const release = releases.find((item) => item.tag_name === tag)
+    if (release) {
+      return release
+    }
+
+    if (releases.length < 100) {
+      break
+    }
+  }
+
+  throw new Error(`Release not found: ${tag}`)
 }
 
 async function fetchText(url) {
@@ -78,13 +102,17 @@ function platformKeysForAsset(name) {
   return []
 }
 
+function releaseAssetUrl(assetName) {
+  return `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
+}
+
 const release = await fetchRelease()
 const assets = release.assets || []
 const signatures = new Map()
 
 for (const asset of assets) {
   if (asset.name.endsWith('.sig')) {
-    signatures.set(asset.name.slice(0, -4), await fetchText(asset.browser_download_url))
+    signatures.set(asset.name.slice(0, -4), await fetchText(asset.url))
   }
 }
 
@@ -101,7 +129,7 @@ for (const asset of assets) {
 
   for (const key of platformKeysForAsset(asset.name)) {
     platforms[key] = {
-      url: asset.browser_download_url,
+      url: releaseAssetUrl(asset.name),
       signature
     }
   }

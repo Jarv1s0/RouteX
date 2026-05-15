@@ -361,7 +361,7 @@ jobs:
 
               while IFS= read -r -d '' file; do
                 files+=("$file")
-              done < <(find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.tar.gz' -o -name '*.sig' \) -print0)
+              done < <(find src-tauri/target/release/bundle -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.sig' \) -print0)
               ;;
             macos)
               bundle_dirs=()
@@ -427,6 +427,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
+          gh release delete-asset v${{ env.VERSION }} control.tar.gz --yes || true
+          gh release delete-asset v${{ env.VERSION }} data.tar.gz --yes || true
           node scripts/generate-tauri-updater-manifest.mjs v${{ env.VERSION }} latest.json
           gh release upload v${{ env.VERSION }} latest.json --clobber
           gh release edit v${{ env.VERSION }} \
