@@ -23,17 +23,34 @@ if (missing.length > 0) {
   process.exit(1)
 }
 
-const publicKey = process.env.ROUTEX_UPDATER_PUBLIC_KEY.replace(/\\n/g, '\n').trim()
-const publicKeyLines = publicKey.split(/\r?\n/).filter((line) => line.trim())
-if (publicKeyLines.length > 1 && !/comment/i.test(publicKeyLines[0])) {
+function extractUpdaterPublicKey(value) {
+  const candidates = value
+    .replace(/\\n/g, '\n')
+    .split(/\r?\n/)
+    .flatMap((line) => {
+      const trimmed = line.trim().replace(/^['"]|['"]$/g, '')
+      if (!trimmed || /comment/i.test(trimmed)) {
+        return []
+      }
+
+      const labeled = trimmed.match(/^(?:public\s*key|routex_updater_public_key)\s*[:=]\s*(.+)$/i)
+      const source = labeled ? labeled[1].trim() : trimmed
+      return source.match(/[A-Za-z0-9+/=]{32,}/g) || []
+    })
+
+  return candidates.at(-1) || ''
+}
+
+const publicKey = extractUpdaterPublicKey(process.env.ROUTEX_UPDATER_PUBLIC_KEY)
+if (!publicKey) {
   console.error(
-    '[release-env] ROUTEX_UPDATER_PUBLIC_KEY has multiple lines but is missing the public key comment line'
+    '[release-env] ROUTEX_UPDATER_PUBLIC_KEY must contain the Tauri updater public key value, for example the base64 value after "Public key:"'
   )
   process.exit(1)
 }
 
-if (publicKeyLines.length === 1) {
-  console.warn('[release-env] ROUTEX_UPDATER_PUBLIC_KEY has no comment line; release build will add the default Tauri public key comment')
+if (publicKey !== process.env.ROUTEX_UPDATER_PUBLIC_KEY.trim()) {
+  console.warn('[release-env] ROUTEX_UPDATER_PUBLIC_KEY contains extra text; release build will use the extracted public key value')
 }
 
 for (const name of optionalEnv) {

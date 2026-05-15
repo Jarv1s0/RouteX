@@ -150,6 +150,7 @@ jobs:
       - verify
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix: ${{ fromJSON(needs.select-platforms.outputs.matrix) }}
 
     steps:

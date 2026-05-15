@@ -96,22 +96,59 @@ fn finish_update_download(state: &State<'_, CoreState>) {
     }
 }
 
+fn is_public_key_char(value: char) -> bool {
+    value.is_ascii_alphanumeric() || value == '+' || value == '/' || value == '='
+}
+
+fn public_key_candidates(value: &str) -> Vec<String> {
+    value
+        .replace("\\n", "\n")
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim().trim_matches(['"', '\'']);
+            if trimmed.is_empty() || trimmed.to_ascii_lowercase().contains("comment") {
+                return None;
+            }
+
+            let source = if let Some((label, rest)) = trimmed.split_once(':') {
+                if label
+                    .chars()
+                    .filter(|ch| !ch.is_whitespace())
+                    .collect::<String>()
+                    .eq_ignore_ascii_case("publickey")
+                {
+                    rest.trim()
+                } else {
+                    trimmed
+                }
+            } else if let Some((label, rest)) = trimmed.split_once('=') {
+                if label.eq_ignore_ascii_case("ROUTEX_UPDATER_PUBLIC_KEY") {
+                    rest.trim()
+                } else {
+                    trimmed
+                }
+            } else {
+                trimmed
+            };
+
+            source
+                .split_whitespace()
+                .rev()
+                .find(|part| part.len() >= 32 && part.chars().all(is_public_key_char))
+                .map(ToString::to_string)
+        })
+        .collect()
+}
+
 fn updater_public_key() -> Result<String, String> {
     let public_key = option_env!("ROUTEX_UPDATER_PUBLIC_KEY")
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .ok_or_else(|| String::from("缺少 ROUTEX_UPDATER_PUBLIC_KEY，无法启用官方更新校验"))?;
 
-    if public_key
-        .lines()
-        .next()
-        .map(|line| line.to_ascii_lowercase().contains("comment"))
-        .unwrap_or(false)
-    {
-        Ok(public_key.to_string())
-    } else {
-        Ok(format!("untrusted comment: tauri public key\n{public_key}"))
-    }
+    public_key_candidates(public_key)
+        .pop()
+        .ok_or_else(|| String::from("ROUTEX_UPDATER_PUBLIC_KEY 格式无效，无法提取 updater 公钥"))
 }
 
 fn official_updater(

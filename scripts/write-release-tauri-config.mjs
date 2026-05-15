@@ -10,19 +10,28 @@ function requiredEnv(name) {
   return value
 }
 
-function normalizePublicKey(publicKey) {
-  const lines = publicKey.split(/\r?\n/).filter((line) => line.trim())
-  if (lines.length > 1 && !/comment/i.test(lines[0])) {
+function normalizePublicKey(value) {
+  const candidates = value
+    .split(/\r?\n/)
+    .flatMap((line) => {
+      const trimmed = line.trim().replace(/^['"]|['"]$/g, '')
+      if (!trimmed || /comment/i.test(trimmed)) {
+        return []
+      }
+
+      const labeled = trimmed.match(/^(?:public\s*key|routex_updater_public_key)\s*[:=]\s*(.+)$/i)
+      const source = labeled ? labeled[1].trim() : trimmed
+      return source.match(/[A-Za-z0-9+/=]{32,}/g) || []
+    })
+  const publicKey = candidates.at(-1)
+
+  if (!publicKey) {
     throw new Error(
-      'ROUTEX_UPDATER_PUBLIC_KEY has multiple lines but is missing the public key comment line'
+      'ROUTEX_UPDATER_PUBLIC_KEY must contain the Tauri updater public key value, for example the base64 value after "Public key:"'
     )
   }
 
-  if (lines.length === 1) {
-    return `untrusted comment: tauri public key\n${lines[0]}`
-  }
-
-  return lines.join('\n')
+  return publicKey
 }
 
 const outputPath = process.argv[2] || 'src-tauri/tauri.release.conf.json'
