@@ -60,13 +60,13 @@ function calculateSplitRatios(primary: number, total: number, minVisible = 1): S
 
 const DetailMetric: React.FC<DetailMetricProps> = ({ label, value, marker }) => {
   return (
-    <div className="flex items-center gap-1.5 w-[108px] shrink-0">
+    <div className="flex items-center gap-1.5 w-auto min-w-[110px] shrink-0">
       <div className="flex items-center gap-1 text-[11px] leading-none font-medium text-default-500 uppercase tracking-wide shrink-0">
         {marker}
         <span>{label}</span>
       </div>
       <div className="flex items-baseline gap-0.5 leading-none tabular-nums">
-        <span className="text-sm leading-none font-semibold text-foreground/90 truncate">
+        <span className="text-sm leading-none font-semibold text-foreground/90 whitespace-nowrap">
           <CountUp
             end={value.val}
             decimals={value.val % 1 !== 0 ? 1 : 0}
@@ -74,7 +74,7 @@ const DetailMetric: React.FC<DetailMetricProps> = ({ label, value, marker }) => 
             preserveValue
           />
         </span>
-        <span className="text-[10px] leading-none font-bold text-default-400 shrink-0">
+        <span className="text-[10px] leading-none font-bold text-default-400 shrink-0 whitespace-nowrap">
           {value.unit}
         </span>
       </div>
