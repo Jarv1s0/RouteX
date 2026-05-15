@@ -136,6 +136,21 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Normalize macOS cargo
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cargo_path="$(rustup which cargo)"
+          cargo_bin="$RUNNER_TEMP/rust-bin"
+          mkdir -p "$cargo_bin"
+          ln -sf "$cargo_path" "$cargo_bin/cargo"
+
+          echo "CARGO=$cargo_path" >> "$GITHUB_ENV"
+          echo "$cargo_bin" >> "$GITHUB_PATH"
+          "$cargo_path" --version
+
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v2
         with:
