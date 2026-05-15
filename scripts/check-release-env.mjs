@@ -1,9 +1,12 @@
 const requiredEnv = [
   'ROUTEX_UPDATER_PUBLIC_KEY',
-  'TAURI_SIGNING_PRIVATE_KEY',
-  'TAURI_SIGNING_PRIVATE_KEY_PASSWORD'
+  'TAURI_SIGNING_PRIVATE_KEY'
 ]
-const optionalEnv = ['ROUTEX_UPDATER_STABLE_ENDPOINT', 'ROUTEX_UPDATER_BETA_ENDPOINT']
+const optionalEnv = [
+  'TAURI_SIGNING_PRIVATE_KEY_PASSWORD',
+  'ROUTEX_UPDATER_STABLE_ENDPOINT',
+  'ROUTEX_UPDATER_BETA_ENDPOINT'
+]
 
 if (process.env.ROUTEX_SKIP_UPDATER_ENV_CHECK === 'true') {
   console.warn('[release-env] updater environment check skipped')
@@ -22,6 +25,11 @@ if (missing.length > 0) {
 
 for (const name of optionalEnv) {
   if (!process.env[name]?.trim()) {
+    if (name === 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD') {
+      console.warn('[release-env] TAURI_SIGNING_PRIVATE_KEY_PASSWORD is not set; assuming the signing key has no password')
+      continue
+    }
+
     console.warn(`[release-env] ${name} is not set; built-in GitHub release endpoint will be used`)
   }
 }
