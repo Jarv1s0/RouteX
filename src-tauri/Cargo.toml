@@ -1,6 +1,6 @@
 [package]
 name = "routex"
-version = "4.0.0"
+version = "4.0.1"
 description = "RouteX Tauri shell"
 authors = ["Jarv1s0"]
 edition = "2021"

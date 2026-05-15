@@ -82,6 +82,16 @@
   !insertmacro ROUTEX_CLOSE_RUNNING_PROCESSES
 !macroend
 
+!macro NSIS_HOOK_POSTINSTALL
+  ; Tauri's finish-page shortcut checkbox calls CreateOrUpdateDesktopShortcut,
+  ; but that function returns early in update mode. In GUI mode, keep the choice
+  ; user-controlled and let a checked box actually create the shortcut.
+  ${If} $PassiveMode <> 1
+  ${AndIfNot} ${Silent}
+    StrCpy $UpdateMode 0
+  ${EndIf}
+!macroend
+
 !macro NSIS_HOOK_POSTUNINSTALL
   ${If} $DeleteAppDataCheckboxState = 1
   ${AndIf} $UpdateMode <> 1
