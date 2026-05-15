@@ -487,9 +487,9 @@ fn fetch_mihomo_release(
         return Err(format!("请求 Mihomo release 失败: {}", response.status()));
     }
 
-    Ok(response
+    response
         .json::<GitHubReleaseResponse>()
-        .map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())
 }
 
 fn fallback_mihomo_asset(
