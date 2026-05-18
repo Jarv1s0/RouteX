@@ -25,7 +25,7 @@ use boa_engine::{Context as JsContext, Source as JsSource};
 use quick_xml::{events::Event, Reader};
 use reqwest::blocking::Client;
 use ring::rand::{SecureRandom, SystemRandom};
-use ring::signature::Ed25519KeyPair;
+use ring::signature::{Ed25519KeyPair, KeyPair};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};

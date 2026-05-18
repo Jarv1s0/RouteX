@@ -15,6 +15,38 @@ fn parse_service_auth_key(service_auth_key: &str) -> Result<(String, String), St
     Ok((public_key.to_string(), private_key.to_string()))
 }
 
+fn der_to_pem(label: &str, der: &[u8]) -> String {
+    let encoded = BASE64_STANDARD.encode(der);
+    let body = encoded
+        .as_bytes()
+        .chunks(64)
+        .map(|chunk| std::str::from_utf8(chunk).unwrap_or_default())
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("-----BEGIN {label}-----\n{body}\n-----END {label}-----\n")
+}
+
+fn generate_service_auth_key() -> Result<String, String> {
+    const ED25519_SPKI_PREFIX: &[u8] = &[
+        0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
+    ];
+
+    let rng = SystemRandom::new();
+    let private_key =
+        Ed25519KeyPair::generate_pkcs8(&rng).map_err(|_| "生成服务密钥失败".to_string())?;
+    let key_pair = Ed25519KeyPair::from_pkcs8(private_key.as_ref())
+        .map_err(|_| "生成的服务密钥无效".to_string())?;
+
+    let mut public_key_der = ED25519_SPKI_PREFIX.to_vec();
+    public_key_der.extend_from_slice(key_pair.public_key().as_ref());
+
+    Ok(format!(
+        "{}:{}",
+        BASE64_STANDARD.encode(public_key_der),
+        der_to_pem("PRIVATE KEY", private_key.as_ref())
+    ))
+}
+
 #[cfg(target_os = "windows")]
 fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
     let mut command = Command::new("whoami");
@@ -57,39 +89,62 @@ fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
     Ok(vec![String::from("--authorized-uid"), uid])
 }
 
+fn classify_service_status_token(value: &str) -> Option<&'static str> {
+    let normalized = value.to_ascii_lowercase();
+    if normalized.contains("not-installed")
+        || normalized.contains("not installed")
+        || value.contains("未安装")
+    {
+        return Some("not-installed");
+    }
+    if normalized.contains("stopped")
+        || normalized.contains("not-running")
+        || normalized.contains("not running")
+        || value.contains("已停止")
+    {
+        return Some("stopped");
+    }
+    if normalized.contains("running") || value.contains("运行中") {
+        return Some("running");
+    }
+    None
+}
+
+fn classify_service_status_text(output: &str) -> Option<&'static str> {
+    if let Ok(value) = serde_json::from_str::<Value>(output) {
+        if let Some(status) = value
+            .pointer("/status/state")
+            .and_then(Value::as_str)
+            .or_else(|| value.get("state").and_then(Value::as_str))
+            .and_then(classify_service_status_token)
+        {
+            return Some(status);
+        }
+    }
+
+    classify_service_status_token(output)
+}
+
 fn service_status_value(app: &tauri::AppHandle) -> Result<Value, String> {
+    let has_auth_key = read_service_auth_key(app)?.is_some();
     let output = match run_service_command_capture(
         app,
         &[String::from("service"), String::from("status")],
     ) {
         Ok(output) => output,
         Err(error) => {
-            let normalized = error.to_ascii_lowercase();
-            if normalized.contains("not installed") || error.contains("未安装") {
-                return Ok(json!("not-installed"));
-            }
-            if normalized.contains("stopped") || normalized.contains("not running") {
-                return Ok(json!("stopped"));
+            if let Some(status) = classify_service_status_text(&error) {
+                return Ok(json!(status));
             }
             return Ok(json!("unknown"));
         }
     };
 
-    let normalized = output.to_ascii_lowercase();
-    if normalized.contains("running") || output.contains("运行中") {
-        return Ok(json!("running"));
-    }
-    if normalized.contains("stopped")
-        || normalized.contains("not running")
-        || output.contains("已停止")
-    {
-        return Ok(json!("stopped"));
-    }
-    if normalized.contains("not installed") {
-        return Ok(json!("not-installed"));
-    }
-    if read_service_auth_key(app)?.is_none() {
-        return Ok(json!("need-init"));
+    if let Some(status) = classify_service_status_text(&output) {
+        if status == "running" && !has_auth_key {
+            return Ok(json!("need-init"));
+        }
+        return Ok(json!(status));
     }
     Ok(json!("unknown"))
 }
@@ -114,9 +169,10 @@ fn init_service(app: &tauri::AppHandle, auth_key_input: Option<Value>) -> Result
                 .ok_or_else(|| "initService requires privateKey".to_string())?;
             format!("{public_key}:{private_key}")
         }
-        Some(Value::Null) | None => read_service_auth_key(app)?.ok_or_else(|| {
-            "当前未提供服务密钥，无法初始化服务；请先生成并传入 serviceAuthKey".to_string()
-        })?,
+        Some(Value::Null) | None => match read_service_auth_key(app)? {
+            Some(value) => value,
+            None => generate_service_auth_key()?,
+        },
         Some(_) => return Err("initService 参数格式无效".to_string()),
     };
 
@@ -152,4 +208,3 @@ fn restart_service(app: &tauri::AppHandle) -> Result<(), String> {
 fn stop_service(app: &tauri::AppHandle) -> Result<(), String> {
     run_service_command(app, &[String::from("service"), String::from("stop")])
 }
-

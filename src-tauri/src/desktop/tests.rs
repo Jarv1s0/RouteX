@@ -149,6 +149,26 @@ fn sysproxy_service_commands_use_nested_command_group() {
 }
 
 #[test]
+fn service_status_parser_does_not_treat_not_running_as_running() {
+    let output = r#"{"status":{"state":"not-running","success":false}}"#;
+    assert_eq!(classify_service_status_text(output), Some("stopped"));
+
+    let output = "service is not running";
+    assert_eq!(classify_service_status_text(output), Some("stopped"));
+}
+
+#[test]
+fn generated_service_auth_key_matches_service_parser_format() {
+    let auth_key = generate_service_auth_key().expect("service auth key should be generated");
+    let (public_key, private_key) =
+        parse_service_auth_key(&auth_key).expect("generated key should parse");
+
+    assert!(!public_key.trim().is_empty());
+    assert!(private_key.starts_with("-----BEGIN PRIVATE KEY-----"));
+    assert!(private_key.ends_with("-----END PRIVATE KEY-----\n"));
+}
+
+#[test]
 fn windows_task_xml_uses_unquoted_command_path() {
     let runner = Path::new(r"C:\Users\RouteX Tasks\routex-run.exe");
     let app = Path::new(r"C:\Program Files\RouteX\routex.exe");
