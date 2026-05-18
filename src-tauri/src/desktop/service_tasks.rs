@@ -242,10 +242,18 @@ fn require_windows_process_elevated_for_task_registration() -> Result<(), String
     }
 }
 
-fn build_routex_run_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
-    let routex_run_path = routex_run_binary_task_path(app)?;
-    let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-    Ok(format!(
+fn escape_task_xml_text(value: &Path) -> String {
+    value
+        .to_string_lossy()
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+fn build_routex_run_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
+    let routex_run_path = escape_task_xml_text(routex_run_path);
+    let exe_path = escape_task_xml_text(exe_path);
+    format!(
         r#"<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <Triggers />
@@ -276,21 +284,29 @@ fn build_routex_run_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"{}"</Command>
+      <Command>{}</Command>
       <Arguments>"{}"</Arguments>
     </Exec>
   </Actions>
 </Task>
 "#,
-        routex_run_path.display(),
-        exe_path.display()
+        routex_run_path, exe_path
+    )
+}
+
+fn build_routex_run_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
+    let routex_run_path = routex_run_binary_task_path(app)?;
+    let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    Ok(build_routex_run_task_xml_for_paths(
+        &routex_run_path,
+        &exe_path,
     ))
 }
 
-fn build_routex_autorun_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
-    let routex_run_path = routex_run_binary_task_path(app)?;
-    let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-    Ok(format!(
+fn build_routex_autorun_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
+    let routex_run_path = escape_task_xml_text(routex_run_path);
+    let exe_path = escape_task_xml_text(exe_path);
+    format!(
         r#"<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <Triggers>
@@ -326,15 +342,23 @@ fn build_routex_autorun_task_xml(app: &tauri::AppHandle) -> Result<String, Strin
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"{}"</Command>
+      <Command>{}</Command>
       <Arguments>"{}" {}</Arguments>
     </Exec>
   </Actions>
 </Task>
 "#,
-        routex_run_path.display(),
-        exe_path.display(),
+        routex_run_path, exe_path,
         ROUTEX_STARTUP_ARG
+    )
+}
+
+fn build_routex_autorun_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
+    let routex_run_path = routex_run_binary_task_path(app)?;
+    let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    Ok(build_routex_autorun_task_xml_for_paths(
+        &routex_run_path,
+        &exe_path,
     ))
 }
 

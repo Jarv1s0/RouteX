@@ -1,5 +1,6 @@
 use super::*;
 use std::collections::HashSet;
+use std::path::Path;
 
 const RUST_IPC_HANDLER_SOURCES: [&str; 5] = [
     include_str!("ipc/config.rs"),
@@ -145,6 +146,34 @@ fn sysproxy_service_commands_use_nested_command_group() {
         vec!["sysproxy", "disable"]
     };
     assert_eq!(args, expected);
+}
+
+#[test]
+fn windows_task_xml_uses_unquoted_command_path() {
+    let runner = Path::new(r"C:\Users\RouteX Tasks\routex-run.exe");
+    let app = Path::new(r"C:\Program Files\RouteX\routex.exe");
+
+    let xml = build_routex_run_task_xml_for_paths(runner, app);
+
+    assert!(xml.contains(r"<Command>C:\Users\RouteX Tasks\routex-run.exe</Command>"));
+    assert!(xml.contains(r#"<Arguments>"C:\Program Files\RouteX\routex.exe"</Arguments>"#));
+    assert!(
+        !xml.contains(r#"<Command>"C:\Users\RouteX Tasks\routex-run.exe"</Command>"#),
+        "Task Scheduler Exec.Command should not include shell quotes"
+    );
+}
+
+#[test]
+fn windows_autorun_task_xml_uses_unquoted_command_path() {
+    let runner = Path::new(r"C:\Users\RouteX Tasks\routex-run.exe");
+    let app = Path::new(r"C:\Program Files\RouteX\routex.exe");
+
+    let xml = build_routex_autorun_task_xml_for_paths(runner, app);
+
+    assert!(xml.contains(r"<Command>C:\Users\RouteX Tasks\routex-run.exe</Command>"));
+    assert!(xml.contains(
+        r#"<Arguments>"C:\Program Files\RouteX\routex.exe" --routex-startup</Arguments>"#
+    ));
 }
 
 #[test]
