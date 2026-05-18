@@ -23,6 +23,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=ROUTEX_UPDATER_PUBLIC_KEY");
     println!("cargo:rerun-if-env-changed=ROUTEX_UPDATER_STABLE_ENDPOINT");
     println!("cargo:rerun-if-env-changed=ROUTEX_UPDATER_BETA_ENDPOINT");
+    println!("cargo:rerun-if-changed=../build/app.manifest");
     println!("cargo:rustc-env=ROUTEX_TAURI_BUILD_VARIANT={build_variant}");
 
     let manifest_dir =
@@ -34,5 +35,8 @@ fn main() {
         });
     }
 
-    tauri_build::build()
+    let windows =
+        tauri_build::WindowsAttributes::new().app_manifest(include_str!("../build/app.manifest"));
+    let attributes = tauri_build::Attributes::new().windows_attributes(windows);
+    tauri_build::try_build(attributes).expect("failed to run tauri build script")
 }
