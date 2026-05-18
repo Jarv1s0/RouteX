@@ -138,8 +138,8 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
             #[cfg(target_os = "windows")]
             {
                 let icon_kind = args.first().and_then(Value::as_str).unwrap_or("default");
-                let icon_name = windows_shell_icon_name_from_kind(icon_kind);
-                set_windows_shell_icon_from_path(app, icon_name)?;
+                let (window_icon, tray_icon) = windows_shell_icon_names_from_kind(icon_kind);
+                set_windows_shell_icon_from_paths(app, window_icon, tray_icon)?;
             }
             Ok(Value::Null)
         }

@@ -52,20 +52,26 @@ fn set_main_window_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Re
     window.set_icon(image).map_err(|e| e.to_string())
 }
 
-fn set_windows_shell_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
-    set_main_window_icon_from_path(app, file_name)?;
-    set_tray_icon_from_path(app, file_name)
+fn set_windows_shell_icon_from_paths(
+    app: &tauri::AppHandle,
+    window_icon: &str,
+    tray_icon: &str,
+) -> Result<(), String> {
+    set_main_window_icon_from_path(app, window_icon)?;
+    set_tray_icon_from_path(app, tray_icon)
 }
 
-fn windows_shell_icon_name_from_kind(kind: &str) -> &'static str {
+fn windows_shell_icon_names_from_kind(kind: &str) -> (&'static str, &'static str) {
     match kind {
-        "tun" => "icon_tun.ico",
-        "proxy" => "icon_proxy.ico",
-        _ => "icon.ico",
+        "tun" => ("icon_tun.ico", "icon_tun_tray.ico"),
+        "proxy" => ("icon_proxy.ico", "icon_proxy_tray.ico"),
+        _ => ("icon.ico", "icon_tray.ico"),
     }
 }
 
-fn windows_shell_icon_name_from_state(app: &tauri::AppHandle) -> Result<&'static str, String> {
+fn windows_shell_icon_names_from_state(
+    app: &tauri::AppHandle,
+) -> Result<(&'static str, &'static str), String> {
     let config = read_app_config_store(app)?;
     let controled = read_controlled_config_store(app)?;
     let sysproxy_enabled = config
@@ -82,17 +88,17 @@ fn windows_shell_icon_name_from_state(app: &tauri::AppHandle) -> Result<&'static
         .unwrap_or(false);
 
     Ok(if tun_enabled {
-        "icon_tun.ico"
+        ("icon_tun.ico", "icon_tun_tray.ico")
     } else if sysproxy_enabled {
-        "icon_proxy.ico"
+        ("icon_proxy.ico", "icon_proxy_tray.ico")
     } else {
-        "icon.ico"
+        ("icon.ico", "icon_tray.ico")
     })
 }
 
 fn update_windows_shell_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {
-    let icon_name = windows_shell_icon_name_from_state(app)?;
-    set_windows_shell_icon_from_path(app, icon_name)
+    let (window_icon, tray_icon) = windows_shell_icon_names_from_state(app)?;
+    set_windows_shell_icon_from_paths(app, window_icon, tray_icon)
 }
 
 fn update_tray_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {

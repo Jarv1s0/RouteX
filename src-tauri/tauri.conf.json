@@ -34,8 +34,11 @@
       "../extra/sidecar": "extra/sidecar",
       "../extra/files": "extra/files",
       "../resources/icon_tun.ico": "resources/icon_tun.ico",
+      "../resources/icon_tun_tray.ico": "resources/icon_tun_tray.ico",
       "../resources/icon_proxy.ico": "resources/icon_proxy.ico",
+      "../resources/icon_proxy_tray.ico": "resources/icon_proxy_tray.ico",
       "../resources/icon.ico": "resources/icon.ico",
+      "../resources/icon_tray.ico": "resources/icon_tray.ico",
       "../resources/icon.png": "resources/icon.png",
       "../resources/iconTemplate.png": "resources/iconTemplate.png"
     },
