@@ -1,3 +1,7 @@
+!define ROUTEX_PRODUCT_NAME "RouteX"
+!define ROUTEX_MAIN_BINARY "routex"
+!define ROUTEX_BUNDLE_ID "com.jarv1s0.routex.tauri"
+
 !macro ROUTEX_CLOSE_RUNNING_PROCESSES
   Push $0
   Push $1
@@ -80,49 +84,47 @@
     System::Call 'kernel32::GetCurrentProcessId() i.r0'
     CopyFiles /SILENT "$INSTDIR\resources\icon.ico" "$INSTDIR\resources\shortcut-icon-$0.ico"
     ${If} ${FileExists} "$INSTDIR\resources\shortcut-icon-$0.ico"
-      CreateShortcut `${LINK_PATH}` "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\resources\shortcut-icon-$0.ico" 0
+      CreateShortcut `${LINK_PATH}` "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe" "" "$INSTDIR\resources\shortcut-icon-$0.ico" 0
     ${Else}
-      CreateShortcut `${LINK_PATH}` "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\resources\icon.ico" 0
+      CreateShortcut `${LINK_PATH}` "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe" "" "$INSTDIR\resources\icon.ico" 0
     ${EndIf}
-    !insertmacro SetLnkAppUserModelId `${LINK_PATH}`
+    !insertmacro ROUTEX_SET_LNK_APP_USER_MODEL_ID `${LINK_PATH}`
     Pop $0
   ${EndIf}
 !macroend
 
-!macro ROUTEX_QUEUE_POST_GUI_SHORTCUT_REFRESH
-  Push $0
-  Push $1
-  Push $2
-  System::Call 'kernel32::GetCurrentProcessId() i.r0'
-  StrCpy $2 "$TEMP\routex-refresh-shortcuts-$0.ps1"
-  FileOpen $1 "$2" w
-  FileWrite $1 "$$installerPid = [int]$$args[0]$\r$\n"
-  FileWrite $1 "$$installDir = [System.IO.Path]::GetFullPath($$args[1])$\r$\n"
-  FileWrite $1 "try { Wait-Process -Id $$installerPid -Timeout 300 -ErrorAction SilentlyContinue } catch {}$\r$\n"
-  FileWrite $1 "Start-Sleep -Milliseconds 500$\r$\n"
-  FileWrite $1 "$$target = Join-Path $$installDir '${MAINBINARYNAME}.exe'$\r$\n"
-  FileWrite $1 "$$icon = Join-Path $$installDir 'resources\icon.ico'$\r$\n"
-  FileWrite $1 "$$shortcutIcon = Join-Path $$installDir ('resources\shortcut-icon-' + [System.Diagnostics.Process]::GetCurrentProcess().Id + '.ico')$\r$\n"
-  FileWrite $1 "if (-not (Test-Path -LiteralPath $$target)) { exit 0 }$\r$\n"
-  FileWrite $1 "if (Test-Path -LiteralPath $$icon) { try { Copy-Item -LiteralPath $$icon -Destination $$shortcutIcon -Force -ErrorAction Stop } catch { $$shortcutIcon = $$icon } }$\r$\n"
-  FileWrite $1 "$$dirs = @([Environment]::GetFolderPath('CommonDesktopDirectory'), [Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('CommonPrograms'), [Environment]::GetFolderPath('Programs')) | Where-Object { -not [string]::IsNullOrWhiteSpace($$_) } | Select-Object -Unique$\r$\n"
-  FileWrite $1 "$$shell = New-Object -ComObject WScript.Shell$\r$\n"
-  FileWrite $1 "foreach ($$dir in $$dirs) {$\r$\n"
-  FileWrite $1 "  $$link = Join-Path $$dir '${PRODUCTNAME}.lnk'$\r$\n"
-  FileWrite $1 "  if (-not (Test-Path -LiteralPath $$link)) { continue }$\r$\n"
-  FileWrite $1 "  $$shortcut = $$shell.CreateShortcut($$link)$\r$\n"
-  FileWrite $1 "  $$shortcut.TargetPath = $$target$\r$\n"
-  FileWrite $1 "  $$shortcut.WorkingDirectory = $$installDir$\r$\n"
-  FileWrite $1 "  if (Test-Path -LiteralPath $$shortcutIcon) { $$shortcut.IconLocation = $$shortcutIcon + ',0' }$\r$\n"
-  FileWrite $1 "  $$shortcut.Save()$\r$\n"
-  FileWrite $1 "}$\r$\n"
-  FileWrite $1 "try { Remove-Item -LiteralPath $$PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}$\r$\n"
-  FileClose $1
-  Exec `powershell.exe -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "$2" "$0" "$INSTDIR"`
-  Pop $2
-  Pop $1
-  Pop $0
+!macro ROUTEX_SET_LNK_APP_USER_MODEL_ID LINK_PATH
+  !insertmacro ComHlpr_CreateInProcInstance ${CLSID_ShellLink} ${IID_IShellLink} r0 ""
+  ${If} $0 P<> 0
+    ${IUnknown::QueryInterface} $0 '("${IID_IPersistFile}",.r1)'
+    ${If} $1 P<> 0
+      ${IPersistFile::Load} $1 '("${LINK_PATH}", ${STGM_READWRITE})'
+      ${IUnknown::QueryInterface} $0 '("${IID_IPropertyStore}",.r2)'
+      ${If} $2 P<> 0
+        System::Call 'Oleaut32::SysAllocString(w "${ROUTEX_BUNDLE_ID}") i.r3'
+        System::Call '*${SYSSTRUCT_PROPERTYKEY}(${PKEY_AppUserModel_ID})p.r4'
+        System::Call '*${SYSSTRUCT_PROPVARIANT}(${VT_BSTR},,&i4 $3)p.r5'
+        ${IPropertyStore::SetValue} $2 '($4,$5)'
+
+        System::Call 'Oleaut32::SysFreeString($3)'
+        System::Free $4
+        System::Free $5
+        ${IPropertyStore::Commit} $2 ""
+        ${IUnknown::Release} $2 ""
+        ${IPersistFile::Save} $1 '("${LINK_PATH}",1)'
+      ${EndIf}
+      ${IUnknown::Release} $1 ""
+    ${EndIf}
+    ${IUnknown::Release} $0 ""
+  ${EndIf}
 !macroend
+
+Function .onGUIEnd
+  ${If} ${FileExists} "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe"
+    !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$DESKTOP\${ROUTEX_PRODUCT_NAME}.lnk"
+    !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$SMPROGRAMS\${ROUTEX_PRODUCT_NAME}.lnk"
+  ${EndIf}
+FunctionEnd
 
 !macro NSIS_HOOK_PREINSTALL
   !insertmacro ROUTEX_CLOSE_RUNNING_PROCESSES
@@ -139,13 +141,12 @@
   ${If} $PassiveMode <> 1
   ${AndIfNot} ${Silent}
     StrCpy $UpdateMode 0
-    !insertmacro ROUTEX_QUEUE_POST_GUI_SHORTCUT_REFRESH
   ${EndIf}
-  !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$DESKTOP\${PRODUCTNAME}.lnk"
+  !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$DESKTOP\${ROUTEX_PRODUCT_NAME}.lnk"
   !if "${STARTMENUFOLDER}" != ""
-    !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk"
+    !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$SMPROGRAMS\$AppStartMenuFolder\${ROUTEX_PRODUCT_NAME}.lnk"
   !else
-    !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$SMPROGRAMS\${PRODUCTNAME}.lnk"
+    !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$SMPROGRAMS\${ROUTEX_PRODUCT_NAME}.lnk"
   !endif
 !macroend
 
