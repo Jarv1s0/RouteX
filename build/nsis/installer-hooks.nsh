@@ -81,6 +81,39 @@
   ${EndIf}
 !macroend
 
+!macro ROUTEX_QUEUE_POST_GUI_SHORTCUT_REFRESH
+  Push $0
+  Push $1
+  Push $2
+  System::Call 'kernel32::GetCurrentProcessId() i.r0'
+  StrCpy $2 "$TEMP\routex-refresh-shortcuts-$0.ps1"
+  FileOpen $1 "$2" w
+  FileWrite $1 "$$installerPid = [int]$$args[0]$\r$\n"
+  FileWrite $1 "$$installDir = [System.IO.Path]::GetFullPath($$args[1])$\r$\n"
+  FileWrite $1 "try { Wait-Process -Id $$installerPid -Timeout 300 -ErrorAction SilentlyContinue } catch {}$\r$\n"
+  FileWrite $1 "Start-Sleep -Milliseconds 500$\r$\n"
+  FileWrite $1 "$$target = Join-Path $$installDir '${MAINBINARYNAME}.exe'$\r$\n"
+  FileWrite $1 "$$icon = Join-Path $$installDir 'resources\icon.ico'$\r$\n"
+  FileWrite $1 "if (-not (Test-Path -LiteralPath $$target)) { exit 0 }$\r$\n"
+  FileWrite $1 "$$dirs = @([Environment]::GetFolderPath('CommonDesktopDirectory'), [Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('CommonPrograms'), [Environment]::GetFolderPath('Programs')) | Where-Object { -not [string]::IsNullOrWhiteSpace($$_) } | Select-Object -Unique$\r$\n"
+  FileWrite $1 "$$shell = New-Object -ComObject WScript.Shell$\r$\n"
+  FileWrite $1 "foreach ($$dir in $$dirs) {$\r$\n"
+  FileWrite $1 "  $$link = Join-Path $$dir '${PRODUCTNAME}.lnk'$\r$\n"
+  FileWrite $1 "  if (-not (Test-Path -LiteralPath $$link)) { continue }$\r$\n"
+  FileWrite $1 "  $$shortcut = $$shell.CreateShortcut($$link)$\r$\n"
+  FileWrite $1 "  $$shortcut.TargetPath = $$target$\r$\n"
+  FileWrite $1 "  $$shortcut.WorkingDirectory = $$installDir$\r$\n"
+  FileWrite $1 "  if (Test-Path -LiteralPath $$icon) { $$shortcut.IconLocation = $$icon + ',0' }$\r$\n"
+  FileWrite $1 "  $$shortcut.Save()$\r$\n"
+  FileWrite $1 "}$\r$\n"
+  FileWrite $1 "try { Remove-Item -LiteralPath $$PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}$\r$\n"
+  FileClose $1
+  Exec `powershell.exe -NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "$2" "$0" "$INSTDIR"`
+  Pop $2
+  Pop $1
+  Pop $0
+!macroend
+
 !macro NSIS_HOOK_PREINSTALL
   !insertmacro ROUTEX_CLOSE_RUNNING_PROCESSES
 !macroend
@@ -96,6 +129,7 @@
   ${If} $PassiveMode <> 1
   ${AndIfNot} ${Silent}
     StrCpy $UpdateMode 0
+    !insertmacro ROUTEX_QUEUE_POST_GUI_SHORTCUT_REFRESH
   ${EndIf}
   !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$DESKTOP\${PRODUCTNAME}.lnk"
   !if "${STARTMENUFOLDER}" != ""
