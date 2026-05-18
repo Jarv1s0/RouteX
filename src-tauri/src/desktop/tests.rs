@@ -177,6 +177,38 @@ fn windows_autorun_task_xml_uses_unquoted_command_path() {
 }
 
 #[test]
+fn windows_task_match_rejects_quoted_command_path() {
+    let runner = Path::new(r"C:\Users\RouteX Tasks\routex-run.exe");
+    let app = Path::new(r"C:\Program Files\RouteX\routex.exe");
+    let stale_xml = r#"
+<Task>
+  <Actions>
+    <Exec>
+      <Command>"C:\Users\RouteX Tasks\routex-run.exe"</Command>
+      <Arguments>"C:\Program Files\RouteX\routex.exe"</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+"#;
+
+    assert!(!task_xml_matches_current_exec(stale_xml, runner, app, None));
+}
+
+#[test]
+fn windows_task_match_accepts_unquoted_command_path() {
+    let runner = Path::new(r"C:\Users\RouteX Tasks\routex-run.exe");
+    let app = Path::new(r"C:\Program Files\RouteX\routex.exe");
+    let xml = build_routex_autorun_task_xml_for_paths(runner, app);
+
+    assert!(task_xml_matches_current_exec(
+        &xml,
+        runner,
+        app,
+        Some("--routex-startup")
+    ));
+}
+
+#[test]
 fn merge_profile_nodes_keeps_secondary_groups_out_of_runtime_profile() {
     let mut target_profile = json!({
         "proxies": [

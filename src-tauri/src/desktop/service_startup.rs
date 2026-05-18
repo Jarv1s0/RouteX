@@ -230,8 +230,8 @@ fn handle_windows_unregistered_elevate_task(create_error: &str) {
         return;
     }
 
-    if show_windows_startup_admin_required_dialog() {
-        if let Err(error) = relaunch_current_app_as_admin() {
+    if let Err(error) = relaunch_current_app_as_admin() {
+        if show_windows_startup_admin_required_dialog() {
             show_windows_startup_admin_relaunch_failed_dialog(&error);
         }
     }

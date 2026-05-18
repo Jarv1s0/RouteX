@@ -381,11 +381,20 @@ fn check_windows_task_matches_current_app(
         _ => return false,
     };
     let xml = String::from_utf8_lossy(&output.stdout);
-    let routex_run_path = routex_run_path.to_string_lossy();
-    let exe_path = exe_path.to_string_lossy();
+    task_xml_matches_current_exec(&xml, &routex_run_path, &exe_path, required_argument)
+}
 
-    xml.contains(routex_run_path.as_ref())
-        && xml.contains(exe_path.as_ref())
+fn task_xml_matches_current_exec(
+    xml: &str,
+    routex_run_path: &Path,
+    exe_path: &Path,
+    required_argument: Option<&str>,
+) -> bool {
+    let command = format!("<Command>{}</Command>", escape_task_xml_text(routex_run_path));
+    let exe_argument = format!("\"{}\"", escape_task_xml_text(exe_path));
+
+    xml.contains(&command)
+        && xml.contains(&exe_argument)
         && required_argument
             .map(|argument| xml.contains(argument))
             .unwrap_or(true)
