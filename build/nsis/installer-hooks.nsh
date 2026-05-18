@@ -76,8 +76,16 @@
 
 !macro ROUTEX_REFRESH_SHORTCUT_ICON LINK_PATH
   ${If} ${FileExists} `${LINK_PATH}`
-    CreateShortcut `${LINK_PATH}` "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\resources\icon.ico" 0
+    Push $0
+    System::Call 'kernel32::GetCurrentProcessId() i.r0'
+    CopyFiles /SILENT "$INSTDIR\resources\icon.ico" "$INSTDIR\resources\shortcut-icon-$0.ico"
+    ${If} ${FileExists} "$INSTDIR\resources\shortcut-icon-$0.ico"
+      CreateShortcut `${LINK_PATH}` "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\resources\shortcut-icon-$0.ico" 0
+    ${Else}
+      CreateShortcut `${LINK_PATH}` "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\resources\icon.ico" 0
+    ${EndIf}
     !insertmacro SetLnkAppUserModelId `${LINK_PATH}`
+    Pop $0
   ${EndIf}
 !macroend
 
@@ -94,7 +102,9 @@
   FileWrite $1 "Start-Sleep -Milliseconds 500$\r$\n"
   FileWrite $1 "$$target = Join-Path $$installDir '${MAINBINARYNAME}.exe'$\r$\n"
   FileWrite $1 "$$icon = Join-Path $$installDir 'resources\icon.ico'$\r$\n"
+  FileWrite $1 "$$shortcutIcon = Join-Path $$installDir ('resources\shortcut-icon-' + [System.Diagnostics.Process]::GetCurrentProcess().Id + '.ico')$\r$\n"
   FileWrite $1 "if (-not (Test-Path -LiteralPath $$target)) { exit 0 }$\r$\n"
+  FileWrite $1 "if (Test-Path -LiteralPath $$icon) { try { Copy-Item -LiteralPath $$icon -Destination $$shortcutIcon -Force -ErrorAction Stop } catch { $$shortcutIcon = $$icon } }$\r$\n"
   FileWrite $1 "$$dirs = @([Environment]::GetFolderPath('CommonDesktopDirectory'), [Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('CommonPrograms'), [Environment]::GetFolderPath('Programs')) | Where-Object { -not [string]::IsNullOrWhiteSpace($$_) } | Select-Object -Unique$\r$\n"
   FileWrite $1 "$$shell = New-Object -ComObject WScript.Shell$\r$\n"
   FileWrite $1 "foreach ($$dir in $$dirs) {$\r$\n"
@@ -103,7 +113,7 @@
   FileWrite $1 "  $$shortcut = $$shell.CreateShortcut($$link)$\r$\n"
   FileWrite $1 "  $$shortcut.TargetPath = $$target$\r$\n"
   FileWrite $1 "  $$shortcut.WorkingDirectory = $$installDir$\r$\n"
-  FileWrite $1 "  if (Test-Path -LiteralPath $$icon) { $$shortcut.IconLocation = $$icon + ',0' }$\r$\n"
+  FileWrite $1 "  if (Test-Path -LiteralPath $$shortcutIcon) { $$shortcut.IconLocation = $$shortcutIcon + ',0' }$\r$\n"
   FileWrite $1 "  $$shortcut.Save()$\r$\n"
   FileWrite $1 "}$\r$\n"
   FileWrite $1 "try { Remove-Item -LiteralPath $$PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}$\r$\n"
