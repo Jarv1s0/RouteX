@@ -250,7 +250,7 @@ jobs:
             extra/files
             extra/sidecar
             src/renderer/src/assets/twemoji.ttf
-          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-${{ hashFiles('scripts/prepare.mjs') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-${{ hashFiles('scripts/prepare.mjs', 'src-tauri/src/bin/routex-launcher.rs') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-
 

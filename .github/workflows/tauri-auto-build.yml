@@ -170,7 +170,7 @@ jobs:
             extra/files
             extra/sidecar
             src/renderer/src/assets/twemoji.ttf
-          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-${{ hashFiles('scripts/prepare.mjs') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-${{ hashFiles('scripts/prepare.mjs', 'src-tauri/src/bin/routex-launcher.rs') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-
 
@@ -181,6 +181,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROUTEX_AUTO_BUILD: 'true'
           ROUTEX_REUSE_EXISTING_RESOURCES: ${{ steps.resource-cache.outputs.cache-hit == 'true' && '1' || '0' }}
         shell: bash
         run: |
@@ -207,6 +208,7 @@ jobs:
                 "extra/sidecar/mihomo.exe"
                 "extra/files/routex-service.exe"
                 "extra/files/routex-run.exe"
+                "extra/files/routex-launcher.exe"
               )
               ;;
             linux|macos)

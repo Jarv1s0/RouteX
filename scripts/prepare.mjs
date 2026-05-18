@@ -544,6 +544,27 @@ const resolveRunner = () => {
     downloadURL: `${ROUTEX_SERVICE_RELEASE_PREFIX}/${asset}`
   })
 }
+const resolveLauncher = () => {
+  if (arch !== process.arch) {
+    throw new Error(
+      `routex-launcher must be built on the target architecture; host=${process.arch}, target=${arch}`
+    )
+  }
+
+  execFileSync(
+    'cargo',
+    ['build', '--manifest-path', 'src-tauri/Cargo.toml', '--bin', 'routex-launcher', '--release'],
+    {
+      cwd,
+      stdio: 'inherit'
+    }
+  )
+
+  const launcherPath = path.join(cwd, 'src-tauri', 'target', 'release', 'routex-launcher.exe')
+  const targetPath = path.join(cwd, 'extra', 'files', 'routex-launcher.exe')
+  fs.copyFileSync(launcherPath, targetPath)
+  console.log('[INFO]: routex-launcher.exe finished')
+}
 const resolveFont = async () => {
   // const targetPath = path.join(cwd, 'src', 'renderer', 'src', 'assets', 'NotoColorEmoji.ttf')
   const targetPath = path.join(cwd, 'src', 'renderer', 'src', 'assets', 'twemoji.ttf')
@@ -599,6 +620,12 @@ const tasks = [
     name: 'runner',
     func: resolveRunner,
     retry: DEFAULT_TASK_RETRY,
+    winOnly: true
+  },
+  {
+    name: 'launcher',
+    func: resolveLauncher,
+    retry: 1,
     winOnly: true
   }
 ]

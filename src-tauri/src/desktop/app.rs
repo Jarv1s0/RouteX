@@ -21,7 +21,6 @@ pub fn run() {
                 app_handle.exit(0);
                 return Ok(());
             }
-            allow_single_instance_messages_from_unelevated_launchers(&app_handle);
             let _ = initialize_traffic_stats_store(&app_handle);
             let _ = init_global_shortcuts(&app_handle);
             let _ = install_process_signal_handlers(&app_handle);
@@ -70,43 +69,3 @@ pub fn run() {
             }
         });
 }
-
-#[cfg(target_os = "windows")]
-fn allow_single_instance_messages_from_unelevated_launchers(app: &tauri::AppHandle) {
-    const WM_COPYDATA: u32 = 0x004A;
-    const MSGFLT_ALLOW: u32 = 1;
-
-    #[link(name = "user32")]
-    unsafe extern "system" {
-        fn FindWindowW(class_name: *const u16, window_name: *const u16) -> *mut std::ffi::c_void;
-        fn ChangeWindowMessageFilterEx(
-            hwnd: *mut std::ffi::c_void,
-            message: u32,
-            action: u32,
-            change_filter_struct: *mut std::ffi::c_void,
-        ) -> i32;
-    }
-
-    fn wide_null(value: &str) -> Vec<u16> {
-        value.encode_utf16().chain(std::iter::once(0)).collect()
-    }
-
-    let id = &app.config().identifier;
-    let class_name = wide_null(&format!("{id}-sic"));
-    let window_name = wide_null(&format!("{id}-siw"));
-
-    let hwnd = unsafe { FindWindowW(class_name.as_ptr(), window_name.as_ptr()) };
-    if !hwnd.is_null() {
-        let _ = unsafe {
-            ChangeWindowMessageFilterEx(
-                hwnd,
-                WM_COPYDATA,
-                MSGFLT_ALLOW,
-                std::ptr::null_mut(),
-            )
-        };
-    }
-}
-
-#[cfg(not(target_os = "windows"))]
-fn allow_single_instance_messages_from_unelevated_launchers(_app: &tauri::AppHandle) {}

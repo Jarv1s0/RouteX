@@ -1,5 +1,6 @@
 !define ROUTEX_PRODUCT_NAME "RouteX"
 !define ROUTEX_MAIN_BINARY "routex"
+!define ROUTEX_LAUNCHER_PATH "extra\files\routex-launcher.exe"
 !define ROUTEX_BUNDLE_ID "com.jarv1s0.routex.tauri"
 
 !macro ROUTEX_CLOSE_RUNNING_PROCESSES
@@ -81,14 +82,22 @@
 !macro ROUTEX_REFRESH_SHORTCUT_ICON LINK_PATH
   ${If} ${FileExists} `${LINK_PATH}`
     Push $0
+    Push $1
     System::Call 'kernel32::GetCurrentProcessId() i.r0'
+    ${If} ${FileExists} "$INSTDIR\${ROUTEX_LAUNCHER_PATH}"
+      StrCpy $1 "$INSTDIR\${ROUTEX_LAUNCHER_PATH}"
+    ${Else}
+      StrCpy $1 "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe"
+    ${EndIf}
+    SetOutPath "$INSTDIR"
     CopyFiles /SILENT "$INSTDIR\resources\icon.ico" "$INSTDIR\resources\shortcut-icon-$0.ico"
     ${If} ${FileExists} "$INSTDIR\resources\shortcut-icon-$0.ico"
-      CreateShortcut `${LINK_PATH}` "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe" "" "$INSTDIR\resources\shortcut-icon-$0.ico" 0
+      CreateShortcut `${LINK_PATH}` "$1" "" "$INSTDIR\resources\shortcut-icon-$0.ico" 0
     ${Else}
-      CreateShortcut `${LINK_PATH}` "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe" "" "$INSTDIR\resources\icon.ico" 0
+      CreateShortcut `${LINK_PATH}` "$1" "" "$INSTDIR\resources\icon.ico" 0
     ${EndIf}
     !insertmacro ROUTEX_SET_LNK_APP_USER_MODEL_ID `${LINK_PATH}`
+    Pop $1
     Pop $0
   ${EndIf}
 !macroend
