@@ -74,6 +74,13 @@
   Pop $0
 !macroend
 
+!macro ROUTEX_REFRESH_SHORTCUT_ICON LINK_PATH
+  ${If} ${FileExists} `${LINK_PATH}`
+    CreateShortcut `${LINK_PATH}` "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\resources\icon.ico" 0
+    !insertmacro SetLnkAppUserModelId `${LINK_PATH}`
+  ${EndIf}
+!macroend
+
 !macro NSIS_HOOK_PREINSTALL
   !insertmacro ROUTEX_CLOSE_RUNNING_PROCESSES
 !macroend
@@ -90,6 +97,12 @@
   ${AndIfNot} ${Silent}
     StrCpy $UpdateMode 0
   ${EndIf}
+  !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$DESKTOP\${PRODUCTNAME}.lnk"
+  !if "${STARTMENUFOLDER}" != ""
+    !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk"
+  !else
+    !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$SMPROGRAMS\${PRODUCTNAME}.lnk"
+  !endif
 !macroend
 
 !macro NSIS_HOOK_POSTUNINSTALL
