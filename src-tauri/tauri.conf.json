@@ -46,7 +46,6 @@
       "nsis": {
         "installMode": "perMachine",
         "languages": ["SimpChinese"],
-        "sidebarImage": "../resources/installerSidebar.bmp",
         "installerIcon": "../resources/installerIcon.ico",
         "installerHooks": "../build/nsis/installer-hooks.nsh"
       },
