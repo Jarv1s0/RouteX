@@ -1,5 +1,12 @@
 import React, { type RefObject, useEffect, useMemo, useRef } from 'react'
-import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
+import {
+  autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
+  snippetCompletion,
+  type Completion,
+  type CompletionContext
+} from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { css } from '@codemirror/lang-css'
 import { javascript } from '@codemirror/lang-javascript'
@@ -33,6 +40,7 @@ import { load } from 'js-yaml'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { translate } from '@renderer/i18n'
 import type { BaseEditorProps, Language } from './base-editor.shared'
+import { MIHOMO_V119_YAML_SNIPPETS } from '../../../../shared/defaults/mihomo-templates'
 
 type YamlParseError = {
   message?: string
@@ -72,6 +80,27 @@ const getSelectionMatchBackground = (isLight: boolean): string =>
   isLight
     ? 'hsl(var(--heroui-primary) / 0.12) !important'
     : 'hsl(var(--heroui-primary) / 0.10) !important'
+const mihomoYamlSnippetCompletions: Completion[] = MIHOMO_V119_YAML_SNIPPETS.map((item) =>
+  snippetCompletion(item.snippet, {
+    label: item.label,
+    detail: item.detail,
+    info: item.info,
+    type: 'keyword'
+  })
+)
+
+function mihomoYamlCompletionSource(context: CompletionContext) {
+  const word = context.matchBefore(/[\w-]*/)
+  if (!word || (word.from === word.to && !context.explicit)) {
+    return null
+  }
+
+  return {
+    from: word.from,
+    options: mihomoYamlSnippetCompletions,
+    validFor: /^[\w-]*$/
+  }
+}
 
 const createFoldMarker = (open: boolean): HTMLElement => {
   const marker = document.createElement('span')
@@ -276,7 +305,7 @@ const createExtensions = ({
   indentOnInput(),
   bracketMatching(),
   closeBrackets(),
-  autocompletion(),
+  autocompletion(language === 'yaml' ? { override: [mihomoYamlCompletionSource] } : undefined),
   rectangularSelection(),
   crosshairCursor(),
   highlightActiveLine(),
