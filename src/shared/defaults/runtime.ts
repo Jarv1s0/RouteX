@@ -45,7 +45,7 @@ export function createDefaultControledMihomoConfig(
     },
     dns: {
       enable: true,
-      ipv6: true,
+      ipv6: false,
       'respect-rules': false,
       'enhanced-mode': 'fake-ip',
       'fake-ip-range': '198.18.0.1/16',

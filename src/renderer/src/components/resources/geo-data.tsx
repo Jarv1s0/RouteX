@@ -2,9 +2,7 @@ import { Button, Input, Tab, Tabs } from '@heroui/react'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { mihomoUpgradeGeo } from '@renderer/utils/mihomo-ipc'
 import { useState, useEffect, useMemo } from 'react'
-import { IoMdRefresh } from 'react-icons/io'
 import { useI18n } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -31,7 +29,6 @@ const GeoData: React.FC = () => {
   const [geositeInput, setGeositeInput] = useState(geoxUrl.geosite)
   const [mmdbInput, setMmdbInput] = useState(geoxUrl.mmdb)
   const [asnInput, setAsnInput] = useState(geoxUrl.asn)
-  const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
     setGeoIpInput(geoxUrl.geoip)
@@ -125,30 +122,7 @@ const GeoData: React.FC = () => {
           <Tab key="dat" title="dat" />
         </Tabs>
       </SettingItem>
-      <SettingItem
-        title={t('resources.autoUpdate')}
-        actions={
-          <Button
-            size="sm"
-            isIconOnly
-            variant="light"
-            onPress={async () => {
-              setUpdating(true)
-              try {
-                await mihomoUpgradeGeo()
-                new Notification(t('resources.updateSuccess'))
-              } catch (e) {
-                alert(e)
-              } finally {
-                setUpdating(false)
-              }
-            }}
-          >
-            <IoMdRefresh className={`text-lg ${updating ? 'animate-spin' : ''}`} />
-          </Button>
-        }
-        divider={geoAutoUpdate}
-      >
+      <SettingItem title={t('resources.autoUpdate')} divider={geoAutoUpdate}>
         <AppSwitch
           size="sm"
           isSelected={geoAutoUpdate}

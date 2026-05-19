@@ -25,6 +25,7 @@ interface EditableListProps {
     input?: string
     inputWrapper?: string
   }
+  isDisabled?: boolean
 }
 
 const EditableList: React.FC<EditableListProps> = ({
@@ -41,7 +42,8 @@ const EditableList: React.FC<EditableListProps> = ({
   validate,
   validatePart1,
   validatePart2,
-  inputClassNames
+  inputClassNames,
+  isDisabled = false
 }) => {
   const isDual = !!parse && !!format
 
@@ -118,10 +120,15 @@ const EditableList: React.FC<EditableListProps> = ({
 
   return (
     <>
-      <div className={`flex flex-col space-y-2 ${!title ? 'mt-2' : ''} px-2`}>
-        {title && <h4 className="text-sm font-medium">{title}</h4>}
+      <div
+        className={`flex flex-col space-y-2 ${!title ? 'mt-2' : ''} px-2 ${isDisabled ? 'opacity-60' : ''}`}
+      >
+        {title && (
+          <h4 className={`text-sm font-medium ${isDisabled ? 'text-default-300' : ''}`}>{title}</h4>
+        )}
         {displayed.map((entry, idx) => {
           const disabled = disableFirst && idx === 0
+          const inputDisabled = isDisabled || disabled
           const isExtra = idx === processedItems.length
           const isEmpty = !entry.part1.trim() && (!entry.part2 || !entry.part2.trim())
 
@@ -171,6 +178,8 @@ const EditableList: React.FC<EditableListProps> = ({
           const part2Valid = validatePart2 ? validation2.ok : validation.ok
           const part1Error = validatePart1 ? validation1.error : validation.error
           const part2Error = validatePart2 ? validation2.error : validation.error
+          const showPart1Error = !isDisabled && !part1Valid
+          const showPart2Error = !isDisabled && !part2Valid
 
           return (
             <div key={idx} className="flex items-center space-x-2">
@@ -180,7 +189,7 @@ const EditableList: React.FC<EditableListProps> = ({
                     <Tooltip
                       content={part1Error ?? translate('common.formatError')}
                       placement="left"
-                      isOpen={!part1Valid}
+                      isOpen={showPart1Error}
                       showArrow={true}
                       color="danger"
                       offset={10}
@@ -189,10 +198,10 @@ const EditableList: React.FC<EditableListProps> = ({
                         size="sm"
                         fullWidth
                         className={
-                          part1Valid ? '' : 'border-red-500 ring-1 ring-red-500 rounded-lg'
+                          showPart1Error ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''
                         }
                         classNames={inputClassNames}
-                        disabled={disabled}
+                        isDisabled={inputDisabled}
                         placeholder={placeholder}
                         value={entry.part1}
                         onValueChange={(v) => handleUpdate(idx, v, entry.part2)}
@@ -204,7 +213,7 @@ const EditableList: React.FC<EditableListProps> = ({
                     <Tooltip
                       content={part2Error ?? translate('common.formatError')}
                       placement="left"
-                      isOpen={!part2Valid}
+                      isOpen={showPart2Error}
                       showArrow={true}
                       color="danger"
                       offset={10}
@@ -213,10 +222,10 @@ const EditableList: React.FC<EditableListProps> = ({
                         size="sm"
                         fullWidth
                         className={
-                          part2Valid ? '' : 'border-red-500 ring-1 ring-red-500 rounded-lg'
+                          showPart2Error ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''
                         }
                         classNames={inputClassNames}
-                        disabled={disabled}
+                        isDisabled={inputDisabled}
                         placeholder={part2Placeholder}
                         value={entry.part2 || ''}
                         onValueChange={(v) => handleUpdate(idx, entry.part1, v)}
@@ -228,7 +237,7 @@ const EditableList: React.FC<EditableListProps> = ({
                 <Tooltip
                   content={part1Error ?? translate('common.formatError')}
                   placement="left"
-                  isOpen={!part1Valid}
+                  isOpen={showPart1Error}
                   showArrow={true}
                   color="danger"
                   offset={10}
@@ -236,16 +245,18 @@ const EditableList: React.FC<EditableListProps> = ({
                   <Input
                     size="sm"
                     fullWidth
-                    className={part1Valid ? '' : 'border-red-500 ring-1 ring-red-500 rounded-lg'}
+                    className={
+                      showPart1Error ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''
+                    }
                     classNames={inputClassNames}
-                    disabled={disabled}
+                    isDisabled={inputDisabled}
                     placeholder={placeholder}
                     value={entry.part1}
                     onValueChange={(v) => handleUpdate(idx, v)}
                   />
                 </Tooltip>
               )}
-              {idx < processedItems.length && !disabled && (
+              {idx < processedItems.length && !inputDisabled && (
                 <Button
                   size="sm"
                   variant="flat"

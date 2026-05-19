@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Input } from '@heroui/react'
 
+import CollapsibleSettingList, {
+  getDisabledSettingTitle
+} from '@renderer/components/base/collapsible-setting-list'
 import EditableList from '@renderer/components/base/base-list-editor'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -114,10 +117,22 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
   }, [initialValues, values])
 
   const save = async (): Promise<void> => {
+    if (!values.controlSniff) {
+      try {
+        await patchAppConfig({ controlSniff: false })
+        await patchControledMihomoConfig({})
+        restartCoreInBackground(t('sniffer.applyFailed'))
+      } catch (error) {
+        notifyError(error)
+      }
+      return
+    }
+
     try {
       await patchAppConfig({ controlSniff: values.controlSniff })
       await patchControledMihomoConfig({
         sniffer: {
+          enable: true,
           'parse-pure-ip': values.parsePureIP,
           'force-dns-mapping': values.forceDNSMapping,
           'override-destination': values.overrideDestination,
@@ -164,118 +179,175 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
 }) => {
   const { t } = useI18n()
   const { values, setValues, handleSniffPortChange } = editor
+  const snifferFieldsDisabled = !values.controlSniff
 
   return (
-    <SettingCard>
-      <SettingItem title={t('page.sniffer.title')} divider>
-        <div className="flex items-center gap-2">
-          <span className={`text-xs ${values.controlSniff ? 'text-primary' : 'text-default-400'}`}>
-            {values.controlSniff ? t('common.enabled') : t('common.disabled')}
-          </span>
+    <div className="space-y-2">
+      <SettingCard>
+        <SettingItem title={t('page.sniffer.title')} divider>
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-xs ${values.controlSniff ? 'text-primary' : 'text-foreground-500'}`}
+            >
+              {values.controlSniff ? t('common.enabled') : t('common.disabled')}
+            </span>
+            <AppSwitch
+              size="sm"
+              isSelected={values.controlSniff}
+              onValueChange={(value) => setValues({ ...values, controlSniff: value })}
+            />
+          </div>
+        </SettingItem>
+        <SettingItem
+          title={getDisabledSettingTitle(t('sniffer.overrideDestination'), snifferFieldsDisabled)}
+          divider
+        >
           <AppSwitch
             size="sm"
-            isSelected={values.controlSniff}
-            onValueChange={(value) => setValues({ ...values, controlSniff: value })}
-          />
-        </div>
-      </SettingItem>
-      <SettingItem title={t('sniffer.overrideDestination')} divider>
-        <AppSwitch
-          size="sm"
-          isSelected={values.overrideDestination}
-          onValueChange={(value) => {
-            setValues({
-              ...values,
-              overrideDestination: value,
-              sniff: {
-                ...values.sniff,
-                HTTP: {
-                  ...values.sniff.HTTP,
-                  'override-destination': value,
-                  ports: values.sniff.HTTP?.ports || [80, 443]
+            isSelected={values.overrideDestination}
+            isDisabled={snifferFieldsDisabled}
+            onValueChange={(value) => {
+              setValues({
+                ...values,
+                overrideDestination: value,
+                sniff: {
+                  ...values.sniff,
+                  HTTP: {
+                    ...values.sniff.HTTP,
+                    'override-destination': value,
+                    ports: values.sniff.HTTP?.ports || [80, 443]
+                  }
                 }
-              }
-            })
-          }}
-        />
-      </SettingItem>
-      <SettingItem title={t('sniffer.forceDnsMapping')} divider>
-        <AppSwitch
-          size="sm"
-          isSelected={values.forceDNSMapping}
-          onValueChange={(value) => {
-            setValues({ ...values, forceDNSMapping: value })
-          }}
-        />
-      </SettingItem>
-      <SettingItem title={t('sniffer.parsePureIp')} divider>
-        <AppSwitch
-          size="sm"
-          isSelected={values.parsePureIP}
-          onValueChange={(value) => {
-            setValues({ ...values, parsePureIP: value })
-          }}
-        />
-      </SettingItem>
-      <SettingItem title={t('sniffer.httpPorts')} divider>
-        <Input
-          size="sm"
-          className="w-[50%]"
-          classNames={primaryInputClassNames}
-          placeholder={t('sniffer.portPlaceholder')}
-          value={values.sniff.HTTP?.ports.join(',')}
-          onValueChange={(value) => handleSniffPortChange('HTTP', value)}
-        />
-      </SettingItem>
-      <SettingItem title={t('sniffer.tlsPorts')} divider>
-        <Input
-          size="sm"
-          className="w-[50%]"
-          classNames={primaryInputClassNames}
-          placeholder={t('sniffer.portPlaceholder')}
-          value={values.sniff.TLS?.ports.join(',')}
-          onValueChange={(value) => handleSniffPortChange('TLS', value)}
-        />
-      </SettingItem>
-      <SettingItem title={t('sniffer.quicPorts')} divider>
-        <Input
-          size="sm"
-          className="w-[50%]"
-          classNames={primaryInputClassNames}
-          placeholder={t('sniffer.portPlaceholder')}
-          value={values.sniff.QUIC?.ports.join(',')}
-          onValueChange={(value) => handleSniffPortChange('QUIC', value)}
-        />
-      </SettingItem>
-      <EditableList
-        title={t('sniffer.skipDomain')}
-        items={values.skipDomain}
-        onChange={(list) => setValues({ ...values, skipDomain: list as string[] })}
-        placeholder={t('sniffer.placeholder.skipDomain')}
-        inputClassNames={primaryInputClassNames}
-      />
-      <EditableList
-        title={t('sniffer.forceDomain')}
-        items={values.forceDomain}
-        onChange={(list) => setValues({ ...values, forceDomain: list as string[] })}
-        placeholder={t('sniffer.placeholder.forceDomain')}
-        inputClassNames={primaryInputClassNames}
-      />
-      <EditableList
-        title={t('sniffer.skipDstAddress')}
-        items={values.skipDstAddress}
-        onChange={(list) => setValues({ ...values, skipDstAddress: list as string[] })}
-        placeholder={t('sniffer.placeholder.skipDstAddress')}
-        inputClassNames={primaryInputClassNames}
-      />
-      <EditableList
-        title={t('sniffer.skipSrcAddress')}
-        items={values.skipSrcAddress}
-        onChange={(list) => setValues({ ...values, skipSrcAddress: list as string[] })}
-        placeholder={t('sniffer.placeholder.skipSrcAddress')}
-        divider={false}
-        inputClassNames={primaryInputClassNames}
-      />
-    </SettingCard>
+              })
+            }}
+          />
+        </SettingItem>
+        <SettingItem
+          title={getDisabledSettingTitle(t('sniffer.forceDnsMapping'), snifferFieldsDisabled)}
+          divider
+        >
+          <AppSwitch
+            size="sm"
+            isSelected={values.forceDNSMapping}
+            isDisabled={snifferFieldsDisabled}
+            onValueChange={(value) => {
+              setValues({ ...values, forceDNSMapping: value })
+            }}
+          />
+        </SettingItem>
+        <SettingItem
+          title={getDisabledSettingTitle(t('sniffer.parsePureIp'), snifferFieldsDisabled)}
+          divider
+        >
+          <AppSwitch
+            size="sm"
+            isSelected={values.parsePureIP}
+            isDisabled={snifferFieldsDisabled}
+            onValueChange={(value) => {
+              setValues({ ...values, parsePureIP: value })
+            }}
+          />
+        </SettingItem>
+        <SettingItem
+          title={getDisabledSettingTitle(t('sniffer.httpPorts'), snifferFieldsDisabled)}
+          divider
+        >
+          <Input
+            size="sm"
+            className="w-[50%]"
+            classNames={primaryInputClassNames}
+            isDisabled={snifferFieldsDisabled}
+            placeholder={t('sniffer.portPlaceholder')}
+            value={values.sniff.HTTP?.ports.join(',')}
+            onValueChange={(value) => handleSniffPortChange('HTTP', value)}
+          />
+        </SettingItem>
+        <SettingItem
+          title={getDisabledSettingTitle(t('sniffer.tlsPorts'), snifferFieldsDisabled)}
+          divider
+        >
+          <Input
+            size="sm"
+            className="w-[50%]"
+            classNames={primaryInputClassNames}
+            isDisabled={snifferFieldsDisabled}
+            placeholder={t('sniffer.portPlaceholder')}
+            value={values.sniff.TLS?.ports.join(',')}
+            onValueChange={(value) => handleSniffPortChange('TLS', value)}
+          />
+        </SettingItem>
+        <SettingItem
+          title={getDisabledSettingTitle(t('sniffer.quicPorts'), snifferFieldsDisabled)}
+          divider
+        >
+          <Input
+            size="sm"
+            className="w-[50%]"
+            classNames={primaryInputClassNames}
+            isDisabled={snifferFieldsDisabled}
+            placeholder={t('sniffer.portPlaceholder')}
+            value={values.sniff.QUIC?.ports.join(',')}
+            onValueChange={(value) => handleSniffPortChange('QUIC', value)}
+          />
+        </SettingItem>
+        <CollapsibleSettingList
+          title={t('sniffer.skipDomain')}
+          countLabel={t('sniffer.itemCount', { count: values.skipDomain.length })}
+          isDisabled={snifferFieldsDisabled}
+        >
+          <EditableList
+            items={values.skipDomain}
+            onChange={(list) => setValues({ ...values, skipDomain: list as string[] })}
+            placeholder={t('sniffer.placeholder.skipDomain')}
+            divider={false}
+            inputClassNames={primaryInputClassNames}
+            isDisabled={snifferFieldsDisabled}
+          />
+        </CollapsibleSettingList>
+        <CollapsibleSettingList
+          title={t('sniffer.forceDomain')}
+          countLabel={t('sniffer.itemCount', { count: values.forceDomain.length })}
+          isDisabled={snifferFieldsDisabled}
+        >
+          <EditableList
+            items={values.forceDomain}
+            onChange={(list) => setValues({ ...values, forceDomain: list as string[] })}
+            placeholder={t('sniffer.placeholder.forceDomain')}
+            divider={false}
+            inputClassNames={primaryInputClassNames}
+            isDisabled={snifferFieldsDisabled}
+          />
+        </CollapsibleSettingList>
+        <CollapsibleSettingList
+          title={t('sniffer.skipDstAddress')}
+          countLabel={t('sniffer.itemCount', { count: values.skipDstAddress.length })}
+          isDisabled={snifferFieldsDisabled}
+        >
+          <EditableList
+            items={values.skipDstAddress}
+            onChange={(list) => setValues({ ...values, skipDstAddress: list as string[] })}
+            placeholder={t('sniffer.placeholder.skipDstAddress')}
+            divider={false}
+            inputClassNames={primaryInputClassNames}
+            isDisabled={snifferFieldsDisabled}
+          />
+        </CollapsibleSettingList>
+        <CollapsibleSettingList
+          title={t('sniffer.skipSrcAddress')}
+          countLabel={t('sniffer.itemCount', { count: values.skipSrcAddress.length })}
+          divider={false}
+          isDisabled={snifferFieldsDisabled}
+        >
+          <EditableList
+            items={values.skipSrcAddress}
+            onChange={(list) => setValues({ ...values, skipSrcAddress: list as string[] })}
+            placeholder={t('sniffer.placeholder.skipSrcAddress')}
+            divider={false}
+            inputClassNames={primaryInputClassNames}
+            isDisabled={snifferFieldsDisabled}
+          />
+        </CollapsibleSettingList>
+      </SettingCard>
+    </div>
   )
 }

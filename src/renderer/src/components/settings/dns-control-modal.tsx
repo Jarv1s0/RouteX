@@ -1,5 +1,14 @@
 import React from 'react'
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from '@heroui/react'
+import {
+  Button,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Select,
+  SelectItem
+} from '@heroui/react'
 
 import {
   DnsSettingsFormFields,
@@ -7,16 +16,13 @@ import {
 } from '@renderer/components/dns/dns-settings-editor'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
-import { patchControledMihomoConfig } from '@renderer/utils/mihomo-ipc'
 import {
   createSecondaryModalClassNames,
   getMainPaneModalContentStyle
 } from '@renderer/utils/modal-styles'
 import { toast } from 'sonner'
-import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
 
-import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
@@ -28,23 +34,8 @@ const CARD_CLASS =
 const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const {
-    collapseSidebar = false,
-    siderWidth = 250,
-    controlDns = true,
-    autoSetDNSMode = 'exec'
-  } = appConfig || {}
+  const { collapseSidebar = false, siderWidth = 250, autoSetDNSMode = 'exec' } = appConfig || {}
   const dnsEditor = useDnsSettingsEditor()
-
-  const handleToggleControlDns = async (value: boolean): Promise<void> => {
-    try {
-      await patchAppConfig({ controlDns: value })
-      await patchControledMihomoConfig({})
-      restartCoreInBackground(t('settings.dnsControl.applyFailed'))
-    } catch (error) {
-      toast.error(String(error))
-    }
-  }
 
   const handleChangeAutoSetDnsMode = async (value: 'none' | 'exec' | 'service'): Promise<void> => {
     try {
@@ -79,23 +70,6 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
 
             <ModalBody className="px-4 py-2">
               <div className="flex flex-col gap-2">
-                <div className={CARD_CLASS}>
-                  <div className="flex flex-col gap-0.5 overflow-hidden">
-                    <span className="whitespace-nowrap font-medium text-foreground-600 transition-colors group-hover:text-foreground-900">
-                      {t('settings.dnsControl.control')}
-                    </span>
-                    <span className="whitespace-nowrap text-xs text-default-400 transition-colors group-hover:text-default-500">
-                      {t('settings.dnsControl.controlDescription')}
-                    </span>
-                  </div>
-                  <AppSwitch
-                    size="sm"
-                    color="primary"
-                    isSelected={controlDns}
-                    onValueChange={handleToggleControlDns}
-                  />
-                </div>
-
                 {platform === 'darwin' && (
                   <div className={CARD_CLASS}>
                     <div className="flex flex-col gap-0.5 overflow-hidden">

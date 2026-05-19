@@ -30,6 +30,13 @@ const debugPrepare = process.env.ROUTEX_PREPARE_DEBUG === '1'
 const reuseExistingResources =
   process.env.ROUTEX_REUSE_EXISTING_RESOURCES === '1' ||
   process.env.ROUTEX_REUSE_EXISTING_RESOURCES === 'true'
+const GEO_DATA_RESOURCE_FILES = [
+  'country.mmdb',
+  'geoip.metadb',
+  'geoip.dat',
+  'geosite.dat',
+  'ASN.mmdb'
+]
 const OPTIONAL_EXTRA_PATHS = [
   path.join(cwd, 'extra', 'sidecar', platform === 'win32' ? 'mihomo-alpha.exe' : 'mihomo-alpha'),
   path.join(cwd, 'extra', 'files', 'enableLoopback.exe'),
@@ -92,6 +99,15 @@ function cleanupOptionalExtraResources() {
     tryRemoveExisting(targetPath, label)
   }
   console.log('[INFO]: optional extra resources cleaned')
+}
+
+function cleanupBundledGeoDataResources() {
+  for (const fileName of GEO_DATA_RESOURCE_FILES) {
+    const targetPath = path.join(cwd, 'extra', 'files', fileName)
+    const label = path.relative(cwd, targetPath) || targetPath
+    tryRemoveExisting(targetPath, label)
+  }
+  console.log('[INFO]: bundled Geo data resources cleaned')
 }
 const MIHOMO_VERSION_URL =
   'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
@@ -272,6 +288,7 @@ async function getLatestVersion(url, label) {
  */
 getAssetPrefixCandidates(platform, arch)
 cleanupOptionalExtraResources()
+cleanupBundledGeoDataResources()
 
 // Pre-create directories to ensure they exist for the build system
 const sidecarDir = path.join(cwd, 'extra', 'sidecar')
@@ -473,31 +490,6 @@ function getMappedAsset(map, key, label) {
   return asset
 }
 
-const resolveMmdb = () =>
-  resolveResource({
-    file: 'country.mmdb',
-    downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb`
-  })
-const resolveMetadb = () =>
-  resolveResource({
-    file: 'geoip.metadb',
-    downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb`
-  })
-const resolveGeosite = () =>
-  resolveResource({
-    file: 'geosite.dat',
-    downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat`
-  })
-const resolveGeoIP = () =>
-  resolveResource({
-    file: 'geoip.dat',
-    downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat`
-  })
-const resolveASN = () =>
-  resolveResource({
-    file: 'ASN.mmdb',
-    downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb`
-  })
 const resolveRoutexService = async () => {
   const key = `${platform}-${arch}`
   const base = getMappedAsset(ROUTEX_SERVICE_ASSETS, key, 'platform')
@@ -601,11 +593,6 @@ const tasks = [
       resolveSidecar(await createMihomoBinaryInfo('mihomo', MIHOMO_VERSION_URL, false)),
     retry: DEFAULT_TASK_RETRY
   },
-  { name: 'mmdb', func: resolveMmdb, retry: DEFAULT_TASK_RETRY },
-  { name: 'metadb', func: resolveMetadb, retry: DEFAULT_TASK_RETRY },
-  { name: 'geosite', func: resolveGeosite, retry: DEFAULT_TASK_RETRY },
-  { name: 'geoip', func: resolveGeoIP, retry: DEFAULT_TASK_RETRY },
-  { name: 'asn', func: resolveASN, retry: DEFAULT_TASK_RETRY },
   {
     name: 'font',
     func: resolveFont,

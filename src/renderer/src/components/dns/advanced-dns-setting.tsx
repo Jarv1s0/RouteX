@@ -6,6 +6,7 @@ import { Tabs, Tab } from '@heroui/react'
 import { isValidDnsServer, isValidDomainWildcard } from '@renderer/utils/validate'
 import { primaryInputClassNames } from '../settings/advanced-settings'
 import { useI18n } from '@renderer/i18n'
+import { getDisabledSettingTitle } from '@renderer/components/base/collapsible-setting-list'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 interface AdvancedDnsSettingProps {
@@ -26,6 +27,7 @@ interface AdvancedDnsSettingProps {
   onUseHostsChange: (v: boolean) => void
   onHostsChange: (hosts: IHost[]) => void
   onErrorChange?: (hasError: boolean) => void
+  isDisabled?: boolean
 }
 
 const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
@@ -45,36 +47,35 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
   onUseSystemHostsChange,
   onUseHostsChange,
   onHostsChange,
-  onErrorChange
+  onErrorChange,
+  isDisabled = false
 }) => {
   const { t } = useI18n()
   const [directNameserverError, setDirectNameserverError] = useState<string | null>(null)
   const [proxyNameserverError, setProxyNameserverError] = useState<string | null>(null)
   const [nameserverPolicyError, setNameserverPolicyError] = useState<string | null>(null)
   const [hostsError, setHostsError] = useState<string | null>(null)
+  const hasError =
+    !isDisabled &&
+    Boolean(directNameserverError || proxyNameserverError || nameserverPolicyError || hostsError)
 
   React.useEffect(() => {
-    const hasError = Boolean(
-      directNameserverError || proxyNameserverError || nameserverPolicyError || hostsError
-    )
     onErrorChange?.(hasError)
-  }, [
-    directNameserverError,
-    proxyNameserverError,
-    nameserverPolicyError,
-    hostsError,
-    onErrorChange
-  ])
+  }, [hasError, onErrorChange])
 
   return (
-    <SettingCard title={t('dns.more')}>
-      <SettingItem title={t('dns.fakeIpFilterMode')} divider>
+    <SettingCard title={t('dns.more')} collapsible isDisabled={isDisabled} forceExpanded={hasError}>
+      <SettingItem
+        title={getDisabledSettingTitle(t('dns.fakeIpFilterMode'), isDisabled)}
+        divider
+      >
         <Tabs
           size="sm"
           color="primary"
           variant="solid"
           radius="lg"
           selectedKey={fakeIpFilterMode}
+          disabledKeys={isDisabled ? ['blacklist', 'whitelist', 'rule'] : []}
           onSelectionChange={(key) => onFakeIpFilterModeChange(key as FilterMode)}
         >
           <Tab key="blacklist" title={t('dns.blacklist')} />
@@ -82,11 +83,14 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
           <Tab key="rule" title={t('dns.ruleMode')} />
         </Tabs>
       </SettingItem>
-      <SettingItem title={t('dns.respectRules')} divider>
+      <SettingItem
+        title={getDisabledSettingTitle(t('dns.respectRules'), isDisabled)}
+        divider
+      >
         <AppSwitch
           size="sm"
           isSelected={respectRules}
-          isDisabled={proxyServerNameserver.length === 0}
+          isDisabled={isDisabled || proxyServerNameserver.length === 0}
           onValueChange={onRespectRulesChange}
         />
       </SettingItem>
@@ -104,6 +108,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
         }}
         placeholder={t('dns.placeholder.nameserver')}
         inputClassNames={primaryInputClassNames}
+        isDisabled={isDisabled}
       />
       <EditableList
         title={t('dns.proxyServerNameserver')}
@@ -119,6 +124,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
         }}
         placeholder={t('dns.placeholder.nameserver')}
         inputClassNames={primaryInputClassNames}
+        isDisabled={isDisabled}
       />
 
       <EditableList
@@ -180,12 +186,28 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
         part2Placeholder={t('dns.placeholder.dnsServers')}
         objectMode="record"
         inputClassNames={primaryInputClassNames}
+        isDisabled={isDisabled}
       />
-      <SettingItem title={t('dns.useSystemHosts')} divider>
-        <AppSwitch size="sm" isSelected={useSystemHosts} onValueChange={onUseSystemHostsChange} />
+      <SettingItem
+        title={getDisabledSettingTitle(t('dns.useSystemHosts'), isDisabled)}
+        divider
+      >
+        <AppSwitch
+          size="sm"
+          isSelected={useSystemHosts}
+          isDisabled={isDisabled}
+          onValueChange={onUseSystemHostsChange}
+        />
       </SettingItem>
-      <SettingItem title={t('dns.customHosts')}>
-        <AppSwitch size="sm" isSelected={useHosts} onValueChange={onUseHostsChange} />
+      <SettingItem
+        title={getDisabledSettingTitle(t('dns.customHosts'), isDisabled)}
+      >
+        <AppSwitch
+          size="sm"
+          isSelected={useHosts}
+          isDisabled={isDisabled}
+          onValueChange={onUseHostsChange}
+        />
       </SettingItem>
       {useHosts && (
         <EditableList
@@ -212,6 +234,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
           objectMode="record"
           divider={false}
           inputClassNames={primaryInputClassNames}
+          isDisabled={isDisabled}
         />
       )}
     </SettingCard>

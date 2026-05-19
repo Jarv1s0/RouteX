@@ -27,6 +27,9 @@ interface Props {
   showDivider?: boolean
 }
 
+export const FLOATING_ACTION_BUTTON_CLASS =
+  'app-nodrag h-8 min-w-[72px] rounded-lg px-3 text-sm font-medium shadow-[0_5px_12px_rgba(23,201,100,0.18)]'
+
 let saveOnTop = false
 
 const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
@@ -67,7 +70,9 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
             <span className="text-lg font-bold tracking-tight text-foreground">{props.title}</span>
           </div>
           <div className="header flex gap-0 h-full items-center">
-            <div className={`flex items-center p-1 rounded-2xl mr-3 app-nodrag ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}>
+            <div
+              className={`flex items-center p-1 rounded-2xl mr-3 app-nodrag ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}
+            >
               <SysproxySwitcher headerMode />
               <div className="w-[1px] h-3.5 bg-default-300/50 dark:bg-white/10 mx-0.5" />
               <TunSwitcher headerMode />
@@ -138,12 +143,9 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
       <div className="content h-[calc(100vh-49px)] overflow-y-auto custom-scrollbar relative">
         {props.children}
         {props.footer && (
-          <div className="sticky bottom-0 left-0 right-0 z-30 animate-appearance-in">
-            <div className="mx-3 mb-3 px-4 py-3 rounded-xl flex items-center justify-between bg-content1 dark:bg-content1 border border-default-200 dark:border-default-100 shadow-[0_-2px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_-2px_16px_rgba(0,0,0,0.4)]">
-              <span className="text-sm font-medium text-foreground/80">{t('basePage.unsavedChanges')}</span>
-              <div className="flex items-center gap-2 app-nodrag">
-                {props.footer}
-              </div>
+          <div className="sticky bottom-0 z-30 flex justify-end px-3 pb-3 pointer-events-none animate-appearance-in">
+            <div className="pointer-events-auto flex items-center gap-2 app-nodrag">
+              {props.footer}
             </div>
           </div>
         )}

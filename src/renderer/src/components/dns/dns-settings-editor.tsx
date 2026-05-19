@@ -1,6 +1,9 @@
 import React, { Key, useEffect, useMemo, useState } from 'react'
 import { Input, Tab, Tabs, Tooltip } from '@heroui/react'
 
+import CollapsibleSettingList, {
+  getDisabledSettingTitle
+} from '@renderer/components/base/collapsible-setting-list'
 import EditableList from '@renderer/components/base/base-list-editor'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -145,8 +148,9 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
 
   const hasDnsErrors = defaultNameserverHasError || nameserverHasError || advancedDnsError
 
-  const saveDisabled =
-    values.enhancedMode === 'fake-ip'
+  const saveDisabled = !values.controlDns
+    ? false
+    : values.enhancedMode === 'fake-ip'
       ? Boolean(fakeIPRangeError) ||
         (values.ipv6 && Boolean(fakeIPRange6Error)) ||
         fakeIPFilterHasError ||
@@ -154,6 +158,17 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
       : hasDnsErrors
 
   const save = async (): Promise<void> => {
+    if (!values.controlDns) {
+      try {
+        await patchAppConfig({ controlDns: false })
+        await patchControledMihomoConfig({})
+        restartCoreInBackground(t('dns.applyFailed'))
+      } catch (error) {
+        notifyError(error)
+      }
+      return
+    }
+
     const hostsObject =
       values.useHosts && values.hosts && values.hosts.length > 0
         ? Object.fromEntries(values.hosts.map(({ domain, value }) => [domain, value]))
@@ -166,6 +181,7 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
       })
       await patchControledMihomoConfig({
         dns: {
+          enable: true,
           ipv6: values.ipv6,
           'fake-ip-range': values.fakeIPRange,
           'fake-ip-range6': values.fakeIPRange6,
@@ -214,13 +230,21 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
     setFakeIPRange6Error,
     setAdvancedDnsError
   } = editor
+  const dnsFieldsDisabled = !values.controlDns
+  const fakeIPFilterHasError = values.fakeIPFilter.some((item) => !isValidDomainWildcard(item).ok)
+  const defaultNameserverHasError = values.defaultNameserver.some(
+    (item) => !isValidDnsServer(item, true).ok
+  )
+  const nameserverHasError = values.nameserver.some((item) => !isValidDnsServer(item).ok)
 
   return (
-    <>
+    <div className="space-y-2">
       <SettingCard>
         <SettingItem title={t('page.dns.title')} divider>
           <div className="flex items-center gap-2">
-            <span className={`text-xs ${values.controlDns ? 'text-primary' : 'text-default-400'}`}>
+            <span
+              className={`text-xs ${values.controlDns ? 'text-primary' : 'text-foreground-500'}`}
+            >
               {values.controlDns ? t('common.enabled') : t('common.disabled')}
             </span>
             <AppSwitch
@@ -230,17 +254,22 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
             />
           </div>
         </SettingItem>
-        <SettingItem title="IPv6" divider>
+        <SettingItem title={getDisabledSettingTitle('IPv6', dnsFieldsDisabled)} divider>
           <AppSwitch
             size="sm"
             isSelected={values.ipv6}
+            isDisabled={dnsFieldsDisabled}
             onValueChange={(value) => setValues({ ...values, ipv6: value })}
           />
         </SettingItem>
-        <SettingItem title={t('dns.enhancedMode')} divider>
+        <SettingItem
+          title={getDisabledSettingTitle(t('dns.enhancedMode'), dnsFieldsDisabled)}
+          divider
+        >
           <Tabs
             classNames={CARD_STYLES.GLASS_TABS}
             selectedKey={values.enhancedMode}
+            disabledKeys={dnsFieldsDisabled ? ['fake-ip', 'redir-host', 'normal'] : []}
             onSelectionChange={(key: Key) => setValues({ ...values, enhancedMode: key as DnsMode })}
           >
             <Tab key="fake-ip" title={t('dns.fakeIp')} />
@@ -250,11 +279,14 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
         </SettingItem>
         {values.enhancedMode === 'fake-ip' && (
           <>
-            <SettingItem title={t('dns.fakeIpRange4')} divider>
+            <SettingItem
+              title={getDisabledSettingTitle(t('dns.fakeIpRange4'), dnsFieldsDisabled)}
+              divider
+            >
               <Tooltip
                 content={fakeIPRangeError}
                 placement="right"
-                isOpen={!!fakeIPRangeError}
+                isOpen={!dnsFieldsDisabled && !!fakeIPRangeError}
                 showArrow={true}
                 color="danger"
                 offset={15}
@@ -263,9 +295,14 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
                   size="sm"
                   className={
                     `w-[40%] ` +
-                    (fakeIPRangeError ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : '')
+                    (!dnsFieldsDisabled && fakeIPRangeError
+                      ? 'border-red-500 ring-1 ring-red-500 rounded-lg'
+                      : '')
                   }
-                  classNames={fakeIPRangeError ? undefined : primaryInputClassNames}
+                  classNames={
+                    !dnsFieldsDisabled && fakeIPRangeError ? undefined : primaryInputClassNames
+                  }
+                  isDisabled={dnsFieldsDisabled}
                   placeholder={t('dns.placeholder.fakeIpRange4')}
                   value={values.fakeIPRange}
                   onValueChange={(value) => {
@@ -279,11 +316,14 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
               </Tooltip>
             </SettingItem>
             {values.ipv6 && (
-              <SettingItem title={t('dns.fakeIpRange6')} divider>
+              <SettingItem
+                title={getDisabledSettingTitle(t('dns.fakeIpRange6'), dnsFieldsDisabled)}
+                divider
+              >
                 <Tooltip
                   content={fakeIPRange6Error}
                   placement="right"
-                  isOpen={!!fakeIPRange6Error}
+                  isOpen={!dnsFieldsDisabled && !!fakeIPRange6Error}
                   showArrow={true}
                   color="danger"
                   offset={10}
@@ -292,9 +332,14 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
                     size="sm"
                     className={
                       `w-[40%] ` +
-                      (fakeIPRange6Error ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : '')
+                      (!dnsFieldsDisabled && fakeIPRange6Error
+                        ? 'border-red-500 ring-1 ring-red-500 rounded-lg'
+                        : '')
                     }
-                    classNames={fakeIPRange6Error ? undefined : primaryInputClassNames}
+                    classNames={
+                      !dnsFieldsDisabled && fakeIPRange6Error ? undefined : primaryInputClassNames
+                    }
+                    isDisabled={dnsFieldsDisabled}
                     placeholder={t('dns.placeholder.fakeIpRange6')}
                     value={values.fakeIPRange6}
                     onValueChange={(value) => {
@@ -308,39 +353,63 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
                 </Tooltip>
               </SettingItem>
             )}
-            <EditableList
+            <CollapsibleSettingList
               title={t('dns.fakeIpFilter')}
-              items={values.fakeIPFilter}
-              validate={(part) => isValidDomainWildcard(part as string)}
-              onChange={(list) => {
-                setValues({ ...values, fakeIPFilter: list as string[] })
-              }}
-              placeholder={t('dns.placeholder.fakeIpFilter')}
-              inputClassNames={primaryInputClassNames}
-            />
+              countLabel={t('dns.itemCount', { count: values.fakeIPFilter.length })}
+              isDisabled={dnsFieldsDisabled}
+              hasError={fakeIPFilterHasError}
+            >
+              <EditableList
+                items={values.fakeIPFilter}
+                validate={(part) => isValidDomainWildcard(part as string)}
+                onChange={(list) => {
+                  setValues({ ...values, fakeIPFilter: list as string[] })
+                }}
+                placeholder={t('dns.placeholder.fakeIpFilter')}
+                divider={false}
+                inputClassNames={primaryInputClassNames}
+                isDisabled={dnsFieldsDisabled}
+              />
+            </CollapsibleSettingList>
           </>
         )}
-        <EditableList
+        <CollapsibleSettingList
           title={t('dns.baseNameserver')}
-          items={values.defaultNameserver}
-          validate={(part) => isValidDnsServer(part as string, true)}
-          onChange={(list) => {
-            setValues({ ...values, defaultNameserver: list as string[] })
-          }}
-          placeholder={t('dns.placeholder.baseNameserver')}
-          inputClassNames={primaryInputClassNames}
-        />
-        <EditableList
+          countLabel={t('dns.serverCount', { count: values.defaultNameserver.length })}
+          isDisabled={dnsFieldsDisabled}
+          hasError={defaultNameserverHasError}
+        >
+          <EditableList
+            items={values.defaultNameserver}
+            validate={(part) => isValidDnsServer(part as string, true)}
+            onChange={(list) => {
+              setValues({ ...values, defaultNameserver: list as string[] })
+            }}
+            placeholder={t('dns.placeholder.baseNameserver')}
+            divider={false}
+            inputClassNames={primaryInputClassNames}
+            isDisabled={dnsFieldsDisabled}
+          />
+        </CollapsibleSettingList>
+        <CollapsibleSettingList
           title={t('dns.defaultNameserver')}
-          items={values.nameserver}
-          validate={(part) => isValidDnsServer(part as string)}
-          onChange={(list) => {
-            setValues({ ...values, nameserver: list as string[] })
-          }}
-          placeholder={t('dns.placeholder.nameserver')}
           divider={false}
-          inputClassNames={primaryInputClassNames}
-        />
+          countLabel={t('dns.serverCount', { count: values.nameserver.length })}
+          isDisabled={dnsFieldsDisabled}
+          hasError={nameserverHasError}
+        >
+          <EditableList
+            items={values.nameserver}
+            validate={(part) => isValidDnsServer(part as string)}
+            onChange={(list) => {
+              setValues({ ...values, nameserver: list as string[] })
+            }}
+            placeholder={t('dns.placeholder.nameserver')}
+            divider={false}
+            inputClassNames={primaryInputClassNames}
+            isDisabled={dnsFieldsDisabled}
+          />
+        </CollapsibleSettingList>
       </SettingCard>
       <AdvancedDnsSetting
         respectRules={values.respectRules}
@@ -375,7 +444,8 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
         onUseHostsChange={(value) => setValues({ ...values, useHosts: value })}
         onHostsChange={(hostArr) => setValues({ ...values, hosts: hostArr })}
         onErrorChange={setAdvancedDnsError}
+        isDisabled={dnsFieldsDisabled}
       />
-    </>
+    </div>
   )
 }

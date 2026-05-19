@@ -1,5 +1,5 @@
 import { Button } from '@heroui/react'
-import BasePage from '@renderer/components/base/base-page'
+import BasePage, { FLOATING_ACTION_BUTTON_CLASS } from '@renderer/components/base/base-page'
 import React from 'react'
 
 import {
@@ -19,7 +19,7 @@ const Sniffer: React.FC = () => {
         editor.changed && (
           <Button
             size="sm"
-            className="app-nodrag"
+            className={FLOATING_ACTION_BUTTON_CLASS}
             color="primary"
             onPress={() => void editor.save()}
           >

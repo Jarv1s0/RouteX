@@ -1,7 +1,7 @@
 import React from 'react'
 import { Button } from '@heroui/react'
 
-import BasePage from '@renderer/components/base/base-page'
+import BasePage, { FLOATING_ACTION_BUTTON_CLASS } from '@renderer/components/base/base-page'
 import {
   DnsSettingsFormFields,
   useDnsSettingsEditor
@@ -19,7 +19,7 @@ const DNS: React.FC = () => {
         editor.changed && (
           <Button
             size="sm"
-            className="app-nodrag"
+            className={FLOATING_ACTION_BUTTON_CLASS}
             color="primary"
             isDisabled={editor.saveDisabled}
             onPress={() => void editor.save()}

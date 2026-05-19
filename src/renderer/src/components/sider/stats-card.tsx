@@ -1,4 +1,4 @@
-import { LuChartColumn, LuGlobe, LuScanSearch } from 'react-icons/lu'
+import { LuChartColumn, LuScanSearch, LuServerCog } from 'react-icons/lu'
 import React from 'react'
 import SidebarNavCard, { type SidebarNavItemProps } from './sidebar-nav-card'
 import { useI18n } from '@renderer/i18n'
@@ -13,7 +13,7 @@ const StatsCard: React.FC<SidebarNavItemProps> = (props) => {
           {...props}
           label={t('sidebar.dns')}
           path="/dns"
-          icon={LuGlobe}
+          icon={LuServerCog}
           iconOnlySizeClass="text-[16px]"
         />
         <SidebarNavCard
@@ -40,7 +40,7 @@ const StatsCard: React.FC<SidebarNavItemProps> = (props) => {
         {...props}
         label={t('sidebar.dns')}
         path="/dns"
-        icon={LuGlobe}
+        icon={LuServerCog}
       />
       <SidebarNavCard
         {...props}

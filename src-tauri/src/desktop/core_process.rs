@@ -19,10 +19,14 @@ fn prepare_runtime_data_dir(app: &tauri::AppHandle, data_dir: &Path) -> Result<(
             continue;
         }
 
-        let source_path = resolve_resource_binary(app, "files", file_name)?;
         if target_path.exists() {
             let _ = fs::remove_file(&target_path);
         }
+
+        let Ok(source_path) = resolve_resource_binary(app, "files", file_name) else {
+            continue;
+        };
+
         fs::copy(source_path, target_path).map_err(|e| e.to_string())?;
     }
 

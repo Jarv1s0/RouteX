@@ -101,6 +101,8 @@ export const enUS: Record<TranslationKey, string> = {
   'resources.asn': 'ASN database',
   'resources.geoMode': 'GeoIP data mode',
   'resources.autoUpdate': 'Auto update Geo database',
+  'resources.downloadGeoData': 'Download Geo database',
+  'resources.downloadGeoDataAction': 'Download',
   'resources.updateSuccess': 'Geo database updated',
   'resources.updateIntervalHours': 'Update interval (hours)',
   'page.rules.create': 'Create rule',
@@ -323,8 +325,7 @@ export const enUS: Record<TranslationKey, string> = {
   'mihomo.service.disconnected': 'Disconnected',
   'mihomo.service.checking': 'Checking',
   'mihomo.service.checkingDots': 'Checking...',
-  'mihomo.service.hint1':
-    'The service manages system proxy settings and core process control.',
+  'mihomo.service.hint1': 'The service manages system proxy settings and core process control.',
   'mihomo.service.hint2':
     'After installing the service, authorize the current user to connect to it.',
   'mihomo.service.hint3':
@@ -536,6 +537,8 @@ export const enUS: Record<TranslationKey, string> = {
   'dns.fakeIpFilter': 'Fake IP filter',
   'dns.defaultNameserver': 'Default nameservers',
   'dns.baseNameserver': 'Bootstrap nameservers',
+  'dns.itemCount': '{count} items',
+  'dns.serverCount': '{count} servers',
   'dns.more': 'More settings',
   'dns.fakeIpFilterMode': 'FakeIP filter mode',
   'dns.blacklist': 'Blacklist',
@@ -567,6 +570,7 @@ export const enUS: Record<TranslationKey, string> = {
   'sniffer.forceDomain': 'Force domain sniffing',
   'sniffer.skipDstAddress': 'Skip destination address sniffing',
   'sniffer.skipSrcAddress': 'Skip source address sniffing',
+  'sniffer.itemCount': '{count} items',
   'sniffer.applyFailed': 'Failed to apply sniffer config',
   'sniffer.placeholder.skipDomain': 'e.g. +.push.apple.com',
   'sniffer.placeholder.forceDomain': 'e.g. v2ex.com',
