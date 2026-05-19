@@ -2,12 +2,7 @@
 
 #[cfg(target_os = "windows")]
 mod windows_launcher {
-    use std::{
-        env,
-        ffi::c_void,
-        path::PathBuf,
-        process::Command,
-    };
+    use std::{env, ffi::c_void, fs, path::PathBuf, process::Command};
 
     use std::os::windows::process::CommandExt;
 
@@ -27,11 +22,38 @@ mod windows_launcher {
     }
 
     pub fn run() {
-        if run_elevate_task() {
+        if !is_service_mode_configured() && run_elevate_task() {
             return;
         }
 
         let _ = launch_main_exe();
+    }
+
+    fn is_service_mode_configured() -> bool {
+        read_app_config_text()
+            .as_deref()
+            .is_some_and(core_permission_mode_is_service)
+    }
+
+    fn read_app_config_text() -> Option<String> {
+        let appdata = env::var_os("APPDATA").map(PathBuf::from)?;
+        let config_path = appdata
+            .join("routex.app")
+            .join("routex-store")
+            .join("app-config.json");
+        fs::read_to_string(config_path).ok()
+    }
+
+    fn core_permission_mode_is_service(text: &str) -> bool {
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(text) else {
+            return false;
+        };
+        matches!(
+            value
+                .get("corePermissionMode")
+                .and_then(serde_json::Value::as_str),
+            Some("service")
+        )
     }
 
     fn run_elevate_task() -> bool {
@@ -119,7 +141,11 @@ mod windows_launcher {
     }
 
     fn wide_null(value: impl AsRef<str>) -> Vec<u16> {
-        value.as_ref().encode_utf16().chain(std::iter::once(0)).collect()
+        value
+            .as_ref()
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect()
     }
 
     #[cfg(test)]
@@ -135,6 +161,18 @@ mod windows_launcher {
         #[test]
         fn selects_task_name_from_build_variant() {
             assert!(!routex_run_task_name().is_empty());
+        }
+
+        #[test]
+        fn parses_service_permission_mode() {
+            let config = r#"{"corePermissionMode":"service"}"#;
+            assert!(core_permission_mode_is_service(config));
+        }
+
+        #[test]
+        fn missing_permission_mode_is_not_service() {
+            let config = r#"{"silentStart":false}"#;
+            assert!(!core_permission_mode_is_service(config));
         }
 
         #[test]

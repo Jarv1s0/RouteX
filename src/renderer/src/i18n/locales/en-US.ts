@@ -211,7 +211,7 @@ export const enUS: Record<TranslationKey, string> = {
   'mihomo.confirmCancelTaskDescription':
     'After cancelling the scheduled task, TUN and other features may stop working. Continue?',
   'mihomo.permissionGranted': 'Core permission granted',
-  'mihomo.serviceInitSuccess': 'Service initialized',
+  'mihomo.serviceInitSuccess': 'Service authorized',
   'mihomo.serviceInstallSuccess': 'Service installed',
   'mihomo.serviceUninstallSuccess': 'Service uninstalled',
   'mihomo.serviceStartSuccess': 'Service started',
@@ -317,21 +317,22 @@ export const enUS: Record<TranslationKey, string> = {
   'mihomo.service.running': 'Running',
   'mihomo.service.stopped': 'Stopped',
   'mihomo.service.notInstalled': 'Not installed',
-  'mihomo.service.needInit': 'Needs initialization',
+  'mihomo.service.needInit': 'Needs connection authorization',
   'mihomo.service.unknownStatus': 'Unknown status',
   'mihomo.service.connected': 'Connected',
   'mihomo.service.disconnected': 'Disconnected',
   'mihomo.service.checking': 'Checking',
   'mihomo.service.checkingDots': 'Checking...',
   'mihomo.service.hint1':
-    'Provides service permissions for system proxy settings and core process management.',
+    'The service manages system proxy settings and core process control.',
   'mihomo.service.hint2':
-    'After installation, service mode can run operations that require elevation.',
-  'mihomo.service.hint3': 'Without the service, some advanced features cannot be used.',
+    'After installing the service, authorize the current user to connect to it.',
+  'mihomo.service.hint3':
+    'After the connection is authorized, service mode can run elevated operations.',
   'mihomo.service.hint4':
-    'Installation, start, stop, restart, and uninstall are currently supported.',
+    'Install, authorize connection, start, stop, restart, and uninstall are supported.',
   'mihomo.service.install': 'Install service',
-  'mihomo.service.init': 'Initialize',
+  'mihomo.service.init': 'Authorize connection',
   'mihomo.service.restart': 'Restart',
   'mihomo.service.stop': 'Stop',
   'mihomo.service.start': 'Start',
