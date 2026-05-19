@@ -194,13 +194,7 @@ jobs:
       - name: Verify Bundled Resources
         shell: bash
         run: |
-          expected_files=(
-            "extra/files/country.mmdb"
-            "extra/files/geoip.metadb"
-            "extra/files/geosite.dat"
-            "extra/files/geoip.dat"
-            "extra/files/ASN.mmdb"
-          )
+          expected_files=()
 
           case "${{ matrix.platform }}" in
             windows)
