@@ -245,14 +245,15 @@ jobs:
       - name: Setup bundled resource cache
         id: resource-cache
         uses: actions/cache@v5
+        continue-on-error: true
         with:
           path: |
             extra/files
             extra/sidecar
             src/renderer/src/assets/twemoji.ttf
-          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-${{ hashFiles('scripts/prepare.mjs', 'src-tauri/src/bin/routex-launcher.rs') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v2-${{ hashFiles('scripts/prepare.mjs', 'src-tauri/src/bin/routex-launcher.rs') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v1-
+            ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v2-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
