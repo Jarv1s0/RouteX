@@ -1,7 +1,8 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, Button, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react'
 import React, { useState, useEffect, useMemo } from 'react'
-import { MdRefresh, MdSort } from 'react-icons/md'
+import { MdLink, MdRefresh, MdSort } from 'react-icons/md'
 import SettingItem from '../base/base-setting-item'
+import ProxyChainModal from './proxy-chain-modal'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useGroups } from '@renderer/hooks/use-groups'
 import debounce from '@renderer/utils/debounce'
@@ -67,6 +68,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
   const [goodThreshold, setGoodThreshold] = useState(delayThresholds.good.toString())
   const [fairThreshold, setFairThreshold] = useState(delayThresholds.fair.toString())
   const [showSortModal, setShowSortModal] = useState(false)
+  const [showChainModal, setShowChainModal] = useState(false)
 
   const setUrlDebounce = useMemo(
     () =>
@@ -104,6 +106,17 @@ const ProxySettingModal: React.FC<Props> = (props) => {
             <SecondaryModalCloseButton onPress={onClose} />
           </ModalHeader>
           <ModalBody className="py-2 gap-1 pb-2 px-6">
+            <SettingItem title={t('page.proxies.manageChains')} divider>
+              <Button
+                size="sm"
+                color="primary"
+                variant="flat"
+                startContent={<MdLink className="text-lg" />}
+                onPress={() => setShowChainModal(true)}
+              >
+                {t('common.manage')}
+              </Button>
+            </SettingItem>
             <SettingItem title={t('proxies.columns')} divider>
               <Select
                 classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
@@ -306,6 +319,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
           </ModalBody>
         </ModalContent>
       </Modal>
+      {showChainModal && <ProxyChainModal onClose={() => setShowChainModal(false)} />}
       {showSortModal && (
         <GroupSortModal
           groups={groups}

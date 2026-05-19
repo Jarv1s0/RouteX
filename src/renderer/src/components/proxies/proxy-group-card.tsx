@@ -66,7 +66,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
         onPress={toggleOpen}
         className={`transition-all duration-200 border group ${activeStyle}`}
       >
-        <CardBody className="w-full p-4">
+        <CardBody className="w-full py-3 px-4 min-h-[64px] flex justify-center">
           {/* Header Row */}
           <div className="flex justify-between items-center">
             {/* Left: Info */}

@@ -9,6 +9,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 interface SnifferEditorValues {
@@ -20,6 +21,7 @@ interface SnifferEditorValues {
   forceDomain: string[]
   skipDstAddress: string[]
   skipSrcAddress: string[]
+  controlSniff: boolean
 }
 
 export interface SnifferSettingsEditorState {
@@ -34,8 +36,10 @@ export interface SnifferSettingsEditorState {
 }
 
 function buildInitialValues(
+  appConfig: AppConfig | undefined,
   controledMihomoConfig: Partial<MihomoConfig> | undefined
 ): SnifferEditorValues {
+  const { controlSniff = true } = appConfig || {}
   const { sniffer } = controledMihomoConfig || {}
   const {
     'parse-pure-ip': parsePureIP = true,
@@ -84,17 +88,19 @@ function buildInitialValues(
     skipDomain,
     forceDomain,
     skipDstAddress,
-    skipSrcAddress
+    skipSrcAddress,
+    controlSniff
   }
 }
 
 export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
   const { t } = useI18n()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { appConfig, patchAppConfig } = useAppConfig()
 
   const initialValues = useMemo(
-    () => buildInitialValues(controledMihomoConfig),
-    [controledMihomoConfig]
+    () => buildInitialValues(appConfig, controledMihomoConfig),
+    [appConfig, controledMihomoConfig]
   )
 
   const [values, setValuesState] = useState<SnifferEditorValues>(initialValues)
@@ -109,6 +115,7 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
 
   const save = async (): Promise<void> => {
     try {
+      await patchAppConfig({ controlSniff: values.controlSniff })
       await patchControledMihomoConfig({
         sniffer: {
           'parse-pure-ip': values.parsePureIP,
@@ -160,6 +167,18 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
 
   return (
     <SettingCard>
+      <SettingItem title={t('page.sniffer.title')} divider>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs ${values.controlSniff ? 'text-primary' : 'text-default-400'}`}>
+            {values.controlSniff ? t('common.enabled') : t('common.disabled')}
+          </span>
+          <AppSwitch
+            size="sm"
+            isSelected={values.controlSniff}
+            onValueChange={(value) => setValues({ ...values, controlSniff: value })}
+          />
+        </div>
+      </SettingItem>
       <SettingItem title={t('sniffer.overrideDestination')} divider>
         <AppSwitch
           size="sm"

@@ -15,10 +15,11 @@ import { useI18n } from '@renderer/i18n'
 interface Props {
   iconOnly?: boolean
   compact?: boolean
+  headerMode?: boolean
 }
 
 const SysproxySwitcher: React.FC<Props> = (props) => {
-  const { iconOnly, compact } = props
+  const { iconOnly, compact, headerMode } = props
   const { t } = useI18n()
   const location = useLocation()
   const match = location.pathname.includes('/sysproxy')
@@ -62,6 +63,30 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
             <LuGlobe className="text-[16px]" />
           </Button>
         </Tooltip>
+      </div>
+    )
+  }
+
+  if (headerMode) {
+    const isSelected = !(mode != 'auto' && disabled) && enable
+    return (
+      <div
+        onMouseEnter={handlePreload}
+        onClick={() => navigateSidebarRoute('/sysproxy')}
+        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl cursor-pointer transition-colors hover:bg-default-200/50 dark:hover:bg-white/5 select-none`}
+      >
+        <LuGlobe className={`text-[14px] ${isSelected ? 'text-primary' : 'text-default-500'}`} />
+        <span className={`text-[12px] leading-none ${isSelected ? 'font-bold text-foreground' : 'font-medium text-default-500'}`}>
+          {t('sidebar.sysProxy')}
+        </span>
+        <div onClick={(e) => e.stopPropagation()} className="ml-0.5 flex items-center">
+          <SidebarTrailingSwitch
+            isSelected={isSelected}
+            isDisabled={mode == 'manual' && disabled}
+            onValueChange={onChange}
+            size="sm"
+          />
+        </div>
       </div>
     )
   }

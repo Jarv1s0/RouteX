@@ -19,7 +19,6 @@ import { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
-import ProxyChainModal from '@renderer/components/proxies/proxy-chain-modal'
 import { MdTune, MdLink } from 'react-icons/md'
 import { TbBolt } from 'react-icons/tb'
 import { useGroups } from '@renderer/hooks/use-groups'
@@ -397,7 +396,6 @@ const Proxies: React.FC = () => {
   const [isOpen, setIsOpen] = useState<Record<string, boolean>>({})
   const [delaying, setDelaying] = useState<Record<string, boolean>>({})
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
-  const [isChainModalOpen, setIsChainModalOpen] = useState(false)
   const virtuosoRef = useRef<VirtuosoHandle>(null)
 
   const setGroupsDelaying = useCallback(
@@ -765,15 +763,7 @@ const Proxies: React.FC = () => {
             size="sm"
             isIconOnly
             variant="light"
-            title={t('page.proxies.manageChains')}
-            onPress={() => setIsChainModalOpen(true)}
-          >
-            <MdLink className="text-lg" />
-          </Button>
-          <Button
-            size="sm"
-            isIconOnly
-            variant="light"
+            className="rounded-xl"
             title={t('page.proxies.settings')}
             onPress={() => setIsSettingModalOpen(true)}
           >
@@ -783,7 +773,6 @@ const Proxies: React.FC = () => {
       }
     >
       {isSettingModalOpen && <ProxySettingModal onClose={() => setIsSettingModalOpen(false)} />}
-      {isChainModalOpen && <ProxyChainModal onClose={() => setIsChainModalOpen(false)} />}
       {mode === 'direct' ? (
         <EmptyState
           icon={<TbBolt className="!text-[40px] text-teal-500" />}

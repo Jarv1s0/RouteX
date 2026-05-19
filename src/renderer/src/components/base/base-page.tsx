@@ -12,10 +12,14 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } f
 import { LuPin } from 'react-icons/lu'
 import { VscChromeClose, VscChromeMaximize, VscChromeMinimize } from 'react-icons/vsc'
 import { useI18n } from '@renderer/i18n'
+import SysproxySwitcher from '@renderer/components/sider/sysproxy-switcher'
+import TunSwitcher from '@renderer/components/sider/tun-switcher'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   title?: React.ReactNode
   header?: React.ReactNode
+  footer?: React.ReactNode
   children?: React.ReactNode
   contentClassName?: string
   className?: string
@@ -63,8 +67,13 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
             <span className="text-lg font-bold tracking-tight text-foreground">{props.title}</span>
           </div>
           <div className="header flex gap-0 h-full items-center">
+            <div className={`flex items-center p-1 rounded-2xl mr-3 app-nodrag ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}>
+              <SysproxySwitcher headerMode />
+              <div className="w-[1px] h-3.5 bg-default-300/50 dark:bg-white/10 mx-0.5" />
+              <TunSwitcher headerMode />
+            </div>
             {props.header}
-            <div className="flex items-center gap-1.5 mr-2 h-full app-nodrag">
+            <div className="flex items-center gap-1.5 mr-2 ml-1.5 h-full app-nodrag">
               <Button
                 size="sm"
                 className={`min-w-8 w-8 h-8 rounded-lg active:scale-90 transition-all ${
@@ -126,8 +135,18 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
 
         {/* {(props.showDivider ?? true) && <Divider />} */}
       </div>
-      <div className="content h-[calc(100vh-49px)] overflow-y-auto custom-scrollbar">
+      <div className="content h-[calc(100vh-49px)] overflow-y-auto custom-scrollbar relative">
         {props.children}
+        {props.footer && (
+          <div className="sticky bottom-0 left-0 right-0 z-30 animate-appearance-in">
+            <div className="mx-3 mb-3 px-4 py-3 rounded-xl flex items-center justify-between bg-content1 dark:bg-content1 border border-default-200 dark:border-default-100 shadow-[0_-2px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_-2px_16px_rgba(0,0,0,0.4)]">
+              <span className="text-sm font-medium text-foreground/80">{t('basePage.unsavedChanges')}</span>
+              <div className="flex items-center gap-2 app-nodrag">
+                {props.footer}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

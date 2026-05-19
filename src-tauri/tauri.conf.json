@@ -14,8 +14,8 @@
       {
         "label": "main",
         "title": "RouteX",
-        "width": 1320,
-        "height": 860,
+        "width": 1080,
+        "height": 720,
         "minWidth": 1080,
         "minHeight": 720,
         "resizable": true,

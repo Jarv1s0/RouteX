@@ -37,6 +37,7 @@ interface DnsEditorValues {
   directNameserver: string[]
   nameserverPolicy: Record<string, string | string[]>
   hosts?: IHost[]
+  controlDns: boolean
 }
 
 export interface DnsSettingsEditorState {
@@ -56,7 +57,7 @@ function buildInitialValues(
   appConfig: AppConfig | undefined,
   controledMihomoConfig: Partial<MihomoConfig> | undefined
 ): DnsEditorValues {
-  const { hosts = [] } = appConfig || {}
+  const { hosts = [], controlDns = true } = appConfig || {}
   const { dns } = controledMihomoConfig || {}
   const {
     ipv6 = false,
@@ -97,7 +98,8 @@ function buildInitialValues(
     proxyServerNameserver,
     directNameserver,
     nameserverPolicy,
-    hosts: useHosts ? hosts : undefined
+    hosts: useHosts ? hosts : undefined,
+    controlDns
   }
 }
 
@@ -159,7 +161,8 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
 
     try {
       await patchAppConfig({
-        hosts: values.hosts
+        hosts: values.hosts,
+        controlDns: values.controlDns
       })
       await patchControledMihomoConfig({
         dns: {
@@ -215,6 +218,18 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
   return (
     <>
       <SettingCard>
+        <SettingItem title={t('page.dns.title')} divider>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs ${values.controlDns ? 'text-primary' : 'text-default-400'}`}>
+              {values.controlDns ? t('common.enabled') : t('common.disabled')}
+            </span>
+            <AppSwitch
+              size="sm"
+              isSelected={values.controlDns}
+              onValueChange={(value) => setValues({ ...values, controlDns: value })}
+            />
+          </div>
+        </SettingItem>
         <SettingItem title="IPv6" divider>
           <AppSwitch
             size="sm"

@@ -18,6 +18,7 @@ import { useI18n } from '@renderer/i18n'
 interface Props {
   iconOnly?: boolean
   compact?: boolean
+  headerMode?: boolean
 }
 
 async function showToastError(title: string, description: string): Promise<void> {
@@ -37,7 +38,7 @@ function isLikelyPermissionError(message: string): boolean {
 }
 
 const TunSwitcher: React.FC<Props> = (props) => {
-  const { iconOnly, compact } = props
+  const { iconOnly, compact, headerMode } = props
   const { t } = useI18n()
   const location = useLocation()
   const match = location.pathname.includes('/tun') || false
@@ -114,6 +115,29 @@ const TunSwitcher: React.FC<Props> = (props) => {
             <LuNetwork className="text-[16px]" />
           </Button>
         </Tooltip>
+      </div>
+    )
+  }
+
+  if (headerMode) {
+    const isSelected = enable ?? false
+    return (
+      <div
+        onMouseEnter={handlePreload}
+        onClick={() => navigateSidebarRoute('/tun')}
+        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl cursor-pointer transition-colors hover:bg-default-200/50 dark:hover:bg-white/5 select-none`}
+      >
+        <LuNetwork className={`text-[14px] ${isSelected ? 'text-primary' : 'text-default-500'}`} />
+        <span className={`text-[12px] leading-none ${isSelected ? 'font-bold text-foreground' : 'font-medium text-default-500'}`}>
+          {t('sidebar.tun')}
+        </span>
+        <div onClick={(e) => e.stopPropagation()} className="ml-0.5 flex items-center">
+          <SidebarTrailingSwitch
+            isSelected={isSelected}
+            onValueChange={onChange}
+            size="sm"
+          />
+        </div>
       </div>
     )
   }

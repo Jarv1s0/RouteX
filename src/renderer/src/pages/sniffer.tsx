@@ -15,7 +15,7 @@ const Sniffer: React.FC = () => {
   return (
     <BasePage
       title={t('page.sniffer.title')}
-      header={
+      footer={
         editor.changed && (
           <Button
             size="sm"

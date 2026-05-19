@@ -120,7 +120,7 @@ const ProxyCard: React.FC<Props> = (props) => {
           cursor-pointer
         `}
       >
-        <CardBody className="py-3 px-5 h-[90px] flex flex-col justify-between">
+        <CardBody className="py-3 px-4 h-[80px] flex flex-col justify-between">
           <div className="flex items-center gap-1.5">
             <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
               <LuRocket

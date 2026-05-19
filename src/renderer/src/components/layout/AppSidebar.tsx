@@ -2,11 +2,7 @@ import React from 'react'
 import { useLocation } from 'react-router-dom'
 import { Button } from '@heroui/react'
 import { IoSettings } from 'react-icons/io5'
-import clsx from 'clsx'
-
 import OutboundModeSwitcher from '@renderer/components/sider/outbound-mode-switcher'
-import SysproxySwitcher from '@renderer/components/sider/sysproxy-switcher'
-import TunSwitcher from '@renderer/components/sider/tun-switcher'
 import ProfileCard from '@renderer/components/sider/profile-card'
 import ProxyCard from '@renderer/components/sider/proxy-card'
 import RuleCard from '@renderer/components/sider/rule-card'
@@ -66,8 +62,6 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           </div>
           <div className="app-nodrag flex-1 overflow-y-auto no-scrollbar px-1">
             <div className="flex flex-col gap-2 py-1">
-              <SysproxySwitcher iconOnly />
-              <TunSwitcher iconOnly />
               <ProxyCard iconOnly />
               <ConnCard iconOnly />
               <ProfileCard iconOnly />
@@ -140,16 +134,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
 
         <div className="app-nodrag flex flex-col gap-2 p-2 flex-1">
           {/* Main Control Center */}
-          <div
-            className={clsx('flex flex-col gap-1.5 p-2', CARD_STYLES.ROUNDED, CARD_STYLES.INACTIVE)}
-          >
-            <OutboundModeSwitcher isMinimal />
-            <div className="h-[1px] mx-2 my-0.5 bg-default-200/55 dark:bg-white/10" />
-            <div className="flex h-[80px] flex-col gap-1.5">
-              <SysproxySwitcher compact />
-              <TunSwitcher compact />
-            </div>
-          </div>
+          <OutboundModeSwitcher />
 
           {/* Core State Area */}
           <div className="flex flex-col gap-2">

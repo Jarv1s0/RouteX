@@ -15,7 +15,7 @@ const DNS: React.FC = () => {
   return (
     <BasePage
       title={t('page.dns.title')}
-      header={
+      footer={
         editor.changed && (
           <Button
             size="sm"

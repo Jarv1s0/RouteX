@@ -21,7 +21,7 @@ const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdat
   return (
     <div className="w-full px-2 pb-2">
       <Card className="hover:bg-primary/30 transition-all duration-200">
-        <CardBody className="w-full py-2">
+        <CardBody className="w-full py-1.5 px-3 min-h-[48px] flex justify-center">
           <div className="flex items-center gap-2">
             {/* 序号 */}
             <span className="text-foreground-400 text-sm w-5 flex-shrink-0">{index + 1}</span>

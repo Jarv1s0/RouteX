@@ -336,8 +336,8 @@ const OverrideItem: React.FC<Props> = (props) => {
           </div>
         )}
         <div ref={setNodeRef} {...attributes} {...listeners} className="w-full h-full">
-          <CardBody className="pb-1 overflow-hidden">
-            <div className="flex min-h-[32px] items-start justify-between gap-3">
+          <CardBody className="pt-2.5 pb-1 px-3 overflow-hidden">
+            <div className="flex min-h-[28px] items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <h3 title={info?.name} className={CARD_STYLES.MANAGEMENT_TITLE}>
                   {info?.name}
@@ -397,7 +397,7 @@ const OverrideItem: React.FC<Props> = (props) => {
               </div>
             </div>
           </CardBody>
-          <CardFooter className="pt-0">
+          <CardFooter className="pt-0 pb-2.5 px-3">
             <div className={`w-full mt-2 ${CARD_STYLES.MANAGEMENT_FOOTER_ROW}`}>
               <div
                 className={`flex justify-start items-center gap-2`}
