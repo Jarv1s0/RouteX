@@ -7,6 +7,8 @@ import { CgClose, CgTrash } from 'react-icons/cg'
 import { IoEyeOff, IoEye, IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { getFlag, cleanNodeName } from '@renderer/utils/flags'
 import { useI18n } from '@renderer/i18n'
+import MihomoIcon from '@renderer/components/base/mihomo-icon'
+import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
 
 const SELECTED_CARD_CLASS =
   'bg-primary/[0.08] dark:bg-primary/[0.12] border border-primary/24 shadow-[0_4px_14px_rgba(16,185,129,0.08)]'
@@ -93,6 +95,9 @@ const ConnectionItemComponent: React.FC<Props> = ({
     displayName || info.metadata.process?.replace(/\.exe$/, '') || info.metadata.sourceIP || '-'
   const destination =
     info.metadata.host || info.metadata.destinationIP || info.metadata.remoteDestination || '-'
+  const useMihomoIcon =
+    displayIcon &&
+    (isMihomoProcessPath(info.metadata.processPath) || isMihomoProcessPath(info.metadata.process))
 
   const timeAgo = useMemo(() => {
     return formatCompactDurationFromStartMs(getConnectionItemStartTime(info))
@@ -148,14 +153,19 @@ const ConnectionItemComponent: React.FC<Props> = ({
         onPress={handleCardPress}
       >
         <div className="w-full flex items-center py-2 px-3 gap-3">
-          {displayIcon && (
-            <Avatar
-              size="sm"
-              radius="none"
-              src={iconUrl}
-              className="flex-shrink-0 bg-transparent shadow-none border-none"
-            />
-          )}
+          {displayIcon &&
+            (useMihomoIcon ? (
+              <div className="w-8 h-8 min-w-8 flex-shrink-0 flex items-center justify-center text-foreground-600 dark:text-foreground-300">
+                <MihomoIcon className="w-7 h-7" />
+              </div>
+            ) : (
+              <Avatar
+                size="sm"
+                radius="none"
+                src={iconUrl}
+                className="flex-shrink-0 bg-transparent shadow-none border-none"
+              />
+            ))}
 
           <div className="flex-1 min-w-0 flex flex-col gap-1">
             {/* Header Row */}

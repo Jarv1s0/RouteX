@@ -10,6 +10,7 @@ import {
   type ConnectionViewMode,
   type VisibleRange
 } from '@renderer/components/connections/shared'
+import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
 
 interface UseConnectionsPageResult {
   activeConnections: ControllerConnectionDetail[]
@@ -149,14 +150,14 @@ export function useConnectionsPage(): UseConnectionsPageResult {
 
     filteredConnections.slice(visibleStart, visibleEnd).forEach((connection) => {
       const processPath = connection.metadata.processPath || ''
-      if (processPath) {
+      if (processPath && !isMihomoProcessPath(processPath)) {
         visiblePaths.add(processPath)
       }
     })
 
     filteredConnections.slice(preloadStart, preloadEnd).forEach((connection) => {
       const processPath = connection.metadata.processPath || ''
-      if (!processPath || visiblePaths.has(processPath)) {
+      if (!processPath || isMihomoProcessPath(processPath) || visiblePaths.has(processPath)) {
         return
       }
 

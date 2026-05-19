@@ -32,6 +32,8 @@ import {
   getMainPaneModalContentStyle
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
+import MihomoIcon from '@renderer/components/base/mihomo-icon'
+import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
 
 interface Props {
   connection: ControllerConnectionDetail
@@ -91,6 +93,8 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
 
   const processName = connection.metadata.process || 'Unknown Process'
   const processPath = connection.metadata.processPath
+  const useMihomoIcon =
+    isMihomoProcessPath(processPath) || isMihomoProcessPath(connection.metadata.process)
   const sniffSummary = connection.metadata.sniffHost
     ? t('connections.detail.sniffed')
     : connection.metadata.host
@@ -169,7 +173,9 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
             <div className="flex items-start gap-6 min-w-0 flex-1 pr-14">
               {/* 进程图标 */}
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-default-100 to-default-50 border border-white/20 shadow-lg flex items-center justify-center shrink-0">
-                {localStorage.getItem(processPath || '') ? (
+                {useMihomoIcon ? (
+                  <MihomoIcon className="w-10 h-10 text-foreground-600 dark:text-foreground-300 drop-shadow-md" />
+                ) : localStorage.getItem(processPath || '') ? (
                   <img
                     src={localStorage.getItem(processPath || '') || ''}
                     className="w-10 h-10 object-contain drop-shadow-md"

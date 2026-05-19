@@ -10,6 +10,8 @@ import { Virtuoso } from 'react-virtuoso'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getConnectionHideRule } from './shared'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
+import MihomoIcon from '@renderer/components/base/mihomo-icon'
+import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
 
 // 列配置 - 默认宽度
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
@@ -428,6 +430,9 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
   const appName = displayAppName && processPath ? appNameCache[processPath] : undefined
   const processName =
     appName || conn.metadata.process?.replace(/\.exe$/, '') || conn.metadata.sourceIP || '-'
+  const useMihomoIcon =
+    displayIcon &&
+    (isMihomoProcessPath(conn.metadata.processPath) || isMihomoProcessPath(conn.metadata.process))
 
   const getColumnValue = (col: string): string => {
     switch (col) {
@@ -492,14 +497,19 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
     if (col === 'process') {
       return (
         <div className="flex items-center gap-2 truncate">
-          {displayIcon && (
-            <Avatar
-              size="sm"
-              radius="sm"
-              src={iconUrl}
-              className="bg-transparent w-6 h-6 min-w-6 flex-shrink-0"
-            />
-          )}
+          {displayIcon &&
+            (useMihomoIcon ? (
+              <div className="w-6 h-6 min-w-6 flex-shrink-0 flex items-center justify-center text-foreground-600 dark:text-foreground-300">
+                <MihomoIcon className="w-5 h-5" />
+              </div>
+            ) : (
+              <Avatar
+                size="sm"
+                radius="sm"
+                src={iconUrl}
+                className="bg-transparent w-6 h-6 min-w-6 flex-shrink-0"
+              />
+            ))}
           <span className="truncate flex items-center gap-1.5" title={processName}>
             {processName}
             {isHidden && (
