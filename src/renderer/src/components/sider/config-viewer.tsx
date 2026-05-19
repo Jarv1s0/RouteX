@@ -1,14 +1,4 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Switch,
-  Tabs,
-  Tab
-} from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Tabs, Tab } from '@heroui/react'
 import React, { useEffect, useState, useCallback } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
 import { getRuntimeConfigStr } from '@renderer/utils/mihomo-ipc'
@@ -19,6 +9,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   onClose: () => void
 }
@@ -95,17 +86,17 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
         </ModalBody>
         <ModalFooter className="pt-0 flex items-center justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <Switch size="sm" isSelected={isDiff} onValueChange={setIsDiff}>
+            <AppSwitch size="sm" isSelected={isDiff} onValueChange={setIsDiff}>
               {t('configViewer.diffToggle')}
-            </Switch>
-            <Switch
+            </AppSwitch>
+            <AppSwitch
               size="sm"
               isSelected={sideBySide}
               isDisabled={!isDiff}
               onValueChange={setSideBySide}
             >
               {t('configViewer.sideBySide')}
-            </Switch>
+            </AppSwitch>
             <div className="flex items-center gap-2">
               <span className="text-sm text-default-500">{t('configViewer.diffSource')}</span>
               <Tabs

@@ -1,15 +1,4 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Input,
-  Select,
-  SelectItem,
-  Switch
-} from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem } from '@heroui/react'
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { IoTrash, IoAdd, IoEye, IoPencil } from 'react-icons/io5'
 import ChainPreviewModal from './chain-preview-modal'
@@ -30,6 +19,7 @@ import {
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const polishedInputClassNames = {
   input: 'bg-transparent text-default-900 text-xs',
   inputWrapper:
@@ -327,7 +317,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                       </div>
                     </div>
                     <div className="ml-auto flex items-center gap-2 shrink-0">
-                      <Switch
+                      <AppSwitch
                         size="sm"
                         isSelected={chain.enabled !== false}
                         color="primary"

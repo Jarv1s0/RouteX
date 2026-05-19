@@ -1,16 +1,4 @@
-import {
-  cn,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Input,
-  Switch,
-  Select,
-  SelectItem
-} from '@heroui/react'
+import { cn, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem } from '@heroui/react'
 import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -18,6 +6,7 @@ import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
+import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   item: OverrideItem
   updateOverrideItem: (item: OverrideItem) => Promise<void>
@@ -126,7 +115,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
             </Select>
           </SettingItem>
           <SettingItem title={t('override.global')}>
-            <Switch
+            <AppSwitch
               size="sm"
               isSelected={values.global ?? false}
               onValueChange={(v) => {

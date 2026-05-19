@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Select, SelectItem, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
+import { Button, Select, SelectItem, Tab, Tabs, Tooltip } from '@heroui/react'
 import { BiSolidFileImport } from 'react-icons/bi'
 import { getFilePath } from '@renderer/utils/file-ipc'
 import {
@@ -29,6 +29,7 @@ import ShortcutConfigModal from './shortcut-config-modal'
 import CSSEditorModal from './css-editor-modal'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const ShortcutConfigContent: React.FC = () => {
   const { t } = useI18n()
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false)
@@ -109,7 +110,7 @@ const AppearanceConfig: React.FC = () => {
           }
           divider
         >
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={localShowFloating}
             onValueChange={async (v) => {
@@ -135,7 +136,7 @@ const AppearanceConfig: React.FC = () => {
         {localShowFloating && (
           <>
             <SettingItem title={t('settings.appearance.spinFloatingIcon')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={spinFloatingIcon}
                 onValueChange={async (v) => {
@@ -145,7 +146,7 @@ const AppearanceConfig: React.FC = () => {
               />
             </SettingItem>
             <SettingItem title={t('settings.appearance.disableTray')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={disableTray}
                 onValueChange={async (v) => {
@@ -163,7 +164,7 @@ const AppearanceConfig: React.FC = () => {
         {platform !== 'linux' && (
           <>
             <SettingItem title={t('settings.appearance.proxyInTray')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={proxyInTray}
                 onValueChange={async (v) => {
@@ -179,7 +180,7 @@ const AppearanceConfig: React.FC = () => {
               )}
               divider
             >
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={showTraffic}
                 onValueChange={async (v) => {
@@ -192,7 +193,7 @@ const AppearanceConfig: React.FC = () => {
         )}
         {platform === 'darwin' && (
           <SettingItem title={t('settings.appearance.showDock')} divider>
-            <Switch
+            <AppSwitch
               size="sm"
               isSelected={useDockIcon}
               onValueChange={async (v) => {
@@ -204,7 +205,7 @@ const AppearanceConfig: React.FC = () => {
         )}
 
         <SettingItem title={t('settings.appearance.collapseSidebar')} divider>
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={collapseSidebar}
             onValueChange={async (v) => {

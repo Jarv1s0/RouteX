@@ -4,17 +4,16 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import InterfaceSelect from '../base/interface-select'
 import {
-  restartCore,
-  startNetworkDetection,
-  stopNetworkDetection
+  restartCore, startNetworkDetection, stopNetworkDetection
 } from '@renderer/utils/mihomo-ipc'
-import { Button, Input, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
+import { Button, Input, Tab, Tabs, Tooltip } from '@heroui/react'
 import { useState } from 'react'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { numberInputClassNames, secondaryInputClassNames } from '../settings/advanced-settings'
 import EditableList from '../base/base-list-editor'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const AdvancedSetting: React.FC = () => {
   const { t } = useI18n()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -69,7 +68,7 @@ const AdvancedSetting: React.FC = () => {
         </Tabs>
       </SettingItem>
       <SettingItem title={t('mihomo.storeSelected')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={storeSelected}
           onValueChange={(v) => {
@@ -78,7 +77,7 @@ const AdvancedSetting: React.FC = () => {
         />
       </SettingItem>
       <SettingItem title={t('mihomo.storeFakeIp')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={storeFakeIp}
           onValueChange={(v) => {
@@ -97,7 +96,7 @@ const AdvancedSetting: React.FC = () => {
         }
         divider
       >
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={unifiedDelay}
           onValueChange={(v) => {
@@ -116,7 +115,7 @@ const AdvancedSetting: React.FC = () => {
         }
         divider
       >
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={tcpConcurrent}
           onValueChange={(v) => {
@@ -125,7 +124,7 @@ const AdvancedSetting: React.FC = () => {
         />
       </SettingItem>
       <SettingItem title={t('mihomo.keepAlive')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={!disableKeepAlive}
           onValueChange={(v) => {
@@ -204,7 +203,7 @@ const AdvancedSetting: React.FC = () => {
         }
         divider
       >
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={networkDetection}
           onValueChange={(v) => {

@@ -1,4 +1,4 @@
-import { Button, Input, Switch, Tab, Tabs } from '@heroui/react'
+import { Button, Input, Tab, Tabs } from '@heroui/react'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { IoMdRefresh } from 'react-icons/io'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const defaultGeoxUrl = {
   geoip: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat',
   geosite: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
@@ -148,7 +149,7 @@ const GeoData: React.FC = () => {
         }
         divider={geoAutoUpdate}
       >
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={geoAutoUpdate}
           onValueChange={(v) => {

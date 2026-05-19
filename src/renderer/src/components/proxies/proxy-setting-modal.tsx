@@ -1,16 +1,4 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  Button,
-  Switch,
-  Input,
-  Select,
-  SelectItem,
-  Tab,
-  Tabs
-} from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, Button, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react'
 import React, { useState, useEffect, useMemo } from 'react'
 import { MdRefresh, MdSort } from 'react-icons/md'
 import SettingItem from '../base/base-setting-item'
@@ -42,6 +30,7 @@ import {
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const DEFAULT_DELAY_TEST_CONCURRENCY = 4
 const MAX_DELAY_TEST_CONCURRENCY = 8
 const DEFAULT_DELAY_TEST_TIMEOUT = 5000
@@ -155,7 +144,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
             </SettingItem>
 
             <SettingItem title={t('proxies.autoCloseConnection')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={autoCloseConnection}
                 onValueChange={(v) => {
@@ -164,7 +153,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               />
             </SettingItem>
             <SettingItem title={t('proxies.autoDelayTest')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={autoDelayTestOnShow}
                 onValueChange={(v) => {

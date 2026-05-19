@@ -1,5 +1,5 @@
 import React, { Key, useEffect, useMemo, useState } from 'react'
-import { Input, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
+import { Input, Tab, Tabs, Tooltip } from '@heroui/react'
 
 import EditableList from '@renderer/components/base/base-list-editor'
 import SettingCard from '@renderer/components/base/base-setting-card'
@@ -20,6 +20,7 @@ import {
 
 import AdvancedDnsSetting from './advanced-dns-setting'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface DnsEditorValues {
   ipv6: boolean
   useHosts: boolean
@@ -215,7 +216,7 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
     <>
       <SettingCard>
         <SettingItem title="IPv6" divider>
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={values.ipv6}
             onValueChange={(value) => setValues({ ...values, ipv6: value })}

@@ -1,4 +1,4 @@
-import { Button, Input, Switch, Tab, Tabs } from '@heroui/react'
+import { Button, Input, Tab, Tabs } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -16,6 +16,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const Tun: React.FC = () => {
   const { t } = useI18n()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -156,7 +157,7 @@ const Tun: React.FC = () => {
                   />
                 </SettingItem>
                 <SettingItem title={t('tun.strictRoute')} divider>
-                  <Switch
+                  <AppSwitch
                     size="sm"
                     isSelected={values.strictRoute}
                     onValueChange={(v) => {
@@ -167,7 +168,7 @@ const Tun: React.FC = () => {
               </>
             )}
             <SettingItem title={t('tun.autoRoute')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={values.autoRoute}
                 onValueChange={(v) => {
@@ -177,7 +178,7 @@ const Tun: React.FC = () => {
             </SettingItem>
             {platform === 'linux' && (
               <SettingItem title={t('tun.autoRedirect')} divider>
-                <Switch
+                <AppSwitch
                   size="sm"
                   isSelected={values.autoRedirect}
                   onValueChange={(v) => {
@@ -187,7 +188,7 @@ const Tun: React.FC = () => {
               </SettingItem>
             )}
             <SettingItem title={t('tun.autoDetectInterface')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={values.autoDetectInterface}
                 onValueChange={(v) => {
@@ -196,7 +197,7 @@ const Tun: React.FC = () => {
               />
             </SettingItem>
             <SettingItem title={t('tun.icmpForwarding')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={!values.disableIcmpForwarding}
                 onValueChange={(v) => {

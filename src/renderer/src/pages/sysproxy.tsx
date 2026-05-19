@@ -1,4 +1,4 @@
-import { Button, Input, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
+import { Button, Input, Tab, Tabs, Tooltip } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -15,6 +15,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const defaultPacScript = `
 function FindProxyForURL(url, host) {
   return "PROXY 127.0.0.1:%mixed-port%; SOCKS5 127.0.0.1:%mixed-port%; DIRECT;";
@@ -209,7 +210,7 @@ const Sysproxy: React.FC = () => {
                 }
                 divider
               >
-                <Switch
+                <AppSwitch
                   size="sm"
                   isSelected={onlyActiveDevice}
                   isDisabled={!values.settingMode || values.settingMode !== 'service'}

@@ -369,6 +369,8 @@ export const enUS: Record<TranslationKey, string> = {
   'sidebar.core': 'Core',
   'sidebar.rules': 'Rules',
   'sidebar.stats': 'Stats',
+  'sidebar.dns': 'DNS',
+  'sidebar.sniffer': 'Sniffer',
   'sidebar.tools': 'Tools',
   'sidebar.logs': 'Logs',
   'sidebar.topology': 'Topology',

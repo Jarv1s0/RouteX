@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Input, Switch } from '@heroui/react'
+import { Input } from '@heroui/react'
 
 import EditableList from '@renderer/components/base/base-list-editor'
 import SettingCard from '@renderer/components/base/base-setting-card'
@@ -10,6 +10,7 @@ import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface SnifferEditorValues {
   parsePureIP: boolean
   forceDNSMapping: boolean
@@ -160,7 +161,7 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
   return (
     <SettingCard>
       <SettingItem title={t('sniffer.overrideDestination')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={values.overrideDestination}
           onValueChange={(value) => {
@@ -180,7 +181,7 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
         />
       </SettingItem>
       <SettingItem title={t('sniffer.forceDnsMapping')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={values.forceDNSMapping}
           onValueChange={(value) => {
@@ -189,7 +190,7 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
         />
       </SettingItem>
       <SettingItem title={t('sniffer.parsePureIp')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={values.parsePureIP}
           onValueChange={(value) => {

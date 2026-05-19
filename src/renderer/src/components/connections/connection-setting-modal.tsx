@@ -1,13 +1,4 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  Switch,
-  ModalBody,
-  Input,
-  Chip,
-  Divider
-} from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, Input, Chip, Divider } from '@heroui/react'
 import React, { useState, useEffect, useMemo } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -40,6 +31,7 @@ import {
 } from '@renderer/utils/modal-styles'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 // 所有可用的表格列
 const ALL_COLUMNS = [
   { key: 'close', labelKey: 'connections.column.close' },
@@ -220,7 +212,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
         <ModalBody className="px-6 gap-4 pb-4 pt-0">
           <div className="space-y-1">
             <SettingItem title={t('connections.showAppIcon')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={displayIcon}
                 onValueChange={(v) => {
@@ -229,7 +221,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
               />
             </SettingItem>
             <SettingItem title={t('connections.showAppName')} divider>
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={displayAppName}
                 onValueChange={(v) => {

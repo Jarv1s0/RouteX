@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Accordion, AccordionItem, Button, Chip, ScrollShadow, Switch } from '@heroui/react'
+import { Accordion, AccordionItem, Button, Chip, ScrollShadow } from '@heroui/react'
 import { IoCheckmarkCircle, IoClose, IoRefresh } from 'react-icons/io5'
 import { useAppConfig } from './hooks/use-app-config'
 import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
@@ -22,6 +22,7 @@ import { closeFloatingWindow, showFloatingWindow, triggerMainWindow } from './ut
 import { checkElevateTask } from './utils/service-ipc'
 import { useI18n } from './i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface TrafficData {
   up: number
   down: number
@@ -279,7 +280,7 @@ const TrayMenuApp: React.FC = () => {
           </Button>
           <div className="flex items-center justify-between rounded-2xl border border-default-200/70 bg-white/78 px-3 py-2 shadow-sm dark:border-white/8 dark:bg-white/6">
             <span className="text-xs font-medium">{t('sidebar.sysProxy')}</span>
-            <Switch
+            <AppSwitch
               size="sm"
               isSelected={sysProxyEnabled}
               isDisabled={busyAction !== null}
@@ -288,7 +289,7 @@ const TrayMenuApp: React.FC = () => {
           </div>
           <div className="flex items-center justify-between rounded-2xl border border-default-200/70 bg-white/78 px-3 py-2 shadow-sm dark:border-white/8 dark:bg-white/6">
             <span className="text-xs font-medium">{t('sidebar.tun')}</span>
-            <Switch
+            <AppSwitch
               size="sm"
               isSelected={tunEnabled}
               isDisabled={busyAction !== null}

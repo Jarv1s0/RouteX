@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Switch, Tooltip, Tabs, Tab, Input, Select, SelectItem } from '@heroui/react'
+import { Button, Tooltip, Tabs, Tab, Input, Select, SelectItem } from '@heroui/react'
 import useSWR from 'swr'
 import {
   checkAutoRun,
@@ -23,9 +23,8 @@ import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { useI18n, type LanguagePreference, type TranslationKey } from '@renderer/i18n'
 
 import WebdavConfigModal from './webdav-config-modal'
-import DnsControlModal from './dns-control-modal'
-import SniffControlModal from './sniff-control-modal'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const UpdaterModal = React.lazy(() => import('../updater/updater-modal'))
 
 const emptyArray: string[] = []
@@ -47,8 +46,6 @@ const GeneralConfig: React.FC = () => {
     silentStart = false,
     disableGPU = false,
     disableAnimation = false,
-    controlDns = true,
-    controlSniff = true,
     pauseSSID,
     autoLightweight = false,
     autoLightweightMode = 'core',
@@ -59,8 +56,6 @@ const GeneralConfig: React.FC = () => {
   const [pauseSSIDInput, setPauseSSIDInput] = useState(pauseSSIDArray)
 
   const [isWebdavModalOpen, setIsWebdavModalOpen] = useState(false)
-  const [isDnsModalOpen, setIsDnsModalOpen] = useState(false)
-  const [isSniffModalOpen, setIsSniffModalOpen] = useState(false)
 
   useEffect(() => {
     setPauseSSIDInput(pauseSSIDArray)
@@ -141,7 +136,7 @@ const GeneralConfig: React.FC = () => {
       )}
       <SettingCard title={t('settings.system.title')}>
         <SettingItem title={t('settings.system.autoLaunch')} divider>
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={enable}
             onValueChange={async (v) => {
@@ -160,7 +155,7 @@ const GeneralConfig: React.FC = () => {
           />
         </SettingItem>
         <SettingItem title={t('settings.system.silentStart')} divider>
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={silentStart}
             onValueChange={(v) => {
@@ -234,7 +229,7 @@ const GeneralConfig: React.FC = () => {
             }
             divider
           >
-            <Switch
+            <AppSwitch
               size="sm"
               isSelected={pendingDisableGPU}
               onValueChange={(v) => {
@@ -254,7 +249,7 @@ const GeneralConfig: React.FC = () => {
             </Tooltip>
           }
         >
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={disableAnimation}
             onValueChange={(v) => {
@@ -291,7 +286,7 @@ const GeneralConfig: React.FC = () => {
           }
           divider
         >
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={autoLightweight}
             onValueChange={(v) => {
@@ -362,26 +357,6 @@ const GeneralConfig: React.FC = () => {
           </SettingItem>
         )}
 
-        <SettingItem title={t('settings.clash.controlDns')} divider>
-          <Button
-            size="sm"
-            variant="flat"
-            color={controlDns ? 'success' : 'default'}
-            onPress={() => setIsDnsModalOpen(true)}
-          >
-            {controlDns ? t('common.enabled') : t('common.disabled')}
-          </Button>
-        </SettingItem>
-        <SettingItem title={t('settings.clash.controlSniff')} divider>
-          <Button
-            size="sm"
-            variant="flat"
-            color={controlSniff ? 'success' : 'default'}
-            onPress={() => setIsSniffModalOpen(true)}
-          >
-            {controlSniff ? t('common.enabled') : t('common.disabled')}
-          </Button>
-        </SettingItem>
         <SettingItem
           title={t('settings.clash.hotReloadOnSave')}
           actions={
@@ -393,7 +368,7 @@ const GeneralConfig: React.FC = () => {
           }
           divider
         >
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={hotReloadCoreOnSave}
             onValueChange={(v) => {
@@ -435,8 +410,6 @@ const GeneralConfig: React.FC = () => {
             {t('settings.clash.syncConfig')}
           </Button>
         </SettingItem>
-        <DnsControlModal isOpen={isDnsModalOpen} onOpenChange={setIsDnsModalOpen} />
-        <SniffControlModal isOpen={isSniffModalOpen} onOpenChange={setIsSniffModalOpen} />
         <WebdavConfigModal isOpen={isWebdavModalOpen} onOpenChange={setIsWebdavModalOpen} />
       </SettingCard>
     </>

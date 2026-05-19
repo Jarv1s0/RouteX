@@ -1,15 +1,4 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  Button,
-  Switch,
-  Input,
-  Tab,
-  Tabs,
-  Tooltip
-} from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, Button, Input, Tab, Tabs, Tooltip } from '@heroui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -26,6 +15,7 @@ import {
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   onClose: () => void
 }
@@ -112,7 +102,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
             }
             divider
           >
-            <Switch
+            <AppSwitch
               size="sm"
               isSelected={diffWorkDir}
               onValueChange={(v) => {

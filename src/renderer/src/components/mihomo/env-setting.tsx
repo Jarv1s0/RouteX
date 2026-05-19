@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Switch } from '@heroui/react'
+import { Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { restartCore } from '@renderer/utils/mihomo-ipc'
 import EditableList from '../base/base-list-editor'
@@ -9,6 +9,7 @@ import { platform } from '@renderer/utils/init'
 import { secondaryInputClassNames } from '../settings/advanced-settings'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const EnvSetting: React.FC = () => {
   const { t } = useI18n()
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -34,7 +35,7 @@ const EnvSetting: React.FC = () => {
   return (
     <SettingCard title={t('mihomo.env')} collapsible>
       <SettingItem title={t('mihomo.disableSystemCA')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={disableSystemCA}
           onValueChange={(v) => {
@@ -43,7 +44,7 @@ const EnvSetting: React.FC = () => {
         />
       </SettingItem>
       <SettingItem title={t('mihomo.disableEmbedCA')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={disableEmbedCA}
           onValueChange={(v) => {
@@ -52,7 +53,7 @@ const EnvSetting: React.FC = () => {
         />
       </SettingItem>
       <SettingItem title={t('mihomo.disableLoopbackDetector')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={disableLoopbackDetector}
           onValueChange={(v) => {
@@ -62,7 +63,7 @@ const EnvSetting: React.FC = () => {
       </SettingItem>
       {platform == 'linux' && (
         <SettingItem title={t('mihomo.disableNftables')} divider>
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={disableNftables}
             onValueChange={(v) => {
@@ -72,7 +73,7 @@ const EnvSetting: React.FC = () => {
         </SettingItem>
       )}
       <SettingItem title={t('mihomo.safePaths')}>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={safePathsInput.length > 0}
           onValueChange={(v) => {

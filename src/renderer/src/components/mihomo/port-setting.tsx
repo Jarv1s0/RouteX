@@ -7,12 +7,13 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { restartCore, triggerSysProxy } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
-import { Button, Input, Switch } from '@heroui/react'
+import { Button, Input } from '@heroui/react'
 
 import { FaNetworkWired } from 'react-icons/fa'
 import InterfaceModal from '@renderer/components/mihomo/interface-modal'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const portInputClassNames = {
   input:
     'bg-transparent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
@@ -192,7 +193,7 @@ const PortSetting: React.FC = () => {
           }
           divider={!allowLan}
         >
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={allowLan}
             onValueChange={(v) => onChangeNeedRestart({ 'allow-lan': v })}
@@ -251,7 +252,7 @@ const PortSetting: React.FC = () => {
 
         {/* ═══ 第三层：用户验证 ═══ */}
         <SettingItem title={t('mihomo.userAuth')}>
-          <Switch
+          <AppSwitch
             size="sm"
             isSelected={authenticationInput.length > 0}
             onValueChange={(v) => {

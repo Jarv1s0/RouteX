@@ -1,13 +1,5 @@
 import React from 'react'
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Switch
-} from '@heroui/react'
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 
 import {
   SnifferSettingsFormFields,
@@ -23,6 +15,7 @@ import { toast } from 'sonner'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
@@ -81,7 +74,7 @@ const SniffControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                       {t('settings.sniffControl.controlDescription')}
                     </span>
                   </div>
-                  <Switch
+                  <AppSwitch
                     size="sm"
                     color="primary"
                     isSelected={controlSniff}

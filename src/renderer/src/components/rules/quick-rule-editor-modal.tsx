@@ -1,17 +1,4 @@
-import {
-  Autocomplete,
-  AutocompleteItem,
-  Button,
-  Input,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Select,
-  SelectItem,
-  Switch
-} from '@heroui/react'
+import { Autocomplete, AutocompleteItem, Button, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from '@heroui/react'
 import React, { useCallback, useMemo, useState } from 'react'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -25,6 +12,7 @@ import {
 } from '@renderer/utils/modal-styles'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   profileId: string
   rule?: QuickRule | null
@@ -252,7 +240,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
                     <span className="text-sm font-medium text-foreground-700">no-resolve</span>
                     <span className="text-xs text-foreground-500">{t('rules.noResolveHelp')}</span>
                   </div>
-                  <Switch
+                  <AppSwitch
                     size="sm"
                     color="primary"
                     isSelected={noResolve}

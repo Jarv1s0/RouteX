@@ -1,8 +1,10 @@
 import React from 'react'
-import { cn, Switch, SwitchProps } from '@heroui/react'
+import { cn } from '@heroui/react'
 import './border-switch.css'
 
-interface SiderSwitchProps extends SwitchProps {
+import AppSwitch, { type AppSwitchProps } from '@renderer/components/base/app-switch'
+
+interface SiderSwitchProps extends AppSwitchProps {
   isShowBorder?: boolean
 }
 
@@ -10,7 +12,7 @@ const BorderSwitch: React.FC<SiderSwitchProps> = (props) => {
   const { isShowBorder = false, classNames, ...switchProps } = props
 
   return (
-    <Switch
+    <AppSwitch
       className="border-switch px-[8px]"
       classNames={{
         wrapper: cn('border-2', {

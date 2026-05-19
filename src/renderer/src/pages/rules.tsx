@@ -5,7 +5,7 @@ import GeoData from '@renderer/components/resources/geo-data'
 import Viewer from '@renderer/components/resources/viewer'
 import { Virtuoso } from 'react-virtuoso'
 import { useEffect, useMemo, useState, useDeferredValue, useCallback, useRef } from 'react'
-import { Button, Card, CardBody, Chip, Input, Tab, Tabs, Switch, Tooltip } from '@heroui/react'
+import { Button, Card, CardBody, Chip, Input, Tab, Tabs, Tooltip } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
 import { LuFilePenLine, LuTrash2 } from 'react-icons/lu'
 import { useRules } from '@renderer/hooks/use-rules'
@@ -27,6 +27,7 @@ import { useRulesStore } from '@renderer/store/use-rules-store'
 import { RulesProvider } from '@renderer/hooks/use-rules'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const normalizeRuleType = (type: string): string => type.replace(/[^a-z0-9]/gi, '').toLowerCase()
 
 const isRemoteRule = (rule: ControllerRulesDetail): boolean => {
@@ -489,7 +490,7 @@ const RulesPage: React.FC = () => {
                       <CardBody className="w-full py-2 px-3">
                         <div className="flex items-center gap-2">
                           {/* 开关 和 序号 */}
-                          <Switch
+                          <AppSwitch
                             size="sm"
                             isSelected={rule.enabled}
                             onValueChange={() => void handleToggleQuickRule(rule)}

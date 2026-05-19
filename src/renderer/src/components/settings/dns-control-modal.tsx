@@ -1,15 +1,5 @@
 import React from 'react'
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Select,
-  SelectItem,
-  Switch
-} from '@heroui/react'
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from '@heroui/react'
 
 import {
   DnsSettingsFormFields,
@@ -26,6 +16,7 @@ import { toast } from 'sonner'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
@@ -97,7 +88,7 @@ const DnsControlModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                       {t('settings.dnsControl.controlDescription')}
                     </span>
                   </div>
-                  <Switch
+                  <AppSwitch
                     size="sm"
                     color="primary"
                     isSelected={controlDns}

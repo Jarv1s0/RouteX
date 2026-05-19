@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
+import { Button, Input, Select, SelectItem, Tooltip } from '@heroui/react'
 import { openExternalUrl } from '@renderer/api/app'
 import { mihomoUpgradeUI, restartCore } from '@renderer/utils/mihomo-ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -12,6 +12,7 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai'
 import { isValidListenAddress } from '@renderer/utils/validate'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const inputClassNames = {
   input: 'bg-transparent',
   inputWrapper:
@@ -337,7 +338,7 @@ const ControllerSetting: React.FC = () => {
         </div>
       </SettingItem>
       <SettingItem title={t('mihomo.enableControllerUi')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={enableExternalUi}
           onValueChange={(v) => {
@@ -431,7 +432,7 @@ const ControllerSetting: React.FC = () => {
         </SettingItem>
       )}
       <SettingItem title={t('mihomo.allowPrivateNetwork')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={allowPrivateNetwork}
           onValueChange={(v) => {

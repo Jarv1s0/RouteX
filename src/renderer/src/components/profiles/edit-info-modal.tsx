@@ -1,19 +1,4 @@
-import {
-  cn,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Input,
-  Switch,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Tooltip
-} from '@heroui/react'
+import { cn, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Tooltip } from '@heroui/react'
 import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useOverrideConfig } from '@renderer/hooks/use-override-config'
@@ -26,6 +11,7 @@ import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   item: ProfileItem
   isCurrent: boolean
@@ -135,7 +121,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                 />
               </SettingItem>
               <SettingItem title={t('profiles.verifyFormat')}>
-                <Switch
+                <AppSwitch
                   size="sm"
                   isSelected={values.verify ?? false}
                   onValueChange={(v) => {
@@ -144,7 +130,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                 />
               </SettingItem>
               <SettingItem title={t('profiles.useProxyUpdate')}>
-                <Switch
+                <AppSwitch
                   size="sm"
                   isSelected={values.useProxy ?? false}
                   onValueChange={(v) => {
@@ -153,7 +139,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                 />
               </SettingItem>
               <SettingItem title={t('profiles.autoUpdate')}>
-                <Switch
+                <AppSwitch
                   size="sm"
                   isSelected={values.autoUpdate ?? false}
                   onValueChange={(v) => {

@@ -1,6 +1,7 @@
-import { Button, Switch, Tooltip } from '@heroui/react'
+import { Button, Tooltip } from '@heroui/react'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import BorderSwitch from '@renderer/components/base/border-switch'
+import SidebarTrailingSwitch from './sidebar-trailing-switch'
 import { LuNetwork } from 'react-icons/lu'
 import { useLocation } from 'react-router-dom'
 import { restartCore } from '@renderer/utils/mihomo-ipc'
@@ -138,12 +139,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
             {t('sidebar.tun')}
           </span>
         </div>
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="shrink-0 flex items-center pr-0 -mr-0.5"
-        >
-          <Switch size="sm" isSelected={enable} onValueChange={onChange} />
-        </div>
+        <SidebarTrailingSwitch isSelected={enable} onValueChange={onChange} />
       </div>
     )
   }

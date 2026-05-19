@@ -2,11 +2,12 @@ import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import EditableList from '../base/base-list-editor'
-import { Switch, Tabs, Tab } from '@heroui/react'
+import { Tabs, Tab } from '@heroui/react'
 import { isValidDnsServer, isValidDomainWildcard } from '@renderer/utils/validate'
 import { primaryInputClassNames } from '../settings/advanced-settings'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface AdvancedDnsSettingProps {
   respectRules: boolean
   directNameserver: string[]
@@ -82,7 +83,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
         </Tabs>
       </SettingItem>
       <SettingItem title={t('dns.respectRules')} divider>
-        <Switch
+        <AppSwitch
           size="sm"
           isSelected={respectRules}
           isDisabled={proxyServerNameserver.length === 0}
@@ -181,10 +182,10 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
         inputClassNames={primaryInputClassNames}
       />
       <SettingItem title={t('dns.useSystemHosts')} divider>
-        <Switch size="sm" isSelected={useSystemHosts} onValueChange={onUseSystemHostsChange} />
+        <AppSwitch size="sm" isSelected={useSystemHosts} onValueChange={onUseSystemHostsChange} />
       </SettingItem>
       <SettingItem title={t('dns.customHosts')}>
-        <Switch size="sm" isSelected={useHosts} onValueChange={onUseHostsChange} />
+        <AppSwitch size="sm" isSelected={useHosts} onValueChange={onUseHostsChange} />
       </SettingItem>
       {useHosts && (
         <EditableList

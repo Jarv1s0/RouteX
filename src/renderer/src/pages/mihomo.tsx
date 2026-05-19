@@ -1,4 +1,4 @@
-import { Button, Select, SelectItem, Switch, Tab, Tabs, Chip } from '@heroui/react'
+import { Button, Select, SelectItem, Tab, Tabs, Chip } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -41,6 +41,7 @@ import useSWR from 'swr'
 import { notifyError, notifyInfo, notifySuccess } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 const Mihomo: React.FC = () => {
   const { t } = useI18n()
   const isTauriHost = __ROUTEX_HOST__ === 'tauri'
@@ -370,7 +371,7 @@ const Mihomo: React.FC = () => {
             </Button>
           </SettingItem>
           <SettingItem title="IPv6">
-            <Switch
+            <AppSwitch
               aria-label={t('mihomo.toggleIpv6')}
               size="sm"
               isSelected={ipv6}

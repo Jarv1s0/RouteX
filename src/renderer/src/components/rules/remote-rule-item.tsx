@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, Chip, Switch } from '@heroui/react'
+import { Button, Card, CardBody, Chip } from '@heroui/react'
 import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
 import { LuFilePenLine } from 'react-icons/lu'
@@ -7,6 +7,7 @@ import React from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface RemoteRuleItemProps {
   rule?: ControllerRulesDetail
   provider?: ControllerRuleProviderDetail
@@ -76,7 +77,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
           <div className="flex items-center gap-2">
             {/* 开关 Toggle */}
             {rule && onToggle && (
-              <Switch
+              <AppSwitch
                 size="sm"
                 isSelected={enabled}
                 onValueChange={() => onToggle()}

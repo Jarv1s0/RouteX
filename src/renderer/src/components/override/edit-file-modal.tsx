@@ -1,12 +1,4 @@
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Switch
-} from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
 import { getOverride, setOverride } from '@renderer/utils/override-ipc'
@@ -17,6 +9,7 @@ import { notifyError } from '@renderer/utils/notify'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
 
+import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   id: string
   language: 'javascript' | 'yaml'
@@ -101,12 +94,12 @@ const EditFileModal: React.FC<Props> = (props) => {
         </ModalBody>
         <ModalFooter className="pt-0 flex justify-between">
           <div className="flex items-center space-x-2">
-            <Switch size="sm" isSelected={isDiff} onValueChange={setIsDiff}>
+            <AppSwitch size="sm" isSelected={isDiff} onValueChange={setIsDiff}>
               {t('override.showChanges')}
-            </Switch>
-            <Switch size="sm" isSelected={sideBySide} onValueChange={setSideBySide}>
+            </AppSwitch>
+            <AppSwitch size="sm" isSelected={sideBySide} onValueChange={setSideBySide}>
               {t('override.sideBySide')}
-            </Switch>
+            </AppSwitch>
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="light" onPress={handleClose}>
