@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo, useState, useRef, useEffect } from 'react'
-import { Avatar, Button } from '@heroui/react'
+import { Button } from '@heroui/react'
 
 import { calcTraffic } from '@renderer/utils/calc'
 import { CgClose, CgTrash } from 'react-icons/cg'
@@ -496,19 +496,12 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
     if (col === 'process') {
       return (
-        <div className="flex items-center gap-2 truncate">
+        <div className="flex items-center gap-3 truncate">
           {displayIcon &&
             (useMihomoIcon ? (
-              <div className="w-6 h-6 min-w-6 flex-shrink-0 flex items-center justify-center text-foreground-600 dark:text-foreground-300">
-                <MihomoIcon className="w-5 h-5" />
-              </div>
+              <MihomoIcon className="w-6 h-6 flex-shrink-0 text-default-500" />
             ) : (
-              <Avatar
-                size="sm"
-                radius="sm"
-                src={iconUrl}
-                className="bg-transparent w-6 h-6 min-w-6 flex-shrink-0"
-              />
+              <img src={iconUrl} className="w-6 h-6 flex-shrink-0 object-contain" alt="" />
             ))}
           <span className="truncate flex items-center gap-1.5" title={processName}>
             {processName}

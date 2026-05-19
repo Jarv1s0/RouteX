@@ -34,6 +34,7 @@ import {
 import { useI18n } from '@renderer/i18n'
 import MihomoIcon from '@renderer/components/base/mihomo-icon'
 import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
+import { getIconDataURL } from '@renderer/utils/resource-ipc'
 
 interface Props {
   connection: ControllerConnectionDetail
@@ -95,11 +96,39 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
   const processPath = connection.metadata.processPath
   const useMihomoIcon =
     isMihomoProcessPath(processPath) || isMihomoProcessPath(connection.metadata.process)
+  const [processIconUrl, setProcessIconUrl] = React.useState('')
   const sniffSummary = connection.metadata.sniffHost
     ? t('connections.detail.sniffed')
     : connection.metadata.host
       ? t('connections.detail.domain')
       : 'IP'
+
+  React.useEffect(() => {
+    let disposed = false
+    setProcessIconUrl('')
+
+    if (!processPath || useMihomoIcon) {
+      return () => {
+        disposed = true
+      }
+    }
+
+    void getIconDataURL(processPath)
+      .then((iconUrl) => {
+        if (!disposed) {
+          setProcessIconUrl(iconUrl)
+        }
+      })
+      .catch(() => {
+        if (!disposed) {
+          setProcessIconUrl('')
+        }
+      })
+
+    return () => {
+      disposed = true
+    }
+  }, [processPath, useMihomoIcon])
 
   // 1. Duration Timer Logic
   const [duration, setDuration] = React.useState('')
@@ -175,12 +204,8 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-default-100 to-default-50 border border-white/20 shadow-lg flex items-center justify-center shrink-0">
                 {useMihomoIcon ? (
                   <MihomoIcon className="w-10 h-10 text-foreground-600 dark:text-foreground-300 drop-shadow-md" />
-                ) : localStorage.getItem(processPath || '') ? (
-                  <img
-                    src={localStorage.getItem(processPath || '') || ''}
-                    className="w-10 h-10 object-contain drop-shadow-md"
-                    alt=""
-                  />
+                ) : processIconUrl ? (
+                  <img src={processIconUrl} className="w-10 h-10 object-contain drop-shadow-md" alt="" />
                 ) : (
                   <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
                     <FaGlobeAmericas className="text-2xl text-primary" />

@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getAppName, getIconDataURLs } from '@renderer/utils/resource-ipc'
 
-const ICON_CACHE_PREFIX = 'routex:icon:v2:'
-const ICON_CACHE_INDEX_KEY = 'routex:icon:index'
-const MAX_ICON_CACHE_ENTRIES = 120
 const VISIBLE_ICON_BATCH_SIZE = 12
 const PRELOAD_ICON_BATCH_SIZE = 2
 const RESOURCE_FAILURE_CACHE_MS = 5 * 60 * 1000
@@ -18,14 +15,6 @@ interface UseResourceQueueResult {
   firstItemRefreshTrigger: number
   loadIcon: (path: string, isVisible?: boolean) => void
   loadAppName: (path: string) => void
-}
-
-function shouldPersistIconCache(): boolean {
-  try {
-    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
-  } catch {
-    return false
-  }
 }
 
 function hasRecentResourceFailure(cache: Map<string, number>, path: string): boolean {
@@ -50,116 +39,17 @@ function forgetResourceFailure(cache: Map<string, number>, path: string): void {
   cache.delete(path)
 }
 
-function getIconCacheKey(path: string): string {
-  return `${ICON_CACHE_PREFIX}${path}`
-}
-
-function readIconCacheIndex(): string[] {
-  try {
-    const raw = localStorage.getItem(ICON_CACHE_INDEX_KEY)
-    if (!raw) return []
-
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === 'string')
-      : []
-  } catch {
-    return []
-  }
-}
-
-function writeIconCacheIndex(index: string[]): void {
-  try {
-    localStorage.setItem(ICON_CACHE_INDEX_KEY, JSON.stringify(index))
-  } catch {
-    // ignore cache index write failure
-  }
-}
-
-function evictIconCacheEntries(index: string[], maxEntries: number): string[] {
-  const nextIndex = [...index]
-
-  while (nextIndex.length > maxEntries) {
-    const evictedPath = nextIndex.pop()
-    if (evictedPath) {
-      localStorage.removeItem(getIconCacheKey(evictedPath))
-    }
-  }
-
-  return nextIndex
-}
-
-function rememberCachedIcon(path: string): void {
-  if (!shouldPersistIconCache()) {
-    return
-  }
-
-  const nextIndex = [path, ...readIconCacheIndex().filter((cachedPath) => cachedPath !== path)]
-  writeIconCacheIndex(evictIconCacheEntries(nextIndex, MAX_ICON_CACHE_ENTRIES))
-}
-
 function readCachedIcon(path: string): string | null {
   const fromMemory = sharedIconMemoryCache.get(path)
   if (fromMemory) {
     return fromMemory
   }
 
-  if (!shouldPersistIconCache()) {
-    return null
-  }
-
-  const cacheKey = getIconCacheKey(path)
-  const cachedIcon = localStorage.getItem(cacheKey)
-
-  if (cachedIcon) {
-    sharedIconMemoryCache.set(path, cachedIcon)
-    rememberCachedIcon(path)
-    return cachedIcon
-  }
-
-  const legacyCachedIcon = localStorage.getItem(path)
-  if (!legacyCachedIcon) {
-    return null
-  }
-
-  try {
-    localStorage.removeItem(path)
-    writeCachedIcon(path, legacyCachedIcon)
-  } catch {
-    // ignore migration failure
-  }
-
-  sharedIconMemoryCache.set(path, legacyCachedIcon)
-  return legacyCachedIcon
+  return null
 }
 
 function writeCachedIcon(path: string, dataUrl: string): void {
   sharedIconMemoryCache.set(path, dataUrl)
-
-  if (!shouldPersistIconCache()) {
-    return
-  }
-
-  const cacheKey = getIconCacheKey(path)
-
-  try {
-    localStorage.setItem(cacheKey, dataUrl)
-    rememberCachedIcon(path)
-    return
-  } catch {
-    const evictedIndex = evictIconCacheEntries(
-      readIconCacheIndex(),
-      Math.max(0, MAX_ICON_CACHE_ENTRIES - 10)
-    )
-
-    try {
-      writeIconCacheIndex(evictedIndex)
-      localStorage.setItem(cacheKey, dataUrl)
-      rememberCachedIcon(path)
-    } catch {
-      // ignore cache write failure
-    }
-  }
 }
 
 export function useResourceQueue(

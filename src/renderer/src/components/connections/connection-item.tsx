@@ -1,4 +1,4 @@
-import { Avatar, Button, Card } from '@heroui/react'
+import { Button, Card } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { memo, useCallback, useMemo } from 'react'
@@ -152,19 +152,12 @@ const ConnectionItemComponent: React.FC<Props> = ({
         radius="lg"
         onPress={handleCardPress}
       >
-        <div className="w-full flex items-center py-2 px-3 gap-3">
+        <div className="w-full flex items-center py-2 px-3 gap-4">
           {displayIcon &&
             (useMihomoIcon ? (
-              <div className="w-8 h-8 min-w-8 flex-shrink-0 flex items-center justify-center text-foreground-600 dark:text-foreground-300">
-                <MihomoIcon className="w-7 h-7" />
-              </div>
+              <MihomoIcon className="w-6 h-6 flex-shrink-0 text-default-500" />
             ) : (
-              <Avatar
-                size="sm"
-                radius="none"
-                src={iconUrl}
-                className="flex-shrink-0 bg-transparent shadow-none border-none"
-              />
+              <img src={iconUrl} className="w-6 h-6 flex-shrink-0 object-contain" alt="" />
             ))}
 
           <div className="flex-1 min-w-0 flex flex-col gap-1">

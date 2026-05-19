@@ -70,28 +70,27 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
           {/* Header Row */}
           <div className="flex justify-between items-center">
             {/* Left: Info */}
-            <div className="flex items-center gap-3">
-              {/* Icon Container */}
-              <div
-                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${isOpen ? 'bg-primary/10 text-primary' : 'bg-default-100 text-default-500'}`}
-              >
-                {group.icon ? (
-                  <img
-                    className="w-5 h-5 object-contain"
-                    src={
-                      group.icon.startsWith('<svg')
-                        ? `data:image/svg+xml;utf8,${group.icon}`
-                        : localStorage.getItem(group.icon) || group.icon
-                    }
-                    alt=""
-                    onError={(e) => {
-                      ;(e.target as HTMLImageElement).style.display = 'none'
-                    }}
-                  />
-                ) : (
+            <div className="flex items-center gap-4">
+              {group.icon ? (
+                <img
+                  className="w-6 h-6 object-contain flex-shrink-0"
+                  src={
+                    group.icon.startsWith('<svg')
+                      ? `data:image/svg+xml;utf8,${group.icon}`
+                      : localStorage.getItem(group.icon) || group.icon
+                  }
+                  alt=""
+                  onError={(e) => {
+                    ;(e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              ) : (
+                <div
+                  className={`w-6 h-6 flex-shrink-0 flex items-center justify-center ${isOpen ? 'text-primary' : 'text-default-500'}`}
+                >
                   <div className="w-2 h-2 rounded-full bg-current" />
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="flex flex-col items-start gap-0.5">
                 <div className="flex items-center gap-2">
