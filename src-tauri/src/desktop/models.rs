@@ -185,6 +185,8 @@ pub(super) struct QuickRulesConfigData {
     pub(super) version: u8,
     #[serde(rename = "migratedLegacyQuickRules", default)]
     pub(super) migrated_legacy_quick_rules: bool,
+    #[serde(rename = "migratedProfileQuickRulesToGlobal", default)]
+    pub(super) migrated_profile_quick_rules_to_global: bool,
     #[serde(default)]
     pub(super) profiles: HashMap<String, QuickRuleProfileConfig>,
 }

@@ -756,6 +756,7 @@ fn default_quick_rules_config() -> QuickRulesConfigData {
     QuickRulesConfigData {
         version: 1,
         migrated_legacy_quick_rules: false,
+        migrated_profile_quick_rules_to_global: false,
         profiles: HashMap::new(),
     }
 }
@@ -815,6 +816,10 @@ fn quick_rule_string(rule: &QuickRule) -> String {
         text.push_str(",no-resolve");
     }
     text
+}
+
+fn quick_rule_dedupe_key(rule: &QuickRule) -> String {
+    format!("{},{}", quick_rule_string(rule), rule.enabled)
 }
 
 fn parse_quick_rule_string(raw: &str) -> Option<QuickRuleInput> {
@@ -991,9 +996,46 @@ fn migrate_legacy_quick_rules_if_needed(
     write_quick_rules_config(app, config)
 }
 
+fn migrate_profile_quick_rules_to_global_if_needed(
+    app: &tauri::AppHandle,
+    config: &mut QuickRulesConfigData,
+) -> Result<(), String> {
+    if config.migrated_profile_quick_rules_to_global {
+        return Ok(());
+    }
+
+    let mut migrated_rules = config
+        .profiles
+        .get(GLOBAL_QUICK_RULES_PROFILE_ID)
+        .map(|profile| profile.rules.clone())
+        .unwrap_or_default();
+    let mut existing = migrated_rules
+        .iter()
+        .map(quick_rule_dedupe_key)
+        .collect::<HashSet<_>>();
+
+    for (profile_id, profile) in &config.profiles {
+        if profile_id == GLOBAL_QUICK_RULES_PROFILE_ID || !profile.enabled {
+            continue;
+        }
+
+        for rule in &profile.rules {
+            if existing.insert(quick_rule_dedupe_key(rule)) {
+                migrated_rules.push(rule.clone());
+            }
+        }
+    }
+
+    let global_profile = ensure_quick_rule_profile_mut(config, GLOBAL_QUICK_RULES_PROFILE_ID);
+    global_profile.rules = migrated_rules;
+    config.migrated_profile_quick_rules_to_global = true;
+    write_quick_rules_config(app, config)
+}
+
 fn read_quick_rules_config(app: &tauri::AppHandle) -> Result<QuickRulesConfigData, String> {
     let mut config = read_quick_rules_config_raw(app)?;
     migrate_legacy_quick_rules_if_needed(app, &mut config)?;
+    migrate_profile_quick_rules_to_global_if_needed(app, &mut config)?;
     Ok(config)
 }
 
@@ -1117,14 +1159,8 @@ fn clear_quick_rules_store(app: &tauri::AppHandle, profile_id: &str) -> Result<(
     write_quick_rules_config(app, &config)
 }
 
-fn quick_rule_strings(
-    app: &tauri::AppHandle,
-    profile_id: Option<&str>,
-) -> Result<Vec<String>, String> {
-    let Some(profile_id) = profile_id else {
-        return Ok(Vec::new());
-    };
-    let profile = read_quick_rules(app, profile_id)?;
+fn quick_rule_strings(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
+    let profile = read_quick_rules(app, GLOBAL_QUICK_RULES_PROFILE_ID)?;
     if !profile.enabled {
         return Ok(Vec::new());
     }
@@ -1136,12 +1172,8 @@ fn quick_rule_strings(
         .collect())
 }
 
-fn inject_quick_rules(
-    app: &tauri::AppHandle,
-    profile_id: Option<&str>,
-    profile: &mut Value,
-) -> Result<(), String> {
-    let rules = quick_rule_strings(app, profile_id)?;
+fn inject_quick_rules(app: &tauri::AppHandle, profile: &mut Value) -> Result<(), String> {
+    let rules = quick_rule_strings(app)?;
     if rules.is_empty() {
         return Ok(());
     }

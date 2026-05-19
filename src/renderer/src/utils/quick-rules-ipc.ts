@@ -1,5 +1,7 @@
 import { C, invokeSafe } from './ipc-core'
 
+export const GLOBAL_QUICK_RULES_PROFILE_ID = '__global__'
+
 export async function getQuickRulesConfig(force = false): Promise<QuickRulesConfig> {
   return invokeSafe(C.getQuickRulesConfig, force)
 }

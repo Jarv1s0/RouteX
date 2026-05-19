@@ -14,8 +14,8 @@ import {
 } from '@heroui/react'
 import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { getCurrentProfileItem } from '@renderer/utils/profile-ipc'
 import {
+  GLOBAL_QUICK_RULES_PROFILE_ID,
   addQuickRule,
   getQuickRules,
   removeQuickRule,
@@ -122,7 +122,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
 
   // 已有的快速规则列表
   const [existingRules, setExistingRules] = useState<QuickRule[]>([])
-  const [profileId, setProfileId] = useState('default')
+  const profileId = GLOBAL_QUICK_RULES_PROFILE_ID
   // 正在编辑的规则索引（-1 表示新建模式）
   const [editingIndex, setEditingIndex] = useState(-1)
 
@@ -157,10 +157,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
   useEffect(() => {
     const loadExistingRules = async (): Promise<void> => {
       try {
-        const currentProfile = await getCurrentProfileItem()
-        const currentProfileId = currentProfile.id || 'default'
-        setProfileId(currentProfileId)
-        const quickRules = await getQuickRules(currentProfileId)
+        const quickRules = await getQuickRules(GLOBAL_QUICK_RULES_PROFILE_ID)
         setExistingRules(quickRules.rules)
       } catch {
         // 忽略加载失败

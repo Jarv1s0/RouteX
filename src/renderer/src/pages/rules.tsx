@@ -18,8 +18,12 @@ import {
   mihomoUpdateRuleProviders
 } from '@renderer/utils/mihomo-ipc'
 import { getHash } from '@renderer/utils/hash'
-import { getCurrentProfileItem } from '@renderer/utils/profile-ipc'
-import { getQuickRules, removeQuickRule, updateQuickRule } from '@renderer/utils/quick-rules-ipc'
+import {
+  GLOBAL_QUICK_RULES_PROFILE_ID,
+  getQuickRules,
+  removeQuickRule,
+  updateQuickRule
+} from '@renderer/utils/quick-rules-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import useSWR from 'swr'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
@@ -152,32 +156,22 @@ const RulesPage: React.FC = () => {
     errorRetryInterval: 200,
     errorRetryCount: 10
   })
-  const { data: currentProfile, mutate: mutateCurrentProfile } = useSWR(
-    'currentProfileItem',
-    getCurrentProfileItem
-  )
-  const currentProfileId = currentProfile?.id || 'default'
+  const quickRulesProfileId = GLOBAL_QUICK_RULES_PROFILE_ID
   const { data: quickRulesData, mutate: mutateQuickRules } = useSWR(
-    ['quickRules', currentProfileId],
-    () => getQuickRules(currentProfileId)
+    ['quickRules', quickRulesProfileId],
+    () => getQuickRules(quickRulesProfileId)
   )
 
   useEffect(() => {
     const handleQuickRulesUpdated = (): void => {
       mutateQuickRules()
     }
-    const handleProfileUpdated = (): void => {
-      mutateCurrentProfile()
-    }
-
     const offQuickRulesUpdated = onIpc(ON.quickRulesConfigUpdated, handleQuickRulesUpdated)
-    const offProfileUpdated = onIpc(ON.profileConfigUpdated, handleProfileUpdated)
 
     return (): void => {
       offQuickRulesUpdated()
-      offProfileUpdated()
     }
-  }, [mutateCurrentProfile, mutateQuickRules])
+  }, [mutateQuickRules])
 
   const updateAll = (): void => {
     if (!providersData) return
@@ -353,7 +347,7 @@ const RulesPage: React.FC = () => {
   const handleToggleQuickRule = useCallback(
     async (rule: QuickRule) => {
       try {
-        await updateQuickRule(currentProfileId, rule.id, { enabled: !rule.enabled })
+        await updateQuickRule(quickRulesProfileId, rule.id, { enabled: !rule.enabled })
         await mutateQuickRules()
         setTimeout(() => {
           void mutateRules()
@@ -362,7 +356,7 @@ const RulesPage: React.FC = () => {
         alert(t('rules.toggleFailed', { error: String(error) }))
       }
     },
-    [currentProfileId, mutateQuickRules, mutateRules, t]
+    [quickRulesProfileId, mutateQuickRules, mutateRules, t]
   )
 
   const handleDeleteQuickRule = useCallback(
@@ -373,7 +367,7 @@ const RulesPage: React.FC = () => {
       if (!confirmDelete) return
 
       try {
-        await removeQuickRule(currentProfileId, rule.id)
+        await removeQuickRule(quickRulesProfileId, rule.id)
         await mutateQuickRules()
         setTimeout(() => {
           void mutateRules()
@@ -382,7 +376,7 @@ const RulesPage: React.FC = () => {
         alert(t('rules.deleteFailed', { error: String(error) }))
       }
     },
-    [currentProfileId, mutateQuickRules, mutateRules, t]
+    [quickRulesProfileId, mutateQuickRules, mutateRules, t]
   )
 
   return (
@@ -457,7 +451,7 @@ const RulesPage: React.FC = () => {
         <div className="h-[calc(100vh-100px)] overflow-y-auto">
           {isQuickRuleModalOpen && (
             <QuickRuleEditorModal
-              profileId={currentProfileId}
+              profileId={quickRulesProfileId}
               rule={editingQuickRule}
               onClose={closeQuickRuleModal}
               onSaved={handleQuickRuleSaved}

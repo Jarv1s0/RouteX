@@ -181,6 +181,7 @@ interface OverrideItem {
 interface QuickRulesConfig {
   version: 1
   migratedLegacyQuickRules?: boolean
+  migratedProfileQuickRulesToGlobal?: boolean
   profiles: Record<string, QuickRuleProfileConfig>
 }
 

@@ -1310,7 +1310,7 @@ fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, Strin
         json!({})
     };
 
-    inject_quick_rules(app, current.as_deref(), &mut profile_value)?;
+    inject_quick_rules(app, &mut profile_value)?;
     strip_profile_managed_runtime_fields(&mut profile_value);
 
     let mut controlled_config = read_controlled_config_store(app)?;
