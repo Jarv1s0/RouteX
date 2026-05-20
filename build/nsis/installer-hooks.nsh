@@ -1,6 +1,5 @@
 !define ROUTEX_PRODUCT_NAME "RouteX"
 !define ROUTEX_MAIN_BINARY "routex"
-!define ROUTEX_LAUNCHER_PATH "extra\files\routex-launcher.exe"
 !define ROUTEX_SERVICE_NAME "RouteXService"
 !define ROUTEX_SERVICE_PATH "extra\files\routex-service.exe"
 !define ROUTEX_BUNDLE_ID "com.jarv1s0.routex.tauri"
@@ -305,11 +304,7 @@ Var ROUTEX_SERVICE_WAS_RUNNING
     Push $0
     Push $1
     System::Call 'kernel32::GetCurrentProcessId() i.r0'
-    ${If} ${FileExists} "$INSTDIR\${ROUTEX_LAUNCHER_PATH}"
-      StrCpy $1 "$INSTDIR\${ROUTEX_LAUNCHER_PATH}"
-    ${Else}
-      StrCpy $1 "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe"
-    ${EndIf}
+    StrCpy $1 "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe"
     SetOutPath "$INSTDIR"
     CopyFiles /SILENT "$INSTDIR\resources\icon.ico" "$INSTDIR\resources\shortcut-icon-$0.ico"
     ${If} ${FileExists} "$INSTDIR\resources\shortcut-icon-$0.ico"

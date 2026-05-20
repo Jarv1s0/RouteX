@@ -229,6 +229,22 @@ fn windows_task_match_accepts_unquoted_command_path() {
 }
 
 #[test]
+fn elevated_startup_runs_task_when_unelevated_task_matches() {
+    assert_eq!(
+        choose_windows_unelevated_startup_action(true),
+        WindowsUnelevatedStartupAction::RunElevateTask
+    );
+}
+
+#[test]
+fn elevated_startup_requests_admin_when_unelevated_task_is_missing() {
+    assert_eq!(
+        choose_windows_unelevated_startup_action(false),
+        WindowsUnelevatedStartupAction::RequestAdminRegistration
+    );
+}
+
+#[test]
 fn merge_profile_nodes_keeps_secondary_groups_out_of_runtime_profile() {
     let mut target_profile = json!({
         "proxies": [

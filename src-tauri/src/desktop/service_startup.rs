@@ -230,10 +230,12 @@ fn handle_windows_unregistered_elevate_task(create_error: &str) {
         return;
     }
 
+    if !show_windows_startup_admin_required_dialog() {
+        return;
+    }
+
     if let Err(error) = relaunch_current_app_as_admin() {
-        if show_windows_startup_admin_required_dialog() {
-            show_windows_startup_admin_relaunch_failed_dialog(&error);
-        }
+        show_windows_startup_admin_relaunch_failed_dialog(&error);
     }
 }
 
@@ -272,6 +274,60 @@ fn run_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum WindowsUnelevatedStartupAction {
+    RunElevateTask,
+    RequestAdminRegistration,
+}
+
+fn choose_windows_unelevated_startup_action(
+    elevate_task_matches_current_app: bool,
+) -> WindowsUnelevatedStartupAction {
+    if elevate_task_matches_current_app {
+        WindowsUnelevatedStartupAction::RunElevateTask
+    } else {
+        WindowsUnelevatedStartupAction::RequestAdminRegistration
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn handle_windows_elevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
+    match create_elevate_task(app) {
+        Ok(()) => Ok(true),
+        Err(create_error) => {
+            if check_elevate_task_matches_current_app(app) {
+                eprintln!("refresh elevated task failed, using existing task: {create_error}");
+                return Ok(true);
+            }
+
+            show_windows_startup_task_registration_failed_dialog(&create_error);
+            Ok(false)
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn handle_windows_unelevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
+    match choose_windows_unelevated_startup_action(check_elevate_task_matches_current_app(app)) {
+        WindowsUnelevatedStartupAction::RunElevateTask => match run_elevate_task(app) {
+            Ok(()) => Ok(false),
+            Err(run_error) => {
+                show_windows_startup_relaunch_failed_dialog(
+                    "已存在匹配当前安装路径的提权任务",
+                    &run_error,
+                );
+                Ok(true)
+            }
+        },
+        WindowsUnelevatedStartupAction::RequestAdminRegistration => {
+            handle_windows_unregistered_elevate_task(
+                "当前 RouteX 进程没有管理员权限，无法注册提权任务。",
+            );
+            Ok(false)
+        }
+    }
+}
+
 fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
     #[cfg(target_os = "windows")]
     {
@@ -287,20 +343,23 @@ fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
             return Ok(true);
         }
 
-        match create_elevate_task(app) {
-            Ok(()) => Ok(true),
-            Err(create_error) => {
-                if !check_elevate_task_matches_current_app(app) {
-                    handle_windows_unregistered_elevate_task(&create_error);
-                    return Ok(false);
-                }
-
-                match run_elevate_task(app) {
-                    Ok(()) => Ok(false),
-                    Err(run_error) => {
-                        show_windows_startup_relaunch_failed_dialog(&create_error, &run_error);
-                        Ok(true)
+        match check_windows_process_elevated() {
+            Ok(true) => handle_windows_elevated_process_startup(app),
+            Ok(false) => handle_windows_unelevated_process_startup(app),
+            Err(error) => {
+                if check_elevate_task_matches_current_app(app) {
+                    match run_elevate_task(app) {
+                        Ok(()) => Ok(false),
+                        Err(run_error) => {
+                            show_windows_startup_relaunch_failed_dialog(&error, &run_error);
+                            Ok(true)
+                        }
                     }
+                } else {
+                    show_windows_startup_task_registration_failed_dialog(&format!(
+                        "无法确认当前 RouteX 进程是否具有管理员权限: {error}"
+                    ));
+                    Ok(false)
                 }
             }
         }

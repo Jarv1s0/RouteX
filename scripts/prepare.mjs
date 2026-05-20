@@ -536,26 +536,15 @@ const resolveRunner = () => {
     downloadURL: `${ROUTEX_SERVICE_RELEASE_PREFIX}/${asset}`
   })
 }
-const resolveLauncher = () => {
-  if (arch !== process.arch) {
-    throw new Error(
-      `routex-launcher must be built on the target architecture; host=${process.arch}, target=${arch}`
-    )
-  }
-
-  execFileSync(
-    'cargo',
-    ['build', '--manifest-path', 'src-tauri/Cargo.toml', '--bin', 'routex-launcher', '--release'],
-    {
-      cwd,
-      stdio: 'inherit'
+const removeStaleWindowsFiles = () => {
+  const staleFiles = ['routex-launcher.exe']
+  for (const file of staleFiles) {
+    const targetPath = path.join(cwd, 'extra', 'files', file)
+    if (fs.existsSync(targetPath)) {
+      fs.rmSync(targetPath, { force: true })
+      console.log(`[INFO]: removed stale Windows resource ${file}`)
     }
-  )
-
-  const launcherPath = path.join(cwd, 'src-tauri', 'target', 'release', 'routex-launcher.exe')
-  const targetPath = path.join(cwd, 'extra', 'files', 'routex-launcher.exe')
-  fs.copyFileSync(launcherPath, targetPath)
-  console.log('[INFO]: routex-launcher.exe finished')
+  }
 }
 const resolveFont = async () => {
   // const targetPath = path.join(cwd, 'src', 'renderer', 'src', 'assets', 'NotoColorEmoji.ttf')
@@ -604,15 +593,15 @@ const tasks = [
     retry: DEFAULT_TASK_RETRY
   },
   {
-    name: 'runner',
-    func: resolveRunner,
-    retry: DEFAULT_TASK_RETRY,
+    name: 'stale-windows-files',
+    func: removeStaleWindowsFiles,
+    retry: 1,
     winOnly: true
   },
   {
-    name: 'launcher',
-    func: resolveLauncher,
-    retry: 1,
+    name: 'runner',
+    func: resolveRunner,
+    retry: DEFAULT_TASK_RETRY,
     winOnly: true
   }
 ]
