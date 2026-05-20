@@ -476,6 +476,25 @@ async function resolveResource(binInfo) {
   console.log(`[INFO]: ${file} finished`)
 }
 
+function patchRunnerGuiSubsystem(filePath) {
+  const data = fs.readFileSync(filePath)
+  const peHeaderOffset = data.readUInt32LE(0x3c)
+  const subsystemOffset = peHeaderOffset + 0x5c
+  const subsystem = data.readUInt16LE(subsystemOffset)
+
+  if (subsystem === 2) {
+    return
+  }
+
+  if (subsystem !== 3) {
+    throw new Error(`routex-run.exe has unsupported PE subsystem ${subsystem}`)
+  }
+
+  data.writeUInt16LE(2, subsystemOffset)
+  fs.writeFileSync(filePath, data)
+  console.log('[INFO]: routex-run.exe patched to Windows GUI subsystem')
+}
+
 /**
  * download file and save to `path`
  */
@@ -544,10 +563,11 @@ function verifyRoutexServiceSysproxyCommand(binaryPath) {
 }
 const resolveRunner = () => {
   const asset = getMappedAsset(ROUTEX_RUN_ASSETS, arch, 'runner arch')
+  const targetPath = path.join(cwd, 'extra', 'files', 'routex-run.exe')
   return resolveResource({
     file: 'routex-run.exe',
     downloadURL: `${ROUTEX_SERVICE_RELEASE_PREFIX}/${asset}`
-  })
+  }).then(() => patchRunnerGuiSubsystem(targetPath))
 }
 const resolveGeoData = (resource) => resolveResource(resource)
 const removeStaleWindowsFiles = () => {
