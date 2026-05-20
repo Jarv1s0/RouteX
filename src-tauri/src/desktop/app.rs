@@ -1,5 +1,9 @@
 pub fn run() {
     wait_for_admin_relaunch_parent_exit();
+    let context = tauri::generate_context!();
+    if !prepare_windows_elevated_startup_before_tauri(context.config().identifier.as_str()) {
+        return;
+    }
     let _ = APP_STARTED_AT.get_or_init(Instant::now);
     let builder = tauri::Builder::default();
     #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
@@ -63,7 +67,7 @@ pub fn run() {
             desktop_check_update,
             desktop_get_icon_data_urls
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building RouteX Tauri shell")
         .run(|app_handle, event| {
             if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
