@@ -692,7 +692,7 @@ export const zhCN = {
   'connections.summary.currentProxy': '当前代理: {value}',
   'connections.ruleTypeLabel': '规则类型 - {description}',
   'connections.noResolveOption': 'no-resolve（不解析域名，直接匹配 IP）',
-  'connections.existingQuickRules': '已有快速规则 ({count})',
+  'connections.existingQuickRules': '已有本地规则 ({count})',
   'connections.noQuickRules': '暂无快速规则',
   'connections.cancelEdit': '取消编辑',
   'connections.ruleSaveFailed': '{action}规则失败: {error}',
