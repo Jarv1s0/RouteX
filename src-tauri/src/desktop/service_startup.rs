@@ -7,11 +7,7 @@ const TDCBF_OK_BUTTON: u32 = 0x0001;
 #[cfg(target_os = "windows")]
 const TD_WARNING_ICON: *const u16 = (-1isize) as *const u16;
 #[cfg(target_os = "windows")]
-const TD_SHIELD_ICON: *const u16 = (-4isize) as *const u16;
-#[cfg(target_os = "windows")]
-const STARTUP_ADMIN_RELAUNCH_BUTTON_ID: i32 = 1001;
-#[cfg(target_os = "windows")]
-const STARTUP_ADMIN_EXIT_BUTTON_ID: i32 = 1002;
+const SW_SHOWNORMAL: i32 = 1;
 
 #[cfg(target_os = "windows")]
 #[repr(C)]
@@ -66,6 +62,19 @@ unsafe extern "system" {
         radio_button: *mut i32,
         verification_flag_checked: *mut i32,
     ) -> i32;
+}
+
+#[cfg(target_os = "windows")]
+#[link(name = "shell32")]
+unsafe extern "system" {
+    fn ShellExecuteW(
+        hwnd: *mut std::ffi::c_void,
+        operation: *const u16,
+        file: *const u16,
+        parameters: *const u16,
+        directory: *const u16,
+        show_cmd: i32,
+    ) -> *mut std::ffi::c_void;
 }
 
 #[cfg(target_os = "windows")]
@@ -141,43 +150,24 @@ fn show_windows_startup_dialog(title: &str, heading: &str, message: &str, detail
 }
 
 #[cfg(target_os = "windows")]
-fn show_windows_startup_admin_required_dialog() -> bool {
-    let title = to_wide_null("首次启动需要管理员权限");
-    let heading = to_wide_null("需要完成一次管理员授权");
-    let message = to_wide_null(
-        "RouteX 首次安装后需要以管理员身份启动一次，用于注册提权任务。\r\n注册完成后，后续可以直接双击正常打开，不需要每次手动管理员运行。",
-    );
-    let relaunch = to_wide_null("以管理员身份重启");
-    let exit = to_wide_null("退出");
-    let buttons = [
-        TaskDialogButton {
-            button_id: STARTUP_ADMIN_RELAUNCH_BUTTON_ID,
-            button_text: relaunch.as_ptr(),
-        },
-        TaskDialogButton {
-            button_id: STARTUP_ADMIN_EXIT_BUTTON_ID,
-            button_text: exit.as_ptr(),
-        },
-    ];
-    let mut config = startup_task_dialog_config(
-        title.as_ptr(),
-        TD_SHIELD_ICON,
-        heading.as_ptr(),
-        message.as_ptr(),
-    );
-    config.button_count = buttons.len() as u32;
-    config.buttons = buttons.as_ptr();
-    config.default_button = STARTUP_ADMIN_RELAUNCH_BUTTON_ID;
-    let mut selected_button = 0;
-    let result = unsafe {
-        TaskDialogIndirect(
-            &config,
-            &mut selected_button,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-        )
-    };
-    result == 0 && selected_button == STARTUP_ADMIN_RELAUNCH_BUTTON_ID
+fn shell_execute_quote_arg(value: &str) -> String {
+    if value.is_empty() {
+        return "\"\"".to_string();
+    }
+
+    if !value.chars().any(|ch| ch.is_whitespace() || ch == '"') {
+        return value.to_string();
+    }
+
+    format!("\"{}\"", value.replace('"', "\\\""))
+}
+
+#[cfg(target_os = "windows")]
+fn shell_execute_parameters(args: impl IntoIterator<Item = String>) -> String {
+    args.into_iter()
+        .map(|arg| shell_execute_quote_arg(&arg))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 #[cfg(target_os = "windows")]
@@ -194,43 +184,33 @@ fn show_windows_startup_admin_relaunch_failed_dialog(error: &str) {
 fn relaunch_current_app_as_admin() -> Result<(), String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     let current_dir = std::env::current_dir().map_err(|e| e.to_string())?;
-    let current_pid = std::process::id();
-    let argument_list = std::env::args()
-        .skip(1)
-        .map(|arg| powershell_single_quoted(&arg))
-        .collect::<Vec<_>>()
-        .join(", ");
-    let argument_list = if argument_list.is_empty() {
-        String::new()
-    } else {
-        format!(" -ArgumentList @({argument_list})")
-    };
-    let script = format!(
-        r#"
-Wait-Process -Id {current_pid} -Timeout 10 -ErrorAction SilentlyContinue
-Start-Process -FilePath {}{} -WorkingDirectory {} -Verb RunAs
-"#,
-        powershell_single_quoted(&exe_path.to_string_lossy()),
-        argument_list,
-        powershell_single_quoted(&current_dir.to_string_lossy())
-    );
-    let encoded = encode_powershell_script(&script);
+    let operation = to_wide_null("runas");
+    let file = to_wide_null(&exe_path.to_string_lossy());
+    let parameters = to_wide_null(&shell_execute_parameters(std::env::args().skip(1)));
+    let directory = to_wide_null(&current_dir.to_string_lossy());
 
-    powershell_command()
-        .args(["-NoProfile", "-EncodedCommand", &encoded])
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    let result_code = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            operation.as_ptr(),
+            file.as_ptr(),
+            parameters.as_ptr(),
+            directory.as_ptr(),
+            SW_SHOWNORMAL,
+        )
+    } as isize;
+
+    if result_code <= 32 {
+        return Err(format!("ShellExecuteW runas failed with code {result_code}"));
+    }
+
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
 fn handle_windows_unregistered_elevate_task(create_error: &str) {
     if !looks_like_windows_permission_error(create_error) {
         show_windows_startup_task_registration_failed_dialog(create_error);
-        return;
-    }
-
-    if !show_windows_startup_admin_required_dialog() {
         return;
     }
 

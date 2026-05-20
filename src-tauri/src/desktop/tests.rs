@@ -267,6 +267,21 @@ fn elevated_startup_requests_admin_when_unelevated_task_is_missing() {
     );
 }
 
+#[cfg(target_os = "windows")]
+#[test]
+fn shell_execute_parameters_quote_only_when_needed() {
+    assert_eq!(shell_execute_parameters(Vec::<String>::new()), "");
+    assert_eq!(
+        shell_execute_parameters(vec![
+            "plain".to_string(),
+            "has space".to_string(),
+            "has\"quote".to_string(),
+            String::new()
+        ]),
+        r#"plain "has space" "has\"quote" """#
+    );
+}
+
 #[test]
 fn merge_profile_nodes_keeps_secondary_groups_out_of_runtime_profile() {
     let mut target_profile = json!({
