@@ -103,6 +103,8 @@ export const enUS: Record<TranslationKey, string> = {
   'resources.autoUpdate': 'Auto update Geo database',
   'resources.downloadGeoData': 'Download Geo database',
   'resources.downloadGeoDataAction': 'Download',
+  'resources.downloadGeoDataItem': 'Download {name}',
+  'resources.downloadGeoDataItemSuccess': '{name} downloaded',
   'resources.updateSuccess': 'Geo database updated',
   'resources.updateIntervalHours': 'Update interval (hours)',
   'page.rules.create': 'Create rule',

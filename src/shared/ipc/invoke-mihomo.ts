@@ -20,6 +20,7 @@ export const MIHOMO_IPC_INVOKE_CHANNELS = {
   mihomoUpdateRuleProviders: 'mihomoUpdateRuleProviders',
   mihomoUpgrade: 'mihomoUpgrade',
   mihomoUpgradeGeo: 'mihomoUpgradeGeo',
+  mihomoUpgradeGeoFile: 'mihomoUpgradeGeoFile',
   mihomoUpgradeUI: 'mihomoUpgradeUI',
   mihomoVersion: 'mihomoVersion',
   patchMihomoConfig: 'patchMihomoConfig',

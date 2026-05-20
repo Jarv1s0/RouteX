@@ -1099,6 +1099,13 @@ export async function mihomoUpgradeGeo(): Promise<void> {
   return invokeSafe(C.mihomoUpgradeGeo)
 }
 
+export async function mihomoUpgradeGeoFile(
+  file: 'geoip' | 'geosite' | 'mmdb' | 'asn',
+  url: string
+): Promise<void> {
+  return invokeSafe(C.mihomoUpgradeGeoFile, file, url)
+}
+
 export async function mihomoUpgradeUI(): Promise<void> {
   return invokeSafe(C.mihomoUpgradeUI)
 }

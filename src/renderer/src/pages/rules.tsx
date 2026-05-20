@@ -12,10 +12,7 @@ import { useRules } from '@renderer/hooks/use-rules'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import {
-  getControledMihomoConfig,
   getRuntimeConfig,
-  mihomoUpgradeGeo,
-  patchMihomoConfig,
   mihomoRuleProviders,
   mihomoToggleRuleDisabled,
   mihomoUpdateRuleProviders
@@ -33,12 +30,9 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useRulesStore } from '@renderer/store/use-rules-store'
 import { RulesProvider } from '@renderer/hooks/use-rules'
 import { useI18n } from '@renderer/i18n'
-import { createDefaultControledMihomoConfig } from '../../../shared/defaults/runtime'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const normalizeRuleType = (type: string): string => type.replace(/[^a-z0-9]/gi, '').toLowerCase()
-
-const defaultGeoxUrl = createDefaultControledMihomoConfig(__ROUTEX_PLATFORM__)['geox-url'] || {}
 
 const isRemoteRule = (rule: ControllerRulesDetail): boolean => {
   return normalizeRuleType(rule.type) === 'ruleset'
@@ -69,7 +63,6 @@ const RulesPage: React.FC = () => {
   const deferredFilter = useDeferredValue(filter)
   const [activeTab, setActiveTab] = useState('local')
   const [updating, setUpdating] = useState<Record<string, boolean>>({})
-  const [geoDataUpdating, setGeoDataUpdating] = useState(false)
   const [editingQuickRule, setEditingQuickRule] = useState<QuickRule | null>(null)
   const [isQuickRuleModalOpen, setIsQuickRuleModalOpen] = useState(false)
   const { groups = [] } = useGroups()
@@ -218,28 +211,6 @@ const RulesPage: React.FC = () => {
       new Notification(t('rules.updateProviderFailed', { name, error: String(e) }))
     } finally {
       setUpdating((prev) => ({ ...prev, [name]: false }))
-    }
-  }
-
-  const handleUpgradeGeo = async (): Promise<void> => {
-    setGeoDataUpdating(true)
-    try {
-      const config = await getControledMihomoConfig()
-      const geoxUrl = config['geox-url'] || {}
-      await patchMihomoConfig({
-        'geox-url': {
-          mmdb: geoxUrl.mmdb || defaultGeoxUrl.mmdb || '',
-          asn: geoxUrl.asn || defaultGeoxUrl.asn || '',
-          'geo-ip': geoxUrl.geoip || defaultGeoxUrl.geoip || '',
-          'geo-site': geoxUrl.geosite || defaultGeoxUrl.geosite || ''
-        }
-      } as unknown as Partial<MihomoConfig>)
-      await mihomoUpgradeGeo()
-      new Notification(t('resources.updateSuccess'))
-    } catch (e) {
-      alert(e)
-    } finally {
-      setGeoDataUpdating(false)
     }
   }
 
@@ -472,19 +443,6 @@ const RulesPage: React.FC = () => {
           {activeTab === 'remote' && (
             <Button size="sm" color="primary" onPress={updateAll}>
               {t('common.updateAll')}
-            </Button>
-          )}
-          {activeTab === 'geodata' && (
-            <Button
-              size="sm"
-              color="primary"
-              className="ml-auto"
-              isLoading={geoDataUpdating}
-              aria-label={t('resources.downloadGeoData')}
-              title={t('resources.downloadGeoData')}
-              onPress={handleUpgradeGeo}
-            >
-              {t('resources.downloadGeoDataAction')}
             </Button>
           )}
         </div>

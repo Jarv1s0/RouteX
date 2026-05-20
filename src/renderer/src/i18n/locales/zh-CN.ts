@@ -100,6 +100,8 @@ export const zhCN = {
   'resources.autoUpdate': '自动更新 Geo 数据库',
   'resources.downloadGeoData': '下载 Geo 数据库',
   'resources.downloadGeoDataAction': '下载',
+  'resources.downloadGeoDataItem': '下载 {name}',
+  'resources.downloadGeoDataItemSuccess': '{name} 下载成功',
   'resources.updateSuccess': 'Geo 数据库更新成功',
   'resources.updateIntervalHours': '更新间隔(小时)',
   'page.rules.create': '新建规则',

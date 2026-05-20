@@ -61,6 +61,29 @@ fn desktop_invoke_channels_match_typescript_contract() {
 }
 
 #[test]
+fn geo_dat_validation_rejects_common_text_downloads() {
+    let html = b"<html><body>not found</body></html>";
+
+    assert!(ipc::validate_geo_data_bytes("geoip", html).is_err());
+    assert!(ipc::validate_geo_data_bytes("geosite", html).is_err());
+}
+
+#[test]
+fn geo_data_validation_accepts_expected_binary_markers() {
+    let dat_with_one_entry = [0x0a, 0x01, 0x00];
+    let mut mmdb = b"metadata".to_vec();
+    mmdb.extend_from_slice(b"\xAB\xCD\xEFMaxMind.com");
+
+    assert!(ipc::validate_geo_data_bytes("geoip", &dat_with_one_entry).is_ok());
+    assert!(ipc::validate_geo_data_bytes("mmdb", &mmdb).is_ok());
+}
+
+#[test]
+fn mmdb_validation_rejects_missing_metadata_marker() {
+    assert!(ipc::validate_geo_data_bytes("asn", b"not an mmdb").is_err());
+}
+
+#[test]
 fn mihomo_groups_expand_nested_group_children() {
     let proxies = json!({
         "proxies": {
