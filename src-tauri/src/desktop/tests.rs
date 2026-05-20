@@ -282,6 +282,28 @@ fn shell_execute_parameters_quote_only_when_needed() {
     );
 }
 
+#[cfg(target_os = "windows")]
+#[test]
+fn admin_relaunch_args_replace_stale_parent_pid() {
+    assert_eq!(
+        admin_relaunch_args(
+            vec![
+                "first".to_string(),
+                ROUTEX_ADMIN_RELAUNCH_PARENT_ARG.to_string(),
+                "111".to_string(),
+                "second".to_string()
+            ],
+            222
+        ),
+        vec![
+            ROUTEX_ADMIN_RELAUNCH_PARENT_ARG.to_string(),
+            "222".to_string(),
+            "first".to_string(),
+            "second".to_string()
+        ]
+    );
+}
+
 #[test]
 fn merge_profile_nodes_keeps_secondary_groups_out_of_runtime_profile() {
     let mut target_profile = json!({

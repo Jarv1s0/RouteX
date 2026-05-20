@@ -1,4 +1,5 @@
 pub fn run() {
+    wait_for_admin_relaunch_parent_exit();
     let _ = APP_STARTED_AT.get_or_init(Instant::now);
     let builder = tauri::Builder::default();
     #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]

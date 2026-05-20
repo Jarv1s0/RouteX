@@ -8,6 +8,10 @@ const TDCBF_OK_BUTTON: u32 = 0x0001;
 const TD_WARNING_ICON: *const u16 = (-1isize) as *const u16;
 #[cfg(target_os = "windows")]
 const SW_SHOWNORMAL: i32 = 1;
+#[cfg(target_os = "windows")]
+const SYNCHRONIZE: u32 = 0x00100000;
+#[cfg(target_os = "windows")]
+const ADMIN_RELAUNCH_PARENT_WAIT_MS: u32 = 15_000;
 
 #[cfg(target_os = "windows")]
 #[repr(C)]
@@ -75,6 +79,18 @@ unsafe extern "system" {
         directory: *const u16,
         show_cmd: i32,
     ) -> *mut std::ffi::c_void;
+}
+
+#[cfg(target_os = "windows")]
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn OpenProcess(
+        desired_access: u32,
+        inherit_handle: i32,
+        process_id: u32,
+    ) -> *mut std::ffi::c_void;
+    fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
+    fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
 }
 
 #[cfg(target_os = "windows")]
@@ -171,6 +187,61 @@ fn shell_execute_parameters(args: impl IntoIterator<Item = String>) -> String {
 }
 
 #[cfg(target_os = "windows")]
+fn admin_relaunch_args(args: impl IntoIterator<Item = String>, parent_pid: u32) -> Vec<String> {
+    let mut values = vec![
+        ROUTEX_ADMIN_RELAUNCH_PARENT_ARG.to_string(),
+        parent_pid.to_string(),
+    ];
+    let mut skip_next = false;
+    for arg in args {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if arg.eq_ignore_ascii_case(ROUTEX_ADMIN_RELAUNCH_PARENT_ARG) {
+            skip_next = true;
+            continue;
+        }
+        values.push(arg);
+    }
+    values
+}
+
+#[cfg(target_os = "windows")]
+fn admin_relaunch_parent_pid() -> Option<u32> {
+    let mut args = std::env::args();
+    while let Some(arg) = args.next() {
+        if arg.eq_ignore_ascii_case(ROUTEX_ADMIN_RELAUNCH_PARENT_ARG) {
+            return args.next().and_then(|value| value.parse::<u32>().ok());
+        }
+    }
+    None
+}
+
+#[cfg(target_os = "windows")]
+fn wait_for_process_exit(process_id: u32) {
+    let handle = unsafe { OpenProcess(SYNCHRONIZE, 0, process_id) };
+    if handle.is_null() {
+        return;
+    }
+
+    unsafe {
+        let _ = WaitForSingleObject(handle, ADMIN_RELAUNCH_PARENT_WAIT_MS);
+        let _ = CloseHandle(handle);
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn wait_for_admin_relaunch_parent_exit() {
+    if let Some(process_id) = admin_relaunch_parent_pid() {
+        wait_for_process_exit(process_id);
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn wait_for_admin_relaunch_parent_exit() {}
+
+#[cfg(target_os = "windows")]
 fn show_windows_startup_admin_relaunch_failed_dialog(error: &str) {
     show_windows_startup_dialog(
         "管理员重启失败",
@@ -186,7 +257,11 @@ fn relaunch_current_app_as_admin() -> Result<(), String> {
     let current_dir = std::env::current_dir().map_err(|e| e.to_string())?;
     let operation = to_wide_null("runas");
     let file = to_wide_null(&exe_path.to_string_lossy());
-    let parameters = to_wide_null(&shell_execute_parameters(std::env::args().skip(1)));
+    let parameters = shell_execute_parameters(admin_relaunch_args(
+        std::env::args().skip(1),
+        std::process::id(),
+    ));
+    let parameters = to_wide_null(&parameters);
     let directory = to_wide_null(&current_dir.to_string_lossy());
 
     let result_code = unsafe {
