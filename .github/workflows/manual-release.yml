@@ -36,7 +36,7 @@ jobs:
         run: |
           case "${{ github.event.inputs.platforms }}" in
             all)
-              matrix='{"include":[{"os":"windows-latest","platform":"windows"},{"os":"ubuntu-latest","platform":"linux"},{"os":"macos-13","platform":"macos"}]}'
+              matrix='{"include":[{"os":"windows-latest","platform":"windows"},{"os":"ubuntu-latest","platform":"linux"},{"os":"macos-15","platform":"macos"}]}'
               ;;
             windows)
               matrix='{"include":[{"os":"windows-latest","platform":"windows"}]}'
@@ -45,7 +45,7 @@ jobs:
               matrix='{"include":[{"os":"ubuntu-latest","platform":"linux"}]}'
               ;;
             macos)
-              matrix='{"include":[{"os":"macos-13","platform":"macos"}]}'
+              matrix='{"include":[{"os":"macos-15","platform":"macos"}]}'
               ;;
             *)
               echo "Unsupported platform selection: ${{ github.event.inputs.platforms }}"
