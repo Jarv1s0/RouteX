@@ -76,7 +76,7 @@ jobs:
             platform: windows
           - os: ubuntu-latest
             platform: linux
-          - os: macos-latest
+          - os: macos-13
             platform: macos
 
     permissions:
