@@ -413,6 +413,8 @@ fn built_in_theme_text_includes_routex_blue_glass() {
 
     assert!(css.contains("RouteX Blue Glass"));
     assert!(css.contains("--heroui-primary"));
+    assert!(css.contains(".profiles-sticky > div"));
+    assert!(css.contains("button[data-slot='trigger'].bg-primary"));
     assert!(built_in_theme_text(DEFAULT_THEME_FILE_NAME).is_none());
 }
 

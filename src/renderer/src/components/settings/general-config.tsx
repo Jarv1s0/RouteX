@@ -21,6 +21,7 @@ import { toast } from 'sonner'
 import { platform } from '@renderer/utils/init'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { useI18n, type LanguagePreference, type TranslationKey } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import WebdavConfigModal from './webdav-config-modal'
 
@@ -165,7 +166,7 @@ const GeneralConfig: React.FC = () => {
         </SettingItem>
         <SettingItem title={t('settings.system.language')} divider>
           <Select
-            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+            classNames={CARD_STYLES.GLASS_SELECT}
             className="w-[190px]"
             size="sm"
             selectedKeys={new Set([language])}

@@ -37,7 +37,8 @@ const Settings: React.FC = () => {
           radius="lg"
           classNames={{
             ...CARD_STYLES.GLASS_TABS,
-            tab: CARD_STYLES.GLASS_TABS.tab + ' px-4'
+            tab: CARD_STYLES.GLASS_TABS.tab + ' px-4',
+            panel: 'pt-2 px-0'
           }}
         >
           <Tab

@@ -29,6 +29,7 @@ import { MdEditDocument } from 'react-icons/md'
 import ShortcutConfigModal from './shortcut-config-modal'
 import CSSEditorModal from './css-editor-modal'
 import { useI18n } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const ShortcutConfigContent: React.FC = () => {
@@ -247,6 +248,7 @@ const AppearanceConfig: React.FC = () => {
                   try {
                     await fetchThemes()
                     setCustomThemes(await resolveThemes())
+                    await applyTheme(customTheme)
                   } catch (e) {
                     alert(e)
                   } finally {
@@ -290,7 +292,7 @@ const AppearanceConfig: React.FC = () => {
         >
           {customThemes && (
             <Select
-              classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+              classNames={CARD_STYLES.GLASS_SELECT}
               className="w-[60%]"
               size="sm"
               selectedKeys={new Set([customTheme])}
