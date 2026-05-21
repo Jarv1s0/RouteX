@@ -11,6 +11,7 @@ import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { C, invokeSafe } from '@renderer/utils/ipc-core'
 import { checkUpdate, setNativeTheme, UPDATE_CHECK_RESULT_EVENT } from '@renderer/api/app'
 import { applyTheme } from '@renderer/utils/theme-ipc'
+import { DEFAULT_CUSTOM_THEME } from '../../shared/defaults/app'
 import { startTauriMihomoEventBridge } from '@renderer/utils/mihomo-ipc'
 import { ensureTauriTrafficRecorder } from '@renderer/utils/tauri-traffic-stats'
 import AppSidebar from '@renderer/components/layout/AppSidebar'
@@ -197,7 +198,7 @@ const App: React.FC = () => {
     if (!appConfig) {
       return
     }
-    void applyTheme(customTheme || 'default.css')
+    void applyTheme(customTheme || DEFAULT_CUSTOM_THEME)
   }, [appConfig, customTheme])
 
   useEffect(() => {

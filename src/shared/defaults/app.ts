@@ -1,3 +1,5 @@
+export const DEFAULT_CUSTOM_THEME = 'routex-blue-glass.css'
+
 function isLegacyWindowsBuild(osRelease?: string): boolean {
   if (!osRelease) {
     return false
@@ -27,7 +29,7 @@ export function createDefaultAppConfig(platform: NodeJS.Platform, osRelease?: st
     autoCloseConnection: true,
     hotReloadCoreOnSave: true,
     autoDelayTestOnShow: true,
-    customTheme: 'default.css',
+    customTheme: DEFAULT_CUSTOM_THEME,
     controlDns: true,
     controlSniff: true,
     delayTestConcurrency: 4,

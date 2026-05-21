@@ -407,6 +407,25 @@ fn theme_display_label_reads_first_line_comment() {
 }
 
 #[test]
+fn built_in_theme_text_includes_routex_blue_glass() {
+    let css = built_in_theme_text(ROUTEX_BLUE_GLASS_THEME_FILE_NAME)
+        .expect("RouteX Blue Glass should be bundled as a built-in theme");
+
+    assert!(css.contains("RouteX Blue Glass"));
+    assert!(css.contains("--heroui-primary"));
+    assert!(built_in_theme_text(DEFAULT_THEME_FILE_NAME).is_none());
+}
+
+#[test]
+fn built_in_themes_sort_before_downloaded_themes() {
+    assert!(
+        theme_sort_rank(ROUTEX_BLUE_GLASS_THEME_FILE_NAME)
+            < theme_sort_rank(DEFAULT_THEME_FILE_NAME)
+    );
+    assert!(theme_sort_rank(DEFAULT_THEME_FILE_NAME) < theme_sort_rank("anime.css"));
+}
+
+#[test]
 fn default_remote_profile_name_ignores_generic_subscribe_path() {
     assert_eq!(
         default_remote_profile_name(Some("https://example.com/api/Subscribe?token=abc")),

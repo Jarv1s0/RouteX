@@ -12,6 +12,7 @@ import { useTheme } from 'next-themes'
 import { useAppConfig } from './hooks/use-app-config'
 import { applyTheme } from './utils/theme-ipc'
 import { I18nProvider } from './i18n'
+import { DEFAULT_CUSTOM_THEME } from '../../shared/defaults/app'
 
 const TrayMenuThemeBridge: React.FC = () => {
   const { appConfig } = useAppConfig()
@@ -30,7 +31,7 @@ const TrayMenuThemeBridge: React.FC = () => {
       return
     }
 
-    void applyTheme(appConfig.customTheme || 'default.css')
+    void applyTheme(appConfig.customTheme || DEFAULT_CUSTOM_THEME)
   }, [appConfig])
 
   return null

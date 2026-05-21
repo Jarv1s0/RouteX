@@ -23,6 +23,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
 import { useTheme } from 'next-themes'
+import { DEFAULT_CUSTOM_THEME } from '../../../../shared/defaults/app'
 import { IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
 import { MdEditDocument } from 'react-icons/md'
 import ShortcutConfigModal from './shortcut-config-modal'
@@ -62,7 +63,7 @@ const AppearanceConfig: React.FC = () => {
     spinFloatingIcon = true,
     collapseSidebar = false,
 
-    customTheme = 'default.css',
+    customTheme = DEFAULT_CUSTOM_THEME,
     appTheme = 'system'
   } = appConfig || {}
   const [localShowFloating, setLocalShowFloating] = useState(showFloating)

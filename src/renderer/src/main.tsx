@@ -6,6 +6,7 @@ import { init, platform } from '@renderer/utils/init'
 import { traceBootStep } from '@renderer/utils/boot-renderer'
 import { initDeepLinkIntegration } from '@renderer/utils/deep-link'
 import { applyTheme } from '@renderer/utils/theme-ipc'
+import { DEFAULT_CUSTOM_THEME } from '../../shared/defaults/app'
 import '@renderer/utils/install-global-alert'
 import '@renderer/assets/main.css'
 import App from '@renderer/App'
@@ -57,12 +58,12 @@ async function preloadStartupConfig(): Promise<void> {
 
     await Promise.all([
       setNativeTheme(appConfig.appTheme || 'system'),
-      applyTheme(appConfig.customTheme || 'default.css')
+      applyTheme(appConfig.customTheme || DEFAULT_CUSTOM_THEME)
     ])
 
     traceBootStep(BOOT_TRACE_ENTRY, 'preload-config:done', {
       theme: appConfig.appTheme || 'system',
-      customTheme: appConfig.customTheme || 'default.css'
+      customTheme: appConfig.customTheme || DEFAULT_CUSTOM_THEME
     })
   } catch (error) {
     traceBootStep(BOOT_TRACE_ENTRY, 'preload-config:failed', error)
