@@ -8,6 +8,7 @@ import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
+import { C, invokeSafe } from '@renderer/utils/ipc-core'
 import { checkUpdate, setNativeTheme, UPDATE_CHECK_RESULT_EVENT } from '@renderer/api/app'
 import { applyTheme } from '@renderer/utils/theme-ipc'
 import { startTauriMihomoEventBridge } from '@renderer/utils/mihomo-ipc'
@@ -84,6 +85,7 @@ const App: React.FC = () => {
   const page = useRoutes(routes)
   const connectionsListenerActiveRef = useRef(false)
   const trafficListenerActiveRef = useRef(false)
+  const mainWindowReadySentRef = useRef(false)
   const lastUpdateCheckAtRef = useRef(0)
   const [latest, setLatest] = useState<AppVersion | undefined>()
 
@@ -197,6 +199,26 @@ const App: React.FC = () => {
     }
     void applyTheme(customTheme || 'default.css')
   }, [appConfig, customTheme])
+
+  useEffect(() => {
+    if (__ROUTEX_HOST__ !== 'tauri' || !appConfig || mainWindowReadySentRef.current) {
+      return
+    }
+
+    let frameId = window.requestAnimationFrame(() => {
+      frameId = window.requestAnimationFrame(() => {
+        if (mainWindowReadySentRef.current) {
+          return
+        }
+        mainWindowReadySentRef.current = true
+        void invokeSafe(C.mainWindowReady)
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [appConfig])
 
   useEffect(() => {
     if (__ROUTEX_HOST__ === 'tauri') {

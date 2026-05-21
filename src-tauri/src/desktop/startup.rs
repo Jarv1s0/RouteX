@@ -47,8 +47,6 @@ pub(super) fn read_startup_alignment_config(
 
     if silent_start && startup_launch {
         let _ = hide_main_window(app, true);
-    } else {
-        let _ = show_main_window(app);
     }
 
     Ok(StartupAlignmentConfig {
@@ -57,6 +55,19 @@ pub(super) fn read_startup_alignment_config(
         network_detection,
         show_traffic,
     })
+}
+
+pub(super) fn should_show_main_window_after_renderer_ready(
+    app: &tauri::AppHandle,
+) -> Result<bool, String> {
+    let config = read_app_config_store(app)?;
+    let silent_start = config
+        .get("silentStart")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let startup_launch = std::env::args().any(|arg| arg.eq_ignore_ascii_case(ROUTEX_STARTUP_ARG));
+
+    Ok(!(silent_start && startup_launch))
 }
 
 pub(super) fn run_startup_alignment(

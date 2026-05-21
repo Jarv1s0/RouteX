@@ -37,6 +37,12 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
             show_main_window(app)?;
             Ok(Value::Null)
         }
+        "mainWindowReady" => {
+            if should_show_main_window_after_renderer_ready(app)? {
+                show_main_window(app)?;
+            }
+            Ok(Value::Null)
+        }
         "triggerMainWindow" => {
             trigger_main_window(app)?;
             Ok(Value::Null)

@@ -37,6 +37,7 @@ export const SYSTEM_IPC_INVOKE_CHANNELS = {
   installService: 'installService',
   isAlwaysOnTop: 'isAlwaysOnTop',
   listWebdavBackups: 'listWebdavBackups',
+  mainWindowReady: 'mainWindowReady',
   manualGrantCorePermition: 'manualGrantCorePermition',
   notDialogQuit: 'notDialogQuit',
   openDevTools: 'openDevTools',

@@ -72,7 +72,10 @@ use self::{
     gist::get_gist_url_value,
     ipc::{desktop_check_update, desktop_get_icon_data_urls, desktop_invoke},
     models::*,
-    startup::{read_startup_alignment_config, run_startup_alignment},
+    startup::{
+        read_startup_alignment_config, run_startup_alignment,
+        should_show_main_window_after_renderer_ready,
+    },
     updater::{
         cancel_update_download, check_update_manifest, download_and_install_update, update_client,
     },
