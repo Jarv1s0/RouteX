@@ -36,7 +36,6 @@ fn primary_tauri_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String
 fn routex_run_task_name() -> &'static str {
     match tauri_build_variant() {
         "dev" => "routex-run-dev",
-        "autobuild" => "routex-run-autobuild",
         _ => ROUTEX_RUN_TASK_NAME,
     }
 }
@@ -45,7 +44,6 @@ fn routex_run_task_name() -> &'static str {
 fn routex_autorun_task_name() -> &'static str {
     match tauri_build_variant() {
         "dev" => "routex-dev",
-        "autobuild" => "routex-autobuild",
         _ => ROUTEX_AUTORUN_TASK_NAME,
     }
 }

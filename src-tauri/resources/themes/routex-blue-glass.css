@@ -275,6 +275,17 @@ body,
   box-shadow: 0 0 0 2px hsl(var(--heroui-primary) / 0.18) !important;
 }
 
+[data-slot='trigger'].bg-yellow-400.text-black {
+  background: #facc15 !important;
+  color: #000 !important;
+}
+
+[data-slot='trigger'].bg-yellow-400.text-black:hover,
+[data-slot='trigger'].bg-yellow-400.text-black[data-open='true'] {
+  background: #eab308 !important;
+  color: #000 !important;
+}
+
 button[data-slot='trigger'].bg-primary:not(:disabled):not([aria-disabled='true']):not([data-disabled='true']) {
   background: hsl(var(--heroui-primary)) !important;
   color: hsl(var(--heroui-primary-foreground)) !important;
