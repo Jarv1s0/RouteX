@@ -21,8 +21,8 @@ export interface ConnectionViewState {
   patchAppConfig: (patch: Partial<AppConfig>) => Promise<void>
 
   // store
-  activeConnections: import('@renderer/store/use-connections-store').ExtendedConnection[]
-  closedConnections: import('@renderer/store/use-connections-store').ExtendedConnection[]
+  activeCount: number
+  closedCount: number
   isPaused: boolean
   setPaused: (paused: boolean) => void
   trashClosedConnection: (id: string) => void
@@ -67,8 +67,8 @@ export function useConnectionViewState(): ConnectionViewState {
     displayAppName = true
   } = appConfig || {}
 
-  const activeConnections = useConnectionsStore((state) => state.activeConnections)
-  const closedConnections = useConnectionsStore((state) => state.closedConnections)
+  const activeCount = useConnectionsStore((state) => state.connectionCount)
+  const closedCount = useConnectionsStore((state) => state.closedConnections.length)
   const trashClosedConnection = useConnectionsStore((state) => state.trashClosedConnection)
   const trashAllClosedConnections = useConnectionsStore((state) => state.trashAllClosedConnections)
   const isPaused = useConnectionsStore((state) => state.isPaused)
@@ -96,6 +96,7 @@ export function useConnectionViewState(): ConnectionViewState {
     }, 60000)
     return () => clearInterval(timer)
   }, [])
+
 
   const closeAllConnections = useCallback((): void => {
     if (tab === 'active') {
@@ -166,6 +167,10 @@ export function useConnectionViewState(): ConnectionViewState {
     [connectionDirection, connectionOrderBy, patchAppConfig]
   )
 
+  useEffect(() => {
+    resetVisibleRange()
+  }, [tab, viewMode, filter, connectionOrderBy, connectionDirection, resetVisibleRange])
+
   return {
     findProcessMode,
     connectionDirection,
@@ -173,8 +178,8 @@ export function useConnectionViewState(): ConnectionViewState {
     displayIcon,
     displayAppName,
     patchAppConfig,
-    activeConnections,
-    closedConnections,
+    activeCount,
+    closedCount,
     isPaused,
     setPaused,
     trashClosedConnection,
