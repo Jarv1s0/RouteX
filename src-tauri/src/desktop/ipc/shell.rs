@@ -1,6 +1,10 @@
-fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, state: &State<'_, CoreState>, channel: &str, args: &[Value]) -> Result<Option<Value>, String> {
-    let result: Result<Value, String> = match channel {
-        "registerShortcut" => {
+pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
+    map.insert("registerShortcut", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let old_shortcut = args.first().and_then(Value::as_str).unwrap_or_default();
             let new_shortcut = args.get(1).and_then(Value::as_str).unwrap_or_default();
             let action = args
@@ -13,49 +17,109 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
                 new_shortcut,
                 action
             )?))
-        }
-        "quitWithoutCore" => {
+        
+    });
+    map.insert("quitWithoutCore", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             exit_app_without_core(app)?;
             Ok(Value::Null)
-        }
-        "quitConfirmResult" => {
+        
+    });
+    map.insert("quitConfirmResult", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let confirmed = args.first().and_then(Value::as_bool).unwrap_or(false);
             resolve_quit_confirmation(state, confirmed)?;
             Ok(Value::Null)
-        }
-        "quitApp" => {
+        
+    });
+    map.insert("quitApp", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             if request_quit_confirmation(app, state)? {
                 exit_app(app)?;
             }
             Ok(Value::Null)
-        }
-        "notDialogQuit" => {
+        
+    });
+    map.insert("notDialogQuit", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             exit_app(app)?;
             Ok(Value::Null)
-        }
-        "showMainWindow" => {
+        
+    });
+    map.insert("showMainWindow", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             show_main_window(app)?;
             Ok(Value::Null)
-        }
-        "mainWindowReady" => {
+        
+    });
+    map.insert("mainWindowReady", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             if should_show_main_window_after_renderer_ready(app)? {
                 show_main_window(app)?;
             }
             Ok(Value::Null)
-        }
-        "triggerMainWindow" => {
+        
+    });
+    map.insert("triggerMainWindow", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             trigger_main_window(app)?;
             Ok(Value::Null)
-        }
-        "closeMainWindow" => {
+        
+    });
+    map.insert("closeMainWindow", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             hide_main_window(app, true)?;
             Ok(Value::Null)
-        }
-        "windowMin" => {
+        
+    });
+    map.insert("windowMin", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let _ = window.minimize();
             Ok(Value::Null)
-        }
-        "windowMax" => {
+        
+    });
+    map.insert("windowMax", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let is_maximized = window.is_maximized().map_err(|e| e.to_string())?;
             if is_maximized {
                 let _ = window.unmaximize();
@@ -63,20 +127,44 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
                 let _ = window.maximize();
             }
             Ok(Value::Null)
-        }
-        "setAlwaysOnTop" => {
+        
+    });
+    map.insert("setAlwaysOnTop", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let always_on_top = args
                 .first()
                 .and_then(Value::as_bool)
                 .ok_or_else(|| "setAlwaysOnTop requires a boolean argument".to_string())?;
             let _ = window.set_always_on_top(always_on_top);
             Ok(Value::Null)
-        }
-        "isAlwaysOnTop" => Ok(json!(window
+        
+    });
+    map.insert("isAlwaysOnTop", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(window
             .is_always_on_top()
-            .map_err(|e| e.to_string())?)),
-        "setTitleBarOverlay" => Ok(Value::Null),
-        "setDockVisible" => {
+            .map_err(|e| e.to_string())?)) 
+    });
+    map.insert("setTitleBarOverlay", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(Value::Null) 
+    });
+    map.insert("setDockVisible", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let visible = args
                 .first()
                 .and_then(Value::as_bool)
@@ -90,14 +178,26 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
                 let _ = visible;
             }
             Ok(Value::Null)
-        }
-        "showFloatingWindow" => {
+        
+    });
+    map.insert("showFloatingWindow", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let window = ensure_floating_window(app)?;
             let _ = window.show();
             let _ = window.set_focus();
             Ok(Value::Null)
-        }
-        "closeFloatingWindow" => {
+        
+    });
+    map.insert("closeFloatingWindow", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             if let Some(window) = app.get_webview_window(FLOATING_WINDOW_LABEL) {
                 let _ = window.close();
             }
@@ -111,36 +211,72 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
             sync_shell_surfaces(app)?;
             emit_ipc_event(app, "appConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "showTrayIcon" => {
+        
+    });
+    map.insert("showTrayIcon", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             ensure_tray_icon(app)?;
             Ok(Value::Null)
-        }
-        "closeTrayIcon" => {
+        
+    });
+    map.insert("closeTrayIcon", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             hide_traymenu_window(app);
             if let Some(tray) = app.remove_tray_by_id(TRAY_ICON_ID) {
                 let _ = tray.set_visible(false);
             }
             Ok(Value::Null)
-        }
-        "closeTrayMenuWindow" => {
+        
+    });
+    map.insert("closeTrayMenuWindow", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             hide_traymenu_window(app);
             Ok(Value::Null)
-        }
-        "updateFloatingWindow" => {
+        
+    });
+    map.insert("updateFloatingWindow", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             emit_ipc_event(app, "appConfigUpdated", Value::Null);
             emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "updateTrayMenu" => {
+        
+    });
+    map.insert("updateTrayMenu", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             update_tray_icon_for_state(app)?;
             refresh_native_tray_menu(app)?;
             emit_ipc_event(app, "appConfigUpdated", Value::Null);
             emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
             emit_ipc_event(app, "groupsUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "updateTaskbarIcon" => {
+        
+    });
+    map.insert("updateTaskbarIcon", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             #[cfg(target_os = "windows")]
             {
                 let icon_kind = args.first().and_then(Value::as_str).unwrap_or("default");
@@ -148,22 +284,40 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
                 set_windows_shell_icon_from_paths(app, window_icon, tray_icon)?;
             }
             Ok(Value::Null)
-        }
-        "trayIconUpdate" => {
+        
+    });
+    map.insert("trayIconUpdate", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let data_url = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "trayIconUpdate requires data url".to_string())?;
             apply_tray_icon_data_url(app, data_url)?;
             Ok(Value::Null)
-        }
-        "startMonitor" => {
+        
+    });
+    map.insert("startMonitor", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             start_traffic_monitor(app)?;
             update_tray_icon_for_state(app)?;
             refresh_native_tray_menu(app)?;
             Ok(Value::Null)
-        }
-        "setupFirewall" => {
+        
+    });
+    map.insert("setupFirewall", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             #[cfg(target_os = "windows")]
             {
                 let remove_command = r#"
@@ -194,16 +348,34 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
                     .map_err(|e| e.to_string())?;
             }
             Ok(Value::Null)
-        }
-        "startNetworkDetection" => {
+        
+    });
+    map.insert("startNetworkDetection", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             start_network_detection(app, state)?;
             Ok(Value::Null)
-        }
-        "stopNetworkDetection" => {
+        
+    });
+    map.insert("stopNetworkDetection", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             stop_network_detection(state)?;
             Ok(Value::Null)
-        }
-        "triggerSysProxy" => {
+        
+    });
+    map.insert("triggerSysProxy", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let enable = args
                 .first()
                 .and_then(Value::as_bool)
@@ -211,8 +383,14 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
             let only_active_device = args.get(1).and_then(Value::as_bool).unwrap_or(false);
             trigger_sys_proxy(app, state, enable, only_active_device)?;
             Ok(Value::Null)
-        }
-        "showContextMenu" => {
+        
+    });
+    map.insert("showContextMenu", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let position = window.outer_position().map_err(|e| e.to_string())?;
             let size = window.outer_size().map_err(|e| e.to_string())?;
             show_traymenu_window(
@@ -223,23 +401,33 @@ fn handle_shell_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, st
                 )),
             )?;
             Ok(Value::Null)
-        }
-        "openDevTools" => {
+        
+    });
+    map.insert("openDevTools", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             #[cfg(debug_assertions)]
             {
                 window.open_devtools();
             }
             Ok(Value::Null)
-        }
-        "openExternalUrl" => {
+        
+    });
+    map.insert("openExternalUrl", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let url = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "openExternalUrl requires url".to_string())?;
             open_external_url(url)?;
             Ok(Value::Null)
-        }
-        _ => return Ok(None),
-    };
-    Ok(Some(result?))
+        
+    });
 }

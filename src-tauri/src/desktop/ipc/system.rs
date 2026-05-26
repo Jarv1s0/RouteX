@@ -1,36 +1,94 @@
-fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, channel: &str, args: &[Value]) -> Result<Option<Value>, String> {
-    let result: Result<Value, String> = match channel {
-        "getVersion" => Ok(json!(app.package_info().version.to_string())),
-        "platform" => Ok(json!(platform_name())),
-        "checkAutoRun" => Ok(json!(check_auto_run_enabled(app)?)),
-        "enableAutoRun" => {
+pub(crate) fn register_system_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
+    map.insert("getVersion", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(app.package_info().version.to_string())) 
+    });
+    map.insert("platform", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(platform_name())) 
+    });
+    map.insert("checkAutoRun", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(check_auto_run_enabled(app)?)) 
+    });
+    map.insert("enableAutoRun", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             enable_auto_run(app)?;
             Ok(Value::Null)
-        }
-        "disableAutoRun" => {
+        
+    });
+    map.insert("disableAutoRun", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             disable_auto_run()?;
             Ok(Value::Null)
-        }
-        "checkUpdate" => Ok(json!(tauri::async_runtime::block_on(
+        
+    });
+    map.insert("checkUpdate", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(tauri::async_runtime::block_on(
             check_update_manifest(app)
-        )?)),
-        "downloadAndInstallUpdate" => {
+        )?)) 
+    });
+    map.insert("downloadAndInstallUpdate", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let version = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| String::from("缺少更新版本号"))?;
             tauri::async_runtime::block_on(download_and_install_update(app, state, version))?;
             Ok(Value::Null)
-        }
-        "cancelUpdate" => {
+        
+    });
+    map.insert("cancelUpdate", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             cancel_update_download(state)?;
             Ok(Value::Null)
-        }
-        "getUserAgent" => Ok(json!(format!(
+        
+    });
+    map.insert("getUserAgent", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(format!(
             "RouteX-Tauri/{}",
             app.package_info().version
-        ))),
-        "openConfigDir" => {
+        ))) 
+    });
+    map.insert("openConfigDir", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let runtime_work_dir = {
                 let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
                 runtime.work_dir.clone()
@@ -44,9 +102,21 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             };
             open_path_in_shell(&path)?;
             Ok(Value::Null)
-        }
-        "getGistUrl" => Ok(json!(get_gist_url_value(app)?)),
-        "copyEnv" => {
+        
+    });
+    map.insert("getGistUrl", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(get_gist_url_value(app)?)) 
+    });
+    map.insert("copyEnv", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let shell_type = args
                 .first()
                 .and_then(Value::as_str)
@@ -54,25 +124,49 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             let command = build_proxy_env_command(app, shell_type)?;
             copy_text_to_clipboard(&command)?;
             Ok(Value::Null)
-        }
-        "createHeapSnapshot" => Ok(json!(create_heap_snapshot(app, state)?)),
-        "importThemes" => {
+        
+    });
+    map.insert("createHeapSnapshot", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(create_heap_snapshot(app, state)?)) 
+    });
+    map.insert("importThemes", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let files = serde_json::from_value::<Vec<String>>(
                 args.first().cloned().unwrap_or_else(|| json!([])),
             )
             .map_err(|e| e.to_string())?;
             import_theme_files(app, &files)?;
             Ok(Value::Null)
-        }
-        "getFilePath" => {
+        
+    });
+    map.insert("getFilePath", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let extensions = serde_json::from_value::<Vec<String>>(
                 args.first().cloned().unwrap_or_else(|| json!([])),
             )
             .map_err(|e| e.to_string())?;
             let extensions = normalize_dialog_extensions(&extensions);
             Ok(json!(pick_open_file_paths_native(&extensions)?))
-        }
-        "saveFile" => {
+        
+    });
+    map.insert("saveFile", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let content = args
                 .first()
                 .and_then(Value::as_str)
@@ -90,8 +184,14 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 default_name,
                 ext
             )?))
-        }
-        "resetAppConfig" => {
+        
+    });
+    map.insert("resetAppConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             stop_core_process(app, state)?;
             let root = app_storage_root(app)?;
             if root.exists() {
@@ -105,57 +205,147 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "groupsUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "manualGrantCorePermition" => {
+        
+    });
+    map.insert("manualGrantCorePermition", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let cores = serde_json::from_value::<Option<Vec<String>>>(
                 args.first().cloned().unwrap_or(Value::Null),
             )
             .map_err(|e| e.to_string())?;
             manual_grant_core_permission(app, cores)?;
             Ok(Value::Null)
-        }
-        "checkCorePermission" => Ok(check_core_permission_value(app)?),
-        "checkElevateTask" => Ok(json!(check_elevate_task())),
-        "deleteElevateTask" => {
+        
+    });
+    map.insert("checkCorePermission", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         check_core_permission_value(app) 
+    });
+    map.insert("checkElevateTask", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(check_elevate_task())) 
+    });
+    map.insert("deleteElevateTask", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             delete_elevate_task()?;
             Ok(Value::Null)
-        }
-        "revokeCorePermission" => {
+        
+    });
+    map.insert("revokeCorePermission", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let cores = serde_json::from_value::<Option<Vec<String>>>(
                 args.first().cloned().unwrap_or(Value::Null),
             )
             .map_err(|e| e.to_string())?;
             revoke_core_permission(app, cores)?;
             Ok(Value::Null)
-        }
-        "serviceStatus" => service_status_value(app),
-        "testServiceConnection" => Ok(json!(test_service_connection_value(app))),
-        "initService" => {
+        
+    });
+    map.insert("serviceStatus", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         service_status_value(app) 
+    });
+    map.insert("testServiceConnection", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(test_service_connection_value(app))) 
+    });
+    map.insert("initService", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             init_service(app, args.first().cloned())?;
             Ok(Value::Null)
-        }
-        "installService" => {
+        
+    });
+    map.insert("installService", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             install_service(app)?;
             Ok(Value::Null)
-        }
-        "uninstallService" => {
+        
+    });
+    map.insert("uninstallService", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             uninstall_service(app)?;
             Ok(Value::Null)
-        }
-        "startService" => {
+        
+    });
+    map.insert("startService", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             start_service(app)?;
             Ok(Value::Null)
-        }
-        "restartService" => {
+        
+    });
+    map.insert("restartService", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             restart_service(app)?;
             Ok(Value::Null)
-        }
-        "stopService" => {
+        
+    });
+    map.insert("stopService", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             stop_service(app)?;
             Ok(Value::Null)
-        }
-        "findSystemMihomo" => Ok(json!(find_system_mihomo_paths())),
-        "getImageDataURL" => {
+        
+    });
+    map.insert("findSystemMihomo", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(find_system_mihomo_paths())) 
+    });
+    map.insert("getImageDataURL", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let url = args
                 .first()
                 .and_then(Value::as_str)
@@ -164,67 +354,155 @@ fn handle_system_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 Ok(value) => Ok(json!(value)),
                 Err(_) => Ok(json!(default_icon_data_url())),
             }
-        }
-        "getIconDataURL" => {
+        
+    });
+    map.insert("getIconDataURL", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let app_path = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "getIconDataURL requires path".to_string())?;
             Ok(json!(resolve_icon_data_url(app_path)))
-        }
-        "getIconDataURLs" => {
+        
+    });
+    map.insert("getIconDataURLs", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let app_paths = serde_json::from_value::<Vec<String>>(
                 args.first().cloned().unwrap_or_else(|| json!([])),
             )
             .map_err(|e| e.to_string())?;
             Ok(json!(resolve_icon_data_urls(&app_paths)))
-        }
-        "getInterfaces" => Ok(get_interfaces_value()),
-        "getTrafficStats" => Ok(json!(read_traffic_stats_store(app)?)),
-        "recordTrafficSample" => {
+        
+    });
+    map.insert("getInterfaces", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(get_interfaces_value()) 
+    });
+    map.insert("getTrafficStats", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(read_traffic_stats_store(app)?)) 
+    });
+    map.insert("recordTrafficSample", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let sample = serde_json::from_value::<TrafficSampleInput>(
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
             .map_err(|e| e.to_string())?;
             Ok(json!(record_traffic_sample(app, sample)?))
-        }
-        "clearTrafficStats" => {
+        
+    });
+    map.insert("clearTrafficStats", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             clear_traffic_stats_store(app)?;
             Ok(Value::Null)
-        }
-        "startNetworkHealthMonitor" => {
+        
+    });
+    map.insert("startNetworkHealthMonitor", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             start_network_health_monitor(app, state)?;
             Ok(Value::Null)
-        }
-        "stopNetworkHealthMonitor" => {
+        
+    });
+    map.insert("stopNetworkHealthMonitor", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             stop_network_health_monitor(state)?;
             Ok(Value::Null)
-        }
-        "getNetworkHealthStats" => Ok(get_network_health_stats_value(state)?),
-        "getAppUptime" => Ok(json!(get_app_uptime_seconds())),
-        "webdavBackup" => Ok(json!(webdav_backup(app)?)),
-        "listWebdavBackups" => Ok(json!(list_webdav_backup_names(&read_webdav_config(app)?)?)),
-        "webdavRestore" => {
+        
+    });
+    map.insert("getNetworkHealthStats", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         get_network_health_stats_value(state) 
+    });
+    map.insert("getAppUptime", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(get_app_uptime_seconds())) 
+    });
+    map.insert("webdavBackup", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(webdav_backup(app)?)) 
+    });
+    map.insert("listWebdavBackups", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(list_webdav_backup_names(&read_webdav_config(app)?)?)) 
+    });
+    map.insert("webdavRestore", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let filename = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "webdavRestore requires filename".to_string())?;
             webdav_restore(app, filename)?;
             Ok(Value::Null)
-        }
-        "webdavDelete" => {
+        
+    });
+    map.insert("webdavDelete", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let filename = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "webdavDelete requires filename".to_string())?;
             webdav_delete(app, filename)?;
             Ok(Value::Null)
-        }
-        "openUWPTool" => {
+        
+    });
+    map.insert("openUWPTool", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             open_uwp_tool(app)?;
             Ok(Value::Null)
-        }
-        _ => return Ok(None),
-    };
-    Ok(Some(result?))
+        
+    });
 }

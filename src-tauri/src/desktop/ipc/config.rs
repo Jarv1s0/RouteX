@@ -1,9 +1,31 @@
-fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, channel: &str, args: &[Value]) -> Result<Option<Value>, String> {
-    let result: Result<Value, String> = match channel {
-        "getAppConfig" => Ok(read_app_config_store(app)?),
-        "getChainsConfig" => Ok(json!(read_chains_config(app)?)),
-        "getAllChains" => Ok(json!(read_chains_config(app)?.items)),
-        "patchAppConfig" => {
+pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
+    map.insert("getAppConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         read_app_config_store(app) 
+    });
+    map.insert("getChainsConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(read_chains_config(app)?)) 
+    });
+    map.insert("getAllChains", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(read_chains_config(app)?.items)) 
+    });
+    map.insert("patchAppConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let patch = args.first().unwrap_or(&Value::Null);
             patch_app_config_store(app, patch)?;
             if patch_requires_shell_surface_sync(patch) {
@@ -21,8 +43,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             }
             emit_ipc_event(app, "appConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "addChainItem" => {
+        
+    });
+    map.insert("addChainItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let item = serde_json::from_value::<ChainItemInput>(
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
@@ -30,8 +58,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             let chain = add_chain_item_store(app, item)?;
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(json!(chain))
-        }
-        "updateChainItem" => {
+        
+    });
+    map.insert("updateChainItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let item = serde_json::from_value::<ChainItemData>(
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
@@ -39,8 +73,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             update_chain_item_store(app, item)?;
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "removeChainItem" => {
+        
+    });
+    map.insert("removeChainItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -48,18 +88,42 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             remove_chain_item_store(app, id)?;
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "getControledMihomoConfig" => Ok(read_controlled_config_store(app)?),
-        "patchControledMihomoConfig" => {
+        
+    });
+    map.insert("getControledMihomoConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         read_controlled_config_store(app) 
+    });
+    map.insert("patchControledMihomoConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             patch_controlled_config_store(app, args.first().unwrap_or(&Value::Null))?;
             update_tray_icon_for_state(app)?;
             emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
             emit_ipc_event(app, "groupsUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "getProfileConfig" => Ok(json!(read_profile_config(app)?)),
-        "setProfileConfig" => {
+        
+    });
+    map.insert("getProfileConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(read_profile_config(app)?)) 
+    });
+    map.insert("setProfileConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let config = serde_json::from_value::<ProfileConfigData>(
                 args.first()
                     .cloned()
@@ -70,15 +134,33 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "profileConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "getCurrentProfileItem" => Ok(json!(current_profile_item(app)?)),
-        "getProfileItem" => {
+        
+    });
+    map.insert("getCurrentProfileItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(current_profile_item(app)?)) 
+    });
+    map.insert("getProfileItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args.first().and_then(Value::as_str);
             let config = read_profile_config(app)?;
             Ok(json!(get_profile_item_from_config(&config, id)
                 .unwrap_or_else(default_empty_profile_item)))
-        }
-        "changeCurrentProfile" => {
+        
+    });
+    map.insert("changeCurrentProfile", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -87,8 +169,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "profileConfigUpdated", Value::Null);
             restart_core_and_emit(app, state)?;
             Ok(Value::Null)
-        }
-        "setActiveProfiles" => {
+        
+    });
+    map.insert("setActiveProfiles", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let ids = args
                 .first()
                 .and_then(Value::as_array)
@@ -105,8 +193,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "profileConfigUpdated", Value::Null);
             restart_core_and_emit(app, state)?;
             Ok(Value::Null)
-        }
-        "addProfileItem" => {
+        
+    });
+    map.insert("addProfileItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let item = serde_json::from_value::<ProfileItemInput>(
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
@@ -115,8 +209,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "profileConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "updateProfileItem" => {
+        
+    });
+    map.insert("updateProfileItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let item = serde_json::from_value::<ProfileItemData>(
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
@@ -125,8 +225,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "profileConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "removeProfileItem" => {
+        
+    });
+    map.insert("removeProfileItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -138,15 +244,27 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 restart_core_and_emit(app, state)?;
             }
             Ok(Value::Null)
-        }
-        "getProfileStr" => {
+        
+    });
+    map.insert("getProfileStr", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "getProfileStr requires profile id".to_string())?;
             Ok(json!(read_profile_text(app, id)?))
-        }
-        "setProfileStr" => {
+        
+    });
+    map.insert("setProfileStr", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -157,17 +275,41 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 .ok_or_else(|| "setProfileStr requires content".to_string())?;
             write_profile_text(app, id, content)?;
             Ok(Value::Null)
-        }
-        "getRawProfileStr" => {
+        
+    });
+    map.insert("getRawProfileStr", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let current = current_profile_item(app)?;
             Ok(json!(read_profile_text(app, &current.id)?))
-        }
-        "getCurrentProfileStr" => {
+        
+    });
+    map.insert("getCurrentProfileStr", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let current = current_profile_item(app)?;
             Ok(json!(read_profile_text(app, &current.id)?))
-        }
-        "getOverrideConfig" => Ok(json!(read_override_config(app)?)),
-        "setOverrideConfig" => {
+        
+    });
+    map.insert("getOverrideConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(read_override_config(app)?)) 
+    });
+    map.insert("setOverrideConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let config = serde_json::from_value::<OverrideConfigData>(
                 args.first()
                     .cloned()
@@ -178,16 +320,28 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "getOverrideItem" => {
+        
+    });
+    map.insert("getOverrideItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "getOverrideItem requires override id".to_string())?;
             let config = read_override_config(app)?;
             Ok(json!(config.items.into_iter().find(|item| item.id == id)))
-        }
-        "addOverrideItem" => {
+        
+    });
+    map.insert("addOverrideItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let item = serde_json::from_value::<OverrideItemInput>(
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
@@ -196,8 +350,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "updateOverrideItem" => {
+        
+    });
+    map.insert("updateOverrideItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let item = serde_json::from_value::<OverrideItemData>(
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
@@ -206,8 +366,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "removeOverrideItem" => {
+        
+    });
+    map.insert("removeOverrideItem", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -217,16 +383,28 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             restart_core_and_emit(app, state)?;
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "getOverride" => {
+        
+    });
+    map.insert("getOverride", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "getOverride requires override id".to_string())?;
             let ext = args.get(1).and_then(Value::as_str).unwrap_or("yaml");
             Ok(json!(read_override_text(app, id, ext)?))
-        }
-        "canRollbackOverride" => {
+        
+    });
+    map.insert("canRollbackOverride", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -234,8 +412,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             let ext = args.get(1).and_then(Value::as_str).unwrap_or("yaml");
             let path = override_rollback_path(app, id, ext)?;
             Ok(json!(path.exists()))
-        }
-        "rollbackOverride" => {
+        
+    });
+    map.insert("rollbackOverride", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -245,8 +429,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             restart_core_and_emit(app, state)?;
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "setOverride" => {
+        
+    });
+    map.insert("setOverride", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -260,9 +450,21 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "getQuickRulesConfig" => Ok(json!(read_quick_rules_config(app)?)),
-        "setQuickRulesConfig" => {
+        
+    });
+    map.insert("getQuickRulesConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(read_quick_rules_config(app)?)) 
+    });
+    map.insert("setQuickRulesConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let config = serde_json::from_value::<QuickRulesConfigData>(
                 args.first()
                     .cloned()
@@ -273,12 +475,24 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             restart_core_and_emit(app, state)?;
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "getQuickRules" => {
+        
+    });
+    map.insert("getQuickRules", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
             Ok(json!(read_quick_rules(app, profile_id)?))
-        }
-        "addQuickRule" => {
+        
+    });
+    map.insert("addQuickRule", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
             let input = serde_json::from_value::<QuickRuleInput>(
                 args.get(1).cloned().unwrap_or_else(|| json!({})),
@@ -288,8 +502,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             restart_core_and_emit(app, state)?;
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(json!(rule))
-        }
-        "updateQuickRule" => {
+        
+    });
+    map.insert("updateQuickRule", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
             let rule_id = args
                 .get(1)
@@ -304,8 +524,14 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             restart_core_and_emit(app, state)?;
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "removeQuickRule" => {
+        
+    });
+    map.insert("removeQuickRule", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
             let rule_id = args
                 .get(1)
@@ -315,16 +541,28 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             restart_core_and_emit(app, state)?;
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "setQuickRulesEnabled" => {
+        
+    });
+    map.insert("setQuickRulesEnabled", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
             let enabled = args.get(1).and_then(Value::as_bool).unwrap_or(true);
             set_quick_rules_enabled_store(app, profile_id, enabled)?;
             restart_core_and_emit(app, state)?;
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "reorderQuickRules" => {
+        
+    });
+    map.insert("reorderQuickRules", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
             let rule_ids = args
                 .get(1)
@@ -341,23 +579,47 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             restart_core_and_emit(app, state)?;
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "clearQuickRules" => {
+        
+    });
+    map.insert("clearQuickRules", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
             clear_quick_rules_store(app, profile_id)?;
             restart_core_and_emit(app, state)?;
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
-        }
-        "getOverrideProfileStr" => Ok(json!(current_override_profile_text(app)?)),
-        "getFileStr" => {
+        
+    });
+    map.insert("getOverrideProfileStr", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(current_override_profile_text(app)?)) 
+    });
+    map.insert("getFileStr", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let path = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "getFileStr requires path".to_string())?;
             Ok(json!(read_runtime_text(app, state, path)?))
-        }
-        "setFileStr" => {
+        
+    });
+    map.insert("setFileStr", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let path = args
                 .first()
                 .and_then(Value::as_str)
@@ -368,23 +630,41 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 .ok_or_else(|| "setFileStr requires content".to_string())?;
             write_runtime_text(app, state, path, content)?;
             Ok(Value::Null)
-        }
-        "readTextFile" => {
+        
+    });
+    map.insert("readTextFile", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let path = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "readTextFile requires path".to_string())?;
             Ok(json!(read_runtime_text(app, state, path)?))
-        }
-        "convertMrsRuleset" => {
+        
+    });
+    map.insert("convertMrsRuleset", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let path = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "convertMrsRuleset requires path".to_string())?;
             let behavior = args.get(1).and_then(Value::as_str).unwrap_or("domain");
             Ok(json!(convert_mrs_ruleset(app, state, path, behavior)?))
-        }
-        "openFile" => {
+        
+    });
+    map.insert("openFile", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let file_type = args
                 .first()
                 .and_then(Value::as_str)
@@ -401,27 +681,57 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
             };
             open_path_in_shell(&path)?;
             Ok(Value::Null)
-        }
-        "resolveThemes" => Ok(json!(resolve_theme_entries(app)?)),
-        "fetchThemes" => {
+        
+    });
+    map.insert("resolveThemes", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(resolve_theme_entries(app)?)) 
+    });
+    map.insert("fetchThemes", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             fetch_theme_archive(app)?;
             Ok(Value::Null)
-        }
-        "readTheme" => {
+        
+    });
+    map.insert("readTheme", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let theme = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "readTheme requires theme name".to_string())?;
             Ok(json!(read_theme_text(app, theme)?))
-        }
-        "getAppName" => {
+        
+    });
+    map.insert("getAppName", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let app_path = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "getAppName requires app path".to_string())?;
             Ok(json!(get_app_name_value(app_path)))
-        }
-        "writeTheme" => {
+        
+    });
+    map.insert("writeTheme", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let theme = args
                 .first()
                 .and_then(Value::as_str)
@@ -432,16 +742,32 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 .ok_or_else(|| "writeTheme requires css content".to_string())?;
             write_theme_text(app, theme, css)?;
             Ok(Value::Null)
-        }
-        "getControllerUrl" => Ok(json!(current_controller_url(state)?)),
-        "getRuntimeConfig" => Ok(current_runtime_value_for_renderer(app, state)?),
-        "getRuntimeConfigStr" => {
+        
+    });
+    map.insert("getControllerUrl", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(json!(current_controller_url(state)?)) 
+    });
+    map.insert("getRuntimeConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         current_runtime_value_for_renderer(app, state) 
+    });
+    map.insert("getRuntimeConfigStr", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let value = current_runtime_value_for_renderer(app, state)?;
             Ok(json!(
                 serde_yaml::to_string(&value).map_err(|e| e.to_string())?
             ))
-        }
-        _ => return Ok(None),
-    };
-    Ok(Some(result?))
+        
+    });
 }

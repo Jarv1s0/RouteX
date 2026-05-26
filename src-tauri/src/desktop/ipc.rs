@@ -59,6 +59,36 @@ include!("ipc/system.rs");
 include!("ipc/shell.rs");
 include!("ipc/mihomo.rs");
 
+pub(crate) type IpcHandler = fn(
+    &tauri::AppHandle,
+    &tauri::WebviewWindow,
+    &State<'_, CoreState>,
+    &[Value],
+) -> Result<Value, String>;
+
+static IPC_HANDLERS: OnceLock<HashMap<&'static str, IpcHandler>> = OnceLock::new();
+static LOG_CHANNELS: OnceLock<HashSet<&'static str>> = OnceLock::new();
+
+fn init_ipc_handlers() -> HashMap<&'static str, IpcHandler> {
+    let mut map = HashMap::new();
+    register_config_handlers(&mut map);
+    register_network_handlers(&mut map);
+    register_system_handlers(&mut map);
+    register_shell_handlers(&mut map);
+    register_mihomo_handlers(&mut map);
+    map
+}
+
+fn init_log_channels() -> HashSet<&'static str> {
+    HashSet::from([
+        "getRuntimeConfig",
+        "getRuntimeConfigStr",
+        "mihomoRules",
+        "mihomoRuleProviders",
+        "mihomoProxyProviders",
+    ])
+}
+
 pub(crate) fn desktop_invoke_sync(
     app: &tauri::AppHandle,
     window: &tauri::WebviewWindow,
@@ -67,27 +97,14 @@ pub(crate) fn desktop_invoke_sync(
     args: Vec<Value>,
 ) -> Result<Value, String> {
     let started_at = Instant::now();
-    let result = if let Some(value) = handle_config_invoke(app, &state, &channel, &args)? {
-        Ok(value)
-    } else if let Some(value) = handle_network_invoke(app, &state, &channel, &args)? {
-        Ok(value)
-    } else if let Some(value) = handle_system_invoke(app, &state, &channel, &args)? {
-        Ok(value)
-    } else if let Some(value) = handle_shell_invoke(app, window, &state, &channel, &args)? {
-        Ok(value)
-    } else if let Some(value) = handle_mihomo_invoke(app, window, &state, &channel, &args)? {
-        Ok(value)
-    } else {
-        Err(format!("Unsupported Tauri desktop channel: {channel}"))
+    let map = IPC_HANDLERS.get_or_init(init_ipc_handlers);
+    let result = match map.get(channel.as_str()) {
+        Some(handler) => handler(app, window, &state, &args),
+        None => Err(format!("Unsupported Tauri desktop channel: {channel}")),
     };
 
     let elapsed_ms = started_at.elapsed().as_millis();
-    if elapsed_ms >= 80
-        || channel == "getRuntimeConfig"
-        || channel == "getRuntimeConfigStr"
-        || channel == "mihomoRules"
-        || channel == "mihomoRuleProviders"
-        || channel == "mihomoProxyProviders"
+    if elapsed_ms >= 80 || LOG_CHANNELS.get_or_init(init_log_channels).contains(channel.as_str())
     {
         match &result {
             Ok(_) => eprintln!("[desktop.invoke] {} {}ms", channel, elapsed_ms),

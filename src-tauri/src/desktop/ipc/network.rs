@@ -1,52 +1,96 @@
-fn handle_network_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, channel: &str, args: &[Value]) -> Result<Option<Value>, String> {
-    let result: Result<Value, String> = match channel {
-        "testConnectivity" => {
+pub(crate) fn register_network_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
+    map.insert("testConnectivity", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let url = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "testConnectivity requires url".to_string())?;
             let timeout = args.get(1).and_then(Value::as_u64).unwrap_or(5_000);
             Ok(test_connectivity_value(url, timeout))
-        }
-        "testRuleMatch" => {
+        
+    });
+    map.insert("testRuleMatch", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let domain = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "testRuleMatch requires domain".to_string())?;
             test_rule_match_value(app, state, domain)
-        }
-        "applyTheme" => Ok(Value::Null),
-        "fetchIpInfo" => Ok(fetch_ip_info_current()?),
-        "fetchIpInfoQuery" => {
+        
+    });
+    map.insert("applyTheme", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         Ok(Value::Null) 
+    });
+    map.insert("fetchIpInfo", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         fetch_ip_info_current() 
+    });
+    map.insert("fetchIpInfoQuery", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let query = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "fetchIpInfoQuery requires query".to_string())?;
-            Ok(fetch_ip_info_query(query)?)
-        }
-        "fetchBatchIpInfo" => {
+            fetch_ip_info_query(query)
+        
+    });
+    map.insert("fetchBatchIpInfo", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let queries = serde_json::from_value::<Vec<IpInfoQueryInput>>(
                 args.first().cloned().unwrap_or_else(|| json!([])),
             )
             .map_err(|e| e.to_string())?;
-            Ok(fetch_batch_ip_info(&queries)?)
-        }
-        "httpGet" => {
+            fetch_batch_ip_info(&queries)
+        
+    });
+    map.insert("httpGet", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let url = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "httpGet requires url".to_string())?;
             let timeout = args.get(1).and_then(Value::as_u64).unwrap_or(5_000);
-            Ok(http_get_value(url, timeout)?)
-        }
-        "checkStreamingUnlock" => {
+            http_get_value(url, timeout)
+        
+    });
+    map.insert("checkStreamingUnlock", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let service = args
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "checkStreamingUnlock requires service".to_string())?;
-            Ok(check_streaming_unlock(service)?)
-        }
-        _ => return Ok(None),
-    };
-    Ok(Some(result?))
+            check_streaming_unlock(service)
+        
+    });
 }

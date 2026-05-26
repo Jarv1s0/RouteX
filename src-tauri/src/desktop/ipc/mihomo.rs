@@ -196,36 +196,94 @@ fn upgrade_geo_data_file(
     Ok(Value::Null)
 }
 
-fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, state: &State<'_, CoreState>, channel: &str, args: &[Value]) -> Result<Option<Value>, String> {
-    let result: Result<Value, String> = match channel {
-        "ensureMihomoCoreAvailable" => {
+pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
+    map.insert("ensureMihomoCoreAvailable", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let core = args.first().and_then(Value::as_str).unwrap_or("mihomo");
             let path = ensure_mihomo_core_available(app, core)?;
             Ok(json!(path.to_string_lossy().to_string()))
-        }
-        "mihomoVersion" => core_request(state, reqwest::Method::GET, "/version", None, None),
-        "mihomoConfig" => core_request(state, reqwest::Method::GET, "/configs", None, None),
-        "mihomoConnections" => {
+        
+    });
+    map.insert("mihomoVersion", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         core_request(state, reqwest::Method::GET, "/version", None, None) 
+    });
+    map.insert("mihomoConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         core_request(state, reqwest::Method::GET, "/configs", None, None) 
+    });
+    map.insert("mihomoConnections", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             core_request(state, reqwest::Method::GET, "/connections", None, None)
-        }
-        "mihomoRules" => core_request(state, reqwest::Method::GET, "/rules", None, None),
-        "mihomoProxies" => core_request(state, reqwest::Method::GET, "/proxies", None, None),
-        "mihomoGroups" => {
+        
+    });
+    map.insert("mihomoRules", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         core_request(state, reqwest::Method::GET, "/rules", None, None) 
+    });
+    map.insert("mihomoProxies", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         core_request(state, reqwest::Method::GET, "/proxies", None, None) 
+    });
+    map.insert("mihomoGroups", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let proxies = core_request(state, reqwest::Method::GET, "/proxies", None, None)?;
             let runtime = current_runtime_value(app, state)?;
             Ok(build_mihomo_groups_value(&proxies, &runtime))
-        }
-        "mihomoProxyProviders" => core_request(
+        
+    });
+    map.insert("mihomoProxyProviders", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         core_request(
             state,
             reqwest::Method::GET,
             "/providers/proxies",
             None,
             None,
-        ),
-        "mihomoRuleProviders" => {
+        ) 
+    });
+    map.insert("mihomoRuleProviders", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             core_request(state, reqwest::Method::GET, "/providers/rules", None, None)
-        },
-        "patchMihomoConfig" => core_request(
+        
+    });
+    map.insert("patchMihomoConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         core_request(
             state,
             reqwest::Method::PATCH,
             "/configs",
@@ -235,14 +293,26 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
         .map(|_| {
             emit_mihomo_config_updated(app);
             Value::Null
-        }),
-        "reloadCoreConfig" => {
+        }) 
+    });
+    map.insert("reloadCoreConfig", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let close_connections = args.first().and_then(Value::as_bool).unwrap_or(false);
             reload_core_config_process(app, state, close_connections).inspect(|_value| {
                 emit_mihomo_config_updated(app);
             })
-        },
-        "mihomoChangeProxy" => {
+        
+    });
+    map.insert("mihomoChangeProxy", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let group = args
                 .first()
                 .and_then(Value::as_str)
@@ -261,8 +331,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
             .inspect(|_value| {
                 emit_ipc_event(app, "groupsUpdated", Value::Null);
             })
-        }
-        "mihomoUnfixedProxy" => {
+        
+    });
+    map.insert("mihomoUnfixedProxy", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let group = args
                 .first()
                 .and_then(Value::as_str)
@@ -277,8 +353,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
             .inspect(|_value| {
                 emit_ipc_event(app, "groupsUpdated", Value::Null);
             })
-        }
-        "mihomoCloseConnection" => {
+        
+    });
+    map.insert("mihomoCloseConnection", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -291,8 +373,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 None,
             )
             .map(|_| Value::Null)
-        }
-        "mihomoCloseAllConnections" => {
+        
+    });
+    map.insert("mihomoCloseAllConnections", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             if let Some(name) = args.first().and_then(Value::as_str) {
                 close_connections_by_group(state, name)?;
                 Ok(Value::Null)
@@ -300,8 +388,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 core_request(state, reqwest::Method::DELETE, "/connections", None, None)
                     .map(|_| Value::Null)
             }
-        }
-        "mihomoProxyDelay" => {
+        
+    });
+    map.insert("mihomoProxyDelay", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let proxy = args
                 .first()
                 .and_then(Value::as_str)
@@ -315,8 +409,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 Some(&[("url", url), ("timeout", timeout)]),
                 None,
             )
-        }
-        "mihomoGroupDelay" => {
+        
+    });
+    map.insert("mihomoGroupDelay", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let group = args
                 .first()
                 .and_then(Value::as_str)
@@ -330,8 +430,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 Some(&[("url", url), ("timeout", timeout)]),
                 None,
             )
-        }
-        "mihomoDnsQuery" => {
+        
+    });
+    map.insert("mihomoDnsQuery", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let name = args
                 .first()
                 .and_then(Value::as_str)
@@ -349,8 +455,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 Some(&[("name", name), ("type", record_type)]),
                 None,
             )
-        }
-        "mihomoToggleRuleDisabled" => core_request(
+        
+    });
+    map.insert("mihomoToggleRuleDisabled", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         core_request(
             state,
             reqwest::Method::PATCH,
             "/rules/disable",
@@ -360,8 +472,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
         .map(|_| {
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Value::Null
-        }),
-        "mihomoUpdateProxyProviders" => {
+        }) 
+    });
+    map.insert("mihomoUpdateProxyProviders", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let name = args
                 .first()
                 .and_then(Value::as_str)
@@ -377,8 +495,14 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 emit_ipc_event(app, "groupsUpdated", Value::Null);
                 Value::Null
             })
-        }
-        "mihomoUpdateRuleProviders" => {
+        
+    });
+    map.insert("mihomoUpdateRuleProviders", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let name = args
                 .first()
                 .and_then(Value::as_str)
@@ -394,13 +518,31 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 emit_ipc_event(app, "rulesUpdated", Value::Null);
                 Value::Null
             })
-        }
-        "mihomoUpgrade" => upgrade_mihomo_core(app, state, read_core_name(app)? == "mihomo-alpha"),
-        "mihomoUpgradeGeo" => {
+        
+    });
+    map.insert("mihomoUpgrade", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         upgrade_mihomo_core(app, state, read_core_name(app)? == "mihomo-alpha") 
+    });
+    map.insert("mihomoUpgradeGeo", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             core_request(state, reqwest::Method::POST, "/upgrade/geo", None, None)
                 .map(|_| Value::Null)
-        }
-        "mihomoUpgradeGeoFile" => {
+        
+    });
+    map.insert("mihomoUpgradeGeoFile", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let key = args
                 .first()
                 .and_then(Value::as_str)
@@ -410,10 +552,22 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 .and_then(Value::as_str)
                 .ok_or_else(|| "mihomoUpgradeGeoFile requires url".to_string())?;
             upgrade_geo_data_file(app, state, key, url)
-        }
-        "mihomoUpgradeUI" => core_request(state, reqwest::Method::POST, "/upgrade/ui", None, None)
-            .map(|_| Value::Null),
-        "checkMihomoLatestVersion" => {
+        
+    });
+    map.insert("mihomoUpgradeUI", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         core_request(state, reqwest::Method::POST, "/upgrade/ui", None, None)
+            .map(|_| Value::Null) 
+    });
+    map.insert("checkMihomoLatestVersion", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let is_alpha = args.first().and_then(Value::as_bool).unwrap_or(false);
             let url = if is_alpha {
                 "https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt"
@@ -424,30 +578,52 @@ fn handle_mihomo_invoke(app: &tauri::AppHandle, window: &tauri::WebviewWindow, s
                 Ok(text) => Ok(json!(text.trim())),
                 Err(_) => Ok(Value::Null),
             }
-        }
-        "restartMihomoConnections" => {
+        
+    });
+    map.insert("restartMihomoConnections", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             if current_controller_url(state)?.is_some() {
                 start_core_events_monitor(app, state)?;
             } else {
                 stop_core_events_monitor(state)?;
             }
             Ok(Value::Null)
-        }
-        "restartCore" => restart_core_process(app, state, args.first()).inspect(|value| {
+        
+    });
+    map.insert("restartCore", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+         restart_core_process(app, state, args.first()).inspect(|value| {
             emit_ipc_event(app, "core-started", value.clone());
             emit_ipc_event(app, "groupsUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
-        }),
-        "setNativeTheme" => {
+        }) 
+    });
+    map.insert("setNativeTheme", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             let theme = args.first().and_then(Value::as_str);
             apply_window_theme(window, theme);
             Ok(Value::Null)
-        }
-        "relaunchApp" => {
+        
+    });
+    map.insert("relaunchApp", |app, window, state, args| {
+        let _app = app;
+        let _window = window;
+        let _state = state;
+        let _args = args;
+        
             relaunch_current_app(app, state)?;
             Ok(Value::Null)
-        }
-        _ => return Ok(None),
-    };
-    Ok(Some(result?))
+        
+    });
 }
