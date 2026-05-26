@@ -171,9 +171,9 @@ jobs:
             extra/files
             extra/sidecar
             src/renderer/src/assets/twemoji.ttf
-          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v2-${{ hashFiles('scripts/prepare.mjs') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v3-${{ hashFiles('scripts/prepare.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v2-
+            ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v3-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
