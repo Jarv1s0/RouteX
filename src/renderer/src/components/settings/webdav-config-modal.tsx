@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Modal,
   ModalContent,
@@ -18,11 +18,46 @@ import {
   getMainPaneModalContentStyle
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
+import { IoEye, IoEyeOff } from 'react-icons/io5'
 
 interface Props {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
 }
+
+type WebdavField = 'webdavUrl' | 'webdavUsername' | 'webdavPassword' | 'webdavDir'
+type WebdavState = Record<WebdavField, string>
+
+const ConfigInputCard: React.FC<{
+  title: string
+  field: WebdavField
+  value: string
+  type?: string
+  placeholder?: string
+  endContent?: React.ReactNode
+  onValueChange: (field: WebdavField, value: string) => void
+}> = ({ title, field, value, type = 'text', placeholder, endContent, onValueChange }) => (
+  <div className="group flex items-center justify-between gap-3 p-2 rounded-xl bg-content1/50 hover:bg-content1 border border-default-100 hover:border-default-200 transition-all duration-300 shadow-sm hover:shadow-md">
+    <span className="w-[76px] font-medium text-sm text-foreground-600 group-hover:text-foreground-900 transition-colors whitespace-nowrap shrink-0">
+      {title}
+    </span>
+    <Input
+      size="sm"
+      className="flex-1 min-w-0"
+      type={type}
+      variant="bordered"
+      placeholder={placeholder}
+      classNames={{
+        input: 'bg-transparent text-xs',
+        inputWrapper:
+          'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 h-8 min-h-8'
+      }}
+      endContent={endContent}
+      value={value}
+      onValueChange={(nextValue) => onValueChange(field, nextValue)}
+    />
+  </div>
+)
 
 const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   const { t } = useI18n()
@@ -36,19 +71,33 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     webdavDir = 'routex'
   } = appConfig || {}
 
-  const [webdav, setWebdav] = useState({ webdavUrl, webdavUsername, webdavPassword, webdavDir })
+  const [webdav, setWebdav] = useState<WebdavState>({
+    webdavUrl,
+    webdavUsername,
+    webdavPassword,
+    webdavDir
+  })
   const [backuping, setBackuping] = useState(false)
   const [filenames, setFilenames] = useState<string[]>([])
   const [restoreOpen, setRestoreOpen] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     setWebdav({ webdavUrl, webdavUsername, webdavPassword, webdavDir })
-  }, [isOpen])
+  }, [isOpen, webdavUrl, webdavUsername, webdavPassword, webdavDir])
 
-  const debouncedPatch = debounce(
-    (patch: unknown) => patchAppConfig(patch as Partial<AppConfig>),
-    500
+  const debouncedPatch = useMemo(
+    () =>
+      debounce((patch: Partial<AppConfig>) => {
+        void patchAppConfig(patch)
+      }, 500),
+    [patchAppConfig]
   )
+
+  const handleValueChange = (field: WebdavField, value: string): void => {
+    setWebdav((prev) => ({ ...prev, [field]: value }))
+    debouncedPatch({ [field]: value })
+  }
 
   const handleBackup = async () => {
     setBackuping(true)
@@ -72,44 +121,8 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
     }
   }
 
-  // 辅助组件：配置项卡片
-  const ConfigInputCard: React.FC<{
-    title: string
-    subtitle?: string
-    field: string
-    type?: string
-    placeholder?: string
-  }> = ({ title, subtitle, field, type = 'text', placeholder }) => (
-    <div className="group flex items-center justify-between gap-4 p-3 rounded-xl bg-content1/50 hover:bg-content1 border border-default-100 hover:border-default-200 transition-all duration-300 shadow-sm hover:shadow-md">
-      <div className="flex flex-col gap-0.5 overflow-hidden shrink-0">
-        <span className="font-medium text-foreground-600 group-hover:text-foreground-900 transition-colors whitespace-nowrap">
-          {title}
-        </span>
-        {subtitle && (
-          <span className="text-xs text-default-400 group-hover:text-default-500 transition-colors whitespace-nowrap">
-            {subtitle}
-          </span>
-        )}
-      </div>
-      <Input
-        size="sm"
-        className="w-64"
-        type={type}
-        variant="bordered"
-        placeholder={placeholder}
-        classNames={{
-          input: 'bg-transparent text-xs',
-          inputWrapper:
-            'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 h-8 min-h-8'
-        }}
-        value={webdav[field as keyof typeof webdav]}
-        onValueChange={(v) => {
-          const next = { ...webdav, [field]: v }
-          setWebdav(next)
-          debouncedPatch({ [field]: v })
-        }}
-      />
-    </div>
+  const passwordToggleLabel = t(
+    showPassword ? 'settings.webdav.hidePassword' : 'settings.webdav.showPassword'
   )
 
   return (
@@ -120,50 +133,69 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
         size="2xl"
         backdrop="blur"
         scrollBehavior="inside"
-        classNames={createSecondaryModalClassNames()}
+        classNames={createSecondaryModalClassNames({ closeButton: 'top-2 right-2' })}
       >
         <ModalContent
-          style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 820 })}
+          style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 560 })}
         >
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1 py-2 px-4">
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+              <ModalHeader className="flex flex-col py-2 px-4">
+                <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
                   {t('settings.webdav.title')}
-                </span>
-                <span className="text-small text-default-400 font-normal">
-                  {t('settings.webdav.description')}
                 </span>
               </ModalHeader>
               <ModalBody className="py-2 px-4">
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5">
                   <ConfigInputCard
                     title={t('settings.webdav.url')}
-                    subtitle={t('settings.webdav.urlHelp')}
                     field="webdavUrl"
+                    value={webdav.webdavUrl}
                     placeholder="https://example.com/webdav"
+                    onValueChange={handleValueChange}
                   />
                   <ConfigInputCard
                     title={t('settings.webdav.dir')}
-                    subtitle={t('settings.webdav.dirHelp')}
                     field="webdavDir"
+                    value={webdav.webdavDir}
                     placeholder="routex"
+                    onValueChange={handleValueChange}
                   />
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5">
                     <ConfigInputCard
                       title={t('settings.webdav.username')}
                       field="webdavUsername"
+                      value={webdav.webdavUsername}
                       placeholder="Username"
+                      onValueChange={handleValueChange}
                     />
                     <ConfigInputCard
                       title={t('settings.webdav.password')}
                       field="webdavPassword"
-                      type="password"
+                      value={webdav.webdavPassword}
+                      type={showPassword ? 'text' : 'password'}
                       placeholder="Password"
+                      endContent={
+                        <button
+                          type="button"
+                          aria-label={passwordToggleLabel}
+                          title={passwordToggleLabel}
+                          className="text-default-400 hover:text-default-600 focus:outline-none"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => setShowPassword((prev) => !prev)}
+                        >
+                          {showPassword ? (
+                            <IoEyeOff className="text-base" />
+                          ) : (
+                            <IoEye className="text-base" />
+                          )}
+                        </button>
+                      }
+                      onValueChange={handleValueChange}
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="grid grid-cols-2 gap-1.5 mt-1.5">
                     <Button
                       color="primary"
                       variant="shadow"

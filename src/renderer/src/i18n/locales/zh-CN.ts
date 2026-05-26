@@ -439,6 +439,8 @@ export const zhCN = {
   'settings.webdav.dirHelp': '云端存储路径',
   'settings.webdav.username': '用户名',
   'settings.webdav.password': '密码',
+  'settings.webdav.showPassword': '显示密码',
+  'settings.webdav.hidePassword': '隐藏密码',
   'settings.webdav.backupNow': '立即备份',
   'settings.webdav.restore': '从备份恢复',
   'settings.webdav.backupSuccess': '备份成功',

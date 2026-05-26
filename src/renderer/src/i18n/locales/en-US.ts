@@ -459,6 +459,8 @@ export const enUS: Record<TranslationKey, string> = {
   'settings.webdav.dirHelp': 'Cloud storage path',
   'settings.webdav.username': 'Username',
   'settings.webdav.password': 'Password',
+  'settings.webdav.showPassword': 'Show password',
+  'settings.webdav.hidePassword': 'Hide password',
   'settings.webdav.backupNow': 'Back up now',
   'settings.webdav.restore': 'Restore from backup',
   'settings.webdav.backupSuccess': 'Backup completed',

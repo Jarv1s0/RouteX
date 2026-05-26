@@ -35,18 +35,18 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 640 })}
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 480 })}
       >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
-          <span>{t('settings.webdav.restoreTitle')}</span>
+          <span className="text-sm font-semibold">{t('settings.webdav.restoreTitle')}</span>
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
-        <ModalBody className="pb-6">
+        <ModalBody className="py-2 px-4 gap-1.5">
           {filenames.length === 0 ? (
-            <div className="flex justify-center">{t('settings.webdav.empty')}</div>
+            <div className="flex justify-center text-sm text-default-400">{t('settings.webdav.empty')}</div>
           ) : (
             filenames.map((filename) => (
-              <div className="flex" key={filename}>
+              <div className="flex gap-1.5" key={filename}>
                 <Button
                   size="sm"
                   fullWidth
@@ -70,7 +70,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
                   size="sm"
                   color="warning"
                   variant="flat"
-                  className="ml-2"
+                  className="min-w-8 px-2"
                   onPress={async () => {
                     try {
                       await webdavDelete(filename)
