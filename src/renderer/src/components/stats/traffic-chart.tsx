@@ -6,19 +6,9 @@ import { IoArrowUp, IoArrowDown } from 'react-icons/io5'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useI18n } from '@renderer/i18n'
+import { useTrafficStore } from '@renderer/store/use-traffic-store'
 
 const TrafficEChart = React.lazy(() => import('./traffic-echart'))
-
-interface TrafficDataPoint {
-  time: string
-  upload: number
-  download: number
-}
-
-interface TrafficChartProps {
-  trafficHistory: TrafficDataPoint[]
-  hourlyData: { hour: string; upload: number; download: number }[]
-}
 
 interface TooltipSeriesParam {
   axisValueLabel?: string
@@ -49,15 +39,34 @@ const calcTrafficInt = (byte: number): string => {
   return `${Math.round(byte)} TB`
 }
 
-const TrafficChart: React.FC<TrafficChartProps> = ({ trafficHistory, hourlyData }) => {
+const RealtimeSpeedBadges = React.memo(function RealtimeSpeedBadges() {
+  const latestTraffic = useTrafficStore((state) => state.trafficHistory.at(-1))
+  const currentUploadSpeed = latestTraffic?.upload ?? 0
+  const currentDownloadSpeed = latestTraffic?.download ?? 0
+
+  return (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1">
+        <IoArrowUp className="text-cyan-500 text-sm" />
+        <span className="text-cyan-500 font-bold">{calcTraffic(currentUploadSpeed)}/s</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <IoArrowDown className="stats-download-accent text-sm" />
+        <span className="stats-download-accent font-bold">
+          {calcTraffic(currentDownloadSpeed)}/s
+        </span>
+      </div>
+    </div>
+  )
+})
+
+const TrafficDataChartRenderer = React.memo(function TrafficDataChartRenderer({ historyTab }: { historyTab: HistoryTab }) {
   const { t } = useI18n()
   const { theme, systemTheme } = useTheme()
   const isDark = (theme === 'system' ? systemTheme : theme) === 'dark'
-  const [historyTab, setHistoryTab] = useState<HistoryTab>('realtime')
-  const latestTraffic = trafficHistory.at(-1)
 
-  const currentUploadSpeed = latestTraffic?.upload ?? 0
-  const currentDownloadSpeed = latestTraffic?.download ?? 0
+  const trafficHistory = useTrafficStore((state) => state.trafficHistory)
+  const hourlyData = useTrafficStore((state) => state.hourlyData)
 
   const formatHourLabel = (hour: string): string => {
     const parts = hour.split('-')
@@ -337,6 +346,13 @@ const TrafficChart: React.FC<TrafficChartProps> = ({ trafficHistory, hourlyData 
     t
   ])
 
+  return <TrafficEChart option={chartOption} />
+})
+
+const TrafficChart: React.FC = () => {
+  const { t } = useI18n()
+  const [historyTab, setHistoryTab] = useState<HistoryTab>('realtime')
+
   return (
     <Card
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
@@ -354,25 +370,12 @@ const TrafficChart: React.FC<TrafficChartProps> = ({ trafficHistory, hourlyData 
               <Tab key="hourly" title={t('stats.hourly')} />
             </Tabs>
           </div>
-          {historyTab === 'realtime' && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <IoArrowUp className="text-cyan-500 text-sm" />
-                <span className="text-cyan-500 font-bold">{calcTraffic(currentUploadSpeed)}/s</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <IoArrowDown className="stats-download-accent text-sm" />
-                <span className="stats-download-accent font-bold">
-                  {calcTraffic(currentDownloadSpeed)}/s
-                </span>
-              </div>
-            </div>
-          )}
+          {historyTab === 'realtime' && <RealtimeSpeedBadges />}
         </div>
 
         <div className="h-[200px] w-full">
           <Suspense fallback={<div className="h-full w-full" />}>
-            <TrafficEChart option={chartOption} />
+            <TrafficDataChartRenderer historyTab={historyTab} />
           </Suspense>
         </div>
       </CardBody>
@@ -380,4 +383,4 @@ const TrafficChart: React.FC<TrafficChartProps> = ({ trafficHistory, hourlyData 
   )
 }
 
-export default TrafficChart
+export default React.memo(TrafficChart)

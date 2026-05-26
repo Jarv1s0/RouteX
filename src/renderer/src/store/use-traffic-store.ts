@@ -227,6 +227,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
           >()
           const routeDelta = { proxy: 0, direct: 0 }
           let hasChanges = false
+          let hasDetailsChanges = false
 
           connections.forEach((conn) => {
             const upload = Math.max(0, Math.trunc(conn.upload || 0))
@@ -267,6 +268,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
               existing.hits += 1
               processedConnIds.add(conn.id)
               hasChanges = true
+              hasDetailsChanges = true
 
               // Update Details
               const ruleDetails = newDetails.get(ruleName) || []
@@ -317,16 +319,24 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
               processedConnIds.delete(id)
             }
           }
-          return hasChanges
-            ? {
-                ruleStats: newStats,
-                ruleHitDetails: newDetails,
-                routeStats: {
-                  proxy: state.routeStats.proxy + routeDelta.proxy,
-                  direct: state.routeStats.direct + routeDelta.direct
-                }
-              }
-            : {}
+
+          if (!hasChanges) {
+            return {}
+          }
+
+          const updates: Partial<TrafficState> = {
+            ruleStats: newStats,
+            routeStats: {
+              proxy: state.routeStats.proxy + routeDelta.proxy,
+              direct: state.routeStats.direct + routeDelta.direct
+            }
+          }
+
+          if (hasDetailsChanges) {
+            updates.ruleHitDetails = newDetails
+          }
+
+          return updates
         })
       },
       CONNECTION_SNAPSHOT_THROTTLE_MS,

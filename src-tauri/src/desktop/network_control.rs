@@ -224,62 +224,39 @@ pub(crate) fn has_network_connectivity() -> bool {
 }
 
 pub(crate) fn has_up_network_interface(excluded_keywords: &[String]) -> bool {
-    #[cfg(target_os = "windows")]
-    {
-        let script =
-            "Get-NetAdapter | Select-Object -Property Name, Status | ConvertTo-Json -Compress";
-        let output = match powershell_command()
-            .args(["-NoProfile", "-Command", script])
-            .output()
+    let Ok(addrs) = get_if_addrs::get_if_addrs() else {
+        return true;
+    };
+
+    let excluded = excluded_keywords
+        .iter()
+        .map(|value| value.to_ascii_lowercase())
+        .collect::<Vec<_>>();
+
+    addrs.into_iter().any(|iface| {
+        let name_lower = iface.name.to_ascii_lowercase();
+
+        if excluded
+            .iter()
+            .any(|keyword| !keyword.is_empty() && name_lower.contains(keyword))
         {
-            Ok(output) => output,
-            Err(_) => return true,
-        };
-
-        if !output.status.success() {
-            return true;
-        }
-
-        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if stdout.is_empty() {
             return false;
         }
 
-        let entries = match serde_json::from_str::<Value>(&stdout) {
-            Ok(Value::Array(items)) => items,
-            Ok(Value::Object(item)) => vec![Value::Object(item)],
-            _ => return true,
+        let ip = match iface.addr {
+            get_if_addrs::IfAddr::V4(v4) => std::net::IpAddr::V4(v4.ip),
+            get_if_addrs::IfAddr::V6(v6) => std::net::IpAddr::V6(v6.ip),
         };
 
-        let excluded = excluded_keywords
-            .iter()
-            .map(|value| value.to_ascii_lowercase())
-            .collect::<Vec<_>>();
+        if ip.is_loopback() {
+            return false;
+        }
 
-        entries.iter().any(|entry| {
-            let name = entry
-                .get("Name")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string();
-            let status = entry
-                .get("Status")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string();
-            let name_lower = name.to_ascii_lowercase();
-            status.eq_ignore_ascii_case("Up")
-                && !excluded
-                    .iter()
-                    .any(|keyword| !keyword.is_empty() && name_lower.contains(keyword))
-        })
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        let _ = excluded_keywords;
-        true
-    }
+        match ip {
+            std::net::IpAddr::V4(ipv4) => !ipv4.is_link_local(),
+            std::net::IpAddr::V6(ipv6) => (ipv6.segments()[0] & 0xffc0) != 0xfe80,
+        }
+    })
 }
 
 pub(crate) fn read_pause_ssids(app: &tauri::AppHandle) -> Result<Vec<String>, String> {

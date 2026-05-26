@@ -29,12 +29,7 @@ interface RuleHitDetail {
 
 const EMPTY_RULE_HIT_DETAILS: RuleHitDetail[] = []
 
-const TrafficChartSection = React.memo(function TrafficChartSection() {
-  const trafficHistory = useTrafficStore((state) => state.trafficHistory)
-  const hourlyData = useTrafficStore((state) => state.hourlyData)
 
-  return <TrafficChart trafficHistory={trafficHistory} hourlyData={hourlyData} />
-})
 
 const TrafficRankingSection = React.memo(function TrafficRankingSection({
   onSelectRule
@@ -221,7 +216,7 @@ const Stats: React.FC = () => {
         {/* Row 2: Realtime traffic and live runtime curves */}
         <div className="flex flex-col gap-2">
           <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-            <TrafficChartSection />
+            <TrafficChart />
             <RealtimeMetricsPanel />
           </div>
 
