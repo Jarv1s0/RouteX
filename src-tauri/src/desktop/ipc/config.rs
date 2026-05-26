@@ -131,9 +131,12 @@ fn handle_config_invoke(app: &tauri::AppHandle, state: &State<'_, CoreState>, ch
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "removeProfileItem requires profile id".to_string())?;
-            remove_profile_item_store(app, id)?;
+            let runtime_profile_affected = remove_profile_item_store(app, id)?;
             emit_ipc_event(app, "profileConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
+            if runtime_profile_affected {
+                restart_core_and_emit(app, state)?;
+            }
             Ok(Value::Null)
         }
         "getProfileStr" => {

@@ -1157,27 +1157,50 @@ fn clear_quick_rules_store(app: &tauri::AppHandle, profile_id: &str) -> Result<(
     write_quick_rules_config(app, &config)
 }
 
-fn quick_rule_strings(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
-    let profile = read_quick_rules(app, GLOBAL_QUICK_RULES_PROFILE_ID)?;
-    if !profile.enabled {
+fn quick_rule_target_names(profile: &Value) -> HashSet<String> {
+    let mut names = ["DIRECT", "REJECT", "REJECT-DROP", "PASS", "GLOBAL"]
+        .iter()
+        .map(|value| value.to_string())
+        .collect::<HashSet<_>>();
+
+    if let Some(object) = profile.as_object() {
+        for key in ["proxies", "proxy-groups"] {
+            if let Some(items) = object.get(key).and_then(Value::as_array) {
+                for item in items {
+                    if let Some(name) = value_name(item) {
+                        names.insert(name);
+                    }
+                }
+            }
+        }
+    }
+
+    names
+}
+
+fn quick_rule_strings(app: &tauri::AppHandle, runtime_profile: &Value) -> Result<Vec<String>, String> {
+    let quick_rules = read_quick_rules(app, GLOBAL_QUICK_RULES_PROFILE_ID)?;
+    if !quick_rules.enabled {
         return Ok(Vec::new());
     }
-    Ok(profile
+    let valid_targets = quick_rule_target_names(runtime_profile);
+    Ok(quick_rules
         .rules
         .iter()
         .filter(|rule| rule.enabled)
+        .filter(|rule| valid_targets.contains(&rule.target))
         .map(quick_rule_string)
         .collect())
 }
 
 fn inject_quick_rules(app: &tauri::AppHandle, profile: &mut Value) -> Result<(), String> {
-    let rules = quick_rule_strings(app)?;
-    if rules.is_empty() {
-        return Ok(());
-    }
-
     if !profile.is_object() {
         *profile = json!({});
+    }
+
+    let rules = quick_rule_strings(app, profile)?;
+    if rules.is_empty() {
+        return Ok(());
     }
 
     let Some(object) = profile.as_object_mut() else {

@@ -113,6 +113,8 @@ export const zhCN = {
   'rules.deleteFailed': '删除本地规则失败: {error}',
   'rules.disabledBadge': '已停用',
   'rules.disabledDescription': '本地规则处于全局停用状态，以下规则暂不会注入当前配置。',
+  'rules.missingTargetBadge': '代理组不存在',
+  'rules.missingTargetTooltip': '代理组 {target} 不存在，运行时将跳过这条规则。',
   'rules.noMatchedLocal': '没有匹配的本地规则。',
   'rules.emptyLocal': '暂无本地规则，点击右上角按钮创建。',
   'rules.localEditTitle': '编辑本地规则',

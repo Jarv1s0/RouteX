@@ -117,6 +117,9 @@ export const enUS: Record<TranslationKey, string> = {
   'rules.disabledBadge': 'Disabled',
   'rules.disabledDescription':
     'Local rules are globally disabled and will not be injected into the current config.',
+  'rules.missingTargetBadge': 'Missing group',
+  'rules.missingTargetTooltip':
+    'Policy group {target} does not exist. Runtime injection will skip this rule.',
   'rules.noMatchedLocal': 'No matching local rules.',
   'rules.emptyLocal': 'No local rules. Use the top-right button to create one.',
   'rules.localEditTitle': 'Edit local rule',

@@ -338,8 +338,9 @@ fn set_active_profiles_store(
     write_profile_config(app, &next)
 }
 
-fn remove_profile_item_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
+fn remove_profile_item_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
     let mut config = read_profile_config(app)?;
+    let runtime_profile_affected = active_profile_ids(&config).iter().any(|active| active == id);
     config.items.retain(|item| item.id != id);
 
     if config.current.as_deref() == Some(id) {
@@ -355,7 +356,8 @@ fn remove_profile_item_store(app: &tauri::AppHandle, id: &str) -> Result<(), Str
         let _ = fs::remove_file(path);
     }
 
-    write_profile_config(app, &config)
+    write_profile_config(app, &config)?;
+    Ok(runtime_profile_affected)
 }
 
 fn remove_override_reference_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
@@ -1310,7 +1312,6 @@ fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, Strin
         json!({})
     };
 
-    inject_quick_rules(app, &mut profile_value)?;
     strip_profile_managed_runtime_fields(&mut profile_value);
 
     let mut controlled_config = read_controlled_config_store(app)?;
@@ -1327,6 +1328,7 @@ fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, Strin
     merge_json(&mut profile_value, &controlled_config);
     inject_chain_proxies(&mut profile_value, app)?;
     sanitize_runtime_profile_value(&mut profile_value, control_dns, control_sniff);
+    inject_quick_rules(app, &mut profile_value)?;
     write_cached_profile_runtime_config(cache_revision, &profile_value);
 
     Ok(profile_value)

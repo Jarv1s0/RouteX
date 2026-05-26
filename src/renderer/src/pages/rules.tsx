@@ -56,6 +56,14 @@ const getProxyColor = (
   return 'secondary'
 }
 
+const BUILT_IN_RULE_TARGETS = ['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'GLOBAL']
+
+const runtimeEntryName = (entry: unknown): string | undefined => {
+  if (!entry || typeof entry !== 'object') return undefined
+  const name = (entry as { name?: unknown }).name
+  return typeof name === 'string' && name.trim() ? name : undefined
+}
+
 const RulesPage: React.FC = () => {
   const { t } = useI18n()
   const { rules, mutate: mutateRules } = useRules()
@@ -156,6 +164,7 @@ const RulesPage: React.FC = () => {
     errorRetryInterval: 200,
     errorRetryCount: 10
   })
+  const { data: runtimeConfig } = useSWR('rulesRuntimeConfig', getRuntimeConfig)
   const quickRulesProfileId = GLOBAL_QUICK_RULES_PROFILE_ID
   const { data: quickRulesData, mutate: mutateQuickRules } = useSWR(
     ['quickRules', quickRulesProfileId],
@@ -263,6 +272,32 @@ const RulesPage: React.FC = () => {
       )
     })
   }, [deferredFilter, quickRulesData])
+
+  const runtimeRuleTargets = useMemo(() => {
+    const targets = new Set(BUILT_IN_RULE_TARGETS)
+    runtimeConfig?.proxies?.forEach((entry) => {
+      const name = runtimeEntryName(entry)
+      if (name) targets.add(name)
+    })
+    runtimeConfig?.['proxy-groups']?.forEach((entry) => {
+      const name = runtimeEntryName(entry)
+      if (name) targets.add(name)
+    })
+    return targets
+  }, [runtimeConfig])
+
+  const missingRuleTargetIds = useMemo(() => {
+    const ids = new Set<string>()
+    if (!runtimeConfig) {
+      return ids
+    }
+    for (const rule of quickRulesData?.rules ?? []) {
+      if (rule.enabled && !runtimeRuleTargets.has(rule.target)) {
+        ids.add(rule.id)
+      }
+    }
+    return ids
+  }, [quickRulesData, runtimeConfig, runtimeRuleTargets])
 
   const remoteItems = useMemo(() => {
     if (!rules?.rules || !providersData) return []
@@ -474,50 +509,92 @@ const RulesPage: React.FC = () => {
             )}
             {filteredQuickRules.length > 0 ? (
               <div className="flex flex-col">
-                {filteredQuickRules.map((rule, index) => (
-                  <div key={rule.id} className="w-full pb-2">
-                    <Card
-                      shadow="sm"
-                      radius="lg"
-                      className={`border border-default-200/60 bg-default-100/60 backdrop-blur-md dark:border-white/10 dark:bg-default-50/30 hover:-translate-y-0.5 hover:bg-default-200/60 hover:shadow-md dark:hover:bg-default-100/40 transition-all ${!rule.enabled ? 'grayscale' : ''}`}
-                    >
-                      <CardBody className="w-full py-2 px-3">
-                        <div className="flex items-center gap-2">
-                          {/* 开关 和 序号 */}
-                          <AppSwitch
-                            size="sm"
-                            isSelected={rule.enabled}
-                            onValueChange={() => void handleToggleQuickRule(rule)}
-                            classNames={{
-                              wrapper: 'h-4 w-8',
-                              thumb: 'h-3 w-3'
-                            }}
-                          />
-                          <span
-                            className={`w-6 flex-shrink-0 -mr-1 text-xs text-foreground-400 ${!rule.enabled ? 'line-through' : ''}`}
-                          >
-                            {index + 1}.
-                          </span>
+                {filteredQuickRules.map((rule, index) => {
+                  const targetMissing = missingRuleTargetIds.has(rule.id)
+                  const finalNode = getFinalNode(rule.target)
+                  return (
+                    <div key={rule.id} className="w-full pb-2">
+                      <Card
+                        shadow="sm"
+                        radius="lg"
+                        className={`border border-default-200/60 bg-default-100/60 backdrop-blur-md dark:border-white/10 dark:bg-default-50/30 hover:-translate-y-0.5 hover:bg-default-200/60 hover:shadow-md dark:hover:bg-default-100/40 transition-all ${!rule.enabled ? 'grayscale' : ''}`}
+                      >
+                        <CardBody className="w-full py-2 px-3">
+                          <div className="flex items-center gap-2">
+                            {/* 开关 和 序号 */}
+                            <AppSwitch
+                              size="sm"
+                              isSelected={rule.enabled}
+                              onValueChange={() => void handleToggleQuickRule(rule)}
+                              classNames={{
+                                wrapper: 'h-4 w-8',
+                                thumb: 'h-3 w-3'
+                              }}
+                            />
+                            <span
+                              className={`w-6 flex-shrink-0 -mr-1 text-xs text-foreground-400 ${!rule.enabled ? 'line-through' : ''}`}
+                            >
+                              {index + 1}.
+                            </span>
 
-                          <div
-                            className={`flex min-w-0 flex-1 items-center ${!rule.enabled ? 'opacity-60 grayscale' : ''}`}
-                          >
-                            {/* 类型 + 名称 + no-resolve */}
-                            <div className="flex flex-shrink-0 items-center gap-2 min-w-0 max-w-[65%]">
-                              <Chip
-                                size="sm"
-                                variant="flat"
-                                color="default"
-                                classNames={{ content: 'text-xs' }}
-                                className="flex-shrink-0"
-                              >
-                                {rule.type}
-                              </Chip>
-                              <div className="ml-1 flex min-w-0 flex-1 items-center gap-1.5">
-                                <span className="truncate text-sm font-medium" title={rule.value}>
-                                  {rule.value}
-                                </span>
-                                {rule.noResolve && (
+                            <div
+                              className={`flex min-w-0 flex-1 items-center ${!rule.enabled ? 'opacity-60 grayscale' : ''}`}
+                            >
+                              {/* 类型 + 名称 + no-resolve */}
+                              <div className="flex flex-shrink-0 items-center gap-2 min-w-0 max-w-[65%]">
+                                <Chip
+                                  size="sm"
+                                  variant="flat"
+                                  color="default"
+                                  classNames={{ content: 'text-xs' }}
+                                  className="flex-shrink-0"
+                                >
+                                  {rule.type}
+                                </Chip>
+                                <div className="ml-1 flex min-w-0 flex-1 items-center gap-1.5">
+                                  <span className="truncate text-sm font-medium" title={rule.value}>
+                                    {rule.value}
+                                  </span>
+                                  {rule.noResolve && (
+                                    <Chip
+                                      size="sm"
+                                      variant="flat"
+                                      color="warning"
+                                      classNames={{ content: 'text-[10px] px-1' }}
+                                      className="h-5 flex-shrink-0"
+                                    >
+                                      no-resolve
+                                    </Chip>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* 视觉引导线 (Leader Line) */}
+                              <div className="mx-3 mt-1 min-w-[20px] flex-1 self-center border-b border-dashed border-default-400/30 dark:border-default-500/30"></div>
+
+                              {/* 路由策略 Proxy Target */}
+                              <div className="flex flex-shrink-0 items-center gap-1 overflow-hidden">
+                                <Tooltip
+                                  isDisabled={!targetMissing}
+                                  content={t('rules.missingTargetTooltip', {
+                                    target: rule.target
+                                  })}
+                                  delay={300}
+                                  color="warning"
+                                >
+                                  <Chip
+                                    size="sm"
+                                    variant={targetMissing ? 'bordered' : 'flat'}
+                                    color={targetMissing ? 'warning' : getProxyColor(rule.target)}
+                                    classNames={{ content: 'text-xs' }}
+                                    className="max-w-[7rem]"
+                                  >
+                                    <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                                      {rule.target}
+                                    </span>
+                                  </Chip>
+                                </Tooltip>
+                                {targetMissing && (
                                   <Chip
                                     size="sm"
                                     variant="flat"
@@ -525,30 +602,10 @@ const RulesPage: React.FC = () => {
                                     classNames={{ content: 'text-[10px] px-1' }}
                                     className="h-5 flex-shrink-0"
                                   >
-                                    no-resolve
+                                    {t('rules.missingTargetBadge')}
                                   </Chip>
                                 )}
-                              </div>
-                            </div>
-
-                            {/* 视觉引导线 (Leader Line) */}
-                            <div className="mx-3 mt-1 min-w-[20px] flex-1 self-center border-b border-dashed border-default-400/30 dark:border-default-500/30"></div>
-
-                            {/* 路由策略 Proxy Target */}
-                            <div className="flex flex-shrink-0 items-center gap-1 overflow-hidden">
-                              <Chip
-                                size="sm"
-                                variant="flat"
-                                color={getProxyColor(rule.target)}
-                                classNames={{ content: 'text-xs' }}
-                                className="max-w-[7rem]"
-                              >
-                                <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-                                  {rule.target}
-                                </span>
-                              </Chip>
-                              {getFinalNode(rule.target) &&
-                                getFinalNode(rule.target) !== rule.target && (
+                                {finalNode && finalNode !== rule.target && (
                                   <>
                                     <span className="text-xs text-foreground-300 flex-shrink-0">
                                       →
@@ -560,50 +617,51 @@ const RulesPage: React.FC = () => {
                                       className="max-w-[8rem] border border-secondary/20 bg-secondary/10 text-secondary flex-shrink-0"
                                     >
                                       <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-                                        {getFinalNode(rule.target)}
+                                        {finalNode}
                                       </span>
                                     </Chip>
                                   </>
                                 )}
+                              </div>
+                            </div>
+
+                            {/* 操作按钮组 */}
+                            <div className="ml-2 flex items-center flex-shrink-0 gap-2 pr-1">
+                              <Tooltip content={t('common.edit')} delay={500}>
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  title={t('page.rules.edit')}
+                                  aria-label={t('page.rules.edit')}
+                                  className="min-w-8 w-8 h-8 text-default-500"
+                                  onPress={() => openEditQuickRule(rule)}
+                                >
+                                  <LuFilePenLine className="text-base" />
+                                </Button>
+                              </Tooltip>
+
+                              <Tooltip content={t('page.rules.delete')} delay={500} color="danger">
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  color="danger"
+                                  variant="light"
+                                  title={t('page.rules.delete')}
+                                  aria-label={t('page.rules.delete')}
+                                  className="min-w-8 w-8 h-8"
+                                  onPress={() => void handleDeleteQuickRule(rule)}
+                                >
+                                  <LuTrash2 className="text-base" />
+                                </Button>
+                              </Tooltip>
                             </div>
                           </div>
-
-                          {/* 操作按钮组 */}
-                          <div className="ml-2 flex items-center flex-shrink-0 gap-2 pr-1">
-                            <Tooltip content={t('common.edit')} delay={500}>
-                              <Button
-                                isIconOnly
-                                size="sm"
-                                variant="light"
-                                title={t('page.rules.edit')}
-                                aria-label={t('page.rules.edit')}
-                                className="min-w-8 w-8 h-8 text-default-500"
-                                onPress={() => openEditQuickRule(rule)}
-                              >
-                                <LuFilePenLine className="text-base" />
-                              </Button>
-                            </Tooltip>
-
-                            <Tooltip content={t('page.rules.delete')} delay={500} color="danger">
-                              <Button
-                                isIconOnly
-                                size="sm"
-                                color="danger"
-                                variant="light"
-                                title={t('page.rules.delete')}
-                                aria-label={t('page.rules.delete')}
-                                className="min-w-8 w-8 h-8"
-                                onPress={() => void handleDeleteQuickRule(rule)}
-                              >
-                                <LuTrash2 className="text-base" />
-                              </Button>
-                            </Tooltip>
-                          </div>
-                        </div>
-                      </CardBody>
-                    </Card>
-                  </div>
-                ))}
+                        </CardBody>
+                      </Card>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="mx-2 rounded-lg border border-dashed border-default-200/70 bg-background/50 px-4 py-8 text-center text-sm text-foreground-400 dark:border-white/10">
