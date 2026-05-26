@@ -1,5 +1,9 @@
+#![allow(unused_imports)]
+use super::prelude::*;
+use super::*;
+
 #[cfg(target_os = "macos")]
-fn build_application_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, String> {
+pub(crate) fn build_application_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, String> {
     let package_info = app.package_info();
     let config = app.config();
     let about_metadata = AboutMetadata {
@@ -188,7 +192,7 @@ fn build_application_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
 }
 
 #[cfg(target_os = "macos")]
-fn handle_application_menu_event(
+pub(crate) fn handle_application_menu_event(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     event: &MenuEvent,

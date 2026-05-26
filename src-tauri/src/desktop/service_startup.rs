@@ -1,28 +1,31 @@
+use super::prelude::*;
+use super::*;
+
 #[cfg(target_os = "windows")]
-const TDF_ALLOW_DIALOG_CANCELLATION: u32 = 0x0008;
+pub(crate) const TDF_ALLOW_DIALOG_CANCELLATION: u32 = 0x0008;
 #[cfg(target_os = "windows")]
-const TDF_SIZE_TO_CONTENT: u32 = 0x01000000;
+pub(crate) const TDF_SIZE_TO_CONTENT: u32 = 0x01000000;
 #[cfg(target_os = "windows")]
-const TDCBF_OK_BUTTON: u32 = 0x0001;
+pub(crate) const TDCBF_OK_BUTTON: u32 = 0x0001;
 #[cfg(target_os = "windows")]
-const TD_WARNING_ICON: *const u16 = (-1isize) as *const u16;
+pub(crate) const TD_WARNING_ICON: *const u16 = (-1isize) as *const u16;
 #[cfg(target_os = "windows")]
-const SW_SHOWNORMAL: i32 = 1;
+pub(crate) const SW_SHOWNORMAL: i32 = 1;
 #[cfg(target_os = "windows")]
-const SYNCHRONIZE: u32 = 0x00100000;
+pub(crate) const SYNCHRONIZE: u32 = 0x00100000;
 #[cfg(target_os = "windows")]
-const ADMIN_RELAUNCH_PARENT_WAIT_MS: u32 = 15_000;
+pub(crate) const ADMIN_RELAUNCH_PARENT_WAIT_MS: u32 = 15_000;
 
 #[cfg(target_os = "windows")]
 #[repr(C)]
-struct TaskDialogButton {
+pub(crate) struct TaskDialogButton {
     button_id: i32,
     button_text: *const u16,
 }
 
 #[cfg(target_os = "windows")]
 #[repr(C)]
-struct TaskDialogConfig {
+pub(crate) struct TaskDialogConfig {
     size: u32,
     parent: *mut std::ffi::c_void,
     instance: *mut std::ffi::c_void,
@@ -60,7 +63,7 @@ struct TaskDialogConfig {
 #[cfg(target_os = "windows")]
 #[link(name = "comctl32")]
 unsafe extern "system" {
-    fn TaskDialogIndirect(
+    pub(crate) fn TaskDialogIndirect(
         config: *const TaskDialogConfig,
         button: *mut i32,
         radio_button: *mut i32,
@@ -71,7 +74,7 @@ unsafe extern "system" {
 #[cfg(target_os = "windows")]
 #[link(name = "shell32")]
 unsafe extern "system" {
-    fn ShellExecuteW(
+    pub(crate) fn ShellExecuteW(
         hwnd: *mut std::ffi::c_void,
         operation: *const u16,
         file: *const u16,
@@ -84,22 +87,22 @@ unsafe extern "system" {
 #[cfg(target_os = "windows")]
 #[link(name = "kernel32")]
 unsafe extern "system" {
-    fn OpenProcess(
+    pub(crate) fn OpenProcess(
         desired_access: u32,
         inherit_handle: i32,
         process_id: u32,
     ) -> *mut std::ffi::c_void;
-    fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
-    fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
+    pub(crate) fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
+    pub(crate) fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
 }
 
 #[cfg(target_os = "windows")]
-fn to_wide_null(value: &str) -> Vec<u16> {
+pub(crate) fn to_wide_null(value: &str) -> Vec<u16> {
     value.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
 #[cfg(target_os = "windows")]
-fn startup_task_dialog_config(
+pub(crate) fn startup_task_dialog_config(
     window_title: *const u16,
     main_icon: *const u16,
     main_instruction: *const u16,
@@ -134,7 +137,7 @@ fn startup_task_dialog_config(
 }
 
 #[cfg(target_os = "windows")]
-fn show_windows_startup_dialog(title: &str, heading: &str, message: &str, detail: Option<&str>) {
+pub(crate) fn show_windows_startup_dialog(title: &str, heading: &str, message: &str, detail: Option<&str>) {
     let title_wide = to_wide_null(title);
     let heading_wide = to_wide_null(heading);
     let message_wide = to_wide_null(message);
@@ -166,7 +169,7 @@ fn show_windows_startup_dialog(title: &str, heading: &str, message: &str, detail
 }
 
 #[cfg(target_os = "windows")]
-fn shell_execute_quote_arg(value: &str) -> String {
+pub(crate) fn shell_execute_quote_arg(value: &str) -> String {
     if value.is_empty() {
         return "\"\"".to_string();
     }
@@ -179,7 +182,7 @@ fn shell_execute_quote_arg(value: &str) -> String {
 }
 
 #[cfg(target_os = "windows")]
-fn shell_execute_parameters(args: impl IntoIterator<Item = String>) -> String {
+pub(crate) fn shell_execute_parameters(args: impl IntoIterator<Item = String>) -> String {
     args.into_iter()
         .map(|arg| shell_execute_quote_arg(&arg))
         .collect::<Vec<_>>()
@@ -187,7 +190,7 @@ fn shell_execute_parameters(args: impl IntoIterator<Item = String>) -> String {
 }
 
 #[cfg(target_os = "windows")]
-fn admin_relaunch_args(args: impl IntoIterator<Item = String>, parent_pid: u32) -> Vec<String> {
+pub(crate) fn admin_relaunch_args(args: impl IntoIterator<Item = String>, parent_pid: u32) -> Vec<String> {
     let mut values = vec![
         ROUTEX_ADMIN_RELAUNCH_PARENT_ARG.to_string(),
         parent_pid.to_string(),
@@ -208,7 +211,7 @@ fn admin_relaunch_args(args: impl IntoIterator<Item = String>, parent_pid: u32) 
 }
 
 #[cfg(target_os = "windows")]
-fn admin_relaunch_parent_pid() -> Option<u32> {
+pub(crate) fn admin_relaunch_parent_pid() -> Option<u32> {
     let mut args = std::env::args();
     while let Some(arg) = args.next() {
         if arg.eq_ignore_ascii_case(ROUTEX_ADMIN_RELAUNCH_PARENT_ARG) {
@@ -219,7 +222,7 @@ fn admin_relaunch_parent_pid() -> Option<u32> {
 }
 
 #[cfg(target_os = "windows")]
-fn wait_for_process_exit(process_id: u32) {
+pub(crate) fn wait_for_process_exit(process_id: u32) {
     let handle = unsafe { OpenProcess(SYNCHRONIZE, 0, process_id) };
     if handle.is_null() {
         return;
@@ -232,17 +235,17 @@ fn wait_for_process_exit(process_id: u32) {
 }
 
 #[cfg(target_os = "windows")]
-fn wait_for_admin_relaunch_parent_exit() {
+pub(crate) fn wait_for_admin_relaunch_parent_exit() {
     if let Some(process_id) = admin_relaunch_parent_pid() {
         wait_for_process_exit(process_id);
     }
 }
 
 #[cfg(not(target_os = "windows"))]
-fn wait_for_admin_relaunch_parent_exit() {}
+pub(crate) fn wait_for_admin_relaunch_parent_exit() {}
 
 #[cfg(target_os = "windows")]
-fn app_data_root_before_tauri() -> Result<PathBuf, String> {
+pub(crate) fn app_data_root_before_tauri() -> Result<PathBuf, String> {
     std::env::var_os("APPDATA")
         .map(PathBuf::from)
         .map(|base| base.join(WINDOWS_APP_DATA_DIR_NAME))
@@ -250,22 +253,22 @@ fn app_data_root_before_tauri() -> Result<PathBuf, String> {
 }
 
 #[cfg(target_os = "windows")]
-fn task_dir_before_tauri() -> Result<PathBuf, String> {
+pub(crate) fn task_dir_before_tauri() -> Result<PathBuf, String> {
     ensure_dir(app_data_root_before_tauri()?.join(TASKS_DIR_NAME))
 }
 
 #[cfg(target_os = "windows")]
-fn routex_run_binary_task_path_before_tauri() -> Result<PathBuf, String> {
+pub(crate) fn routex_run_binary_task_path_before_tauri() -> Result<PathBuf, String> {
     Ok(task_dir_before_tauri()?.join(ROUTEX_RUN_BINARY))
 }
 
 #[cfg(target_os = "windows")]
-fn routex_run_args_path_before_tauri() -> Result<PathBuf, String> {
+pub(crate) fn routex_run_args_path_before_tauri() -> Result<PathBuf, String> {
     Ok(task_dir_before_tauri()?.join(ROUTEX_RUN_ARGS_FILE))
 }
 
 #[cfg(target_os = "windows")]
-fn read_core_permission_mode_before_tauri() -> Result<String, String> {
+pub(crate) fn read_core_permission_mode_before_tauri() -> Result<String, String> {
     let config_path = app_data_root_before_tauri()?
         .join(ROUTEX_STORE_DIR_NAME)
         .join(APP_CONFIG_FILE);
@@ -278,7 +281,7 @@ fn read_core_permission_mode_before_tauri() -> Result<String, String> {
 }
 
 #[cfg(target_os = "windows")]
-fn resolve_routex_run_binary_before_tauri() -> Result<PathBuf, String> {
+pub(crate) fn resolve_routex_run_binary_before_tauri() -> Result<PathBuf, String> {
     let mut candidates = Vec::new();
     let mut seen = HashSet::new();
 
@@ -327,7 +330,7 @@ fn resolve_routex_run_binary_before_tauri() -> Result<PathBuf, String> {
 }
 
 #[cfg(target_os = "windows")]
-fn copy_routex_run_binary_for_task_before_tauri() -> Result<(), String> {
+pub(crate) fn copy_routex_run_binary_for_task_before_tauri() -> Result<(), String> {
     let routex_run_dest = routex_run_binary_task_path_before_tauri()?;
     let routex_run_source = resolve_routex_run_binary_before_tauri()?;
     let source_digest = file_sha256(&routex_run_source)?;
@@ -352,14 +355,14 @@ fn copy_routex_run_binary_for_task_before_tauri() -> Result<(), String> {
 }
 
 #[cfg(target_os = "windows")]
-fn write_elevate_task_params_before_tauri() -> Result<(), String> {
+pub(crate) fn write_elevate_task_params_before_tauri() -> Result<(), String> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     let value = serde_json::to_string(&args).map_err(|e| e.to_string())?;
     fs::write(routex_run_args_path_before_tauri()?, value).map_err(|e| e.to_string())
 }
 
 #[cfg(target_os = "windows")]
-fn check_elevate_task_matches_current_app_before_tauri() -> bool {
+pub(crate) fn check_elevate_task_matches_current_app_before_tauri() -> bool {
     let routex_run_path = match routex_run_binary_task_path_before_tauri() {
         Ok(path) => path,
         Err(_) => return false,
@@ -377,14 +380,14 @@ fn check_elevate_task_matches_current_app_before_tauri() -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn run_elevate_task_before_tauri() -> Result<(), String> {
+pub(crate) fn run_elevate_task_before_tauri() -> Result<(), String> {
     write_elevate_task_params_before_tauri()?;
     copy_routex_run_binary_for_task_before_tauri()?;
     schtasks_command(&["/run", "/tn", routex_run_task_name()])
 }
 
 #[cfg(target_os = "windows")]
-fn run_matching_elevate_task_before_tauri(create_error: &str) -> Result<bool, String> {
+pub(crate) fn run_matching_elevate_task_before_tauri(create_error: &str) -> Result<bool, String> {
     match run_elevate_task_before_tauri() {
         Ok(()) => Ok(false),
         Err(run_error) => {
@@ -395,10 +398,10 @@ fn run_matching_elevate_task_before_tauri(create_error: &str) -> Result<bool, St
 }
 
 #[cfg(target_os = "windows")]
-fn single_instance_window_exists_before_tauri(app_identifier: &str) -> bool {
+pub(crate) fn single_instance_window_exists_before_tauri(app_identifier: &str) -> bool {
     #[link(name = "user32")]
     unsafe extern "system" {
-        fn FindWindowW(class_name: *const u16, window_name: *const u16) -> *mut std::ffi::c_void;
+        pub(crate) fn FindWindowW(class_name: *const u16, window_name: *const u16) -> *mut std::ffi::c_void;
     }
 
     let class_name = to_wide_null(&format!("{app_identifier}-sic"));
@@ -408,7 +411,7 @@ fn single_instance_window_exists_before_tauri(app_identifier: &str) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn ensure_windows_elevated_startup_before_tauri(app_identifier: &str) -> Result<bool, String> {
+pub(crate) fn ensure_windows_elevated_startup_before_tauri(app_identifier: &str) -> Result<bool, String> {
     if cfg!(debug_assertions) {
         return Ok(true);
     }
@@ -453,7 +456,7 @@ fn ensure_windows_elevated_startup_before_tauri(app_identifier: &str) -> Result<
 }
 
 #[cfg(target_os = "windows")]
-fn prepare_windows_elevated_startup_before_tauri(app_identifier: &str) -> bool {
+pub(crate) fn prepare_windows_elevated_startup_before_tauri(app_identifier: &str) -> bool {
     match ensure_windows_elevated_startup_before_tauri(app_identifier) {
         Ok(continue_startup) => continue_startup,
         Err(error) => {
@@ -464,12 +467,12 @@ fn prepare_windows_elevated_startup_before_tauri(app_identifier: &str) -> bool {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn prepare_windows_elevated_startup_before_tauri(_app_identifier: &str) -> bool {
+pub(crate) fn prepare_windows_elevated_startup_before_tauri(_app_identifier: &str) -> bool {
     true
 }
 
 #[cfg(target_os = "windows")]
-fn show_windows_startup_admin_relaunch_failed_dialog(error: &str) {
+pub(crate) fn show_windows_startup_admin_relaunch_failed_dialog(error: &str) {
     show_windows_startup_dialog(
         "管理员重启失败",
         "没有成功以管理员身份重启",
@@ -479,7 +482,7 @@ fn show_windows_startup_admin_relaunch_failed_dialog(error: &str) {
 }
 
 #[cfg(target_os = "windows")]
-fn relaunch_current_app_as_admin() -> Result<(), String> {
+pub(crate) fn relaunch_current_app_as_admin() -> Result<(), String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     let current_dir = std::env::current_dir().map_err(|e| e.to_string())?;
     let operation = to_wide_null("runas");
@@ -510,7 +513,7 @@ fn relaunch_current_app_as_admin() -> Result<(), String> {
 }
 
 #[cfg(target_os = "windows")]
-fn handle_windows_unregistered_elevate_task(create_error: &str) {
+pub(crate) fn handle_windows_unregistered_elevate_task(create_error: &str) {
     if !looks_like_windows_permission_error(create_error) {
         show_windows_startup_task_registration_failed_dialog(create_error);
         return;
@@ -522,7 +525,7 @@ fn handle_windows_unregistered_elevate_task(create_error: &str) {
 }
 
 #[cfg(target_os = "windows")]
-fn show_windows_startup_task_registration_failed_dialog(create_error: &str) {
+pub(crate) fn show_windows_startup_task_registration_failed_dialog(create_error: &str) {
     show_windows_startup_dialog(
         "提权任务注册失败",
         "任务计划没有注册成功",
@@ -532,7 +535,7 @@ fn show_windows_startup_task_registration_failed_dialog(create_error: &str) {
 }
 
 #[cfg(target_os = "windows")]
-fn show_windows_startup_relaunch_failed_dialog(create_error: &str, run_error: &str) {
+pub(crate) fn show_windows_startup_relaunch_failed_dialog(create_error: &str, run_error: &str) {
     show_windows_startup_dialog(
         "自动提权启动失败",
         "没有成功拉起高权限实例",
@@ -541,7 +544,7 @@ fn show_windows_startup_relaunch_failed_dialog(create_error: &str, run_error: &s
     );
 }
 
-fn run_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn run_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         write_elevate_task_params(app)?;
@@ -557,12 +560,12 @@ fn run_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum WindowsUnelevatedStartupAction {
+pub(crate) enum WindowsUnelevatedStartupAction {
     RunElevateTask,
     RequestAdminRegistration,
 }
 
-fn choose_windows_unelevated_startup_action(
+pub(crate) fn choose_windows_unelevated_startup_action(
     elevate_task_matches_current_app: bool,
 ) -> WindowsUnelevatedStartupAction {
     if elevate_task_matches_current_app {
@@ -573,7 +576,7 @@ fn choose_windows_unelevated_startup_action(
 }
 
 #[cfg(target_os = "windows")]
-fn handle_windows_elevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
+pub(crate) fn handle_windows_elevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
     match create_elevate_task(app) {
         Ok(()) => Ok(true),
         Err(create_error) => {
@@ -589,7 +592,7 @@ fn handle_windows_elevated_process_startup(app: &tauri::AppHandle) -> Result<boo
 }
 
 #[cfg(target_os = "windows")]
-fn handle_windows_unelevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
+pub(crate) fn handle_windows_unelevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
     match choose_windows_unelevated_startup_action(check_elevate_task_matches_current_app(app)) {
         WindowsUnelevatedStartupAction::RunElevateTask => match run_elevate_task(app) {
             Ok(()) => Ok(false),
@@ -610,7 +613,7 @@ fn handle_windows_unelevated_process_startup(app: &tauri::AppHandle) -> Result<b
     }
 }
 
-fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
+pub(crate) fn ensure_elevated_startup(app: &tauri::AppHandle) -> Result<bool, String> {
     #[cfg(target_os = "windows")]
     {
         if cfg!(debug_assertions) {

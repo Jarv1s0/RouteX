@@ -1,4 +1,7 @@
-fn run_service_command(app: &tauri::AppHandle, args: &[String]) -> Result<(), String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn run_service_command(app: &tauri::AppHandle, args: &[String]) -> Result<(), String> {
     let binary = resolve_service_binary(app)?;
     let mut command = Command::new(binary);
     apply_background_command(&mut command);
@@ -16,7 +19,7 @@ fn run_service_command(app: &tauri::AppHandle, args: &[String]) -> Result<(), St
     }
 }
 
-fn run_service_command_capture(app: &tauri::AppHandle, args: &[String]) -> Result<String, String> {
+pub(crate) fn run_service_command_capture(app: &tauri::AppHandle, args: &[String]) -> Result<String, String> {
     let binary = resolve_service_binary(app)?;
     let mut command = Command::new(binary);
     apply_background_command(&mut command);
@@ -32,7 +35,7 @@ fn run_service_command_capture(app: &tauri::AppHandle, args: &[String]) -> Resul
     }
 }
 
-fn command_output_text(output: &Output) -> String {
+pub(crate) fn command_output_text(output: &Output) -> String {
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
 
@@ -44,7 +47,7 @@ fn command_output_text(output: &Output) -> String {
     }
 }
 
-fn command_output_contains_error(text: &str) -> bool {
+pub(crate) fn command_output_contains_error(text: &str) -> bool {
     let normalized = text.to_ascii_lowercase();
     text.contains("失败")
         || text.contains("错误")
@@ -52,7 +55,7 @@ fn command_output_contains_error(text: &str) -> bool {
         || normalized.contains("error")
 }
 
-fn service_command_args(
+pub(crate) fn service_command_args(
     only_active_device: bool,
     command: &str,
     extra_args: Vec<String>,
@@ -71,7 +74,7 @@ fn service_command_args(
     args
 }
 
-fn read_core_permission_mode(app: &tauri::AppHandle) -> Result<String, String> {
+pub(crate) fn read_core_permission_mode(app: &tauri::AppHandle) -> Result<String, String> {
     Ok(read_app_config_store(app)?
         .get("corePermissionMode")
         .and_then(Value::as_str)
@@ -79,7 +82,7 @@ fn read_core_permission_mode(app: &tauri::AppHandle) -> Result<String, String> {
         .to_string())
 }
 
-struct ServiceAuthHeaders {
+pub(crate) struct ServiceAuthHeaders {
     timestamp: String,
     key_id: String,
     nonce: String,
@@ -87,14 +90,14 @@ struct ServiceAuthHeaders {
     signature: String,
 }
 
-fn service_key_id(public_key_base64: &str) -> Result<String, String> {
+pub(crate) fn service_key_id(public_key_base64: &str) -> Result<String, String> {
     let public_key_der = BASE64_STANDARD
         .decode(public_key_base64.trim().as_bytes())
         .map_err(|e| format!("解析服务公钥失败: {e}"))?;
     Ok(format!("{:x}", Sha256::digest(&public_key_der)))
 }
 
-fn service_auth_nonce() -> Result<String, String> {
+pub(crate) fn service_auth_nonce() -> Result<String, String> {
     let rng = SystemRandom::new();
     let mut bytes = [0u8; 16];
     rng.fill(&mut bytes)
@@ -106,7 +109,7 @@ fn service_auth_nonce() -> Result<String, String> {
         .join(""))
 }
 
-fn canonicalize_service_query(raw_query: &str) -> Result<String, String> {
+pub(crate) fn canonicalize_service_query(raw_query: &str) -> Result<String, String> {
     if raw_query.is_empty() {
         return Ok(String::new());
     }
@@ -137,7 +140,7 @@ fn canonicalize_service_query(raw_query: &str) -> Result<String, String> {
         .join("&"))
 }
 
-fn build_service_auth_headers(
+pub(crate) fn build_service_auth_headers(
     app: &tauri::AppHandle,
     method: &str,
     path: &str,
@@ -186,7 +189,7 @@ fn build_service_auth_headers(
     })
 }
 
-fn build_service_http_request(
+pub(crate) fn build_service_http_request(
     app: &tauri::AppHandle,
     method: &str,
     path: &str,
@@ -217,18 +220,18 @@ fn build_service_http_request(
     Ok(request.into_bytes())
 }
 
-fn find_http_header_end(bytes: &[u8]) -> Option<usize> {
+pub(crate) fn find_http_header_end(bytes: &[u8]) -> Option<usize> {
     bytes.windows(4).position(|window| window == b"\r\n\r\n")
 }
 
-fn find_crlf(bytes: &[u8], offset: usize) -> Option<usize> {
+pub(crate) fn find_crlf(bytes: &[u8], offset: usize) -> Option<usize> {
     bytes[offset..]
         .windows(2)
         .position(|window| window == b"\r\n")
         .map(|index| offset + index)
 }
 
-fn decode_chunked_http_body(bytes: &[u8]) -> Result<Vec<u8>, String> {
+pub(crate) fn decode_chunked_http_body(bytes: &[u8]) -> Result<Vec<u8>, String> {
     let mut decoded = Vec::new();
     let mut offset = 0usize;
 
@@ -262,7 +265,7 @@ fn decode_chunked_http_body(bytes: &[u8]) -> Result<Vec<u8>, String> {
     }
 }
 
-fn parse_service_http_response(bytes: &[u8]) -> Result<(u16, Vec<u8>), String> {
+pub(crate) fn parse_service_http_response(bytes: &[u8]) -> Result<(u16, Vec<u8>), String> {
     let header_end = find_http_header_end(bytes)
         .ok_or_else(|| "RouteX 服务响应不是合法的 HTTP 报文".to_string())?;
     let header_text = String::from_utf8_lossy(&bytes[..header_end]);
@@ -298,7 +301,7 @@ fn parse_service_http_response(bytes: &[u8]) -> Result<(u16, Vec<u8>), String> {
     Ok((status, body))
 }
 
-fn send_service_http_over_stream<T: Read + Write>(
+pub(crate) fn send_service_http_over_stream<T: Read + Write>(
     mut stream: T,
     request: &[u8],
 ) -> Result<Vec<u8>, String> {
@@ -315,7 +318,7 @@ fn send_service_http_over_stream<T: Read + Write>(
 }
 
 #[cfg(target_os = "windows")]
-fn send_service_http_request(request: &[u8]) -> Result<Vec<u8>, String> {
+pub(crate) fn send_service_http_request(request: &[u8]) -> Result<Vec<u8>, String> {
     let pipe_path = r"\\.\pipe\routex\service";
     let mut last_error = None;
 
@@ -333,12 +336,12 @@ fn send_service_http_request(request: &[u8]) -> Result<Vec<u8>, String> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn send_service_http_request(request: &[u8]) -> Result<Vec<u8>, String> {
+pub(crate) fn send_service_http_request(request: &[u8]) -> Result<Vec<u8>, String> {
     let socket = UnixStream::connect("/tmp/routex-service.sock").map_err(|e| e.to_string())?;
     send_service_http_over_stream(socket, request)
 }
 
-fn service_http_request_json(
+pub(crate) fn service_http_request_json(
     app: &tauri::AppHandle,
     method: &str,
     path: &str,
@@ -371,11 +374,11 @@ fn service_http_request_json(
     Ok(value)
 }
 
-fn service_core_control(app: &tauri::AppHandle, path: &str) -> Result<(), String> {
+pub(crate) fn service_core_control(app: &tauri::AppHandle, path: &str) -> Result<(), String> {
     service_http_request_json(app, "POST", path, None).map(|_| ())
 }
 
-fn service_core_status_info(app: &tauri::AppHandle) -> Result<Option<Value>, String> {
+pub(crate) fn service_core_status_info(app: &tauri::AppHandle) -> Result<Option<Value>, String> {
     match service_http_request_json(app, "GET", "/core", None) {
         Ok(value) => Ok(Some(value)),
         Err(error)
@@ -388,7 +391,7 @@ fn service_core_status_info(app: &tauri::AppHandle) -> Result<Option<Value>, Str
     }
 }
 
-fn build_service_core_restart_payload(
+pub(crate) fn build_service_core_restart_payload(
     binary_path: &Path,
     work_dir: &Path,
     log_path: &Path,

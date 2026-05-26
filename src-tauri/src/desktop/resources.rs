@@ -1,4 +1,7 @@
-fn command_exists(command: &str) -> bool {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn command_exists(command: &str) -> bool {
     let locator = if cfg!(target_os = "windows") {
         "where"
     } else {
@@ -13,7 +16,7 @@ fn command_exists(command: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn find_system_mihomo_paths() -> Vec<String> {
+pub(crate) fn find_system_mihomo_paths() -> Vec<String> {
     let mut found_paths = Vec::new();
     let mut seen = HashSet::new();
     let search_names = ["mihomo", "clash"];
@@ -106,7 +109,7 @@ fn find_system_mihomo_paths() -> Vec<String> {
     found_paths
 }
 
-fn build_proxy_env_command(app: &tauri::AppHandle, shell_type: &str) -> Result<String, String> {
+pub(crate) fn build_proxy_env_command(app: &tauri::AppHandle, shell_type: &str) -> Result<String, String> {
     let app_config = read_app_config_store(app)?;
     let controlled_config = read_controlled_config_store(app)?;
     let sys_proxy = app_config.get("sysProxy").and_then(Value::as_object);
@@ -140,7 +143,7 @@ fn build_proxy_env_command(app: &tauri::AppHandle, shell_type: &str) -> Result<S
 }
 
 #[cfg(target_os = "windows")]
-fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
+pub(crate) fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
     let script = format!(
         r#"
 $clipboardText = @'
@@ -153,7 +156,7 @@ Set-Clipboard -Value $clipboardText
 }
 
 #[cfg(target_os = "macos")]
-fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
+pub(crate) fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
     let mut child = Command::new("pbcopy")
         .stdin(Stdio::piped())
         .spawn()
@@ -173,7 +176,7 @@ fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
 }
 
 #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
-fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
+pub(crate) fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
     for program in ["wl-copy", "xclip", "xsel"] {
         let mut command = Command::new(program);
         match program {
@@ -203,14 +206,14 @@ fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
     Err("当前系统未找到可用的剪贴板命令".to_string())
 }
 
-fn allocate_controller_address() -> Result<String, String> {
+pub(crate) fn allocate_controller_address() -> Result<String, String> {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
     let address = listener.local_addr().map_err(|e| e.to_string())?;
     drop(listener);
     Ok(format!("127.0.0.1:{}", address.port()))
 }
 
-fn configured_external_controller_address(input: Option<&Value>) -> Option<String> {
+pub(crate) fn configured_external_controller_address(input: Option<&Value>) -> Option<String> {
     input
         .and_then(Value::as_object)
         .and_then(|config| config.get("external-controller"))
@@ -220,7 +223,7 @@ fn configured_external_controller_address(input: Option<&Value>) -> Option<Strin
         .map(str::to_string)
 }
 
-fn controller_connect_address(listen_address: &str) -> String {
+pub(crate) fn controller_connect_address(listen_address: &str) -> String {
     let trimmed = listen_address.trim();
     if trimmed.is_empty() {
         return String::new();
@@ -258,20 +261,20 @@ fn controller_connect_address(listen_address: &str) -> String {
     format!("{normalized_host}:{port}")
 }
 
-fn dev_root() -> Result<PathBuf, String> {
+pub(crate) fn dev_root() -> Result<PathBuf, String> {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .map(Path::to_path_buf)
         .ok_or_else(|| "failed to resolve repo root".to_string())
 }
 
-fn current_exe_dir() -> Option<PathBuf> {
+pub(crate) fn current_exe_dir() -> Option<PathBuf> {
     std::env::current_exe()
         .ok()
         .and_then(|path| path.parent().map(Path::to_path_buf))
 }
 
-fn push_resource_candidate(
+pub(crate) fn push_resource_candidate(
     candidates: &mut Vec<PathBuf>,
     seen: &mut HashSet<PathBuf>,
     path: PathBuf,
@@ -281,7 +284,7 @@ fn push_resource_candidate(
     }
 }
 
-fn collect_resource_candidates(
+pub(crate) fn collect_resource_candidates(
     app: &tauri::AppHandle,
     relative_dir: &str,
     file_name: &str,
@@ -330,7 +333,7 @@ fn collect_resource_candidates(
     Ok(candidates)
 }
 
-fn resolve_resource_binary(
+pub(crate) fn resolve_resource_binary(
     app: &tauri::AppHandle,
     relative_dir: &str,
     file_name: &str,
@@ -352,7 +355,7 @@ fn resolve_resource_binary(
     ))
 }
 
-fn runtime_sidecar_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn runtime_sidecar_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     ensure_dir(
         app_data_root(app)?
             .join(RUNTIME_ASSETS_DIR_NAME)
@@ -360,11 +363,11 @@ fn runtime_sidecar_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     )
 }
 
-fn runtime_core_binary_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
+pub(crate) fn runtime_core_binary_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
     Ok(runtime_sidecar_dir(app)?.join(file_name))
 }
 
-fn resolve_core_binary(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, String> {
+pub(crate) fn resolve_core_binary(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, String> {
     let extension = if cfg!(target_os = "windows") {
         ".exe"
     } else {
@@ -384,7 +387,7 @@ fn resolve_core_binary(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, St
     Err(format!("Mihomo core not found: {file_name}"))
 }
 
-fn get_mihomo_asset_prefix_candidates() -> Result<Vec<&'static str>, String> {
+pub(crate) fn get_mihomo_asset_prefix_candidates() -> Result<Vec<&'static str>, String> {
     match (std::env::consts::OS, std::env::consts::ARCH) {
         ("windows", "x86_64") => Ok(vec![
             "mihomo-windows-amd64",
@@ -414,7 +417,7 @@ fn get_mihomo_asset_prefix_candidates() -> Result<Vec<&'static str>, String> {
     }
 }
 
-fn mihomo_asset_matches(
+pub(crate) fn mihomo_asset_matches(
     asset_name: &str,
     version: &str,
     is_alpha: bool,
@@ -442,7 +445,7 @@ fn mihomo_asset_matches(
     })
 }
 
-fn score_mihomo_asset_name(asset_name: &str, version: &str, is_alpha: bool, ext: &str) -> i32 {
+pub(crate) fn score_mihomo_asset_name(asset_name: &str, version: &str, is_alpha: bool, ext: &str) -> i32 {
     let suffix = format!("-{version}{ext}");
     let middle = asset_name
         .strip_suffix(&suffix)
@@ -462,7 +465,7 @@ fn score_mihomo_asset_name(asset_name: &str, version: &str, is_alpha: bool, ext:
     }
 }
 
-fn fetch_mihomo_release_assets(
+pub(crate) fn fetch_mihomo_release_assets(
     app: &tauri::AppHandle,
     tag: &str,
 ) -> Result<Vec<GitHubReleaseAsset>, String> {
@@ -470,7 +473,7 @@ fn fetch_mihomo_release_assets(
     Ok(release.assets.unwrap_or_default())
 }
 
-fn fetch_mihomo_release(
+pub(crate) fn fetch_mihomo_release(
     app: &tauri::AppHandle,
     release_path: &str,
 ) -> Result<GitHubReleaseResponse, String> {
@@ -492,7 +495,7 @@ fn fetch_mihomo_release(
         .map_err(|e| e.to_string())
 }
 
-fn fallback_mihomo_asset(
+pub(crate) fn fallback_mihomo_asset(
     version: &str,
     tag: &str,
     prefixes: &[&str],
@@ -507,7 +510,7 @@ fn fallback_mihomo_asset(
     }
 }
 
-fn resolve_mihomo_asset(
+pub(crate) fn resolve_mihomo_asset(
     app: &tauri::AppHandle,
     version: &str,
     is_alpha: bool,
@@ -543,7 +546,7 @@ fn resolve_mihomo_asset(
     }
 }
 
-fn send_with_update_client<T>(
+pub(crate) fn send_with_update_client<T>(
     app: &tauri::AppHandle,
     url: &str,
     timeout_secs: u64,
@@ -576,7 +579,7 @@ fn send_with_update_client<T>(
     }
 }
 
-fn download_with_update_client(
+pub(crate) fn download_with_update_client(
     app: &tauri::AppHandle,
     url: &str,
     timeout_secs: u64,
@@ -589,13 +592,13 @@ fn download_with_update_client(
     })
 }
 
-fn fetch_text_with_update_client(app: &tauri::AppHandle, url: &str, timeout_secs: u64) -> Result<String, String> {
+pub(crate) fn fetch_text_with_update_client(app: &tauri::AppHandle, url: &str, timeout_secs: u64) -> Result<String, String> {
     send_with_update_client(app, url, timeout_secs, "请求", |response| {
         response.text().map_err(|e| e.to_string())
     })
 }
 
-fn find_mihomo_zip_entry(archive: &mut ZipArchive<Cursor<Vec<u8>>>) -> Result<usize, String> {
+pub(crate) fn find_mihomo_zip_entry(archive: &mut ZipArchive<Cursor<Vec<u8>>>) -> Result<usize, String> {
     for index in 0..archive.len() {
         let file = archive.by_index(index).map_err(|e| e.to_string())?;
         if file.is_dir() {
@@ -613,7 +616,7 @@ fn find_mihomo_zip_entry(archive: &mut ZipArchive<Cursor<Vec<u8>>>) -> Result<us
     Err("Mihomo 下载完成但压缩包内未找到可执行文件".to_string())
 }
 
-fn write_mihomo_zip_entry(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
+pub(crate) fn write_mihomo_zip_entry(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
     let reader = Cursor::new(bytes);
     let mut archive = ZipArchive::new(reader).map_err(|e| e.to_string())?;
     let entry_index = find_mihomo_zip_entry(&mut archive)?;
@@ -631,7 +634,7 @@ fn write_mihomo_zip_entry(bytes: Vec<u8>, target_path: &Path) -> Result<(), Stri
 }
 
 #[cfg(not(target_os = "windows"))]
-fn write_mihomo_gzip_bytes(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
+pub(crate) fn write_mihomo_gzip_bytes(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
     let archive_path = target_path.with_extension("download.gz");
     let temp_path = target_path.with_extension("download");
     ensure_parent(&archive_path)?;
@@ -665,7 +668,7 @@ fn write_mihomo_gzip_bytes(bytes: Vec<u8>, target_path: &Path) -> Result<(), Str
     fs::rename(&temp_path, target_path).map_err(|e| e.to_string())
 }
 
-fn fetch_mihomo_core_archive(
+pub(crate) fn fetch_mihomo_core_archive(
     app: &tauri::AppHandle,
     version: &str,
     is_alpha: bool,
@@ -675,7 +678,7 @@ fn fetch_mihomo_core_archive(
     Ok((asset, bytes))
 }
 
-fn write_mihomo_core_archive(
+pub(crate) fn write_mihomo_core_archive(
     asset: &GitHubReleaseAsset,
     bytes: Vec<u8>,
     target_path: &Path,
@@ -698,13 +701,13 @@ fn write_mihomo_core_archive(
     Ok(())
 }
 
-fn download_mihomo_alpha_core(app: &tauri::AppHandle, target_path: &Path) -> Result<(), String> {
+pub(crate) fn download_mihomo_alpha_core(app: &tauri::AppHandle, target_path: &Path) -> Result<(), String> {
     let version = latest_mihomo_version(app, true)?;
     let (asset, bytes) = fetch_mihomo_core_archive(app, &version, true)?;
     write_mihomo_core_archive(&asset, bytes, target_path)
 }
 
-fn latest_mihomo_version(app: &tauri::AppHandle, is_alpha: bool) -> Result<String, String> {
+pub(crate) fn latest_mihomo_version(app: &tauri::AppHandle, is_alpha: bool) -> Result<String, String> {
     let version = if is_alpha {
         fetch_text_with_update_client(
             app,
@@ -737,7 +740,7 @@ fn latest_mihomo_version(app: &tauri::AppHandle, is_alpha: bool) -> Result<Strin
     Ok(version)
 }
 
-fn mihomo_core_target_path(app: &tauri::AppHandle, is_alpha: bool) -> Result<PathBuf, String> {
+pub(crate) fn mihomo_core_target_path(app: &tauri::AppHandle, is_alpha: bool) -> Result<PathBuf, String> {
     let extension = if cfg!(target_os = "windows") {
         ".exe"
     } else {
@@ -751,7 +754,7 @@ fn mihomo_core_target_path(app: &tauri::AppHandle, is_alpha: bool) -> Result<Pat
     runtime_core_binary_path(app, &format!("{name}{extension}"))
 }
 
-fn ensure_mihomo_core_available(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, String> {
+pub(crate) fn ensure_mihomo_core_available(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, String> {
     if let Ok(path) = resolve_core_binary(app, core) {
         return Ok(path);
     }
@@ -770,7 +773,7 @@ fn ensure_mihomo_core_available(app: &tauri::AppHandle, core: &str) -> Result<Pa
     resolve_core_binary(app, core)
 }
 
-fn resolve_service_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn resolve_service_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let extension = if cfg!(target_os = "windows") {
         ".exe"
     } else {

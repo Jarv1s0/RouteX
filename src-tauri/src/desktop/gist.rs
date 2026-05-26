@@ -1,6 +1,8 @@
+use super::prelude::*;
 use super::*;
 
-fn github_client(app: &tauri::AppHandle) -> Result<Client, String> {
+
+pub(crate) fn github_client(app: &tauri::AppHandle) -> Result<Client, String> {
     let controlled_config = read_controlled_config_store(app)?;
     let mixed_port = controlled_config
         .get("mixed-port")
@@ -17,7 +19,7 @@ fn github_client(app: &tauri::AppHandle) -> Result<Client, String> {
     builder.build().map_err(|e| e.to_string())
 }
 
-fn get_github_token(app: &tauri::AppHandle) -> Result<Option<String>, String> {
+pub(crate) fn get_github_token(app: &tauri::AppHandle) -> Result<Option<String>, String> {
     Ok(read_app_config_store(app)?
         .get("githubToken")
         .and_then(Value::as_str)
@@ -25,7 +27,7 @@ fn get_github_token(app: &tauri::AppHandle) -> Result<Option<String>, String> {
         .filter(|token| !token.trim().is_empty()))
 }
 
-fn list_gists(app: &tauri::AppHandle, token: &str) -> Result<Vec<GistInfo>, String> {
+pub(crate) fn list_gists(app: &tauri::AppHandle, token: &str) -> Result<Vec<GistInfo>, String> {
     let client = github_client(app)?;
     client
         .get("https://api.github.com/gists")
@@ -41,7 +43,7 @@ fn list_gists(app: &tauri::AppHandle, token: &str) -> Result<Vec<GistInfo>, Stri
         .map_err(|e| e.to_string())
 }
 
-fn upsert_runtime_gist(
+pub(crate) fn upsert_runtime_gist(
     app: &tauri::AppHandle,
     token: &str,
     gist_id: Option<&str>,
@@ -79,7 +81,7 @@ fn upsert_runtime_gist(
     Ok(())
 }
 
-pub(super) fn get_gist_url_value(app: &tauri::AppHandle) -> Result<String, String> {
+pub(crate) fn get_gist_url_value(app: &tauri::AppHandle) -> Result<String, String> {
     let Some(token) = get_github_token(app)? else {
         return Ok(String::new());
     };

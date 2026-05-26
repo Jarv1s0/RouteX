@@ -1,25 +1,28 @@
-fn read_sysproxy_value(app: &tauri::AppHandle) -> Result<Value, String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn read_sysproxy_value(app: &tauri::AppHandle) -> Result<Value, String> {
     Ok(read_app_config_store(app)?
         .get("sysProxy")
         .cloned()
         .unwrap_or_else(|| json!({ "enable": false, "mode": "manual" })))
 }
 
-fn read_only_active_device(app: &tauri::AppHandle) -> Result<bool, String> {
+pub(crate) fn read_only_active_device(app: &tauri::AppHandle) -> Result<bool, String> {
     Ok(read_app_config_store(app)?
         .get("onlyActiveDevice")
         .and_then(Value::as_bool)
         .unwrap_or(false))
 }
 
-fn read_mixed_port(app: &tauri::AppHandle) -> Result<u64, String> {
+pub(crate) fn read_mixed_port(app: &tauri::AppHandle) -> Result<u64, String> {
     Ok(read_controlled_config_store(app)?
         .get("mixed-port")
         .and_then(Value::as_u64)
         .unwrap_or(7890))
 }
 
-fn build_sysproxy_signature(
+pub(crate) fn build_sysproxy_signature(
     app: &tauri::AppHandle,
     enable: bool,
     only_active_device: bool,

@@ -1,10 +1,13 @@
-fn set_main_window_close_allowed(app: &tauri::AppHandle, allowed: bool) {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn set_main_window_close_allowed(app: &tauri::AppHandle, allowed: bool) {
     if let Ok(mut value) = app.state::<CoreState>().allow_main_window_close.lock() {
         *value = allowed;
     }
 }
 
-fn take_main_window_close_allowed(app: &tauri::AppHandle) -> bool {
+pub(crate) fn take_main_window_close_allowed(app: &tauri::AppHandle) -> bool {
     let state = app.state::<CoreState>();
     let Ok(mut value) = state.allow_main_window_close.lock() else {
         return false;
@@ -14,7 +17,7 @@ fn take_main_window_close_allowed(app: &tauri::AppHandle) -> bool {
     current
 }
 
-fn stop_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn stop_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<CoreState>();
     let mut handle = state.lightweight_mode.lock().map_err(|e| e.to_string())?;
     if let Some(current) = handle.take() {
@@ -23,7 +26,7 @@ fn stop_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn close_main_window_renderer(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn close_main_window_renderer(app: &tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
         set_main_window_close_allowed(app, true);
         let _ = window.close();
@@ -31,7 +34,7 @@ fn close_main_window_renderer(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn exit_app_without_core(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn exit_app_without_core(app: &tauri::AppHandle) -> Result<(), String> {
     let state = app.state::<CoreState>();
     state
         .preserve_core_on_exit
@@ -43,13 +46,13 @@ fn exit_app_without_core(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn exit_app(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn exit_app(app: &tauri::AppHandle) -> Result<(), String> {
     shutdown_runtime_once(app);
     app.exit(0);
     Ok(())
 }
 
-fn resolve_quit_confirmation(state: &State<'_, CoreState>, confirmed: bool) -> Result<(), String> {
+pub(crate) fn resolve_quit_confirmation(state: &State<'_, CoreState>, confirmed: bool) -> Result<(), String> {
     let sender = state
         .quit_confirm_sender
         .lock()
@@ -63,7 +66,7 @@ fn resolve_quit_confirmation(state: &State<'_, CoreState>, confirmed: bool) -> R
     Ok(())
 }
 
-fn request_quit_confirmation(
+pub(crate) fn request_quit_confirmation(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<bool, String> {
@@ -94,7 +97,7 @@ fn request_quit_confirmation(
     Ok(confirmed)
 }
 
-fn schedule_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn schedule_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
     stop_lightweight_mode(app)?;
 
     let config = read_app_config_store(app)?;
@@ -147,7 +150,7 @@ fn schedule_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn refresh_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn refresh_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
     let Some(window) = app.get_webview_window("main") else {
         return stop_lightweight_mode(app);
     };
@@ -159,7 +162,7 @@ fn refresh_lightweight_mode(app: &tauri::AppHandle) -> Result<(), String> {
     }
 }
 
-fn install_main_window_handlers(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
+pub(crate) fn install_main_window_handlers(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
     let handle = app.clone();
     let tracked_window = window.clone();
     window.on_window_event(move |event| {
@@ -175,7 +178,7 @@ fn install_main_window_handlers(app: &tauri::AppHandle, window: &tauri::WebviewW
     });
 }
 
-fn build_main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
+pub(crate) fn build_main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
     let config = app
         .config()
         .app
@@ -192,7 +195,7 @@ fn build_main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, Str
     Ok(window)
 }
 
-fn ensure_main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
+pub(crate) fn ensure_main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
     if let Some(window) = app.get_webview_window("main") {
         return Ok(window);
     }
@@ -200,7 +203,7 @@ fn ensure_main_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, St
     build_main_window(app)
 }
 
-fn hide_main_window(app: &tauri::AppHandle, lightweight: bool) -> Result<(), String> {
+pub(crate) fn hide_main_window(app: &tauri::AppHandle, lightweight: bool) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
     }
@@ -212,7 +215,7 @@ fn hide_main_window(app: &tauri::AppHandle, lightweight: bool) -> Result<(), Str
     }
 }
 
-fn show_main_window(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn show_main_window(app: &tauri::AppHandle) -> Result<(), String> {
     stop_lightweight_mode(app)?;
     let window = ensure_main_window(app)?;
     if window.is_minimized().map_err(|e| e.to_string())? {
@@ -223,7 +226,7 @@ fn show_main_window(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn trigger_main_window(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn trigger_main_window(app: &tauri::AppHandle) -> Result<(), String> {
     let window = ensure_main_window(app)?;
 
     if window.is_visible().map_err(|e| e.to_string())?

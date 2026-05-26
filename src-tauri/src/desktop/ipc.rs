@@ -1,7 +1,9 @@
+use super::prelude::*;
 use super::*;
 
+
 #[tauri::command]
-pub(super) async fn desktop_check_update(app: tauri::AppHandle) -> Result<Value, String> {
+pub(crate) async fn desktop_check_update(app: tauri::AppHandle) -> Result<Value, String> {
     let started_at = Instant::now();
     let result = check_update_manifest(&app).await.map(|value| json!(value));
 
@@ -18,18 +20,18 @@ pub(super) async fn desktop_check_update(app: tauri::AppHandle) -> Result<Value,
     result
 }
 
-fn should_suppress_update_check_error_log(error: &str) -> bool {
+pub(crate) fn should_suppress_update_check_error_log(error: &str) -> bool {
     error.contains("error sending request for url")
 }
 
-fn should_suppress_desktop_invoke_error_log(channel: &str, error: &str) -> bool {
+pub(crate) fn should_suppress_desktop_invoke_error_log(channel: &str, error: &str) -> bool {
     matches!(channel, "mihomoProxyDelay" | "mihomoGroupDelay")
         && (error.contains("Mihomo API request failed: 503 Service Unavailable")
             || error.contains("Mihomo API request failed: 504 Gateway Timeout"))
 }
 
 #[tauri::command]
-pub(super) async fn desktop_get_icon_data_urls(app_paths: Vec<String>) -> Result<Value, String> {
+pub(crate) async fn desktop_get_icon_data_urls(app_paths: Vec<String>) -> Result<Value, String> {
     let started_at = Instant::now();
     let paths = app_paths;
     let result =
@@ -57,7 +59,7 @@ include!("ipc/system.rs");
 include!("ipc/shell.rs");
 include!("ipc/mihomo.rs");
 
-fn desktop_invoke_sync(
+pub(crate) fn desktop_invoke_sync(
     app: &tauri::AppHandle,
     window: &tauri::WebviewWindow,
     state: State<'_, CoreState>,
@@ -101,7 +103,7 @@ fn desktop_invoke_sync(
 }
 
 #[tauri::command]
-pub(super) async fn desktop_invoke(
+pub(crate) async fn desktop_invoke(
     app: tauri::AppHandle,
     window: tauri::WebviewWindow,
     channel: String,

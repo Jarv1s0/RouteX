@@ -1,13 +1,15 @@
+use super::prelude::*;
 use super::*;
 
-pub(super) struct StartupAlignmentConfig {
-    pub(super) sysproxy_enabled: bool,
-    pub(super) only_active_device: bool,
-    pub(super) network_detection: bool,
-    pub(super) show_traffic: bool,
+
+pub(crate) struct StartupAlignmentConfig {
+    pub(crate) sysproxy_enabled: bool,
+    pub(crate) only_active_device: bool,
+    pub(crate) network_detection: bool,
+    pub(crate) show_traffic: bool,
 }
 
-pub(super) fn read_startup_alignment_config(
+pub(crate) fn read_startup_alignment_config(
     app: &tauri::AppHandle,
 ) -> Result<StartupAlignmentConfig, String> {
     let config = read_app_config_store(app)?;
@@ -57,7 +59,7 @@ pub(super) fn read_startup_alignment_config(
     })
 }
 
-pub(super) fn should_show_main_window_after_renderer_ready(
+pub(crate) fn should_show_main_window_after_renderer_ready(
     app: &tauri::AppHandle,
 ) -> Result<bool, String> {
     let config = read_app_config_store(app)?;
@@ -70,7 +72,7 @@ pub(super) fn should_show_main_window_after_renderer_ready(
     Ok(!(silent_start && startup_launch))
 }
 
-pub(super) fn run_startup_alignment(
+pub(crate) fn run_startup_alignment(
     app: &tauri::AppHandle,
     startup_config: &StartupAlignmentConfig,
 ) -> Result<(), String> {

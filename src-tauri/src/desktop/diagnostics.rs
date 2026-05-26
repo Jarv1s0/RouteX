@@ -1,11 +1,14 @@
-fn http_client_with_timeout(timeout_ms: u64) -> Result<Client, String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn http_client_with_timeout(timeout_ms: u64) -> Result<Client, String> {
     Client::builder()
         .timeout(Duration::from_millis(timeout_ms))
         .build()
         .map_err(|e| e.to_string())
 }
 
-fn http_get_response(
+pub(crate) fn http_get_response(
     url: &str,
     timeout_ms: u64,
 ) -> Result<(reqwest::StatusCode, String, Value), String> {
@@ -35,7 +38,7 @@ fn http_get_response(
     Ok((status, data, Value::Object(headers)))
 }
 
-fn http_get_json(url: &str, timeout_ms: u64) -> Result<Value, String> {
+pub(crate) fn http_get_json(url: &str, timeout_ms: u64) -> Result<Value, String> {
     let (status, body, _) = http_get_response(url, timeout_ms)?;
     if !status.is_success() {
         return Err(format!("HTTP 请求失败: {}", status));
@@ -44,21 +47,21 @@ fn http_get_json(url: &str, timeout_ms: u64) -> Result<Value, String> {
     serde_json::from_str::<Value>(&body).map_err(|e| e.to_string())
 }
 
-fn value_string(value: &Value, keys: &[&str]) -> String {
+pub(crate) fn value_string(value: &Value, keys: &[&str]) -> String {
     keys.iter()
         .find_map(|key| value.get(*key).and_then(Value::as_str))
         .unwrap_or_default()
         .to_string()
 }
 
-fn value_number(value: &Value, keys: &[&str]) -> Value {
+pub(crate) fn value_number(value: &Value, keys: &[&str]) -> Value {
     keys.iter()
         .find_map(|key| value.get(*key).and_then(Value::as_f64))
         .map(Value::from)
         .unwrap_or(Value::Null)
 }
 
-struct IpInfoResult {
+pub(crate) struct IpInfoResult {
     query: String,
     country: String,
     country_code: String,
@@ -72,7 +75,7 @@ struct IpInfoResult {
     lon: Value,
 }
 
-fn ip_info_result(info: IpInfoResult) -> Value {
+pub(crate) fn ip_info_result(info: IpInfoResult) -> Value {
     json!({
         "status": "success",
         "query": info.query,
@@ -91,7 +94,7 @@ fn ip_info_result(info: IpInfoResult) -> Value {
     })
 }
 
-fn normalize_ipapi_info(value: Value) -> Option<Value> {
+pub(crate) fn normalize_ipapi_info(value: Value) -> Option<Value> {
     let query = value_string(&value, &["ip"]);
     if query.is_empty() {
         return None;
@@ -115,7 +118,7 @@ fn normalize_ipapi_info(value: Value) -> Option<Value> {
     }))
 }
 
-fn normalize_ipinfo_info(value: Value) -> Option<Value> {
+pub(crate) fn normalize_ipinfo_info(value: Value) -> Option<Value> {
     let query = value_string(&value, &["ip"]);
     if query.is_empty() {
         return None;
@@ -149,7 +152,7 @@ fn normalize_ipinfo_info(value: Value) -> Option<Value> {
     }))
 }
 
-fn normalize_ipip_info(value: Value) -> Option<Value> {
+pub(crate) fn normalize_ipip_info(value: Value) -> Option<Value> {
     let data = value.get("data")?;
     let query = value_string(data, &["ip"]);
     if query.is_empty() {
@@ -189,7 +192,7 @@ fn normalize_ipip_info(value: Value) -> Option<Value> {
     }))
 }
 
-fn normalize_cloudflare_trace(body: String) -> Option<Value> {
+pub(crate) fn normalize_cloudflare_trace(body: String) -> Option<Value> {
     let mut trace = serde_json::Map::new();
     for line in body.lines() {
         if let Some((key, value)) = line.split_once('=') {
@@ -233,7 +236,7 @@ fn normalize_cloudflare_trace(body: String) -> Option<Value> {
     }))
 }
 
-fn http_post_json(url: &str, body: &Value, timeout_ms: u64) -> Result<Value, String> {
+pub(crate) fn http_post_json(url: &str, body: &Value, timeout_ms: u64) -> Result<Value, String> {
     let client = http_client_with_timeout(timeout_ms)?;
     let response = client
         .post(url)
@@ -249,7 +252,7 @@ fn http_post_json(url: &str, body: &Value, timeout_ms: u64) -> Result<Value, Str
     response.json::<Value>().map_err(|e| e.to_string())
 }
 
-fn resolve_to_ip(query: &str) -> String {
+pub(crate) fn resolve_to_ip(query: &str) -> String {
     if query.parse::<std::net::IpAddr>().is_ok() {
         return query.to_string();
     }
@@ -261,7 +264,7 @@ fn resolve_to_ip(query: &str) -> String {
         .unwrap_or_else(|| query.to_string())
 }
 
-fn fetch_ip_info_current() -> Result<Value, String> {
+pub(crate) fn fetch_ip_info_current() -> Result<Value, String> {
     let mut errors = Vec::new();
 
     match http_get_json(
@@ -328,7 +331,7 @@ fn fetch_ip_info_current() -> Result<Value, String> {
     }))
 }
 
-fn fetch_ip_info_query(query: &str) -> Result<Value, String> {
+pub(crate) fn fetch_ip_info_query(query: &str) -> Result<Value, String> {
     let ip = resolve_to_ip(query);
     let mut result = http_get_json(
         &format!("http://ip-api.com/json/{ip}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query"),
@@ -340,7 +343,7 @@ fn fetch_ip_info_query(query: &str) -> Result<Value, String> {
     Ok(result)
 }
 
-fn fetch_batch_ip_info(queries: &[IpInfoQueryInput]) -> Result<Value, String> {
+pub(crate) fn fetch_batch_ip_info(queries: &[IpInfoQueryInput]) -> Result<Value, String> {
     let request_body = Value::Array(
         queries
             .iter()
@@ -366,7 +369,7 @@ fn fetch_batch_ip_info(queries: &[IpInfoQueryInput]) -> Result<Value, String> {
     Ok(result)
 }
 
-fn http_get_value(url: &str, timeout_ms: u64) -> Result<Value, String> {
+pub(crate) fn http_get_value(url: &str, timeout_ms: u64) -> Result<Value, String> {
     let (status, data, headers) = http_get_response(url, timeout_ms)?;
     Ok(json!({
         "status": status.as_u16(),
@@ -375,7 +378,7 @@ fn http_get_value(url: &str, timeout_ms: u64) -> Result<Value, String> {
     }))
 }
 
-fn test_connectivity_value(url: &str, timeout_ms: u64) -> Value {
+pub(crate) fn test_connectivity_value(url: &str, timeout_ms: u64) -> Value {
     let start = std::time::Instant::now();
     match http_get_response(url, timeout_ms) {
         Ok((status, _, _)) => json!({
@@ -391,7 +394,7 @@ fn test_connectivity_value(url: &str, timeout_ms: u64) -> Value {
     }
 }
 
-fn build_group_children(
+pub(crate) fn build_group_children(
     proxies_map: &serde_json::Map<String, Value>,
     all_names: &[Value],
     runtime_group_map: &serde_json::Map<String, Value>,
@@ -442,7 +445,7 @@ fn build_group_children(
         .collect()
 }
 
-fn build_mihomo_groups_value(proxies: &Value, runtime: &Value) -> Value {
+pub(crate) fn build_mihomo_groups_value(proxies: &Value, runtime: &Value) -> Value {
     let mode = runtime
         .get("mode")
         .and_then(Value::as_str)
@@ -561,7 +564,7 @@ fn build_mihomo_groups_value(proxies: &Value, runtime: &Value) -> Value {
     Value::Array(groups)
 }
 
-fn extract_domain(input: &str) -> String {
+pub(crate) fn extract_domain(input: &str) -> String {
     if let Ok(url) = reqwest::Url::parse(input) {
         if let Some(host) = url.host_str() {
             return host.to_string();
@@ -581,7 +584,7 @@ fn extract_domain(input: &str) -> String {
         .to_string()
 }
 
-fn test_rule_match_value(
+pub(crate) fn test_rule_match_value(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     domain: &str,
@@ -660,7 +663,7 @@ fn test_rule_match_value(
     Ok(Value::Null)
 }
 
-fn check_streaming_unlock(service: &str) -> Result<Value, String> {
+pub(crate) fn check_streaming_unlock(service: &str) -> Result<Value, String> {
     let timeout = 15_000;
     let result = match service {
         "netflix" => {
@@ -754,7 +757,7 @@ fn check_streaming_unlock(service: &str) -> Result<Value, String> {
     Ok(result)
 }
 
-fn resolve_runtime_file_path(
+pub(crate) fn resolve_runtime_file_path(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     raw_path: &str,
@@ -773,7 +776,7 @@ fn resolve_runtime_file_path(
     Ok(storage_dir(app, RUNTIME_DIR_NAME)?.join(raw_path))
 }
 
-fn read_runtime_text(
+pub(crate) fn read_runtime_text(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     raw_path: &str,
@@ -786,7 +789,7 @@ fn read_runtime_text(
     fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
-fn write_runtime_text(
+pub(crate) fn write_runtime_text(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     raw_path: &str,

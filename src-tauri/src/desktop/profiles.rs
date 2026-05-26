@@ -1,12 +1,15 @@
-const DEFAULT_SUBSCRIPTION_USER_AGENT: &str = "clash.meta/alpha-e89af72";
-const DEFAULT_REMOTE_PROFILE_NAME: &str = "Subscribe";
-const DEFAULT_LOCAL_PROFILE_NAME: &str = "本地配置";
+use super::prelude::*;
+use super::*;
 
-fn non_empty_trimmed(value: Option<&str>) -> Option<&str> {
+pub(crate) const DEFAULT_SUBSCRIPTION_USER_AGENT: &str = "clash.meta/alpha-e89af72";
+pub(crate) const DEFAULT_REMOTE_PROFILE_NAME: &str = "Subscribe";
+pub(crate) const DEFAULT_LOCAL_PROFILE_NAME: &str = "本地配置";
+
+pub(crate) fn non_empty_trimmed(value: Option<&str>) -> Option<&str> {
     value.map(str::trim).filter(|value| !value.is_empty())
 }
 
-fn resolve_remote_user_agent(
+pub(crate) fn resolve_remote_user_agent(
     app: &tauri::AppHandle,
     user_agent: Option<&str>,
 ) -> Result<String, String> {
@@ -22,7 +25,7 @@ fn resolve_remote_user_agent(
     )
 }
 
-fn fetch_remote_text(
+pub(crate) fn fetch_remote_text(
     app: &tauri::AppHandle,
     url: &str,
     user_agent: Option<&str>,
@@ -55,7 +58,7 @@ fn fetch_remote_text(
     response.text().map_err(|e| e.to_string())
 }
 
-fn guess_name_from_url(url: &str, fallback: &str) -> String {
+pub(crate) fn guess_name_from_url(url: &str, fallback: &str) -> String {
     let parsed = reqwest::Url::parse(url).ok();
     let Some(parsed) = parsed else {
         return fallback.to_string();
@@ -73,7 +76,7 @@ fn guess_name_from_url(url: &str, fallback: &str) -> String {
         .unwrap_or_else(|_| name.to_string())
 }
 
-fn is_generic_subscription_name(name: &str) -> bool {
+pub(crate) fn is_generic_subscription_name(name: &str) -> bool {
     let normalized = name.trim().to_ascii_lowercase();
     let normalized = normalized
         .trim_end_matches(".yaml")
@@ -83,7 +86,7 @@ fn is_generic_subscription_name(name: &str) -> bool {
     matches!(normalized, "subscribe" | "subscription" | "sub")
 }
 
-fn default_remote_profile_name(url: Option<&str>) -> String {
+pub(crate) fn default_remote_profile_name(url: Option<&str>) -> String {
     let Some(url) = url else {
         return DEFAULT_REMOTE_PROFILE_NAME.to_string();
     };
@@ -96,14 +99,14 @@ fn default_remote_profile_name(url: Option<&str>) -> String {
     }
 }
 
-fn get_profile_item_from_config(
+pub(crate) fn get_profile_item_from_config(
     config: &ProfileConfigData,
     id: Option<&str>,
 ) -> Option<ProfileItemData> {
     id.and_then(|target| config.items.iter().find(|item| item.id == target).cloned())
 }
 
-fn current_profile_item(app: &tauri::AppHandle) -> Result<ProfileItemData, String> {
+pub(crate) fn current_profile_item(app: &tauri::AppHandle) -> Result<ProfileItemData, String> {
     let config = read_profile_config(app)?;
     Ok(
         get_profile_item_from_config(&config, config.current.as_deref())
@@ -111,7 +114,7 @@ fn current_profile_item(app: &tauri::AppHandle) -> Result<ProfileItemData, Strin
     )
 }
 
-fn build_profile_item(
+pub(crate) fn build_profile_item(
     item: ProfileItemInput,
     existing: Option<&ProfileItemData>,
     content_written: bool,
@@ -198,7 +201,7 @@ fn build_profile_item(
     }
 }
 
-fn add_or_replace_profile_item(
+pub(crate) fn add_or_replace_profile_item(
     app: &tauri::AppHandle,
     item: ProfileItemInput,
 ) -> Result<(), String> {
@@ -267,7 +270,7 @@ fn add_or_replace_profile_item(
     write_profile_config(app, &config)
 }
 
-fn update_profile_item_store(app: &tauri::AppHandle, item: ProfileItemData) -> Result<(), String> {
+pub(crate) fn update_profile_item_store(app: &tauri::AppHandle, item: ProfileItemData) -> Result<(), String> {
     let mut config = read_profile_config(app)?;
     let Some(index) = config.items.iter().position(|value| value.id == item.id) else {
         return Err("Profile not found".to_string());
@@ -276,7 +279,7 @@ fn update_profile_item_store(app: &tauri::AppHandle, item: ProfileItemData) -> R
     write_profile_config(app, &config)
 }
 
-fn change_current_profile_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
+pub(crate) fn change_current_profile_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
     let config = read_profile_config(app)?;
     let mut next_actives = config.actives.unwrap_or_default();
     if !next_actives.iter().any(|value| value == id) {
@@ -291,7 +294,7 @@ fn change_current_profile_store(app: &tauri::AppHandle, id: &str) -> Result<(), 
     write_profile_config(app, &next)
 }
 
-fn set_active_profiles_store(
+pub(crate) fn set_active_profiles_store(
     app: &tauri::AppHandle,
     ids: &[String],
     current: Option<&str>,
@@ -338,7 +341,7 @@ fn set_active_profiles_store(
     write_profile_config(app, &next)
 }
 
-fn remove_profile_item_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
+pub(crate) fn remove_profile_item_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
     let mut config = read_profile_config(app)?;
     let runtime_profile_affected = active_profile_ids(&config).iter().any(|active| active == id);
     config.items.retain(|item| item.id != id);
@@ -360,7 +363,7 @@ fn remove_profile_item_store(app: &tauri::AppHandle, id: &str) -> Result<bool, S
     Ok(runtime_profile_affected)
 }
 
-fn remove_override_reference_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
+pub(crate) fn remove_override_reference_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
     let mut config = read_profile_config(app)?;
     let active_ids = active_profile_ids(&config)
         .into_iter()
@@ -404,7 +407,7 @@ fn remove_override_reference_store(app: &tauri::AppHandle, id: &str) -> Result<b
     Ok(current_profile_modified)
 }
 
-fn add_or_replace_override_item(
+pub(crate) fn add_or_replace_override_item(
     app: &tauri::AppHandle,
     item: OverrideItemInput,
 ) -> Result<(), String> {
@@ -499,7 +502,7 @@ fn add_or_replace_override_item(
     write_override_config(app, &config)
 }
 
-fn update_override_item_store(
+pub(crate) fn update_override_item_store(
     app: &tauri::AppHandle,
     item: OverrideItemData,
 ) -> Result<(), String> {
@@ -511,7 +514,7 @@ fn update_override_item_store(
     write_override_config(app, &config)
 }
 
-fn remove_override_item_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
+pub(crate) fn remove_override_item_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
     let mut config = read_override_config(app)?;
     let removed = config.items.iter().find(|item| item.id == id).cloned();
     config.items.retain(|item| item.id != id);
@@ -532,7 +535,7 @@ fn remove_override_item_store(app: &tauri::AppHandle, id: &str) -> Result<(), St
     Ok(())
 }
 
-fn restart_core_and_emit(
+pub(crate) fn restart_core_and_emit(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<(), String> {
@@ -543,7 +546,7 @@ fn restart_core_and_emit(
     Ok(())
 }
 
-fn add_chain_item_store(
+pub(crate) fn add_chain_item_store(
     app: &tauri::AppHandle,
     item: ChainItemInput,
 ) -> Result<ChainItemData, String> {
@@ -568,7 +571,7 @@ fn add_chain_item_store(
     Ok(chain)
 }
 
-fn update_chain_item_store(app: &tauri::AppHandle, item: ChainItemData) -> Result<(), String> {
+pub(crate) fn update_chain_item_store(app: &tauri::AppHandle, item: ChainItemData) -> Result<(), String> {
     let mut config = read_chains_config(app)?;
     let Some(index) = config.items.iter().position(|value| value.id == item.id) else {
         return Err("Chain not found".to_string());
@@ -577,13 +580,13 @@ fn update_chain_item_store(app: &tauri::AppHandle, item: ChainItemData) -> Resul
     write_chains_config(app, &config)
 }
 
-fn remove_chain_item_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
+pub(crate) fn remove_chain_item_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
     let mut config = read_chains_config(app)?;
     config.items.retain(|value| value.id != id);
     write_chains_config(app, &config)
 }
 
-fn current_override_profile_text(app: &tauri::AppHandle) -> Result<String, String> {
+pub(crate) fn current_override_profile_text(app: &tauri::AppHandle) -> Result<String, String> {
     let profile_config = read_profile_config(app)?;
     let override_config = read_override_config(app)?;
     let mut ids = override_config
@@ -618,7 +621,7 @@ fn current_override_profile_text(app: &tauri::AppHandle) -> Result<String, Strin
     Ok(blocks.join("\n\n"))
 }
 
-fn value_name(value: &Value) -> Option<String> {
+pub(crate) fn value_name(value: &Value) -> Option<String> {
     value
         .as_object()
         .and_then(|object| object.get("name"))
@@ -626,7 +629,7 @@ fn value_name(value: &Value) -> Option<String> {
         .map(str::to_string)
 }
 
-fn array_string_values(value: Option<&Value>) -> Vec<String> {
+pub(crate) fn array_string_values(value: Option<&Value>) -> Vec<String> {
     value
         .and_then(Value::as_array)
         .map(|items| {
@@ -640,7 +643,7 @@ fn array_string_values(value: Option<&Value>) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn escape_regex_text(input: &str) -> String {
+pub(crate) fn escape_regex_text(input: &str) -> String {
     let mut escaped = String::with_capacity(input.len());
     for ch in input.chars() {
         if matches!(
@@ -654,7 +657,7 @@ fn escape_regex_text(input: &str) -> String {
     escaped
 }
 
-fn can_reach(graph: &HashMap<String, HashSet<String>>, start: &str, end: &str) -> bool {
+pub(crate) fn can_reach(graph: &HashMap<String, HashSet<String>>, start: &str, end: &str) -> bool {
     if start == end {
         return true;
     }
@@ -679,7 +682,7 @@ fn can_reach(graph: &HashMap<String, HashSet<String>>, start: &str, end: &str) -
     false
 }
 
-fn inject_chain_proxies(profile: &mut Value, app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn inject_chain_proxies(profile: &mut Value, app: &tauri::AppHandle) -> Result<(), String> {
     let chains_config = read_chains_config(app)?;
     if chains_config.items.is_empty() {
         return Ok(());
@@ -909,7 +912,7 @@ fn inject_chain_proxies(profile: &mut Value, app: &tauri::AppHandle) -> Result<(
     Ok(())
 }
 
-fn active_profile_ids(config: &ProfileConfigData) -> Vec<String> {
+pub(crate) fn active_profile_ids(config: &ProfileConfigData) -> Vec<String> {
     let mut ids = config.actives.clone().unwrap_or_default();
     ids.retain(|id| !id.trim().is_empty());
     ids.dedup();
@@ -925,7 +928,7 @@ fn active_profile_ids(config: &ProfileConfigData) -> Vec<String> {
     ids
 }
 
-fn primary_profile_id(config: &ProfileConfigData, active_ids: &[String]) -> Option<String> {
+pub(crate) fn primary_profile_id(config: &ProfileConfigData, active_ids: &[String]) -> Option<String> {
     if let Some(current) = config.current.as_ref() {
         if active_ids.iter().any(|id| id == current) {
             return Some(current.clone());
@@ -934,11 +937,11 @@ fn primary_profile_id(config: &ProfileConfigData, active_ids: &[String]) -> Opti
     active_ids.first().cloned()
 }
 
-fn build_merged_name(prefix: &str, name: &str) -> String {
+pub(crate) fn build_merged_name(prefix: &str, name: &str) -> String {
     format!("[{prefix}] {name}")
 }
 
-fn create_unique_name(base: &str, taken: &mut HashSet<String>, prefix: &str) -> String {
+pub(crate) fn create_unique_name(base: &str, taken: &mut HashSet<String>, prefix: &str) -> String {
     if taken.insert(base.to_string()) {
         return base.to_string();
     }
@@ -953,7 +956,7 @@ fn create_unique_name(base: &str, taken: &mut HashSet<String>, prefix: &str) -> 
     candidate
 }
 
-fn is_absolute_config_path(config_path: &str) -> bool {
+pub(crate) fn is_absolute_config_path(config_path: &str) -> bool {
     let normalized = config_path.replace('\\', "/");
     normalized.starts_with('/')
         || normalized
@@ -963,7 +966,7 @@ fn is_absolute_config_path(config_path: &str) -> bool {
             .unwrap_or(false)
 }
 
-fn rewrite_provider_path(provider: &mut Value, profile_id: &str) {
+pub(crate) fn rewrite_provider_path(provider: &mut Value, profile_id: &str) {
     let Some(provider_object) = provider.as_object_mut() else {
         return;
     };
@@ -984,7 +987,7 @@ fn rewrite_provider_path(provider: &mut Value, profile_id: &str) {
     );
 }
 
-fn map_named_reference(
+pub(crate) fn map_named_reference(
     name: &str,
     proxy_name_map: &HashMap<String, String>,
     group_name_map: &HashMap<String, String>,
@@ -996,7 +999,7 @@ fn map_named_reference(
         .unwrap_or_else(|| name.to_string())
 }
 
-fn merge_profile_nodes(
+pub(crate) fn merge_profile_nodes(
     target_profile: &mut Value,
     source_profile: &Value,
     profile_id: &str,
@@ -1118,7 +1121,7 @@ fn merge_profile_nodes(
 }
 
 
-fn parse_profile_yaml_value(text: &str) -> Result<Value, String> {
+pub(crate) fn parse_profile_yaml_value(text: &str) -> Result<Value, String> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
         return Ok(json!({}));
@@ -1127,24 +1130,24 @@ fn parse_profile_yaml_value(text: &str) -> Result<Value, String> {
     serde_yaml::from_str::<Value>(trimmed).map_err(|e| e.to_string())
 }
 
-const JS_OVERRIDE_LOOP_ITERATION_LIMIT: u64 = 1_000_000;
-const JS_OVERRIDE_RECURSION_LIMIT: usize = 128;
+pub(crate) const JS_OVERRIDE_LOOP_ITERATION_LIMIT: u64 = 1_000_000;
+pub(crate) const JS_OVERRIDE_RECURSION_LIMIT: usize = 128;
 
-fn write_override_exec_log(app: &tauri::AppHandle, id: &str, message: &str) -> Result<(), String> {
+pub(crate) fn write_override_exec_log(app: &tauri::AppHandle, id: &str, message: &str) -> Result<(), String> {
     let path = override_file_path(app, id, "log")?;
     ensure_parent(&path)?;
     fs::write(path, message).map_err(|e| e.to_string())
 }
 
-fn run_override_script(script: &str, profile: &Value) -> Result<Value, String> {
+pub(crate) fn run_override_script(script: &str, profile: &Value) -> Result<Value, String> {
     let profile_json = serde_json::to_string(profile).map_err(|e| e.to_string())?;
     let wrapped_script = format!(
         r#"
 (function() {{
   const __ROUTEX_CONFIG__ = {profile_json};
-{script}
+  {script}
   if (typeof main !== "function") {{
-    throw new Error("JS 覆写必须定义 main(config) 函数");
+    throw new Error("必须定义 main 函数。例如: `function main(config) {{ return config; }}`");
   }}
   const __ROUTEX_RESULT__ = main(__ROUTEX_CONFIG__);
   if (__ROUTEX_RESULT__ === null || typeof __ROUTEX_RESULT__ !== "object" || Array.isArray(__ROUTEX_RESULT__)) {{
@@ -1177,7 +1180,7 @@ fn run_override_script(script: &str, profile: &Value) -> Result<Value, String> {
     Ok(value)
 }
 
-fn apply_js_override(
+pub(crate) fn apply_js_override(
     app: &tauri::AppHandle,
     item: &OverrideItemData,
     text: &str,
@@ -1197,7 +1200,7 @@ fn apply_js_override(
     }
 }
 
-fn apply_overrides_to_profile(
+pub(crate) fn apply_overrides_to_profile(
     app: &tauri::AppHandle,
     profile_id: Option<&str>,
     profile: &mut Value,
@@ -1244,7 +1247,7 @@ fn apply_overrides_to_profile(
     Ok(())
 }
 
-fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, String> {
+pub(crate) fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, String> {
     let cache_revision = current_profile_runtime_config_revision();
     if let Some(cached) = read_cached_profile_runtime_config(cache_revision) {
         return Ok(cached);
@@ -1334,7 +1337,7 @@ fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, Strin
     Ok(profile_value)
 }
 
-fn strip_profile_managed_runtime_fields(profile: &mut Value) {
+pub(crate) fn strip_profile_managed_runtime_fields(profile: &mut Value) {
     let Some(config) = profile.as_object_mut() else {
         return;
     };
@@ -1358,7 +1361,7 @@ fn strip_profile_managed_runtime_fields(profile: &mut Value) {
     }
 }
 
-fn current_runtime_value(
+pub(crate) fn current_runtime_value(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<Value, String> {
@@ -1401,7 +1404,7 @@ fn current_runtime_value(
     current_profile_runtime_config(app)
 }
 
-fn current_runtime_value_for_renderer(
+pub(crate) fn current_runtime_value_for_renderer(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<Value, String> {

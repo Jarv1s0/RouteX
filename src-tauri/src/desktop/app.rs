@@ -1,3 +1,6 @@
+use super::prelude::*;
+use super::*;
+
 pub fn run() {
     wait_for_admin_relaunch_parent_exit();
     let context = tauri::generate_context!();
@@ -77,14 +80,14 @@ pub fn run() {
 }
 
 #[cfg(target_os = "windows")]
-fn allow_single_instance_messages_from_unelevated_launchers(app: &tauri::AppHandle) {
-    const WM_COPYDATA: u32 = 0x004A;
-    const MSGFLT_ALLOW: u32 = 1;
+pub(crate) fn allow_single_instance_messages_from_unelevated_launchers(app: &tauri::AppHandle) {
+    pub(crate) const WM_COPYDATA: u32 = 0x004A;
+    pub(crate) const MSGFLT_ALLOW: u32 = 1;
 
     #[link(name = "user32")]
     unsafe extern "system" {
-        fn FindWindowW(class_name: *const u16, window_name: *const u16) -> *mut std::ffi::c_void;
-        fn ChangeWindowMessageFilterEx(
+        pub(crate) fn FindWindowW(class_name: *const u16, window_name: *const u16) -> *mut std::ffi::c_void;
+        pub(crate) fn ChangeWindowMessageFilterEx(
             hwnd: *mut std::ffi::c_void,
             message: u32,
             action: u32,
@@ -92,7 +95,7 @@ fn allow_single_instance_messages_from_unelevated_launchers(app: &tauri::AppHand
         ) -> i32;
     }
 
-    fn wide_null(value: &str) -> Vec<u16> {
+    pub(crate) fn wide_null(value: &str) -> Vec<u16> {
         value.encode_utf16().chain(std::iter::once(0)).collect()
     }
 
@@ -109,4 +112,4 @@ fn allow_single_instance_messages_from_unelevated_launchers(app: &tauri::AppHand
 }
 
 #[cfg(not(target_os = "windows"))]
-fn allow_single_instance_messages_from_unelevated_launchers(_app: &tauri::AppHandle) {}
+pub(crate) fn allow_single_instance_messages_from_unelevated_launchers(_app: &tauri::AppHandle) {}

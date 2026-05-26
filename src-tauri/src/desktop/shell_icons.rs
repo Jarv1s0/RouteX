@@ -1,4 +1,7 @@
-fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
     let mut candidates = Vec::new();
 
     if let Ok(resource_dir) = app.path().resource_dir() {
@@ -34,7 +37,7 @@ fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) -> Result<Pat
     ))
 }
 
-fn set_tray_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
+pub(crate) fn set_tray_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
     let Some(tray) = app.tray_by_id(TRAY_ICON_ID) else {
         return Ok(());
     };
@@ -43,7 +46,7 @@ fn set_tray_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<()
     tray.set_icon(Some(image)).map_err(|e| e.to_string())
 }
 
-fn set_main_window_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
+pub(crate) fn set_main_window_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());
     };
@@ -52,7 +55,7 @@ fn set_main_window_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Re
     window.set_icon(image).map_err(|e| e.to_string())
 }
 
-fn set_windows_shell_icon_from_paths(
+pub(crate) fn set_windows_shell_icon_from_paths(
     app: &tauri::AppHandle,
     window_icon: &str,
     tray_icon: &str,
@@ -61,7 +64,7 @@ fn set_windows_shell_icon_from_paths(
     set_tray_icon_from_path(app, tray_icon)
 }
 
-fn windows_shell_icon_names_from_kind(kind: &str) -> (&'static str, &'static str) {
+pub(crate) fn windows_shell_icon_names_from_kind(kind: &str) -> (&'static str, &'static str) {
     match kind {
         "tun" => ("icon_tun.ico", "icon_tun_tray.ico"),
         "proxy" => ("icon_proxy.ico", "icon_proxy_tray.ico"),
@@ -69,7 +72,7 @@ fn windows_shell_icon_names_from_kind(kind: &str) -> (&'static str, &'static str
     }
 }
 
-fn windows_shell_icon_names_from_state(
+pub(crate) fn windows_shell_icon_names_from_state(
     app: &tauri::AppHandle,
 ) -> Result<(&'static str, &'static str), String> {
     let config = read_app_config_store(app)?;
@@ -96,12 +99,12 @@ fn windows_shell_icon_names_from_state(
     })
 }
 
-fn update_windows_shell_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn update_windows_shell_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {
     let (window_icon, tray_icon) = windows_shell_icon_names_from_state(app)?;
     set_windows_shell_icon_from_paths(app, window_icon, tray_icon)
 }
 
-fn update_tray_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn update_tray_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {
     if cfg!(target_os = "windows") {
         return update_windows_shell_icon_for_state(app);
     }
@@ -128,7 +131,7 @@ fn update_tray_icon_for_state(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn apply_tray_icon_data_url(app: &tauri::AppHandle, data_url: &str) -> Result<(), String> {
+pub(crate) fn apply_tray_icon_data_url(app: &tauri::AppHandle, data_url: &str) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
         let Some(tray) = app.tray_by_id(TRAY_ICON_ID) else {

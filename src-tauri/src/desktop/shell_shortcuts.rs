@@ -1,4 +1,7 @@
-fn run_shortcut_action(
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn run_shortcut_action(
     app: &tauri::AppHandle,
     action: &str,
     event: &ShortcutEvent,
@@ -23,7 +26,7 @@ fn run_shortcut_action(
     }
 }
 
-fn register_shortcut_binding(
+pub(crate) fn register_shortcut_binding(
     app: &tauri::AppHandle,
     shortcut_text: &str,
     action: &str,
@@ -45,7 +48,7 @@ fn register_shortcut_binding(
         .map_err(|e| e.to_string())
 }
 
-fn read_shortcut_binding(config: &Value, action: &str) -> String {
+pub(crate) fn read_shortcut_binding(config: &Value, action: &str) -> String {
     config
         .get(action)
         .and_then(Value::as_str)
@@ -54,7 +57,7 @@ fn read_shortcut_binding(config: &Value, action: &str) -> String {
         .to_string()
 }
 
-fn init_global_shortcuts(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn init_global_shortcuts(app: &tauri::AppHandle) -> Result<(), String> {
     if !global_shortcut_plugin_enabled() {
         return Ok(());
     }
@@ -77,7 +80,7 @@ fn init_global_shortcuts(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn register_global_shortcut(
+pub(crate) fn register_global_shortcut(
     app: &tauri::AppHandle,
     old_shortcut: &str,
     new_shortcut: &str,

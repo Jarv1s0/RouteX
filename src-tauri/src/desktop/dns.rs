@@ -1,5 +1,9 @@
+#![allow(unused_imports)]
+use super::prelude::*;
+use super::*;
+
 #[cfg(target_os = "macos")]
-fn get_default_device_macos() -> Result<String, String> {
+pub(crate) fn get_default_device_macos() -> Result<String, String> {
     let output = Command::new("route")
         .args(["-n", "get", "default"])
         .output()
@@ -24,7 +28,7 @@ fn get_default_device_macos() -> Result<String, String> {
 }
 
 #[cfg(target_os = "macos")]
-fn get_default_service_macos() -> Result<String, String> {
+pub(crate) fn get_default_service_macos() -> Result<String, String> {
     let device = get_default_device_macos()?;
     let output = Command::new("networksetup")
         .args(["-listnetworkserviceorder"])
@@ -59,13 +63,13 @@ fn get_default_service_macos() -> Result<String, String> {
 }
 
 #[cfg(target_os = "macos")]
-fn set_app_config_partial(app: &tauri::AppHandle, patch: &Value) -> Result<(), String> {
+pub(crate) fn set_app_config_partial(app: &tauri::AppHandle, patch: &Value) -> Result<(), String> {
     patch_app_config_store(app, patch)?;
     Ok(())
 }
 
 #[cfg(target_os = "macos")]
-fn get_origin_dns_macos(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn get_origin_dns_macos(app: &tauri::AppHandle) -> Result<(), String> {
     let service = get_default_service_macos()?;
     let output = Command::new("networksetup")
         .args(["-getdnsservers", &service])
@@ -86,7 +90,7 @@ fn get_origin_dns_macos(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-fn set_dns_macos(_app: &tauri::AppHandle, dns: &str, _mode: &str) -> Result<(), String> {
+pub(crate) fn set_dns_macos(_app: &tauri::AppHandle, dns: &str, _mode: &str) -> Result<(), String> {
     let service = get_default_service_macos()?;
     let dns_servers = if dns == "Empty" {
         vec!["Empty".to_string()]
@@ -111,7 +115,7 @@ fn set_dns_macos(_app: &tauri::AppHandle, dns: &str, _mode: &str) -> Result<(), 
 }
 
 #[cfg(target_os = "macos")]
-fn set_public_dns_macos(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn set_public_dns_macos(app: &tauri::AppHandle) -> Result<(), String> {
     let app_config = read_app_config_store(app)?;
     let auto_set_dns_mode = app_config
         .get("autoSetDNSMode")
@@ -131,7 +135,7 @@ fn set_public_dns_macos(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-fn recover_dns_macos(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn recover_dns_macos(app: &tauri::AppHandle) -> Result<(), String> {
     let app_config = read_app_config_store(app)?;
     let auto_set_dns_mode = app_config
         .get("autoSetDNSMode")
@@ -151,22 +155,22 @@ fn recover_dns_macos(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-fn set_public_dns(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn set_public_dns(app: &tauri::AppHandle) -> Result<(), String> {
     set_public_dns_macos(app)
 }
 
 #[cfg(not(target_os = "macos"))]
-fn set_public_dns(_app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn set_public_dns(_app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
 #[cfg(target_os = "macos")]
-fn recover_dns(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn recover_dns(app: &tauri::AppHandle) -> Result<(), String> {
     recover_dns_macos(app)
 }
 
 #[cfg(not(target_os = "macos"))]
-fn recover_dns(_app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn recover_dns(_app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 

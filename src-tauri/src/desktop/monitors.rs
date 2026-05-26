@@ -1,16 +1,19 @@
-fn current_controller_url(state: &State<'_, CoreState>) -> Result<Option<String>, String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn current_controller_url(state: &State<'_, CoreState>) -> Result<Option<String>, String> {
     let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
     Ok(runtime.controller_url.clone())
 }
 
-fn json_u64(value: Option<&Value>) -> u64 {
+pub(crate) fn json_u64(value: Option<&Value>) -> u64 {
     value
         .and_then(Value::as_u64)
         .or_else(|| value.and_then(Value::as_i64).map(|v| v.max(0) as u64))
         .unwrap_or(0)
 }
 
-fn close_connections_by_group(state: &State<'_, CoreState>, name: &str) -> Result<(), String> {
+pub(crate) fn close_connections_by_group(state: &State<'_, CoreState>, name: &str) -> Result<(), String> {
     let connections = core_request(state, reqwest::Method::GET, "/connections", None, None)?;
     let items = connections
         .get("connections")
@@ -42,7 +45,7 @@ fn close_connections_by_group(state: &State<'_, CoreState>, name: &str) -> Resul
     Ok(())
 }
 
-fn test_network_latency() -> i64 {
+pub(crate) fn test_network_latency() -> i64 {
     let client = match Client::builder().timeout(NETWORK_HEALTH_TIMEOUT).build() {
         Ok(client) => client,
         Err(_) => return 0,
@@ -54,7 +57,7 @@ fn test_network_latency() -> i64 {
     }
 }
 
-fn test_dns_latency(domain: &str) -> i64 {
+pub(crate) fn test_dns_latency(domain: &str) -> i64 {
     let started_at = Instant::now();
     match (domain, 80).to_socket_addrs() {
         Ok(mut addrs) => {
@@ -69,7 +72,7 @@ fn test_dns_latency(domain: &str) -> i64 {
     }
 }
 
-fn calculate_network_health_value(state: &NetworkHealthState) -> Value {
+pub(crate) fn calculate_network_health_value(state: &NetworkHealthState) -> Value {
     let valid_latencies = state
         .latency_history
         .iter()
@@ -120,7 +123,7 @@ fn calculate_network_health_value(state: &NetworkHealthState) -> Value {
     })
 }
 
-fn run_network_health_test(app: &tauri::AppHandle) {
+pub(crate) fn run_network_health_test(app: &tauri::AppHandle) {
     let latency = test_network_latency();
     let dns_latency = test_dns_latency("www.bing.com");
     let payload = {
@@ -148,7 +151,7 @@ fn run_network_health_test(app: &tauri::AppHandle) {
     emit_ipc_event(app, "networkHealth", payload);
 }
 
-fn start_network_health_monitor(
+pub(crate) fn start_network_health_monitor(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<(), String> {
@@ -181,7 +184,7 @@ fn start_network_health_monitor(
     Ok(())
 }
 
-fn stop_network_health_monitor(state: &State<'_, CoreState>) -> Result<(), String> {
+pub(crate) fn stop_network_health_monitor(state: &State<'_, CoreState>) -> Result<(), String> {
     let mut monitor_handle = state
         .network_health_monitor
         .lock()
@@ -192,7 +195,7 @@ fn stop_network_health_monitor(state: &State<'_, CoreState>) -> Result<(), Strin
     Ok(())
 }
 
-fn start_core_events_monitor(
+pub(crate) fn start_core_events_monitor(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<(), String> {
@@ -264,7 +267,7 @@ fn start_core_events_monitor(
     Ok(())
 }
 
-fn stop_core_events_monitor(state: &State<'_, CoreState>) -> Result<(), String> {
+pub(crate) fn stop_core_events_monitor(state: &State<'_, CoreState>) -> Result<(), String> {
     let mut monitor_handle = state
         .core_events_monitor
         .lock()
@@ -275,7 +278,7 @@ fn stop_core_events_monitor(state: &State<'_, CoreState>) -> Result<(), String> 
     Ok(())
 }
 
-fn get_network_health_stats_value(state: &State<'_, CoreState>) -> Result<Value, String> {
+pub(crate) fn get_network_health_stats_value(state: &State<'_, CoreState>) -> Result<Value, String> {
     let health_state = state
         .network_health_state
         .lock()
@@ -283,11 +286,11 @@ fn get_network_health_stats_value(state: &State<'_, CoreState>) -> Result<Value,
     Ok(calculate_network_health_value(&health_state))
 }
 
-fn get_app_uptime_seconds() -> u64 {
+pub(crate) fn get_app_uptime_seconds() -> u64 {
     APP_STARTED_AT.get_or_init(Instant::now).elapsed().as_secs()
 }
 
-fn collect_process_memory_snapshot() -> Value {
+pub(crate) fn collect_process_memory_snapshot() -> Value {
     let pid = std::process::id();
     let mut snapshot = json!({
         "pid": pid,
@@ -358,7 +361,7 @@ if ($null -ne $process) {{
     snapshot
 }
 
-fn create_heap_snapshot(
+pub(crate) fn create_heap_snapshot(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<String, String> {
@@ -388,7 +391,7 @@ fn create_heap_snapshot(
     Ok(output_path.to_string_lossy().to_string())
 }
 
-fn convert_mrs_ruleset(
+pub(crate) fn convert_mrs_ruleset(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     raw_path: &str,
@@ -423,7 +426,7 @@ fn convert_mrs_ruleset(
     Ok(text)
 }
 
-fn open_path_in_shell(path: &Path) -> Result<(), String> {
+pub(crate) fn open_path_in_shell(path: &Path) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     let mut command = {
         let mut command = Command::new("explorer");
@@ -449,7 +452,7 @@ fn open_path_in_shell(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn open_external_url(url: &str) -> Result<(), String> {
+pub(crate) fn open_external_url(url: &str) -> Result<(), String> {
     let parsed = reqwest::Url::parse(url).map_err(|e| format!("无效的外部链接: {e}"))?;
     match parsed.scheme() {
         "http" | "https" | "mailto" => {}

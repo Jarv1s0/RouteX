@@ -1,4 +1,7 @@
-fn get_interfaces_value() -> Value {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn get_interfaces_value() -> Value {
     #[cfg(target_os = "windows")]
     {
         let script = r#"
@@ -83,7 +86,7 @@ $items | ConvertTo-Json -Compress
     }
 }
 
-fn runtime_files_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn runtime_files_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     ensure_dir(
         app_data_root(app)?
             .join(RUNTIME_ASSETS_DIR_NAME)
@@ -91,11 +94,11 @@ fn runtime_files_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     )
 }
 
-fn traffic_monitor_pid_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn traffic_monitor_pid_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(app_data_root(app)?.join(TRAFFIC_MONITOR_PID_FILE))
 }
 
-fn fetch_latest_github_release_assets(
+pub(crate) fn fetch_latest_github_release_assets(
     app: &tauri::AppHandle,
     repo: &str,
 ) -> Result<Vec<GitHubReleaseAsset>, String> {
@@ -120,7 +123,7 @@ fn fetch_latest_github_release_assets(
         .unwrap_or_default())
 }
 
-fn score_traffic_monitor_asset_name(name: &str) -> i32 {
+pub(crate) fn score_traffic_monitor_asset_name(name: &str) -> i32 {
     let mut score = 0;
     if name.contains("lite") {
         score += 10;
@@ -131,7 +134,7 @@ fn score_traffic_monitor_asset_name(name: &str) -> i32 {
     score
 }
 
-fn pick_traffic_monitor_asset(
+pub(crate) fn pick_traffic_monitor_asset(
     assets: &[GitHubReleaseAsset],
     arch: &str,
 ) -> Result<GitHubReleaseAsset, String> {
@@ -175,7 +178,7 @@ fn pick_traffic_monitor_asset(
         })
 }
 
-fn extract_zip_bytes(bytes: &[u8], output_dir: &Path) -> Result<(), String> {
+pub(crate) fn extract_zip_bytes(bytes: &[u8], output_dir: &Path) -> Result<(), String> {
     let reader = Cursor::new(bytes);
     let mut archive = ZipArchive::new(reader).map_err(|e| e.to_string())?;
 
@@ -199,7 +202,7 @@ fn extract_zip_bytes(bytes: &[u8], output_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn ensure_traffic_monitor_binary(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), String> {
+pub(crate) fn ensure_traffic_monitor_binary(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), String> {
     #[cfg(target_os = "windows")]
     {
         if let Ok(executable_path) = resolve_resource_binary(
@@ -263,7 +266,7 @@ fn ensure_traffic_monitor_binary(app: &tauri::AppHandle) -> Result<(PathBuf, Pat
     }
 }
 
-fn stop_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn stop_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         let pid_path = traffic_monitor_pid_path(app)?;
@@ -313,7 +316,7 @@ fn stop_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String> {
     }
 }
 
-fn start_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn start_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         stop_traffic_monitor(app)?;
@@ -347,7 +350,7 @@ fn start_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String> {
     }
 }
 
-fn download_binary_file(url: &str, target_path: &Path) -> Result<(), String> {
+pub(crate) fn download_binary_file(url: &str, target_path: &Path) -> Result<(), String> {
     let client = Client::builder()
         .timeout(Duration::from_secs(30))
         .build()
@@ -366,7 +369,7 @@ fn download_binary_file(url: &str, target_path: &Path) -> Result<(), String> {
     fs::write(target_path, bytes).map_err(|e| e.to_string())
 }
 
-fn ensure_enable_loopback_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn ensure_enable_loopback_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     if let Ok(path) = resolve_resource_binary(app, "files", "enableLoopback.exe") {
         return Ok(path);
     }
@@ -380,7 +383,7 @@ fn ensure_enable_loopback_path(app: &tauri::AppHandle) -> Result<PathBuf, String
     Ok(runtime_path)
 }
 
-fn open_uwp_tool(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn open_uwp_tool(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         let tool_path = ensure_enable_loopback_path(app)?;

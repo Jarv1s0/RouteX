@@ -1,4 +1,7 @@
-fn tauri_build_variant() -> &'static str {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn tauri_build_variant() -> &'static str {
     match option_env!("ROUTEX_TAURI_BUILD_VARIANT") {
         Some("dev") => "dev",
         Some("autobuild") => "autobuild",
@@ -9,12 +12,12 @@ fn tauri_build_variant() -> &'static str {
     }
 }
 
-fn global_shortcut_plugin_enabled() -> bool {
+pub(crate) fn global_shortcut_plugin_enabled() -> bool {
     true
 }
 
 #[cfg(target_os = "windows")]
-fn primary_tauri_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn primary_tauri_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let default_root = default_app_data_root(app)?;
     Ok(std::env::var_os("APPDATA")
         .map(PathBuf::from)
@@ -28,12 +31,12 @@ fn primary_tauri_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String
 }
 
 #[cfg(not(target_os = "windows"))]
-fn primary_tauri_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn primary_tauri_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     default_app_data_root(app)
 }
 
 #[cfg(target_os = "windows")]
-fn routex_run_task_name() -> &'static str {
+pub(crate) fn routex_run_task_name() -> &'static str {
     match tauri_build_variant() {
         "dev" => "routex-run-dev",
         _ => ROUTEX_RUN_TASK_NAME,
@@ -41,14 +44,14 @@ fn routex_run_task_name() -> &'static str {
 }
 
 #[cfg(target_os = "windows")]
-fn routex_autorun_task_name() -> &'static str {
+pub(crate) fn routex_autorun_task_name() -> &'static str {
     match tauri_build_variant() {
         "dev" => "routex-dev",
         _ => ROUTEX_AUTORUN_TASK_NAME,
     }
 }
 
-fn platform_name() -> &'static str {
+pub(crate) fn platform_name() -> &'static str {
     match std::env::consts::OS {
         "windows" => "win32",
         "macos" => "darwin",
@@ -56,18 +59,18 @@ fn platform_name() -> &'static str {
     }
 }
 
-fn apply_window_theme(_window: &tauri::WebviewWindow, theme: Option<&str>) {
+pub(crate) fn apply_window_theme(_window: &tauri::WebviewWindow, theme: Option<&str>) {
     let _ = theme;
 }
 
-fn current_timestamp_ms() -> u64 {
+pub(crate) fn current_timestamp_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as u64
 }
 
-fn runtime_tun_enabled(runtime_config: &Value) -> bool {
+pub(crate) fn runtime_tun_enabled(runtime_config: &Value) -> bool {
     runtime_config
         .get("tun")
         .and_then(Value::as_object)
@@ -76,7 +79,7 @@ fn runtime_tun_enabled(runtime_config: &Value) -> bool {
         .unwrap_or(false)
 }
 
-fn runtime_config_modified_at_ms(path: &Path) -> Option<u64> {
+pub(crate) fn runtime_config_modified_at_ms(path: &Path) -> Option<u64> {
     fs::metadata(path)
         .ok()?
         .modified()
@@ -86,20 +89,20 @@ fn runtime_config_modified_at_ms(path: &Path) -> Option<u64> {
         .map(|duration| duration.as_millis() as u64)
 }
 
-struct ProfileRuntimeConfigCache {
+pub(crate) struct ProfileRuntimeConfigCache {
     revision: u64,
     value: Value,
 }
 
-fn profile_runtime_config_cache() -> &'static Mutex<Option<ProfileRuntimeConfigCache>> {
+pub(crate) fn profile_runtime_config_cache() -> &'static Mutex<Option<ProfileRuntimeConfigCache>> {
     PROFILE_RUNTIME_CONFIG_CACHE.get_or_init(|| Mutex::new(None))
 }
 
-fn current_profile_runtime_config_revision() -> u64 {
+pub(crate) fn current_profile_runtime_config_revision() -> u64 {
     PROFILE_RUNTIME_CONFIG_REVISION.load(AtomicOrdering::SeqCst)
 }
 
-fn read_cached_profile_runtime_config(revision: u64) -> Option<Value> {
+pub(crate) fn read_cached_profile_runtime_config(revision: u64) -> Option<Value> {
     profile_runtime_config_cache()
         .lock()
         .ok()
@@ -111,7 +114,7 @@ fn read_cached_profile_runtime_config(revision: u64) -> Option<Value> {
         })
 }
 
-fn write_cached_profile_runtime_config(revision: u64, value: &Value) {
+pub(crate) fn write_cached_profile_runtime_config(revision: u64, value: &Value) {
     if let Ok(mut cache) = profile_runtime_config_cache().lock() {
         if current_profile_runtime_config_revision() == revision {
             *cache = Some(ProfileRuntimeConfigCache {
@@ -122,14 +125,14 @@ fn write_cached_profile_runtime_config(revision: u64, value: &Value) {
     }
 }
 
-fn invalidate_profile_runtime_config_cache() {
+pub(crate) fn invalidate_profile_runtime_config_cache() {
     PROFILE_RUNTIME_CONFIG_REVISION.fetch_add(1, AtomicOrdering::SeqCst);
     if let Ok(mut cache) = profile_runtime_config_cache().lock() {
         *cache = None;
     }
 }
 
-fn invalidate_profile_runtime_config_cache_after<T>(
+pub(crate) fn invalidate_profile_runtime_config_cache_after<T>(
     result: Result<T, String>,
 ) -> Result<T, String> {
     let value = result?;
@@ -137,7 +140,7 @@ fn invalidate_profile_runtime_config_cache_after<T>(
     Ok(value)
 }
 
-fn mihomo_http_client() -> Result<&'static Client, String> {
+pub(crate) fn mihomo_http_client() -> Result<&'static Client, String> {
     match MIHOMO_HTTP_CLIENT.get_or_init(|| {
         Client::builder()
             .timeout(Duration::from_secs(15))
@@ -149,7 +152,7 @@ fn mihomo_http_client() -> Result<&'static Client, String> {
     }
 }
 
-fn current_local_timestamp_string() -> String {
+pub(crate) fn current_local_timestamp_string() -> String {
     OffsetDateTime::now_local()
         .unwrap_or_else(|_| OffsetDateTime::now_utc())
         .format(&format_description!(
@@ -158,7 +161,7 @@ fn current_local_timestamp_string() -> String {
         .unwrap_or_else(|_| current_timestamp_ms().to_string())
 }
 
-fn default_sysproxy_bypass() -> Vec<String> {
+pub(crate) fn default_sysproxy_bypass() -> Vec<String> {
     if cfg!(target_os = "linux") {
         return vec![
             "localhost".to_string(),
@@ -209,7 +212,7 @@ fn default_sysproxy_bypass() -> Vec<String> {
     ]
 }
 
-fn json_array_strings(value: Option<&Value>) -> Vec<String> {
+pub(crate) fn json_array_strings(value: Option<&Value>) -> Vec<String> {
     value
         .and_then(Value::as_array)
         .map(|items| {
@@ -222,11 +225,11 @@ fn json_array_strings(value: Option<&Value>) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn create_id() -> String {
+pub(crate) fn create_id() -> String {
     format!("{:x}", current_timestamp_ms())
 }
 
-fn default_empty_profile_item() -> ProfileItemData {
+pub(crate) fn default_empty_profile_item() -> ProfileItemData {
     ProfileItemData {
         id: "default".to_string(),
         item_type: "local".to_string(),
@@ -248,7 +251,7 @@ fn default_empty_profile_item() -> ProfileItemData {
     }
 }
 
-fn dedupe_ids(ids: impl IntoIterator<Item = String>) -> Vec<String> {
+pub(crate) fn dedupe_ids(ids: impl IntoIterator<Item = String>) -> Vec<String> {
     let mut seen = HashSet::new();
     let mut result = Vec::new();
 
@@ -265,7 +268,7 @@ fn dedupe_ids(ids: impl IntoIterator<Item = String>) -> Vec<String> {
     result
 }
 
-fn normalize_profile_config(mut config: ProfileConfigData) -> ProfileConfigData {
+pub(crate) fn normalize_profile_config(mut config: ProfileConfigData) -> ProfileConfigData {
     let valid_ids = config
         .items
         .iter()
@@ -309,16 +312,16 @@ fn normalize_profile_config(mut config: ProfileConfigData) -> ProfileConfigData 
     config
 }
 
-fn default_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn default_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app.path().app_data_dir().map_err(|e| e.to_string())
 }
 
-fn ensure_dir(path: PathBuf) -> Result<PathBuf, String> {
+pub(crate) fn ensure_dir(path: PathBuf) -> Result<PathBuf, String> {
     fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     Ok(path)
 }
 
-fn copy_path_if_missing(source: &Path, target: &Path) -> Result<(), String> {
+pub(crate) fn copy_path_if_missing(source: &Path, target: &Path) -> Result<(), String> {
     if !source.exists() {
         return Ok(());
     }
@@ -342,7 +345,7 @@ fn copy_path_if_missing(source: &Path, target: &Path) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
-fn migrate_tauri_app_data_root_if_needed(
+pub(crate) fn migrate_tauri_app_data_root_if_needed(
     source_root: &Path,
     target_root: &Path,
 ) -> Result<(), String> {
@@ -372,7 +375,7 @@ fn migrate_tauri_app_data_root_if_needed(
 }
 
 #[cfg(target_os = "windows")]
-fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let default_root = default_app_data_root(app)?;
     let primary_root = primary_tauri_app_data_root(app)?;
     migrate_tauri_app_data_root_if_needed(&default_root, &primary_root)?;
@@ -380,30 +383,30 @@ fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     ensure_dir(primary_tauri_app_data_root(app)?)
 }
 
-fn app_storage_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn app_storage_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     ensure_dir(app_data_root(app)?.join(ROUTEX_STORE_DIR_NAME))
 }
 
-fn storage_file(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
+pub(crate) fn storage_file(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
     Ok(app_storage_root(app)?.join(file_name))
 }
 
-fn storage_dir(app: &tauri::AppHandle, dir_name: &str) -> Result<PathBuf, String> {
+pub(crate) fn storage_dir(app: &tauri::AppHandle, dir_name: &str) -> Result<PathBuf, String> {
     ensure_dir(app_storage_root(app)?.join(dir_name))
 }
 
-fn ensure_parent(path: &Path) -> Result<(), String> {
+pub(crate) fn ensure_parent(path: &Path) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     Ok(())
 }
 
-fn read_json_file<T: DeserializeOwned>(path: &Path) -> Result<Option<T>, String> {
+pub(crate) fn read_json_file<T: DeserializeOwned>(path: &Path) -> Result<Option<T>, String> {
     if !path.exists() {
         return Ok(None);
     }
@@ -418,20 +421,20 @@ fn read_json_file<T: DeserializeOwned>(path: &Path) -> Result<Option<T>, String>
         .map_err(|e| e.to_string())
 }
 
-fn write_json_file<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
+pub(crate) fn write_json_file<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
     ensure_parent(path)?;
     let text = serde_json::to_string_pretty(value).map_err(|e| e.to_string())?;
     fs::write(path, text).map_err(|e| e.to_string())
 }
 
-fn read_floating_window_state(
+pub(crate) fn read_floating_window_state(
     app: &tauri::AppHandle,
 ) -> Result<Option<FloatingWindowState>, String> {
     let path = storage_file(app, FLOATING_WINDOW_STATE_FILE)?;
     read_json_file(&path)
 }
 
-fn write_floating_window_state(
+pub(crate) fn write_floating_window_state(
     app: &tauri::AppHandle,
     state: &FloatingWindowState,
 ) -> Result<(), String> {
@@ -439,7 +442,7 @@ fn write_floating_window_state(
     write_json_file(&path, state)
 }
 
-fn merge_json(base: &mut Value, patch: &Value) {
+pub(crate) fn merge_json(base: &mut Value, patch: &Value) {
     match (base, patch) {
         (Value::Object(base_map), Value::Object(patch_map)) => {
             for (key, value) in patch_map {
@@ -461,7 +464,7 @@ fn merge_json(base: &mut Value, patch: &Value) {
     }
 }
 
-fn trim_wrapped_key(key: &str) -> &str {
+pub(crate) fn trim_wrapped_key(key: &str) -> &str {
     if key.starts_with('<') && key.ends_with('>') && key.len() > 2 {
         &key[1..key.len() - 1]
     } else {
@@ -469,7 +472,7 @@ fn trim_wrapped_key(key: &str) -> &str {
     }
 }
 
-fn merge_config_value(base: &mut Value, patch: &Value, is_override: bool) {
+pub(crate) fn merge_config_value(base: &mut Value, patch: &Value, is_override: bool) {
     match patch {
         Value::Object(patch_map) => {
             if !base.is_object() {
@@ -527,7 +530,7 @@ fn merge_config_value(base: &mut Value, patch: &Value, is_override: bool) {
     }
 }
 
-fn read_value_store(
+pub(crate) fn read_value_store(
     app: &tauri::AppHandle,
     file_name: &str,
     default: Value,
@@ -536,17 +539,17 @@ fn read_value_store(
     Ok(read_json_file(&path)?.unwrap_or(default))
 }
 
-fn write_value_store(app: &tauri::AppHandle, file_name: &str, value: &Value) -> Result<(), String> {
+pub(crate) fn write_value_store(app: &tauri::AppHandle, file_name: &str, value: &Value) -> Result<(), String> {
     let path = storage_file(app, file_name)?;
     write_json_file(&path, value)
 }
 
-fn read_traffic_stats_store(app: &tauri::AppHandle) -> Result<TrafficStatsStore, String> {
+pub(crate) fn read_traffic_stats_store(app: &tauri::AppHandle) -> Result<TrafficStatsStore, String> {
     let path = storage_file(app, TRAFFIC_STATS_FILE)?;
     Ok(read_json_file(&path)?.unwrap_or_default())
 }
 
-fn write_traffic_stats_store(
+pub(crate) fn write_traffic_stats_store(
     app: &tauri::AppHandle,
     stats: &TrafficStatsStore,
 ) -> Result<(), String> {
@@ -554,7 +557,7 @@ fn write_traffic_stats_store(
     write_json_file(&path, stats)
 }
 
-fn initialize_traffic_stats_store(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn initialize_traffic_stats_store(app: &tauri::AppHandle) -> Result<(), String> {
     let mut stats = read_traffic_stats_store(app)?;
     stats.session_upload = 0;
     stats.session_download = 0;
@@ -562,14 +565,14 @@ fn initialize_traffic_stats_store(app: &tauri::AppHandle) -> Result<(), String> 
     write_traffic_stats_store(app, &stats)
 }
 
-fn trim_recent_records<T>(records: &mut Vec<T>, max_len: usize) {
+pub(crate) fn trim_recent_records<T>(records: &mut Vec<T>, max_len: usize) {
     if records.len() > max_len {
         let keep_from = records.len().saturating_sub(max_len);
         records.drain(0..keep_from);
     }
 }
 
-fn accumulate_hourly_traffic_record(
+pub(crate) fn accumulate_hourly_traffic_record(
     records: &mut Vec<TrafficHourlyStats>,
     hour_key: &str,
     upload: u64,
@@ -589,7 +592,7 @@ fn accumulate_hourly_traffic_record(
     trim_recent_records(records, MAX_TRAFFIC_HOURLY_RECORDS);
 }
 
-fn accumulate_daily_traffic_record(
+pub(crate) fn accumulate_daily_traffic_record(
     records: &mut Vec<TrafficDailyStats>,
     date_key: &str,
     upload: u64,
@@ -609,7 +612,7 @@ fn accumulate_daily_traffic_record(
     trim_recent_records(records, MAX_TRAFFIC_DAILY_RECORDS);
 }
 
-fn record_traffic_sample(
+pub(crate) fn record_traffic_sample(
     app: &tauri::AppHandle,
     sample: TrafficSampleInput,
 ) -> Result<TrafficStatsStore, String> {
@@ -635,15 +638,15 @@ fn record_traffic_sample(
     Ok(stats)
 }
 
-fn clear_traffic_stats_store(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn clear_traffic_stats_store(app: &tauri::AppHandle) -> Result<(), String> {
     write_traffic_stats_store(app, &TrafficStatsStore::default())
 }
 
-fn read_app_config_store(app: &tauri::AppHandle) -> Result<Value, String> {
+pub(crate) fn read_app_config_store(app: &tauri::AppHandle) -> Result<Value, String> {
     read_value_store(app, APP_CONFIG_FILE, json!({}))
 }
 
-fn patch_app_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
+pub(crate) fn patch_app_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
     let mut value = read_app_config_store(app)?;
     merge_json(&mut value, patch);
     invalidate_profile_runtime_config_cache_after(
@@ -651,7 +654,7 @@ fn patch_app_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value
     )
 }
 
-fn patch_requires_shell_surface_sync(patch: &Value) -> bool {
+pub(crate) fn patch_requires_shell_surface_sync(patch: &Value) -> bool {
     let Some(patch_map) = patch.as_object() else {
         return false;
     };
@@ -663,7 +666,7 @@ fn patch_requires_shell_surface_sync(patch: &Value) -> bool {
         || (cfg!(target_os = "macos") && patch_map.contains_key("showTraffic"))
 }
 
-fn read_connection_interval_ms(app: &tauri::AppHandle) -> u64 {
+pub(crate) fn read_connection_interval_ms(app: &tauri::AppHandle) -> u64 {
     read_app_config_store(app)
         .ok()
         .and_then(|config| config.get("connectionInterval").and_then(Value::as_u64))
@@ -671,11 +674,11 @@ fn read_connection_interval_ms(app: &tauri::AppHandle) -> u64 {
         .unwrap_or(MIN_CONNECTION_INTERVAL_MS)
 }
 
-fn read_controlled_config_store(app: &tauri::AppHandle) -> Result<Value, String> {
+pub(crate) fn read_controlled_config_store(app: &tauri::AppHandle) -> Result<Value, String> {
     read_value_store(app, CONTROLLED_CONFIG_FILE, json!({}))
 }
 
-fn patch_controlled_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
+pub(crate) fn patch_controlled_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
     let mut value = read_controlled_config_store(app)?;
     let app_config = read_app_config_store(app)?;
     let control_dns = app_config
@@ -714,25 +717,25 @@ fn patch_controlled_config_store(app: &tauri::AppHandle, patch: &Value) -> Resul
     )
 }
 
-fn read_profile_config(app: &tauri::AppHandle) -> Result<ProfileConfigData, String> {
+pub(crate) fn read_profile_config(app: &tauri::AppHandle) -> Result<ProfileConfigData, String> {
     let path = storage_file(app, PROFILE_CONFIG_FILE)?;
     Ok(normalize_profile_config(
         read_json_file(&path)?.unwrap_or_default(),
     ))
 }
 
-fn write_profile_config(app: &tauri::AppHandle, config: &ProfileConfigData) -> Result<(), String> {
+pub(crate) fn write_profile_config(app: &tauri::AppHandle, config: &ProfileConfigData) -> Result<(), String> {
     let path = storage_file(app, PROFILE_CONFIG_FILE)?;
     let normalized = normalize_profile_config(config.clone());
     invalidate_profile_runtime_config_cache_after(write_json_file(&path, &normalized))
 }
 
-fn read_override_config(app: &tauri::AppHandle) -> Result<OverrideConfigData, String> {
+pub(crate) fn read_override_config(app: &tauri::AppHandle) -> Result<OverrideConfigData, String> {
     let path = storage_file(app, OVERRIDE_CONFIG_FILE)?;
     Ok(read_json_file(&path)?.unwrap_or_default())
 }
 
-fn write_override_config(
+pub(crate) fn write_override_config(
     app: &tauri::AppHandle,
     config: &OverrideConfigData,
 ) -> Result<(), String> {
@@ -740,17 +743,17 @@ fn write_override_config(
     invalidate_profile_runtime_config_cache_after(write_json_file(&path, config))
 }
 
-fn read_chains_config(app: &tauri::AppHandle) -> Result<ChainsConfigData, String> {
+pub(crate) fn read_chains_config(app: &tauri::AppHandle) -> Result<ChainsConfigData, String> {
     let path = storage_file(app, CHAINS_CONFIG_FILE)?;
     Ok(read_json_file(&path)?.unwrap_or_default())
 }
 
-fn write_chains_config(app: &tauri::AppHandle, config: &ChainsConfigData) -> Result<(), String> {
+pub(crate) fn write_chains_config(app: &tauri::AppHandle, config: &ChainsConfigData) -> Result<(), String> {
     let path = storage_file(app, CHAINS_CONFIG_FILE)?;
     invalidate_profile_runtime_config_cache_after(write_json_file(&path, config))
 }
 
-fn default_quick_rules_config() -> QuickRulesConfigData {
+pub(crate) fn default_quick_rules_config() -> QuickRulesConfigData {
     QuickRulesConfigData {
         version: 1,
         migrated_legacy_quick_rules: false,
@@ -759,7 +762,7 @@ fn default_quick_rules_config() -> QuickRulesConfigData {
     }
 }
 
-fn normalize_quick_rule(rule: QuickRule) -> Option<QuickRule> {
+pub(crate) fn normalize_quick_rule(rule: QuickRule) -> Option<QuickRule> {
     if rule.id.trim().is_empty()
         || rule.rule_type.trim().is_empty()
         || rule.value.trim().is_empty()
@@ -785,7 +788,7 @@ fn normalize_quick_rule(rule: QuickRule) -> Option<QuickRule> {
     })
 }
 
-fn normalize_quick_rules_config(mut config: QuickRulesConfigData) -> QuickRulesConfigData {
+pub(crate) fn normalize_quick_rules_config(mut config: QuickRulesConfigData) -> QuickRulesConfigData {
     config.version = 1;
     config.profiles = config
         .profiles
@@ -808,7 +811,7 @@ fn normalize_quick_rules_config(mut config: QuickRulesConfigData) -> QuickRulesC
     config
 }
 
-fn quick_rule_string(rule: &QuickRule) -> String {
+pub(crate) fn quick_rule_string(rule: &QuickRule) -> String {
     let mut text = format!("{},{},{}", rule.rule_type, rule.value, rule.target);
     if rule.no_resolve.unwrap_or(false) {
         text.push_str(",no-resolve");
@@ -816,11 +819,11 @@ fn quick_rule_string(rule: &QuickRule) -> String {
     text
 }
 
-fn quick_rule_dedupe_key(rule: &QuickRule) -> String {
+pub(crate) fn quick_rule_dedupe_key(rule: &QuickRule) -> String {
     format!("{},{}", quick_rule_string(rule), rule.enabled)
 }
 
-fn parse_quick_rule_string(raw: &str) -> Option<QuickRuleInput> {
+pub(crate) fn parse_quick_rule_string(raw: &str) -> Option<QuickRuleInput> {
     let parts = raw
         .split(',')
         .map(str::trim)
@@ -841,7 +844,7 @@ fn parse_quick_rule_string(raw: &str) -> Option<QuickRuleInput> {
     })
 }
 
-fn parse_legacy_quick_rules(content: &str) -> Vec<QuickRuleInput> {
+pub(crate) fn parse_legacy_quick_rules(content: &str) -> Vec<QuickRuleInput> {
     content
         .lines()
         .filter_map(|line| {
@@ -853,7 +856,7 @@ fn parse_legacy_quick_rules(content: &str) -> Vec<QuickRuleInput> {
         .collect()
 }
 
-fn ensure_quick_rule_profile_mut<'a>(
+pub(crate) fn ensure_quick_rule_profile_mut<'a>(
     config: &'a mut QuickRulesConfigData,
     profile_id: &str,
 ) -> &'a mut QuickRuleProfileConfig {
@@ -866,14 +869,14 @@ fn ensure_quick_rule_profile_mut<'a>(
         })
 }
 
-fn read_quick_rules_config_raw(app: &tauri::AppHandle) -> Result<QuickRulesConfigData, String> {
+pub(crate) fn read_quick_rules_config_raw(app: &tauri::AppHandle) -> Result<QuickRulesConfigData, String> {
     let path = storage_file(app, QUICK_RULES_CONFIG_FILE)?;
     Ok(normalize_quick_rules_config(
         read_json_file(&path)?.unwrap_or_else(default_quick_rules_config),
     ))
 }
 
-fn write_quick_rules_config(
+pub(crate) fn write_quick_rules_config(
     app: &tauri::AppHandle,
     config: &QuickRulesConfigData,
 ) -> Result<(), String> {
@@ -882,7 +885,7 @@ fn write_quick_rules_config(
     invalidate_profile_runtime_config_cache_after(write_json_file(&path, &normalized))
 }
 
-fn quick_rule_from_input(
+pub(crate) fn quick_rule_from_input(
     input: QuickRuleInput,
     fallback_index: usize,
 ) -> Result<QuickRule, String> {
@@ -916,11 +919,11 @@ fn quick_rule_from_input(
     })
 }
 
-fn migrate_legacy_quick_rules_if_needed(
+pub(crate) fn migrate_legacy_quick_rules_if_needed(
     app: &tauri::AppHandle,
     config: &mut QuickRulesConfigData,
 ) -> Result<(), String> {
-    const LEGACY_QUICK_RULES_ID: &str = "quick-rules";
+    pub(crate) const LEGACY_QUICK_RULES_ID: &str = "quick-rules";
     if config.migrated_legacy_quick_rules {
         return Ok(());
     }
@@ -994,7 +997,7 @@ fn migrate_legacy_quick_rules_if_needed(
     write_quick_rules_config(app, config)
 }
 
-fn migrate_profile_quick_rules_to_global_if_needed(
+pub(crate) fn migrate_profile_quick_rules_to_global_if_needed(
     app: &tauri::AppHandle,
     config: &mut QuickRulesConfigData,
 ) -> Result<(), String> {
@@ -1030,14 +1033,14 @@ fn migrate_profile_quick_rules_to_global_if_needed(
     write_quick_rules_config(app, config)
 }
 
-fn read_quick_rules_config(app: &tauri::AppHandle) -> Result<QuickRulesConfigData, String> {
+pub(crate) fn read_quick_rules_config(app: &tauri::AppHandle) -> Result<QuickRulesConfigData, String> {
     let mut config = read_quick_rules_config_raw(app)?;
     migrate_legacy_quick_rules_if_needed(app, &mut config)?;
     migrate_profile_quick_rules_to_global_if_needed(app, &mut config)?;
     Ok(config)
 }
 
-fn read_quick_rules(
+pub(crate) fn read_quick_rules(
     app: &tauri::AppHandle,
     profile_id: &str,
 ) -> Result<QuickRuleProfileConfig, String> {
@@ -1045,7 +1048,7 @@ fn read_quick_rules(
     Ok(ensure_quick_rule_profile_mut(&mut config, profile_id).clone())
 }
 
-fn add_quick_rule_store(
+pub(crate) fn add_quick_rule_store(
     app: &tauri::AppHandle,
     profile_id: &str,
     input: QuickRuleInput,
@@ -1058,7 +1061,7 @@ fn add_quick_rule_store(
     Ok(rule)
 }
 
-fn update_quick_rule_store(
+pub(crate) fn update_quick_rule_store(
     app: &tauri::AppHandle,
     profile_id: &str,
     rule_id: &str,
@@ -1098,7 +1101,7 @@ fn update_quick_rule_store(
     write_quick_rules_config(app, &config)
 }
 
-fn remove_quick_rule_store(
+pub(crate) fn remove_quick_rule_store(
     app: &tauri::AppHandle,
     profile_id: &str,
     rule_id: &str,
@@ -1109,7 +1112,7 @@ fn remove_quick_rule_store(
     write_quick_rules_config(app, &config)
 }
 
-fn set_quick_rules_enabled_store(
+pub(crate) fn set_quick_rules_enabled_store(
     app: &tauri::AppHandle,
     profile_id: &str,
     enabled: bool,
@@ -1119,7 +1122,7 @@ fn set_quick_rules_enabled_store(
     write_quick_rules_config(app, &config)
 }
 
-fn reorder_quick_rules_store(
+pub(crate) fn reorder_quick_rules_store(
     app: &tauri::AppHandle,
     profile_id: &str,
     rule_ids: &[String],
@@ -1149,7 +1152,7 @@ fn reorder_quick_rules_store(
     write_quick_rules_config(app, &config)
 }
 
-fn clear_quick_rules_store(app: &tauri::AppHandle, profile_id: &str) -> Result<(), String> {
+pub(crate) fn clear_quick_rules_store(app: &tauri::AppHandle, profile_id: &str) -> Result<(), String> {
     let mut config = read_quick_rules_config(app)?;
     ensure_quick_rule_profile_mut(&mut config, profile_id)
         .rules
@@ -1157,7 +1160,7 @@ fn clear_quick_rules_store(app: &tauri::AppHandle, profile_id: &str) -> Result<(
     write_quick_rules_config(app, &config)
 }
 
-fn quick_rule_target_names(profile: &Value) -> HashSet<String> {
+pub(crate) fn quick_rule_target_names(profile: &Value) -> HashSet<String> {
     let mut names = ["DIRECT", "REJECT", "REJECT-DROP", "PASS", "GLOBAL"]
         .iter()
         .map(|value| value.to_string())
@@ -1178,7 +1181,7 @@ fn quick_rule_target_names(profile: &Value) -> HashSet<String> {
     names
 }
 
-fn quick_rule_strings(app: &tauri::AppHandle, runtime_profile: &Value) -> Result<Vec<String>, String> {
+pub(crate) fn quick_rule_strings(app: &tauri::AppHandle, runtime_profile: &Value) -> Result<Vec<String>, String> {
     let quick_rules = read_quick_rules(app, GLOBAL_QUICK_RULES_PROFILE_ID)?;
     if !quick_rules.enabled {
         return Ok(Vec::new());
@@ -1193,7 +1196,7 @@ fn quick_rule_strings(app: &tauri::AppHandle, runtime_profile: &Value) -> Result
         .collect())
 }
 
-fn inject_quick_rules(app: &tauri::AppHandle, profile: &mut Value) -> Result<(), String> {
+pub(crate) fn inject_quick_rules(app: &tauri::AppHandle, profile: &mut Value) -> Result<(), String> {
     if !profile.is_object() {
         *profile = json!({});
     }
@@ -1218,11 +1221,11 @@ fn inject_quick_rules(app: &tauri::AppHandle, profile: &mut Value) -> Result<(),
     Ok(())
 }
 
-fn profile_file_path(app: &tauri::AppHandle, id: &str) -> Result<PathBuf, String> {
+pub(crate) fn profile_file_path(app: &tauri::AppHandle, id: &str) -> Result<PathBuf, String> {
     Ok(storage_dir(app, PROFILE_DIR_NAME)?.join(format!("{id}.yaml")))
 }
 
-fn read_profile_text(app: &tauri::AppHandle, id: &str) -> Result<String, String> {
+pub(crate) fn read_profile_text(app: &tauri::AppHandle, id: &str) -> Result<String, String> {
     let path = profile_file_path(app, id)?;
     if path.exists() {
         return fs::read_to_string(path).map_err(|e| e.to_string());
@@ -1231,7 +1234,7 @@ fn read_profile_text(app: &tauri::AppHandle, id: &str) -> Result<String, String>
     Ok(DEFAULT_PROFILE_TEXT.to_string())
 }
 
-fn write_profile_text(app: &tauri::AppHandle, id: &str, content: &str) -> Result<(), String> {
+pub(crate) fn write_profile_text(app: &tauri::AppHandle, id: &str, content: &str) -> Result<(), String> {
     let path = profile_file_path(app, id)?;
     ensure_parent(&path)?;
     invalidate_profile_runtime_config_cache_after(
@@ -1239,15 +1242,15 @@ fn write_profile_text(app: &tauri::AppHandle, id: &str, content: &str) -> Result
     )
 }
 
-fn override_file_path(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<PathBuf, String> {
+pub(crate) fn override_file_path(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<PathBuf, String> {
     Ok(storage_dir(app, OVERRIDE_DIR_NAME)?.join(format!("{id}.{ext}")))
 }
 
-fn override_rollback_path(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<PathBuf, String> {
+pub(crate) fn override_rollback_path(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<PathBuf, String> {
     Ok(storage_dir(app, OVERRIDE_DIR_NAME)?.join(format!("{id}.{ext}.rollback")))
 }
 
-fn read_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<String, String> {
+pub(crate) fn read_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<String, String> {
     let path = override_file_path(app, id, ext)?;
     if path.exists() {
         return fs::read_to_string(path).map_err(|e| e.to_string());
@@ -1256,7 +1259,7 @@ fn read_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<Str
     Ok(String::new())
 }
 
-fn write_override_text(
+pub(crate) fn write_override_text(
     app: &tauri::AppHandle,
     id: &str,
     ext: &str,
@@ -1279,7 +1282,7 @@ fn write_override_text(
     )
 }
 
-fn rollback_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<(), String> {
+pub(crate) fn rollback_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<(), String> {
     let target_path = override_file_path(app, id, ext)?;
     let rollback_path = override_rollback_path(app, id, ext)?;
 
@@ -1297,19 +1300,19 @@ fn rollback_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result
     )
 }
 
-fn theme_file_path(app: &tauri::AppHandle, theme: &str) -> Result<PathBuf, String> {
+pub(crate) fn theme_file_path(app: &tauri::AppHandle, theme: &str) -> Result<PathBuf, String> {
     Ok(storage_dir(app, THEME_DIR_NAME)?.join(theme))
 }
 
-fn is_default_theme(theme: &str) -> bool {
+pub(crate) fn is_default_theme(theme: &str) -> bool {
     theme == DEFAULT_THEME_FILE_NAME
 }
 
-fn is_routex_blue_glass_theme(theme: &str) -> bool {
+pub(crate) fn is_routex_blue_glass_theme(theme: &str) -> bool {
     theme == ROUTEX_BLUE_GLASS_THEME_FILE_NAME
 }
 
-fn built_in_theme_text(theme: &str) -> Option<&'static str> {
+pub(crate) fn built_in_theme_text(theme: &str) -> Option<&'static str> {
     if is_routex_blue_glass_theme(theme) {
         return Some(ROUTEX_BLUE_GLASS_THEME_CSS);
     }
@@ -1317,7 +1320,7 @@ fn built_in_theme_text(theme: &str) -> Option<&'static str> {
     None
 }
 
-fn theme_sort_rank(theme: &str) -> u8 {
+pub(crate) fn theme_sort_rank(theme: &str) -> u8 {
     if is_routex_blue_glass_theme(theme) {
         return 0;
     }
@@ -1328,7 +1331,7 @@ fn theme_sort_rank(theme: &str) -> u8 {
     2
 }
 
-fn read_theme_text(app: &tauri::AppHandle, theme: &str) -> Result<String, String> {
+pub(crate) fn read_theme_text(app: &tauri::AppHandle, theme: &str) -> Result<String, String> {
     if is_default_theme(theme) {
         return Ok(String::new());
     }
@@ -1345,7 +1348,7 @@ fn read_theme_text(app: &tauri::AppHandle, theme: &str) -> Result<String, String
     Ok(String::new())
 }
 
-fn write_theme_text(app: &tauri::AppHandle, theme: &str, css: &str) -> Result<(), String> {
+pub(crate) fn write_theme_text(app: &tauri::AppHandle, theme: &str, css: &str) -> Result<(), String> {
     if is_default_theme(theme) {
         return Ok(());
     }
@@ -1355,7 +1358,7 @@ fn write_theme_text(app: &tauri::AppHandle, theme: &str, css: &str) -> Result<()
     fs::write(path, css).map_err(|e| e.to_string())
 }
 
-fn theme_display_label(file_name: &str, content: &str) -> String {
+pub(crate) fn theme_display_label(file_name: &str, content: &str) -> String {
     let first_line = content
         .strip_prefix('\u{feff}')
         .unwrap_or(content)
@@ -1376,7 +1379,7 @@ fn theme_display_label(file_name: &str, content: &str) -> String {
     file_name.to_string()
 }
 
-fn import_theme_files(app: &tauri::AppHandle, files: &[String]) -> Result<(), String> {
+pub(crate) fn import_theme_files(app: &tauri::AppHandle, files: &[String]) -> Result<(), String> {
     let themes_dir = storage_dir(app, THEME_DIR_NAME)?;
 
     for (index, file) in files.iter().enumerate() {
@@ -1404,7 +1407,7 @@ fn import_theme_files(app: &tauri::AppHandle, files: &[String]) -> Result<(), St
     Ok(())
 }
 
-fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
+pub(crate) fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
     let themes_dir = storage_dir(app, THEME_DIR_NAME)?;
     let mut entries = Vec::new();
 
@@ -1458,7 +1461,7 @@ fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
     Ok(entries)
 }
 
-fn fetch_theme_archive(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn fetch_theme_archive(app: &tauri::AppHandle) -> Result<(), String> {
     let client = Client::builder()
         .timeout(Duration::from_secs(30))
         .build()

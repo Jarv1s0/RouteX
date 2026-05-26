@@ -1,6 +1,6 @@
 #![cfg_attr(not(target_os = "windows"), allow(dead_code))]
 
-use std::{
+pub(crate) use std::{
     collections::{HashMap, HashSet, VecDeque},
     fs::{self, OpenOptions},
     io::{Cursor, Read, Seek, SeekFrom, Write},
@@ -16,40 +16,40 @@ use std::{
 };
 
 #[cfg(not(target_os = "windows"))]
-use std::os::unix::net::UnixStream;
+pub(crate) use std::os::unix::net::UnixStream;
 #[cfg(target_os = "windows")]
-use std::os::windows::process::CommandExt;
+pub(crate) use std::os::windows::process::CommandExt;
 
-use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
-use boa_engine::{Context as JsContext, Source as JsSource};
-use quick_xml::{events::Event, Reader};
-use reqwest::blocking::Client;
-use ring::rand::{SecureRandom, SystemRandom};
-use ring::signature::{Ed25519KeyPair, KeyPair};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
+pub(crate) use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
+pub(crate) use boa_engine::{Context as JsContext, Source as JsSource};
+pub(crate) use quick_xml::{events::Event, Reader};
+pub(crate) use reqwest::blocking::Client;
+pub(crate) use ring::rand::{SecureRandom, SystemRandom};
+pub(crate) use ring::signature::{Ed25519KeyPair, KeyPair};
+pub(crate) use serde::{de::DeserializeOwned, Deserialize, Serialize};
+pub(crate) use serde_json::{json, Value};
+pub(crate) use sha2::{Digest, Sha256};
 #[cfg(target_os = "macos")]
-use tauri::menu::AboutMetadata;
-use tauri::{
+pub(crate) use tauri::menu::AboutMetadata;
+pub(crate) use tauri::{
     image::Image,
     menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, PhysicalPosition, Position, RunEvent, State, WebviewUrl,
     WebviewWindowBuilder, WindowEvent,
 };
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState};
-use tauri_plugin_updater::UpdaterExt;
-use time::{macros::format_description, OffsetDateTime};
-use walkdir::WalkDir;
-use zip::{write::SimpleFileOptions, CompressionMethod, ZipArchive, ZipWriter};
+pub(crate) use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState};
+pub(crate) use tauri_plugin_updater::UpdaterExt;
+pub(crate) use time::{macros::format_description, OffsetDateTime};
+pub(crate) use walkdir::WalkDir;
+pub(crate) use zip::{write::SimpleFileOptions, CompressionMethod, ZipArchive, ZipWriter};
 
 #[cfg(target_os = "windows")]
 #[link(name = "kernel32")]
-unsafe extern "system" {
-    fn GetACP() -> u32;
-    fn GetOEMCP() -> u32;
-    fn MultiByteToWideChar(
+extern "system" {
+    pub(crate) fn GetACP() -> u32;
+    pub(crate) fn GetOEMCP() -> u32;
+    pub(crate) fn MultiByteToWideChar(
         code_page: u32,
         flags: u32,
         multi_byte_str: *const i8,
@@ -59,56 +59,83 @@ unsafe extern "system" {
     ) -> i32;
 }
 
-mod constants;
-mod gist;
-mod models;
-mod startup;
-mod updater;
+pub(crate) mod constants;
+pub(crate) mod gist;
+pub(crate) mod models;
+pub(crate) mod startup;
+pub(crate) mod updater;
 #[macro_use]
-mod ipc;
+pub(crate) mod ipc;
 
-use self::{
-    constants::*,
-    gist::get_gist_url_value,
-    ipc::{desktop_check_update, desktop_get_icon_data_urls, desktop_invoke},
-    models::*,
-    startup::{
-        read_startup_alignment_config, run_startup_alignment,
-        should_show_main_window_after_renderer_ready,
-    },
-    updater::{
-        cancel_update_download, check_update_manifest, download_and_install_update, update_client,
-    },
-};
+pub(crate) mod foundation;
+pub(crate) mod icons;
+pub(crate) mod common;
+pub(crate) mod shell_icons;
+pub(crate) mod shell_window;
+pub(crate) mod shell_tray_menu;
+pub(crate) mod shell_app_menu;
+pub(crate) mod shell_tray_actions;
+pub(crate) mod shell_shortcuts;
+pub(crate) mod shell_surfaces;
+pub(crate) mod webdav;
+pub(crate) mod diagnostics;
+pub(crate) mod profiles;
+pub(crate) mod monitors;
+pub(crate) mod dialogs;
+pub(crate) mod resources;
+pub(crate) mod service_config;
+pub(crate) mod service_client;
+pub(crate) mod service_tasks;
+pub(crate) mod service_startup;
+pub(crate) mod service_permissions;
+pub(crate) mod service_lifecycle;
+pub(crate) mod traffic_monitor;
+pub(crate) mod network_control;
+pub(crate) mod runtime_config;
+pub(crate) mod dns;
+pub(crate) mod core_process;
+pub(crate) mod app;
 
-include!("desktop/foundation.rs");
-include!("desktop/icons.rs");
-include!("desktop/common.rs");
-include!("desktop/shell_icons.rs");
-include!("desktop/shell_window.rs");
-include!("desktop/shell_tray_menu.rs");
-include!("desktop/shell_app_menu.rs");
-include!("desktop/shell_tray_actions.rs");
-include!("desktop/shell_shortcuts.rs");
-include!("desktop/shell_surfaces.rs");
-include!("desktop/webdav.rs");
-include!("desktop/diagnostics.rs");
-include!("desktop/profiles.rs");
-include!("desktop/monitors.rs");
-include!("desktop/dialogs.rs");
-include!("desktop/resources.rs");
-include!("desktop/service_config.rs");
-include!("desktop/service_client.rs");
-include!("desktop/service_tasks.rs");
-include!("desktop/service_startup.rs");
-include!("desktop/service_permissions.rs");
-include!("desktop/service_lifecycle.rs");
-include!("desktop/traffic_monitor.rs");
-include!("desktop/network_control.rs");
-include!("desktop/runtime_config.rs");
-include!("desktop/dns.rs");
-include!("desktop/core_process.rs");
-include!("desktop/app.rs");
+pub use app::run;
+
+#[allow(unused_imports)]
+pub(crate) mod prelude {
+    pub(crate) use super::constants::*;
+    pub(crate) use super::gist::*;
+    pub(crate) use super::models::*;
+    pub(crate) use super::startup::*;
+    pub(crate) use super::updater::*;
+    pub(crate) use super::ipc::*;
+    
+    pub(crate) use super::foundation::*;
+    pub(crate) use super::icons::*;
+    pub(crate) use super::common::*;
+    pub(crate) use super::shell_icons::*;
+    pub(crate) use super::shell_window::*;
+    pub(crate) use super::shell_tray_menu::*;
+    pub(crate) use super::shell_app_menu::*;
+    pub(crate) use super::shell_tray_actions::*;
+    pub(crate) use super::shell_shortcuts::*;
+    pub(crate) use super::shell_surfaces::*;
+    pub(crate) use super::webdav::*;
+    pub(crate) use super::diagnostics::*;
+    pub(crate) use super::profiles::*;
+    pub(crate) use super::monitors::*;
+    pub(crate) use super::dialogs::*;
+    pub(crate) use super::resources::*;
+    pub(crate) use super::service_config::*;
+    pub(crate) use super::service_client::*;
+    pub(crate) use super::service_tasks::*;
+    pub(crate) use super::service_startup::*;
+    pub(crate) use super::service_permissions::*;
+    pub(crate) use super::service_lifecycle::*;
+    pub(crate) use super::traffic_monitor::*;
+    pub(crate) use super::network_control::*;
+    pub(crate) use super::runtime_config::*;
+    pub(crate) use super::dns::*;
+    pub(crate) use super::core_process::*;
+    pub(crate) use super::app::*;
+}
 
 #[cfg(test)]
 mod tests;

@@ -1,11 +1,14 @@
-fn read_service_auth_key(app: &tauri::AppHandle) -> Result<Option<String>, String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn read_service_auth_key(app: &tauri::AppHandle) -> Result<Option<String>, String> {
     Ok(read_app_config_store(app)?
         .get("serviceAuthKey")
         .and_then(Value::as_str)
         .map(str::to_string))
 }
 
-fn parse_service_auth_key(service_auth_key: &str) -> Result<(String, String), String> {
+pub(crate) fn parse_service_auth_key(service_auth_key: &str) -> Result<(String, String), String> {
     let Some((public_key, private_key)) = service_auth_key.split_once(':') else {
         return Err("serviceAuthKey 格式无效，无法初始化服务".to_string());
     };
@@ -15,7 +18,7 @@ fn parse_service_auth_key(service_auth_key: &str) -> Result<(String, String), St
     Ok((public_key.to_string(), private_key.to_string()))
 }
 
-fn der_to_pem(label: &str, der: &[u8]) -> String {
+pub(crate) fn der_to_pem(label: &str, der: &[u8]) -> String {
     let encoded = BASE64_STANDARD.encode(der);
     let body = encoded
         .as_bytes()
@@ -26,8 +29,8 @@ fn der_to_pem(label: &str, der: &[u8]) -> String {
     format!("-----BEGIN {label}-----\n{body}\n-----END {label}-----\n")
 }
 
-fn generate_service_auth_key() -> Result<String, String> {
-    const ED25519_SPKI_PREFIX: &[u8] = &[
+pub(crate) fn generate_service_auth_key() -> Result<String, String> {
+    pub(crate) const ED25519_SPKI_PREFIX: &[u8] = &[
         0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
     ];
 
@@ -48,7 +51,7 @@ fn generate_service_auth_key() -> Result<String, String> {
 }
 
 #[cfg(target_os = "windows")]
-fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
+pub(crate) fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
     let mut command = Command::new("whoami");
     apply_background_command(&mut command);
     let output = command
@@ -72,7 +75,7 @@ fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
+pub(crate) fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
     let output = Command::new("id")
         .arg("-u")
         .output()
@@ -89,7 +92,7 @@ fn current_service_authorized_principal_args() -> Result<Vec<String>, String> {
     Ok(vec![String::from("--authorized-uid"), uid])
 }
 
-fn classify_service_status_token(value: &str) -> Option<&'static str> {
+pub(crate) fn classify_service_status_token(value: &str) -> Option<&'static str> {
     let normalized = value.to_ascii_lowercase();
     if normalized.contains("not-installed")
         || normalized.contains("not installed")
@@ -110,7 +113,7 @@ fn classify_service_status_token(value: &str) -> Option<&'static str> {
     None
 }
 
-fn classify_service_status_text(output: &str) -> Option<&'static str> {
+pub(crate) fn classify_service_status_text(output: &str) -> Option<&'static str> {
     if let Ok(value) = serde_json::from_str::<Value>(output) {
         if let Some(status) = value
             .pointer("/status/state")
@@ -125,7 +128,7 @@ fn classify_service_status_text(output: &str) -> Option<&'static str> {
     classify_service_status_token(output)
 }
 
-fn service_status_value(app: &tauri::AppHandle) -> Result<Value, String> {
+pub(crate) fn service_status_value(app: &tauri::AppHandle) -> Result<Value, String> {
     let has_auth_key = read_service_auth_key(app)?.is_some();
     let output = match run_service_command_capture(
         app,
@@ -149,14 +152,14 @@ fn service_status_value(app: &tauri::AppHandle) -> Result<Value, String> {
     Ok(json!("unknown"))
 }
 
-fn test_service_connection_value(app: &tauri::AppHandle) -> bool {
+pub(crate) fn test_service_connection_value(app: &tauri::AppHandle) -> bool {
     if read_service_auth_key(app).ok().flatten().is_none() {
         return false;
     }
     service_http_request_json(app, "GET", "/test", None).is_ok()
 }
 
-fn init_service(app: &tauri::AppHandle, auth_key_input: Option<Value>) -> Result<(), String> {
+pub(crate) fn init_service(app: &tauri::AppHandle, auth_key_input: Option<Value>) -> Result<(), String> {
     let service_auth_key = match auth_key_input {
         Some(Value::Object(payload)) => {
             let public_key = payload
@@ -189,22 +192,22 @@ fn init_service(app: &tauri::AppHandle, auth_key_input: Option<Value>) -> Result
     Ok(())
 }
 
-fn install_service(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn install_service(app: &tauri::AppHandle) -> Result<(), String> {
     run_service_command(app, &[String::from("service"), String::from("install")])
 }
 
-fn uninstall_service(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn uninstall_service(app: &tauri::AppHandle) -> Result<(), String> {
     run_service_command(app, &[String::from("service"), String::from("uninstall")])
 }
 
-fn start_service(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn start_service(app: &tauri::AppHandle) -> Result<(), String> {
     run_service_command(app, &[String::from("service"), String::from("start")])
 }
 
-fn restart_service(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn restart_service(app: &tauri::AppHandle) -> Result<(), String> {
     run_service_command(app, &[String::from("service"), String::from("restart")])
 }
 
-fn stop_service(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn stop_service(app: &tauri::AppHandle) -> Result<(), String> {
     run_service_command(app, &[String::from("service"), String::from("stop")])
 }

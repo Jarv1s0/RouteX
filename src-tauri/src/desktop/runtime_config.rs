@@ -1,4 +1,7 @@
-fn read_core_name(app: &tauri::AppHandle) -> Result<String, String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn read_core_name(app: &tauri::AppHandle) -> Result<String, String> {
     Ok(
         match read_app_config_store(app)?
             .get("core")
@@ -11,20 +14,20 @@ fn read_core_name(app: &tauri::AppHandle) -> Result<String, String> {
     )
 }
 
-fn read_diff_work_dir(app: &tauri::AppHandle) -> Result<bool, String> {
+pub(crate) fn read_diff_work_dir(app: &tauri::AppHandle) -> Result<bool, String> {
     Ok(read_app_config_store(app)?
         .get("diffWorkDir")
         .and_then(Value::as_bool)
         .unwrap_or(false))
 }
 
-fn read_safe_paths(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
+pub(crate) fn read_safe_paths(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
     Ok(json_array_strings(
         read_app_config_store(app)?.get("safePaths"),
     ))
 }
 
-fn read_control_flags(app: &tauri::AppHandle) -> Result<(bool, bool), String> {
+pub(crate) fn read_control_flags(app: &tauri::AppHandle) -> Result<(bool, bool), String> {
     let app_config = read_app_config_store(app)?;
     let control_dns = app_config
         .get("controlDns")
@@ -37,7 +40,7 @@ fn read_control_flags(app: &tauri::AppHandle) -> Result<(bool, bool), String> {
     Ok((control_dns, control_sniff))
 }
 
-fn read_auto_set_dns_mode(app: &tauri::AppHandle) -> Result<String, String> {
+pub(crate) fn read_auto_set_dns_mode(app: &tauri::AppHandle) -> Result<String, String> {
     Ok(read_app_config_store(app)?
         .get("autoSetDNSMode")
         .and_then(Value::as_str)
@@ -45,12 +48,12 @@ fn read_auto_set_dns_mode(app: &tauri::AppHandle) -> Result<String, String> {
         .to_string())
 }
 
-fn normalize_delay_test_timeout(value: Option<i64>) -> i64 {
+pub(crate) fn normalize_delay_test_timeout(value: Option<i64>) -> i64 {
     let parsed = value.unwrap_or(5000);
     parsed.clamp(1000, 15000)
 }
 
-fn resolve_delay_test_options(
+pub(crate) fn resolve_delay_test_options(
     app: &tauri::AppHandle,
     input_url: Option<&str>,
 ) -> Result<(String, String), String> {
@@ -71,13 +74,13 @@ fn resolve_delay_test_options(
     Ok((final_url, timeout))
 }
 
-fn current_runtime_profile_id(app: &tauri::AppHandle) -> Result<Option<String>, String> {
+pub(crate) fn current_runtime_profile_id(app: &tauri::AppHandle) -> Result<Option<String>, String> {
     let profile_config = read_profile_config(app)?;
     let active_ids = active_profile_ids(&profile_config);
     Ok(primary_profile_id(&profile_config, &active_ids))
 }
 
-fn path_delimiter() -> &'static str {
+pub(crate) fn path_delimiter() -> &'static str {
     if cfg!(target_os = "windows") {
         ";"
     } else {
@@ -85,7 +88,7 @@ fn path_delimiter() -> &'static str {
     }
 }
 
-fn cleanup_boolean_configs(config: &mut serde_json::Map<String, Value>) {
+pub(crate) fn cleanup_boolean_configs(config: &mut serde_json::Map<String, Value>) {
     if config.get("ipv6").and_then(Value::as_bool) != Some(false) {
         config.remove("ipv6");
     }
@@ -130,7 +133,7 @@ fn cleanup_boolean_configs(config: &mut serde_json::Map<String, Value>) {
     }
 }
 
-fn cleanup_number_configs(config: &mut serde_json::Map<String, Value>) {
+pub(crate) fn cleanup_number_configs(config: &mut serde_json::Map<String, Value>) {
     for key in [
         "port",
         "socks-port",
@@ -146,7 +149,7 @@ fn cleanup_number_configs(config: &mut serde_json::Map<String, Value>) {
     }
 }
 
-fn cleanup_string_configs(config: &mut serde_json::Map<String, Value>) {
+pub(crate) fn cleanup_string_configs(config: &mut serde_json::Map<String, Value>) {
     if config.get("mode").and_then(Value::as_str) == Some("rule") {
         config.remove("mode");
     }
@@ -186,7 +189,7 @@ fn cleanup_string_configs(config: &mut serde_json::Map<String, Value>) {
     }
 }
 
-fn cleanup_lan_settings(config: &mut serde_json::Map<String, Value>) {
+pub(crate) fn cleanup_lan_settings(config: &mut serde_json::Map<String, Value>) {
     match config.get("allow-lan").and_then(Value::as_bool) {
         Some(false) => {
             config.remove("lan-allowed-ips");
@@ -230,7 +233,7 @@ fn cleanup_lan_settings(config: &mut serde_json::Map<String, Value>) {
     }
 }
 
-fn cleanup_authentication_config(config: &mut serde_json::Map<String, Value>) {
+pub(crate) fn cleanup_authentication_config(config: &mut serde_json::Map<String, Value>) {
     if config
         .get("authentication")
         .and_then(Value::as_array)
@@ -242,7 +245,7 @@ fn cleanup_authentication_config(config: &mut serde_json::Map<String, Value>) {
     }
 }
 
-fn cleanup_tun_config(config: &mut serde_json::Map<String, Value>) {
+pub(crate) fn cleanup_tun_config(config: &mut serde_json::Map<String, Value>) {
     let mut should_remove_tun = false;
     if let Some(tun) = config.get_mut("tun").and_then(Value::as_object_mut) {
         if tun.get("enable").and_then(Value::as_bool) != Some(true) {
@@ -289,7 +292,7 @@ fn cleanup_tun_config(config: &mut serde_json::Map<String, Value>) {
     }
 }
 
-fn cleanup_dns_config(config: &mut serde_json::Map<String, Value>, control_dns: bool) {
+pub(crate) fn cleanup_dns_config(config: &mut serde_json::Map<String, Value>, control_dns: bool) {
     if !control_dns {
         return;
     }
@@ -347,7 +350,7 @@ fn cleanup_dns_config(config: &mut serde_json::Map<String, Value>, control_dns: 
     }
 }
 
-fn cleanup_sniffer_config(config: &mut serde_json::Map<String, Value>, control_sniff: bool) {
+pub(crate) fn cleanup_sniffer_config(config: &mut serde_json::Map<String, Value>, control_sniff: bool) {
     if !control_sniff {
         return;
     }
@@ -363,7 +366,7 @@ fn cleanup_sniffer_config(config: &mut serde_json::Map<String, Value>, control_s
     }
 }
 
-fn cleanup_proxy_configs(config: &mut serde_json::Map<String, Value>) {
+pub(crate) fn cleanup_proxy_configs(config: &mut serde_json::Map<String, Value>) {
     for key in ["proxies", "proxy-groups", "rules"] {
         if config
             .get(key)
@@ -387,7 +390,7 @@ fn cleanup_proxy_configs(config: &mut serde_json::Map<String, Value>) {
     }
 }
 
-fn sanitize_runtime_profile_value(profile: &mut Value, control_dns: bool, control_sniff: bool) {
+pub(crate) fn sanitize_runtime_profile_value(profile: &mut Value, control_dns: bool, control_sniff: bool) {
     let Some(config) = profile.as_object_mut() else {
         return;
     };

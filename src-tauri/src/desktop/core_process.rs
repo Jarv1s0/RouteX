@@ -1,4 +1,7 @@
-fn prepare_runtime_data_dir(app: &tauri::AppHandle, data_dir: &Path) -> Result<(), String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn prepare_runtime_data_dir(app: &tauri::AppHandle, data_dir: &Path) -> Result<(), String> {
     for file_name in [
         "country.mmdb",
         "geoip.metadb",
@@ -33,7 +36,7 @@ fn prepare_runtime_data_dir(app: &tauri::AppHandle, data_dir: &Path) -> Result<(
     Ok(())
 }
 
-fn ensure_runtime_dirs(
+pub(crate) fn ensure_runtime_dirs(
     app: &tauri::AppHandle,
     current_profile_id: Option<&str>,
     diff_work_dir: bool,
@@ -60,7 +63,7 @@ fn ensure_runtime_dirs(
     Ok((base, work_dir, log_path, test_dir))
 }
 
-fn read_max_log_days(app: &tauri::AppHandle) -> u64 {
+pub(crate) fn read_max_log_days(app: &tauri::AppHandle) -> u64 {
     read_app_config_store(app)
         .ok()
         .map(|config| json_u64(config.get("maxLogDays")))
@@ -69,7 +72,7 @@ fn read_max_log_days(app: &tauri::AppHandle) -> u64 {
         .unwrap_or(7)
 }
 
-fn runtime_log_archive_path(log_path: &Path) -> Option<PathBuf> {
+pub(crate) fn runtime_log_archive_path(log_path: &Path) -> Option<PathBuf> {
     let parent = log_path.parent()?;
     let timestamp = current_local_timestamp_string();
 
@@ -88,7 +91,7 @@ fn runtime_log_archive_path(log_path: &Path) -> Option<PathBuf> {
     Some(parent.join(format!("mihomo-{}.log", current_timestamp_ms())))
 }
 
-fn archive_current_runtime_log(log_path: &Path) {
+pub(crate) fn archive_current_runtime_log(log_path: &Path) {
     let Ok(metadata) = fs::metadata(log_path) else {
         return;
     };
@@ -110,7 +113,7 @@ fn archive_current_runtime_log(log_path: &Path) {
     }
 }
 
-fn cleanup_old_runtime_logs(logs_dir: &Path, max_log_days: u64) {
+pub(crate) fn cleanup_old_runtime_logs(logs_dir: &Path, max_log_days: u64) {
     let Some(cutoff) =
         SystemTime::now().checked_sub(Duration::from_secs(max_log_days.saturating_mul(86_400)))
     else {
@@ -141,7 +144,7 @@ fn cleanup_old_runtime_logs(logs_dir: &Path, max_log_days: u64) {
     }
 }
 
-fn prepare_runtime_log_file(app: &tauri::AppHandle, log_path: &Path) {
+pub(crate) fn prepare_runtime_log_file(app: &tauri::AppHandle, log_path: &Path) {
     let max_log_days = read_max_log_days(app);
     archive_current_runtime_log(log_path);
     if let Some(logs_dir) = log_path.parent() {
@@ -149,7 +152,7 @@ fn prepare_runtime_log_file(app: &tauri::AppHandle, log_path: &Path) {
     }
 }
 
-fn check_runtime_profile(
+pub(crate) fn check_runtime_profile(
     binary_path: &Path,
     config_path: &Path,
     test_dir: &Path,
@@ -202,7 +205,7 @@ fn check_runtime_profile(
     Err(fallback)
 }
 
-fn normalize_runtime_config(input: Option<&Value>, controller_address: &str) -> Value {
+pub(crate) fn normalize_runtime_config(input: Option<&Value>, controller_address: &str) -> Value {
     let mut config = input
         .and_then(Value::as_object)
         .cloned()
@@ -242,7 +245,7 @@ fn normalize_runtime_config(input: Option<&Value>, controller_address: &str) -> 
     Value::Object(config)
 }
 
-fn stop_core_process(app: &tauri::AppHandle, state: &State<'_, CoreState>) -> Result<(), String> {
+pub(crate) fn stop_core_process(app: &tauri::AppHandle, state: &State<'_, CoreState>) -> Result<(), String> {
     let _ = stop_core_events_monitor(state);
     let service_managed = {
         let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
@@ -275,7 +278,7 @@ fn stop_core_process(app: &tauri::AppHandle, state: &State<'_, CoreState>) -> Re
     Ok(())
 }
 
-fn core_request(
+pub(crate) fn core_request(
     state: &State<'_, CoreState>,
     method: reqwest::Method,
     path: &str,
@@ -347,7 +350,7 @@ fn core_request(
     result
 }
 
-fn expected_runtime_group_count(runtime_config: &Value) -> usize {
+pub(crate) fn expected_runtime_group_count(runtime_config: &Value) -> usize {
     let mode = runtime_config
         .get("mode")
         .and_then(Value::as_str)
@@ -373,14 +376,14 @@ fn expected_runtime_group_count(runtime_config: &Value) -> usize {
         .unwrap_or(0)
 }
 
-fn controller_provider_count(value: &Value) -> Option<usize> {
+pub(crate) fn controller_provider_count(value: &Value) -> Option<usize> {
     value
         .get("providers")
         .and_then(Value::as_object)
         .map(|providers| providers.len())
 }
 
-fn controller_providers_ready(value: Value, expected_count: usize) -> (bool, usize) {
+pub(crate) fn controller_providers_ready(value: Value, expected_count: usize) -> (bool, usize) {
     let actual_count = controller_provider_count(&value).unwrap_or(0);
     (
         expected_count == 0 || actual_count >= expected_count,
@@ -388,7 +391,7 @@ fn controller_providers_ready(value: Value, expected_count: usize) -> (bool, usi
     )
 }
 
-fn wait_for_renderer_data_ready(
+pub(crate) fn wait_for_renderer_data_ready(
     state: &State<'_, CoreState>,
     runtime_config: &Value,
 ) -> Result<(), String> {
@@ -435,7 +438,7 @@ fn wait_for_renderer_data_ready(
     ))
 }
 
-fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> Result<(), String> {
+pub(crate) fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> Result<(), String> {
     let mut last_error = String::from("Mihomo controller is not available");
     let tun_enabled = runtime_tun_enabled(runtime_config);
     // TUN 模式下核心需要先初始化 Wintun/虚拟网卡才会开放 HTTP controller，
@@ -544,7 +547,7 @@ fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> 
     ))
 }
 
-fn validate_runtime_start_log(
+pub(crate) fn validate_runtime_start_log(
     log_path: &Path,
     log_start_offset: u64,
     runtime_config: &Value,
@@ -585,7 +588,7 @@ fn validate_runtime_start_log(
     Ok(())
 }
 
-fn refine_core_start_error(
+pub(crate) fn refine_core_start_error(
     startup_error: String,
     log_path: &Path,
     log_start_offset: u64,
@@ -597,7 +600,7 @@ fn refine_core_start_error(
     }
 }
 
-fn reload_core_config_process(
+pub(crate) fn reload_core_config_process(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     close_connections: bool,
@@ -707,7 +710,7 @@ fn reload_core_config_process(
     }))
 }
 
-fn restart_core_process(
+pub(crate) fn restart_core_process(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     config: Option<&Value>,

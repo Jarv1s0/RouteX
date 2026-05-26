@@ -1,15 +1,18 @@
+use super::prelude::*;
+use super::*;
+
 #[cfg(not(target_os = "windows"))]
-fn has_elevated_permission_flag(permissions: &str) -> bool {
+pub(crate) fn has_elevated_permission_flag(permissions: &str) -> bool {
     permissions.contains('s') || permissions.contains('S')
 }
 
 #[cfg(not(target_os = "windows"))]
-fn parse_ls_permissions(stdout: &str) -> &str {
+pub(crate) fn parse_ls_permissions(stdout: &str) -> &str {
     stdout.split_whitespace().next().unwrap_or_default()
 }
 
 #[cfg(not(target_os = "windows"))]
-fn is_user_cancelled_error(message: &str) -> bool {
+pub(crate) fn is_user_cancelled_error(message: &str) -> bool {
     message.contains("用户已取消")
         || message.contains("用户取消操作")
         || message.contains("User canceled")
@@ -20,7 +23,7 @@ fn is_user_cancelled_error(message: &str) -> bool {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn collect_command_error(output: std::process::Output) -> Result<String, String> {
+pub(crate) fn collect_command_error(output: std::process::Output) -> Result<String, String> {
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
     if output.status.success() {
@@ -40,7 +43,7 @@ fn collect_command_error(output: std::process::Output) -> Result<String, String>
     }
 }
 
-fn check_core_permission_value(app: &tauri::AppHandle) -> Result<Value, String> {
+pub(crate) fn check_core_permission_value(app: &tauri::AppHandle) -> Result<Value, String> {
     #[cfg(target_os = "windows")]
     {
         let _ = app;
@@ -76,7 +79,7 @@ fn check_core_permission_value(app: &tauri::AppHandle) -> Result<Value, String> 
     }
 }
 
-fn manual_grant_core_permission(
+pub(crate) fn manual_grant_core_permission(
     app: &tauri::AppHandle,
     cores: Option<Vec<String>>,
 ) -> Result<(), String> {
@@ -129,7 +132,7 @@ fn manual_grant_core_permission(
     Err("当前平台未实现内核授权".to_string())
 }
 
-fn revoke_core_permission(
+pub(crate) fn revoke_core_permission(
     app: &tauri::AppHandle,
     cores: Option<Vec<String>>,
 ) -> Result<(), String> {

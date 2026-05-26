@@ -1,4 +1,7 @@
-fn stop_pac_server(state: &State<'_, CoreState>) -> Result<(), String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn stop_pac_server(state: &State<'_, CoreState>) -> Result<(), String> {
     let handle = state.pac_server.lock().map_err(|e| e.to_string())?.take();
     if let Some(handle) = handle {
         let _ = handle.shutdown.send(());
@@ -6,7 +9,7 @@ fn stop_pac_server(state: &State<'_, CoreState>) -> Result<(), String> {
     Ok(())
 }
 
-fn serve_pac_connection(
+pub(crate) fn serve_pac_connection(
     stream: &mut std::net::TcpStream,
     script: &str,
 ) -> Result<(), std::io::Error> {
@@ -26,7 +29,7 @@ fn serve_pac_connection(
     Ok(())
 }
 
-fn start_pac_server(
+pub(crate) fn start_pac_server(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<Option<(String, u16)>, String> {
@@ -89,7 +92,7 @@ function FindProxyForURL(url, host) {
     Ok(Some((host, port)))
 }
 
-fn set_sys_proxy(
+pub(crate) fn set_sys_proxy(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     only_active_device: bool,
@@ -155,7 +158,7 @@ fn set_sys_proxy(
     }
 }
 
-fn disable_sys_proxy(
+pub(crate) fn disable_sys_proxy(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     only_active_device: bool,
@@ -167,7 +170,7 @@ fn disable_sys_proxy(
     )
 }
 
-fn trigger_sys_proxy(
+pub(crate) fn trigger_sys_proxy(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     enable: bool,
@@ -198,7 +201,7 @@ fn trigger_sys_proxy(
     Ok(())
 }
 
-fn is_core_running(state: &State<'_, CoreState>) -> Result<bool, String> {
+pub(crate) fn is_core_running(state: &State<'_, CoreState>) -> Result<bool, String> {
     let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
     let is_running = if let Some(child) = runtime.child.as_mut() {
         child.try_wait().map_err(|e| e.to_string())?.is_none()
@@ -211,7 +214,7 @@ fn is_core_running(state: &State<'_, CoreState>) -> Result<bool, String> {
     Ok(is_running)
 }
 
-fn has_network_connectivity() -> bool {
+pub(crate) fn has_network_connectivity() -> bool {
     Client::builder()
         .timeout(Duration::from_secs(2))
         .build()
@@ -220,7 +223,7 @@ fn has_network_connectivity() -> bool {
         .unwrap_or(false)
 }
 
-fn has_up_network_interface(excluded_keywords: &[String]) -> bool {
+pub(crate) fn has_up_network_interface(excluded_keywords: &[String]) -> bool {
     #[cfg(target_os = "windows")]
     {
         let script =
@@ -279,13 +282,13 @@ fn has_up_network_interface(excluded_keywords: &[String]) -> bool {
     }
 }
 
-fn read_pause_ssids(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
+pub(crate) fn read_pause_ssids(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
     Ok(json_array_strings(
         read_app_config_store(app)?.get("pauseSSID"),
     ))
 }
 
-fn current_ssid() -> Option<String> {
+pub(crate) fn current_ssid() -> Option<String> {
     #[cfg(target_os = "windows")]
     {
         let output = Command::new("netsh")
@@ -342,7 +345,7 @@ fn current_ssid() -> Option<String> {
     None
 }
 
-fn apply_ssid_mode(
+pub(crate) fn apply_ssid_mode(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     ssid: Option<&str>,
@@ -390,7 +393,7 @@ fn apply_ssid_mode(
     Ok(())
 }
 
-fn stop_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn stop_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
     if let Some(handle) = app
         .state::<CoreState>()
         .ssid_check
@@ -403,7 +406,7 @@ fn stop_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn refresh_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn refresh_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
     stop_ssid_check(app)?;
 
     if read_pause_ssids(app)?.is_empty() {
@@ -440,7 +443,7 @@ fn refresh_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn stop_network_detection(state: &State<'_, CoreState>) -> Result<(), String> {
+pub(crate) fn stop_network_detection(state: &State<'_, CoreState>) -> Result<(), String> {
     let handle = state
         .network_detection
         .lock()
@@ -457,7 +460,7 @@ fn stop_network_detection(state: &State<'_, CoreState>) -> Result<(), String> {
     Ok(())
 }
 
-fn start_network_detection(
+pub(crate) fn start_network_detection(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<(), String> {
@@ -555,7 +558,7 @@ fn start_network_detection(
     Ok(())
 }
 
-fn shutdown_runtime(app: &tauri::AppHandle, state: &State<'_, CoreState>) {
+pub(crate) fn shutdown_runtime(app: &tauri::AppHandle, state: &State<'_, CoreState>) {
     let only_active_device = read_only_active_device(app).unwrap_or(false);
     let _ = stop_network_detection(state);
     let _ = trigger_sys_proxy(app, state, false, only_active_device);
@@ -564,7 +567,7 @@ fn shutdown_runtime(app: &tauri::AppHandle, state: &State<'_, CoreState>) {
     let _ = stop_core_process(app, state);
 }
 
-fn shutdown_runtime_once(app: &tauri::AppHandle) {
+pub(crate) fn shutdown_runtime_once(app: &tauri::AppHandle) {
     let state = app.state::<CoreState>();
     if state
         .shutdown_started
@@ -582,7 +585,7 @@ fn shutdown_runtime_once(app: &tauri::AppHandle) {
     shutdown_runtime(app, &state);
 }
 
-fn install_process_signal_handlers(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn install_process_signal_handlers(app: &tauri::AppHandle) -> Result<(), String> {
     let app_handle = app.clone();
     ctrlc::set_handler(move || {
         shutdown_runtime_once(&app_handle);

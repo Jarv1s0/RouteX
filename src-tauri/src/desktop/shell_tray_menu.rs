@@ -1,11 +1,14 @@
-fn hide_traymenu_window(app: &tauri::AppHandle) {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn hide_traymenu_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window(TRAYMENU_WINDOW_LABEL) {
         let _ = window.hide();
     }
 }
 
 #[derive(Clone, Copy)]
-struct NativeTrayLabels {
+pub(crate) struct NativeTrayLabels {
     rule: &'static str,
     global: &'static str,
     direct: &'static str,
@@ -34,7 +37,7 @@ struct NativeTrayLabels {
     quit_app: &'static str,
 }
 
-const NATIVE_TRAY_LABELS_ZH: NativeTrayLabels = NativeTrayLabels {
+pub(crate) const NATIVE_TRAY_LABELS_ZH: NativeTrayLabels = NativeTrayLabels {
     rule: "规则",
     global: "全局",
     direct: "直连",
@@ -63,7 +66,7 @@ const NATIVE_TRAY_LABELS_ZH: NativeTrayLabels = NativeTrayLabels {
     quit_app: "退出应用",
 };
 
-const NATIVE_TRAY_LABELS_EN: NativeTrayLabels = NativeTrayLabels {
+pub(crate) const NATIVE_TRAY_LABELS_EN: NativeTrayLabels = NativeTrayLabels {
     rule: "Rule",
     global: "Global",
     direct: "Direct",
@@ -92,7 +95,7 @@ const NATIVE_TRAY_LABELS_EN: NativeTrayLabels = NativeTrayLabels {
     quit_app: "Quit app",
 };
 
-fn use_english_native_tray_labels(app_config: &Value) -> bool {
+pub(crate) fn use_english_native_tray_labels(app_config: &Value) -> bool {
     match app_config.get("language").and_then(Value::as_str) {
         Some("en-US") => true,
         Some("zh-CN") => false,
@@ -102,7 +105,7 @@ fn use_english_native_tray_labels(app_config: &Value) -> bool {
     }
 }
 
-fn native_tray_labels(app_config: &Value) -> NativeTrayLabels {
+pub(crate) fn native_tray_labels(app_config: &Value) -> NativeTrayLabels {
     if use_english_native_tray_labels(app_config) {
         NATIVE_TRAY_LABELS_EN
     } else {
@@ -110,7 +113,7 @@ fn native_tray_labels(app_config: &Value) -> NativeTrayLabels {
     }
 }
 
-fn tray_mode_label(mode: &str, labels: NativeTrayLabels) -> &'static str {
+pub(crate) fn tray_mode_label(mode: &str, labels: NativeTrayLabels) -> &'static str {
     match mode {
         "global" => labels.global,
         "direct" => labels.direct,
@@ -118,7 +121,7 @@ fn tray_mode_label(mode: &str, labels: NativeTrayLabels) -> &'static str {
     }
 }
 
-fn tray_delay_label(delay: i64) -> String {
+pub(crate) fn tray_delay_label(delay: i64) -> String {
     if delay == 0 {
         "Timeout".to_string()
     } else if delay > 0 {
@@ -128,24 +131,24 @@ fn tray_delay_label(delay: i64) -> String {
     }
 }
 
-fn encode_tray_menu_segment(value: &str) -> String {
+pub(crate) fn encode_tray_menu_segment(value: &str) -> String {
     urlencoding::encode(value).into_owned()
 }
 
-fn decode_tray_menu_segment(value: &str) -> Option<String> {
+pub(crate) fn decode_tray_menu_segment(value: &str) -> Option<String> {
     urlencoding::decode(value)
         .ok()
         .map(|decoded| decoded.into_owned())
 }
 
-fn build_tray_group_test_id(group: &str) -> String {
+pub(crate) fn build_tray_group_test_id(group: &str) -> String {
     format!(
         "{TRAY_MENU_GROUP_TEST_PREFIX}{}",
         encode_tray_menu_segment(group)
     )
 }
 
-fn build_tray_group_proxy_id(group: &str, proxy: &str) -> String {
+pub(crate) fn build_tray_group_proxy_id(group: &str, proxy: &str) -> String {
     format!(
         "{TRAY_MENU_GROUP_PROXY_PREFIX}{}::{}",
         encode_tray_menu_segment(group),
@@ -153,12 +156,12 @@ fn build_tray_group_proxy_id(group: &str, proxy: &str) -> String {
     )
 }
 
-fn parse_tray_group_test_id(id: &str) -> Option<String> {
+pub(crate) fn parse_tray_group_test_id(id: &str) -> Option<String> {
     id.strip_prefix(TRAY_MENU_GROUP_TEST_PREFIX)
         .and_then(decode_tray_menu_segment)
 }
 
-fn parse_tray_group_proxy_id(id: &str) -> Option<(String, String)> {
+pub(crate) fn parse_tray_group_proxy_id(id: &str) -> Option<(String, String)> {
     let raw = id.strip_prefix(TRAY_MENU_GROUP_PROXY_PREFIX)?;
     let (group, proxy) = raw.split_once("::")?;
     Some((
@@ -167,43 +170,43 @@ fn parse_tray_group_proxy_id(id: &str) -> Option<(String, String)> {
     ))
 }
 
-fn build_tray_profile_toggle_id(profile_id: &str) -> String {
+pub(crate) fn build_tray_profile_toggle_id(profile_id: &str) -> String {
     format!(
         "{TRAY_MENU_PROFILE_TOGGLE_PREFIX}{}",
         encode_tray_menu_segment(profile_id)
     )
 }
 
-fn parse_tray_profile_toggle_id(id: &str) -> Option<String> {
+pub(crate) fn parse_tray_profile_toggle_id(id: &str) -> Option<String> {
     id.strip_prefix(TRAY_MENU_PROFILE_TOGGLE_PREFIX)
         .and_then(decode_tray_menu_segment)
 }
 
-fn build_tray_profile_current_id(profile_id: &str) -> String {
+pub(crate) fn build_tray_profile_current_id(profile_id: &str) -> String {
     format!(
         "{TRAY_MENU_PROFILE_CURRENT_PREFIX}{}",
         encode_tray_menu_segment(profile_id)
     )
 }
 
-fn parse_tray_profile_current_id(id: &str) -> Option<String> {
+pub(crate) fn parse_tray_profile_current_id(id: &str) -> Option<String> {
     id.strip_prefix(TRAY_MENU_PROFILE_CURRENT_PREFIX)
         .and_then(decode_tray_menu_segment)
 }
 
-fn build_tray_copy_env_id(shell_type: &str) -> String {
+pub(crate) fn build_tray_copy_env_id(shell_type: &str) -> String {
     format!(
         "{TRAY_MENU_COPY_ENV_PREFIX}{}",
         encode_tray_menu_segment(shell_type)
     )
 }
 
-fn parse_tray_copy_env_id(id: &str) -> Option<String> {
+pub(crate) fn parse_tray_copy_env_id(id: &str) -> Option<String> {
     id.strip_prefix(TRAY_MENU_COPY_ENV_PREFIX)
         .and_then(decode_tray_menu_segment)
 }
 
-fn read_tray_env_types(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
+pub(crate) fn read_tray_env_types(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
     let mut env_types = json_array_strings(read_app_config_store(app)?.get("envType"))
         .into_iter()
         .filter(|shell_type| {
@@ -226,7 +229,7 @@ fn read_tray_env_types(app: &tauri::AppHandle) -> Result<Vec<String>, String> {
     Ok(env_types)
 }
 
-fn load_native_tray_groups(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
+pub(crate) fn load_native_tray_groups(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
     let state = app.state::<CoreState>();
     let proxies = core_request(&state, reqwest::Method::GET, "/proxies", None, None)?;
     let runtime = current_runtime_value(app, &state)?;
@@ -236,7 +239,7 @@ fn load_native_tray_groups(app: &tauri::AppHandle) -> Result<Vec<Value>, String>
         .unwrap_or_default())
 }
 
-fn append_native_tray_group_menus(
+pub(crate) fn append_native_tray_group_menus(
     app: &tauri::AppHandle,
     menu: &Menu<tauri::Wry>,
     labels: NativeTrayLabels,
@@ -315,7 +318,7 @@ fn append_native_tray_group_menus(
     Ok(true)
 }
 
-fn append_native_tray_profile_menu(
+pub(crate) fn append_native_tray_profile_menu(
     app: &tauri::AppHandle,
     menu: &Menu<tauri::Wry>,
     labels: NativeTrayLabels,
@@ -401,7 +404,7 @@ fn append_native_tray_profile_menu(
     menu.append(&profile_menu).map_err(|e| e.to_string())
 }
 
-fn append_tray_text_items(
+pub(crate) fn append_tray_text_items(
     app: &tauri::AppHandle,
     menu: &Submenu<tauri::Wry>,
     items: &[(&str, &str)],
@@ -414,7 +417,7 @@ fn append_tray_text_items(
     Ok(())
 }
 
-fn append_native_tray_open_dir_menu(
+pub(crate) fn append_native_tray_open_dir_menu(
     app: &tauri::AppHandle,
     menu: &Menu<tauri::Wry>,
     labels: NativeTrayLabels,
@@ -433,7 +436,7 @@ fn append_native_tray_open_dir_menu(
     menu.append(&open_dir_menu).map_err(|e| e.to_string())
 }
 
-fn append_native_tray_copy_env_menu(
+pub(crate) fn append_native_tray_copy_env_menu(
     app: &tauri::AppHandle,
     menu: &Menu<tauri::Wry>,
     labels: NativeTrayLabels,
@@ -472,7 +475,7 @@ fn append_native_tray_copy_env_menu(
     menu.append(&env_menu).map_err(|e| e.to_string())
 }
 
-fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, String> {
+pub(crate) fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, String> {
     let app_config = read_app_config_store(app)?;
     let labels = native_tray_labels(&app_config);
     let controlled_config = read_controlled_config_store(app)?;
@@ -631,7 +634,7 @@ fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<tauri::Wry>, St
     Ok(menu)
 }
 
-fn refresh_native_tray_menu(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn refresh_native_tray_menu(app: &tauri::AppHandle) -> Result<(), String> {
     if cfg!(target_os = "macos") {
         return Ok(());
     }
@@ -644,7 +647,7 @@ fn refresh_native_tray_menu(app: &tauri::AppHandle) -> Result<(), String> {
     tray.set_menu(Some(menu)).map_err(|e| e.to_string())
 }
 
-fn refresh_native_tray_shell(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn refresh_native_tray_shell(app: &tauri::AppHandle) -> Result<(), String> {
     update_tray_icon_for_state(app)?;
     refresh_native_tray_menu(app)
 }

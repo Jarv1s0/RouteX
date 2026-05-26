@@ -1,4 +1,7 @@
-fn fetch_image_data_url(url: &str) -> Result<String, String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn fetch_image_data_url(url: &str) -> Result<String, String> {
     if url.starts_with("data:") {
         return Ok(url.to_string());
     }
@@ -28,7 +31,7 @@ fn fetch_image_data_url(url: &str) -> Result<String, String> {
     Ok(to_data_url(&mime, &bytes))
 }
 
-fn read_local_icon_data_url(app_path: &str) -> Option<String> {
+pub(crate) fn read_local_icon_data_url(app_path: &str) -> Option<String> {
     let path = PathBuf::from(app_path);
     if !path.exists() || !path.is_file() {
         return None;
@@ -39,30 +42,30 @@ fn read_local_icon_data_url(app_path: &str) -> Option<String> {
     Some(to_data_url(mime, &bytes))
 }
 
-fn icon_data_url_cache() -> &'static Mutex<HashMap<String, String>> {
+pub(crate) fn icon_data_url_cache() -> &'static Mutex<HashMap<String, String>> {
     ICON_DATA_URL_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn is_icon_remote_or_data_resource(app_path: &str) -> bool {
+pub(crate) fn is_icon_remote_or_data_resource(app_path: &str) -> bool {
     app_path.starts_with("data:")
         || app_path.starts_with("http://")
         || app_path.starts_with("https://")
 }
 
-fn current_exe_path_string() -> Option<String> {
+pub(crate) fn current_exe_path_string() -> Option<String> {
     std::env::current_exe()
         .ok()
         .and_then(|path| path.to_str().map(str::to_string))
 }
 
-fn path_file_name_eq(path: &Path, expected: &str) -> bool {
+pub(crate) fn path_file_name_eq(path: &Path, expected: &str) -> bool {
     path.file_name()
         .and_then(|value| value.to_str())
         .is_some_and(|name| name.eq_ignore_ascii_case(expected))
 }
 
 #[cfg(target_os = "windows")]
-fn path_has_component_eq(path: &Path, expected: &str) -> bool {
+pub(crate) fn path_has_component_eq(path: &Path, expected: &str) -> bool {
     path.components().any(|component| {
         component
             .as_os_str()
@@ -72,14 +75,14 @@ fn path_has_component_eq(path: &Path, expected: &str) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn path_extension_eq(path: &Path, expected: &str) -> bool {
+pub(crate) fn path_extension_eq(path: &Path, expected: &str) -> bool {
     path.extension()
         .and_then(|value| value.to_str())
         .is_some_and(|extension| extension.eq_ignore_ascii_case(expected))
 }
 
 #[cfg(target_os = "windows")]
-fn windowsapps_parent_app_exe(path: &Path) -> Option<String> {
+pub(crate) fn windowsapps_parent_app_exe(path: &Path) -> Option<String> {
     if !path_has_component_eq(path, "WindowsApps") {
         return None;
     }
@@ -110,7 +113,7 @@ fn windowsapps_parent_app_exe(path: &Path) -> Option<String> {
 }
 
 #[cfg(target_os = "windows")]
-fn canonical_windows_icon_request_path(app_path: &str) -> Option<String> {
+pub(crate) fn canonical_windows_icon_request_path(app_path: &str) -> Option<String> {
     let path = Path::new(app_path);
 
     if path_file_name_eq(path, "mihomo.exe")
@@ -124,7 +127,7 @@ fn canonical_windows_icon_request_path(app_path: &str) -> Option<String> {
     windowsapps_parent_app_exe(path)
 }
 
-fn normalize_icon_request_path(app_path: &str) -> String {
+pub(crate) fn normalize_icon_request_path(app_path: &str) -> String {
     if app_path == "mihomo" {
         return current_exe_path_string().unwrap_or_else(|| app_path.to_string());
     }
@@ -139,20 +142,20 @@ fn normalize_icon_request_path(app_path: &str) -> String {
     app_path.to_string()
 }
 
-fn read_cached_icon_data_url(app_path: &str) -> Option<String> {
+pub(crate) fn read_cached_icon_data_url(app_path: &str) -> Option<String> {
     icon_data_url_cache()
         .lock()
         .ok()
         .and_then(|cache| cache.get(app_path).cloned())
 }
 
-fn write_cached_icon_data_url(app_path: &str, data_url: String) {
+pub(crate) fn write_cached_icon_data_url(app_path: &str, data_url: String) {
     if let Ok(mut cache) = icon_data_url_cache().lock() {
         cache.insert(app_path.to_string(), data_url);
     }
 }
 
-fn is_image_file_path(path: &Path) -> bool {
+pub(crate) fn is_image_file_path(path: &Path) -> bool {
     matches!(
         path.extension()
             .and_then(|value| value.to_str())
@@ -164,7 +167,7 @@ fn is_image_file_path(path: &Path) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn is_windows_icon_extractable_path(path: &Path) -> bool {
+pub(crate) fn is_windows_icon_extractable_path(path: &Path) -> bool {
     path.exists()
         && path.is_file()
         && matches!(
@@ -178,7 +181,7 @@ fn is_windows_icon_extractable_path(path: &Path) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn extract_windows_icon_data_url(app_path: &str) -> Option<String> {
+pub(crate) fn extract_windows_icon_data_url(app_path: &str) -> Option<String> {
     let path = Path::new(app_path);
     if !is_windows_icon_extractable_path(path) {
         return None;
@@ -261,7 +264,7 @@ $icon.Dispose()
 }
 
 #[cfg(target_os = "windows")]
-fn extract_windows_icon_data_urls_batch(app_paths: &[String]) -> HashMap<String, String> {
+pub(crate) fn extract_windows_icon_data_urls_batch(app_paths: &[String]) -> HashMap<String, String> {
     if app_paths.is_empty() {
         return HashMap::new();
     }
@@ -387,7 +390,7 @@ $result | ConvertTo-Json -Compress
 }
 
 #[cfg(target_os = "macos")]
-fn macos_bundle_ancestors(app_path: &str) -> Vec<PathBuf> {
+pub(crate) fn macos_bundle_ancestors(app_path: &str) -> Vec<PathBuf> {
     Path::new(app_path)
         .ancestors()
         .filter(|path| {
@@ -401,7 +404,7 @@ fn macos_bundle_ancestors(app_path: &str) -> Vec<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-fn find_macos_bundle_icon_path(bundle_path: &Path) -> Option<PathBuf> {
+pub(crate) fn find_macos_bundle_icon_path(bundle_path: &Path) -> Option<PathBuf> {
     let contents_dir = bundle_path.join("Contents");
     if !contents_dir.exists() {
         let mut entries = fs::read_dir(bundle_path)
@@ -441,7 +444,7 @@ fn find_macos_bundle_icon_path(bundle_path: &Path) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "macos")]
-fn convert_macos_icon_to_png_data_url(icon_path: &Path) -> Option<String> {
+pub(crate) fn convert_macos_icon_to_png_data_url(icon_path: &Path) -> Option<String> {
     if is_image_file_path(icon_path)
         && !icon_path
             .extension()
@@ -476,7 +479,7 @@ fn convert_macos_icon_to_png_data_url(icon_path: &Path) -> Option<String> {
 }
 
 #[cfg(target_os = "macos")]
-fn extract_macos_icon_data_url(app_path: &str) -> Option<String> {
+pub(crate) fn extract_macos_icon_data_url(app_path: &str) -> Option<String> {
     let bundle_path = macos_bundle_ancestors(app_path)
         .into_iter()
         .find(|bundle_path| find_macos_bundle_icon_path(bundle_path).is_some())?;
@@ -485,7 +488,7 @@ fn extract_macos_icon_data_url(app_path: &str) -> Option<String> {
 }
 
 #[cfg(target_os = "linux")]
-fn find_linux_desktop_file(app_path: &str) -> Option<PathBuf> {
+pub(crate) fn find_linux_desktop_file(app_path: &str) -> Option<PathBuf> {
     let exec_name = Path::new(app_path)
         .file_name()
         .and_then(|value| value.to_str())
@@ -552,7 +555,7 @@ fn find_linux_desktop_file(app_path: &str) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "linux")]
-fn parse_linux_icon_name(content: &str) -> Option<String> {
+pub(crate) fn parse_linux_icon_name(content: &str) -> Option<String> {
     content
         .lines()
         .find_map(|line| line.strip_prefix("Icon=").map(str::trim))
@@ -561,7 +564,7 @@ fn parse_linux_icon_name(content: &str) -> Option<String> {
 }
 
 #[cfg(target_os = "linux")]
-fn resolve_linux_icon_path(icon_name: &str) -> Option<PathBuf> {
+pub(crate) fn resolve_linux_icon_path(icon_name: &str) -> Option<PathBuf> {
     let path = PathBuf::from(icon_name);
     if path.is_absolute() && path.exists() {
         return Some(path);
@@ -616,7 +619,7 @@ fn resolve_linux_icon_path(icon_name: &str) -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "linux")]
-fn extract_linux_icon_data_url(app_path: &str) -> Option<String> {
+pub(crate) fn extract_linux_icon_data_url(app_path: &str) -> Option<String> {
     let desktop_file = find_linux_desktop_file(app_path)?;
     let content = fs::read_to_string(desktop_file).ok()?;
     let icon_name = parse_linux_icon_name(&content)?;
@@ -624,7 +627,7 @@ fn extract_linux_icon_data_url(app_path: &str) -> Option<String> {
     read_local_icon_data_url(icon_path.to_str()?)
 }
 
-fn resolve_icon_data_url_uncached(normalized_path: &str) -> String {
+pub(crate) fn resolve_icon_data_url_uncached(normalized_path: &str) -> String {
     let path = Path::new(&normalized_path);
     if path.exists() && path.is_file() && is_image_file_path(path) {
         return read_local_icon_data_url(normalized_path)
@@ -656,7 +659,7 @@ fn resolve_icon_data_url_uncached(normalized_path: &str) -> String {
         .unwrap_or_else(|| default_icon_data_url().to_string())
 }
 
-fn resolve_icon_data_url(app_path: &str) -> String {
+pub(crate) fn resolve_icon_data_url(app_path: &str) -> String {
     if is_icon_remote_or_data_resource(app_path) {
         return app_path.to_string();
     }
@@ -671,7 +674,7 @@ fn resolve_icon_data_url(app_path: &str) -> String {
     resolved
 }
 
-fn resolve_icon_data_urls(app_paths: &[String]) -> HashMap<String, String> {
+pub(crate) fn resolve_icon_data_urls(app_paths: &[String]) -> HashMap<String, String> {
     let mut resolved = HashMap::new();
 
     #[cfg(target_os = "windows")]

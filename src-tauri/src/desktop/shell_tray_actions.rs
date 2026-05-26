@@ -1,4 +1,7 @@
-fn handle_tray_toggle_floating(app: &tauri::AppHandle) -> Result<(), String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn handle_tray_toggle_floating(app: &tauri::AppHandle) -> Result<(), String> {
     let current = read_app_config_store(app)?
         .get("showFloatingWindow")
         .and_then(Value::as_bool)
@@ -9,7 +12,7 @@ fn handle_tray_toggle_floating(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn handle_tray_toggle_sys_proxy(
+pub(crate) fn handle_tray_toggle_sys_proxy(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<(), String> {
@@ -31,7 +34,7 @@ fn handle_tray_toggle_sys_proxy(
     Ok(())
 }
 
-fn handle_tray_toggle_tun(
+pub(crate) fn handle_tray_toggle_tun(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<(), String> {
@@ -56,7 +59,7 @@ fn handle_tray_toggle_tun(
     Ok(())
 }
 
-fn handle_tray_change_mode(
+pub(crate) fn handle_tray_change_mode(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     next_mode: &str,
@@ -81,7 +84,7 @@ fn handle_tray_change_mode(
     Ok(())
 }
 
-fn handle_tray_test_group_delay(
+pub(crate) fn handle_tray_test_group_delay(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     group: &str,
@@ -98,7 +101,7 @@ fn handle_tray_test_group_delay(
     Ok(())
 }
 
-fn handle_tray_change_group_proxy(
+pub(crate) fn handle_tray_change_group_proxy(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     group: &str,
@@ -124,7 +127,7 @@ fn handle_tray_change_group_proxy(
     Ok(())
 }
 
-fn handle_tray_toggle_profile_active(
+pub(crate) fn handle_tray_toggle_profile_active(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     profile_id: &str,
@@ -152,7 +155,7 @@ fn handle_tray_toggle_profile_active(
     Ok(())
 }
 
-fn handle_tray_change_current_profile(
+pub(crate) fn handle_tray_change_current_profile(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     profile_id: &str,
@@ -163,7 +166,7 @@ fn handle_tray_change_current_profile(
     Ok(())
 }
 
-fn resolve_current_runtime_dirs(
+pub(crate) fn resolve_current_runtime_dirs(
     app: &tauri::AppHandle,
 ) -> Result<(PathBuf, PathBuf, PathBuf, PathBuf), String> {
     let current_profile_id = current_runtime_profile_id(app)?;
@@ -171,7 +174,7 @@ fn resolve_current_runtime_dirs(
     ensure_runtime_dirs(app, current_profile_id.as_deref(), diff_work_dir)
 }
 
-fn handle_tray_open_directory(app: &tauri::AppHandle, menu_id: &str) -> Result<(), String> {
+pub(crate) fn handle_tray_open_directory(app: &tauri::AppHandle, menu_id: &str) -> Result<(), String> {
     let path = match menu_id {
         TRAY_MENU_OPEN_APP_DIR_ID => app_data_root(app)?,
         TRAY_MENU_OPEN_WORK_DIR_ID => resolve_current_runtime_dirs(app)?.1,
@@ -194,12 +197,12 @@ fn handle_tray_open_directory(app: &tauri::AppHandle, menu_id: &str) -> Result<(
     open_path_in_shell(&path)
 }
 
-fn handle_tray_copy_env(app: &tauri::AppHandle, shell_type: &str) -> Result<(), String> {
+pub(crate) fn handle_tray_copy_env(app: &tauri::AppHandle, shell_type: &str) -> Result<(), String> {
     let command = build_proxy_env_command(app, shell_type)?;
     copy_text_to_clipboard(&command)
 }
 
-fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> Result<(), String> {
+pub(crate) fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> Result<(), String> {
     let state = app.state::<CoreState>();
     let menu_id = event.id().as_ref();
 

@@ -1,4 +1,7 @@
-fn ensure_floating_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn ensure_floating_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
     if let Some(window) = app.get_webview_window(FLOATING_WINDOW_LABEL) {
         return Ok(window);
     }
@@ -49,7 +52,7 @@ fn ensure_floating_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow
     Ok(window)
 }
 
-fn position_traymenu_window(
+pub(crate) fn position_traymenu_window(
     window: &tauri::WebviewWindow,
     x: f64,
     y: f64,
@@ -86,7 +89,7 @@ fn position_traymenu_window(
     Ok(())
 }
 
-fn ensure_traymenu_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
+pub(crate) fn ensure_traymenu_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
     if let Some(window) = app.get_webview_window(TRAYMENU_WINDOW_LABEL) {
         return Ok(window);
     }
@@ -123,7 +126,7 @@ fn ensure_traymenu_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow
     Ok(window)
 }
 
-fn show_traymenu_window(
+pub(crate) fn show_traymenu_window(
     app: &tauri::AppHandle,
     position: Option<(f64, f64)>,
 ) -> Result<(), String> {
@@ -137,7 +140,7 @@ fn show_traymenu_window(
     Ok(())
 }
 
-fn toggle_traymenu_window(
+pub(crate) fn toggle_traymenu_window(
     app: &tauri::AppHandle,
     position: Option<(f64, f64)>,
 ) -> Result<(), String> {
@@ -149,7 +152,7 @@ fn toggle_traymenu_window(
     show_traymenu_window(app, position)
 }
 
-fn sync_shell_surfaces(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn sync_shell_surfaces(app: &tauri::AppHandle) -> Result<(), String> {
     let config = read_app_config_store(app)?;
     let disable_tray = config
         .get("disableTray")
@@ -181,7 +184,7 @@ fn sync_shell_surfaces(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn ensure_tray_icon(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn ensure_tray_icon(app: &tauri::AppHandle) -> Result<(), String> {
     if let Some(tray) = app.tray_by_id(TRAY_ICON_ID) {
         let _ = tray.set_visible(true);
         let _ = refresh_native_tray_menu(app);

@@ -1,4 +1,7 @@
-fn config_bool_string(config: &Value, key: &str) -> String {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn config_bool_string(config: &Value, key: &str) -> String {
     config
         .get(key)
         .and_then(Value::as_bool)
@@ -6,38 +9,38 @@ fn config_bool_string(config: &Value, key: &str) -> String {
         .to_string()
 }
 
-fn task_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn task_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     ensure_dir(app_data_root(app)?.join(TASKS_DIR_NAME))
 }
 
-fn routex_run_binary_task_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn routex_run_binary_task_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(task_dir(app)?.join(ROUTEX_RUN_BINARY))
 }
 
-fn routex_run_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn routex_run_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(task_dir(app)?.join(ROUTEX_RUN_XML))
 }
 
-fn routex_run_args_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn routex_run_args_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(task_dir(app)?.join(ROUTEX_RUN_ARGS_FILE))
 }
 
-fn routex_autorun_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn routex_autorun_task_xml_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(task_dir(app)?.join(ROUTEX_AUTORUN_XML))
 }
 
-fn resolve_routex_run_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn resolve_routex_run_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     resolve_resource_binary(app, "files", ROUTEX_RUN_BINARY)
         .map_err(|_| format!("RouteX run helper not found: {ROUTEX_RUN_BINARY}"))
 }
 
-fn write_elevate_task_params(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn write_elevate_task_params(app: &tauri::AppHandle) -> Result<(), String> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     let value = serde_json::to_string(&args).map_err(|e| e.to_string())?;
     fs::write(routex_run_args_path(app)?, value).map_err(|e| e.to_string())
 }
 
-fn file_sha256(path: &Path) -> Result<[u8; 32], String> {
+pub(crate) fn file_sha256(path: &Path) -> Result<[u8; 32], String> {
     let mut file =
         fs::File::open(path).map_err(|e| format!("读取文件失败 {}: {e}", path.display()))?;
     let mut hasher = Sha256::new();
@@ -59,7 +62,7 @@ fn file_sha256(path: &Path) -> Result<[u8; 32], String> {
     Ok(bytes)
 }
 
-fn copy_routex_run_binary_for_task(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn copy_routex_run_binary_for_task(app: &tauri::AppHandle) -> Result<(), String> {
     let routex_run_dest = routex_run_binary_task_path(app)?;
     let routex_run_source = resolve_routex_run_binary(app)?;
     let source_digest = file_sha256(&routex_run_source)?;
@@ -83,11 +86,11 @@ fn copy_routex_run_binary_for_task(app: &tauri::AppHandle) -> Result<(), String>
         })
 }
 
-fn ensure_routex_run_binary_for_task(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn ensure_routex_run_binary_for_task(app: &tauri::AppHandle) -> Result<(), String> {
     copy_routex_run_binary_for_task(app)
 }
 
-fn encode_utf16le_with_bom(value: &str) -> Vec<u8> {
+pub(crate) fn encode_utf16le_with_bom(value: &str) -> Vec<u8> {
     let mut bytes = vec![0xFF, 0xFE];
     for code_unit in value.encode_utf16() {
         bytes.extend_from_slice(&code_unit.to_le_bytes());
@@ -96,7 +99,7 @@ fn encode_utf16le_with_bom(value: &str) -> Vec<u8> {
 }
 
 #[cfg(target_os = "windows")]
-fn resolve_windows_system_binary(binary: &str) -> PathBuf {
+pub(crate) fn resolve_windows_system_binary(binary: &str) -> PathBuf {
     for key in ["SystemRoot", "windir", "WINDIR"] {
         if let Some(root) = std::env::var_os(key) {
             let candidate = PathBuf::from(root).join("System32").join(binary);
@@ -110,7 +113,7 @@ fn resolve_windows_system_binary(binary: &str) -> PathBuf {
 }
 
 #[cfg(target_os = "windows")]
-fn schtasks_output(args: &[&str]) -> Result<std::process::Output, String> {
+pub(crate) fn schtasks_output(args: &[&str]) -> Result<std::process::Output, String> {
     let schtasks_path = resolve_windows_system_binary("schtasks.exe");
     let mut command = Command::new(&schtasks_path);
     apply_background_command(&mut command);
@@ -121,7 +124,7 @@ fn schtasks_output(args: &[&str]) -> Result<std::process::Output, String> {
 }
 
 #[cfg(target_os = "windows")]
-fn decode_windows_code_page_output(bytes: &[u8], code_page: u32) -> Option<String> {
+pub(crate) fn decode_windows_code_page_output(bytes: &[u8], code_page: u32) -> Option<String> {
     if bytes.is_empty() || code_page == 0 {
         return Some(String::new());
     }
@@ -160,7 +163,7 @@ fn decode_windows_code_page_output(bytes: &[u8], code_page: u32) -> Option<Strin
 }
 
 #[cfg(target_os = "windows")]
-fn decode_windows_process_output(bytes: &[u8]) -> String {
+pub(crate) fn decode_windows_process_output(bytes: &[u8]) -> String {
     if bytes.is_empty() {
         return String::new();
     }
@@ -190,7 +193,7 @@ fn decode_windows_process_output(bytes: &[u8]) -> String {
 }
 
 #[cfg(target_os = "windows")]
-fn schtasks_command(args: &[&str]) -> Result<(), String> {
+pub(crate) fn schtasks_command(args: &[&str]) -> Result<(), String> {
     let output = schtasks_output(args)?;
     if output.status.success() {
         return Ok(());
@@ -208,7 +211,7 @@ fn schtasks_command(args: &[&str]) -> Result<(), String> {
 }
 
 #[cfg(target_os = "windows")]
-fn looks_like_windows_permission_error(error: &str) -> bool {
+pub(crate) fn looks_like_windows_permission_error(error: &str) -> bool {
     let lower = error.to_ascii_lowercase();
     lower.contains("access is denied")
         || lower.contains("elevation")
@@ -219,7 +222,7 @@ fn looks_like_windows_permission_error(error: &str) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn check_windows_process_elevated() -> Result<bool, String> {
+pub(crate) fn check_windows_process_elevated() -> Result<bool, String> {
     let output = run_powershell_script(
         r#"
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -231,7 +234,7 @@ $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
 #[cfg(target_os = "windows")]
-fn require_windows_process_elevated_for_task_registration() -> Result<(), String> {
+pub(crate) fn require_windows_process_elevated_for_task_registration() -> Result<(), String> {
     match check_windows_process_elevated() {
         Ok(true) => Ok(()),
         Ok(false) => Err(
@@ -242,7 +245,7 @@ fn require_windows_process_elevated_for_task_registration() -> Result<(), String
     }
 }
 
-fn escape_task_xml_text(value: &Path) -> String {
+pub(crate) fn escape_task_xml_text(value: &Path) -> String {
     value
         .to_string_lossy()
         .replace('&', "&amp;")
@@ -250,7 +253,7 @@ fn escape_task_xml_text(value: &Path) -> String {
         .replace('>', "&gt;")
 }
 
-fn build_routex_run_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
+pub(crate) fn build_routex_run_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
     let routex_run_path = escape_task_xml_text(routex_run_path);
     let exe_path = escape_task_xml_text(exe_path);
     format!(
@@ -294,7 +297,7 @@ fn build_routex_run_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) 
     )
 }
 
-fn build_routex_run_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
+pub(crate) fn build_routex_run_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
     let routex_run_path = routex_run_binary_task_path(app)?;
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     Ok(build_routex_run_task_xml_for_paths(
@@ -303,7 +306,7 @@ fn build_routex_run_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
     ))
 }
 
-fn build_routex_autorun_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
+pub(crate) fn build_routex_autorun_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
     let routex_run_path = escape_task_xml_text(routex_run_path);
     let exe_path = escape_task_xml_text(exe_path);
     format!(
@@ -353,7 +356,7 @@ fn build_routex_autorun_task_xml_for_paths(routex_run_path: &Path, exe_path: &Pa
     )
 }
 
-fn build_routex_autorun_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
+pub(crate) fn build_routex_autorun_task_xml(app: &tauri::AppHandle) -> Result<String, String> {
     let routex_run_path = routex_run_binary_task_path(app)?;
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     Ok(build_routex_autorun_task_xml_for_paths(
@@ -363,7 +366,7 @@ fn build_routex_autorun_task_xml(app: &tauri::AppHandle) -> Result<String, Strin
 }
 
 #[cfg(target_os = "windows")]
-fn check_windows_task_matches_current_app(
+pub(crate) fn check_windows_task_matches_current_app(
     task_name: &str,
     app: &tauri::AppHandle,
     required_argument: Option<&str>,
@@ -384,7 +387,7 @@ fn check_windows_task_matches_current_app(
     task_xml_matches_current_exec(&xml, &routex_run_path, &exe_path, required_argument)
 }
 
-fn task_xml_matches_current_exec(
+pub(crate) fn task_xml_matches_current_exec(
     xml: &str,
     routex_run_path: &Path,
     exe_path: &Path,
@@ -400,7 +403,7 @@ fn task_xml_matches_current_exec(
             .unwrap_or(true)
 }
 
-fn create_autorun_task(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn create_autorun_task(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         let task_file_path = routex_autorun_task_xml_path(app)?;
@@ -429,7 +432,7 @@ fn create_autorun_task(app: &tauri::AppHandle) -> Result<(), String> {
     }
 }
 
-fn delete_autorun_task() -> Result<(), String> {
+pub(crate) fn delete_autorun_task() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         match schtasks_command(&["/delete", "/tn", routex_autorun_task_name(), "/f"]) {
@@ -446,7 +449,7 @@ fn delete_autorun_task() -> Result<(), String> {
     }
 }
 
-fn check_autorun_task() -> bool {
+pub(crate) fn check_autorun_task() -> bool {
     #[cfg(target_os = "windows")]
     {
         schtasks_command(&["/query", "/tn", routex_autorun_task_name()]).is_ok()
@@ -459,7 +462,7 @@ fn check_autorun_task() -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn check_autorun_task_matches_current_app(app: &tauri::AppHandle) -> bool {
+pub(crate) fn check_autorun_task_matches_current_app(app: &tauri::AppHandle) -> bool {
     check_windows_task_matches_current_app(
         routex_autorun_task_name(),
         app,
@@ -468,7 +471,7 @@ fn check_autorun_task_matches_current_app(app: &tauri::AppHandle) -> bool {
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
-fn user_home_dir() -> Result<PathBuf, String> {
+pub(crate) fn user_home_dir() -> Result<PathBuf, String> {
     std::env::var_os("HOME")
         .or_else(|| std::env::var_os("USERPROFILE"))
         .map(PathBuf::from)
@@ -476,7 +479,7 @@ fn user_home_dir() -> Result<PathBuf, String> {
 }
 
 #[cfg(target_os = "macos")]
-fn macos_login_item_name() -> Result<String, String> {
+pub(crate) fn macos_login_item_name() -> Result<String, String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     Ok(exe_path
         .to_string_lossy()
@@ -487,7 +490,7 @@ fn macos_login_item_name() -> Result<String, String> {
 }
 
 #[cfg(target_os = "macos")]
-fn check_autorun_macos() -> Result<bool, String> {
+pub(crate) fn check_autorun_macos() -> Result<bool, String> {
     let login_item_name = macos_login_item_name()?;
     let output = Command::new("osascript")
         .args([
@@ -511,7 +514,7 @@ fn check_autorun_macos() -> Result<bool, String> {
 }
 
 #[cfg(target_os = "macos")]
-fn enable_autorun_macos() -> Result<(), String> {
+pub(crate) fn enable_autorun_macos() -> Result<(), String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     let app_path = format!(
         "{}.app",
@@ -537,7 +540,7 @@ fn enable_autorun_macos() -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-fn disable_autorun_macos() -> Result<(), String> {
+pub(crate) fn disable_autorun_macos() -> Result<(), String> {
     let login_item_name = macos_login_item_name()?;
     let script = format!(
         r#"tell application "System Events" to delete login item "{}""#,
@@ -555,7 +558,7 @@ fn disable_autorun_macos() -> Result<(), String> {
 }
 
 #[cfg(target_os = "linux")]
-fn linux_autostart_file_path() -> Result<PathBuf, String> {
+pub(crate) fn linux_autostart_file_path() -> Result<PathBuf, String> {
     Ok(user_home_dir()?
         .join(".config")
         .join("autostart")
@@ -563,7 +566,7 @@ fn linux_autostart_file_path() -> Result<PathBuf, String> {
 }
 
 #[cfg(target_os = "linux")]
-fn escape_desktop_exec_arg(value: &str) -> String {
+pub(crate) fn escape_desktop_exec_arg(value: &str) -> String {
     let needs_quotes = value.chars().any(|ch| {
         matches!(
             ch,
@@ -603,7 +606,7 @@ fn escape_desktop_exec_arg(value: &str) -> String {
 }
 
 #[cfg(target_os = "linux")]
-fn linux_autostart_desktop_entry() -> Result<String, String> {
+pub(crate) fn linux_autostart_desktop_entry() -> Result<String, String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     Ok(format!(
         "[Desktop Entry]\nName=RouteX\nExec={} {} %U\nTerminal=false\nType=Application\nIcon=routex\nStartupWMClass=routex\nComment=RouteX\nCategories=Utility;\n",
@@ -612,7 +615,7 @@ fn linux_autostart_desktop_entry() -> Result<String, String> {
     ))
 }
 
-fn check_auto_run_enabled(app: &tauri::AppHandle) -> Result<bool, String> {
+pub(crate) fn check_auto_run_enabled(app: &tauri::AppHandle) -> Result<bool, String> {
     #[cfg(not(target_os = "windows"))]
     let _ = app;
 
@@ -642,7 +645,7 @@ fn check_auto_run_enabled(app: &tauri::AppHandle) -> Result<bool, String> {
     Ok(false)
 }
 
-fn enable_auto_run(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn enable_auto_run(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         return create_autorun_task(app);
@@ -670,7 +673,7 @@ fn enable_auto_run(app: &tauri::AppHandle) -> Result<(), String> {
     Err("当前平台未实现开机自启".to_string())
 }
 
-fn disable_auto_run() -> Result<(), String> {
+pub(crate) fn disable_auto_run() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         return delete_autorun_task();
@@ -694,7 +697,7 @@ fn disable_auto_run() -> Result<(), String> {
     Err("当前平台未实现开机自启".to_string())
 }
 
-fn create_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn create_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         require_windows_process_elevated_for_task_registration()?;
@@ -725,7 +728,7 @@ fn create_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
     }
 }
 
-fn delete_elevate_task() -> Result<(), String> {
+pub(crate) fn delete_elevate_task() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         match schtasks_command(&["/delete", "/tn", routex_run_task_name(), "/f"]) {
@@ -742,7 +745,7 @@ fn delete_elevate_task() -> Result<(), String> {
     }
 }
 
-fn check_elevate_task() -> bool {
+pub(crate) fn check_elevate_task() -> bool {
     #[cfg(target_os = "windows")]
     {
         schtasks_command(&["/query", "/tn", routex_run_task_name()]).is_ok()
@@ -755,6 +758,6 @@ fn check_elevate_task() -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn check_elevate_task_matches_current_app(app: &tauri::AppHandle) -> bool {
+pub(crate) fn check_elevate_task_matches_current_app(app: &tauri::AppHandle) -> bool {
     check_windows_task_matches_current_app(routex_run_task_name(), app, None)
 }

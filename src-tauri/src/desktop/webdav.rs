@@ -1,4 +1,7 @@
-fn webdav_request(
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn webdav_request(
     client: &Client,
     method: reqwest::Method,
     url: &str,
@@ -12,7 +15,7 @@ fn webdav_request(
     }
 }
 
-fn ensure_webdav_directory(config: &WebdavConfig) -> Result<(), String> {
+pub(crate) fn ensure_webdav_directory(config: &WebdavConfig) -> Result<(), String> {
     ensure_webdav_config(config)?;
 
     let client = Client::builder()
@@ -45,7 +48,7 @@ fn ensure_webdav_directory(config: &WebdavConfig) -> Result<(), String> {
     Ok(())
 }
 
-fn build_webdav_backup_archive(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn build_webdav_backup_archive(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let root = app_storage_root(app)?;
     if !root.exists() {
         fs::create_dir_all(&root).map_err(|e| e.to_string())?;
@@ -97,7 +100,7 @@ fn build_webdav_backup_archive(app: &tauri::AppHandle) -> Result<PathBuf, String
     Ok(temp_path)
 }
 
-fn restore_webdav_backup_archive(app: &tauri::AppHandle, bytes: &[u8]) -> Result<(), String> {
+pub(crate) fn restore_webdav_backup_archive(app: &tauri::AppHandle, bytes: &[u8]) -> Result<(), String> {
     let root = app_storage_root(app)?;
     if root.exists() {
         fs::remove_dir_all(&root).map_err(|e| e.to_string())?;
@@ -127,7 +130,7 @@ fn restore_webdav_backup_archive(app: &tauri::AppHandle, bytes: &[u8]) -> Result
     Ok(())
 }
 
-fn list_webdav_backup_names(config: &WebdavConfig) -> Result<Vec<String>, String> {
+pub(crate) fn list_webdav_backup_names(config: &WebdavConfig) -> Result<Vec<String>, String> {
     ensure_webdav_config(config)?;
 
     let client = Client::builder()
@@ -176,7 +179,7 @@ fn list_webdav_backup_names(config: &WebdavConfig) -> Result<Vec<String>, String
     Ok(names)
 }
 
-fn webdav_backup(app: &tauri::AppHandle) -> Result<bool, String> {
+pub(crate) fn webdav_backup(app: &tauri::AppHandle) -> Result<bool, String> {
     let config = read_webdav_config(app)?;
     ensure_webdav_directory(&config)?;
 
@@ -210,7 +213,7 @@ fn webdav_backup(app: &tauri::AppHandle) -> Result<bool, String> {
     Ok(true)
 }
 
-fn webdav_restore(app: &tauri::AppHandle, filename: &str) -> Result<(), String> {
+pub(crate) fn webdav_restore(app: &tauri::AppHandle, filename: &str) -> Result<(), String> {
     let config = read_webdav_config(app)?;
     ensure_webdav_config(&config)?;
 
@@ -239,7 +242,7 @@ fn webdav_restore(app: &tauri::AppHandle, filename: &str) -> Result<(), String> 
     restore_webdav_backup_archive(app, &bytes)
 }
 
-fn webdav_delete(app: &tauri::AppHandle, filename: &str) -> Result<(), String> {
+pub(crate) fn webdav_delete(app: &tauri::AppHandle, filename: &str) -> Result<(), String> {
     let config = read_webdav_config(app)?;
     ensure_webdav_config(&config)?;
 

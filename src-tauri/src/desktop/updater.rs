@@ -1,6 +1,8 @@
+use super::prelude::*;
 use super::*;
 
-fn update_channel(app: &tauri::AppHandle) -> Result<String, String> {
+
+pub(crate) fn update_channel(app: &tauri::AppHandle) -> Result<String, String> {
     Ok(read_app_config_store(app)?
         .get("updateChannel")
         .and_then(Value::as_str)
@@ -8,7 +10,7 @@ fn update_channel(app: &tauri::AppHandle) -> Result<String, String> {
         .to_string())
 }
 
-fn update_manifest_url(app: &tauri::AppHandle) -> Result<String, String> {
+pub(crate) fn update_manifest_url(app: &tauri::AppHandle) -> Result<String, String> {
     let update_channel = update_channel(app)?;
     let fallback = if update_channel == "beta" {
         "https://github.com/Jarv1s0/RouteX/releases/download/pre-release/latest.json"
@@ -28,7 +30,7 @@ fn update_manifest_url(app: &tauri::AppHandle) -> Result<String, String> {
         .to_string())
 }
 
-pub(super) fn update_client(app: &tauri::AppHandle, timeout_secs: u64) -> Result<Client, String> {
+pub(crate) fn update_client(app: &tauri::AppHandle, timeout_secs: u64) -> Result<Client, String> {
     let controlled_config = read_controlled_config_store(app)?;
     let app_config = read_app_config_store(app)?;
     let proxy_host = app_config
@@ -56,7 +58,7 @@ pub(super) fn update_client(app: &tauri::AppHandle, timeout_secs: u64) -> Result
     client_builder.build().map_err(|e| e.to_string())
 }
 
-fn emit_update_status(
+pub(crate) fn emit_update_status(
     app: &tauri::AppHandle,
     downloading: bool,
     progress: u64,
@@ -76,7 +78,7 @@ fn emit_update_status(
     emit_ipc_event(app, "update-status", payload);
 }
 
-fn start_update_download(state: &State<'_, CoreState>) -> Result<Arc<AtomicBool>, String> {
+pub(crate) fn start_update_download(state: &State<'_, CoreState>) -> Result<Arc<AtomicBool>, String> {
     let mut guard = state
         .update_download_cancel
         .lock()
@@ -90,17 +92,17 @@ fn start_update_download(state: &State<'_, CoreState>) -> Result<Arc<AtomicBool>
     Ok(cancel_flag)
 }
 
-fn finish_update_download(state: &State<'_, CoreState>) {
+pub(crate) fn finish_update_download(state: &State<'_, CoreState>) {
     if let Ok(mut guard) = state.update_download_cancel.lock() {
         *guard = None;
     }
 }
 
-fn is_public_key_char(value: char) -> bool {
+pub(crate) fn is_public_key_char(value: char) -> bool {
     value.is_ascii_alphanumeric() || value == '+' || value == '/' || value == '='
 }
 
-fn public_key_candidates(value: &str) -> Vec<String> {
+pub(crate) fn public_key_candidates(value: &str) -> Vec<String> {
     value
         .replace("\\n", "\n")
         .lines()
@@ -140,7 +142,7 @@ fn public_key_candidates(value: &str) -> Vec<String> {
         .collect()
 }
 
-fn updater_public_key() -> Result<String, String> {
+pub(crate) fn updater_public_key() -> Result<String, String> {
     let public_key = option_env!("ROUTEX_UPDATER_PUBLIC_KEY")
         .map(str::trim)
         .filter(|value| !value.is_empty())
@@ -151,7 +153,7 @@ fn updater_public_key() -> Result<String, String> {
         .ok_or_else(|| String::from("ROUTEX_UPDATER_PUBLIC_KEY 格式无效，无法提取 updater 公钥"))
 }
 
-fn official_updater(
+pub(crate) fn official_updater(
     app: &tauri::AppHandle,
     timeout_secs: u64,
 ) -> Result<tauri_plugin_updater::Updater, String> {
@@ -178,7 +180,7 @@ fn official_updater(
     builder.build().map_err(|e| e.to_string())
 }
 
-pub(super) async fn download_and_install_update(
+pub(crate) async fn download_and_install_update(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
     version: &str,
@@ -222,7 +224,7 @@ pub(super) async fn download_and_install_update(
     result
 }
 
-pub(super) fn cancel_update_download(state: &State<'_, CoreState>) -> Result<(), String> {
+pub(crate) fn cancel_update_download(state: &State<'_, CoreState>) -> Result<(), String> {
     let guard = state
         .update_download_cancel
         .lock()
@@ -234,7 +236,7 @@ pub(super) fn cancel_update_download(state: &State<'_, CoreState>) -> Result<(),
     Ok(())
 }
 
-pub(super) async fn check_update_manifest(app: &tauri::AppHandle) -> Result<Option<Value>, String> {
+pub(crate) async fn check_update_manifest(app: &tauri::AppHandle) -> Result<Option<Value>, String> {
     let updater = official_updater(app, 20)?;
     let update = updater.check().await.map_err(|e| e.to_string())?;
     Ok(update.map(|update| {

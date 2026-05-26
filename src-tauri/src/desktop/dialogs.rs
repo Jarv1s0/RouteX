@@ -1,4 +1,7 @@
-fn normalize_dialog_extensions(extensions: &[String]) -> Vec<String> {
+use super::prelude::*;
+use super::*;
+
+pub(crate) fn normalize_dialog_extensions(extensions: &[String]) -> Vec<String> {
     extensions
         .iter()
         .map(|ext| ext.trim().trim_start_matches('.').to_ascii_lowercase())
@@ -7,7 +10,7 @@ fn normalize_dialog_extensions(extensions: &[String]) -> Vec<String> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn normalize_dialog_result(output: std::process::Output) -> Result<Option<String>, String> {
+pub(crate) fn normalize_dialog_result(output: std::process::Output) -> Result<Option<String>, String> {
     match collect_command_error(output) {
         Ok(stdout) => {
             let value = stdout.trim().trim_matches('\0').to_string();
@@ -23,12 +26,12 @@ fn normalize_dialog_result(output: std::process::Output) -> Result<Option<String
 }
 
 #[cfg(target_os = "windows")]
-fn powershell_single_quoted(value: &str) -> String {
+pub(crate) fn powershell_single_quoted(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
 #[cfg(target_os = "windows")]
-fn encode_powershell_script(script: &str) -> String {
+pub(crate) fn encode_powershell_script(script: &str) -> String {
     let utf16 = script
         .encode_utf16()
         .flat_map(|unit| unit.to_le_bytes())
@@ -37,7 +40,7 @@ fn encode_powershell_script(script: &str) -> String {
 }
 
 #[cfg(target_os = "windows")]
-fn run_powershell_script(script: &str) -> Result<String, String> {
+pub(crate) fn run_powershell_script(script: &str) -> Result<String, String> {
     let encoded = encode_powershell_script(script);
     let output = powershell_command()
         .args(["-NoProfile", "-NonInteractive", "-EncodedCommand", &encoded])
@@ -62,7 +65,7 @@ fn run_powershell_script(script: &str) -> Result<String, String> {
 
 #[cfg(target_os = "windows")]
 #[allow(dead_code)]
-fn run_interactive_powershell_script(script: &str) -> Result<std::process::Output, String> {
+pub(crate) fn run_interactive_powershell_script(script: &str) -> Result<std::process::Output, String> {
     let encoded = encode_powershell_script(script);
     powershell_command()
         .args(["-NoProfile", "-EncodedCommand", &encoded])
@@ -71,7 +74,7 @@ fn run_interactive_powershell_script(script: &str) -> Result<std::process::Outpu
 }
 
 #[cfg(target_os = "windows")]
-fn windows_dialog_filter(extensions: &[String]) -> String {
+pub(crate) fn windows_dialog_filter(extensions: &[String]) -> String {
     if extensions.is_empty() {
         return "所有文件 (*.*)|*.*".to_string();
     }
@@ -85,7 +88,7 @@ fn windows_dialog_filter(extensions: &[String]) -> String {
 }
 
 #[cfg(target_os = "windows")]
-fn pick_open_file_paths_native(extensions: &[String]) -> Result<Option<Vec<String>>, String> {
+pub(crate) fn pick_open_file_paths_native(extensions: &[String]) -> Result<Option<Vec<String>>, String> {
     let filter = powershell_single_quoted(&windows_dialog_filter(extensions));
     let script = format!(
         r#"
@@ -122,7 +125,7 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
 }
 
 #[cfg(not(target_os = "windows"))]
-fn pick_open_file_paths_native(extensions: &[String]) -> Result<Option<Vec<String>>, String> {
+pub(crate) fn pick_open_file_paths_native(extensions: &[String]) -> Result<Option<Vec<String>>, String> {
     #[cfg(target_os = "macos")]
     {
         let _ = extensions;
@@ -189,7 +192,7 @@ fn pick_open_file_paths_native(extensions: &[String]) -> Result<Option<Vec<Strin
 }
 
 #[cfg(target_os = "windows")]
-fn pick_save_file_path_native(default_name: &str, ext: &str) -> Result<Option<PathBuf>, String> {
+pub(crate) fn pick_save_file_path_native(default_name: &str, ext: &str) -> Result<Option<PathBuf>, String> {
     let normalized_ext = ext.trim().trim_start_matches('.').to_ascii_lowercase();
     let normalized_name = if normalized_ext.is_empty()
         || default_name
@@ -232,7 +235,7 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
 }
 
 #[cfg(not(target_os = "windows"))]
-fn pick_save_file_path_native(default_name: &str, ext: &str) -> Result<Option<PathBuf>, String> {
+pub(crate) fn pick_save_file_path_native(default_name: &str, ext: &str) -> Result<Option<PathBuf>, String> {
     let normalized_ext = ext.trim().trim_start_matches('.').to_ascii_lowercase();
     let normalized_name = if normalized_ext.is_empty()
         || default_name
@@ -321,7 +324,7 @@ fn pick_save_file_path_native(default_name: &str, ext: &str) -> Result<Option<Pa
     Err("当前平台未实现原生保存文件对话框".to_string())
 }
 
-fn save_text_file_with_dialog(
+pub(crate) fn save_text_file_with_dialog(
     content: &str,
     default_name: &str,
     ext: &str,
@@ -334,7 +337,7 @@ fn save_text_file_with_dialog(
     Ok(true)
 }
 
-fn relaunch_current_app(
+pub(crate) fn relaunch_current_app(
     app: &tauri::AppHandle,
     _state: &State<'_, CoreState>,
 ) -> Result<(), String> {
