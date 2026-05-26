@@ -1,89 +1,59 @@
 use super::prelude::*;
 use super::*;
 
+use std::net::IpAddr;
+
 pub(crate) fn get_interfaces_value() -> Value {
-    #[cfg(target_os = "windows")]
-    {
-        let script = r#"
-$items = Get-NetIPAddress |
-  Where-Object {
-    $_.InterfaceAlias -and
-    $_.IPAddress -ne '127.0.0.1' -and
-    $_.IPAddress -ne '::1' -and
-    $_.IPAddress -notlike '169.254*' -and
-    $_.IPAddress -notlike 'fe80*'
-  } |
-  Select-Object InterfaceAlias, AddressFamily, IPAddress
-$items | ConvertTo-Json -Compress
-"#;
-        let output = match powershell_command()
-            .args(["-NoProfile", "-Command", script])
-            .output()
-        {
-            Ok(output) if output.status.success() => output,
-            _ => return json!({}),
+    let mut interfaces = serde_json::Map::new();
+
+    let Ok(addrs) = get_if_addrs::get_if_addrs() else {
+        return Value::Object(interfaces);
+    };
+
+    for iface in addrs {
+        let name = iface.name;
+        let (ip, family) = match iface.addr {
+            get_if_addrs::IfAddr::V4(v4) => (IpAddr::V4(v4.ip), "IPv4"),
+            get_if_addrs::IfAddr::V6(v6) => (IpAddr::V6(v6.ip), "IPv6"),
         };
 
-        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if stdout.is_empty() {
-            return json!({});
+        if ip.is_loopback() {
+            continue;
         }
 
-        let records = match serde_json::from_str::<Value>(&stdout) {
-            Ok(Value::Array(items)) => items,
-            Ok(Value::Object(item)) => vec![Value::Object(item)],
-            _ => return json!({}),
-        };
-
-        let mut interfaces = serde_json::Map::new();
-        for record in records {
-            let name = record
-                .get("InterfaceAlias")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .trim()
-                .to_string();
-            let address = record
-                .get("IPAddress")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .trim()
-                .to_string();
-            if name.is_empty() || address.is_empty() {
-                continue;
+        // Filter out link-local and APIPA (169.254.* and fe80::*)
+        match ip {
+            IpAddr::V4(ipv4) => {
+                if ipv4.is_link_local() {
+                    continue;
+                }
             }
-
-            let family = match record
-                .get("AddressFamily")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-            {
-                "IPv6" => "IPv6",
-                _ => "IPv4",
-            };
-
-            let entry = interfaces
-                .entry(name.clone())
-                .or_insert_with(|| Value::Array(Vec::new()));
-            if let Some(items) = entry.as_array_mut() {
-                items.push(json!({
-                    "address": address,
-                    "family": family,
-                    "internal": false,
-                    "cidr": Value::Null,
-                    "mac": Value::Null,
-                    "netmask": Value::Null,
-                }));
+            IpAddr::V6(ipv6) => {
+                if (ipv6.segments()[0] & 0xffc0) == 0xfe80 {
+                    continue;
+                }
             }
         }
 
-        Value::Object(interfaces)
+        let address = ip.to_string();
+
+        let entry = interfaces
+            .entry(name)
+            .or_insert_with(|| Value::Array(Vec::new()));
+
+        if let Some(items) = entry.as_array_mut() {
+            items.push(json!({
+                "address": address,
+                "family": family,
+                "internal": false,
+                "cidr": Value::Null,
+                "mac": Value::Null,
+                "netmask": Value::Null,
+            }));
+        }
     }
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        json!({})
-    }
+    Value::Object(interfaces)
 }
 
 pub(crate) fn runtime_files_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {

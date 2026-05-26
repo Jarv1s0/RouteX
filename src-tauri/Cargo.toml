@@ -13,6 +13,7 @@ tauri-build = { version = "2", features = [] }
 base64 = "0.22"
 boa_engine = "0.21.1"
 ctrlc = "3.4"
+get_if_addrs = "0.5.3"
 quick-xml = "0.38"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "query", "rustls"] }
 ring = "0.17.14"
