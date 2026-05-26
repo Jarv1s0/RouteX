@@ -30,35 +30,7 @@ const debugPrepare = process.env.ROUTEX_PREPARE_DEBUG === '1'
 const reuseExistingResources =
   process.env.ROUTEX_REUSE_EXISTING_RESOURCES === '1' ||
   process.env.ROUTEX_REUSE_EXISTING_RESOURCES === 'true'
-const GEO_DATA_RESOURCES = [
-  {
-    name: 'mmdb',
-    file: 'country.mmdb',
-    downloadURL:
-      'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb'
-  },
-  {
-    name: 'metadb',
-    file: 'geoip.metadb',
-    downloadURL: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb'
-  },
-  {
-    name: 'geoip',
-    file: 'geoip.dat',
-    downloadURL: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat'
-  },
-  {
-    name: 'geosite',
-    file: 'geosite.dat',
-    downloadURL: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat'
-  },
-  {
-    name: 'asn',
-    file: 'ASN.mmdb',
-    downloadURL:
-      'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb'
-  }
-]
+
 const OPTIONAL_EXTRA_PATHS = [
   path.join(cwd, 'extra', 'sidecar', platform === 'win32' ? 'mihomo-alpha.exe' : 'mihomo-alpha'),
   path.join(cwd, 'extra', 'files', 'enableLoopback.exe'),
@@ -569,7 +541,6 @@ const resolveRunner = () => {
     downloadURL: `${ROUTEX_SERVICE_RELEASE_PREFIX}/${asset}`
   }).then(() => patchRunnerGuiSubsystem(targetPath))
 }
-const resolveGeoData = (resource) => resolveResource(resource)
 const removeStaleWindowsFiles = () => {
   const staleFiles = ['routex-launcher.exe']
   for (const file of staleFiles) {
@@ -616,11 +587,6 @@ const tasks = [
       resolveSidecar(await createMihomoBinaryInfo('mihomo', MIHOMO_VERSION_URL, false)),
     retry: DEFAULT_TASK_RETRY
   },
-  ...GEO_DATA_RESOURCES.map((resource) => ({
-    name: resource.name,
-    func: () => resolveGeoData(resource),
-    retry: DEFAULT_TASK_RETRY
-  })),
   {
     name: 'font',
     func: resolveFont,

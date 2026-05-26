@@ -191,7 +191,15 @@ pub(crate) fn check_runtime_profile(
         .collect::<Vec<_>>();
 
     if !error_lines.is_empty() {
-        return Err(format!("Profile Check Failed:\n{}", error_lines.join("\n")));
+        let err_msg = error_lines.join("\n");
+        let lower_msg = err_msg.to_lowercase();
+        if lower_msg.contains("geoip") || lower_msg.contains("geosite") || lower_msg.contains("mmdb") {
+            return Err(format!(
+                "启动失败：当前配置依赖地理位置数据库 (GeoData)，但未找到相关文件。\n\n👉 请前往「规则 - GeoData」页面手动下载这些文件，或从配置中移除相关规则。\n\n内核原始报错：\n{}",
+                err_msg
+            ));
+        }
+        return Err(format!("Profile Check Failed:\n{}", err_msg));
     }
 
     let fallback = if !stderr.trim().is_empty() {
