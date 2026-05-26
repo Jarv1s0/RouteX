@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { visualizer } from 'rollup-plugin-visualizer'
 import { DEV_RENDERER_META_CSP, PROD_RENDERER_META_CSP } from './src/shared/csp'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -85,7 +86,14 @@ export default defineConfig({
           }
         ]
       }
-    }
+    },
+    process.env.ANALYZE === 'true' &&
+      visualizer({
+        filename: 'dist-tauri/stats.html',
+        open: true,
+        gzipSize: true,
+        brotliSize: true
+      })
   ],
   resolve: {
     alias: {
