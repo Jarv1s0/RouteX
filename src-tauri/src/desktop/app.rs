@@ -86,7 +86,10 @@ pub(crate) fn allow_single_instance_messages_from_unelevated_launchers(app: &tau
 
     #[link(name = "user32")]
     unsafe extern "system" {
-        pub(crate) fn FindWindowW(class_name: *const u16, window_name: *const u16) -> *mut std::ffi::c_void;
+        pub(crate) fn FindWindowW(
+            class_name: *const u16,
+            window_name: *const u16,
+        ) -> *mut std::ffi::c_void;
         pub(crate) fn ChangeWindowMessageFilterEx(
             hwnd: *mut std::ffi::c_void,
             message: u32,

@@ -222,15 +222,49 @@ pub(crate) fn looks_like_windows_permission_error(error: &str) -> bool {
 }
 
 #[cfg(target_os = "windows")]
+struct WindowsHandle(windows_sys::Win32::Foundation::HANDLE);
+
+#[cfg(target_os = "windows")]
+impl Drop for WindowsHandle {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            unsafe {
+                windows_sys::Win32::Foundation::CloseHandle(self.0);
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
 pub(crate) fn check_windows_process_elevated() -> Result<bool, String> {
-    let output = run_powershell_script(
-        r#"
-$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-$principal = New-Object Security.Principal.WindowsPrincipal -ArgumentList $identity
-$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-"#,
-    )?;
-    Ok(output.trim().eq_ignore_ascii_case("true"))
+    use windows_sys::Win32::{
+        Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY},
+        System::Threading::{GetCurrentProcess, OpenProcessToken},
+    };
+
+    let mut token = std::ptr::null_mut();
+    let opened = unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) };
+    if opened == 0 {
+        return Err(std::io::Error::last_os_error().to_string());
+    }
+    let token = WindowsHandle(token);
+
+    let mut elevation = TOKEN_ELEVATION { TokenIsElevated: 0 };
+    let mut return_length = 0u32;
+    let queried = unsafe {
+        GetTokenInformation(
+            token.0,
+            TokenElevation,
+            &mut elevation as *mut TOKEN_ELEVATION as *mut std::ffi::c_void,
+            std::mem::size_of::<TOKEN_ELEVATION>() as u32,
+            &mut return_length,
+        )
+    };
+    if queried == 0 {
+        return Err(std::io::Error::last_os_error().to_string());
+    }
+
+    Ok(elevation.TokenIsElevated != 0)
 }
 
 #[cfg(target_os = "windows")]

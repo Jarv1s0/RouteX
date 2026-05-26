@@ -420,7 +420,8 @@ pub(crate) fn build_group_children(
                         object.insert("icon".to_string(), icon.clone());
                     }
 
-                    if let Some(child_names) = object.get("all").and_then(Value::as_array).cloned() {
+                    if let Some(child_names) = object.get("all").and_then(Value::as_array).cloned()
+                    {
                         if seen.insert(name.to_string()) {
                             object.insert(
                                 "all".to_string(),

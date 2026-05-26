@@ -539,12 +539,18 @@ pub(crate) fn read_value_store(
     Ok(read_json_file(&path)?.unwrap_or(default))
 }
 
-pub(crate) fn write_value_store(app: &tauri::AppHandle, file_name: &str, value: &Value) -> Result<(), String> {
+pub(crate) fn write_value_store(
+    app: &tauri::AppHandle,
+    file_name: &str,
+    value: &Value,
+) -> Result<(), String> {
     let path = storage_file(app, file_name)?;
     write_json_file(&path, value)
 }
 
-pub(crate) fn read_traffic_stats_store(app: &tauri::AppHandle) -> Result<TrafficStatsStore, String> {
+pub(crate) fn read_traffic_stats_store(
+    app: &tauri::AppHandle,
+) -> Result<TrafficStatsStore, String> {
     let path = storage_file(app, TRAFFIC_STATS_FILE)?;
     Ok(read_json_file(&path)?.unwrap_or_default())
 }
@@ -646,7 +652,10 @@ pub(crate) fn read_app_config_store(app: &tauri::AppHandle) -> Result<Value, Str
     read_value_store(app, APP_CONFIG_FILE, json!({}))
 }
 
-pub(crate) fn patch_app_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
+pub(crate) fn patch_app_config_store(
+    app: &tauri::AppHandle,
+    patch: &Value,
+) -> Result<Value, String> {
     let mut value = read_app_config_store(app)?;
     merge_json(&mut value, patch);
     invalidate_profile_runtime_config_cache_after(
@@ -659,9 +668,14 @@ pub(crate) fn patch_requires_shell_surface_sync(patch: &Value) -> bool {
         return false;
     };
 
-    ["disableTray", "showFloatingWindow", "proxyInTray", "language"]
-        .iter()
-        .any(|key| patch_map.contains_key(*key))
+    [
+        "disableTray",
+        "showFloatingWindow",
+        "proxyInTray",
+        "language",
+    ]
+    .iter()
+    .any(|key| patch_map.contains_key(*key))
         || patch_map.contains_key("sysProxy")
         || (cfg!(target_os = "macos") && patch_map.contains_key("showTraffic"))
 }
@@ -678,7 +692,10 @@ pub(crate) fn read_controlled_config_store(app: &tauri::AppHandle) -> Result<Val
     read_value_store(app, CONTROLLED_CONFIG_FILE, json!({}))
 }
 
-pub(crate) fn patch_controlled_config_store(app: &tauri::AppHandle, patch: &Value) -> Result<Value, String> {
+pub(crate) fn patch_controlled_config_store(
+    app: &tauri::AppHandle,
+    patch: &Value,
+) -> Result<Value, String> {
     let mut value = read_controlled_config_store(app)?;
     let app_config = read_app_config_store(app)?;
     let control_dns = app_config
@@ -724,7 +741,10 @@ pub(crate) fn read_profile_config(app: &tauri::AppHandle) -> Result<ProfileConfi
     ))
 }
 
-pub(crate) fn write_profile_config(app: &tauri::AppHandle, config: &ProfileConfigData) -> Result<(), String> {
+pub(crate) fn write_profile_config(
+    app: &tauri::AppHandle,
+    config: &ProfileConfigData,
+) -> Result<(), String> {
     let path = storage_file(app, PROFILE_CONFIG_FILE)?;
     let normalized = normalize_profile_config(config.clone());
     invalidate_profile_runtime_config_cache_after(write_json_file(&path, &normalized))
@@ -748,7 +768,10 @@ pub(crate) fn read_chains_config(app: &tauri::AppHandle) -> Result<ChainsConfigD
     Ok(read_json_file(&path)?.unwrap_or_default())
 }
 
-pub(crate) fn write_chains_config(app: &tauri::AppHandle, config: &ChainsConfigData) -> Result<(), String> {
+pub(crate) fn write_chains_config(
+    app: &tauri::AppHandle,
+    config: &ChainsConfigData,
+) -> Result<(), String> {
     let path = storage_file(app, CHAINS_CONFIG_FILE)?;
     invalidate_profile_runtime_config_cache_after(write_json_file(&path, config))
 }
@@ -788,7 +811,9 @@ pub(crate) fn normalize_quick_rule(rule: QuickRule) -> Option<QuickRule> {
     })
 }
 
-pub(crate) fn normalize_quick_rules_config(mut config: QuickRulesConfigData) -> QuickRulesConfigData {
+pub(crate) fn normalize_quick_rules_config(
+    mut config: QuickRulesConfigData,
+) -> QuickRulesConfigData {
     config.version = 1;
     config.profiles = config
         .profiles
@@ -869,7 +894,9 @@ pub(crate) fn ensure_quick_rule_profile_mut<'a>(
         })
 }
 
-pub(crate) fn read_quick_rules_config_raw(app: &tauri::AppHandle) -> Result<QuickRulesConfigData, String> {
+pub(crate) fn read_quick_rules_config_raw(
+    app: &tauri::AppHandle,
+) -> Result<QuickRulesConfigData, String> {
     let path = storage_file(app, QUICK_RULES_CONFIG_FILE)?;
     Ok(normalize_quick_rules_config(
         read_json_file(&path)?.unwrap_or_else(default_quick_rules_config),
@@ -1033,7 +1060,9 @@ pub(crate) fn migrate_profile_quick_rules_to_global_if_needed(
     write_quick_rules_config(app, config)
 }
 
-pub(crate) fn read_quick_rules_config(app: &tauri::AppHandle) -> Result<QuickRulesConfigData, String> {
+pub(crate) fn read_quick_rules_config(
+    app: &tauri::AppHandle,
+) -> Result<QuickRulesConfigData, String> {
     let mut config = read_quick_rules_config_raw(app)?;
     migrate_legacy_quick_rules_if_needed(app, &mut config)?;
     migrate_profile_quick_rules_to_global_if_needed(app, &mut config)?;
@@ -1152,7 +1181,10 @@ pub(crate) fn reorder_quick_rules_store(
     write_quick_rules_config(app, &config)
 }
 
-pub(crate) fn clear_quick_rules_store(app: &tauri::AppHandle, profile_id: &str) -> Result<(), String> {
+pub(crate) fn clear_quick_rules_store(
+    app: &tauri::AppHandle,
+    profile_id: &str,
+) -> Result<(), String> {
     let mut config = read_quick_rules_config(app)?;
     ensure_quick_rule_profile_mut(&mut config, profile_id)
         .rules
@@ -1181,7 +1213,10 @@ pub(crate) fn quick_rule_target_names(profile: &Value) -> HashSet<String> {
     names
 }
 
-pub(crate) fn quick_rule_strings(app: &tauri::AppHandle, runtime_profile: &Value) -> Result<Vec<String>, String> {
+pub(crate) fn quick_rule_strings(
+    app: &tauri::AppHandle,
+    runtime_profile: &Value,
+) -> Result<Vec<String>, String> {
     let quick_rules = read_quick_rules(app, GLOBAL_QUICK_RULES_PROFILE_ID)?;
     if !quick_rules.enabled {
         return Ok(Vec::new());
@@ -1196,7 +1231,10 @@ pub(crate) fn quick_rule_strings(app: &tauri::AppHandle, runtime_profile: &Value
         .collect())
 }
 
-pub(crate) fn inject_quick_rules(app: &tauri::AppHandle, profile: &mut Value) -> Result<(), String> {
+pub(crate) fn inject_quick_rules(
+    app: &tauri::AppHandle,
+    profile: &mut Value,
+) -> Result<(), String> {
     if !profile.is_object() {
         *profile = json!({});
     }
@@ -1234,7 +1272,11 @@ pub(crate) fn read_profile_text(app: &tauri::AppHandle, id: &str) -> Result<Stri
     Ok(DEFAULT_PROFILE_TEXT.to_string())
 }
 
-pub(crate) fn write_profile_text(app: &tauri::AppHandle, id: &str, content: &str) -> Result<(), String> {
+pub(crate) fn write_profile_text(
+    app: &tauri::AppHandle,
+    id: &str,
+    content: &str,
+) -> Result<(), String> {
     let path = profile_file_path(app, id)?;
     ensure_parent(&path)?;
     invalidate_profile_runtime_config_cache_after(
@@ -1242,15 +1284,27 @@ pub(crate) fn write_profile_text(app: &tauri::AppHandle, id: &str, content: &str
     )
 }
 
-pub(crate) fn override_file_path(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<PathBuf, String> {
+pub(crate) fn override_file_path(
+    app: &tauri::AppHandle,
+    id: &str,
+    ext: &str,
+) -> Result<PathBuf, String> {
     Ok(storage_dir(app, OVERRIDE_DIR_NAME)?.join(format!("{id}.{ext}")))
 }
 
-pub(crate) fn override_rollback_path(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<PathBuf, String> {
+pub(crate) fn override_rollback_path(
+    app: &tauri::AppHandle,
+    id: &str,
+    ext: &str,
+) -> Result<PathBuf, String> {
     Ok(storage_dir(app, OVERRIDE_DIR_NAME)?.join(format!("{id}.{ext}.rollback")))
 }
 
-pub(crate) fn read_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<String, String> {
+pub(crate) fn read_override_text(
+    app: &tauri::AppHandle,
+    id: &str,
+    ext: &str,
+) -> Result<String, String> {
     let path = override_file_path(app, id, ext)?;
     if path.exists() {
         return fs::read_to_string(path).map_err(|e| e.to_string());
@@ -1282,7 +1336,11 @@ pub(crate) fn write_override_text(
     )
 }
 
-pub(crate) fn rollback_override_text(app: &tauri::AppHandle, id: &str, ext: &str) -> Result<(), String> {
+pub(crate) fn rollback_override_text(
+    app: &tauri::AppHandle,
+    id: &str,
+    ext: &str,
+) -> Result<(), String> {
     let target_path = override_file_path(app, id, ext)?;
     let rollback_path = override_rollback_path(app, id, ext)?;
 
@@ -1348,7 +1406,11 @@ pub(crate) fn read_theme_text(app: &tauri::AppHandle, theme: &str) -> Result<Str
     Ok(String::new())
 }
 
-pub(crate) fn write_theme_text(app: &tauri::AppHandle, theme: &str, css: &str) -> Result<(), String> {
+pub(crate) fn write_theme_text(
+    app: &tauri::AppHandle,
+    theme: &str,
+    css: &str,
+) -> Result<(), String> {
     if is_default_theme(theme) {
         return Ok(());
     }

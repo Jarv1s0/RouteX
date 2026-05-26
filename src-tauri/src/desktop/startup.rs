@@ -1,7 +1,6 @@
 use super::prelude::*;
 use super::*;
 
-
 pub(crate) struct StartupAlignmentConfig {
     pub(crate) sysproxy_enabled: bool,
     pub(crate) only_active_device: bool,

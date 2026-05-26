@@ -350,7 +350,10 @@ pub(crate) fn cleanup_dns_config(config: &mut serde_json::Map<String, Value>, co
     }
 }
 
-pub(crate) fn cleanup_sniffer_config(config: &mut serde_json::Map<String, Value>, control_sniff: bool) {
+pub(crate) fn cleanup_sniffer_config(
+    config: &mut serde_json::Map<String, Value>,
+    control_sniff: bool,
+) {
     if !control_sniff {
         return;
     }
@@ -390,7 +393,11 @@ pub(crate) fn cleanup_proxy_configs(config: &mut serde_json::Map<String, Value>)
     }
 }
 
-pub(crate) fn sanitize_runtime_profile_value(profile: &mut Value, control_dns: bool, control_sniff: bool) {
+pub(crate) fn sanitize_runtime_profile_value(
+    profile: &mut Value,
+    control_dns: bool,
+    control_sniff: bool,
+) {
     let Some(config) = profile.as_object_mut() else {
         return;
     };
@@ -405,4 +412,3 @@ pub(crate) fn sanitize_runtime_profile_value(profile: &mut Value, control_dns: b
     cleanup_sniffer_config(config, control_sniff);
     cleanup_proxy_configs(config);
 }
-

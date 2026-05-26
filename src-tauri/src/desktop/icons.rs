@@ -1,6 +1,22 @@
 use super::prelude::*;
 use super::*;
 
+#[cfg(target_os = "windows")]
+use std::{ffi::OsStr, os::windows::ffi::OsStrExt, ptr};
+
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::{
+    Foundation::HANDLE,
+    Graphics::Gdi::{
+        CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, SelectObject, BITMAPINFO,
+        BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HGDIOBJ,
+    },
+    UI::{
+        Shell::ExtractAssociatedIconW,
+        WindowsAndMessaging::{DestroyIcon, DrawIconEx, PrivateExtractIconsW, DI_NORMAL, HICON},
+    },
+};
+
 pub(crate) fn fetch_image_data_url(url: &str) -> Result<String, String> {
     if url.starts_with("data:") {
         return Ok(url.to_string());
@@ -181,212 +197,180 @@ pub(crate) fn is_windows_icon_extractable_path(path: &Path) -> bool {
 }
 
 #[cfg(target_os = "windows")]
+const WINDOWS_ICON_SIZE: i32 = 64;
+
+#[cfg(target_os = "windows")]
+fn wide_null(value: &str) -> Vec<u16> {
+    OsStr::new(value).encode_wide().chain(Some(0)).collect()
+}
+
+#[cfg(target_os = "windows")]
+fn extract_windows_icon_handle(app_path: &str, size: i32) -> Option<HICON> {
+    let wide_path = wide_null(app_path);
+    let mut handles = [ptr::null_mut(); 1];
+    let mut icon_ids = [0u32; 1];
+
+    let extracted = unsafe {
+        PrivateExtractIconsW(
+            wide_path.as_ptr(),
+            0,
+            size,
+            size,
+            handles.as_mut_ptr(),
+            icon_ids.as_mut_ptr(),
+            handles.len() as u32,
+            0,
+        )
+    };
+
+    if extracted > 0 && !handles[0].is_null() {
+        return Some(handles[0]);
+    }
+
+    let mut fallback_path = wide_path;
+    fallback_path.resize(260, 0);
+    let mut icon_index = 0u16;
+    let handle = unsafe {
+        ExtractAssociatedIconW(ptr::null_mut(), fallback_path.as_mut_ptr(), &mut icon_index)
+    };
+
+    if handle.is_null() {
+        None
+    } else {
+        Some(handle)
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn png_data_url_from_rgba(width: u32, height: u32, rgba: &[u8]) -> Option<String> {
+    let mut png_bytes = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut png_bytes, width, height);
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header().ok()?;
+        writer.write_image_data(rgba).ok()?;
+    }
+
+    Some(to_data_url("image/png", &png_bytes))
+}
+
+#[cfg(target_os = "windows")]
+pub(crate) fn bgra_to_rgba_with_alpha_fallback(bgra: &[u8]) -> Vec<u8> {
+    let has_alpha = bgra.chunks_exact(4).any(|pixel| pixel[3] != 0);
+    let mut rgba = Vec::with_capacity(bgra.len());
+
+    for pixel in bgra.chunks_exact(4) {
+        let alpha = if has_alpha { pixel[3] } else { u8::MAX };
+        rgba.extend_from_slice(&[pixel[2], pixel[1], pixel[0], alpha]);
+    }
+
+    rgba
+}
+
+#[cfg(target_os = "windows")]
+fn icon_handle_to_png_data_url(icon: HICON, size: i32) -> Option<String> {
+    if icon.is_null() || size <= 0 {
+        return None;
+    }
+
+    let width = size as u32;
+    let height = size as u32;
+    let pixel_count = (width * height) as usize;
+    let mut bits = ptr::null_mut();
+
+    let mut bitmap_info: BITMAPINFO = unsafe { std::mem::zeroed() };
+    bitmap_info.bmiHeader = BITMAPINFOHEADER {
+        biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+        biWidth: size,
+        biHeight: -size,
+        biPlanes: 1,
+        biBitCount: 32,
+        biCompression: BI_RGB,
+        biSizeImage: (pixel_count * 4) as u32,
+        biXPelsPerMeter: 0,
+        biYPelsPerMeter: 0,
+        biClrUsed: 0,
+        biClrImportant: 0,
+    };
+
+    let hdc = unsafe { CreateCompatibleDC(ptr::null_mut()) };
+    if hdc.is_null() {
+        return None;
+    }
+
+    let hbitmap = unsafe {
+        CreateDIBSection(
+            hdc,
+            &bitmap_info,
+            DIB_RGB_COLORS,
+            &mut bits,
+            ptr::null_mut::<std::ffi::c_void>() as HANDLE,
+            0,
+        )
+    };
+
+    if hbitmap.is_null() || bits.is_null() {
+        unsafe {
+            DeleteDC(hdc);
+        }
+        return None;
+    }
+
+    unsafe {
+        ptr::write_bytes(bits, 0, pixel_count * 4);
+    }
+
+    let old_bitmap = unsafe { SelectObject(hdc, hbitmap as HGDIOBJ) };
+    let draw_ok =
+        unsafe { DrawIconEx(hdc, 0, 0, icon, size, size, 0, ptr::null_mut(), DI_NORMAL) } != 0;
+
+    let mut rgba = Vec::new();
+    if draw_ok {
+        let bgra = unsafe { std::slice::from_raw_parts(bits as *const u8, pixel_count * 4) };
+        rgba = bgra_to_rgba_with_alpha_fallback(bgra);
+    }
+
+    unsafe {
+        if !old_bitmap.is_null() {
+            SelectObject(hdc, old_bitmap);
+        }
+        DeleteObject(hbitmap as HGDIOBJ);
+        DeleteDC(hdc);
+    }
+
+    if !draw_ok {
+        return None;
+    }
+
+    png_data_url_from_rgba(width, height, &rgba)
+}
+
+#[cfg(target_os = "windows")]
 pub(crate) fn extract_windows_icon_data_url(app_path: &str) -> Option<String> {
     let path = Path::new(app_path);
     if !is_windows_icon_extractable_path(path) {
         return None;
     }
 
-    let quoted_path = powershell_single_quoted(app_path);
-    let script = format!(
-        r#"
-[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-Add-Type -AssemblyName System.Drawing
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-
-public static class RouteXIconExtractor
-{{
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern uint PrivateExtractIcons(
-        string szFileName,
-        int nIconIndex,
-        int cxIcon,
-        int cyIcon,
-        IntPtr[] phicon,
-        uint[] piconid,
-        uint nIcons,
-        uint flags
-    );
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool DestroyIcon(IntPtr hIcon);
-}}
-"@
-$path = {quoted_path}
-if (-not (Test-Path -LiteralPath $path)) {{
-  exit 0
-}}
-$size = 256
-$iconHandle = [IntPtr]::Zero
-$handles = New-Object IntPtr[] 1
-$iconIds = New-Object UInt32[] 1
-$extracted = [RouteXIconExtractor]::PrivateExtractIcons($path, 0, $size, $size, $handles, $iconIds, 1, 0)
-if ($extracted -gt 0 -and $handles[0] -ne [IntPtr]::Zero) {{
-  $iconHandle = $handles[0]
-}}
-
-if ($iconHandle -ne [IntPtr]::Zero) {{
-  $icon = [System.Drawing.Icon]::FromHandle($iconHandle).Clone()
-  [RouteXIconExtractor]::DestroyIcon($iconHandle) | Out-Null
-}} else {{
-  $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($path)
-}}
-
-if ($null -eq $icon) {{
-  exit 0
-}}
-$bitmap = New-Object System.Drawing.Bitmap($size, $size)
-$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-$graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
-$graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-$graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-$graphics.Clear([System.Drawing.Color]::Transparent)
-$graphics.DrawIcon($icon, (New-Object System.Drawing.Rectangle(0, 0, $size, $size)))
-$stream = New-Object System.IO.MemoryStream
-$bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
-$graphics.Dispose()
-$bitmap.Dispose()
-$icon.Dispose()
-[Convert]::ToBase64String($stream.ToArray())
-"#
-    );
-
-    let output = run_powershell_script(&script).ok()?;
-    let base64 = output.trim();
-    if base64.is_empty() {
-        None
-    } else {
-        Some(format!("data:image/png;base64,{base64}"))
+    let icon = extract_windows_icon_handle(app_path, WINDOWS_ICON_SIZE)?;
+    let data_url = icon_handle_to_png_data_url(icon, WINDOWS_ICON_SIZE);
+    unsafe {
+        DestroyIcon(icon);
     }
+    data_url
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn extract_windows_icon_data_urls_batch(app_paths: &[String]) -> HashMap<String, String> {
-    if app_paths.is_empty() {
-        return HashMap::new();
-    }
-
-    let encoded_paths = serde_json::to_vec(app_paths)
-        .ok()
-        .map(|bytes| BASE64_STANDARD.encode(bytes))
-        .unwrap_or_default();
-    if encoded_paths.is_empty() {
-        return HashMap::new();
-    }
-
-    let script = format!(
-        r#"
-[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-Add-Type -AssemblyName System.Drawing
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-
-public static class RouteXIconExtractor
-{{
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    public static extern uint PrivateExtractIcons(
-        string szFileName,
-        int nIconIndex,
-        int cxIcon,
-        int cyIcon,
-        IntPtr[] phicon,
-        uint[] piconid,
-        uint nIcons,
-        uint flags
-    );
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool DestroyIcon(IntPtr hIcon);
-}}
-"@
-$encodedPaths = '{encoded_paths}'
-$json = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encodedPaths))
-$paths = $json | ConvertFrom-Json
-if ($paths -isnot [System.Array]) {{
-  $paths = @($paths)
-}}
-
-$size = 64
-$result = @{{}}
-foreach ($path in $paths) {{
-  if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path)) {{
-    continue
-  }}
-
-  $icon = $null
-  $iconHandle = [IntPtr]::Zero
-  $handles = New-Object IntPtr[] 1
-  $iconIds = New-Object UInt32[] 1
-  $extracted = [RouteXIconExtractor]::PrivateExtractIcons($path, 0, $size, $size, $handles, $iconIds, 1, 0)
-  if ($extracted -gt 0 -and $handles[0] -ne [IntPtr]::Zero) {{
-    try {{
-      $icon = [System.Drawing.Icon]::FromHandle($handles[0]).Clone()
-    }} finally {{
-      [RouteXIconExtractor]::DestroyIcon($handles[0]) | Out-Null
-    }}
-  }} else {{
-    try {{
-      $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($path)
-    }} catch {{
-      $icon = $null
-    }}
-  }}
-
-  if ($null -eq $icon) {{
-    continue
-  }}
-
-  $bitmap = $null
-  $graphics = $null
-  $stream = $null
-  try {{
-    $bitmap = New-Object System.Drawing.Bitmap($size, $size)
-    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-    $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
-    $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-    $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-    $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-    $graphics.Clear([System.Drawing.Color]::Transparent)
-    $graphics.DrawIcon($icon, (New-Object System.Drawing.Rectangle(0, 0, $size, $size)))
-    $stream = New-Object System.IO.MemoryStream
-    $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
-    $result[$path] = [Convert]::ToBase64String($stream.ToArray())
-  }} finally {{
-    if ($null -ne $stream) {{
-      $stream.Dispose()
-    }}
-    if ($null -ne $graphics) {{
-      $graphics.Dispose()
-    }}
-    if ($null -ne $bitmap) {{
-      $bitmap.Dispose()
-    }}
-    $icon.Dispose()
-  }}
-}}
-
-$result | ConvertTo-Json -Compress
-"#
-    );
-
-    let output = match run_powershell_script(&script) {
-        Ok(value) => value,
-        Err(_) => return HashMap::new(),
-    };
-
-    serde_json::from_str::<HashMap<String, String>>(&output)
-        .map(|items| {
-            items
-                .into_iter()
-                .filter(|(_, base64)| !base64.trim().is_empty())
-                .map(|(path, base64)| (path, format!("data:image/png;base64,{base64}")))
-                .collect()
+pub(crate) fn extract_windows_icon_data_urls_batch(
+    app_paths: &[String],
+) -> HashMap<String, String> {
+    app_paths
+        .iter()
+        .filter_map(|app_path| {
+            extract_windows_icon_data_url(app_path).map(|data_url| (app_path.clone(), data_url))
         })
-        .unwrap_or_default()
+        .collect()
 }
 
 #[cfg(target_os = "macos")]
@@ -655,8 +639,7 @@ pub(crate) fn resolve_icon_data_url_uncached(normalized_path: &str) -> String {
         }
     }
 
-    read_local_icon_data_url(normalized_path)
-        .unwrap_or_else(|| default_icon_data_url().to_string())
+    read_local_icon_data_url(normalized_path).unwrap_or_else(|| default_icon_data_url().to_string())
 }
 
 pub(crate) fn resolve_icon_data_url(app_path: &str) -> String {

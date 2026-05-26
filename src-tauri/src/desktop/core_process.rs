@@ -1,7 +1,10 @@
 use super::prelude::*;
 use super::*;
 
-pub(crate) fn prepare_runtime_data_dir(app: &tauri::AppHandle, data_dir: &Path) -> Result<(), String> {
+pub(crate) fn prepare_runtime_data_dir(
+    app: &tauri::AppHandle,
+    data_dir: &Path,
+) -> Result<(), String> {
     for file_name in [
         "country.mmdb",
         "geoip.metadb",
@@ -193,7 +196,10 @@ pub(crate) fn check_runtime_profile(
     if !error_lines.is_empty() {
         let err_msg = error_lines.join("\n");
         let lower_msg = err_msg.to_lowercase();
-        if lower_msg.contains("geoip") || lower_msg.contains("geosite") || lower_msg.contains("mmdb") {
+        if lower_msg.contains("geoip")
+            || lower_msg.contains("geosite")
+            || lower_msg.contains("mmdb")
+        {
             return Err(format!(
                 "启动失败：当前配置依赖地理位置数据库 (GeoData)，但未找到相关文件。\n\n👉 请前往「规则 - GeoData」页面手动下载这些文件，或从配置中移除相关规则。\n\n内核原始报错：\n{}",
                 err_msg
@@ -253,7 +259,10 @@ pub(crate) fn normalize_runtime_config(input: Option<&Value>, controller_address
     Value::Object(config)
 }
 
-pub(crate) fn stop_core_process(app: &tauri::AppHandle, state: &State<'_, CoreState>) -> Result<(), String> {
+pub(crate) fn stop_core_process(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+) -> Result<(), String> {
     let _ = stop_core_events_monitor(state);
     let service_managed = {
         let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
@@ -446,7 +455,10 @@ pub(crate) fn wait_for_renderer_data_ready(
     ))
 }
 
-pub(crate) fn wait_for_core_ready(state: &State<'_, CoreState>, runtime_config: &Value) -> Result<(), String> {
+pub(crate) fn wait_for_core_ready(
+    state: &State<'_, CoreState>,
+    runtime_config: &Value,
+) -> Result<(), String> {
     let mut last_error = String::from("Mihomo controller is not available");
     let tun_enabled = runtime_tun_enabled(runtime_config);
     // TUN 模式下核心需要先初始化 Wintun/虚拟网卡才会开放 HTTP controller，
@@ -651,8 +663,10 @@ pub(crate) fn reload_core_config_process(
         }
     }
 
-    let runtime_config =
-        normalize_runtime_config(Some(&current_profile_runtime_config(app)?), &controller_address);
+    let runtime_config = normalize_runtime_config(
+        Some(&current_profile_runtime_config(app)?),
+        &controller_address,
+    );
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
     let test_dir = work_dir
         .parent()

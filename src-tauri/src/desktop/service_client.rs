@@ -19,7 +19,10 @@ pub(crate) fn run_service_command(app: &tauri::AppHandle, args: &[String]) -> Re
     }
 }
 
-pub(crate) fn run_service_command_capture(app: &tauri::AppHandle, args: &[String]) -> Result<String, String> {
+pub(crate) fn run_service_command_capture(
+    app: &tauri::AppHandle,
+    args: &[String],
+) -> Result<String, String> {
     let binary = resolve_service_binary(app)?;
     let mut command = Command::new(binary);
     apply_background_command(&mut command);
@@ -210,10 +213,7 @@ pub(crate) fn build_service_http_request(
     );
     if method != "GET" || !body_text.is_empty() {
         request.push_str("Content-Type: application/json\r\n");
-        request.push_str(&format!(
-            "Content-Length: {}\r\n",
-            body_text.len()
-        ));
+        request.push_str(&format!("Content-Length: {}\r\n", body_text.len()));
     }
     request.push_str("\r\n");
     request.push_str(&body_text);

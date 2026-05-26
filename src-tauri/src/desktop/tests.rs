@@ -62,6 +62,66 @@ fn desktop_invoke_channels_match_typescript_contract() {
 }
 
 #[test]
+fn dialog_extensions_are_normalized_for_native_filters() {
+    assert_eq!(
+        normalize_dialog_extensions(&[
+            " .YAML ".to_string(),
+            ".json".to_string(),
+            "  ".to_string()
+        ]),
+        vec!["yaml".to_string(), "json".to_string()]
+    );
+}
+
+#[test]
+fn save_file_name_appends_missing_extension_once() {
+    assert_eq!(
+        normalize_save_file_name("config", ".YAML"),
+        ("config.yaml".to_string(), "yaml".to_string())
+    );
+    assert_eq!(
+        normalize_save_file_name("config.YAML", "yaml"),
+        ("config.YAML".to_string(), "yaml".to_string())
+    );
+}
+
+#[test]
+fn save_path_extension_is_enforced_after_dialog_selection() {
+    assert_eq!(
+        ensure_save_path_extension(PathBuf::from(r"C:\tmp\config"), "yaml"),
+        PathBuf::from(r"C:\tmp\config.yaml")
+    );
+    assert_eq!(
+        ensure_save_path_extension(PathBuf::from(r"C:\tmp\config.YAML"), "yaml"),
+        PathBuf::from(r"C:\tmp\config.YAML")
+    );
+    assert_eq!(
+        ensure_save_path_extension(PathBuf::from(r"C:\tmp\config"), ""),
+        PathBuf::from(r"C:\tmp\config")
+    );
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn bgra_icon_pixels_fallback_to_opaque_when_alpha_is_empty() {
+    let bgra = [10, 20, 30, 0, 40, 50, 60, 0];
+    assert_eq!(
+        bgra_to_rgba_with_alpha_fallback(&bgra),
+        vec![30, 20, 10, 255, 60, 50, 40, 255]
+    );
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn bgra_icon_pixels_preserve_existing_alpha() {
+    let bgra = [10, 20, 30, 0, 40, 50, 60, 128];
+    assert_eq!(
+        bgra_to_rgba_with_alpha_fallback(&bgra),
+        vec![30, 20, 10, 0, 60, 50, 40, 128]
+    );
+}
+
+#[test]
 fn geo_dat_validation_rejects_common_text_downloads() {
     let html = b"<html><body>not found</body></html>";
 

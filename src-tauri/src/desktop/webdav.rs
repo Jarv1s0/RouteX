@@ -100,7 +100,10 @@ pub(crate) fn build_webdav_backup_archive(app: &tauri::AppHandle) -> Result<Path
     Ok(temp_path)
 }
 
-pub(crate) fn restore_webdav_backup_archive(app: &tauri::AppHandle, bytes: &[u8]) -> Result<(), String> {
+pub(crate) fn restore_webdav_backup_archive(
+    app: &tauri::AppHandle,
+    bytes: &[u8],
+) -> Result<(), String> {
     let root = app_storage_root(app)?;
     if root.exists() {
         fs::remove_dir_all(&root).map_err(|e| e.to_string())?;
@@ -159,7 +162,8 @@ pub(crate) fn list_webdav_backup_names(config: &WebdavConfig) -> Result<Vec<Stri
             Ok(Event::Start(event)) if event.local_name().as_ref() == b"href" => {
                 let text = reader.read_text(event.name()).map_err(|e| e.to_string())?;
                 let basename = text
-                    .split('/').rfind(|segment| !segment.is_empty())
+                    .split('/')
+                    .rfind(|segment| !segment.is_empty())
                     .unwrap_or_default();
                 let decoded = urlencoding::decode(basename)
                     .map(|value| value.into_owned())

@@ -159,7 +159,10 @@ pub(crate) fn test_service_connection_value(app: &tauri::AppHandle) -> bool {
     service_http_request_json(app, "GET", "/test", None).is_ok()
 }
 
-pub(crate) fn init_service(app: &tauri::AppHandle, auth_key_input: Option<Value>) -> Result<(), String> {
+pub(crate) fn init_service(
+    app: &tauri::AppHandle,
+    auth_key_input: Option<Value>,
+) -> Result<(), String> {
     let service_auth_key = match auth_key_input {
         Some(Value::Object(payload)) => {
             let public_key = payload

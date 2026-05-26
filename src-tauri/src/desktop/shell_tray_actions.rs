@@ -174,7 +174,10 @@ pub(crate) fn resolve_current_runtime_dirs(
     ensure_runtime_dirs(app, current_profile_id.as_deref(), diff_work_dir)
 }
 
-pub(crate) fn handle_tray_open_directory(app: &tauri::AppHandle, menu_id: &str) -> Result<(), String> {
+pub(crate) fn handle_tray_open_directory(
+    app: &tauri::AppHandle,
+    menu_id: &str,
+) -> Result<(), String> {
     let path = match menu_id {
         TRAY_MENU_OPEN_APP_DIR_ID => app_data_root(app)?,
         TRAY_MENU_OPEN_WORK_DIR_ID => resolve_current_runtime_dirs(app)?.1,
@@ -202,7 +205,10 @@ pub(crate) fn handle_tray_copy_env(app: &tauri::AppHandle, shell_type: &str) -> 
     copy_text_to_clipboard(&command)
 }
 
-pub(crate) fn handle_native_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) -> Result<(), String> {
+pub(crate) fn handle_native_tray_menu_event(
+    app: &tauri::AppHandle,
+    event: &MenuEvent,
+) -> Result<(), String> {
     let state = app.state::<CoreState>();
     let menu_id = event.id().as_ref();
 

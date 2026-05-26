@@ -52,7 +52,10 @@ pub(crate) fn exit_app(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) fn resolve_quit_confirmation(state: &State<'_, CoreState>, confirmed: bool) -> Result<(), String> {
+pub(crate) fn resolve_quit_confirmation(
+    state: &State<'_, CoreState>,
+    confirmed: bool,
+) -> Result<(), String> {
     let sender = state
         .quit_confirm_sender
         .lock()

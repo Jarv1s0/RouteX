@@ -105,4 +105,3 @@ pub(crate) fn register_global_shortcut(
         Err(_) => Ok(false),
     }
 }
-

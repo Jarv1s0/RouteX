@@ -1,7 +1,9 @@
 use super::prelude::*;
 use super::*;
 
-pub(crate) fn ensure_floating_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
+pub(crate) fn ensure_floating_window(
+    app: &tauri::AppHandle,
+) -> Result<tauri::WebviewWindow, String> {
     if let Some(window) = app.get_webview_window(FLOATING_WINDOW_LABEL) {
         return Ok(window);
     }
@@ -89,7 +91,9 @@ pub(crate) fn position_traymenu_window(
     Ok(())
 }
 
-pub(crate) fn ensure_traymenu_window(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String> {
+pub(crate) fn ensure_traymenu_window(
+    app: &tauri::AppHandle,
+) -> Result<tauri::WebviewWindow, String> {
     if let Some(window) = app.get_webview_window(TRAYMENU_WINDOW_LABEL) {
         return Ok(window);
     }

@@ -172,7 +172,9 @@ pub(crate) fn extract_zip_bytes(bytes: &[u8], output_dir: &Path) -> Result<(), S
     Ok(())
 }
 
-pub(crate) fn ensure_traffic_monitor_binary(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), String> {
+pub(crate) fn ensure_traffic_monitor_binary(
+    app: &tauri::AppHandle,
+) -> Result<(PathBuf, PathBuf), String> {
     #[cfg(target_os = "windows")]
     {
         if let Ok(executable_path) = resolve_resource_binary(

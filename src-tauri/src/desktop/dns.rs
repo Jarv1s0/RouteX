@@ -173,4 +173,3 @@ pub(crate) fn recover_dns(app: &tauri::AppHandle) -> Result<(), String> {
 pub(crate) fn recover_dns(_app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
-

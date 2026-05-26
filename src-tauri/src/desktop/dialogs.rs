@@ -9,8 +9,38 @@ pub(crate) fn normalize_dialog_extensions(extensions: &[String]) -> Vec<String> 
         .collect()
 }
 
+pub(crate) fn normalize_save_file_name(default_name: &str, ext: &str) -> (String, String) {
+    let normalized_ext = ext.trim().trim_start_matches('.').to_ascii_lowercase();
+    let normalized_name = if normalized_ext.is_empty()
+        || default_name
+            .to_ascii_lowercase()
+            .ends_with(&format!(".{normalized_ext}"))
+    {
+        default_name.to_string()
+    } else {
+        format!("{default_name}.{normalized_ext}")
+    };
+
+    (normalized_name, normalized_ext)
+}
+
+pub(crate) fn ensure_save_path_extension(path: PathBuf, ext: &str) -> PathBuf {
+    if ext.is_empty()
+        || path
+            .extension()
+            .and_then(|value| value.to_str())
+            .is_some_and(|value| value.eq_ignore_ascii_case(ext))
+    {
+        path
+    } else {
+        path.with_extension(ext)
+    }
+}
+
 #[cfg(not(target_os = "windows"))]
-pub(crate) fn normalize_dialog_result(output: std::process::Output) -> Result<Option<String>, String> {
+pub(crate) fn normalize_dialog_result(
+    output: std::process::Output,
+) -> Result<Option<String>, String> {
     match collect_command_error(output) {
         Ok(stdout) => {
             let value = stdout.trim().trim_matches('\0').to_string();
@@ -23,11 +53,6 @@ pub(crate) fn normalize_dialog_result(output: std::process::Output) -> Result<Op
         Err(error) if error == "UserCancelledError" => Ok(None),
         Err(error) => Err(error),
     }
-}
-
-#[cfg(target_os = "windows")]
-pub(crate) fn powershell_single_quoted(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "''"))
 }
 
 #[cfg(target_os = "windows")]
@@ -65,7 +90,9 @@ pub(crate) fn run_powershell_script(script: &str) -> Result<String, String> {
 
 #[cfg(target_os = "windows")]
 #[allow(dead_code)]
-pub(crate) fn run_interactive_powershell_script(script: &str) -> Result<std::process::Output, String> {
+pub(crate) fn run_interactive_powershell_script(
+    script: &str,
+) -> Result<std::process::Output, String> {
     let encoded = encode_powershell_script(script);
     powershell_command()
         .args(["-NoProfile", "-EncodedCommand", &encoded])
@@ -74,58 +101,24 @@ pub(crate) fn run_interactive_powershell_script(script: &str) -> Result<std::pro
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn windows_dialog_filter(extensions: &[String]) -> String {
-    if extensions.is_empty() {
-        return "所有文件 (*.*)|*.*".to_string();
+pub(crate) fn pick_open_file_paths_native(
+    extensions: &[String],
+) -> Result<Option<Vec<String>>, String> {
+    let mut dialog = rfd::FileDialog::new().set_title("选择文件");
+    if !extensions.is_empty() {
+        let extension_refs = extensions.iter().map(String::as_str).collect::<Vec<_>>();
+        dialog = dialog.add_filter("支持的文件", &extension_refs);
     }
 
-    let patterns = extensions
-        .iter()
-        .map(|ext| format!("*.{ext}"))
-        .collect::<Vec<_>>();
-    let joined_patterns = patterns.join(";");
-    format!("支持的文件 ({joined_patterns})|{joined_patterns}|所有文件 (*.*)|*.*")
-}
-
-#[cfg(target_os = "windows")]
-pub(crate) fn pick_open_file_paths_native(extensions: &[String]) -> Result<Option<Vec<String>>, String> {
-    let filter = powershell_single_quoted(&windows_dialog_filter(extensions));
-    let script = format!(
-        r#"
-[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-Add-Type -AssemblyName System.Windows.Forms
-$dialog = New-Object System.Windows.Forms.OpenFileDialog
-$dialog.Title = '选择文件'
-$dialog.Filter = {filter}
-$dialog.Multiselect = $false
-$dialog.CheckFileExists = $true
-$dialog.RestoreDirectory = $true
-if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
-  @($dialog.FileName) | ConvertTo-Json -Compress
-}}
-"#
-    );
-
-    let stdout = run_powershell_script(&script)?;
-    if stdout.is_empty() {
-        return Ok(None);
-    }
-
-    let files = serde_json::from_str::<Vec<String>>(&stdout).map_err(|e| e.to_string())?;
-    let files = files
-        .into_iter()
-        .filter(|path| !path.trim().is_empty())
-        .collect::<Vec<_>>();
-
-    if files.is_empty() {
-        return Ok(None);
-    }
-
-    Ok(Some(files))
+    Ok(dialog
+        .pick_file()
+        .map(|path| vec![path.to_string_lossy().to_string()]))
 }
 
 #[cfg(not(target_os = "windows"))]
-pub(crate) fn pick_open_file_paths_native(extensions: &[String]) -> Result<Option<Vec<String>>, String> {
+pub(crate) fn pick_open_file_paths_native(
+    extensions: &[String],
+) -> Result<Option<Vec<String>>, String> {
     #[cfg(target_os = "macos")]
     {
         let _ = extensions;
@@ -192,60 +185,30 @@ pub(crate) fn pick_open_file_paths_native(extensions: &[String]) -> Result<Optio
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn pick_save_file_path_native(default_name: &str, ext: &str) -> Result<Option<PathBuf>, String> {
-    let normalized_ext = ext.trim().trim_start_matches('.').to_ascii_lowercase();
-    let normalized_name = if normalized_ext.is_empty()
-        || default_name
-            .to_ascii_lowercase()
-            .ends_with(&format!(".{normalized_ext}"))
-    {
-        default_name.to_string()
-    } else {
-        format!("{default_name}.{normalized_ext}")
-    };
-    let filter = powershell_single_quoted(&windows_dialog_filter(std::slice::from_ref(
-        &normalized_ext,
-    )));
-    let file_name = powershell_single_quoted(&normalized_name);
-    let default_ext = powershell_single_quoted(&normalized_ext);
-    let script = format!(
-        r#"
-[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-Add-Type -AssemblyName System.Windows.Forms
-$dialog = New-Object System.Windows.Forms.SaveFileDialog
-$dialog.Title = '保存文件'
-$dialog.Filter = {filter}
-$dialog.FileName = {file_name}
-$dialog.DefaultExt = {default_ext}
-$dialog.AddExtension = $true
-$dialog.OverwritePrompt = $true
-$dialog.RestoreDirectory = $true
-if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
-  $dialog.FileName
-}}
-"#
-    );
+pub(crate) fn pick_save_file_path_native(
+    default_name: &str,
+    ext: &str,
+) -> Result<Option<PathBuf>, String> {
+    let (normalized_name, normalized_ext) = normalize_save_file_name(default_name, ext);
 
-    let stdout = run_powershell_script(&script)?;
-    if stdout.is_empty() {
-        return Ok(None);
+    let mut dialog = rfd::FileDialog::new()
+        .set_title("保存文件")
+        .set_file_name(&normalized_name);
+    if !normalized_ext.is_empty() {
+        dialog = dialog.add_filter("支持的文件", &[normalized_ext.as_str()]);
     }
 
-    Ok(Some(PathBuf::from(stdout)))
+    Ok(dialog
+        .save_file()
+        .map(|path| ensure_save_path_extension(path, &normalized_ext)))
 }
 
 #[cfg(not(target_os = "windows"))]
-pub(crate) fn pick_save_file_path_native(default_name: &str, ext: &str) -> Result<Option<PathBuf>, String> {
-    let normalized_ext = ext.trim().trim_start_matches('.').to_ascii_lowercase();
-    let normalized_name = if normalized_ext.is_empty()
-        || default_name
-            .to_ascii_lowercase()
-            .ends_with(&format!(".{normalized_ext}"))
-    {
-        default_name.to_string()
-    } else {
-        format!("{default_name}.{normalized_ext}")
-    };
+pub(crate) fn pick_save_file_path_native(
+    default_name: &str,
+    ext: &str,
+) -> Result<Option<PathBuf>, String> {
+    let (normalized_name, normalized_ext) = normalize_save_file_name(default_name, ext);
 
     #[cfg(target_os = "macos")]
     {

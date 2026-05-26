@@ -56,4 +56,3 @@ pub(crate) fn build_sysproxy_signature(
     })
     .to_string())
 }
-

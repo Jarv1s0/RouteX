@@ -270,7 +270,10 @@ pub(crate) fn add_or_replace_profile_item(
     write_profile_config(app, &config)
 }
 
-pub(crate) fn update_profile_item_store(app: &tauri::AppHandle, item: ProfileItemData) -> Result<(), String> {
+pub(crate) fn update_profile_item_store(
+    app: &tauri::AppHandle,
+    item: ProfileItemData,
+) -> Result<(), String> {
     let mut config = read_profile_config(app)?;
     let Some(index) = config.items.iter().position(|value| value.id == item.id) else {
         return Err("Profile not found".to_string());
@@ -343,7 +346,9 @@ pub(crate) fn set_active_profiles_store(
 
 pub(crate) fn remove_profile_item_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
     let mut config = read_profile_config(app)?;
-    let runtime_profile_affected = active_profile_ids(&config).iter().any(|active| active == id);
+    let runtime_profile_affected = active_profile_ids(&config)
+        .iter()
+        .any(|active| active == id);
     config.items.retain(|item| item.id != id);
 
     if config.current.as_deref() == Some(id) {
@@ -363,7 +368,10 @@ pub(crate) fn remove_profile_item_store(app: &tauri::AppHandle, id: &str) -> Res
     Ok(runtime_profile_affected)
 }
 
-pub(crate) fn remove_override_reference_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
+pub(crate) fn remove_override_reference_store(
+    app: &tauri::AppHandle,
+    id: &str,
+) -> Result<bool, String> {
     let mut config = read_profile_config(app)?;
     let active_ids = active_profile_ids(&config)
         .into_iter()
@@ -571,7 +579,10 @@ pub(crate) fn add_chain_item_store(
     Ok(chain)
 }
 
-pub(crate) fn update_chain_item_store(app: &tauri::AppHandle, item: ChainItemData) -> Result<(), String> {
+pub(crate) fn update_chain_item_store(
+    app: &tauri::AppHandle,
+    item: ChainItemData,
+) -> Result<(), String> {
     let mut config = read_chains_config(app)?;
     let Some(index) = config.items.iter().position(|value| value.id == item.id) else {
         return Err("Chain not found".to_string());
@@ -682,7 +693,10 @@ pub(crate) fn can_reach(graph: &HashMap<String, HashSet<String>>, start: &str, e
     false
 }
 
-pub(crate) fn inject_chain_proxies(profile: &mut Value, app: &tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn inject_chain_proxies(
+    profile: &mut Value,
+    app: &tauri::AppHandle,
+) -> Result<(), String> {
     let chains_config = read_chains_config(app)?;
     if chains_config.items.is_empty() {
         return Ok(());
@@ -928,7 +942,10 @@ pub(crate) fn active_profile_ids(config: &ProfileConfigData) -> Vec<String> {
     ids
 }
 
-pub(crate) fn primary_profile_id(config: &ProfileConfigData, active_ids: &[String]) -> Option<String> {
+pub(crate) fn primary_profile_id(
+    config: &ProfileConfigData,
+    active_ids: &[String],
+) -> Option<String> {
     if let Some(current) = config.current.as_ref() {
         if active_ids.iter().any(|id| id == current) {
             return Some(current.clone());
@@ -1120,7 +1137,6 @@ pub(crate) fn merge_profile_nodes(
     );
 }
 
-
 pub(crate) fn parse_profile_yaml_value(text: &str) -> Result<Value, String> {
     let trimmed = text.trim();
     if trimmed.is_empty() {
@@ -1133,7 +1149,11 @@ pub(crate) fn parse_profile_yaml_value(text: &str) -> Result<Value, String> {
 pub(crate) const JS_OVERRIDE_LOOP_ITERATION_LIMIT: u64 = 1_000_000;
 pub(crate) const JS_OVERRIDE_RECURSION_LIMIT: usize = 128;
 
-pub(crate) fn write_override_exec_log(app: &tauri::AppHandle, id: &str, message: &str) -> Result<(), String> {
+pub(crate) fn write_override_exec_log(
+    app: &tauri::AppHandle,
+    id: &str,
+    message: &str,
+) -> Result<(), String> {
     let path = override_file_path(app, id, "log")?;
     ensure_parent(&path)?;
     fs::write(path, message).map_err(|e| e.to_string())

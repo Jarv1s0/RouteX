@@ -109,7 +109,10 @@ pub(crate) fn find_system_mihomo_paths() -> Vec<String> {
     found_paths
 }
 
-pub(crate) fn build_proxy_env_command(app: &tauri::AppHandle, shell_type: &str) -> Result<String, String> {
+pub(crate) fn build_proxy_env_command(
+    app: &tauri::AppHandle,
+    shell_type: &str,
+) -> Result<String, String> {
     let app_config = read_app_config_store(app)?;
     let controlled_config = read_controlled_config_store(app)?;
     let sys_proxy = app_config.get("sysProxy").and_then(Value::as_object);
@@ -363,7 +366,10 @@ pub(crate) fn runtime_sidecar_dir(app: &tauri::AppHandle) -> Result<PathBuf, Str
     )
 }
 
-pub(crate) fn runtime_core_binary_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
+pub(crate) fn runtime_core_binary_path(
+    app: &tauri::AppHandle,
+    file_name: &str,
+) -> Result<PathBuf, String> {
     Ok(runtime_sidecar_dir(app)?.join(file_name))
 }
 
@@ -438,18 +444,21 @@ pub(crate) fn mihomo_asset_matches(
             middle.is_empty() || middle == "-alpha" || middle.starts_with("-alpha-")
         } else {
             middle.is_empty()
-                || middle
-                    .strip_prefix("-go")
-                    .is_some_and(|suffix| !suffix.is_empty() && suffix.chars().all(|ch| ch.is_ascii_digit()))
+                || middle.strip_prefix("-go").is_some_and(|suffix| {
+                    !suffix.is_empty() && suffix.chars().all(|ch| ch.is_ascii_digit())
+                })
         }
     })
 }
 
-pub(crate) fn score_mihomo_asset_name(asset_name: &str, version: &str, is_alpha: bool, ext: &str) -> i32 {
+pub(crate) fn score_mihomo_asset_name(
+    asset_name: &str,
+    version: &str,
+    is_alpha: bool,
+    ext: &str,
+) -> i32 {
     let suffix = format!("-{version}{ext}");
-    let middle = asset_name
-        .strip_suffix(&suffix)
-        .unwrap_or(asset_name);
+    let middle = asset_name.strip_suffix(&suffix).unwrap_or(asset_name);
     if is_alpha {
         if middle.ends_with("-alpha") {
             return 0;
@@ -573,7 +582,9 @@ pub(crate) fn send_with_update_client<T>(
                 .build()
                 .map_err(|e| e.to_string())?;
             send(client).map_err(|direct_error| {
-                format!("代理{action_label}失败: {proxy_error}; 直连{action_label}失败: {direct_error}")
+                format!(
+                    "代理{action_label}失败: {proxy_error}; 直连{action_label}失败: {direct_error}"
+                )
             })
         }
     }
@@ -592,13 +603,19 @@ pub(crate) fn download_with_update_client(
     })
 }
 
-pub(crate) fn fetch_text_with_update_client(app: &tauri::AppHandle, url: &str, timeout_secs: u64) -> Result<String, String> {
+pub(crate) fn fetch_text_with_update_client(
+    app: &tauri::AppHandle,
+    url: &str,
+    timeout_secs: u64,
+) -> Result<String, String> {
     send_with_update_client(app, url, timeout_secs, "请求", |response| {
         response.text().map_err(|e| e.to_string())
     })
 }
 
-pub(crate) fn find_mihomo_zip_entry(archive: &mut ZipArchive<Cursor<Vec<u8>>>) -> Result<usize, String> {
+pub(crate) fn find_mihomo_zip_entry(
+    archive: &mut ZipArchive<Cursor<Vec<u8>>>,
+) -> Result<usize, String> {
     for index in 0..archive.len() {
         let file = archive.by_index(index).map_err(|e| e.to_string())?;
         if file.is_dir() {
@@ -701,13 +718,19 @@ pub(crate) fn write_mihomo_core_archive(
     Ok(())
 }
 
-pub(crate) fn download_mihomo_alpha_core(app: &tauri::AppHandle, target_path: &Path) -> Result<(), String> {
+pub(crate) fn download_mihomo_alpha_core(
+    app: &tauri::AppHandle,
+    target_path: &Path,
+) -> Result<(), String> {
     let version = latest_mihomo_version(app, true)?;
     let (asset, bytes) = fetch_mihomo_core_archive(app, &version, true)?;
     write_mihomo_core_archive(&asset, bytes, target_path)
 }
 
-pub(crate) fn latest_mihomo_version(app: &tauri::AppHandle, is_alpha: bool) -> Result<String, String> {
+pub(crate) fn latest_mihomo_version(
+    app: &tauri::AppHandle,
+    is_alpha: bool,
+) -> Result<String, String> {
     let version = if is_alpha {
         fetch_text_with_update_client(
             app,
@@ -740,21 +763,23 @@ pub(crate) fn latest_mihomo_version(app: &tauri::AppHandle, is_alpha: bool) -> R
     Ok(version)
 }
 
-pub(crate) fn mihomo_core_target_path(app: &tauri::AppHandle, is_alpha: bool) -> Result<PathBuf, String> {
+pub(crate) fn mihomo_core_target_path(
+    app: &tauri::AppHandle,
+    is_alpha: bool,
+) -> Result<PathBuf, String> {
     let extension = if cfg!(target_os = "windows") {
         ".exe"
     } else {
         ""
     };
-    let name = if is_alpha {
-        "mihomo-alpha"
-    } else {
-        "mihomo"
-    };
+    let name = if is_alpha { "mihomo-alpha" } else { "mihomo" };
     runtime_core_binary_path(app, &format!("{name}{extension}"))
 }
 
-pub(crate) fn ensure_mihomo_core_available(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, String> {
+pub(crate) fn ensure_mihomo_core_available(
+    app: &tauri::AppHandle,
+    core: &str,
+) -> Result<PathBuf, String> {
     if let Ok(path) = resolve_core_binary(app, core) {
         return Ok(path);
     }

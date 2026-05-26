@@ -1,7 +1,6 @@
 use super::prelude::*;
 use super::*;
 
-
 #[tauri::command]
 pub(crate) async fn desktop_check_update(app: tauri::AppHandle) -> Result<Value, String> {
     let started_at = Instant::now();
@@ -104,7 +103,10 @@ pub(crate) fn desktop_invoke_sync(
     };
 
     let elapsed_ms = started_at.elapsed().as_millis();
-    if elapsed_ms >= 80 || LOG_CHANNELS.get_or_init(init_log_channels).contains(channel.as_str())
+    if elapsed_ms >= 80
+        || LOG_CHANNELS
+            .get_or_init(init_log_channels)
+            .contains(channel.as_str())
     {
         match &result {
             Ok(_) => eprintln!("[desktop.invoke] {} {}ms", channel, elapsed_ms),

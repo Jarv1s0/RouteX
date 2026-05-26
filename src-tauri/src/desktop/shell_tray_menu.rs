@@ -572,7 +572,11 @@ pub(crate) fn build_native_tray_menu(app: &tauri::AppHandle) -> Result<Menu<taur
     .map_err(|e| e.to_string())?;
     let mode_menu = Submenu::with_items(
         app,
-        format!("{} ({})", labels.outbound_mode, tray_mode_label(mode, labels)),
+        format!(
+            "{} ({})",
+            labels.outbound_mode,
+            tray_mode_label(mode, labels)
+        ),
         true,
         &[&rule_mode, &global_mode, &direct_mode],
     )

@@ -478,7 +478,10 @@ pub(crate) fn start_network_detection(
         Some("lo".to_string()),
         Some("docker0".to_string()),
         Some("utun".to_string()),
-    ].into_iter().flatten() {
+    ]
+    .into_iter()
+    .flatten()
+    {
         excluded.push(item);
     }
 
@@ -504,13 +507,14 @@ pub(crate) fn start_network_detection(
         if is_online {
             if *network_down_handled && !core_running {
                 let runtime_config = current_runtime_value(&app_handle, &state).ok();
-                if let Ok(value) = restart_core_process(&app_handle, &state, runtime_config.as_ref()) {
+                if let Ok(value) =
+                    restart_core_process(&app_handle, &state, runtime_config.as_ref())
+                {
                     emit_ipc_event(&app_handle, "core-started", value);
                     emit_ipc_event(&app_handle, "groupsUpdated", Value::Null);
                     emit_ipc_event(&app_handle, "rulesUpdated", Value::Null);
                     if sysproxy_enabled {
-                        let _ =
-                            trigger_sys_proxy(&app_handle, &state, true, only_active_device);
+                        let _ = trigger_sys_proxy(&app_handle, &state, true, only_active_device);
                     }
                     *network_down_handled = false;
                 }

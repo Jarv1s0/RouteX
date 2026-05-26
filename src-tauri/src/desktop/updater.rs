@@ -1,7 +1,6 @@
 use super::prelude::*;
 use super::*;
 
-
 pub(crate) fn update_channel(app: &tauri::AppHandle) -> Result<String, String> {
     Ok(read_app_config_store(app)?
         .get("updateChannel")
@@ -78,7 +77,9 @@ pub(crate) fn emit_update_status(
     emit_ipc_event(app, "update-status", payload);
 }
 
-pub(crate) fn start_update_download(state: &State<'_, CoreState>) -> Result<Arc<AtomicBool>, String> {
+pub(crate) fn start_update_download(
+    state: &State<'_, CoreState>,
+) -> Result<Arc<AtomicBool>, String> {
     let mut guard = state
         .update_download_cancel
         .lock()

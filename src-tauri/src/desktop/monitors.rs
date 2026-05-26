@@ -1,7 +1,9 @@
 use super::prelude::*;
 use super::*;
 
-pub(crate) fn current_controller_url(state: &State<'_, CoreState>) -> Result<Option<String>, String> {
+pub(crate) fn current_controller_url(
+    state: &State<'_, CoreState>,
+) -> Result<Option<String>, String> {
     let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
     Ok(runtime.controller_url.clone())
 }
@@ -13,7 +15,10 @@ pub(crate) fn json_u64(value: Option<&Value>) -> u64 {
         .unwrap_or(0)
 }
 
-pub(crate) fn close_connections_by_group(state: &State<'_, CoreState>, name: &str) -> Result<(), String> {
+pub(crate) fn close_connections_by_group(
+    state: &State<'_, CoreState>,
+    name: &str,
+) -> Result<(), String> {
     let connections = core_request(state, reqwest::Method::GET, "/connections", None, None)?;
     let items = connections
         .get("connections")
@@ -278,7 +283,9 @@ pub(crate) fn stop_core_events_monitor(state: &State<'_, CoreState>) -> Result<(
     Ok(())
 }
 
-pub(crate) fn get_network_health_stats_value(state: &State<'_, CoreState>) -> Result<Value, String> {
+pub(crate) fn get_network_health_stats_value(
+    state: &State<'_, CoreState>,
+) -> Result<Value, String> {
     let health_state = state
         .network_health_state
         .lock()

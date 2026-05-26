@@ -1,7 +1,10 @@
 use super::prelude::*;
 use super::*;
 
-pub(crate) fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {
+pub(crate) fn resolve_tray_icon_path(
+    app: &tauri::AppHandle,
+    file_name: &str,
+) -> Result<PathBuf, String> {
     let mut candidates = Vec::new();
 
     if let Ok(resource_dir) = app.path().resource_dir() {
@@ -37,7 +40,10 @@ pub(crate) fn resolve_tray_icon_path(app: &tauri::AppHandle, file_name: &str) ->
     ))
 }
 
-pub(crate) fn set_tray_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
+pub(crate) fn set_tray_icon_from_path(
+    app: &tauri::AppHandle,
+    file_name: &str,
+) -> Result<(), String> {
     let Some(tray) = app.tray_by_id(TRAY_ICON_ID) else {
         return Ok(());
     };
@@ -46,7 +52,10 @@ pub(crate) fn set_tray_icon_from_path(app: &tauri::AppHandle, file_name: &str) -
     tray.set_icon(Some(image)).map_err(|e| e.to_string())
 }
 
-pub(crate) fn set_main_window_icon_from_path(app: &tauri::AppHandle, file_name: &str) -> Result<(), String> {
+pub(crate) fn set_main_window_icon_from_path(
+    app: &tauri::AppHandle,
+    file_name: &str,
+) -> Result<(), String> {
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());
     };
@@ -131,7 +140,10 @@ pub(crate) fn update_tray_icon_for_state(app: &tauri::AppHandle) -> Result<(), S
     Ok(())
 }
 
-pub(crate) fn apply_tray_icon_data_url(app: &tauri::AppHandle, data_url: &str) -> Result<(), String> {
+pub(crate) fn apply_tray_icon_data_url(
+    app: &tauri::AppHandle,
+    data_url: &str,
+) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
         let Some(tray) = app.tray_by_id(TRAY_ICON_ID) else {

@@ -1,7 +1,6 @@
 use super::prelude::*;
 use super::*;
 
-
 pub(crate) fn github_client(app: &tauri::AppHandle) -> Result<Client, String> {
     let controlled_config = read_controlled_config_store(app)?;
     let mixed_port = controlled_config

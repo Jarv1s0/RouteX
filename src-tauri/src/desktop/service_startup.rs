@@ -47,15 +47,8 @@ pub(crate) struct TaskDialogConfig {
     collapsed_control_text: *const u16,
     footer_icon: *const u16,
     footer: *const u16,
-    callback: Option<
-        unsafe extern "system" fn(
-            *mut std::ffi::c_void,
-            u32,
-            usize,
-            isize,
-            isize,
-        ) -> i32,
-    >,
+    callback:
+        Option<unsafe extern "system" fn(*mut std::ffi::c_void, u32, usize, isize, isize) -> i32>,
     callback_data: isize,
     width: u32,
 }
@@ -137,7 +130,12 @@ pub(crate) fn startup_task_dialog_config(
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn show_windows_startup_dialog(title: &str, heading: &str, message: &str, detail: Option<&str>) {
+pub(crate) fn show_windows_startup_dialog(
+    title: &str,
+    heading: &str,
+    message: &str,
+    detail: Option<&str>,
+) {
     let title_wide = to_wide_null(title);
     let heading_wide = to_wide_null(heading);
     let message_wide = to_wide_null(message);
@@ -190,7 +188,10 @@ pub(crate) fn shell_execute_parameters(args: impl IntoIterator<Item = String>) -
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn admin_relaunch_args(args: impl IntoIterator<Item = String>, parent_pid: u32) -> Vec<String> {
+pub(crate) fn admin_relaunch_args(
+    args: impl IntoIterator<Item = String>,
+    parent_pid: u32,
+) -> Vec<String> {
     let mut values = vec![
         ROUTEX_ADMIN_RELAUNCH_PARENT_ARG.to_string(),
         parent_pid.to_string(),
@@ -289,7 +290,10 @@ pub(crate) fn resolve_routex_run_binary_before_tauri() -> Result<PathBuf, String
         push_resource_candidate(
             &mut candidates,
             &mut seen,
-            dev_root()?.join("extra").join("files").join(ROUTEX_RUN_BINARY),
+            dev_root()?
+                .join("extra")
+                .join("files")
+                .join(ROUTEX_RUN_BINARY),
         );
     }
 
@@ -401,7 +405,10 @@ pub(crate) fn run_matching_elevate_task_before_tauri(create_error: &str) -> Resu
 pub(crate) fn single_instance_window_exists_before_tauri(app_identifier: &str) -> bool {
     #[link(name = "user32")]
     unsafe extern "system" {
-        pub(crate) fn FindWindowW(class_name: *const u16, window_name: *const u16) -> *mut std::ffi::c_void;
+        pub(crate) fn FindWindowW(
+            class_name: *const u16,
+            window_name: *const u16,
+        ) -> *mut std::ffi::c_void;
     }
 
     let class_name = to_wide_null(&format!("{app_identifier}-sic"));
@@ -411,7 +418,9 @@ pub(crate) fn single_instance_window_exists_before_tauri(app_identifier: &str) -
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn ensure_windows_elevated_startup_before_tauri(app_identifier: &str) -> Result<bool, String> {
+pub(crate) fn ensure_windows_elevated_startup_before_tauri(
+    app_identifier: &str,
+) -> Result<bool, String> {
     if cfg!(debug_assertions) {
         return Ok(true);
     }
@@ -432,9 +441,7 @@ pub(crate) fn ensure_windows_elevated_startup_before_tauri(app_identifier: &str)
             }
 
             if check_elevate_task_matches_current_app_before_tauri() {
-                return run_matching_elevate_task_before_tauri(
-                    "已存在匹配当前安装路径的提权任务",
-                );
+                return run_matching_elevate_task_before_tauri("已存在匹配当前安装路径的提权任务");
             }
 
             handle_windows_unregistered_elevate_task(
@@ -506,7 +513,9 @@ pub(crate) fn relaunch_current_app_as_admin() -> Result<(), String> {
     } as isize;
 
     if result_code <= 32 {
-        return Err(format!("ShellExecuteW runas failed with code {result_code}"));
+        return Err(format!(
+            "ShellExecuteW runas failed with code {result_code}"
+        ));
     }
 
     Ok(())
@@ -576,7 +585,9 @@ pub(crate) fn choose_windows_unelevated_startup_action(
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn handle_windows_elevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
+pub(crate) fn handle_windows_elevated_process_startup(
+    app: &tauri::AppHandle,
+) -> Result<bool, String> {
     match create_elevate_task(app) {
         Ok(()) => Ok(true),
         Err(create_error) => {
@@ -592,7 +603,9 @@ pub(crate) fn handle_windows_elevated_process_startup(app: &tauri::AppHandle) ->
 }
 
 #[cfg(target_os = "windows")]
-pub(crate) fn handle_windows_unelevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
+pub(crate) fn handle_windows_unelevated_process_startup(
+    app: &tauri::AppHandle,
+) -> Result<bool, String> {
     match choose_windows_unelevated_startup_action(check_elevate_task_matches_current_app(app)) {
         WindowsUnelevatedStartupAction::RunElevateTask => match run_elevate_task(app) {
             Ok(()) => Ok(false),

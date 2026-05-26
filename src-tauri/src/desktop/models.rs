@@ -1,7 +1,6 @@
 use super::prelude::*;
 use super::*;
 
-
 #[derive(Debug, Clone)]
 pub(crate) struct CachedRuntimeConfig {
     pub(crate) path: PathBuf,
