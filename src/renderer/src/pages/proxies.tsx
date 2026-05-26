@@ -26,6 +26,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { ProxyGroupCard } from '@renderer/components/proxies/proxy-group-card'
 import { ProxyCardSkeleton } from '@renderer/components/base/skeleton'
 import { useI18n } from '@renderer/i18n'
+import { useGroupsStore } from '@renderer/store/use-groups-store'
 
 const DEFAULT_DELAY_TEST_CONCURRENCY = 4
 const MAX_DELAY_TEST_CONCURRENCY = 8
@@ -474,22 +475,20 @@ const Proxies: React.FC = () => {
       const loadingGroups = options.groupsForLoading || []
       setGroupsDelaying(loadingGroups, true)
 
-      const mutateBatcher = createMutateBatcher(
-        () => mutateRef.current(),
-        DELAY_TEST_MUTATE_BATCH_MS
-      )
-
       try {
         const tasks = delayTargets.map((target) => async (): Promise<void> => {
           if (options.shouldContinue && !options.shouldContinue()) return
 
           debugLog(`[proxy-delay:${options.logScope}] test proxy`, target.proxyName)
-          await mihomoProxyDelay(target.proxyName, target.testUrl).catch((error) => {
+          await mihomoProxyDelay(target.proxyName, target.testUrl).then((res) => {
+            if (res && typeof res.delay === 'number') {
+              useGroupsStore.getState().updateProxyDelay(target.proxyName, res.delay)
+            }
+          }).catch((error) => {
             warnLog(`[proxy-delay:${options.logScope}] failed`, target.proxyName, error)
           })
 
           if (options.shouldContinue && !options.shouldContinue()) return
-          mutateBatcher.schedule()
         })
 
         await runWithConcurrency(
@@ -498,10 +497,9 @@ const Proxies: React.FC = () => {
         )
         if (options.shouldContinue && !options.shouldContinue()) return false
 
-        await mutateBatcher.flush()
+        mutateRef.current()
         return options.shouldContinue ? options.shouldContinue() : true
       } finally {
-        mutateBatcher.cancel()
         setGroupsDelaying(loadingGroups, false)
       }
     },

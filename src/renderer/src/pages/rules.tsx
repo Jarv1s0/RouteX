@@ -28,7 +28,7 @@ import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import useSWR from 'swr'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useRulesStore } from '@renderer/store/use-rules-store'
-import { RulesProvider } from '@renderer/hooks/use-rules'
+
 import { useI18n } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -745,12 +745,4 @@ const RulesPage: React.FC = () => {
   )
 }
 
-const Rules: React.FC = () => {
-  return (
-    <RulesProvider>
-      <RulesPage />
-    </RulesProvider>
-  )
-}
-
-export default Rules
+export default RulesPage

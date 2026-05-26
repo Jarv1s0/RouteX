@@ -8,6 +8,7 @@ interface GroupsState {
 
   // Actions
   fetchGroups: () => Promise<void>
+  updateProxyDelay: (proxyName: string, delay: number) => void
   initializeListeners: () => void
   cleanupListeners: () => void
 }
@@ -106,6 +107,36 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
       }
     })
     return promise
+  },
+
+  updateProxyDelay: (proxyName: string, delay: number) => {
+    set((state) => {
+      if (!state.groups) return state
+
+      let changed = false
+      const nextGroups = state.groups.map(group => {
+        let groupChanged = false
+        const nextAll = group.all?.map(proxy => {
+          if (proxy && proxy.name === proxyName && 'history' in proxy) {
+            groupChanged = true
+            changed = true
+            const history = proxy.history ? [...proxy.history] : []
+            history.push({ time: new Date().toISOString(), delay })
+            return { ...proxy, history }
+          }
+          return proxy
+        })
+        if (groupChanged) {
+          return { ...group, all: nextAll }
+        }
+        return group
+      })
+
+      if (changed) {
+        return { groups: nextGroups }
+      }
+      return state
+    })
   },
 
   initializeListeners: () => {

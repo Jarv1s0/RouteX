@@ -821,20 +821,22 @@ export async function mihomoConnections(): Promise<ControllerConnections> {
 }
 
 export async function mihomoGroups(): Promise<ControllerMixedGroup[]> {
-  if (isTauriHost()) {
-    try {
-      return await invokeSafe(C.mihomoGroups)
-    } catch (error) {
-      if (!isExpectedMihomoUnavailableError(error)) {
-        throw error
+  return dedupeMihomoRequest(C.mihomoGroups, async () => {
+    if (isTauriHost()) {
+      try {
+        return await invokeSafe(C.mihomoGroups)
+      } catch (error) {
+        if (!isExpectedMihomoUnavailableError(error)) {
+          throw error
+        }
+
+        const runtime = await getRuntimeConfig()
+        return buildRuntimeGroupsFallback(runtime)
       }
-
-      const runtime = await getRuntimeConfig()
-      return buildRuntimeGroupsFallback(runtime)
     }
-  }
 
-  return invokeSafe(C.mihomoGroups)
+    return invokeSafe(C.mihomoGroups)
+  })
 }
 
 export async function mihomoCloseConnection(id: string): Promise<void> {

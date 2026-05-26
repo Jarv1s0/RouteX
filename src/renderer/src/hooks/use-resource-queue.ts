@@ -264,7 +264,6 @@ export function useResourceQueue(
   const loadIcon = useCallback(
     (path: string, isVisible: boolean = false): void => {
       if (
-        iconMap[path] ||
         processingIcons.current.has(path) ||
         hasRecentResourceFailure(sharedIconFailureCache, path)
       )
@@ -273,7 +272,7 @@ export function useResourceQueue(
       const fromStorage = readCachedIcon(path)
       if (fromStorage) {
         forgetResourceFailure(sharedIconFailureCache, path)
-        setIconMap((prev) => ({ ...prev, [path]: fromStorage }))
+        setIconMap((prev) => (prev[path] ? prev : { ...prev, [path]: fromStorage }))
         if (isVisible && filteredConnectionsFirstPath === path) {
           setFirstItemRefreshTrigger((prev) => prev + 1)
         }
@@ -303,13 +302,12 @@ export function useResourceQueue(
         }, 10)
       }
     },
-    [iconMap, filteredConnectionsFirstPath, displayIcon, findProcessMode, processIconQueue]
+    [filteredConnectionsFirstPath, displayIcon, findProcessMode, processIconQueue]
   )
 
   const loadAppName = useCallback(
     (path: string): void => {
       if (
-        appNameCache[path] ||
         processingAppNames.current.has(path) ||
         hasRecentResourceFailure(sharedAppNameFailureCache, path)
       )
@@ -318,7 +316,7 @@ export function useResourceQueue(
       const fromMemory = sharedAppNameMemoryCache.get(path)
       if (fromMemory) {
         forgetResourceFailure(sharedAppNameFailureCache, path)
-        setAppNameCache((prev) => ({ ...prev, [path]: fromMemory }))
+        setAppNameCache((prev) => (prev[path] ? prev : { ...prev, [path]: fromMemory }))
         return
       }
 
@@ -330,7 +328,7 @@ export function useResourceQueue(
         }, 10)
       }
     },
-    [appNameCache, displayAppName, processAppNameQueue]
+    [displayAppName, processAppNameQueue]
   )
 
   return {
