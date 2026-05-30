@@ -30,8 +30,7 @@ pub(crate) fn close_connections_by_group(
         let matches_group = item
             .get("chains")
             .and_then(Value::as_array)
-            .map(|chains| chains.iter().any(|chain| chain.as_str() == Some(name)))
-            .unwrap_or(false);
+            .is_some_and(|chains| chains.iter().any(|chain| chain.as_str() == Some(name)));
         if !matches_group {
             continue;
         }
@@ -309,58 +308,19 @@ pub(crate) fn collect_process_memory_snapshot() -> Value {
             .map(|path| path.to_string_lossy().to_string()),
     });
 
-    #[cfg(target_os = "windows")]
-    {
-        let script = format!(
-            r#"
-$process = Get-Process -Id {pid} -ErrorAction SilentlyContinue
-if ($null -ne $process) {{
-  [pscustomobject]@{{
-    workingSet = [int64]$process.WorkingSet64
-    privateMemory = [int64]$process.PrivateMemorySize64
-    virtualMemory = [int64]$process.VirtualMemorySize64
-    pagedMemory = [int64]$process.PagedMemorySize64
-    handleCount = [int]$process.HandleCount
-    threadCount = [int]$process.Threads.Count
-  }} | ConvertTo-Json -Compress
-}}
-"#
-        );
+    let sys = sysinfo::System::new_all();
+    if let Some(process) = sys.process(sysinfo::Pid::from_u32(pid)) {
+        if let Some(object) = snapshot.as_object_mut() {
+            object.insert("residentSetKb".to_string(), json!(process.memory() / 1024));
+            object.insert(
+                "virtualMemoryKb".to_string(),
+                json!(process.virtual_memory() / 1024),
+            );
 
-        if let Ok(output) = powershell_command()
-            .args(["-NoProfile", "-Command", &script])
-            .output()
-        {
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if let Ok(Value::Object(values)) = serde_json::from_str::<Value>(&stdout) {
-                    if let Some(object) = snapshot.as_object_mut() {
-                        object.extend(values);
-                    }
-                }
-            }
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        let pid_string = pid.to_string();
-        if let Ok(output) = Command::new("ps")
-            .args(["-o", "rss=,vsz=", "-p", &pid_string])
-            .output()
-        {
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                let parts = stdout.split_whitespace().collect::<Vec<_>>();
-                if let Some(object) = snapshot.as_object_mut() {
-                    if let Some(rss_kb) = parts.first().and_then(|value| value.parse::<u64>().ok())
-                    {
-                        object.insert("residentSetKb".to_string(), json!(rss_kb));
-                    }
-                    if let Some(vsz_kb) = parts.get(1).and_then(|value| value.parse::<u64>().ok()) {
-                        object.insert("virtualMemoryKb".to_string(), json!(vsz_kb));
-                    }
-                }
+            #[cfg(target_os = "windows")]
+            {
+                object.insert("workingSet".to_string(), json!(process.memory()));
+                object.insert("virtualMemory".to_string(), json!(process.virtual_memory()));
             }
         }
     }
@@ -434,29 +394,7 @@ pub(crate) fn convert_mrs_ruleset(
 }
 
 pub(crate) fn open_path_in_shell(path: &Path) -> Result<(), String> {
-    #[cfg(target_os = "windows")]
-    let mut command = {
-        let mut command = Command::new("explorer");
-        command.arg(path);
-        command
-    };
-
-    #[cfg(target_os = "macos")]
-    let mut command = {
-        let mut command = Command::new("open");
-        command.arg(path);
-        command
-    };
-
-    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
-    let mut command = {
-        let mut command = Command::new("xdg-open");
-        command.arg(path);
-        command
-    };
-
-    command.spawn().map_err(|e| e.to_string())?;
-    Ok(())
+    open::that_detached(path).map_err(|e| e.to_string())
 }
 
 pub(crate) fn open_external_url(url: &str) -> Result<(), String> {
@@ -468,29 +406,5 @@ pub(crate) fn open_external_url(url: &str) -> Result<(), String> {
         }
     }
 
-    #[cfg(target_os = "windows")]
-    let mut command = {
-        let mut command = Command::new("rundll32");
-        command
-            .arg("url.dll,FileProtocolHandler")
-            .arg(parsed.as_str());
-        command
-    };
-
-    #[cfg(target_os = "macos")]
-    let mut command = {
-        let mut command = Command::new("open");
-        command.arg(parsed.as_str());
-        command
-    };
-
-    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
-    let mut command = {
-        let mut command = Command::new("xdg-open");
-        command.arg(parsed.as_str());
-        command
-    };
-
-    command.spawn().map_err(|e| e.to_string())?;
-    Ok(())
+    open::that_detached(parsed.as_str()).map_err(|e| e.to_string())
 }

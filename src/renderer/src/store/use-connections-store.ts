@@ -16,6 +16,10 @@ export interface ExtendedConnection extends ControllerConnectionDetail {
   completedAt?: string
 }
 
+import ConnectionsWorker from '@renderer/workers/connections-worker?worker'
+
+const connectionsWorker = new ConnectionsWorker()
+
 interface ConnectionsState {
   activeConnections: ExtendedConnection[]
   closedConnections: ExtendedConnection[]
@@ -38,12 +42,6 @@ interface ConnectionsState {
 }
 
 type ConnectionSnapshotListener = (snapshot: ControllerConnections) => void
-type ConnectionSpeedSample = {
-  upload: number
-  download: number
-  at: number
-}
-
 const connectionSnapshotListeners = new Set<ConnectionSnapshotListener>()
 let latestConnectionSnapshot: ControllerConnections | null = null
 let unavailableRetryTimer: number | null = null
@@ -111,7 +109,22 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     let lastForegroundSnapshotAt = 0
     let isBaselineSnapshot = false
     let initialSnapshotFallbackTimer: number | null = null
-    const speedSamples = new Map<string, ConnectionSpeedSample>()
+
+    connectionsWorker.onmessage = (event) => {
+      const { type, payload } = event.data
+      if (type === 'process_result') {
+        const { activeConnections, closedConnections, connectionCount } = payload
+        set({
+          activeConnections,
+          closedConnections,
+          connectionCount,
+          loading: false
+        })
+      } else if (type === 'closed_update') {
+        const { closedConnections } = payload
+        set({ closedConnections })
+      }
+    }
 
     const handleConnections = (_e: unknown, info: ControllerConnections): void => {
       if (!info || !info.connections) return
@@ -120,136 +133,22 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       emitConnectionSnapshot(info)
 
       const now = Date.now()
-      const updateSpeedSamples = (): void => {
-        const activeIds = new Set<string>()
-        info.connections?.forEach((connection) => {
-          activeIds.add(connection.id)
-          speedSamples.set(connection.id, {
-            upload: Math.max(0, connection.upload || 0),
-            download: Math.max(0, connection.download || 0),
-            at: now
-          })
-        })
-
-        speedSamples.forEach((_sample, id) => {
-          if (!activeIds.has(id)) {
-            speedSamples.delete(id)
-          }
-        })
-      }
-
       const { isPaused } = get()
-      if (isPaused) {
-        updateSpeedSamples()
-        return
-      }
-      // 窗口不可见时跳过列表衍生计算，降低后台 CPU 占用
-      if (document.hidden) {
-        updateSpeedSamples()
-        return
-      }
 
       const isBaseline = isBaselineSnapshot
       if (isBaseline) {
         isBaselineSnapshot = false
       }
 
-      const { activeConnections: prevActive, closedConnections: prevClosed } = get()
-      const prevActiveMap = new Map(prevActive.map((c) => [c.id, c]))
-
-      const newActive: ExtendedConnection[] = info.connections.map((conn) => {
-        const prev = prevActiveMap.get(conn.id)
-        const previousSample = speedSamples.get(conn.id)
-        const elapsedMs = previousSample ? Math.max(1, now - previousSample.at) : 0
-        const downloadSpeed =
-          previousSample && !isBaseline
-            ? Math.round((Math.max(0, conn.download - previousSample.download) * 1000) / elapsedMs)
-            : prev?.downloadSpeed || 0
-        const uploadSpeed =
-          previousSample && !isBaseline
-            ? Math.round((Math.max(0, conn.upload - previousSample.upload) * 1000) / elapsedMs)
-            : prev?.uploadSpeed || 0
-
-        // Enhance metadata if needed (e.g. for Inner type)
-        const metadata =
-          conn.metadata.type === 'Inner'
-            ? { ...conn.metadata, process: 'mihomo', processPath: 'mihomo' }
-            : conn.metadata
-
-        const prevMetadata = prev?.metadata
-        const metadataChanged =
-          !prevMetadata ||
-          prevMetadata.process !== metadata.process ||
-          prevMetadata.processPath !== metadata.processPath ||
-          prevMetadata.host !== metadata.host ||
-          prevMetadata.destinationIP !== metadata.destinationIP ||
-          prevMetadata.remoteDestination !== metadata.remoteDestination ||
-          prevMetadata.sniffHost !== metadata.sniffHost ||
-          prevMetadata.sourceIP !== metadata.sourceIP ||
-          prevMetadata.sourcePort !== metadata.sourcePort ||
-          prevMetadata.destinationPort !== metadata.destinationPort ||
-          prevMetadata.type !== metadata.type ||
-          prevMetadata.network !== metadata.network ||
-          prevMetadata.inboundName !== metadata.inboundName ||
-          prevMetadata.inboundUser !== metadata.inboundUser
-
-        if (
-          prev &&
-          !metadataChanged &&
-          prev.upload === conn.upload &&
-          prev.download === conn.download &&
-          prev.chains?.[0] === conn.chains?.[0] &&
-          // 比较 rule 等可能会变的参数，如果没变就复用
-          prev.rule === conn.rule &&
-          prev.start === conn.start
-        ) {
-          if (
-            downloadSpeed === 0 &&
-            uploadSpeed === 0 &&
-            prev.downloadSpeed === 0 &&
-            prev.uploadSpeed === 0
-          ) {
-            return prev
-          }
+      connectionsWorker.postMessage({
+        type: 'process',
+        payload: {
+          connections: info.connections,
+          isPaused,
+          isHidden: document.hidden,
+          isBaseline,
+          now
         }
-
-        return {
-          ...conn,
-          metadata,
-          isActive: true,
-          downloadSpeed: Math.max(0, downloadSpeed),
-          uploadSpeed: Math.max(0, uploadSpeed)
-        }
-      })
-
-      updateSpeedSamples()
-
-      // Identify newly closed connections
-      // Connections that were in prevActive but are NOT in newActive
-      const newActiveIds = new Set(newActive.map((c) => c.id))
-      const newlyClosed = prevActive
-        .filter((c) => !newActiveIds.has(c.id))
-        .map((c) => ({
-          ...c,
-          isActive: false,
-          downloadSpeed: 0,
-          uploadSpeed: 0,
-          completedAt: new Date().toISOString()
-        }))
-
-      let nextClosed = prevClosed
-      if (newlyClosed.length > 0) {
-        nextClosed = [...newlyClosed, ...prevClosed]
-        if (nextClosed.length > 500) {
-          nextClosed = nextClosed.slice(0, 500)
-        }
-      }
-
-      set({
-        activeConnections: newActive,
-        closedConnections: nextClosed,
-        connectionCount: newActive.length,
-        loading: false
       })
     }
 
@@ -381,9 +280,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   },
 
   trashClosedConnection: (id: string) => {
-    set((state) => ({
-      closedConnections: state.closedConnections.filter((c) => c.id !== id)
-    }))
+    connectionsWorker.postMessage({ type: 'trashClosedConnection', payload: { id } })
   },
 
   closeAllConnections: () => {
@@ -391,7 +288,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   },
 
   trashAllClosedConnections: () => {
-    set({ closedConnections: [] })
+    connectionsWorker.postMessage({ type: 'trashAllClosedConnections', payload: {} })
   }
 }))
 

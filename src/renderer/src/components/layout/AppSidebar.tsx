@@ -10,6 +10,8 @@ import ConnCard from '@renderer/components/sider/conn-card'
 import LogCard from '@renderer/components/sider/log-card'
 import MihomoCoreCard from '@renderer/components/sider/mihomo-core-card'
 import StatsCard from '@renderer/components/sider/stats-card'
+import DnsCard from '@renderer/components/sider/dns-card'
+import SnifferCard from '@renderer/components/sider/sniffer-card'
 import ToolsCard from '@renderer/components/sider/tools-card'
 import MapCard from '@renderer/components/sider/map-card'
 import UpdaterButton from '@renderer/components/updater/updater-button'
@@ -68,9 +70,11 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
               <MihomoCoreCard iconOnly />
               <RuleCard iconOnly />
               <StatsCard iconOnly />
-              <ToolsCard iconOnly />
-              <LogCard iconOnly />
               <MapCard iconOnly />
+              <DnsCard iconOnly />
+              <SnifferCard iconOnly />
+              <LogCard iconOnly />
+              <ToolsCard iconOnly />
             </div>
           </div>
           <div className="app-nodrag p-2 flex flex-col items-center gap-2 shrink-0 border-t border-divider">
@@ -156,9 +160,11 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
             className={`flex shrink-0 flex-col gap-1.5 px-2 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}
           >
             <StatsCard className={fillCardClassName} />
-            <ToolsCard className={fillCardClassName} />
-            <LogCard className={fillCardClassName} />
             <MapCard className={fillCardClassName} />
+            <DnsCard className={fillCardClassName} />
+            <SnifferCard className={fillCardClassName} />
+            <LogCard className={fillCardClassName} />
+            <ToolsCard className={fillCardClassName} />
           </div>
         </div>
       </div>

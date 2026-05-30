@@ -33,10 +33,10 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
     visibleRange,
     closeConnection,
     closeAllConnections,
-    hideConnection: _unused1,
-    unhideConnection: _unused2,
     updateHiddenRules,
     handleVisibleRangeChange,
+    handleOrderByChange,
+    handleDirectionToggle,
     handleTableSort,
     activeCount,
     closedCount,
@@ -264,13 +264,18 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
         tab={tab}
         viewMode={viewMode}
         filter={filter}
-        showHidden={showHidden}
+        connectionOrderBy={connectionOrderBy}
+        connectionDirection={connectionDirection}
         isPaused={isPaused}
-        onFilterChange={setFilter}
+        showHidden={showHidden}
+        hiddenRulesCount={hiddenRules.size}
+        setFilter={setFilter}
+        setViewMode={setViewMode}
+        setPaused={setPaused}
+        setShowHidden={setShowHidden}
         onTabChange={handleTabChange}
-        onViewModeChange={setViewMode}
-        onShowHiddenChange={setShowHidden}
-        onPausedChange={setPaused}
+        onOrderByChange={handleOrderByChange}
+        onDirectionToggle={handleDirectionToggle}
         onBulkAction={handleBulkAction}
         onClearAllHidden={clearAllHidden}
       />

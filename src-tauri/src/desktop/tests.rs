@@ -23,11 +23,10 @@ fn collect_rust_ipc_channels() -> HashSet<String> {
         .iter()
         .flat_map(|source| source.lines())
         .filter_map(|line| {
-            let trimmed = line.trim_start();
-            if !trimmed.starts_with('"') || !trimmed.contains("=>") {
-                return None;
-            }
-            trimmed.split('"').nth(1).map(str::to_string)
+            line.trim_start()
+                .strip_prefix("map.insert(\"")
+                .and_then(|rest| rest.split('"').next())
+                .map(str::to_string)
         })
         .collect()
 }

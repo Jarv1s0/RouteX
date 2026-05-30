@@ -172,7 +172,8 @@ body,
   background-color: hsl(var(--heroui-primary) / 0.08) !important;
 }
 
-.profiles-sticky > div {
+.profiles-sticky > div,
+.rules-sticky > div {
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.5), hsl(0 0% 100% / 0.16)),
     hsl(var(--heroui-content1) / 0.42) !important;
@@ -183,7 +184,8 @@ body,
   backdrop-filter: blur(16px) saturate(1.12);
 }
 
-.dark .profiles-sticky > div {
+.dark .profiles-sticky > div,
+.dark .rules-sticky > div {
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.07), hsl(0 0% 100% / 0.018)),
     hsl(var(--heroui-content1) / 0.66) !important;

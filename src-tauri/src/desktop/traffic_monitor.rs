@@ -251,7 +251,6 @@ pub(crate) fn stop_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String>
             .trim()
             .parse::<u32>()
             .ok();
-        let _ = fs::remove_file(&pid_path);
 
         if let Some(pid) = pid {
             let mut command = Command::new("taskkill");
@@ -260,23 +259,22 @@ pub(crate) fn stop_traffic_monitor(app: &tauri::AppHandle) -> Result<(), String>
                 .args(["/PID", &pid.to_string(), "/T", "/F"])
                 .output()
                 .map_err(|e| e.to_string())?;
-            if !output.status.success() {
-                let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-                let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                let combined = if stderr.is_empty() { stdout } else { stderr };
-                let normalized = combined.to_ascii_lowercase();
-                if !normalized.contains("not found")
-                    && !combined.contains("没有找到")
-                    && !combined.contains("找不到")
-                {
-                    return Err(if combined.is_empty() {
-                        format!("停止 TrafficMonitor 失败: {}", output.status)
-                    } else {
-                        combined
-                    });
-                }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let combined = if stderr.is_empty() { stdout } else { stderr };
+            let normalized = combined.to_ascii_lowercase();
+
+            if !output.status.success()
+                && !normalized.contains("not found")
+                && !combined.contains("没有找到")
+                && !combined.contains("找不到")
+            {
+                return Err(format!("停止流量监控失败: {}", combined.trim()));
             }
         }
+
+        let _ = fs::remove_file(&pid_path);
 
         Ok(())
     }

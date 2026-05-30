@@ -416,7 +416,7 @@ const RulesPage: React.FC = () => {
 
   return (
     <BasePage title={t('page.rules.title')}>
-      <div className="sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
+      <div className="sticky rules-sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
         <div
           className={`w-full px-2 py-1.5 flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
         >

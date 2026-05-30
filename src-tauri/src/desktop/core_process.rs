@@ -732,6 +732,33 @@ pub(crate) fn reload_core_config_process(
     }))
 }
 
+pub(crate) fn update_runtime_state(
+    state: &State<'_, CoreState>,
+    binary_path: PathBuf,
+    work_dir: PathBuf,
+    log_path: PathBuf,
+    controller_client_address: String,
+    config_path: PathBuf,
+    runtime_config: Value,
+    child: Option<Child>,
+    service_managed: bool,
+) -> Result<(), String> {
+    let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+    runtime.binary_path = Some(binary_path);
+    runtime.work_dir = Some(work_dir);
+    runtime.log_path = Some(log_path);
+    runtime.controller_url = Some(format!("http://{controller_client_address}"));
+    runtime.cached_runtime_config = Some(CachedRuntimeConfig {
+        path: config_path.clone(),
+        modified_at_ms: runtime_config_modified_at_ms(&config_path),
+        value: runtime_config,
+    });
+    runtime.config_path = Some(config_path);
+    runtime.child = child;
+    runtime.service_managed = service_managed;
+    Ok(())
+}
+
 pub(crate) fn restart_core_process(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
@@ -767,7 +794,12 @@ pub(crate) fn restart_core_process(
         normalize_runtime_config(Some(&merged_runtime_config), &runtime_controller_address);
     let config_path = work_dir.join("config.yaml");
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
-    let config_digest = format!("{:x}", Sha256::digest(config_yaml.as_bytes()));
+    let config_digest_bytes = ring::digest::digest(&ring::digest::SHA256, config_yaml.as_bytes());
+    let config_digest = config_digest_bytes
+        .as_ref()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
     prepare_runtime_data_dir(app, &work_dir)?;
     prepare_runtime_data_dir(app, &test_dir)?;
     fs::write(&config_path, &config_yaml).map_err(|e| e.to_string())?;
@@ -807,20 +839,17 @@ pub(crate) fn restart_core_process(
             .and_then(|value| value.get("pid").cloned())
             .unwrap_or(Value::Null);
 
-        let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
-        runtime.binary_path = Some(binary_path.clone());
-        runtime.work_dir = Some(work_dir.clone());
-        runtime.log_path = Some(log_path.clone());
-        runtime.controller_url = Some(format!("http://{controller_client_address}"));
-        runtime.config_path = Some(config_path.clone());
-        runtime.cached_runtime_config = Some(CachedRuntimeConfig {
-            path: config_path.clone(),
-            modified_at_ms: runtime_config_modified_at_ms(&config_path),
-            value: runtime_config.clone(),
-        });
-        runtime.child = None;
-        runtime.service_managed = true;
-        drop(runtime);
+        update_runtime_state(
+            state,
+            binary_path.clone(),
+            work_dir.clone(),
+            log_path.clone(),
+            controller_client_address.clone(),
+            config_path.clone(),
+            runtime_config.clone(),
+            None,
+            true,
+        )?;
 
         if let Err(error) = wait_for_core_ready(state, &runtime_config) {
             let error =
@@ -871,20 +900,17 @@ pub(crate) fn restart_core_process(
     }
 
     let pid = child.id();
-    let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
-    runtime.binary_path = Some(binary_path.clone());
-    runtime.work_dir = Some(work_dir.clone());
-    runtime.log_path = Some(log_path.clone());
-    runtime.controller_url = Some(format!("http://{controller_client_address}"));
-    runtime.config_path = Some(config_path.clone());
-    runtime.cached_runtime_config = Some(CachedRuntimeConfig {
-        path: config_path.clone(),
-        modified_at_ms: runtime_config_modified_at_ms(&config_path),
-        value: runtime_config.clone(),
-    });
-    runtime.child = Some(child);
-    runtime.service_managed = false;
-    drop(runtime);
+    update_runtime_state(
+        state,
+        binary_path.clone(),
+        work_dir.clone(),
+        log_path.clone(),
+        controller_client_address.clone(),
+        config_path.clone(),
+        runtime_config.clone(),
+        Some(child),
+        false,
+    )?;
 
     if let Err(error) = wait_for_core_ready(state, &runtime_config) {
         let error = refine_core_start_error(error, &log_path, log_start_offset, &runtime_config);
