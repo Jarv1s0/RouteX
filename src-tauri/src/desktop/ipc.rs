@@ -2,14 +2,19 @@ use super::prelude::*;
 use super::*;
 
 #[tauri::command]
-pub(crate) async fn desktop_check_update(app: tauri::AppHandle) -> Result<Value, String> {
+pub(crate) async fn desktop_check_update(
+    app: tauri::AppHandle,
+) -> crate::desktop::error::AppResult<Value> {
     let started_at = Instant::now();
-    let result = check_update_manifest(&app).await.map(|value| json!(value));
+    let result = check_update_manifest(&app)
+        .await
+        .map(|value| json!(value))
+        .map_err(crate::desktop::error::AppError::from);
 
     let elapsed_ms = started_at.elapsed().as_millis();
     match &result {
         Ok(_) => eprintln!("[desktop.invoke] checkUpdate {}ms", elapsed_ms),
-        Err(error) if !should_suppress_update_check_error_log(error) => eprintln!(
+        Err(error) if !should_suppress_update_check_error_log(&error.to_string()) => eprintln!(
             "[desktop.invoke] checkUpdate failed in {}ms: {}",
             elapsed_ms, error
         ),
@@ -30,13 +35,15 @@ pub(crate) fn should_suppress_desktop_invoke_error_log(channel: &str, error: &st
 }
 
 #[tauri::command]
-pub(crate) async fn desktop_get_icon_data_urls(app_paths: Vec<String>) -> Result<Value, String> {
+pub(crate) async fn desktop_get_icon_data_urls(
+    app_paths: Vec<String>,
+) -> crate::desktop::error::AppResult<Value> {
     let started_at = Instant::now();
     let paths = app_paths;
     let result =
         tauri::async_runtime::spawn_blocking(move || Ok(json!(resolve_icon_data_urls(&paths))))
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| crate::desktop::error::AppError::Generic(e.to_string()))?;
 
     let elapsed_ms = started_at.elapsed().as_millis();
     if elapsed_ms >= 80 {
@@ -63,7 +70,7 @@ pub(crate) type IpcHandler = fn(
     &tauri::WebviewWindow,
     &State<'_, CoreState>,
     &[Value],
-) -> Result<Value, String>;
+) -> crate::desktop::error::AppResult<Value>;
 
 static IPC_HANDLERS: OnceLock<HashMap<&'static str, IpcHandler>> = OnceLock::new();
 static LOG_CHANNELS: OnceLock<HashSet<&'static str>> = OnceLock::new();
@@ -94,12 +101,14 @@ pub(crate) fn desktop_invoke_sync(
     state: State<'_, CoreState>,
     channel: String,
     args: Vec<Value>,
-) -> Result<Value, String> {
+) -> crate::desktop::error::AppResult<Value> {
     let started_at = Instant::now();
     let map = IPC_HANDLERS.get_or_init(init_ipc_handlers);
     let result = match map.get(channel.as_str()) {
         Some(handler) => handler(app, window, &state, &args),
-        None => Err(format!("Unsupported Tauri desktop channel: {channel}")),
+        None => Err(crate::desktop::error::AppError::Generic(format!(
+            "Unsupported Tauri desktop channel: {channel}"
+        ))),
     };
 
     let elapsed_ms = started_at.elapsed().as_millis();
@@ -110,10 +119,14 @@ pub(crate) fn desktop_invoke_sync(
     {
         match &result {
             Ok(_) => eprintln!("[desktop.invoke] {} {}ms", channel, elapsed_ms),
-            Err(error) if !should_suppress_desktop_invoke_error_log(&channel, error) => eprintln!(
-                "[desktop.invoke] {} failed in {}ms: {}",
-                channel, elapsed_ms, error
-            ),
+            Err(error)
+                if !should_suppress_desktop_invoke_error_log(&channel, &error.to_string()) =>
+            {
+                eprintln!(
+                    "[desktop.invoke] {} failed in {}ms: {}",
+                    channel, elapsed_ms, error
+                )
+            }
             Err(_) => {}
         }
     }
@@ -127,7 +140,7 @@ pub(crate) async fn desktop_invoke(
     window: tauri::WebviewWindow,
     channel: String,
     args: Vec<Value>,
-) -> Result<Value, String> {
+) -> crate::desktop::error::AppResult<Value> {
     let app_for_task = app.clone();
     let window_for_task = window.clone();
     let channel_for_task = channel.clone();
@@ -143,5 +156,5 @@ pub(crate) async fn desktop_invoke(
         )
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| crate::desktop::error::AppError::Generic(e.to_string()))?
 }

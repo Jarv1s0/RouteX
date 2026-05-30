@@ -1,5 +1,5 @@
 pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
-    map.insert("registerShortcut", |app, window, state, args| {
+    map.insert("registerShortcut", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -18,8 +18,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
                 action
             )?))
         
-    });
-    map.insert("quitWithoutCore", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("quitWithoutCore", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -28,8 +28,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             exit_app_without_core(app)?;
             Ok(Value::Null)
         
-    });
-    map.insert("quitConfirmResult", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("quitConfirmResult", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -39,8 +39,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             resolve_quit_confirmation(state, confirmed)?;
             Ok(Value::Null)
         
-    });
-    map.insert("quitApp", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("quitApp", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -51,8 +51,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             }
             Ok(Value::Null)
         
-    });
-    map.insert("notDialogQuit", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("notDialogQuit", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -61,8 +61,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             exit_app(app)?;
             Ok(Value::Null)
         
-    });
-    map.insert("showMainWindow", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("showMainWindow", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -71,8 +71,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             show_main_window(app)?;
             Ok(Value::Null)
         
-    });
-    map.insert("mainWindowReady", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("mainWindowReady", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -83,8 +83,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             }
             Ok(Value::Null)
         
-    });
-    map.insert("triggerMainWindow", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("triggerMainWindow", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -93,8 +93,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             trigger_main_window(app)?;
             Ok(Value::Null)
         
-    });
-    map.insert("closeMainWindow", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("closeMainWindow", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -103,8 +103,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             hide_main_window(app, true)?;
             Ok(Value::Null)
         
-    });
-    map.insert("windowMin", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("windowMin", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -113,8 +113,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             let _ = window.minimize();
             Ok(Value::Null)
         
-    });
-    map.insert("windowMax", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("windowMax", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -128,8 +128,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             }
             Ok(Value::Null)
         
-    });
-    map.insert("setAlwaysOnTop", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setAlwaysOnTop", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -142,8 +142,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             let _ = window.set_always_on_top(always_on_top);
             Ok(Value::Null)
         
-    });
-    map.insert("isAlwaysOnTop", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("isAlwaysOnTop", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -151,15 +151,15 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
          Ok(json!(window
             .is_always_on_top()
             .map_err(|e| e.to_string())?)) 
-    });
-    map.insert("setTitleBarOverlay", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setTitleBarOverlay", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(Value::Null) 
-    });
-    map.insert("setDockVisible", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setDockVisible", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -179,8 +179,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             }
             Ok(Value::Null)
         
-    });
-    map.insert("showFloatingWindow", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("showFloatingWindow", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -191,8 +191,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             let _ = window.set_focus();
             Ok(Value::Null)
         
-    });
-    map.insert("closeFloatingWindow", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("closeFloatingWindow", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -212,8 +212,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             emit_ipc_event(app, "appConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("showTrayIcon", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("showTrayIcon", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -222,8 +222,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             ensure_tray_icon(app)?;
             Ok(Value::Null)
         
-    });
-    map.insert("closeTrayIcon", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("closeTrayIcon", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -235,8 +235,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             }
             Ok(Value::Null)
         
-    });
-    map.insert("closeTrayMenuWindow", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("closeTrayMenuWindow", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -245,8 +245,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             hide_traymenu_window(app);
             Ok(Value::Null)
         
-    });
-    map.insert("updateFloatingWindow", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("updateFloatingWindow", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -256,8 +256,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("updateTrayMenu", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("updateTrayMenu", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -270,8 +270,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             emit_ipc_event(app, "groupsUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("updateTaskbarIcon", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("updateTaskbarIcon", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -285,8 +285,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             }
             Ok(Value::Null)
         
-    });
-    map.insert("trayIconUpdate", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("trayIconUpdate", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -299,8 +299,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             apply_tray_icon_data_url(app, data_url)?;
             Ok(Value::Null)
         
-    });
-    map.insert("startMonitor", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("startMonitor", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -311,8 +311,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             refresh_native_tray_menu(app)?;
             Ok(Value::Null)
         
-    });
-    map.insert("setupFirewall", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setupFirewall", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -349,8 +349,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             }
             Ok(Value::Null)
         
-    });
-    map.insert("startNetworkDetection", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("startNetworkDetection", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -359,8 +359,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             start_network_detection(app, state)?;
             Ok(Value::Null)
         
-    });
-    map.insert("stopNetworkDetection", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("stopNetworkDetection", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -369,8 +369,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             stop_network_detection(state)?;
             Ok(Value::Null)
         
-    });
-    map.insert("triggerSysProxy", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("triggerSysProxy", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -384,8 +384,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             trigger_sys_proxy(app, state, enable, only_active_device)?;
             Ok(Value::Null)
         
-    });
-    map.insert("showContextMenu", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("showContextMenu", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -402,8 +402,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             )?;
             Ok(Value::Null)
         
-    });
-    map.insert("openDevTools", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("openDevTools", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -415,8 +415,8 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             }
             Ok(Value::Null)
         
-    });
-    map.insert("openExternalUrl", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("openExternalUrl", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -429,5 +429,5 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             open_external_url(url)?;
             Ok(Value::Null)
         
-    });
+    })().map_err(crate::desktop::error::AppError::from) });
 }
