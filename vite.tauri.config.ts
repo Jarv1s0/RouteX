@@ -37,7 +37,6 @@ const manualChunkRules: Array<[string, string[]]> = [
       '/node_modules/next-themes/'
     ]
   ],
-  ['vendor-motion', ['/node_modules/framer-motion/']],
   ['vendor-chart', ['/node_modules/echarts/', '/node_modules/zrender/']],
   [
     'vendor-editor',
