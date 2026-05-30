@@ -18,14 +18,18 @@ import {
   isValidDomainWildcard,
   isValidDnsServer,
   isValidIPv4Cidr,
-  isValidIPv6Cidr
+  isValidIPv6Cidr,
+  isValidListenAddress
 } from '@renderer/utils/validate'
 
 import AdvancedDnsSetting from './advanced-dns-setting'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 interface DnsEditorValues {
+  listen: string
   ipv6: boolean
+  ipv6Timeout: string
+  preferH3: boolean
   useHosts: boolean
   enhancedMode: DnsMode
   fakeIPRange: string
@@ -36,9 +40,13 @@ interface DnsEditorValues {
   respectRules: boolean
   defaultNameserver: string[]
   nameserver: string[]
+  fallback: string[]
+  fallbackFilter: Record<string, boolean | string | string[]>
   proxyServerNameserver: string[]
   directNameserver: string[]
+  directNameserverFollowPolicy: boolean
   nameserverPolicy: Record<string, string | string[]>
+  cacheAlgorithm: string
   hosts?: IHost[]
   controlDns: boolean
 }
@@ -63,7 +71,10 @@ function buildInitialValues(
   const { hosts = [], controlDns = true } = appConfig || {}
   const { dns } = controledMihomoConfig || {}
   const {
+    listen = '',
     ipv6 = false,
+    'ipv6-timeout': ipv6Timeout,
+    'prefer-h3': preferH3 = false,
     'fake-ip-range': fakeIPRange = '198.18.0.1/16',
     'fake-ip-range6': fakeIPRange6 = '',
     'fake-ip-filter': fakeIPFilter = [
@@ -81,13 +92,20 @@ function buildInitialValues(
     'respect-rules': respectRules = false,
     'default-nameserver': defaultNameserver = ['tls://223.5.5.5'],
     nameserver = ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
+    fallback = [],
+    'fallback-filter': fallbackFilter = {},
     'proxy-server-nameserver': proxyServerNameserver = [],
     'direct-nameserver': directNameserver = [],
-    'nameserver-policy': nameserverPolicy = {}
+    'direct-nameserver-follow-policy': directNameserverFollowPolicy = false,
+    'nameserver-policy': nameserverPolicy = {},
+    'cache-algorithm': cacheAlgorithm = ''
   } = dns || {}
 
   return {
+    listen,
     ipv6,
+    ipv6Timeout: typeof ipv6Timeout === 'number' ? String(ipv6Timeout) : '',
+    preferH3,
     useHosts,
     enhancedMode,
     fakeIPRange,
@@ -98,9 +116,13 @@ function buildInitialValues(
     respectRules,
     defaultNameserver,
     nameserver,
+    fallback,
+    fallbackFilter,
     proxyServerNameserver,
     directNameserver,
+    directNameserverFollowPolicy,
     nameserverPolicy,
+    cacheAlgorithm,
     hosts: useHosts ? hosts : undefined,
     controlDns
   }
@@ -146,7 +168,20 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
     return values.nameserver.some((item) => !isValidDnsServer(item).ok)
   }, [values.nameserver])
 
-  const hasDnsErrors = defaultNameserverHasError || nameserverHasError || advancedDnsError
+  const fallbackHasError = useMemo(() => {
+    return values.fallback.some((item) => !isValidDnsServer(item).ok)
+  }, [values.fallback])
+
+  const listenHasError = useMemo(() => {
+    return values.listen.trim() !== '' && !isValidListenAddress(values.listen).ok
+  }, [values.listen])
+
+  const ipv6TimeoutHasError = useMemo(() => {
+    return values.ipv6Timeout.trim() !== '' && !/^[1-9]\d*$/.test(values.ipv6Timeout.trim())
+  }, [values.ipv6Timeout])
+
+  const hasDnsErrors =
+    defaultNameserverHasError || nameserverHasError || fallbackHasError || advancedDnsError
 
   const saveDisabled = !values.controlDns
     ? false
@@ -154,8 +189,10 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
       ? Boolean(fakeIPRangeError) ||
         (values.ipv6 && Boolean(fakeIPRange6Error)) ||
         fakeIPFilterHasError ||
+        listenHasError ||
+        ipv6TimeoutHasError ||
         hasDnsErrors
-      : hasDnsErrors
+      : listenHasError || ipv6TimeoutHasError || hasDnsErrors
 
   const save = async (): Promise<void> => {
     if (!values.controlDns) {
@@ -182,7 +219,10 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
       await patchControledMihomoConfig({
         dns: {
           enable: true,
+          listen: values.listen.trim() || null,
           ipv6: values.ipv6,
+          'ipv6-timeout': values.ipv6Timeout.trim() ? Number(values.ipv6Timeout.trim()) : null,
+          'prefer-h3': values.preferH3,
           'fake-ip-range': values.fakeIPRange,
           'fake-ip-range6': values.fakeIPRange6,
           'fake-ip-filter': values.fakeIPFilter,
@@ -193,12 +233,18 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
           'respect-rules': values.respectRules,
           'default-nameserver': values.defaultNameserver,
           nameserver: values.nameserver,
+          fallback: values.fallback,
+          'fallback-filter':
+            Object.keys(values.fallbackFilter).length > 0 ? values.fallbackFilter : null,
           'proxy-server-nameserver': values.proxyServerNameserver,
           'direct-nameserver': values.directNameserver,
-          'nameserver-policy': values.nameserverPolicy
+          'direct-nameserver-follow-policy': values.directNameserverFollowPolicy,
+          'nameserver-policy':
+            Object.keys(values.nameserverPolicy).length > 0 ? values.nameserverPolicy : null,
+          'cache-algorithm': values.cacheAlgorithm || null
         },
-        hosts: hostsObject
-      })
+        hosts: hostsObject ?? null
+      } as unknown as Partial<MihomoConfig>)
       restartCoreInBackground(t('dns.applyFailed'))
     } catch (error) {
       notifyError(error)
@@ -236,6 +282,18 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
     (item) => !isValidDnsServer(item, true).ok
   )
   const nameserverHasError = values.nameserver.some((item) => !isValidDnsServer(item).ok)
+  const fallbackHasError = values.fallback.some((item) => !isValidDnsServer(item).ok)
+  const listenError =
+    values.listen.trim() !== ''
+      ? (() => {
+          const result = isValidListenAddress(values.listen)
+          return result.ok ? null : (result.error ?? t('common.formatError'))
+        })()
+      : null
+  const ipv6TimeoutError =
+    values.ipv6Timeout.trim() !== '' && !/^[1-9]\d*$/.test(values.ipv6Timeout.trim())
+      ? t('common.formatError')
+      : null
 
   return (
     <div className="space-y-2">
@@ -260,6 +318,69 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
             isSelected={values.ipv6}
             isDisabled={dnsFieldsDisabled}
             onValueChange={(value) => setValues({ ...values, ipv6: value })}
+          />
+        </SettingItem>
+        <SettingItem title={getDisabledSettingTitle(t('dns.listen'), dnsFieldsDisabled)} divider>
+          <Tooltip
+            content={listenError}
+            placement="right"
+            isOpen={!dnsFieldsDisabled && !!listenError}
+            showArrow={true}
+            color="danger"
+            offset={15}
+          >
+            <Input
+              size="sm"
+              className={
+                `w-[40%] ` +
+                (!dnsFieldsDisabled && listenError
+                  ? 'border-red-500 ring-1 ring-red-500 rounded-lg'
+                  : '')
+              }
+              classNames={!dnsFieldsDisabled && listenError ? undefined : primaryInputClassNames}
+              isDisabled={dnsFieldsDisabled}
+              placeholder={t('dns.placeholder.listen')}
+              value={values.listen}
+              onValueChange={(value) => setValues({ ...values, listen: value })}
+            />
+          </Tooltip>
+        </SettingItem>
+        <SettingItem
+          title={getDisabledSettingTitle(t('dns.ipv6Timeout'), dnsFieldsDisabled)}
+          divider
+        >
+          <Tooltip
+            content={ipv6TimeoutError}
+            placement="right"
+            isOpen={!dnsFieldsDisabled && !!ipv6TimeoutError}
+            showArrow={true}
+            color="danger"
+            offset={15}
+          >
+            <Input
+              size="sm"
+              className={
+                `w-[40%] ` +
+                (!dnsFieldsDisabled && ipv6TimeoutError
+                  ? 'border-red-500 ring-1 ring-red-500 rounded-lg'
+                  : '')
+              }
+              classNames={
+                !dnsFieldsDisabled && ipv6TimeoutError ? undefined : primaryInputClassNames
+              }
+              isDisabled={dnsFieldsDisabled}
+              placeholder={t('dns.placeholder.ipv6Timeout')}
+              value={values.ipv6Timeout}
+              onValueChange={(value) => setValues({ ...values, ipv6Timeout: value })}
+            />
+          </Tooltip>
+        </SettingItem>
+        <SettingItem title={getDisabledSettingTitle(t('dns.preferH3'), dnsFieldsDisabled)} divider>
+          <AppSwitch
+            size="sm"
+            isSelected={values.preferH3}
+            isDisabled={dnsFieldsDisabled}
+            onValueChange={(value) => setValues({ ...values, preferH3: value })}
           />
         </SettingItem>
         <SettingItem
@@ -393,7 +514,7 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
         </CollapsibleSettingList>
         <CollapsibleSettingList
           title={t('dns.defaultNameserver')}
-          divider={false}
+          divider
           countLabel={t('dns.serverCount', { count: values.nameserver.length })}
           isDisabled={dnsFieldsDisabled}
           hasError={nameserverHasError}
@@ -410,13 +531,35 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
             isDisabled={dnsFieldsDisabled}
           />
         </CollapsibleSettingList>
+        <CollapsibleSettingList
+          title={t('dns.fallback')}
+          divider={false}
+          countLabel={t('dns.serverCount', { count: values.fallback.length })}
+          isDisabled={dnsFieldsDisabled}
+          hasError={fallbackHasError}
+        >
+          <EditableList
+            items={values.fallback}
+            validate={(part) => isValidDnsServer(part as string)}
+            onChange={(list) => {
+              setValues({ ...values, fallback: list as string[] })
+            }}
+            placeholder={t('dns.placeholder.nameserver')}
+            divider={false}
+            inputClassNames={primaryInputClassNames}
+            isDisabled={dnsFieldsDisabled}
+          />
+        </CollapsibleSettingList>
       </SettingCard>
       <AdvancedDnsSetting
         respectRules={values.respectRules}
         directNameserver={values.directNameserver}
+        directNameserverFollowPolicy={values.directNameserverFollowPolicy}
         proxyServerNameserver={values.proxyServerNameserver}
         nameserverPolicy={values.nameserverPolicy}
+        fallbackFilter={values.fallbackFilter}
         fakeIpFilterMode={values.fakeIPFilterMode}
+        cacheAlgorithm={values.cacheAlgorithm}
         hosts={values.hosts}
         useHosts={values.useHosts}
         useSystemHosts={values.useSystemHosts}
@@ -429,6 +572,9 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
         onDirectNameserverChange={(list) => {
           setValues({ ...values, directNameserver: list })
         }}
+        onDirectNameserverFollowPolicyChange={(value) => {
+          setValues({ ...values, directNameserverFollowPolicy: value })
+        }}
         onProxyNameserverChange={(list) => {
           setValues({
             ...values,
@@ -439,7 +585,11 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
         onNameserverPolicyChange={(newValue) => {
           setValues({ ...values, nameserverPolicy: newValue })
         }}
+        onFallbackFilterChange={(newValue) => {
+          setValues({ ...values, fallbackFilter: newValue })
+        }}
         onFakeIpFilterModeChange={(mode) => setValues({ ...values, fakeIPFilterMode: mode })}
+        onCacheAlgorithmChange={(value) => setValues({ ...values, cacheAlgorithm: value })}
         onUseSystemHostsChange={(value) => setValues({ ...values, useSystemHosts: value })}
         onUseHostsChange={(value) => setValues({ ...values, useHosts: value })}
         onHostsChange={(hostArr) => setValues({ ...values, hosts: hostArr })}

@@ -309,6 +309,7 @@ pub(crate) fn cleanup_dns_config(config: &mut serde_json::Map<String, Value>, co
                 "proxy-server-nameserver",
                 "direct-nameserver",
                 "nameserver",
+                "fallback",
             ] {
                 if dns
                     .get(key)
@@ -340,8 +341,25 @@ pub(crate) fn cleanup_dns_config(config: &mut serde_json::Map<String, Value>, co
                 dns.remove("nameserver-policy");
             }
 
-            dns.remove("fallback");
-            dns.remove("fallback-filter");
+            if dns
+                .get("fallback-filter")
+                .and_then(Value::as_object)
+                .map(|items| items.is_empty())
+                .unwrap_or(false)
+            {
+                dns.remove("fallback-filter");
+            }
+
+            for key in ["listen", "cache-algorithm"] {
+                if dns
+                    .get(key)
+                    .and_then(Value::as_str)
+                    .map(|value| value.is_empty())
+                    .unwrap_or(false)
+                {
+                    dns.remove(key);
+                }
+            }
         }
     }
 
