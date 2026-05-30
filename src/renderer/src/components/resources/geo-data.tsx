@@ -57,12 +57,13 @@ const GeoData: React.FC = () => {
   }
 
   const downloadGeoFile = async (key: GeoDataKey, title: string): Promise<void> => {
+    const { toast } = await import('sonner')
     setDownloading((prev) => ({ ...prev, [key]: true }))
     try {
       await mihomoUpgradeGeoFile(key, inputs[key])
-      new Notification(t('resources.downloadGeoDataItemSuccess', { name: title }))
+      toast.success(t('resources.downloadGeoDataItemSuccess', { name: title }))
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     } finally {
       setDownloading((prev) => ({ ...prev, [key]: false }))
     }
@@ -71,17 +72,22 @@ const GeoData: React.FC = () => {
   return (
     <SettingCard>
       {geoDataKeys.map(({ key, titleKey }) => {
-        const title = t(titleKey)
+        const titleStr = t(titleKey)
+        const title = <span className="inline-block w-[110px]">{titleStr}</span>
         return (
           <SettingItem key={key} title={title} divider>
-            <div className="flex w-[82%] min-w-0 items-center gap-1.5">
+            <div className="flex flex-1 min-w-0 items-center gap-2">
               <Input
                 size="sm"
                 className="min-w-0 flex-1"
                 value={inputs[key]}
                 onValueChange={(value) => setInputs((prev) => ({ ...prev, [key]: value }))}
               />
-              <div className="relative flex shrink-0 items-center h-8 min-w-[70px] justify-end">
+              <div
+                className={`relative flex shrink-0 items-center h-8 transition-[width] duration-150 ease-out ${
+                  inputs[key] === geoxUrl[key] ? 'w-8' : 'w-[68px]'
+                }`}
+              >
                 <div
                   className={`absolute right-0 flex items-center transition-all duration-150 ease-out ${
                     inputs[key] === geoxUrl[key]
@@ -93,18 +99,18 @@ const GeoData: React.FC = () => {
                     isIconOnly
                     size="sm"
                     variant="light"
-                    className="min-w-8 w-8 h-8 text-default-600 dark:text-default-400 hover:text-primary"
+                    className="w-8 h-8 min-w-8 text-default-600 dark:text-default-400 hover:text-primary"
                     isLoading={downloading[key]}
-                    aria-label={t('resources.downloadGeoDataItem', { name: title })}
-                    title={t('resources.downloadGeoDataItem', { name: title })}
-                    onPress={() => void downloadGeoFile(key, title)}
+                    aria-label={t('resources.downloadGeoDataItem', { name: titleStr })}
+                    title={t('resources.downloadGeoDataItem', { name: titleStr })}
+                    onPress={() => void downloadGeoFile(key, titleStr)}
                   >
                     <LuCloudDownload className="text-lg" />
                   </Button>
                 </div>
 
                 <div
-                  className={`absolute right-0 flex items-center gap-1.5 transition-all duration-150 ease-out ${
+                  className={`absolute right-0 flex items-center gap-1 transition-all duration-150 ease-out ${
                     inputs[key] !== geoxUrl[key]
                       ? 'opacity-100 translate-x-0'
                       : 'opacity-0 translate-x-2 pointer-events-none'
@@ -114,7 +120,7 @@ const GeoData: React.FC = () => {
                     isIconOnly
                     size="sm"
                     variant="light"
-                    className="min-w-8 w-8 h-8 text-success-600 dark:text-success-400 hover:bg-success/10"
+                    className="w-8 h-8 min-w-8 text-success-600 dark:text-success-400 hover:bg-success/10"
                     aria-label={t('common.confirm')}
                     title={t('common.confirm')}
                     onPress={() => saveGeoUrl(key)}
@@ -125,7 +131,7 @@ const GeoData: React.FC = () => {
                     isIconOnly
                     size="sm"
                     variant="light"
-                    className="min-w-8 w-8 h-8 text-danger-600 dark:text-danger-400 hover:bg-danger/10"
+                    className="w-8 h-8 min-w-8 text-danger-600 dark:text-danger-400 hover:bg-danger/10"
                     aria-label={t('common.cancel')}
                     title={t('common.cancel')}
                     onPress={() => setInputs((prev) => ({ ...prev, [key]: geoxUrl[key] }))}
