@@ -1,70 +1,12 @@
 import { C, invokeSafe } from './ipc-core'
-import { desktop, emitDesktopEvent } from '@renderer/api/desktop'
-import { IPC_ON_CHANNELS } from '../../../shared/ipc'
 import { createDefaultControledMihomoConfig } from '../../../shared/defaults/runtime'
 import { ON, onIpc } from './ipc-channels'
 import { createTauriRuntimeConfig, buildRuntimeGroupsFallback } from './mihomo-config-merge'
-const tauriSockets: Partial<Record<'traffic' | 'memory' | 'logs' | 'connections', WebSocket>> = {}
-const tauriBridgeReadyListeners = new Set<() => void>()
-let tauriSocketRetryTimer: number | null = null
-let tauriConnectionsBridgeRefCount = 0
-let tauriMemoryBridgeRefCount = 0
-let tauriLogsBridgeRefCount = 0
-let tauriControlledConfigCache: Partial<MihomoConfig> | null = null
-let tauriRuntimeConfigCache: MihomoConfig | null = null
-let tauriRuntimeConfigStrCache: string | null = null
-let tauriRuntimeConfigPromise: Promise<MihomoConfig> | null = null
-let tauriRuntimeConfigStrPromise: Promise<string> | null = null
-let tauriControllerUrl: string | null = null
-let tauriControllerUrlPromise: Promise<string | null> | null = null
-let tauriBridgeLifecycleInstalled = false
-let tauriBridgeStartVersion = 0
-let tauriBridgeActiveControllerUrl: string | null = null
-let tauriBridgeReconnectReason = ''
-const latestVersionCache = new Map<boolean, { value: string | null; at: number }>()
-const latestVersionPromiseCache = new Map<boolean, Promise<string | null>>()
-const inFlightMihomoRequests = new Map<string, Promise<unknown>>()
-const MIN_TAURI_CONNECTION_INTERVAL = 500
-let tauriRuntimeConfigRevision = 0
-
-const CHECK_LATEST_VERSION_CACHE_MS = 3 * 60 * 1000
-type TauriSocketKey = keyof typeof tauriSockets
-
-type RetainTauriBridgeOptions = {
-  key: TauriSocketKey
-  retainReason: string
-  getRefCount: () => number
-  setRefCount: (value: number) => void
-  startSocket: (controllerUrl: string, version: number) => void
-  shouldStartSocket?: () => boolean
-}
+import { mihomoConfigCache } from './mihomo-config-cache'
+import { MihomoSocketManager } from './mihomo-socket-manager'
 
 function isTauriHost(): boolean {
   return __ROUTEX_HOST__ === 'tauri'
-}
-
-function dedupeMihomoRequest<T>(key: string, requestFactory: () => Promise<T>): Promise<T> {
-  const existing = inFlightMihomoRequests.get(key) as Promise<T> | undefined
-  if (existing) {
-    return existing
-  }
-
-  let request: Promise<T>
-  request = requestFactory().finally(() => {
-    if (inFlightMihomoRequests.get(key) === request) {
-      inFlightMihomoRequests.delete(key)
-    }
-  })
-  inFlightMihomoRequests.set(key, request)
-  return request
-}
-
-function createMihomoRequestKey(channel: string, ...args: Array<string | undefined>): string {
-  return JSON.stringify([channel, ...args.map((arg) => arg ?? '')])
-}
-
-function clearInFlightMihomoRequests(...keys: string[]): void {
-  keys.forEach((key) => inFlightMihomoRequests.delete(key))
 }
 
 export function isExpectedMihomoUnavailableError(error: unknown): boolean {
@@ -85,450 +27,38 @@ function getDefaultTauriControledMihomoConfig(): Partial<MihomoConfig> {
 function readTauriControledMihomoConfig(): Partial<MihomoConfig> {
   return {
     ...getDefaultTauriControledMihomoConfig(),
-    ...(tauriControlledConfigCache || {})
+    ...(mihomoConfigCache.getControlledConfig() || {})
   }
 }
 
-function readTauriControllerUrl(): string | null {
-  return tauriControllerUrl
-}
-
-function writeTauriControllerUrl(url: string): void {
-  tauriControllerUrl = url
-}
-
-function markNextTauriBridgeStart(reason: string): number {
-  tauriBridgeReconnectReason = reason
-  tauriBridgeStartVersion += 1
-  return tauriBridgeStartVersion
-}
-
-function isStaleTauriBridgeStart(version: number): boolean {
-  return version !== tauriBridgeStartVersion
-}
-
-function normalizeTauriControllerUrl(value: string): string {
-  return /^https?:\/\//i.test(value) ? value : `http://${value}`
-}
-
-function syncTauriControllerUrlFromRuntime(config?: Partial<MihomoConfig> | null): string | null {
-  const controller = config?.['external-controller']
-  const rawController = typeof controller === 'string' ? controller.trim() : ''
-
-  if (!rawController) {
-    return readTauriControllerUrl()
-  }
-
-  const nextControllerUrl = normalizeTauriControllerUrl(rawController)
-  writeTauriControllerUrl(nextControllerUrl)
-  return nextControllerUrl
-}
-
-async function readTauriConnectionIntervalMs(): Promise<number> {
-  try {
-    const appConfig = await invokeSafe<Partial<AppConfig>>(C.getAppConfig)
-    const rawInterval = Number.parseInt(
-      String(appConfig.connectionInterval ?? MIN_TAURI_CONNECTION_INTERVAL),
-      10
-    )
-
-    if (!Number.isFinite(rawInterval)) {
-      return MIN_TAURI_CONNECTION_INTERVAL
-    }
-
-    return Math.max(MIN_TAURI_CONNECTION_INTERVAL, rawInterval)
-  } catch {
-    return MIN_TAURI_CONNECTION_INTERVAL
-  }
-}
-
-async function ensureTauriControllerUrl(): Promise<string | null> {
-  const existing = readTauriControllerUrl()
-  if (existing) {
-    return existing
-  }
-
-  if (!tauriControllerUrlPromise) {
-    tauriControllerUrlPromise = (async (): Promise<string | null> => {
-      try {
-        const controllerUrl = await invokeSafe<string | null>(C.getControllerUrl)
-        if (controllerUrl) {
-          writeTauriControllerUrl(controllerUrl)
-          return controllerUrl
-        }
-      } catch {
-        // Fallback to runtime config below.
-      }
-
-      try {
-        const config = await getRuntimeConfig()
-        return syncTauriControllerUrlFromRuntime(config)
-      } catch {
-        return null
-      }
-    })()
-      .catch((): null => null)
-      .finally(() => {
-        tauriControllerUrlPromise = null
-      })
-  }
-
-  return tauriControllerUrlPromise
-}
-
-function invalidateTauriRuntimeConfigCache(): void {
-  tauriRuntimeConfigCache = null
-  tauriRuntimeConfigStrCache = null
-  tauriRuntimeConfigPromise = null
-  tauriRuntimeConfigStrPromise = null
-  tauriRuntimeConfigRevision += 1
-}
-
-function closeTauriSocket(key: keyof typeof tauriSockets): void {
-  const socket = tauriSockets[key]
-  if (!socket) return
-  socket.onopen = null
-  socket.onmessage = null
-  socket.onerror = null
-  socket.onclose = null
-  socket.close()
-  delete tauriSockets[key]
-}
+const mihomoSocketManager = new MihomoSocketManager({
+  getRuntimeConfig,
+  readTauriControledMihomoConfig,
+  invalidateRuntimeConfigCache: () => mihomoConfigCache.invalidateRuntimeConfigCache()
+})
 
 export function stopTauriMihomoEventBridge(): void {
-  closeTauriSocket('traffic')
-  closeTauriSocket('memory')
-  closeTauriSocket('logs')
-  closeTauriSocket('connections')
-  tauriBridgeActiveControllerUrl = null
-
-  if (tauriSocketRetryTimer !== null) {
-    window.clearTimeout(tauriSocketRetryTimer)
-    tauriSocketRetryTimer = null
-  }
+  mihomoSocketManager.stopTauriMihomoEventBridge()
 }
 
-/**
- * 注册 connections WebSocket 首次建立成功后的回调。
- * 回调只触发一次，触发后自动移除。
- */
 export function onTauriBridgeConnectionsReady(listener: () => void): () => void {
-  tauriBridgeReadyListeners.add(listener)
-  return () => {
-    tauriBridgeReadyListeners.delete(listener)
-  }
-}
-
-function retainTauriBridge({
-  key,
-  retainReason,
-  getRefCount,
-  setRefCount,
-  startSocket,
-  shouldStartSocket = () => true
-}: RetainTauriBridgeOptions): () => void {
-  if (!isTauriHost()) {
-    return () => undefined
-  }
-
-  setRefCount(getRefCount() + 1)
-  if (tauriBridgeActiveControllerUrl) {
-    if (shouldStartSocket()) {
-      startSocket(tauriBridgeActiveControllerUrl, tauriBridgeStartVersion)
-    }
-  } else {
-    startTauriMihomoEventBridge(retainReason)
-  }
-
-  let released = false
-  return () => {
-    if (released) {
-      return
-    }
-
-    released = true
-    const nextRefCount = Math.max(0, getRefCount() - 1)
-    setRefCount(nextRefCount)
-    if (nextRefCount === 0) {
-      closeTauriSocket(key)
-    }
-  }
+  return mihomoSocketManager.onTauriBridgeConnectionsReady(listener)
 }
 
 export function retainTauriConnectionsBridge(): () => void {
-  return retainTauriBridge({
-    key: 'connections',
-    retainReason: 'connections-retain',
-    getRefCount: () => tauriConnectionsBridgeRefCount,
-    setRefCount: (value) => {
-      tauriConnectionsBridgeRefCount = value
-    },
-    startSocket: startTauriConnectionsSocket
-  })
+  return mihomoSocketManager.retainTauriConnectionsBridge()
 }
 
 export function retainTauriMemoryBridge(): () => void {
-  return retainTauriBridge({
-    key: 'memory',
-    retainReason: 'memory-retain',
-    getRefCount: () => tauriMemoryBridgeRefCount,
-    setRefCount: (value) => {
-      tauriMemoryBridgeRefCount = value
-    },
-    startSocket: startTauriMemorySocket,
-    shouldStartSocket: () => !tauriSockets.memory
-  })
+  return mihomoSocketManager.retainTauriMemoryBridge()
 }
 
 export function retainTauriLogsBridge(): () => void {
-  return retainTauriBridge({
-    key: 'logs',
-    retainReason: 'logs-retain',
-    getRefCount: () => tauriLogsBridgeRefCount,
-    setRefCount: (value) => {
-      tauriLogsBridgeRefCount = value
-    },
-    startSocket: startTauriLogsSocket,
-    shouldStartSocket: () => !tauriSockets.logs
-  })
-}
-
-function emitTauriBridgeConnectionsReady(): void {
-  tauriBridgeReadyListeners.forEach((listener) => {
-    try {
-      listener()
-    } catch {
-      // ignore
-    }
-  })
-  tauriBridgeReadyListeners.clear()
-}
-
-function installTauriBridgeLifecycle(): void {
-  if (!isTauriHost() || tauriBridgeLifecycleInstalled) {
-    return
-  }
-
-  tauriBridgeLifecycleInstalled = true
-
-  desktop.on<[unknown]>(IPC_ON_CHANNELS.coreStarted, (_event, payload) => {
-    invalidateTauriRuntimeConfigCache()
-    if (
-      payload &&
-      typeof payload === 'object' &&
-      'controller' in (payload as Record<string, unknown>) &&
-      typeof (payload as Record<string, unknown>).controller === 'string'
-    ) {
-      writeTauriControllerUrl(`http://${(payload as { controller: string }).controller}`)
-      startTauriMihomoEventBridge('core-started-with-controller')
-    } else {
-      // core-started 事件没有携带 controller 字段（旧协议/格式变化），
-      // 清除缓存的旧 controller URL 并让 bridge 主动去 Rust 重新拉取最新地址。
-      tauriControllerUrl = null
-      tauriControllerUrlPromise = null
-      startTauriMihomoEventBridge('core-started-no-controller')
-    }
-  })
-
-  desktop.on(IPC_ON_CHANNELS.controledMihomoConfigUpdated, () => {
-    invalidateTauriRuntimeConfigCache()
-    startTauriMihomoEventBridge()
-  })
-
-  desktop.on(IPC_ON_CHANNELS.appConfigUpdated, () => {
-    startTauriMihomoEventBridge()
-  })
-
-  desktop.on(IPC_ON_CHANNELS.profileConfigUpdated, () => {
-    invalidateTauriRuntimeConfigCache()
-  })
-
-  desktop.on(IPC_ON_CHANNELS.overrideConfigUpdated, () => {
-    invalidateTauriRuntimeConfigCache()
-  })
-
-  desktop.on(IPC_ON_CHANNELS.quickRulesConfigUpdated, () => {
-    invalidateTauriRuntimeConfigCache()
-  })
-
-  desktop.on(IPC_ON_CHANNELS.rulesUpdated, () => {
-    invalidateTauriRuntimeConfigCache()
-  })
-}
-
-function scheduleTauriBridgeReconnect(reason = tauriBridgeReconnectReason || 'retry'): void {
-  if (tauriSocketRetryTimer !== null) {
-    return
-  }
-
-  tauriSocketRetryTimer = window.setTimeout(() => {
-    tauriSocketRetryTimer = null
-    startTauriMihomoEventBridge(reason)
-  }, 1200)
-}
-
-function emitParsedDesktopEvent<T>(
-  channel: (typeof IPC_ON_CHANNELS)[keyof typeof IPC_ON_CHANNELS],
-  payload: string
-): void {
-  try {
-    emitDesktopEvent(channel, JSON.parse(payload) as T)
-  } catch {
-    // ignore malformed payload
-  }
-}
-
-function emitTauriTrafficEvent(payload: string): void {
-  try {
-    emitParsedDesktopEvent<ControllerTraffic>(IPC_ON_CHANNELS.mihomoTraffic, payload)
-  } catch {
-    // ignore malformed payload
-  }
-}
-
-function toWebSocketUrl(controllerUrl: string, path: string): string {
-  return controllerUrl.replace(/^http/i, 'ws') + path
-}
-
-function startTauriConnectionsSocket(controllerUrl: string, version: number): void {
-  if (tauriConnectionsBridgeRefCount <= 0) {
-    closeTauriSocket('connections')
-    return
-  }
-
-  void readTauriConnectionIntervalMs().then((connectionInterval) => {
-    if (
-      tauriConnectionsBridgeRefCount <= 0 ||
-      isStaleTauriBridgeStart(version) ||
-      tauriBridgeActiveControllerUrl !== controllerUrl
-    ) {
-      return
-    }
-
-    let bridgeReadyEmitted = false
-    startTauriSocket(
-      'connections',
-      toWebSocketUrl(controllerUrl, `/connections?interval=${connectionInterval}`),
-      version,
-      (payload) => {
-        // connections socket 收到第一条消息时通知监听者（bridge 真正就绪）
-        if (!bridgeReadyEmitted) {
-          bridgeReadyEmitted = true
-          emitTauriBridgeConnectionsReady()
-        }
-        emitParsedDesktopEvent<ControllerConnections>(IPC_ON_CHANNELS.mihomoConnections, payload)
-      }
-    )
-  })
-}
-
-function startTauriMemorySocket(controllerUrl: string, version: number): void {
-  if (tauriMemoryBridgeRefCount <= 0) {
-    closeTauriSocket('memory')
-    return
-  }
-
-  startTauriSocket('memory', toWebSocketUrl(controllerUrl, '/memory'), version, (payload) => {
-    if (document.hidden) return
-    emitParsedDesktopEvent<ControllerMemory>(IPC_ON_CHANNELS.mihomoMemory, payload)
-  })
-}
-
-function startTauriLogsSocket(controllerUrl: string, version: number): void {
-  if (tauriLogsBridgeRefCount <= 0) {
-    closeTauriSocket('logs')
-    return
-  }
-
-  const { 'log-level': logLevel = 'info' } = readTauriControledMihomoConfig()
-  startTauriSocket(
-    'logs',
-    toWebSocketUrl(controllerUrl, `/logs?level=${logLevel}`),
-    version,
-    (payload) => {
-      emitParsedDesktopEvent<ControllerLog>(IPC_ON_CHANNELS.mihomoLogs, payload)
-    }
-  )
-}
-
-function startTauriSocket(
-  key: keyof typeof tauriSockets,
-  url: string,
-  version: number,
-  onMessage: (payload: string) => void
-): void {
-  closeTauriSocket(key)
-
-  try {
-    const socket = new WebSocket(url)
-    tauriSockets[key] = socket
-    const handleDisconnect = () => {
-      if (tauriSockets[key] !== socket) {
-        return
-      }
-      closeTauriSocket(key)
-      scheduleTauriBridgeReconnect(`socket:${key}:disconnect`)
-    }
-    socket.onopen = () => {
-      if (isStaleTauriBridgeStart(version) || tauriBridgeActiveControllerUrl === null) {
-        closeTauriSocket(key)
-      }
-    }
-    socket.onmessage = (event) => {
-      if (tauriSockets[key] !== socket || isStaleTauriBridgeStart(version)) {
-        return
-      }
-      if (typeof event.data === 'string') {
-        onMessage(event.data)
-      }
-    }
-    socket.onerror = handleDisconnect
-    socket.onclose = handleDisconnect
-  } catch {
-    scheduleTauriBridgeReconnect(`socket:${key}:create_failed`)
-  }
+  return mihomoSocketManager.retainTauriLogsBridge()
 }
 
 export function startTauriMihomoEventBridge(reason = 'manual'): void {
-  if (!isTauriHost()) {
-    return
-  }
-
-  const version = markNextTauriBridgeStart(reason)
-  const controllerUrl = readTauriControllerUrl()
-  if (!controllerUrl) {
-    stopTauriMihomoEventBridge()
-    void ensureTauriControllerUrl().then((resolvedControllerUrl) => {
-      if (isStaleTauriBridgeStart(version)) {
-        return
-      }
-
-      if (resolvedControllerUrl) {
-        startTauriMihomoEventBridge('controller-resolved')
-        return
-      }
-
-      scheduleTauriBridgeReconnect('controller-missing')
-    })
-    return
-  }
-
-  if (tauriBridgeActiveControllerUrl && tauriBridgeActiveControllerUrl !== controllerUrl) {
-    stopTauriMihomoEventBridge()
-  }
-
-  tauriBridgeActiveControllerUrl = controllerUrl
-
-  startTauriSocket(
-    'traffic',
-    toWebSocketUrl(controllerUrl, '/traffic'),
-    version,
-    emitTauriTrafficEvent
-  )
-
-  startTauriMemorySocket(controllerUrl, version)
-  startTauriLogsSocket(controllerUrl, version)
-  startTauriConnectionsSocket(controllerUrl, version)
+  mihomoSocketManager.startTauriMihomoEventBridge(reason)
 }
 
 export function onTauriRealtimeTraffic(listener: (info: ControllerTraffic) => void): () => void {
@@ -639,11 +169,11 @@ export async function mihomoConfig(): Promise<ControllerConfigs> {
 }
 
 export async function mihomoRules(): Promise<ControllerRules> {
-  return dedupeMihomoRequest(C.mihomoRules, () => invokeSafe(C.mihomoRules))
+  return mihomoConfigCache.dedupeRequest(C.mihomoRules, () => invokeSafe(C.mihomoRules))
 }
 
 export async function mihomoProxies(): Promise<ControllerProxies> {
-  return dedupeMihomoRequest(C.mihomoProxies, () => invokeSafe(C.mihomoProxies))
+  return mihomoConfigCache.dedupeRequest(C.mihomoProxies, () => invokeSafe(C.mihomoProxies))
 }
 
 export async function mihomoConnections(): Promise<ControllerConnections> {
@@ -651,7 +181,7 @@ export async function mihomoConnections(): Promise<ControllerConnections> {
 }
 
 export async function mihomoGroups(): Promise<ControllerMixedGroup[]> {
-  return dedupeMihomoRequest(C.mihomoGroups, async () => {
+  return mihomoConfigCache.dedupeRequest(C.mihomoGroups, async () => {
     if (isTauriHost()) {
       try {
         return await invokeSafe(C.mihomoGroups)
@@ -674,7 +204,9 @@ export async function mihomoCloseConnection(id: string): Promise<void> {
 }
 
 export async function mihomoRuleProviders(): Promise<ControllerRuleProviders> {
-  return dedupeMihomoRequest(C.mihomoRuleProviders, () => invokeSafe(C.mihomoRuleProviders))
+  return mihomoConfigCache.dedupeRequest(C.mihomoRuleProviders, () =>
+    invokeSafe(C.mihomoRuleProviders)
+  )
 }
 
 export async function mihomoProxyProviders(): Promise<ControllerProxyProviders> {
@@ -686,88 +218,89 @@ export async function mihomoChangeProxy(
   proxy: string
 ): Promise<ControllerProxiesDetail> {
   const result = await invokeSafe<ControllerProxiesDetail>(C.mihomoChangeProxy, group, proxy)
-  clearInFlightMihomoRequests(C.mihomoProxies)
+  mihomoConfigCache.clearInFlightRequests(C.mihomoProxies)
   return result
 }
 
 export async function mihomoUnfixedProxy(group: string): Promise<ControllerProxiesDetail> {
   const result = await invokeSafe<ControllerProxiesDetail>(C.mihomoUnfixedProxy, group)
-  clearInFlightMihomoRequests(C.mihomoProxies)
+  mihomoConfigCache.clearInFlightRequests(C.mihomoProxies)
   return result
 }
 
 export async function mihomoGroupDelay(group: string, url?: string): Promise<ControllerGroupDelay> {
-  const requestKey = createMihomoRequestKey(C.mihomoGroupDelay, group, url)
-  const result = await dedupeMihomoRequest(requestKey, () =>
+  const requestKey = mihomoConfigCache.createRequestKey(C.mihomoGroupDelay, group, url)
+  const result = await mihomoConfigCache.dedupeRequest(requestKey, () =>
     invokeSafe<ControllerGroupDelay>(C.mihomoGroupDelay, group, url)
   )
-  clearInFlightMihomoRequests(C.mihomoProxies)
+  mihomoConfigCache.clearInFlightRequests(C.mihomoProxies)
   return result
 }
 
 export async function getRuntimeConfig(): Promise<MihomoConfig> {
   if (isTauriHost()) {
-    if (tauriRuntimeConfigCache) {
-      return tauriRuntimeConfigCache
+    const cachedRuntimeConfig = mihomoConfigCache.getRuntimeConfig()
+    if (cachedRuntimeConfig) {
+      return cachedRuntimeConfig
     }
 
-    if (tauriRuntimeConfigPromise) {
-      return tauriRuntimeConfigPromise
+    if (mihomoConfigCache.tauriRuntimeConfigPromise) {
+      return mihomoConfigCache.tauriRuntimeConfigPromise
     }
 
-    const requestRevision = tauriRuntimeConfigRevision
+    const requestRevision = mihomoConfigCache.tauriRuntimeConfigRevision
     const request = invokeSafe<Partial<MihomoConfig>>(C.getRuntimeConfig)
       .then((config) => {
-        tauriControlledConfigCache = { ...tauriControlledConfigCache, ...config }
-        syncTauriControllerUrlFromRuntime(config)
+        mihomoConfigCache.patchControlledConfig(config)
+        mihomoSocketManager.syncTauriControllerUrlFromRuntime(config)
         const normalized = createTauriRuntimeConfigWrapper(config)
 
-        if (requestRevision === tauriRuntimeConfigRevision) {
-          tauriRuntimeConfigCache = normalized
+        if (requestRevision === mihomoConfigCache.tauriRuntimeConfigRevision) {
+          mihomoConfigCache.setRuntimeConfig(normalized)
         }
 
-        return tauriRuntimeConfigCache || normalized
+        return mihomoConfigCache.getRuntimeConfig() || normalized
       })
       .catch(() => {
         const fallback = createTauriRuntimeConfigWrapper()
 
-        if (requestRevision === tauriRuntimeConfigRevision) {
-          tauriRuntimeConfigCache = fallback
+        if (requestRevision === mihomoConfigCache.tauriRuntimeConfigRevision) {
+          mihomoConfigCache.setRuntimeConfig(fallback)
         }
 
-        return tauriRuntimeConfigCache || fallback
+        return mihomoConfigCache.getRuntimeConfig() || fallback
       })
       .finally(() => {
-        if (tauriRuntimeConfigPromise === request) {
-          tauriRuntimeConfigPromise = null
+        if (mihomoConfigCache.tauriRuntimeConfigPromise === request) {
+          mihomoConfigCache.tauriRuntimeConfigPromise = null
         }
       })
 
-    tauriRuntimeConfigPromise = request
+    mihomoConfigCache.tauriRuntimeConfigPromise = request
     return request
   }
 
-  return dedupeMihomoRequest(C.getRuntimeConfig, () => invokeSafe(C.getRuntimeConfig))
+  return mihomoConfigCache.dedupeRequest(C.getRuntimeConfig, () => invokeSafe(C.getRuntimeConfig))
 }
 
 export async function restartCore(): Promise<void> {
   if (isTauriHost()) {
     const result = (await invokeSafe(C.restartCore)) as { controller?: string } | undefined
-    clearInFlightMihomoRequests(
+    mihomoConfigCache.clearInFlightRequests(
       C.getRuntimeConfig,
       C.mihomoProxies,
       C.mihomoRules,
       C.mihomoRuleProviders
     )
     if (result?.controller) {
-      writeTauriControllerUrl(`http://${result.controller}`)
+      mihomoSocketManager.writeTauriControllerUrl(`http://${result.controller}`)
       startTauriMihomoEventBridge()
     }
     return
   }
 
   await invokeSafe(C.restartCore)
-  clearInFlightMihomoRequests(
+  mihomoConfigCache.clearInFlightRequests(
     C.getRuntimeConfig,
     C.mihomoProxies,
     C.mihomoRules,
@@ -777,59 +310,59 @@ export async function restartCore(): Promise<void> {
 
 export async function mihomoUpdateProxyProviders(name: string): Promise<void> {
   await invokeSafe(C.mihomoUpdateProxyProviders, name)
-  clearInFlightMihomoRequests(C.mihomoProxies)
+  mihomoConfigCache.clearInFlightRequests(C.mihomoProxies)
 }
 
 export async function mihomoUpdateRuleProviders(name: string): Promise<void> {
   await invokeSafe(C.mihomoUpdateRuleProviders, name)
-  clearInFlightMihomoRequests(C.mihomoRuleProviders)
+  mihomoConfigCache.clearInFlightRequests(C.mihomoRuleProviders)
 }
 
 export async function mihomoProxyDelay(
   proxy: string,
   url?: string
 ): Promise<ControllerProxiesDelay> {
-  const requestKey = createMihomoRequestKey(C.mihomoProxyDelay, proxy, url)
-  const result = await dedupeMihomoRequest(requestKey, () =>
+  const requestKey = mihomoConfigCache.createRequestKey(C.mihomoProxyDelay, proxy, url)
+  const result = await mihomoConfigCache.dedupeRequest(requestKey, () =>
     invokeSafe<ControllerProxiesDelay>(C.mihomoProxyDelay, proxy, url)
   )
-  clearInFlightMihomoRequests(C.mihomoProxies)
+  mihomoConfigCache.clearInFlightRequests(C.mihomoProxies)
   return result
 }
 
 export async function mihomoToggleRuleDisabled(data: Record<number, boolean>): Promise<void> {
   await invokeSafe(C.mihomoToggleRuleDisabled, data)
-  clearInFlightMihomoRequests(C.mihomoRules)
+  mihomoConfigCache.clearInFlightRequests(C.mihomoRules)
 }
 
 export async function checkMihomoLatestVersion(isAlpha: boolean): Promise<string | null> {
-  const cached = latestVersionCache.get(isAlpha)
-  if (cached && Date.now() - cached.at < CHECK_LATEST_VERSION_CACHE_MS) {
-    return cached.value
+  const cached = mihomoConfigCache.getCachedLatestVersion(isAlpha)
+  if (cached !== undefined) {
+    return cached
   }
 
-  const pending = latestVersionPromiseCache.get(isAlpha)
+  const pending = mihomoConfigCache.getVersionPromise(isAlpha)
   if (pending) {
     return pending
   }
 
   const request = invokeSafe<string | null>(C.checkMihomoLatestVersion, isAlpha)
     .then((result) => {
-      latestVersionCache.set(isAlpha, { value: result, at: Date.now() })
+      mihomoConfigCache.setCachedLatestVersion(isAlpha, result)
       return result
     })
     .finally(() => {
-      latestVersionPromiseCache.delete(isAlpha)
+      mihomoConfigCache.deleteVersionPromise(isAlpha)
     })
 
-  latestVersionPromiseCache.set(isAlpha, request)
+  mihomoConfigCache.setVersionPromise(isAlpha, request)
   return request
 }
 
 export async function getControledMihomoConfig(force = false): Promise<Partial<MihomoConfig>> {
   if (isTauriHost()) {
     const config = await invokeSafe<Partial<MihomoConfig>>(C.getControledMihomoConfig, force)
-    tauriControlledConfigCache = config
+    mihomoConfigCache.setControlledConfig(config)
     return readTauriControledMihomoConfig()
   }
 
@@ -839,73 +372,74 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<M
 export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   if (isTauriHost()) {
     await invokeSafe(C.patchControledMihomoConfig, patch)
-    tauriControlledConfigCache = {
+    mihomoConfigCache.setControlledConfig({
       ...readTauriControledMihomoConfig(),
       ...patch
-    }
-    invalidateTauriRuntimeConfigCache()
-    clearInFlightMihomoRequests(C.getRuntimeConfig)
+    })
+    mihomoConfigCache.invalidateRuntimeConfigCache()
+    mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
     return
   }
 
   await invokeSafe(C.patchControledMihomoConfig, patch)
-  clearInFlightMihomoRequests(C.getRuntimeConfig)
+  mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
 }
 
 export async function patchMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   if (isTauriHost()) {
     await invokeSafe(C.patchMihomoConfig, patch)
-    clearInFlightMihomoRequests(C.getRuntimeConfig)
+    mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
     return
   }
 
   await invokeSafe(C.patchMihomoConfig, patch)
-  clearInFlightMihomoRequests(C.getRuntimeConfig)
+  mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
 }
 
 export async function reloadCoreConfig(closeConnections = false): Promise<void> {
   await invokeSafe(C.reloadCoreConfig, closeConnections)
   if (isTauriHost()) {
-    invalidateTauriRuntimeConfigCache()
+    mihomoConfigCache.invalidateRuntimeConfigCache()
   }
-  clearInFlightMihomoRequests(C.getRuntimeConfig)
+  mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
 }
 
 export async function getRuntimeConfigStr(): Promise<string> {
   if (isTauriHost()) {
-    if (tauriRuntimeConfigStrCache) {
-      return tauriRuntimeConfigStrCache
+    const cachedRuntimeConfigStr = mihomoConfigCache.getRuntimeConfigStr()
+    if (cachedRuntimeConfigStr) {
+      return cachedRuntimeConfigStr
     }
 
-    if (tauriRuntimeConfigStrPromise) {
-      return tauriRuntimeConfigStrPromise
+    if (mihomoConfigCache.tauriRuntimeConfigStrPromise) {
+      return mihomoConfigCache.tauriRuntimeConfigStrPromise
     }
 
-    const requestRevision = tauriRuntimeConfigRevision
+    const requestRevision = mihomoConfigCache.tauriRuntimeConfigRevision
     const request = invokeSafe<string>(C.getRuntimeConfigStr)
       .then((configStr) => {
-        if (requestRevision === tauriRuntimeConfigRevision) {
-          tauriRuntimeConfigStrCache = configStr
+        if (requestRevision === mihomoConfigCache.tauriRuntimeConfigRevision) {
+          mihomoConfigCache.setRuntimeConfigStr(configStr)
         }
 
-        return tauriRuntimeConfigStrCache || configStr
+        return mihomoConfigCache.getRuntimeConfigStr() || configStr
       })
       .catch(() => {
         const fallback = JSON.stringify(createTauriRuntimeConfigWrapper(), null, 2)
 
-        if (requestRevision === tauriRuntimeConfigRevision) {
-          tauriRuntimeConfigStrCache = fallback
+        if (requestRevision === mihomoConfigCache.tauriRuntimeConfigRevision) {
+          mihomoConfigCache.setRuntimeConfigStr(fallback)
         }
 
-        return tauriRuntimeConfigStrCache || fallback
+        return mihomoConfigCache.getRuntimeConfigStr() || fallback
       })
       .finally(() => {
-        if (tauriRuntimeConfigStrPromise === request) {
-          tauriRuntimeConfigStrPromise = null
+        if (mihomoConfigCache.tauriRuntimeConfigStrPromise === request) {
+          mihomoConfigCache.tauriRuntimeConfigStrPromise = null
         }
       })
 
-    tauriRuntimeConfigStrPromise = request
+    mihomoConfigCache.tauriRuntimeConfigStrPromise = request
     return request
   }
 
@@ -975,4 +509,4 @@ export async function stopNetworkDetection(): Promise<void> {
   return invokeSafe(C.stopNetworkDetection)
 }
 
-installTauriBridgeLifecycle()
+mihomoSocketManager.installTauriBridgeLifecycle()

@@ -101,9 +101,9 @@ const Logs: React.FC = () => {
   return (
     <BasePage title={t('page.logs.title')}>
       {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
-      <div className="w-full pb-2 px-2 pt-2">
+      <div className="sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
         <div
-          className={`w-full px-2 py-1.5 flex items-center gap-2 ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
+          className={`w-full px-2 py-1.5 flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
         >
           {/* Left: Config Group */}
           <div className="flex items-center gap-2 pl-1">

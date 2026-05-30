@@ -97,7 +97,7 @@ const ProfilesPage: React.FC = () => {
     <BasePage ref={pageRef} title={pageTitle} header={pageHeader}>
       {isSettingModalOpen && <ProfileSettingModal onClose={() => setIsSettingModalOpen(false)} />}
 
-      <div className="sticky profiles-sticky top-0 z-40 w-full bg-transparent px-2 pb-2 pt-2 pointer-events-none">
+      <div className="sticky top-0 z-40 w-full bg-transparent px-2 pb-2 pt-2 pointer-events-none">
         <div
           ref={setToolbarContainer}
           className={`w-full flex items-center gap-2 px-2 py-1.5 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
