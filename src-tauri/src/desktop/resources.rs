@@ -12,8 +12,7 @@ pub(crate) fn command_exists(command: &str) -> bool {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
-        .map(|status| status.success())
-        .unwrap_or(false)
+        .is_ok_and(|status| status.success())
 }
 
 pub(crate) fn find_system_mihomo_paths() -> Vec<String> {
@@ -145,68 +144,9 @@ pub(crate) fn build_proxy_env_command(
     }
 }
 
-#[cfg(target_os = "windows")]
 pub(crate) fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
-    let script = format!(
-        r#"
-$clipboardText = @'
-{text}
-'@
-Set-Clipboard -Value $clipboardText
-"#
-    );
-    run_powershell_script(&script).map(|_| ())
-}
-
-#[cfg(target_os = "macos")]
-pub(crate) fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
-    let mut child = Command::new("pbcopy")
-        .stdin(Stdio::piped())
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    let Some(stdin) = child.stdin.as_mut() else {
-        return Err("无法写入 pbcopy 标准输入".to_string());
-    };
-    stdin
-        .write_all(text.as_bytes())
-        .map_err(|e| e.to_string())?;
-    let status = child.wait().map_err(|e| e.to_string())?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(format!("pbcopy 执行失败: {status}"))
-    }
-}
-
-#[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
-pub(crate) fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
-    for program in ["wl-copy", "xclip", "xsel"] {
-        let mut command = Command::new(program);
-        match program {
-            "xclip" => {
-                command.args(["-selection", "clipboard"]);
-            }
-            "xsel" => {
-                command.args(["--clipboard", "--input"]);
-            }
-            _ => {}
-        }
-
-        let Ok(mut child) = command.stdin(Stdio::piped()).spawn() else {
-            continue;
-        };
-        if let Some(stdin) = child.stdin.as_mut() {
-            stdin
-                .write_all(text.as_bytes())
-                .map_err(|e| e.to_string())?;
-        }
-        let status = child.wait().map_err(|e| e.to_string())?;
-        if status.success() {
-            return Ok(());
-        }
-    }
-
-    Err("当前系统未找到可用的剪贴板命令".to_string())
+    let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+    clipboard.set_text(text).map_err(|e| e.to_string())
 }
 
 pub(crate) fn allocate_controller_address() -> Result<String, String> {
@@ -652,27 +592,14 @@ pub(crate) fn write_mihomo_zip_entry(bytes: Vec<u8>, target_path: &Path) -> Resu
 
 #[cfg(not(target_os = "windows"))]
 pub(crate) fn write_mihomo_gzip_bytes(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
-    let archive_path = target_path.with_extension("download.gz");
     let temp_path = target_path.with_extension("download");
-    ensure_parent(&archive_path)?;
-    fs::write(&archive_path, bytes).map_err(|e| e.to_string())?;
+    ensure_parent(&temp_path)?;
 
-    let output = Command::new("gzip")
-        .arg("-dc")
-        .arg(&archive_path)
-        .output()
-        .map_err(|e| e.to_string())?;
-    let _ = fs::remove_file(&archive_path);
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        return Err(if stderr.is_empty() {
-            format!("解压 Mihomo Alpha 失败: {}", output.status)
-        } else {
-            stderr
-        });
-    }
+    let mut decoder = flate2::read::GzDecoder::new(std::io::Cursor::new(bytes));
+    let mut output_file = fs::File::create(&temp_path).map_err(|e| e.to_string())?;
+    std::io::copy(&mut decoder, &mut output_file)
+        .map_err(|e| format!("解压 Mihomo Alpha 失败: {e}"))?;
 
-    fs::write(&temp_path, output.stdout).map_err(|e| e.to_string())?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

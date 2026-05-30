@@ -3,7 +3,7 @@ import { desktop, emitDesktopEvent } from '@renderer/api/desktop'
 import { IPC_ON_CHANNELS } from '../../../shared/ipc'
 import { createDefaultControledMihomoConfig } from '../../../shared/defaults/runtime'
 import { ON, onIpc } from './ipc-channels'
-
+import { createTauriRuntimeConfig, buildRuntimeGroupsFallback } from './mihomo-config-merge'
 const tauriSockets: Partial<Record<'traffic' | 'memory' | 'logs' | 'connections', WebSocket>> = {}
 const tauriBridgeReadyListeners = new Set<() => void>()
 let tauriSocketRetryTimer: number | null = null
@@ -614,178 +614,8 @@ function createTauriControllerConfig(): ControllerConfigs {
   }
 }
 
-function createTauriRuntimeConfig(input?: Partial<MihomoConfig>): MihomoConfig {
-  const fallback = createDefaultControledMihomoConfig(__ROUTEX_PLATFORM__)
-  const config = {
-    ...readTauriControledMihomoConfig(),
-    ...(input || {})
-  }
-
-  return {
-    ...fallback,
-    ...config,
-    authentication: config.authentication ?? fallback.authentication ?? [],
-    tun: {
-      ...fallback.tun,
-      ...config.tun
-    },
-    dns: {
-      ...fallback.dns,
-      ...config.dns
-    },
-    sniffer: {
-      ...fallback.sniffer,
-      ...config.sniffer
-    },
-    profile: {
-      ...fallback.profile,
-      ...config.profile
-    },
-    'proxy-providers': config['proxy-providers'] ?? fallback['proxy-providers'] ?? {},
-    'rule-providers': config['rule-providers'] ?? fallback['rule-providers'] ?? {},
-    proxies: config.proxies ?? fallback.proxies ?? [],
-    'proxy-groups': config['proxy-groups'] ?? fallback['proxy-groups'] ?? [],
-    rules: config.rules ?? fallback.rules ?? []
-  } as MihomoConfig
-}
-
-type RuntimeNode = Record<string, unknown>
-
-function getRuntimeProxyEntries(runtime: MihomoConfig): RuntimeNode[] {
-  return Array.isArray(runtime.proxies) ? (runtime.proxies as RuntimeNode[]) : []
-}
-
-function getRuntimeGroupEntries(runtime: MihomoConfig): RuntimeNode[] {
-  return Array.isArray(runtime['proxy-groups']) ? (runtime['proxy-groups'] as RuntimeNode[]) : []
-}
-
-function toProxyNameList(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
-}
-
-function createRuntimeProxyDetail(proxy: RuntimeNode): ControllerProxiesDetail | null {
-  const name = typeof proxy.name === 'string' ? proxy.name : ''
-  if (!name) {
-    return null
-  }
-
-  return {
-    alive: false,
-    extra: {},
-    history: [],
-    id: name,
-    name,
-    tfo: false,
-    type: (typeof proxy.type === 'string' ? proxy.type : 'Unknown') as MihomoProxyType,
-    udp: Boolean(proxy.udp),
-    xudp: Boolean(proxy.xudp),
-    'dialer-proxy': '',
-    interface: '',
-    mptcp: false,
-    'routing-mark': 0,
-    smux: false,
-    uot: false,
-    icon: typeof proxy.icon === 'string' ? proxy.icon : undefined
-  }
-}
-
-function createRuntimeGroupShell(group: RuntimeNode): ControllerGroupDetail | null {
-  const name = typeof group.name === 'string' ? group.name : ''
-  if (!name) {
-    return null
-  }
-
-  const members = toProxyNameList(group.all ?? group.proxies)
-  return {
-    alive: false,
-    all: members,
-    extra: {},
-    hidden: Boolean(group.hidden),
-    history: [],
-    icon: typeof group.icon === 'string' ? group.icon : '',
-    interface: '',
-    mptcp: false,
-    name,
-    now: '',
-    smux: false,
-    testUrl: typeof group.url === 'string' ? group.url : undefined,
-    tfo: false,
-    type: (typeof group.type === 'string' ? group.type : 'Selector') as MihomoProxyType,
-    udp: true,
-    uot: false,
-    xudp: false,
-    expectedStatus: typeof group.expectedStatus === 'string' ? group.expectedStatus : undefined,
-    fixed: typeof group.fixed === 'string' ? group.fixed : undefined
-  }
-}
-
-function buildRuntimeGroupsFallback(runtime: MihomoConfig): ControllerMixedGroup[] {
-  const proxyEntries = getRuntimeProxyEntries(runtime)
-  const groupEntries = getRuntimeGroupEntries(runtime)
-  const entityMap = new Map<string, ControllerProxiesDetail | ControllerGroupDetail>()
-
-  proxyEntries.forEach((proxy) => {
-    const detail = createRuntimeProxyDetail(proxy)
-    if (detail) {
-      entityMap.set(detail.name, detail)
-    }
-  })
-
-  const groupShells = new Map<string, ControllerGroupDetail>()
-  groupEntries.forEach((group) => {
-    const shell = createRuntimeGroupShell(group)
-    if (shell) {
-      groupShells.set(shell.name, shell)
-      entityMap.set(shell.name, shell)
-    }
-  })
-
-  return groupEntries.reduce<ControllerMixedGroup[]>((acc, group) => {
-    const name = typeof group.name === 'string' ? group.name : ''
-    if (!name) {
-      return acc
-    }
-
-    const shell = groupShells.get(name)
-    if (!shell || shell.hidden) {
-      return acc
-    }
-
-    const explicitMembers = toProxyNameList(group.all ?? group.proxies)
-    const members =
-      explicitMembers.length > 0
-        ? explicitMembers
-        : group['include-all'] === true
-          ? proxyEntries
-              .map((proxy) => (typeof proxy.name === 'string' ? proxy.name : ''))
-              .filter((proxyName) => proxyName.length > 0)
-          : []
-
-    const resolvedMembers = members
-      .map((memberName) => entityMap.get(memberName))
-      .filter((member): member is ControllerProxiesDetail | ControllerGroupDetail =>
-        Boolean(member)
-      )
-
-    const now =
-      typeof group.now === 'string'
-        ? group.now
-        : typeof shell.fixed === 'string'
-          ? shell.fixed
-          : resolvedMembers[0]?.name || ''
-
-    acc.push({
-      ...shell,
-      now,
-      all: resolvedMembers
-    })
-
-    return acc
-  }, [])
+function createTauriRuntimeConfigWrapper(input?: Partial<MihomoConfig>): MihomoConfig {
+  return createTauriRuntimeConfig(input, readTauriControledMihomoConfig(), __ROUTEX_PLATFORM__)
 }
 
 export async function ensureMihomoCoreAvailable(core: 'mihomo' | 'mihomo-alpha'): Promise<string> {
@@ -890,7 +720,7 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
       .then((config) => {
         tauriControlledConfigCache = { ...tauriControlledConfigCache, ...config }
         syncTauriControllerUrlFromRuntime(config)
-        const normalized = createTauriRuntimeConfig(config)
+        const normalized = createTauriRuntimeConfigWrapper(config)
 
         if (requestRevision === tauriRuntimeConfigRevision) {
           tauriRuntimeConfigCache = normalized
@@ -899,7 +729,7 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
         return tauriRuntimeConfigCache || normalized
       })
       .catch(() => {
-        const fallback = createTauriRuntimeConfig()
+        const fallback = createTauriRuntimeConfigWrapper()
 
         if (requestRevision === tauriRuntimeConfigRevision) {
           tauriRuntimeConfigCache = fallback
@@ -1061,7 +891,7 @@ export async function getRuntimeConfigStr(): Promise<string> {
         return tauriRuntimeConfigStrCache || configStr
       })
       .catch(() => {
-        const fallback = JSON.stringify(createTauriRuntimeConfig(), null, 2)
+        const fallback = JSON.stringify(createTauriRuntimeConfigWrapper(), null, 2)
 
         if (requestRevision === tauriRuntimeConfigRevision) {
           tauriRuntimeConfigStrCache = fallback

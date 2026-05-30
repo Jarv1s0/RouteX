@@ -97,7 +97,12 @@ pub(crate) fn service_key_id(public_key_base64: &str) -> Result<String, String> 
     let public_key_der = BASE64_STANDARD
         .decode(public_key_base64.trim().as_bytes())
         .map_err(|e| format!("解析服务公钥失败: {e}"))?;
-    Ok(format!("{:x}", Sha256::digest(&public_key_der)))
+    let digest = ring::digest::digest(&ring::digest::SHA256, &public_key_der);
+    Ok(digest
+        .as_ref()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect())
 }
 
 pub(crate) fn service_auth_nonce() -> Result<String, String> {
@@ -167,7 +172,12 @@ pub(crate) fn build_service_auth_headers(
         .map_err(|_| "serviceAuthKey 中的私钥无效，无法生成服务签名".to_string())?;
     let timestamp = current_timestamp_ms().to_string();
     let nonce = service_auth_nonce()?;
-    let content_sha256 = format!("{:x}", Sha256::digest(body_text.as_bytes()));
+    let digest = ring::digest::digest(&ring::digest::SHA256, body_text.as_bytes());
+    let content_sha256 = digest
+        .as_ref()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
     let (path_part, query_part) = path.split_once('?').unwrap_or((path, ""));
     let canonical_query = canonicalize_service_query(query_part)?;
     let method_upper = method.to_ascii_uppercase();

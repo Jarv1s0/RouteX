@@ -13,7 +13,7 @@ const Connections: React.FC = () => {
   return (
     <BasePage
       title={t('page.connections.title')}
-      headerExtra={
+      header={
         <Button
           isIconOnly
           variant="light"

@@ -12,6 +12,7 @@ import { getConnectionHideRule } from './shared'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
 import MihomoIcon from '@renderer/components/base/mihomo-icon'
 import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
+import { useLatest } from '@renderer/hooks/use-latest'
 
 // 列配置 - 默认宽度
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
@@ -220,42 +221,47 @@ const ConnectionTableComponent: React.FC<Props> = ({
     patchAppConfig({ connectionTableColumnWidths: changedWidths })
   }, [connectionTableColumnWidths, patchAppConfig])
 
+  // 使用 useLatest 包装不影响组件结构的上下文依赖
+  const latestContext = useLatest({
+    handleRowClick,
+    handleClose,
+    visibleColumns,
+    computedWidths,
+    iconMap,
+    appNameCache,
+    displayIcon,
+    displayAppName,
+    onContextMenu,
+    hiddenRules,
+    t,
+    locale
+  })
+
   // 渲染单行的回调
   const renderRow = useCallback(
-    (_index: number, conn: ControllerConnectionDetail) => (
-      <ConnectionRow
-        key={conn.id}
-        conn={conn}
-        isSelected={selected?.id === conn.id}
-        onRowClick={handleRowClick}
-        onClose={handleClose}
-        visibleColumns={visibleColumns}
-        columnWidths={computedWidths}
-        iconMap={iconMap}
-        appNameCache={appNameCache}
-        displayIcon={displayIcon}
-        displayAppName={displayAppName}
-        onContextMenu={onContextMenu}
-        hiddenRules={hiddenRules}
-        t={t}
-        locale={locale}
-      />
-    ),
-    [
-      selected,
-      handleRowClick,
-      handleClose,
-      visibleColumns,
-      computedWidths,
-      iconMap,
-      appNameCache,
-      displayIcon,
-      displayAppName,
-      onContextMenu,
-      hiddenRules,
-      t,
-      locale
-    ]
+    (_index: number, conn: ControllerConnectionDetail, context: { selectedId?: string }) => {
+      const p = latestContext.current
+      return (
+        <ConnectionRow
+          key={conn.id}
+          conn={conn}
+          isSelected={context.selectedId === conn.id}
+          onRowClick={p.handleRowClick}
+          onClose={p.handleClose}
+          visibleColumns={p.visibleColumns}
+          columnWidths={p.computedWidths}
+          iconMap={p.iconMap}
+          appNameCache={p.appNameCache}
+          displayIcon={p.displayIcon}
+          displayAppName={p.displayAppName}
+          onContextMenu={p.onContextMenu}
+          hiddenRules={p.hiddenRules}
+          t={p.t}
+          locale={p.locale}
+        />
+      )
+    },
+    [latestContext]
   )
 
   return (
@@ -297,6 +303,7 @@ const ConnectionTableComponent: React.FC<Props> = ({
         <Virtuoso
           data={connections}
           itemContent={renderRow}
+          context={{ selectedId: selected?.id }}
           overscan={10}
           rangeChanged={onVisibleRangeChange}
         />

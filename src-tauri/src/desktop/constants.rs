@@ -1,7 +1,6 @@
 use super::prelude::*;
 use super::*;
 
-
 pub(crate) const ROUTEX_STORE_DIR_NAME: &str = "routex-store";
 pub(crate) const APP_CONFIG_FILE: &str = "app-config.json";
 pub(crate) const CHAINS_CONFIG_FILE: &str = "chains-config.json";

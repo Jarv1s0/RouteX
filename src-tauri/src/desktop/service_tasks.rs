@@ -43,7 +43,7 @@ pub(crate) fn write_elevate_task_params(app: &tauri::AppHandle) -> Result<(), St
 pub(crate) fn file_sha256(path: &Path) -> Result<[u8; 32], String> {
     let mut file =
         fs::File::open(path).map_err(|e| format!("读取文件失败 {}: {e}", path.display()))?;
-    let mut hasher = Sha256::new();
+    let mut hasher = ring::digest::Context::new(&ring::digest::SHA256);
     let mut buffer = [0u8; 8192];
 
     loop {
@@ -56,9 +56,9 @@ pub(crate) fn file_sha256(path: &Path) -> Result<[u8; 32], String> {
         hasher.update(&buffer[..read_len]);
     }
 
-    let digest = hasher.finalize();
+    let digest = hasher.finish();
     let mut bytes = [0u8; 32];
-    bytes.copy_from_slice(&digest);
+    bytes.copy_from_slice(digest.as_ref());
     Ok(bytes)
 }
 
@@ -287,7 +287,10 @@ pub(crate) fn escape_task_xml_text(value: &Path) -> String {
         .replace('>', "&gt;")
 }
 
-pub(crate) fn build_routex_run_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
+pub(crate) fn build_routex_run_task_xml_for_paths(
+    routex_run_path: &Path,
+    exe_path: &Path,
+) -> String {
     let routex_run_path = escape_task_xml_text(routex_run_path);
     let exe_path = escape_task_xml_text(exe_path);
     format!(
@@ -340,7 +343,10 @@ pub(crate) fn build_routex_run_task_xml(app: &tauri::AppHandle) -> Result<String
     ))
 }
 
-pub(crate) fn build_routex_autorun_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
+pub(crate) fn build_routex_autorun_task_xml_for_paths(
+    routex_run_path: &Path,
+    exe_path: &Path,
+) -> String {
     let routex_run_path = escape_task_xml_text(routex_run_path);
     let exe_path = escape_task_xml_text(exe_path);
     format!(
@@ -385,8 +391,7 @@ pub(crate) fn build_routex_autorun_task_xml_for_paths(routex_run_path: &Path, ex
   </Actions>
 </Task>
 "#,
-        routex_run_path, exe_path,
-        ROUTEX_STARTUP_ARG
+        routex_run_path, exe_path, ROUTEX_STARTUP_ARG
     )
 }
 
@@ -427,7 +432,10 @@ pub(crate) fn task_xml_matches_current_exec(
     exe_path: &Path,
     required_argument: Option<&str>,
 ) -> bool {
-    let command = format!("<Command>{}</Command>", escape_task_xml_text(routex_run_path));
+    let command = format!(
+        "<Command>{}</Command>",
+        escape_task_xml_text(routex_run_path)
+    );
     let exe_argument = format!("\"{}\"", escape_task_xml_text(exe_path));
 
     xml.contains(&command)
