@@ -1,26 +1,26 @@
 pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
-    map.insert("getAppConfig", |app, window, state, args| {
+    map.insert("getAppConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          read_app_config_store(app) 
-    });
-    map.insert("getChainsConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getChainsConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(json!(read_chains_config(app)?)) 
-    });
-    map.insert("getAllChains", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getAllChains", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(json!(read_chains_config(app)?.items)) 
-    });
-    map.insert("patchAppConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("patchAppConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -44,8 +44,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "appConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("addChainItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("addChainItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -59,8 +59,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(json!(chain))
         
-    });
-    map.insert("updateChainItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("updateChainItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -74,8 +74,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("removeChainItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("removeChainItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -89,15 +89,15 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("getControledMihomoConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getControledMihomoConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          read_controlled_config_store(app) 
-    });
-    map.insert("patchControledMihomoConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("patchControledMihomoConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -110,15 +110,15 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("getProfileConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getProfileConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(json!(read_profile_config(app)?)) 
-    });
-    map.insert("setProfileConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setProfileConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -135,15 +135,15 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("getCurrentProfileItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getCurrentProfileItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(json!(current_profile_item(app)?)) 
-    });
-    map.insert("getProfileItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getProfileItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -154,8 +154,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             Ok(json!(get_profile_item_from_config(&config, id)
                 .unwrap_or_else(default_empty_profile_item)))
         
-    });
-    map.insert("changeCurrentProfile", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("changeCurrentProfile", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -170,8 +170,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             restart_core_and_emit(app, state)?;
             Ok(Value::Null)
         
-    });
-    map.insert("setActiveProfiles", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setActiveProfiles", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -194,8 +194,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             restart_core_and_emit(app, state)?;
             Ok(Value::Null)
         
-    });
-    map.insert("addProfileItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("addProfileItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -210,8 +210,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("updateProfileItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("updateProfileItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -226,8 +226,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("removeProfileItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("removeProfileItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -245,8 +245,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             }
             Ok(Value::Null)
         
-    });
-    map.insert("getProfileStr", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getProfileStr", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -258,8 +258,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 .ok_or_else(|| "getProfileStr requires profile id".to_string())?;
             Ok(json!(read_profile_text(app, id)?))
         
-    });
-    map.insert("setProfileStr", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setProfileStr", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -276,8 +276,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             write_profile_text(app, id, content)?;
             Ok(Value::Null)
         
-    });
-    map.insert("getRawProfileStr", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getRawProfileStr", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -286,8 +286,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             let current = current_profile_item(app)?;
             Ok(json!(read_profile_text(app, &current.id)?))
         
-    });
-    map.insert("getCurrentProfileStr", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getCurrentProfileStr", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -296,15 +296,15 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             let current = current_profile_item(app)?;
             Ok(json!(read_profile_text(app, &current.id)?))
         
-    });
-    map.insert("getOverrideConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getOverrideConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(json!(read_override_config(app)?)) 
-    });
-    map.insert("setOverrideConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setOverrideConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -321,8 +321,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("getOverrideItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getOverrideItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -335,8 +335,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             let config = read_override_config(app)?;
             Ok(json!(config.items.into_iter().find(|item| item.id == id)))
         
-    });
-    map.insert("addOverrideItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("addOverrideItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -351,8 +351,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("updateOverrideItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("updateOverrideItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -367,8 +367,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("removeOverrideItem", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("removeOverrideItem", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -384,8 +384,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("getOverride", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getOverride", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -398,8 +398,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             let ext = args.get(1).and_then(Value::as_str).unwrap_or("yaml");
             Ok(json!(read_override_text(app, id, ext)?))
         
-    });
-    map.insert("canRollbackOverride", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("canRollbackOverride", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -413,8 +413,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             let path = override_rollback_path(app, id, ext)?;
             Ok(json!(path.exists()))
         
-    });
-    map.insert("rollbackOverride", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("rollbackOverride", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -430,8 +430,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("setOverride", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setOverride", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -451,15 +451,15 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("getQuickRulesConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getQuickRulesConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(json!(read_quick_rules_config(app)?)) 
-    });
-    map.insert("setQuickRulesConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setQuickRulesConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -476,8 +476,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("getQuickRules", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getQuickRules", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -486,8 +486,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             let profile_id = args.first().and_then(Value::as_str).unwrap_or("default");
             Ok(json!(read_quick_rules(app, profile_id)?))
         
-    });
-    map.insert("addQuickRule", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("addQuickRule", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -503,8 +503,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(json!(rule))
         
-    });
-    map.insert("updateQuickRule", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("updateQuickRule", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -525,8 +525,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("removeQuickRule", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("removeQuickRule", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -542,8 +542,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("setQuickRulesEnabled", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setQuickRulesEnabled", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -556,8 +556,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("reorderQuickRules", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("reorderQuickRules", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -580,8 +580,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("clearQuickRules", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("clearQuickRules", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -593,15 +593,15 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
         
-    });
-    map.insert("getOverrideProfileStr", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getOverrideProfileStr", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(json!(current_override_profile_text(app)?)) 
-    });
-    map.insert("getFileStr", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getFileStr", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -613,8 +613,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 .ok_or_else(|| "getFileStr requires path".to_string())?;
             Ok(json!(read_runtime_text(app, state, path)?))
         
-    });
-    map.insert("setFileStr", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("setFileStr", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -631,8 +631,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             write_runtime_text(app, state, path, content)?;
             Ok(Value::Null)
         
-    });
-    map.insert("readTextFile", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("readTextFile", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -644,8 +644,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 .ok_or_else(|| "readTextFile requires path".to_string())?;
             Ok(json!(read_runtime_text(app, state, path)?))
         
-    });
-    map.insert("convertMrsRuleset", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("convertMrsRuleset", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -658,8 +658,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             let behavior = args.get(1).and_then(Value::as_str).unwrap_or("domain");
             Ok(json!(convert_mrs_ruleset(app, state, path, behavior)?))
         
-    });
-    map.insert("openFile", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("openFile", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -682,15 +682,15 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             open_path_in_shell(&path)?;
             Ok(Value::Null)
         
-    });
-    map.insert("resolveThemes", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("resolveThemes", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(json!(resolve_theme_entries(app)?)) 
-    });
-    map.insert("fetchThemes", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("fetchThemes", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -699,8 +699,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             fetch_theme_archive(app)?;
             Ok(Value::Null)
         
-    });
-    map.insert("readTheme", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("readTheme", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -712,8 +712,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 .ok_or_else(|| "readTheme requires theme name".to_string())?;
             Ok(json!(read_theme_text(app, theme)?))
         
-    });
-    map.insert("getAppName", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getAppName", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -725,8 +725,8 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 .ok_or_else(|| "getAppName requires app path".to_string())?;
             Ok(json!(get_app_name_value(app_path)))
         
-    });
-    map.insert("writeTheme", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("writeTheme", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -743,22 +743,22 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
             write_theme_text(app, theme, css)?;
             Ok(Value::Null)
         
-    });
-    map.insert("getControllerUrl", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getControllerUrl", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          Ok(json!(current_controller_url(state)?)) 
-    });
-    map.insert("getRuntimeConfig", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getRuntimeConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
         let _args = args;
          current_runtime_value_for_renderer(app, state) 
-    });
-    map.insert("getRuntimeConfigStr", |app, window, state, args| {
+    })().map_err(crate::desktop::error::AppError::from) });
+    map.insert("getRuntimeConfigStr", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;
         let _state = state;
@@ -769,5 +769,5 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 serde_yaml::to_string(&value).map_err(|e| e.to_string())?
             ))
         
-    });
+    })().map_err(crate::desktop::error::AppError::from) });
 }
