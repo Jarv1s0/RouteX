@@ -19,7 +19,9 @@ const RENDERER_ENTRY_FILES = new Set([
 ])
 const PACKAGE_SCRIPT_DEPENDENCIES = new Set([
   '@tauri-apps/cli',
+  'cross-env',
   'eslint',
+  'npm-run-all2',
   'prettier',
   'typescript',
   'vite'
@@ -68,11 +70,12 @@ function buildModuleIndex(files) {
 }
 
 function resolveLocalModule(specifier, fromFile, moduleIndex) {
+  const cleanSpecifier = specifier.split(/[?#]/, 1)[0]
   let targetPath
-  if (specifier.startsWith('@renderer/')) {
-    targetPath = path.join(rendererRoot, specifier.slice('@renderer/'.length))
-  } else if (specifier.startsWith('./') || specifier.startsWith('../')) {
-    targetPath = path.resolve(path.dirname(fromFile), specifier)
+  if (cleanSpecifier.startsWith('@renderer/')) {
+    targetPath = path.join(rendererRoot, cleanSpecifier.slice('@renderer/'.length))
+  } else if (cleanSpecifier.startsWith('./') || cleanSpecifier.startsWith('../')) {
+    targetPath = path.resolve(path.dirname(fromFile), cleanSpecifier)
   } else {
     return null
   }

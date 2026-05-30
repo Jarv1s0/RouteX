@@ -20,6 +20,8 @@ const META_PILL_CLASS =
   'bg-default-100/50 dark:bg-default-50/30 rounded-full border border-default-200/50 dark:border-white/10'
 
 const META_BADGE_CLASS = 'bg-default-100/50 dark:bg-default-50/30'
+const NODE_BADGE_CLASS =
+  'flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-primary/15 bg-primary/[0.055] text-primary/85 dark:text-primary-300/90'
 const connectionItemStartTimeCache = new WeakMap<ControllerConnectionDetail, number>()
 
 function getConnectionItemStartTime(info: ControllerConnectionDetail): number {
@@ -247,16 +249,15 @@ const ConnectionItemComponent: React.FC<Props> = ({
               </div>
 
               {/* Node Badge */}
-              <div
-                className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-primary/20 bg-primary/[0.08] text-primary shadow-sm"
-                style={{ filter: 'saturate(0.68)' }}
-              >
+              <div className={NODE_BADGE_CLASS}>
                 {getFlag(info.chains[0]) && (
                   <span className="flag-emoji text-[12px] leading-none">
                     {getFlag(info.chains[0])}
                   </span>
                 )}
-                <span className="text-[10px] font-semibold">{cleanNodeName(info.chains[0])}</span>
+                <span className="text-[10px] leading-4 font-normal">
+                  {cleanNodeName(info.chains[0])}
+                </span>
               </div>
 
               {/* Speed Indicators */}

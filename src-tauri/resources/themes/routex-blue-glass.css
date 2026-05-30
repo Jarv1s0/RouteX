@@ -1,7 +1,7 @@
 /* RouteX Blue Glass */
 
 :root {
-  --heroui-background: 210 38% 97%;
+  --heroui-background: 204 30% 98%;
   --heroui-foreground: 218 24% 17%;
 
   --heroui-content1: 0 0% 100%;
@@ -20,19 +20,19 @@
   --heroui-default-800: 218 25% 20%;
   --heroui-default-900: 220 30% 13%;
 
-  --heroui-primary-50: 204 100% 97%;
-  --heroui-primary-100: 204 92% 92%;
-  --heroui-primary-200: 204 86% 83%;
-  --heroui-primary-300: 204 82% 70%;
-  --heroui-primary-400: 205 82% 56%;
-  --heroui-primary-500: 205 88% 46%;
-  --heroui-primary-600: 207 88% 39%;
-  --heroui-primary-700: 209 82% 32%;
-  --heroui-primary-800: 211 72% 26%;
-  --heroui-primary-900: 213 64% 20%;
-  --heroui-primary: 205 88% 46%;
+  --heroui-primary-50: 202 60% 96%;
+  --heroui-primary-100: 202 65% 90%;
+  --heroui-primary-200: 202 70% 80%;
+  --heroui-primary-300: 202 75% 70%;
+  --heroui-primary-400: 202 75% 60%;
+  --heroui-primary-500: 202 75% 54%;
+  --heroui-primary-600: 202 75% 44%;
+  --heroui-primary-700: 202 70% 34%;
+  --heroui-primary-800: 202 65% 26%;
+  --heroui-primary-900: 202 60% 20%;
+  --heroui-primary: 202 75% 54%;
   --heroui-primary-foreground: 0 0% 100%;
-  --heroui-focus: 205 88% 46%;
+  --heroui-focus: 202 75% 54%;
 
   --heroui-success: 164 64% 38%;
   --heroui-warning: 38 86% 50%;
@@ -43,7 +43,7 @@
 }
 
 .dark {
-  --heroui-background: 222 34% 8%;
+  --heroui-background: 210 30% 10%;
   --heroui-foreground: 210 24% 94%;
 
   --heroui-content1: 220 28% 12%;
@@ -62,19 +62,19 @@
   --heroui-default-800: 212 24% 90%;
   --heroui-default-900: 210 30% 96%;
 
-  --heroui-primary-50: 206 56% 13%;
-  --heroui-primary-100: 206 58% 18%;
-  --heroui-primary-200: 206 60% 25%;
-  --heroui-primary-300: 205 64% 34%;
-  --heroui-primary-400: 205 72% 45%;
-  --heroui-primary-500: 204 88% 58%;
-  --heroui-primary-600: 202 92% 66%;
-  --heroui-primary-700: 200 94% 74%;
-  --heroui-primary-800: 198 96% 82%;
-  --heroui-primary-900: 196 96% 90%;
-  --heroui-primary: 204 88% 58%;
+  --heroui-primary-50: 202 50% 16%;
+  --heroui-primary-100: 202 55% 24%;
+  --heroui-primary-200: 202 60% 34%;
+  --heroui-primary-300: 202 65% 44%;
+  --heroui-primary-400: 202 65% 54%;
+  --heroui-primary-500: 202 70% 60%;
+  --heroui-primary-600: 202 75% 70%;
+  --heroui-primary-700: 202 80% 78%;
+  --heroui-primary-800: 202 85% 86%;
+  --heroui-primary-900: 202 90% 94%;
+  --heroui-primary: 202 70% 60%;
   --heroui-primary-foreground: 222 36% 9%;
-  --heroui-focus: 204 88% 58%;
+  --heroui-focus: 202 70% 60%;
 
   --heroui-success: 166 58% 48%;
   --heroui-warning: 40 82% 58%;
@@ -93,9 +93,9 @@ body,
 #root,
 .main {
   background:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.78), transparent 30%),
-    linear-gradient(135deg, hsl(var(--heroui-primary) / 0.075), transparent 42%),
-    linear-gradient(315deg, hsl(186 64% 72% / 0.08), transparent 46%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.8), transparent 35%),
+    linear-gradient(135deg, hsl(var(--heroui-primary) / 0.08), transparent 45%),
+    linear-gradient(315deg, hsl(200 40% 80% / 0.1), transparent 50%),
     hsl(var(--heroui-background)) !important;
   color: hsl(var(--heroui-foreground)) !important;
 }
@@ -104,23 +104,23 @@ body,
 .dark #root,
 .dark .main {
   background:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.035), transparent 28%),
-    linear-gradient(135deg, hsl(var(--heroui-primary) / 0.13), transparent 38%),
-    linear-gradient(315deg, hsl(186 64% 60% / 0.08), transparent 48%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.05), transparent 35%),
+    linear-gradient(135deg, hsl(var(--heroui-primary) / 0.12), transparent 45%),
+    linear-gradient(315deg, hsl(200 40% 50% / 0.08), transparent 55%),
     hsl(var(--heroui-background)) !important;
 }
 
 .side {
-  background: hsl(var(--heroui-content1) / 0.72) !important;
-  border-right-color: hsl(var(--heroui-default-200) / 0.58) !important;
-  box-shadow: inset -1px 0 0 hsl(0 0% 100% / 0.28);
-  backdrop-filter: blur(18px) saturate(1.08);
+  background: hsl(var(--heroui-content1) / 0.6) !important;
+  border-right-color: hsl(var(--heroui-default-200) / 0.4) !important;
+  box-shadow: inset -1px 0 0 hsl(0 0% 100% / 0.35) !important;
+  backdrop-filter: blur(24px) saturate(1.2) !important;
 }
 
 .dark .side {
-  background: hsl(var(--heroui-content1) / 0.76) !important;
-  border-right-color: hsl(0 0% 100% / 0.08) !important;
-  box-shadow: inset -1px 0 0 hsl(0 0% 100% / 0.04);
+  background: hsl(var(--heroui-content1) / 0.65) !important;
+  border-right-color: hsl(0 0% 100% / 0.12) !important;
+  box-shadow: inset -1px 0 0 hsl(0 0% 100% / 0.06) !important;
 }
 
 .title > div:first-child {
@@ -128,91 +128,287 @@ body,
   box-shadow: 0 0 12px hsl(var(--heroui-primary) / 0.32) !important;
 }
 
+.main [data-slot='tabList'] {
+  background: hsl(var(--heroui-content1) / 0.68) !important;
+  border: 1px solid hsl(var(--heroui-default-200) / 0.5) !important;
+  box-shadow: 0 2px 8px hsl(214 30% 24% / 0.045) !important;
+  backdrop-filter: blur(18px) saturate(1.08) !important;
+}
+
+.dark .main [data-slot='tabList'] {
+  background: hsl(var(--heroui-content1) / 0.72) !important;
+  border-color: hsl(0 0% 100% / 0.08) !important;
+  box-shadow: 0 6px 16px hsl(222 45% 4% / 0.18) !important;
+}
+
+.main [data-slot='tabList'] [data-slot='cursor'],
+.main [data-slot='tabList'] .bg-primary {
+  background: hsl(0 0% 100% / 0.92) !important;
+  border: 1px solid hsl(var(--heroui-primary) / 0.18) !important;
+  box-shadow: 0 2px 7px hsl(var(--heroui-primary) / 0.12) !important;
+}
+
+.dark .main [data-slot='tabList'] [data-slot='cursor'],
+.dark .main [data-slot='tabList'] .bg-primary {
+  background: hsl(var(--heroui-primary) / 0.18) !important;
+  border-color: hsl(var(--heroui-primary) / 0.22) !important;
+  box-shadow: 0 4px 10px hsl(222 45% 4% / 0.2) !important;
+}
+
+.main [data-slot='tabList'] [data-slot='tabContent'] {
+  color: hsl(var(--heroui-default-600)) !important;
+  font-weight: 640 !important;
+  text-shadow: none !important;
+}
+
+.main [data-slot='tabList'] [data-slot='tab'][data-selected='true'] [data-slot='tabContent'],
+.main [data-slot='tabList'] [data-slot='tab'][aria-selected='true'] [data-slot='tabContent'] {
+  color: hsl(var(--heroui-primary-600)) !important;
+  font-weight: 720 !important;
+  text-shadow: none !important;
+}
+
+.dark .main [data-slot='tabList'] [data-slot='tabContent'] {
+  color: hsl(var(--heroui-default-600)) !important;
+}
+
+.dark .main [data-slot='tabList'] [data-slot='tab'][data-selected='true'] [data-slot='tabContent'],
+.dark .main [data-slot='tabList'] [data-slot='tab'][aria-selected='true'] [data-slot='tabContent'] {
+  color: hsl(var(--heroui-primary-700)) !important;
+  text-shadow: none !important;
+}
+
 .proxy-card [data-slot='base'],
 .conn-card [data-slot='base'] {
   background:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.34), hsl(0 0% 100% / 0.08)),
-    hsl(var(--heroui-content1) / 0.74) !important;
-  border-color: hsl(var(--heroui-default-200) / 0.62) !important;
+    linear-gradient(180deg, hsl(0 0% 100% / 0.4), hsl(0 0% 100% / 0.1)),
+    hsl(var(--heroui-content1) / 0.6) !important;
+  border-color: hsl(var(--heroui-default-200) / 0.45) !important;
   box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.34),
-    0 8px 22px hsl(214 30% 24% / 0.08) !important;
+    inset 0 1px 0 hsl(0 0% 100% / 0.5),
+    0 8px 24px hsl(198 40% 20% / 0.06) !important;
 }
 
 .dark .proxy-card [data-slot='base'],
 .dark .conn-card [data-slot='base'] {
   background:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.07), hsl(0 0% 100% / 0.02)),
-    hsl(var(--heroui-content1) / 0.72) !important;
-  border-color: hsl(0 0% 100% / 0.08) !important;
+    linear-gradient(180deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.03)),
+    hsl(var(--heroui-content1) / 0.65) !important;
+  border-color: hsl(0 0% 100% / 0.15) !important;
   box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.05),
-    0 10px 26px hsl(222 45% 4% / 0.22) !important;
+    inset 0 1px 0 hsl(0 0% 100% / 0.08),
+    0 12px 28px hsl(0 0% 0% / 0.3) !important;
 }
 
 .sysproxy-card,
 .tun-card {
-  background: hsl(var(--heroui-content1) / 0.58) !important;
-  border: 1px solid hsl(var(--heroui-default-200) / 0.54) !important;
-  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.26);
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.62), hsl(0 0% 100% / 0.32)),
+    hsl(var(--heroui-content1) / 0.66) !important;
+  border: 1px solid hsl(var(--heroui-default-200) / 0.42) !important;
+  color: hsl(var(--heroui-default-700)) !important;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.55),
+    0 4px 14px hsl(214 30% 24% / 0.055) !important;
+  backdrop-filter: blur(20px) saturate(1.16) !important;
 }
 
 .dark .sysproxy-card,
 .dark .tun-card {
-  background: hsl(var(--heroui-content2) / 0.38) !important;
-  border-color: hsl(0 0% 100% / 0.07) !important;
-  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.04);
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.075), hsl(0 0% 100% / 0.026)),
+    hsl(var(--heroui-content2) / 0.5) !important;
+  border-color: hsl(0 0% 100% / 0.08) !important;
+  color: hsl(var(--heroui-default-700)) !important;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.055),
+    0 10px 24px hsl(222 45% 4% / 0.2) !important;
+}
+
+.sysproxy-card svg,
+.tun-card svg {
+  color: hsl(var(--heroui-default-500)) !important;
+}
+
+label > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.74), hsl(210 24% 92% / 0.68)),
+    hsl(var(--heroui-default-100) / 0.82) !important;
+  border: 1px solid hsl(var(--heroui-default-200) / 0.58) !important;
+  box-shadow:
+    inset 0 1px 1px hsl(214 30% 24% / 0.055),
+    0 1px 0 hsl(0 0% 100% / 0.46) !important;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease !important;
+}
+
+.dark label > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.065), hsl(0 0% 100% / 0.024)),
+    hsl(var(--heroui-content3) / 0.56) !important;
+  border-color: hsl(0 0% 100% / 0.08) !important;
+  box-shadow: inset 0 1px 1px hsl(0 0% 0% / 0.18) !important;
+}
+
+label:hover > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  border-color: hsl(var(--heroui-primary) / 0.28) !important;
+  box-shadow:
+    inset 0 1px 1px hsl(214 30% 24% / 0.05),
+    0 2px 8px hsl(var(--heroui-primary) / 0.11) !important;
+}
+
+.dark label:hover > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  border-color: hsl(var(--heroui-primary) / 0.24) !important;
+  box-shadow:
+    inset 0 1px 1px hsl(0 0% 0% / 0.16),
+    0 2px 8px hsl(var(--heroui-primary) / 0.12) !important;
+}
+
+label [data-slot='thumb'] {
+  background: hsl(0 0% 100% / 0.96) !important;
+  box-shadow:
+    0 1px 2px hsl(214 30% 24% / 0.16),
+    0 0 0 1px hsl(var(--heroui-default-200) / 0.5) !important;
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease !important;
+}
+
+.dark label [data-slot='thumb'] {
+  background: hsl(var(--heroui-default-800)) !important;
+  box-shadow:
+    0 1px 2px hsl(222 45% 4% / 0.36),
+    0 0 0 1px hsl(0 0% 100% / 0.08) !important;
+}
+
+label[data-focus-visible='true'] > span.items-center.group-data-\[selected\=true\]\:bg-primary,
+label:focus-visible > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.42),
+    0 0 0 3px hsl(var(--heroui-primary) / 0.2) !important;
+}
+
+label[data-disabled='true'] > span.items-center.group-data-\[selected\=true\]\:bg-primary,
+label[aria-disabled='true'] > span.items-center.group-data-\[selected\=true\]\:bg-primary,
+label:has(input:disabled) > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  filter: saturate(0.72) !important;
+  opacity: 0.56 !important;
+  box-shadow: inset 0 1px 1px hsl(214 30% 24% / 0.04) !important;
 }
 
 .sysproxy-card:hover,
-.tun-card:hover,
-.proxy-card [data-slot='base']:hover,
-.conn-card [data-slot='base']:hover {
-  border-color: hsl(var(--heroui-primary) / 0.3) !important;
-  background-color: hsl(var(--heroui-primary) / 0.08) !important;
+.tun-card:hover {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.68), hsl(0 0% 100% / 0.36)),
+    hsl(var(--heroui-primary) / 0.1) !important;
+  border-color: hsl(var(--heroui-primary) / 0.28) !important;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.58),
+    0 6px 18px hsl(var(--heroui-primary) / 0.095) !important;
 }
 
-.profiles-sticky > div,
-.rules-sticky > div {
+.dark .sysproxy-card:hover,
+.dark .tun-card:hover {
   background:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.5), hsl(0 0% 100% / 0.16)),
-    hsl(var(--heroui-content1) / 0.42) !important;
-  border-color: hsl(var(--heroui-default-200) / 0.58) !important;
+    linear-gradient(180deg, hsl(0 0% 100% / 0.085), hsl(0 0% 100% / 0.028)),
+    hsl(var(--heroui-primary) / 0.14) !important;
+  border-color: hsl(var(--heroui-primary) / 0.22) !important;
   box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.45),
-    0 10px 24px hsl(214 30% 24% / 0.08) !important;
-  backdrop-filter: blur(16px) saturate(1.12);
-}
-
-.dark .profiles-sticky > div,
-.dark .rules-sticky > div {
-  background:
-    linear-gradient(180deg, hsl(0 0% 100% / 0.07), hsl(0 0% 100% / 0.018)),
-    hsl(var(--heroui-content1) / 0.66) !important;
-  border-color: hsl(0 0% 100% / 0.08) !important;
-  box-shadow:
-    inset 0 1px 0 hsl(0 0% 100% / 0.055),
+    inset 0 1px 0 hsl(0 0% 100% / 0.06),
     0 12px 28px hsl(222 45% 4% / 0.24) !important;
 }
 
+.proxy-card [data-slot='base']:hover,
+.conn-card [data-slot='base']:hover {
+  border-color: hsl(var(--heroui-primary) / 0.5) !important;
+  background-color: hsl(var(--heroui-primary) / 0.16) !important;
+}
+
+
+.group[data-selected='true'] .group-data-\[selected\=true\]\:bg-primary,
+.group-data-\[selected\=true\]\:bg-primary,
 [data-slot='base'].border-primary\/16 {
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.36), hsl(0 0% 100% / 0.1)),
-    hsl(var(--heroui-primary) / 0.12) !important;
-  border-color: hsl(var(--heroui-primary) / 0.28) !important;
+    hsl(var(--heroui-primary) / 0.2) !important;
+  border-color: hsl(var(--heroui-primary) / 0.42) !important;
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.42),
-    0 10px 24px hsl(var(--heroui-primary) / 0.1) !important;
+    0 8px 20px hsl(var(--heroui-primary) / 0.14) !important;
 }
 
+.group-data-\[selected\=true\]\:bg-primary.border-2 {
+  border-color: hsl(var(--heroui-primary) / 0.42) !important;
+}
+
+.dark .group[data-selected='true'] .group-data-\[selected\=true\]\:bg-primary,
+.dark .group-data-\[selected\=true\]\:bg-primary,
 .dark [data-slot='base'].border-primary\/16 {
   background:
     linear-gradient(180deg, hsl(0 0% 100% / 0.06), hsl(0 0% 100% / 0.018)),
-    hsl(var(--heroui-primary) / 0.16) !important;
-  border-color: hsl(var(--heroui-primary) / 0.28) !important;
+    hsl(var(--heroui-primary) / 0.2) !important;
+  border-color: hsl(var(--heroui-primary) / 0.42) !important;
   box-shadow:
     inset 0 1px 0 hsl(0 0% 100% / 0.05),
     0 12px 28px hsl(222 45% 4% / 0.24) !important;
+}
+
+label[data-selected='true'] > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.3), hsl(0 0% 100% / 0.08)),
+    hsl(var(--heroui-primary-500) / 0.94) !important;
+  border-color: hsl(var(--heroui-primary-500) / 0.5) !important;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.32),
+    0 3px 10px hsl(var(--heroui-primary) / 0.18) !important;
+}
+
+label[data-selected='true']:hover > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.34), hsl(0 0% 100% / 0.1)),
+    hsl(var(--heroui-primary-500)) !important;
+  border-color: hsl(var(--heroui-primary-600) / 0.48) !important;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.34),
+    0 4px 12px hsl(var(--heroui-primary) / 0.2) !important;
+}
+
+label[data-selected='true'] [data-slot='thumb'] {
+  background: hsl(0 0% 100% / 0.98) !important;
+  box-shadow:
+    0 1px 2px hsl(202 75% 24% / 0.18),
+    0 0 0 1px hsl(0 0% 100% / 0.52) !important;
+}
+
+.dark label[data-selected='true'] > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.16), hsl(0 0% 100% / 0.035)),
+    hsl(var(--heroui-primary-500) / 0.9) !important;
+  border-color: hsl(var(--heroui-primary-600) / 0.35) !important;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.14),
+    0 4px 12px hsl(var(--heroui-primary) / 0.14) !important;
+}
+
+.dark label[data-selected='true']:hover > span.items-center.group-data-\[selected\=true\]\:bg-primary {
+  background:
+    linear-gradient(180deg, hsl(0 0% 100% / 0.18), hsl(0 0% 100% / 0.045)),
+    hsl(var(--heroui-primary-500)) !important;
+  border-color: hsl(var(--heroui-primary-700) / 0.36) !important;
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.16),
+    0 4px 12px hsl(var(--heroui-primary) / 0.16) !important;
+}
+
+.dark label[data-selected='true'] [data-slot='thumb'] {
+  background: hsl(0 0% 100% / 0.96) !important;
+  box-shadow:
+    0 1px 2px hsl(222 45% 4% / 0.28),
+    0 0 0 1px hsl(0 0% 100% / 0.36) !important;
 }
 
 [data-slot='base'].border-white\/14 {
