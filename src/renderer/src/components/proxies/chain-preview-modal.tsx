@@ -1,4 +1,4 @@
-﻿import {
+import {
   Modal,
   ModalContent,
   ModalHeader,
@@ -10,7 +10,6 @@
 import React, { useState, useMemo, useRef, useLayoutEffect, useCallback } from 'react'
 import { IoClose, IoGlobeOutline, IoPerson } from 'react-icons/io5'
 import { TbPlugConnected, TbServer } from 'react-icons/tb'
-import { motion } from 'framer-motion'
 import { MdLink } from 'react-icons/md'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -99,11 +98,9 @@ const NodeCard = React.memo(function NodeCard({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.1, ease: 'easeOut' }}
-      className={`relative flex flex-col items-center p-6 w-[200px] h-[240px] rounded-3xl backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/20 dark:border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] hover:shadow-2xl transition-all duration-300 overflow-hidden hover:-translate-y-1 group ${styles.cardBg}`}
+    <div
+      style={{ animationDelay: `${index * 100}ms` }}
+      className={`animate-fade-in-up relative flex flex-col items-center p-6 w-[200px] h-[240px] rounded-3xl backdrop-blur-3xl backdrop-saturate-[1.5] border border-white/20 dark:border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_8px_32px_0_rgba(0,0,0,0.1)] hover:shadow-2xl transition-all duration-300 overflow-hidden hover:-translate-y-1 group ${styles.cardBg}`}
     >
       <div
         className={`flex items-center justify-center w-14 h-14 rounded-2xl mb-4 border shadow-inner transition-transform duration-300 group-hover:-translate-y-0.5 ${styles.iconBg}`}
@@ -158,7 +155,7 @@ const NodeCard = React.memo(function NodeCard({
           </div>
         ) : null}
       </div>
-    </motion.div>
+    </div>
   )
 })
 
@@ -172,27 +169,19 @@ const ConnectionLine = React.memo(function ConnectionLine({
   index?: number
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scaleX: 0 }}
-      animate={{ opacity: 1, scaleX: 1 }}
-      transition={{ duration: 0.6, delay: index * 0.15 + 0.2 }}
-      className="relative w-16 md:w-24 h-[3px] mx-2 bg-default-200 dark:bg-white/10 overflow-hidden rounded-full shrink-0"
+    <div
+      style={{ animationDelay: `${index * 150 + 200}ms` }}
+      className="animate-scale-x-up relative w-16 md:w-24 h-[3px] mx-2 bg-default-200 dark:bg-white/10 overflow-hidden rounded-full shrink-0"
     >
-      <motion.div
+      <div
         className="absolute top-0 bottom-0 w-1/2 rounded-full"
         style={{
           background:
-            'linear-gradient(90deg, transparent, rgba(161, 161, 170, 0.4), rgba(161, 161, 170, 0.9), transparent)'
-        }}
-        animate={{ left: ['-100%', '200%'] }}
-        transition={{
-          repeat: Infinity,
-          duration: 2,
-          ease: 'linear',
-          delay: delay
+            'linear-gradient(90deg, transparent, rgba(161, 161, 170, 0.4), rgba(161, 161, 170, 0.9), transparent)',
+          animation: `loop-translate-x 2s linear infinite ${delay}s`
         }}
       />
-    </motion.div>
+    </div>
   )
 })
 

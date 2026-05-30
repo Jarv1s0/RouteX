@@ -6,7 +6,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
 import { mihomoUpgradeGeoFile } from '@renderer/utils/mihomo-ipc'
 import { LuCheck, LuCloudDownload, LuX } from 'react-icons/lu'
-import { AnimatePresence, motion } from 'framer-motion'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 
@@ -82,70 +81,58 @@ const GeoData: React.FC = () => {
                 value={inputs[key]}
                 onValueChange={(value) => setInputs((prev) => ({ ...prev, [key]: value }))}
               />
-              <div className="flex shrink-0 items-center gap-1.5 h-8">
-                <AnimatePresence mode="popLayout">
-                  {inputs[key] === geoxUrl[key] ? (
-                    <motion.div
-                      key="download"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <Button
-                        isIconOnly
-                        size="sm"
-                        variant="light"
-                        className="min-w-8 w-8 h-8 text-default-600 dark:text-default-400 hover:text-primary"
-                        isLoading={downloading[key]}
-                        aria-label={t('resources.downloadGeoDataItem', { name: title })}
-                        title={t('resources.downloadGeoDataItem', { name: title })}
-                        onPress={() => void downloadGeoFile(key, title)}
-                      >
-                        <LuCloudDownload className="text-lg" />
-                      </Button>
-                    </motion.div>
-                  ) : (
-                    <div className="flex items-center gap-1.5" key="edit-actions">
-                      <motion.div
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
-                          className="min-w-8 w-8 h-8 text-success-600 dark:text-success-400 hover:bg-success/10"
-                          aria-label={t('common.confirm')}
-                          title={t('common.confirm')}
-                          onPress={() => saveGeoUrl(key)}
-                        >
-                          <LuCheck className="text-lg" />
-                        </Button>
-                      </motion.div>
-                      <motion.div
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
-                          className="min-w-8 w-8 h-8 text-danger-600 dark:text-danger-400 hover:bg-danger/10"
-                          aria-label={t('common.cancel')}
-                          title={t('common.cancel')}
-                          onPress={() => setInputs((prev) => ({ ...prev, [key]: geoxUrl[key] }))}
-                        >
-                          <LuX className="text-lg" />
-                        </Button>
-                      </motion.div>
-                    </div>
-                  )}
-                </AnimatePresence>
+              <div className="relative flex shrink-0 items-center h-8 min-w-[70px] justify-end">
+                <div
+                  className={`absolute right-0 flex items-center transition-all duration-150 ease-out ${
+                    inputs[key] === geoxUrl[key]
+                      ? 'opacity-100 scale-100'
+                      : 'opacity-0 scale-75 pointer-events-none'
+                  }`}
+                >
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    className="min-w-8 w-8 h-8 text-default-600 dark:text-default-400 hover:text-primary"
+                    isLoading={downloading[key]}
+                    aria-label={t('resources.downloadGeoDataItem', { name: title })}
+                    title={t('resources.downloadGeoDataItem', { name: title })}
+                    onPress={() => void downloadGeoFile(key, title)}
+                  >
+                    <LuCloudDownload className="text-lg" />
+                  </Button>
+                </div>
+
+                <div
+                  className={`absolute right-0 flex items-center gap-1.5 transition-all duration-150 ease-out ${
+                    inputs[key] !== geoxUrl[key]
+                      ? 'opacity-100 translate-x-0'
+                      : 'opacity-0 translate-x-2 pointer-events-none'
+                  }`}
+                >
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    className="min-w-8 w-8 h-8 text-success-600 dark:text-success-400 hover:bg-success/10"
+                    aria-label={t('common.confirm')}
+                    title={t('common.confirm')}
+                    onPress={() => saveGeoUrl(key)}
+                  >
+                    <LuCheck className="text-lg" />
+                  </Button>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    className="min-w-8 w-8 h-8 text-danger-600 dark:text-danger-400 hover:bg-danger/10"
+                    aria-label={t('common.cancel')}
+                    title={t('common.cancel')}
+                    onPress={() => setInputs((prev) => ({ ...prev, [key]: geoxUrl[key] }))}
+                  >
+                    <LuX className="text-lg" />
+                  </Button>
+                </div>
               </div>
             </div>
           </SettingItem>

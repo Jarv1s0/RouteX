@@ -1,5 +1,4 @@
 import React from 'react'
-import { motion } from 'framer-motion'
 import CountUp from 'react-countup'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useI18n } from '@renderer/i18n'
@@ -136,6 +135,11 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   monthDownload
 }) => {
   const { t } = useI18n()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const sessionTotal = sessionUpload + sessionDownload
   const sessionRouteTotal = sessionProxy + sessionDirect
@@ -163,12 +167,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   return (
     <div className="w-full flex flex-col px-1 pt-0 pb-1 gap-6">
       {/* Transfer Block */}
-      <motion.div
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="flex flex-col gap-3"
-      >
+      <div className="flex flex-col gap-3 animate-fade-in-up">
         <div className="flex justify-between items-end">
           <div className="flex flex-col">
             <div className={`mb-1 ${SECTION_LABEL_CLASS}`}>
@@ -206,33 +205,25 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
         <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-default-100/60">
           {sessionTotal > 0 ? (
             <>
-              <motion.div
-                className="h-full"
-                style={{ width: `${sessionTransferRatios.primary}%`, background: UPLOAD_GRADIENT }}
-                initial={{ width: 0 }}
-                animate={{ width: `${sessionTransferRatios.primary}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
+              <div
+                className="h-full transition-[width] duration-1000 ease-out"
+                style={{ width: mounted ? `${sessionTransferRatios.primary}%` : 0, background: UPLOAD_GRADIENT }}
               />
-              <motion.div
-                className="h-full"
-                style={{ width: `${sessionTransferRatios.secondary}%`, background: DOWNLOAD_GRADIENT }}
-                initial={{ width: 0 }}
-                animate={{ width: `${sessionTransferRatios.secondary}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
+              <div
+                className="h-full transition-[width] duration-1000 ease-out"
+                style={{ width: mounted ? `${sessionTransferRatios.secondary}%` : 0, background: DOWNLOAD_GRADIENT }}
               />
             </>
           ) : (
             <div className="h-full w-full bg-default-200/50" />
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Route Distribution Block */}
-      <motion.div
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 }}
-        className="flex flex-col gap-3"
+      <div
+        className="flex flex-col gap-3 animate-fade-in-up"
+        style={{ animationDelay: '100ms' }}
       >
         <div className="flex justify-between items-end">
           <div className={`pb-2 ${SECTION_LABEL_CLASS}`}>
@@ -259,32 +250,24 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
         <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-default-100/60">
           {sessionRouteTotal > 0 ? (
             <>
-              <motion.div
-                className="h-full"
-                style={{ width: `${sessionRouteRatios.primary}%`, background: PROXY_GRADIENT }}
-                initial={{ width: 0 }}
-                animate={{ width: `${sessionRouteRatios.primary}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
+              <div
+                className="h-full transition-[width] duration-1000 ease-out"
+                style={{ width: mounted ? `${sessionRouteRatios.primary}%` : 0, background: PROXY_GRADIENT }}
               />
-              <motion.div
-                className="h-full"
-                style={{ width: `${sessionRouteRatios.secondary}%`, background: DIRECT_GRADIENT }}
-                initial={{ width: 0 }}
-                animate={{ width: `${sessionRouteRatios.secondary}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
+              <div
+                className="h-full transition-[width] duration-1000 ease-out"
+                style={{ width: mounted ? `${sessionRouteRatios.secondary}%` : 0, background: DIRECT_GRADIENT }}
               />
             </>
           ) : (
             <div className="h-full w-full bg-default-200/50" />
           )}
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut', delay: 0.18 }}
-        className="grid grid-cols-3 divide-x divide-default-100/60 pt-1"
+      <div
+        className="grid grid-cols-3 divide-x divide-default-100/60 pt-1 animate-fade-in-up"
+        style={{ animationDelay: '180ms' }}
       >
         <PeriodSummary
           label={t('stats.today')}
@@ -307,7 +290,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
           uploadGradient={UPLOAD_GRADIENT}
           downloadGradient={DOWNLOAD_GRADIENT}
         />
-      </motion.div>
+      </div>
     </div>
   )
 }

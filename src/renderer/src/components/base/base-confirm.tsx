@@ -2,7 +2,6 @@ import React from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useI18n } from '@renderer/i18n'
-import { motion } from 'framer-motion'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 
 export interface ConfirmButton {
@@ -98,17 +97,13 @@ const ConfirmModal: React.FC<Props> = (props) => {
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 400 })}
       >
         {() => (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-          >
+          <div className="animate-pop-in">
             <ModalHeader>{title}</ModalHeader>
             <ModalBody>
               <div className="leading-relaxed">{description}</div>
             </ModalBody>
             <ModalFooter className="space-x-2">{renderButtons()}</ModalFooter>
-          </motion.div>
+          </div>
         )}
       </ModalContent>
     </Modal>
