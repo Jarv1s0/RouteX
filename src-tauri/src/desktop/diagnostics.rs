@@ -556,7 +556,7 @@ pub(crate) fn build_mihomo_groups_value(proxies: &Value, runtime: &Value) -> Val
             object.insert(
                 "all".to_string(),
                 Value::Array(build_group_children(
-                    &proxies_map,
+                    proxies_map,
                     all_names,
                     &runtime_group_map,
                     &icon_map,
@@ -584,7 +584,7 @@ pub(crate) fn build_mihomo_groups_value(proxies: &Value, runtime: &Value) -> Val
                         object.insert(
                             "all".to_string(),
                             Value::Array(build_group_children(
-                                &proxies_map,
+                                proxies_map,
                                 all_names,
                                 &runtime_group_map,
                                 &icon_map,

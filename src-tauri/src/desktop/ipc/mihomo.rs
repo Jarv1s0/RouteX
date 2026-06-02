@@ -196,6 +196,7 @@ fn upgrade_geo_data_file(
     Ok(Value::Null)
 }
 
+#[allow(clippy::redundant_closure_call)]
 pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
     map.insert("ensureMihomoCoreAvailable", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;

@@ -732,6 +732,7 @@ pub(crate) fn reload_core_config_process(
     }))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn update_runtime_state(
     state: &State<'_, CoreState>,
     binary_path: PathBuf,
