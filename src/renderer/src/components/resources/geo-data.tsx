@@ -5,6 +5,10 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { useState, useEffect, useMemo } from 'react'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
 import { mihomoUpgradeGeoFile } from '@renderer/utils/mihomo-ipc'
+import {
+  primaryInputClassNames,
+  primaryNumberInputClassNames
+} from '@renderer/components/settings/advanced-settings'
 import { LuCheck, LuCloudDownload, LuX } from 'react-icons/lu'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -80,6 +84,7 @@ const GeoData: React.FC = () => {
               <Input
                 size="sm"
                 className="min-w-0 flex-1"
+                classNames={primaryInputClassNames}
                 value={inputs[key]}
                 onValueChange={(value) => setInputs((prev) => ({ ...prev, [key]: value }))}
               />
@@ -174,6 +179,7 @@ const GeoData: React.FC = () => {
             size="sm"
             type="number"
             className="w-[100px]"
+            classNames={primaryNumberInputClassNames}
             value={geoUpdateInterval.toString()}
             onValueChange={(v) => {
               patchControledMihomoConfig({ 'geo-update-interval': parseInt(v) })
