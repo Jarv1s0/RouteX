@@ -1,3 +1,4 @@
+#[allow(clippy::redundant_closure_call)]
 pub(crate) fn register_system_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
     map.insert("getVersion", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
