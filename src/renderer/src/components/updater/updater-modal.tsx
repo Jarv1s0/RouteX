@@ -33,7 +33,7 @@ interface Props {
 
 const UpdaterModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
-  const { version, releaseNotes, updateStatus, onClose } = props
+  const { version, releaseNotes, updateStatus, onClose, onCancel } = props
   const {
     appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
   } = useAppConfig()
@@ -49,6 +49,9 @@ const UpdaterModal: React.FC<Props> = (props) => {
   }
   const handleCancel = (): void => {
     if (updateStatus?.downloading) {
+      if (onCancel) {
+        onCancel()
+      }
       return
     }
     onClose()
