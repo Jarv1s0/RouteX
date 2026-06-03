@@ -65,7 +65,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
       isDismissable={!isDownloading}
-      size="2xl"
+      size="md"
       classNames={createSecondaryModalClassNames({
         body: 'p-0',
         backdrop: 'top-[48px]',
@@ -77,7 +77,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
         style={getMainPaneModalContentStyle({
           collapseSidebar,
           siderWidth,
-          maxWidthPx: 760,
+          maxWidthPx: 560,
           viewportPaddingPx: 48
         })}
       >
