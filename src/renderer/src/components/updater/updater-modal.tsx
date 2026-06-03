@@ -111,9 +111,9 @@ const UpdaterModal: React.FC<Props> = (props) => {
             </Button>
           )}
         </ModalHeader>
-        <ModalBody>
+        <ModalBody className="p-0">
           {updateStatus?.downloading && (
-            <div className="space-y-3 p-5">
+            <div className="space-y-3 px-5 pt-5 pb-3 border-b border-default-100 bg-content2/30">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-default-600">{t('updater.downloadProgress')}</span>
                 <span className="text-sm font-medium">{updateStatus.progress}%</span>
@@ -129,17 +129,15 @@ const UpdaterModal: React.FC<Props> = (props) => {
               )}
             </div>
           )}
-          {!updateStatus?.downloading && (
-            <div className="markdown-body max-h-[520px] overflow-y-auto px-5 py-4 text-sm leading-6 select-text">
-              <Suspense
-                fallback={
-                  <div className="text-sm text-default-500">{t('updater.loadingReleaseNotes')}</div>
-                }
-              >
-                <ReleaseNotesMarkdown>{releaseNotes}</ReleaseNotesMarkdown>
-              </Suspense>
-            </div>
-          )}
+          <div className="markdown-body flex-1 max-h-[520px] overflow-y-auto px-5 py-4 text-sm leading-6 select-text">
+            <Suspense
+              fallback={
+                <div className="text-sm text-default-500">{t('updater.loadingReleaseNotes')}</div>
+              }
+            >
+              <ReleaseNotesMarkdown>{releaseNotes}</ReleaseNotesMarkdown>
+            </Suspense>
+          </div>
         </ModalBody>
         <ModalFooter>
           <Button
