@@ -112,23 +112,6 @@ const UpdaterModal: React.FC<Props> = (props) => {
           )}
         </ModalHeader>
         <ModalBody className="p-0">
-          {updateStatus?.downloading && (
-            <div className="space-y-3 px-5 pt-5 pb-3 border-b border-default-100 bg-content2/30">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-default-600">{t('updater.downloadProgress')}</span>
-                <span className="text-sm font-medium">{updateStatus.progress}%</span>
-              </div>
-              <Progress
-                value={updateStatus.progress}
-                color="primary"
-                size="sm"
-                showValueLabel={false}
-              />
-              {updateStatus.error && (
-                <div className="text-danger text-sm">{updateStatus.error}</div>
-              )}
-            </div>
-          )}
           <div className="markdown-body flex-1 max-h-[520px] overflow-y-auto px-5 py-4 text-sm leading-6 select-text">
             <Suspense
               fallback={
@@ -139,26 +122,48 @@ const UpdaterModal: React.FC<Props> = (props) => {
             </Suspense>
           </div>
         </ModalBody>
-        <ModalFooter>
-          <Button
-            size="sm"
-            variant="light"
-            isDisabled={updateStatus?.downloading}
-            onPress={handleCancel}
-            startContent={!updateStatus?.downloading ? <FiX /> : undefined}
-          >
-            {updateStatus?.downloading ? t('updater.downloading') : t('common.cancel')}
-          </Button>
-          {!updateStatus?.downloading && (
-            <Button
-              size="sm"
-              color="primary"
-              isLoading={downloading}
-              startContent={<FiDownload />}
-              onPress={onUpdate}
-            >
-              {t('updater.updateNow')}
-            </Button>
+        <ModalFooter className={updateStatus?.downloading ? 'flex-col items-stretch gap-3' : ''}>
+          {updateStatus?.downloading ? (
+            <div className="w-full space-y-2 px-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-default-600">{t('updater.downloadProgress')}</span>
+                <span className="font-medium">{updateStatus.progress}%</span>
+              </div>
+              <Progress
+                value={updateStatus.progress}
+                color="primary"
+                size="sm"
+                showValueLabel={false}
+              />
+              {updateStatus.error && (
+                <div className="text-danger text-sm mt-1">{updateStatus.error}</div>
+              )}
+              <div className="flex justify-end pt-2">
+                <Button size="sm" variant="light" onPress={handleCancel}>
+                  {t('common.cancel')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="light"
+                onPress={handleCancel}
+                startContent={<FiX />}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                size="sm"
+                color="primary"
+                isLoading={downloading}
+                startContent={<FiDownload />}
+                onPress={onUpdate}
+              >
+                {t('updater.updateNow')}
+              </Button>
+            </>
           )}
         </ModalFooter>
       </ModalContent>
