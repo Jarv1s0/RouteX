@@ -14,9 +14,6 @@ pub(crate) const PROFILE_DIR_NAME: &str = "profiles";
 pub(crate) const OVERRIDE_DIR_NAME: &str = "overrides";
 pub(crate) const THEME_DIR_NAME: &str = "themes";
 pub(crate) const DEFAULT_THEME_FILE_NAME: &str = "default.css";
-pub(crate) const ROUTEX_BLUE_GLASS_THEME_FILE_NAME: &str = "routex-blue-glass.css";
-pub(crate) const ROUTEX_BLUE_GLASS_THEME_CSS: &str =
-    include_str!("../../resources/themes/routex-blue-glass.css");
 pub(crate) const RUNTIME_DIR_NAME: &str = "runtime-files";
 pub(crate) const MIHOMO_RUNTIME_DIR_NAME: &str = "mihomo-runtime";
 pub(crate) const UPDATES_DIR_NAME: &str = "updates";

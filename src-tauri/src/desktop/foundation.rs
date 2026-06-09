@@ -990,27 +990,12 @@ pub(crate) fn is_default_theme(theme: &str) -> bool {
     theme == DEFAULT_THEME_FILE_NAME
 }
 
-pub(crate) fn is_routex_blue_glass_theme(theme: &str) -> bool {
-    theme == ROUTEX_BLUE_GLASS_THEME_FILE_NAME
-}
-
-pub(crate) fn built_in_theme_text(theme: &str) -> Option<&'static str> {
-    if is_routex_blue_glass_theme(theme) {
-        return Some(ROUTEX_BLUE_GLASS_THEME_CSS);
-    }
-
-    None
-}
-
 pub(crate) fn theme_sort_rank(theme: &str) -> u8 {
-    if is_routex_blue_glass_theme(theme) {
+    if is_default_theme(theme) {
         return 0;
     }
-    if is_default_theme(theme) {
-        return 1;
-    }
 
-    2
+    1
 }
 
 pub(crate) fn read_theme_text(app: &tauri::AppHandle, theme: &str) -> Result<String, String> {
@@ -1021,10 +1006,6 @@ pub(crate) fn read_theme_text(app: &tauri::AppHandle, theme: &str) -> Result<Str
     let path = theme_file_path(app, theme)?;
     if path.exists() {
         return fs::read_to_string(path).map_err(|e| e.to_string());
-    }
-
-    if let Some(css) = built_in_theme_text(theme) {
-        return Ok(css.to_string());
     }
 
     Ok(String::new())
@@ -1102,11 +1083,6 @@ pub(crate) fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>
     }
 
     entries.push(json!({
-        "key": ROUTEX_BLUE_GLASS_THEME_FILE_NAME,
-        "label": theme_display_label(ROUTEX_BLUE_GLASS_THEME_FILE_NAME, ROUTEX_BLUE_GLASS_THEME_CSS),
-        "content": read_theme_text(app, ROUTEX_BLUE_GLASS_THEME_FILE_NAME)?,
-    }));
-    entries.push(json!({
         "key": DEFAULT_THEME_FILE_NAME,
         "label": theme_display_label(DEFAULT_THEME_FILE_NAME, ""),
         "content": "",
@@ -1123,7 +1099,7 @@ pub(crate) fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>
             continue;
         };
 
-        if !name.ends_with(".css") || is_default_theme(name) || is_routex_blue_glass_theme(name) {
+        if !name.ends_with(".css") || is_default_theme(name) {
             continue;
         }
 

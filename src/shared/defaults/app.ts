@@ -1,4 +1,4 @@
-export const DEFAULT_CUSTOM_THEME = 'routex-blue-glass.css'
+export const DEFAULT_CUSTOM_THEME = 'default.css'
 
 function isLegacyWindowsBuild(osRelease?: string): boolean {
   if (!osRelease) {

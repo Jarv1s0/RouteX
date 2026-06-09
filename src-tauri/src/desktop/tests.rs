@@ -467,22 +467,7 @@ fn theme_display_label_reads_first_line_comment() {
 }
 
 #[test]
-fn built_in_theme_text_includes_routex_blue_glass() {
-    let css = built_in_theme_text(ROUTEX_BLUE_GLASS_THEME_FILE_NAME)
-        .expect("RouteX Blue Glass should be bundled as a built-in theme");
-
-    assert!(css.contains("RouteX Blue Glass"));
-    assert!(css.contains("--heroui-primary"));
-    assert!(css.contains("button[data-slot='trigger'].bg-primary"));
-    assert!(built_in_theme_text(DEFAULT_THEME_FILE_NAME).is_none());
-}
-
-#[test]
-fn built_in_themes_sort_before_downloaded_themes() {
-    assert!(
-        theme_sort_rank(ROUTEX_BLUE_GLASS_THEME_FILE_NAME)
-            < theme_sort_rank(DEFAULT_THEME_FILE_NAME)
-    );
+fn default_theme_sorts_before_downloaded_themes() {
     assert!(theme_sort_rank(DEFAULT_THEME_FILE_NAME) < theme_sort_rank("anime.css"));
 }
 
