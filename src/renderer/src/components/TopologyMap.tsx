@@ -42,6 +42,12 @@ interface TopologyEdgeData {
   upload: number
 }
 
+interface TopologyLink {
+  source: string
+  target: string
+  data: TopologyEdgeData
+}
+
 interface TopologyConnectionMeta {
   processName: string
   iconUrl: string
@@ -139,7 +145,7 @@ function getLayoutedElements(
     }
     if (node.type === 'exit') {
       width = 230
-      height = 90
+      height = 92
     }
 
     dagreGraph.setNode(node.id, { width, height })
@@ -233,7 +239,7 @@ function buildTopologyStructureKey(connections: ControllerConnectionDetail[]): s
 
     nodeKeys.add(sourceNode)
     nodeKeys.add(ruleNode)
-    edgeKeys.add(`${sourceNode}|${ruleNode}`)
+    edgeKeys.add(JSON.stringify([sourceNode, ruleNode]))
 
     let previousNode = ruleNode
     normalizedChain.forEach((item, index) => {
@@ -242,7 +248,7 @@ function buildTopologyStructureKey(connections: ControllerConnectionDetail[]): s
 
       const currentNode = `${item}__L${layerIndex}`
       nodeKeys.add(currentNode)
-      edgeKeys.add(`${previousNode}|${currentNode}`)
+      edgeKeys.add(JSON.stringify([previousNode, currentNode]))
       previousNode = currentNode
     })
   })
@@ -259,7 +265,7 @@ function buildTopologyGraph(
   }
 
   const nodesMap = new Map<string, Node<TopologyNodeData>>()
-  const linksMap = new Map<string, TopologyEdgeData>()
+  const linksMap = new Map<string, TopologyLink>()
   const nodeTraffic = new Map<string, { download: number; upload: number; count: number }>()
   const targetCounter = new Map<string, number>()
   const maxLayerIndex = Number.parseInt(structureKey.split('__', 1)[0] || '0', 10) || 0
@@ -302,12 +308,16 @@ function buildTopologyGraph(
   const addLink = (source: string, target: string, upload: number, download: number) => {
     if (source === target) return
 
-    const key = `${source}|${target}`
+    const key = JSON.stringify([source, target])
     if (!linksMap.has(key)) {
-      linksMap.set(key, { weight: 0, download: 0, upload: 0 })
+      linksMap.set(key, {
+        source,
+        target,
+        data: { weight: 0, download: 0, upload: 0 }
+      })
     }
 
-    const current = linksMap.get(key)!
+    const current = linksMap.get(key)!.data
     current.weight += 1
     current.download += download
     current.upload += upload
@@ -382,17 +392,16 @@ function buildTopologyGraph(
   })
 
   const edges: Edge[] = []
-  linksMap.forEach((value, key) => {
-    const [source, target] = key.split('|')
+  linksMap.forEach(({ source, target, data }) => {
     edges.push({
       id: `e-${source}-${target}`,
       source,
       target,
       type: 'animated',
       data: {
-        weight: value.weight,
-        upload: value.upload,
-        download: value.download
+        weight: data.weight,
+        upload: data.upload,
+        download: data.download
       }
     })
   })

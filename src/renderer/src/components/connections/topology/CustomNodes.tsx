@@ -351,6 +351,13 @@ export const ExitNode = memo(function ExitNode({ data }: NodeProps) {
 
   return (
     <div className="relative pt-4">
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="w-3 h-3 border-none"
+        style={{ background: color }}
+      />
+
       <div
         className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-emerald-500 text-white text-[11px] font-semibold px-3 py-0.5 rounded-sm z-10 shadow-[0_4px_12px_rgba(16,185,129,0.3)] tracking-[0.1em] truncate max-w-[200px]"
         title={groupText}
@@ -362,13 +369,6 @@ export const ExitNode = memo(function ExitNode({ data }: NodeProps) {
         className={`w-[230px] h-[76px] ${TOPOLOGY_NODE_SURFACE} shadow-[0_0_24px_rgba(16,185,129,0.25)] border-2 border-emerald-500/80 relative overflow-visible rounded-full p-2 transition-all`}
         radius="lg"
       >
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="w-3 h-3 border-none"
-          style={{ background: color }}
-        />
-
         <div className="py-2 px-4 flex flex-col gap-1.5 items-center justify-center h-full">
           <div className="font-bold tracking-wide text-[17px] flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
             <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse border border-white/50"></div>
