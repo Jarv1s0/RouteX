@@ -31,8 +31,8 @@ interface MihomoConfig {
   'lan-disallowed-ips'?: string[]
   authentication: string[]
   port?: number
-  proxies?: Record<string, unknown>[]
-  'proxy-groups'?: Record<string, unknown>[]
+  proxies?: MihomoProxyConfig[]
+  'proxy-groups'?: MihomoProxyGroupConfig[]
   rules?: string[]
   hosts?: { [key: string]: string | string[] }
   'geodata-mode'?: boolean
@@ -48,8 +48,40 @@ interface MihomoConfig {
   dns: MihomoDNSConfig
   sniffer: MihomoSnifferConfig
   profile: MihomoProfileConfig
-  'rule-providers'?: Record<string, unknown>
-  'proxy-providers'?: Record<string, unknown>
+  listeners?: MihomoInboundListenerConfig[]
+  'rule-providers'?: Record<string, RuleProviderConfig>
+  'proxy-providers'?: Record<string, ProxyProviderConfig>
+}
+
+interface MihomoProxyConfig {
+  [key: string]: unknown
+  name?: string
+  type?: string
+  server?: string
+  port?: number
+  username?: string
+  password?: string
+  udp?: boolean
+  'client-fingerprint'?: string
+  'skip-cert-verify'?: boolean
+  ping?: number
+  'ping-restart'?: number
+}
+
+interface MihomoProxyGroupConfig {
+  [key: string]: unknown
+  name?: string
+  type?: string
+  proxies?: string[]
+  use?: string[]
+  url?: string
+  interval?: number
+  timeout?: number
+  'empty-fallback'?: string
+  lazy?: boolean
+  filter?: string
+  hidden?: boolean
+  icon?: string
 }
 
 interface MihomoTunConfig {
@@ -138,7 +170,50 @@ interface MihomoProfileConfig {
 }
 
 interface ProxyProviderConfig {
+  type?: string
   path?: string
   url?: string
+  proxy?: string
   behavior?: string
+  interval?: number
+  filter?: string
+  'exclude-filter'?: string
+  'dialer-proxy'?: string
+  'size-limit'?: number
+  payload?: Record<string, unknown>[]
+  'age-secret-key'?: string
+  'health-check'?: {
+    enable?: boolean
+    url?: string
+    interval?: number
+    timeout?: number
+    lazy?: boolean
+    'expected-status'?: string
+  }
+  header?: Record<string, string[]>
+}
+
+interface RuleProviderConfig {
+  type?: string
+  behavior?: string
+  path?: string
+  url?: string
+  proxy?: string
+  interval?: number
+  format?: string
+  payload?: string[]
+  header?: Record<string, string[]>
+  'path-in-bundle'?: string
+}
+
+interface MihomoInboundListenerConfig {
+  [key: string]: unknown
+  type?: string
+  enable?: boolean
+  listen?: string
+  users?: Record<string, string> | Record<string, unknown>[]
+  certificate?: string
+  'private-key'?: string
+  'client-auth-cert'?: string
+  'allow-insecure'?: boolean
 }

@@ -56,7 +56,7 @@ const getProxyColor = (
   return 'secondary'
 }
 
-const BUILT_IN_RULE_TARGETS = ['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'GLOBAL']
+const BUILT_IN_RULE_TARGETS = ['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'PASS-RULE', 'GLOBAL']
 
 const runtimeEntryName = (entry: unknown): string | undefined => {
   if (!entry || typeof entry !== 'object') return undefined
@@ -194,7 +194,7 @@ const RulesPage: React.FC = () => {
       const fetchProviderPath = async (name: string): Promise<void> => {
         try {
           const config = await getRuntimeConfig()
-          const provider = config?.['rule-providers']?.[name] as ProxyProviderConfig
+          const provider = config?.['rule-providers']?.[name] as RuleProviderConfig
           if (provider) {
             setShowDetails((prev) => ({
               ...prev,
