@@ -353,6 +353,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                     size="sm"
                     variant="light"
                     color="default"
+                    className={CARD_STYLES.MANAGEMENT_ACTION_BUTTON}
                     disabled={updating || rollingBack}
                     onPress={async () => {
                       setUpdating(true)
@@ -377,7 +378,13 @@ const OverrideItem: React.FC<Props> = (props) => {
 
                 <Dropdown>
                   <DropdownTrigger>
-                    <Button isIconOnly size="sm" variant="light" color="default">
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      color="default"
+                      className={CARD_STYLES.MANAGEMENT_ACTION_BUTTON}
+                    >
                       <IoMdMore className={CARD_STYLES.MANAGEMENT_ACTION_ICON} />
                     </Button>
                   </DropdownTrigger>

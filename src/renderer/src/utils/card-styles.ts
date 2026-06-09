@@ -54,7 +54,8 @@ export const CARD_STYLES = {
   // Management card typography
   MANAGEMENT_TITLE:
     'text-ellipsis whitespace-nowrap overflow-hidden text-md font-bold leading-[32px] text-foreground',
-  MANAGEMENT_ACTION_ICON: 'text-[24px] text-foreground',
+  MANAGEMENT_ACTION_BUTTON: 'h-[28px] w-[28px] min-w-[28px] rounded-full p-0',
+  MANAGEMENT_ACTION_ICON: 'text-[21px] text-foreground',
   MANAGEMENT_STATUS_BUTTON: 'h-6 min-w-0 px-3 text-[12px]',
   MANAGEMENT_STATUS_INACTIVE:
     'border-default-200 bg-default-100/70 text-default-500 shadow-none hover:border-default-300 hover:bg-default-200/70 dark:border-white/10 dark:bg-white/[0.06] dark:text-default-400 dark:hover:bg-white/[0.09]',

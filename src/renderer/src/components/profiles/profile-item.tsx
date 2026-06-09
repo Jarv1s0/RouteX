@@ -341,6 +341,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                     size="sm"
                     variant="light"
                     color="default"
+                    className={CARD_STYLES.MANAGEMENT_ACTION_BUTTON}
                     disabled={updating}
                     onPress={async () => {
                       setUpdating(true)
@@ -357,7 +358,13 @@ const ProfileItem: React.FC<Props> = (props) => {
 
                 <Dropdown>
                   <DropdownTrigger>
-                    <Button isIconOnly size="sm" variant="light" color="default">
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      color="default"
+                      className={CARD_STYLES.MANAGEMENT_ACTION_BUTTON}
+                    >
                       <IoMdMore color="default" className={CARD_STYLES.MANAGEMENT_ACTION_ICON} />
                     </Button>
                   </DropdownTrigger>
