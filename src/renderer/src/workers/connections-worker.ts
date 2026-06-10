@@ -17,10 +17,8 @@ let speedSamples = new Map<string, ConnectionSpeedSample>()
 let prevActiveMap = new Map<string, ExtendedConnection>()
 let prevClosed: ExtendedConnection[] = []
 
-function updateSpeedSamples(connections: ControllerConnectionDetail[], now: number) {
-  const activeIds = new Set<string>()
+function updateSpeedSamples(connections: ControllerConnectionDetail[], activeIds: Set<string>, now: number) {
   connections.forEach((connection) => {
-    activeIds.add(connection.id)
     speedSamples.set(connection.id, {
       upload: Math.max(0, connection.upload || 0),
       download: Math.max(0, connection.download || 0),
@@ -51,8 +49,13 @@ self.onmessage = (event: MessageEvent) => {
 
     if (!connections) return
 
+    const activeIds = new Set<string>()
+    for (let i = 0; i < connections.length; i++) {
+      activeIds.add(connections[i].id)
+    }
+
     if (isPaused || isHidden) {
-      updateSpeedSamples(connections, now)
+      updateSpeedSamples(connections, activeIds, now)
       return
     }
 
@@ -122,9 +125,9 @@ self.onmessage = (event: MessageEvent) => {
       }
     })
 
-    updateSpeedSamples(connections, now)
+    updateSpeedSamples(connections, activeIds, now)
 
-    const newActiveIds = new Set(newActive.map((c) => c.id))
+    const newActiveIds = activeIds
     const prevActiveList = Array.from(prevActiveMap.values())
 
     const newlyClosed = prevActiveList

@@ -58,8 +58,8 @@ pub(crate) fn read_local_icon_data_url(app_path: &str) -> Option<String> {
     Some(to_data_url(mime, &bytes))
 }
 
-pub(crate) fn icon_data_url_cache() -> &'static Mutex<HashMap<String, String>> {
-    ICON_DATA_URL_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+pub(crate) fn icon_data_url_cache() -> &'static Mutex<lru::LruCache<String, String>> {
+    ICON_DATA_URL_CACHE.get_or_init(|| Mutex::new(lru::LruCache::new(std::num::NonZeroUsize::new(500).unwrap())))
 }
 
 pub(crate) fn is_icon_remote_or_data_resource(app_path: &str) -> bool {
@@ -162,12 +162,12 @@ pub(crate) fn read_cached_icon_data_url(app_path: &str) -> Option<String> {
     icon_data_url_cache()
         .lock()
         .ok()
-        .and_then(|cache| cache.get(app_path).cloned())
+        .and_then(|mut cache| cache.get(app_path).cloned())
 }
 
 pub(crate) fn write_cached_icon_data_url(app_path: &str, data_url: String) {
     if let Ok(mut cache) = icon_data_url_cache().lock() {
-        cache.insert(app_path.to_string(), data_url);
+        cache.put(app_path.to_string(), data_url);
     }
 }
 

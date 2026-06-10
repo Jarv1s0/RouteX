@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import {
+  isExpectedMihomoUnavailableError,
   mihomoCloseAllConnections,
   mihomoCloseConnection,
   mihomoConnections,
@@ -75,16 +76,7 @@ export function subscribeConnectionSnapshot(
   }
 }
 
-function isExpectedMihomoUnavailableError(error: unknown): boolean {
-  const message = `${error ?? ''}`
-  return (
-    message.includes('connect ENOENT \\\\.\\pipe\\RouteX\\mihomo') ||
-    message.includes('socket hang up') ||
-    message.includes('Mihomo controller is not available') ||
-    message.includes('503 Service Unavailable') ||
-    message.includes('504 Gateway Timeout')
-  )
-}
+
 
 function clearUnavailableRetryTimer(): void {
   if (unavailableRetryTimer === null) {

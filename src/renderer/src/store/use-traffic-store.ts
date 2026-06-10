@@ -69,6 +69,11 @@ let routeTrafficConnectionSamples = new Map<
   { upload: number; download: number; isDirect: boolean }
 >()
 
+// RAF 节流：合并高频流量事件的 React 渲染，同时累积增量保证 sessionStats 不丢失
+let pendingTrafficRaf: number | null = null
+let pendingTrafficDisplay: { up: number; down: number } | null = null
+let pendingTrafficDelta = { up: 0, down: 0 }
+
 function getTimeKey(): string {
   return new Date().toTimeString().split(' ')[0]
 }
@@ -90,6 +95,12 @@ function unregisterTrafficHandlers() {
     document.removeEventListener('visibilitychange', visibilityChangeHandler)
     visibilityChangeHandler = null
   }
+  if (pendingTrafficRaf !== null) {
+    cancelAnimationFrame(pendingTrafficRaf)
+    pendingTrafficRaf = null
+  }
+  pendingTrafficDisplay = null
+  pendingTrafficDelta = { up: 0, down: 0 }
   lastIpcTrafficEventAt = 0
   lastIpcTrafficSample = null
   lastConnectionTotals = null
@@ -157,12 +168,27 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
     const handleTraffic = (traffic: { up: number; down: number }): void => {
       lastIpcTrafficEventAt = Date.now()
-      lastIpcTrafficSample = {
+      const normalized = {
         up: Math.max(0, Math.trunc(traffic.up || 0)),
-        down: Math.max(0, Math.trunc(traffic.down || 0)),
-        at: lastIpcTrafficEventAt
+        down: Math.max(0, Math.trunc(traffic.down || 0))
       }
-      applyTrafficSample(traffic, traffic)
+      lastIpcTrafficSample = { ...normalized, at: lastIpcTrafficEventAt }
+
+      // 累积增量以保证 sessionStats 不丢失，展示值取最新
+      pendingTrafficDisplay = normalized
+      pendingTrafficDelta.up += normalized.up
+      pendingTrafficDelta.down += normalized.down
+
+      if (pendingTrafficRaf === null) {
+        pendingTrafficRaf = requestAnimationFrame(() => {
+          pendingTrafficRaf = null
+          if (pendingTrafficDisplay) {
+            applyTrafficSample(pendingTrafficDisplay, pendingTrafficDelta)
+            pendingTrafficDisplay = null
+            pendingTrafficDelta = { up: 0, down: 0 }
+          }
+        })
+      }
     }
 
     const handleConnections = throttle(
@@ -308,8 +334,17 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
           // Prevent massive state growth
           routeTrafficConnectionSamples = nextRouteSamples
 
-          if (newStats.size > 2000) {
-            return {}
+          // LRU 淘汰：当规则数超过上限时，按命中次数从低到高排序，淘汰最不活跃的 20%
+          if (newStats.size > MAX_RULES_TRACKED) {
+            const evictCount = Math.ceil(MAX_RULES_TRACKED * 0.2)
+            const sorted = [...newStats.entries()].sort((a, b) => a[1].hits - b[1].hits)
+            for (let i = 0; i < evictCount && i < sorted.length; i++) {
+              const key = sorted[i][0]
+              newStats.delete(key)
+              newDetails.delete(key)
+            }
+            hasChanges = true
+            hasDetailsChanges = true
           }
 
           // Garbage collect processedConnIds: remove IDs no longer in current connections

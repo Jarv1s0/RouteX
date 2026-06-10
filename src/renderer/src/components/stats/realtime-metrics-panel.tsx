@@ -241,30 +241,35 @@ function MiniMetricChart({
 
 const RealtimeMetricsPanel: React.FC = () => {
   const { t } = useI18n()
-  const connectionCount = useConnectionsStore((state) => state.connectionCount)
-  const activeConnectionsLength = useConnectionsStore((state) => state.activeConnections.length)
-  const closedConnectionsLength = useConnectionsStore((state) => state.closedConnections.length)
-  const memory = useConnectionsStore((state) => state.memory)
-  const activeCount = connectionCount || activeConnectionsLength
-  const trackedCount = activeConnectionsLength + closedConnectionsLength
   const [points, setPoints] = useState<MetricPoint[]>(getInitialMetricPoints)
 
+  // 以固定 1Hz 采样 store 状态，避免高连接场景下每秒触发数十次重渲染
   useEffect(() => {
-    const nextPoint: MetricPoint = {
-      active: activeCount,
-      tracked: trackedCount,
-      memory,
-      index: Date.now()
+    const sampleMetrics = (): void => {
+      const state = useConnectionsStore.getState()
+      const active = state.connectionCount || state.activeConnections.length
+      const tracked = state.activeConnections.length + state.closedConnections.length
+
+      setPoints((prev) => {
+        const nextPoints = [
+          ...prev,
+          { active, tracked, memory: state.memory, index: Date.now() }
+        ].slice(-MAX_POINTS)
+        recentMetricPoints = nextPoints
+        return nextPoints
+      })
     }
 
-    setPoints((prev) => {
-      const nextPoints = [...prev, nextPoint].slice(-MAX_POINTS)
-      recentMetricPoints = nextPoints
-      return nextPoints
-    })
-  }, [activeCount, memory, trackedCount])
+    sampleMetrics()
+    const timer = setInterval(sampleMetrics, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
-  const memoryPeak = useMemo(() => Math.max(...points.map((point) => point.memory), memory), [memory, points])
+  const latestPoint = points[points.length - 1]
+  const activeCount = latestPoint?.active ?? 0
+  const trackedCount = latestPoint?.tracked ?? 0
+  const memory = latestPoint?.memory ?? 0
+  const memoryPeak = useMemo(() => Math.max(...points.map((point) => point.memory)), [points])
 
   return (
     <div className="grid h-full grid-cols-1 gap-2 md:grid-cols-2">

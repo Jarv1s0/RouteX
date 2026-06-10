@@ -144,6 +144,58 @@ fn mmdb_validation_rejects_missing_metadata_marker() {
 }
 
 #[test]
+fn missing_geo_data_error_requires_missing_file_signal() {
+    let no_geo_runtime = json!({
+        "rules": ["MATCH,DIRECT"]
+    });
+    let geo_runtime = json!({
+        "rules": ["GEOIP,CN,DIRECT", "MATCH,Proxy"]
+    });
+    let dns_geo_runtime = json!({
+        "dns": {
+            "fallback-filter": {
+                "geoip": true,
+                "geoip-code": "CN"
+            }
+        },
+        "rules": ["MATCH,DIRECT"]
+    });
+
+    assert!(is_missing_geo_data_error(
+        "can't initial GeoIP: open geoip.dat: no such file or directory",
+        &geo_runtime
+    ));
+    assert!(is_missing_geo_data_error(
+        "can't load geosite: The system cannot find the file specified",
+        &json!({ "rules": ["GEOSITE,cn,DIRECT"] })
+    ));
+    assert!(is_missing_geo_data_error(
+        "can't load geosite.dat: file not found",
+        &json!({ "rules": ["GEOSITE,cn,DIRECT"] })
+    ));
+    assert!(is_missing_geo_data_error(
+        "can't load GeoIP mmdb: no such file or directory",
+        &dns_geo_runtime
+    ));
+    assert!(!is_missing_geo_data_error(
+        "can't initial GeoIP: open geoip.dat: no such file or directory",
+        &no_geo_runtime
+    ));
+    assert!(!is_missing_geo_data_error(
+        "parse rule failed: unsupported geoip option in rule",
+        &geo_runtime
+    ));
+    assert!(!is_missing_geo_data_error(
+        "geosite category geolocation-unknown not found",
+        &json!({ "rules": ["GEOSITE,geolocation-unknown,DIRECT"] })
+    ));
+    assert!(!is_missing_geo_data_error(
+        "proxy group Selector is empty",
+        &geo_runtime
+    ));
+}
+
+#[test]
 fn mihomo_groups_expand_nested_group_children() {
     let proxies = json!({
         "proxies": {

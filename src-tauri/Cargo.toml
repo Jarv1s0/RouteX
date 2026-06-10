@@ -33,6 +33,7 @@ arboard = "3.6.1"
 flate2 = "1.1.9"
 open = "5.3.5"
 rfd = "0.15"
+lru = "0.18.0"
 
 [target."cfg(any(target_os = \"windows\", target_os = \"macos\", target_os = \"linux\"))".dependencies]
 tauri-plugin-deep-link = "2"

@@ -278,6 +278,9 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
             } else {
               await addOverrideItem(item)
             }
+            if (item.global) {
+              scheduleCoreRestart()
+            }
             setShowOverrideEditModal(false)
             setEditingOverrideItem(null)
           }}

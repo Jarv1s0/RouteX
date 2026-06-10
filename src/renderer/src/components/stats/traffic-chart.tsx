@@ -60,25 +60,132 @@ const RealtimeSpeedBadges = React.memo(function RealtimeSpeedBadges() {
   )
 })
 
-const TrafficDataChartRenderer = React.memo(function TrafficDataChartRenderer({ historyTab }: { historyTab: HistoryTab }) {
+// ─── 图表共享工具函数 ───
+
+function formatHourLabel(hour: string): string {
+  const parts = hour.split('-')
+  return parts.length >= 4 ? `${parts[3]}:00` : hour
+}
+
+function getChartColors(isDark: boolean) {
+  return {
+    axisLabelColor: '#94a3b8',
+    splitLineColor: 'rgba(148, 163, 184, 0.16)',
+    uploadColor: '#06b6d4',
+    downloadColor: isDark ? '#9b8bd8' : '#a855f7',
+    downloadAreaStart: isDark ? 'rgba(155,139,216,0.22)' : 'rgba(168,85,247,0.40)',
+    downloadAreaEnd: isDark ? 'rgba(155,139,216,0.03)' : 'rgba(168,85,247,0.05)'
+  }
+}
+
+function createBaseChartOption(axisLabelColor: string, splitLineColor: string) {
+  return {
+    animation: false,
+    grid: {
+      top: 36,
+      right: 12,
+      bottom: 24,
+      left: 48,
+      containLabel: false
+    },
+    legend: {
+      top: 0,
+      textStyle: {
+        color: '#64748b',
+        fontSize: 12
+      }
+    },
+    tooltip: {
+      trigger: 'axis' as const,
+      transitionDuration: 0,
+      hideDelay: 120,
+      backgroundColor: 'rgba(255,255,255,0.88)',
+      borderColor: 'rgba(148,163,184,0.18)',
+      textStyle: {
+        color: '#0f172a'
+      }
+    },
+    xAxis: {
+      type: 'category' as const,
+      axisLine: {
+        show: false
+      },
+      axisTick: {
+        show: false
+      },
+      axisLabel: {
+        color: axisLabelColor,
+        fontSize: 10
+      }
+    },
+    yAxis: {
+      type: 'value' as const,
+      axisLine: {
+        show: false
+      },
+      axisTick: {
+        show: false
+      },
+      splitLine: {
+        lineStyle: {
+          color: splitLineColor,
+          type: 'dashed' as const
+        }
+      },
+      axisLabel: {
+        color: axisLabelColor,
+        fontSize: 10,
+        inside: false,
+        margin: 8,
+        formatter: (value: number) => calcTrafficInt(value)
+      }
+    }
+  }
+}
+
+function createTooltipFormatter(speed: boolean): (params: unknown) => string {
+  return (params: unknown) => {
+    const tooltipParams = (Array.isArray(params) ? params : [params]) as TooltipSeriesParam[]
+    const rows = tooltipParams
+      .map((entry) => {
+        const rawValue = Array.isArray(entry.value) ? entry.value[1] : entry.value
+        const value = Number(rawValue)
+        const { amount, unit } = splitTrafficText(value, speed)
+        return `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;flex:none;"></span>
+                <span style="color:#64748b;font-size:12px;white-space:nowrap;">${entry.seriesName}</span>
+              </div>
+              <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:6px;min-width:0;flex:none;">
+                <span style="color:${entry.color};font-weight:700;font-size:13px;line-height:1;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;">${amount}</span>
+                <span style="color:#94a3b8;font-weight:600;font-size:11px;line-height:1;white-space:nowrap;">${unit}</span>
+              </div>
+            </div>
+          `
+      })
+      .join('')
+
+    const label = tooltipParams[0]?.axisValueLabel ?? ''
+    return `
+        <div style="padding:2px 0;min-width:148px;">
+          <div style="font-size:12px;font-weight:700;line-height:1.1;color:#475569;margin-bottom:${rows ? '8px' : '0'};">${label}</div>
+          ${rows}
+        </div>
+      `
+  }
+}
+
+// ─── 按数据依赖拆分的图表渲染器 ───
+// RealtimeChartRenderer 仅订阅 trafficHistory（~1Hz 高频更新）
+// HourlyChartRenderer 仅订阅 hourlyData（30s 低频刷新）
+// 当用户切到"每小时"Tab 时，实时数据的订阅完全断开，不再触发任何重渲染
+
+const RealtimeChartRenderer = React.memo(function RealtimeChartRenderer() {
   const { t } = useI18n()
   const { theme, systemTheme } = useTheme()
   const isDark = (theme === 'system' ? systemTheme : theme) === 'dark'
-
   const trafficHistory = useTrafficStore((state) => state.trafficHistory)
-  const hourlyData = useTrafficStore((state) => state.hourlyData)
-
-  const formatHourLabel = (hour: string): string => {
-    const parts = hour.split('-')
-    return parts.length >= 4 ? `${parts[3]}:00` : hour
-  }
-
-  const formattedHourlyData = useMemo(() => {
-    return (hourlyData || []).map((item) => ({
-      ...item,
-      label: formatHourLabel(item.hour)
-    }))
-  }, [hourlyData])
 
   const realtimeData = useMemo(
     () =>
@@ -95,203 +202,128 @@ const TrafficDataChartRenderer = React.memo(function TrafficDataChartRenderer({ 
   )
 
   const chartOption = useMemo(() => {
-    const axisLabelColor = '#94a3b8'
-    const splitLineColor = 'rgba(148, 163, 184, 0.16)'
-    const uploadColor = '#06b6d4'
-    const downloadColor = isDark ? '#9b8bd8' : '#a855f7'
-    const downloadAreaStart = isDark ? 'rgba(155,139,216,0.22)' : 'rgba(168,85,247,0.40)'
-    const downloadAreaEnd = isDark ? 'rgba(155,139,216,0.03)' : 'rgba(168,85,247,0.05)'
+    const {
+      axisLabelColor,
+      splitLineColor,
+      uploadColor,
+      downloadColor,
+      downloadAreaStart,
+      downloadAreaEnd
+    } = getChartColors(isDark)
+    const baseOption = createBaseChartOption(axisLabelColor, splitLineColor)
 
-    const createTooltipFormatter =
-      (speed = false) =>
-      (params: unknown) => {
-        const tooltipParams = (Array.isArray(params) ? params : [params]) as TooltipSeriesParam[]
-        const rows = tooltipParams
-          .map((entry) => {
-            const rawValue = Array.isArray(entry.value) ? entry.value[1] : entry.value
-            const value = Number(rawValue)
-            const { amount, unit } = splitTrafficText(value, speed)
-            return `
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;">
-              <div style="display:flex;align-items:center;gap:8px;min-width:0;">
-                <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;flex:none;"></span>
-                <span style="color:#64748b;font-size:12px;white-space:nowrap;">${entry.seriesName}</span>
-              </div>
-              <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:6px;min-width:0;flex:none;">
-                <span style="color:${entry.color};font-weight:700;font-size:13px;line-height:1;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;">${amount}</span>
-                <span style="color:#94a3b8;font-weight:600;font-size:11px;line-height:1;white-space:nowrap;">${unit}</span>
-              </div>
-            </div>
-          `
-          })
-          .join('')
-
-        const label = tooltipParams[0]?.axisValueLabel ?? ''
-        return `
-        <div style="padding:2px 0;min-width:148px;">
-          <div style="font-size:12px;font-weight:700;line-height:1.1;color:#475569;margin-bottom:${rows ? '8px' : '0'};">${label}</div>
-          ${rows}
-        </div>
-      `
-      }
-
-    const baseOption = {
-      animation: false,
-      grid: {
-        top: 36,
-        right: 12,
-        bottom: 24,
-        left: 48,
-        containLabel: false
-      },
-      legend: {
-        top: 0,
-        textStyle: {
-          color: '#64748b',
-          fontSize: 12
-        }
-      },
+    return {
+      ...baseOption,
       tooltip: {
-        trigger: 'axis',
-        transitionDuration: 0,
-        hideDelay: 120,
-        backgroundColor: 'rgba(255,255,255,0.88)',
-        borderColor: 'rgba(148,163,184,0.18)',
-        textStyle: {
-          color: '#0f172a'
-        }
-      },
-      xAxis: {
-        type: 'category' as const,
-        axisLine: {
-          show: false
-        },
-        axisTick: {
-          show: false
-        },
-        axisLabel: {
-          color: axisLabelColor,
-          fontSize: 10
-        }
-      },
-      yAxis: {
-        type: 'value' as const,
-        axisLine: {
-          show: false
-        },
-        axisTick: {
-          show: false
-        },
-        splitLine: {
+        ...baseOption.tooltip,
+        axisPointer: {
+          type: 'line',
           lineStyle: {
-            color: splitLineColor,
-            type: 'dashed' as const
+            color: 'rgba(148, 163, 184, 0.28)',
+            type: 'dashed'
           }
         },
+        formatter: createTooltipFormatter(true)
+      },
+      xAxis: {
+        ...baseOption.xAxis,
+        data: realtimeData.labels,
         axisLabel: {
           color: axisLabelColor,
           fontSize: 10,
-          inside: false,
-          margin: 8,
-          formatter: (value: number) => calcTrafficInt(value)
+          interval: Math.max(Math.floor(realtimeData.labels.length / 4), 12),
+          formatter: (value: string | number) => {
+            const label = String(value)
+            return label.length >= 5 ? label.substring(0, 5) : label
+          }
         }
-      }
-    }
-
-    if (historyTab === 'realtime') {
-      return {
-        ...baseOption,
-        tooltip: {
-          ...baseOption.tooltip,
-          axisPointer: {
-            type: 'line',
-            lineStyle: {
-              color: 'rgba(148, 163, 184, 0.28)',
-              type: 'dashed'
-            }
-          },
-          formatter: createTooltipFormatter(true)
-        },
-        xAxis: {
-          ...baseOption.xAxis,
-          data: realtimeData.labels,
-          axisLabel: {
-            color: axisLabelColor,
-            fontSize: 10,
-            interval: Math.max(Math.floor(realtimeData.labels.length / 4), 12),
-            formatter: (value: string | number) => {
-              const label = String(value)
-              return label.length >= 5 ? label.substring(0, 5) : label
-            }
-          }
-        },
-        series: [
-          {
-            name: t('stats.uploadSpeed'),
-            type: 'line',
+      },
+      series: [
+        {
+          name: t('stats.uploadSpeed'),
+          type: 'line',
+          color: uploadColor,
+          smooth: true,
+          symbol: 'none',
+          data: realtimeData.upload,
+          lineStyle: {
             color: uploadColor,
-            smooth: true,
-            symbol: 'none',
-            data: realtimeData.upload,
-            lineStyle: {
-              color: uploadColor,
-              width: 2.25,
-              opacity: 1,
-              cap: 'round',
-              join: 'round'
-            },
-            areaStyle: {
-              color: {
-                type: 'linear',
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
-                colorStops: [
-                  { offset: 0, color: 'rgba(6,182,212,0.40)' },
-                  { offset: 1, color: 'rgba(6,182,212,0.05)' }
-                ]
-              }
-            },
-            emphasis: {
-              disabled: true
+            width: 2.25,
+            opacity: 1,
+            cap: 'round',
+            join: 'round'
+          },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(6,182,212,0.40)' },
+                { offset: 1, color: 'rgba(6,182,212,0.05)' }
+              ]
             }
           },
-          {
-            name: t('stats.downloadSpeed'),
-            type: 'line',
-            color: downloadColor,
-            smooth: true,
-            symbol: 'none',
-            data: realtimeData.download,
-            lineStyle: {
-              color: downloadColor,
-              width: 2.25,
-              opacity: 1,
-              cap: 'round',
-              join: 'round'
-            },
-            areaStyle: {
-              color: {
-                type: 'linear',
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
-                colorStops: [
-                  { offset: 0, color: downloadAreaStart },
-                  { offset: 1, color: downloadAreaEnd }
-                ]
-              }
-            },
-            emphasis: {
-              disabled: true
-            }
+          emphasis: {
+            disabled: true
           }
-        ]
-      } as EChartsCoreOption
-    }
+        },
+        {
+          name: t('stats.downloadSpeed'),
+          type: 'line',
+          color: downloadColor,
+          smooth: true,
+          symbol: 'none',
+          data: realtimeData.download,
+          lineStyle: {
+            color: downloadColor,
+            width: 2.25,
+            opacity: 1,
+            cap: 'round',
+            join: 'round'
+          },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: downloadAreaStart },
+                { offset: 1, color: downloadAreaEnd }
+              ]
+            }
+          },
+          emphasis: {
+            disabled: true
+          }
+        }
+      ]
+    } as EChartsCoreOption
+  }, [isDark, realtimeData, t])
 
+  return <TrafficEChart option={chartOption} />
+})
+
+const HourlyChartRenderer = React.memo(function HourlyChartRenderer() {
+  const { t } = useI18n()
+  const { theme, systemTheme } = useTheme()
+  const isDark = (theme === 'system' ? systemTheme : theme) === 'dark'
+  const hourlyData = useTrafficStore((state) => state.hourlyData)
+
+  const formattedHourlyData = useMemo(() => {
+    return (hourlyData || []).map((item) => ({
+      ...item,
+      label: formatHourLabel(item.hour)
+    }))
+  }, [hourlyData])
+
+  const chartOption = useMemo(() => {
+    const { axisLabelColor, splitLineColor, uploadColor, downloadColor } = getChartColors(isDark)
+    const baseOption = createBaseChartOption(axisLabelColor, splitLineColor)
     const chartData = formattedHourlyData
 
     return {
@@ -338,13 +370,7 @@ const TrafficDataChartRenderer = React.memo(function TrafficDataChartRenderer({ 
         }
       ]
     } as EChartsCoreOption
-  }, [
-    formattedHourlyData,
-    historyTab,
-    isDark,
-    realtimeData,
-    t
-  ])
+  }, [isDark, formattedHourlyData, t])
 
   return <TrafficEChart option={chartOption} />
 })
@@ -375,7 +401,7 @@ const TrafficChart: React.FC = () => {
 
         <div className="h-[200px] w-full">
           <Suspense fallback={<div className="h-full w-full" />}>
-            <TrafficDataChartRenderer historyTab={historyTab} />
+            {historyTab === 'realtime' ? <RealtimeChartRenderer /> : <HourlyChartRenderer />}
           </Suspense>
         </div>
       </CardBody>

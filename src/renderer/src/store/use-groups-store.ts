@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { mihomoGroups } from '@renderer/utils/mihomo-ipc'
+import { isExpectedMihomoUnavailableError, mihomoGroups } from '@renderer/utils/mihomo-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface GroupsState {
@@ -18,16 +18,6 @@ let unavailableRetryTimer: number | null = null
 let groupsListenerRefCount = 0
 let fetchGroupsPromise: Promise<void> | null = null
 
-function isExpectedMihomoUnavailableError(error: unknown): boolean {
-  const message = `${error ?? ''}`
-  return (
-    message.includes('connect ENOENT \\\\.\\pipe\\RouteX\\mihomo') ||
-    message.includes('socket hang up') ||
-    message.includes('Mihomo controller is not available') ||
-    message.includes('503 Service Unavailable') ||
-    message.includes('504 Gateway Timeout')
-  )
-}
 
 // 精确的监听器引用，避免使用 removeAllListeners
 let currentGroupsCleanup: (() => void) | null = null
