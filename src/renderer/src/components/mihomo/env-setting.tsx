@@ -8,6 +8,7 @@ import EditableList from '../base/base-list-editor'
 import { platform } from '@renderer/utils/init'
 import { secondaryInputClassNames } from '../settings/advanced-settings'
 import { useI18n } from '@renderer/i18n'
+import PubSub from 'pubsub-js'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const EnvSetting: React.FC = () => {

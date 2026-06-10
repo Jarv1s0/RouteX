@@ -49,7 +49,6 @@ function isTauriHost(): boolean {
 }
 
 interface TauriVirtualFileRecord {
-  name: string
   text: Promise<string>
 }
 
@@ -64,7 +63,6 @@ function createTauriVirtualFileToken(file: File): string {
   const token = `${TAURI_VIRTUAL_FILE_PREFIX}${id}/${encodeURIComponent(file.name || 'file.txt')}`
 
   tauriVirtualFiles.set(token, {
-    name: file.name || 'file.txt',
     text: file.text()
   })
 
@@ -202,26 +200,58 @@ export const desktop: DesktopApi = {
   },
   once<Args extends unknown[]>(channel: IpcOnChannel, listener: DesktopListener<Args>) {
     if (isTauriHost()) {
-      const localHandler = (event: Event): void => {
-        listener(createSyntheticIpcEvent(), ...(readCustomEventArgs(event) as unknown as Args))
+      let handled = false
+      let tauriUnlisten: (() => void) | null = null
+
+      const cleanup = (): void => {
+        window.removeEventListener(channel, localHandler)
+        tauriUnlisten?.()
+        tauriUnlisten = null
       }
 
-      window.addEventListener(channel, localHandler, { once: true })
+      const runOnce = (args: Args): void => {
+        if (handled) {
+          return
+        }
+
+        handled = true
+        cleanup()
+        listener(createSyntheticIpcEvent(), ...args)
+      }
+
+      const localHandler = (event: Event): void => {
+        runOnce(readCustomEventArgs(event) as unknown as Args)
+      }
+
+      window.addEventListener(channel, localHandler)
       const unlistenPromise = getTauriEvent()
         .then(({ once }) =>
           once(channel, (event): void => {
-            listener(createSyntheticIpcEvent(), ...(normalizeEventArgs(event.payload) as Args))
+            runOnce(normalizeEventArgs(event.payload) as Args)
           })
         )
+        .then((unlisten) => {
+          if (handled) {
+            unlisten()
+            return unlisten
+          }
+
+          tauriUnlisten = unlisten
+          return unlisten
+        })
         .catch((): null => null)
 
       return () => {
-        window.removeEventListener(channel, localHandler)
-        void unlistenPromise.then((unlisten) => {
-          if (typeof unlisten === 'function') {
-            unlisten()
-          }
-        })
+        handled = true
+        const pendingUnlisten = tauriUnlisten
+        cleanup()
+        if (!pendingUnlisten) {
+          void unlistenPromise.then((unlisten) => {
+            if (typeof unlisten === 'function') {
+              unlisten()
+            }
+          })
+        }
       }
     }
 
@@ -268,7 +298,15 @@ export function isTauriVirtualFile(path: string): boolean {
 
 export async function readTauriVirtualFile(path: string): Promise<string | undefined> {
   const record = tauriVirtualFiles.get(path)
-  return record ? await record.text : undefined
+  if (!record) {
+    return undefined
+  }
+
+  try {
+    return await record.text
+  } finally {
+    tauriVirtualFiles.delete(path)
+  }
 }
 
 export async function pickTauriFiles(extensions: string[]): Promise<string[] | undefined> {
