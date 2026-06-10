@@ -351,10 +351,7 @@ pub(crate) fn register_system_handlers(map: &mut std::collections::HashMap<&'sta
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "getImageDataURL requires url".to_string())?;
-            match fetch_image_data_url(url) {
-                Ok(value) => Ok(json!(value)),
-                Err(_) => Ok(json!(default_icon_data_url())),
-            }
+            fetch_image_data_url(url).map(|value| json!(value))
         
     })().map_err(crate::desktop::error::AppError::from) });
     map.insert("getIconDataURL", |app, window, state, args| { (|| -> Result<Value, String> {

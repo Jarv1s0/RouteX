@@ -2,9 +2,47 @@ import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/resource-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { useEffect, memo } from 'react'
+import { useEffect, memo, useState } from 'react'
 import { addFlag } from '@renderer/utils/flags'
 import { useI18n } from '@renderer/i18n'
+
+function isRemoteIcon(value: string): boolean {
+  return /^https?:\/\//i.test(value)
+}
+
+function toSvgDataUrl(value: string): string {
+  return `data:image/svg+xml;utf8,${value}`
+}
+
+function readCachedGroupIcon(icon: string): string | null {
+  try {
+    const cached = localStorage.getItem(icon)
+    if (!cached) {
+      return null
+    }
+
+    if (isRemoteIcon(cached)) {
+      localStorage.removeItem(icon)
+      return null
+    }
+
+    return cached
+  } catch {
+    return null
+  }
+}
+
+function writeCachedGroupIcon(icon: string, src: string): void {
+  if (isRemoteIcon(src)) {
+    return
+  }
+
+  try {
+    localStorage.setItem(icon, src)
+  } catch {
+    // ignore cache write failure
+  }
+}
 
 interface Props {
   group: ControllerMixedGroup
@@ -26,11 +64,12 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
   currentDelay,
   liveCount,
   onGroupDelay,
-  mutate
 }) => {
   const { appConfig } = useAppConfig()
   const { t } = useI18n()
   const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
+  const [iconSrc, setIconSrc] = useState('')
+  const [iconLoadFailed, setIconLoadFailed] = useState(false)
 
   const delayColor =
     currentDelay === -1
@@ -45,13 +84,52 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
 
   // Icon handling
   useEffect(() => {
-    if (group.icon && group.icon.startsWith('http') && !localStorage.getItem(group.icon)) {
-      getImageDataURL(group.icon).then((dataURL) => {
-        localStorage.setItem(group.icon, dataURL)
-        mutate()
-      })
+    let cancelled = false
+    const icon = group.icon?.trim() || ''
+
+    setIconLoadFailed(false)
+
+    if (!icon) {
+      setIconSrc('')
+      return
     }
-  }, [group.icon, mutate])
+
+    if (icon.startsWith('<svg')) {
+      setIconSrc(toSvgDataUrl(icon))
+      return
+    }
+
+    if (!isRemoteIcon(icon)) {
+      setIconSrc(icon)
+      return
+    }
+
+    const cached = readCachedGroupIcon(icon)
+    if (cached) {
+      setIconSrc(cached)
+      return
+    }
+
+    setIconSrc('')
+    void getImageDataURL(icon)
+      .then((dataURL) => {
+        if (cancelled) {
+          return
+        }
+
+        writeCachedGroupIcon(icon, dataURL)
+        setIconSrc(dataURL)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIconLoadFailed(true)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [group.icon])
 
   const activeStyle = isOpen
     ? 'bg-gradient-to-br from-default-100/95 to-default-50/90 backdrop-blur-2xl border-default-200/70 shadow-[inset_0_-1px_0_rgba(255,255,255,0.45),0_12px_28px_rgba(15,23,42,0.06)] scale-[1.005] relative'
@@ -71,17 +149,14 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
           <div className="flex justify-between items-center">
             {/* Left: Info */}
             <div className="flex items-center gap-4">
-              {group.icon ? (
+              {iconSrc && !iconLoadFailed ? (
                 <img
                   className="w-6 h-6 object-contain flex-shrink-0"
-                  src={
-                    group.icon.startsWith('<svg')
-                      ? `data:image/svg+xml;utf8,${group.icon}`
-                      : localStorage.getItem(group.icon) || group.icon
-                  }
+                  src={iconSrc}
                   alt=""
                   onError={(e) => {
-                    ;(e.target as HTMLImageElement).style.display = 'none'
+                    ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                    setIconLoadFailed(true)
                   }}
                 />
               ) : (
@@ -192,6 +267,7 @@ export const ProxyGroupCard = memo(ProxyGroupCardComponent, (prev, next) => {
     prev.currentDelay === next.currentDelay &&
     prev.liveCount === next.liveCount &&
     prev.group.name === next.group.name &&
+    prev.group.icon === next.group.icon &&
     prev.group.now === next.group.now &&
     prev.group.all?.length === next.group.all?.length
   )
