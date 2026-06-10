@@ -31,9 +31,6 @@ importers:
       '@tauri-apps/plugin-deep-link':
         specifier: ^2.0.0
         version: 2.4.8
-      adm-zip:
-        specifier: ^0.5.16
-        version: 0.5.16
       dayjs:
         specifier: ^1.11.19
         version: 1.11.19
@@ -137,6 +134,9 @@ importers:
       '@xyflow/react':
         specifier: ^12.10.1
         version: 12.10.1(@types/react@19.2.7)(immer@11.0.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      adm-zip:
+        specifier: ^0.5.16
+        version: 0.5.16
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
