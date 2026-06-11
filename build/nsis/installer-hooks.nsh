@@ -308,6 +308,14 @@ Var ROUTEX_SERVICE_WAS_RUNNING
   ${EndIf}
 !macroend
 
+!macro ROUTEX_REMOVE_STALE_SHORTCUT_ICON_RESOURCES
+  Delete "$INSTDIR\resources\shortcut-icon-*.ico"
+  Delete "$INSTDIR\resources\icon*.ico"
+  Delete "$INSTDIR\resources\icon*.png"
+  Delete "$INSTDIR\resources\icon*.icns"
+  RmDir "$INSTDIR\resources"
+!macroend
+
 !macro ROUTEX_SET_LNK_APP_USER_MODEL_ID LINK_PATH
   !insertmacro ComHlpr_CreateInProcInstance ${CLSID_ShellLink} ${IID_IShellLink} r0 ""
   ${If} $0 P<> 0
@@ -338,6 +346,7 @@ Function .onGUIEnd
   ${If} ${FileExists} "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe"
     !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$DESKTOP\${ROUTEX_PRODUCT_NAME}.lnk"
     !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$SMPROGRAMS\${ROUTEX_PRODUCT_NAME}.lnk"
+    !insertmacro ROUTEX_REMOVE_STALE_SHORTCUT_ICON_RESOURCES
   ${EndIf}
 FunctionEnd
 
@@ -365,6 +374,7 @@ FunctionEnd
   !else
     !insertmacro ROUTEX_REFRESH_SHORTCUT_ICON "$SMPROGRAMS\${ROUTEX_PRODUCT_NAME}.lnk"
   !endif
+  !insertmacro ROUTEX_REMOVE_STALE_SHORTCUT_ICON_RESOURCES
   !insertmacro ROUTEX_RESTORE_SERVICE_AFTER_FILE_WRITE
 !macroend
 
