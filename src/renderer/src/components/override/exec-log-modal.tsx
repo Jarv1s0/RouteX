@@ -18,9 +18,7 @@ interface Props {
 const ExecLogModal: React.FC<Props> = (props) => {
   const { id, onClose } = props
   const { t } = useI18n()
-  const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [logs, setLogs] = useState<string[]>([])
 
   const getLog = async (): Promise<void> => {
@@ -33,8 +31,7 @@ const ExecLogModal: React.FC<Props> = (props) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       classNames={createSecondaryModalClassNames()}
       hideCloseButton
       isOpen={true}

@@ -17,9 +17,7 @@ interface Props {
 const InterfaceModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { onClose } = props
-  const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [info, setInfo] = useState<Record<string, NetworkInterfaceInfo[]>>({})
   const getInfo = async (): Promise<void> => {
     setInfo(await getInterfaces())
@@ -31,8 +29,7 @@ const InterfaceModal: React.FC<Props> = (props) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       classNames={createSecondaryModalClassNames()}
       hideCloseButton
       isOpen={true}

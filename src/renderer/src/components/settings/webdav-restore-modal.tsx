@@ -18,16 +18,13 @@ interface Props {
 const WebdavRestoreModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { filenames: names, onClose } = props
-  const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [filenames, setFilenames] = useState<string[]>(names)
   const [restoring, setRestoring] = useState(false)
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       classNames={createSecondaryModalClassNames()}
       hideCloseButton
       isOpen={true}

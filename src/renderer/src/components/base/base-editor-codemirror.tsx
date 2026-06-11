@@ -37,7 +37,6 @@ import {
 } from '@codemirror/view'
 import { useTheme } from 'next-themes'
 import { load } from 'js-yaml'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { translate } from '@renderer/i18n'
 import type { BaseEditorProps, Language } from './base-editor.shared'
 import { MIHOMO_V119_YAML_SNIPPETS } from '../../../../shared/defaults/mihomo-templates'
@@ -60,7 +59,6 @@ interface CodeMirrorEditorViewProps extends CodeMirrorViewProps {
 }
 
 type EditorSettings = {
-  disableAnimation: boolean
   isLight: boolean
 }
 
@@ -112,10 +110,8 @@ const createFoldMarker = (open: boolean): HTMLElement => {
 const useEditorSettings = (): EditorSettings => {
   const { theme, systemTheme } = useTheme()
   const trueTheme = theme === 'system' ? systemTheme : theme
-  const { appConfig: { disableAnimation = false } = {} } = useAppConfig()
 
   return {
-    disableAnimation,
     isLight: trueTheme?.includes('light') ?? false
   }
 }
@@ -160,7 +156,7 @@ const languageExtensions = (language: Language): Extension[] => {
   }
 }
 
-const createTheme = (isLight: boolean, disableAnimation: boolean): Extension =>
+const createTheme = (isLight: boolean): Extension =>
   EditorView.theme(
     {
       '&': {
@@ -175,7 +171,7 @@ const createTheme = (isLight: boolean, disableAnimation: boolean): Extension =>
       '.cm-scroller': {
         fontFamily: editorFontFamily,
         lineHeight: '1.5',
-        scrollBehavior: disableAnimation ? 'auto' : 'smooth'
+        scrollBehavior: 'smooth'
       },
       '.cm-content': {
         minHeight: '100%',
@@ -224,9 +220,7 @@ const createTheme = (isLight: boolean, disableAnimation: boolean): Extension =>
         height: '16px',
         justifyContent: 'center',
         opacity: '0.72',
-        transition: disableAnimation
-          ? 'none'
-          : 'background-color 140ms ease, color 140ms ease, opacity 140ms ease',
+        transition: 'background-color 140ms ease, color 140ms ease, opacity 140ms ease',
         width: '16px'
       },
       '.cm-foldMarker::before': {
@@ -282,14 +276,12 @@ const createExtensions = ({
   language,
   readOnly,
   isLight,
-  disableAnimation,
   onChangeRef,
   suppressChangeRef
 }: {
   language: Language
   readOnly: boolean
   isLight: boolean
-  disableAnimation: boolean
   onChangeRef?: RefObject<((value: string) => void) | undefined>
   suppressChangeRef?: RefObject<boolean>
 }): Extension[] => [
@@ -317,7 +309,7 @@ const createExtensions = ({
   EditorState.tabSize.of(['yaml', 'javascript', 'json'].includes(language) ? 2 : 4),
   EditorState.readOnly.of(readOnly),
   EditorView.editable.of(!readOnly),
-  createTheme(isLight, disableAnimation),
+  createTheme(isLight),
   keymap.of([
     indentWithTab,
     ...closeBracketsKeymap,
@@ -412,16 +404,15 @@ const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const mergeViewRef = useRef<MergeView | undefined>(undefined)
-  const { disableAnimation, isLight } = useEditorSettings()
+  const { isLight } = useEditorSettings()
   const originalExtensions = useMemo(
     () =>
       createExtensions({
         language,
         readOnly: true,
-        isLight,
-        disableAnimation
+        isLight
       }),
-    [disableAnimation, isLight, language]
+    [isLight, language]
   )
 
   useEffect(() => {
@@ -467,7 +458,7 @@ const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
 }
 
 export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {
-  const { disableAnimation, isLight } = useEditorSettings()
+  const { isLight } = useEditorSettings()
   const {
     originalValue,
     diffRenderSideBySide = false,
@@ -488,11 +479,10 @@ export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {
         language,
         readOnly,
         isLight,
-        disableAnimation,
         onChangeRef,
         suppressChangeRef
       }),
-    [disableAnimation, isLight, language, readOnly]
+    [isLight, language, readOnly]
   )
 
   const runtimeProps = {

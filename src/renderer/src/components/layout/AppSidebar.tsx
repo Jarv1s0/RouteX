@@ -41,7 +41,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
     const location = useLocation()
     const { t } = useI18n()
     const { appConfig } = useAppConfig()
-    const { useWindowFrame = false, disableAnimation = false } = appConfig || {}
+    const { useWindowFrame = false } = appConfig || {}
 
     const handleSettingsNavigate = (): void => {
       navigateSidebarRoute('/settings')
@@ -105,7 +105,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
         className="side relative z-[80] h-full shrink-0 overflow-y-auto no-scrollbar pointer-events-auto bg-default-100/50 backdrop-blur-xl border-r border-default-200/50 dark:border-white/5 transition-[width] duration-300 flex flex-col"
       >
         <div
-          className={`app-drag sticky top-0 z-40 ${disableAnimation ? 'bg-background/95 backdrop-blur-sm' : 'bg-transparent backdrop-blur'} h-[49px] shrink-0`}
+          className="app-drag sticky top-0 z-40 bg-transparent backdrop-blur h-[49px] shrink-0"
           style={{ width: '100%' }}
         >
           <div

@@ -18,9 +18,7 @@ interface Props {
 const LogDetailModal: React.FC<Props> = (props) => {
   const { log, onClose } = props
   const { t } = useI18n()
-  const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
 
   const fullLog = `[${log.time}] [${log.type.toUpperCase()}] ${log.payload}`
 
@@ -45,8 +43,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       classNames={createSecondaryModalClassNames()}
       size="2xl"
       hideCloseButton

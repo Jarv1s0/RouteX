@@ -124,7 +124,6 @@ interface AppConfig {
   connectionTableColumns?: string[]
   connectionTableColumnWidths?: Record<string, number>
   disableGPU: boolean
-  disableAnimation?: boolean
   enableSiderConfig?: boolean
   collapseSidebar?: boolean
 }

@@ -19,9 +19,7 @@ interface Props {
 const EditFileModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { id, language, onClose } = props
-  const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [currData, setCurrData] = useState('')
   const [originalData, setOriginalData] = useState('')
   const [isDiff, setIsDiff] = useState(false)
@@ -51,8 +49,7 @@ const EditFileModal: React.FC<Props> = (props) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       classNames={{
         base: 'max-w-none w-full',
         backdrop: 'top-[48px]'

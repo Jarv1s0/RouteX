@@ -403,8 +403,6 @@ export const zhCN = {
   'settings.system.noUpdate': '暂无可用更新',
   'settings.system.disableGpu': '禁用 GPU 加速',
   'settings.system.disableGpuHelp': '开启后，应用将禁用 GPU 加速，可能会提高稳定性，但会降低性能',
-  'settings.system.disableAnimation': '禁用动画',
-  'settings.system.disableAnimationHelp': '开启后，应用将减轻绝大部分动画效果，可能会提高性能',
   'settings.system.restartTitle': '确定要重启应用吗？',
   'settings.system.restartDescription': '修改 GPU 加速设置需要重启应用才能生效',
   'settings.system.restart': '重启',

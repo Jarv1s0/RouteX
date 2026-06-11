@@ -36,7 +36,7 @@ const ConfirmModal: React.FC<Props> = (props) => {
     className
   } = props
   const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
+    appConfig: { collapseSidebar = false, siderWidth = 250 } = {}
   } = useAppConfig()
 
   const renderButtons = () => {
@@ -80,8 +80,7 @@ const ConfirmModal: React.FC<Props> = (props) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       hideCloseButton
       isOpen={true}
       size="5xl"

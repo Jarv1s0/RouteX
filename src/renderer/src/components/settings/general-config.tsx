@@ -46,7 +46,6 @@ const GeneralConfig: React.FC = () => {
   const {
     silentStart = false,
     disableGPU = false,
-    disableAnimation = false,
     pauseSSID,
     autoLightweight = false,
     autoLightweightMode = 'core',
@@ -128,9 +127,6 @@ const GeneralConfig: React.FC = () => {
           }}
           onConfirm={async () => {
             await patchAppConfig({ disableGPU: pendingDisableGPU })
-            if (!pendingDisableGPU) {
-              await patchAppConfig({ disableAnimation: false })
-            }
             await relaunchApp()
           }}
         />
@@ -184,7 +180,7 @@ const GeneralConfig: React.FC = () => {
             ))}
           </Select>
         </SettingItem>
-        <SettingItem title={t('settings.system.checkUpdate')} divider>
+        <SettingItem title={t('settings.system.checkUpdate')} divider={!isTauriHost}>
           <Button
             size="sm"
             variant="flat"
@@ -240,24 +236,6 @@ const GeneralConfig: React.FC = () => {
             />
           </SettingItem>
         )}
-        <SettingItem
-          title={t('settings.system.disableAnimation')}
-          actions={
-            <Tooltip content={t('settings.system.disableAnimationHelp')}>
-              <Button isIconOnly size="sm" variant="light">
-                <IoIosHelpCircle className="text-lg" />
-              </Button>
-            </Tooltip>
-          }
-        >
-          <AppSwitch
-            size="sm"
-            isSelected={disableAnimation}
-            onValueChange={(v) => {
-              patchAppConfig({ disableAnimation: v })
-            }}
-          />
-        </SettingItem>
       </SettingCard>
 
       <SettingCard title={t('settings.clash.title')}>

@@ -47,7 +47,6 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const {
     appConfig: {
-      disableAnimation = false,
       delayThresholds = { good: 200, fair: 500 },
       collapseSidebar = false,
       siderWidth = 250
@@ -157,8 +156,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       classNames={createSecondaryModalClassNames({
         backdrop: 'bg-black/40 backdrop-blur-sm',
         wrapper: 'z-[9999]',

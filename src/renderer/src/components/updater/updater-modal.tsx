@@ -34,9 +34,7 @@ interface Props {
 const UpdaterModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { version, releaseNotes, updateStatus, onClose, onCancel } = props
-  const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [downloading, setDownloading] = useState(false)
   const onUpdate = async (): Promise<void> => {
     try {
@@ -61,8 +59,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       hideCloseButton
       isOpen={true}
       onOpenChange={onClose}

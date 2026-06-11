@@ -421,9 +421,6 @@ export const enUS: Record<TranslationKey, string> = {
   'settings.system.disableGpu': 'Disable GPU acceleration',
   'settings.system.disableGpuHelp':
     'Disables GPU acceleration. This may improve stability but can reduce performance.',
-  'settings.system.disableAnimation': 'Disable animations',
-  'settings.system.disableAnimationHelp':
-    'Reduces most animation effects and may improve performance.',
   'settings.system.restartTitle': 'Restart the app?',
   'settings.system.restartDescription': 'GPU acceleration changes require an app restart.',
   'settings.system.restart': 'Restart',

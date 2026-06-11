@@ -18,9 +18,7 @@ type DiffSource = 'raw' | 'override'
 
 const ConfigViewer: React.FC<Props> = ({ onClose }) => {
   const { t } = useI18n()
-  const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [runtimeConfig, setRuntimeConfig] = useState('')
   const [rawProfile, setRawProfile] = useState('')
   const [overrideConfig, setOverrideConfig] = useState('')
@@ -55,8 +53,7 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       classNames={{
         base: 'max-w-none w-full',
         backdrop: 'top-[48px]'

@@ -38,9 +38,7 @@ type ConnectionStatusType = 'connected' | 'disconnected' | 'checking' | 'unknown
 const ServiceModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { onChange, onInit, onInstall, onUninstall, onStart, onStop, onRestart } = props
-  const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<ServiceStatusType | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusType>('checking')
@@ -143,8 +141,7 @@ const ServiceModal: React.FC<Props> = (props) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       hideCloseButton
       isOpen={true}
       size="5xl"

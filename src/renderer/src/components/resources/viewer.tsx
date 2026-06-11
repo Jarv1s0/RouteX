@@ -29,9 +29,7 @@ interface Props {
 const Viewer: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { type, path, title, format, privderType, behavior, onClose } = props
-  const {
-    appConfig: { disableAnimation = false, collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const [currData, setCurrData] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   let language: Language = !format || format === 'YamlRule' ? 'yaml' : 'text'
@@ -89,8 +87,7 @@ const Viewer: React.FC<Props> = (props) => {
 
   return (
     <Modal
-      backdrop={disableAnimation ? 'transparent' : 'blur'}
-      disableAnimation={disableAnimation}
+      backdrop="blur"
       classNames={createSecondaryModalClassNames({
         base: 'max-w-none w-full'
       })}
