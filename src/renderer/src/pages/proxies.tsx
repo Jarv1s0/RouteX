@@ -754,18 +754,18 @@ const Proxies: React.FC = () => {
 
   return (
     <BasePage
-      title={t('page.proxies.title')}
-      header={
-        <div className="flex items-center gap-1 app-nodrag">
+      title={
+        <div className="flex items-center gap-2">
+          <span>{t('page.proxies.title')}</span>
           <Button
             size="sm"
             isIconOnly
             variant="light"
-            className="rounded-xl"
+            className="h-6 w-6 min-w-0 app-nodrag"
             title={t('page.proxies.settings')}
             onPress={() => setIsSettingModalOpen(true)}
           >
-            <MdTune className="text-lg" />
+            <MdTune className="text-base" />
           </Button>
         </div>
       }

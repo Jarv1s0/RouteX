@@ -50,21 +50,26 @@ const ProfilesPage: React.FC = () => {
         ? t('page.profiles.providersTitle')
         : t('page.profiles.title')
 
-  const pageHeader = activeTab === 'profiles' ? (
-      <Button
-        size="sm"
-        title={t('page.profiles.settings')}
-        className="app-nodrag"
-        variant="light"
-        isIconOnly
-        onPress={() => setIsSettingModalOpen(true)}
-      >
-        <MdTune className="text-lg" />
-      </Button>
-    ) : null
+  const titleContent = (
+    <div className="flex items-center gap-2">
+      <span>{pageTitle}</span>
+      {activeTab === 'profiles' && (
+        <Button
+          size="sm"
+          title={t('page.profiles.settings')}
+          className="h-6 w-6 min-w-0 app-nodrag"
+          variant="light"
+          isIconOnly
+          onPress={() => setIsSettingModalOpen(true)}
+        >
+          <MdTune className="text-base" />
+        </Button>
+      )}
+    </div>
+  )
 
   return (
-    <BasePage ref={pageRef} title={pageTitle} header={pageHeader}>
+    <BasePage ref={pageRef} title={titleContent}>
       {isSettingModalOpen && <ProfileSettingModal onClose={() => setIsSettingModalOpen(false)} />}
 
       <div className="sticky top-0 z-40 w-full bg-transparent px-2 pb-2 pt-2 pointer-events-none">

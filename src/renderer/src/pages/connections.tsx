@@ -12,16 +12,19 @@ const Connections: React.FC = () => {
 
   return (
     <BasePage
-      title={t('page.connections.title')}
-      header={
-        <Button
-          isIconOnly
-          variant="light"
-          onPress={() => setIsSettingModalOpen(true)}
-          className="text-default-500 min-w-8 w-8 h-8 min-h-8"
-        >
-          <MdTune size={18} />
-        </Button>
+      title={
+        <div className="flex items-center gap-2">
+          <span>{t('page.connections.title')}</span>
+          <Button
+            size="sm"
+            isIconOnly
+            variant="light"
+            onPress={() => setIsSettingModalOpen(true)}
+            className="h-6 w-6 min-w-0 app-nodrag text-default-500"
+          >
+            <MdTune className="text-base" />
+          </Button>
+        </div>
       }
     >
       {isSettingModalOpen && (
