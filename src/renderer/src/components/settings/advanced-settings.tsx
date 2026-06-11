@@ -119,20 +119,22 @@ const AdvancedSettings: React.FC = () => {
             {t('settings.advanced.quitApp')}
           </Button>
         </SettingItem>
-        <SettingItem title={t('settings.advanced.appVersion')}>
-          <div className="flex items-center gap-2">
-            <span className="text-default-600">{displayVersion}</span>
+        <SettingItem
+          title={t('settings.advanced.appVersion')}
+          actions={
             <Button
               isIconOnly
               size="sm"
               variant="light"
-              className="text-default-500 hover:text-foreground"
+              className="text-default-500 hover:text-foreground -ml-1 h-7 w-7 min-w-0"
               title={t('page.settings.github')}
               onPress={() => openExternalUrl('https://github.com/Jarv1s0/RouteX')}
             >
               <IoLogoGithub className="text-lg" />
             </Button>
-          </div>
+          }
+        >
+          <div className="text-default-600">{displayVersion}</div>
         </SettingItem>
       </SettingCard>
     </div>
