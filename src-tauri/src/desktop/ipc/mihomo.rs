@@ -193,6 +193,10 @@ fn upgrade_geo_data_file(
     ensure_parent(&temp_path)?;
     fs::write(&temp_path, bytes).map_err(|e| e.to_string())?;
     replace_geo_data_file(&temp_path, &target_path, &backup_path)?;
+    restart_core_process(app, state, None).inspect(|value| {
+        emit_ipc_event(app, "core-started", value.clone());
+        emit_mihomo_config_updated(app);
+    })?;
     Ok(Value::Null)
 }
 
