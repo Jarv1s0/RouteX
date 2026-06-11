@@ -189,9 +189,9 @@ const Stats: React.FC = () => {
           <Button
             size="sm"
             variant="light"
-            color="danger"
+            color="default"
             isIconOnly
-            className="h-6 w-6 min-w-0 app-nodrag"
+            className="h-6 w-6 min-w-0 app-nodrag text-default-500"
             title={t('page.stats.clear')}
             isLoading={clearingStats}
             onPress={() => setShowClearConfirm(true)}
