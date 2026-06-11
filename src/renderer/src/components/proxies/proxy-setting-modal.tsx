@@ -95,6 +95,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
         size="xl"
         hideCloseButton
         isOpen={true}
+        placement="top"
         onOpenChange={onClose}
         scrollBehavior="inside"
       >
@@ -388,6 +389,7 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
       size="sm"
       hideCloseButton
       isOpen={true}
+      placement="top"
       onOpenChange={onClose}
       scrollBehavior="inside"
     >

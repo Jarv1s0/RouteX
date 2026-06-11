@@ -13,14 +13,13 @@ import { useI18n } from '@renderer/i18n'
 import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   item: ProfileItem
-  isCurrent: boolean
   updateProfileItem: (item: ProfileItem) => Promise<void>
   onClose: () => void
 }
 
 const EditInfoModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
-  const { item, isCurrent, updateProfileItem, onClose } = props
+  const { item, updateProfileItem, onClose } = props
   const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
   const { overrideConfig } = useOverrideConfig()
   const { items: overrideItems = [] } = overrideConfig || {}
@@ -60,6 +59,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
       style={{ zIndex: 99999 }}
       hideCloseButton
       isOpen={true}
+      placement="top"
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
