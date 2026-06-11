@@ -1,5 +1,13 @@
 use std::{env, fs, path::PathBuf};
 
+const REQUIRED_RELEASE_RESOURCES: &[&str] = &[
+    "../extra/files/ASN.mmdb",
+    "../extra/files/country.mmdb",
+    "../extra/files/geoip.dat",
+    "../extra/files/geoip.metadb",
+    "../extra/files/geosite.dat",
+];
+
 fn main() {
     let profile = env::var("PROFILE").unwrap_or_else(|_| "release".to_string());
     let is_auto_build = env::var("ROUTEX_AUTO_BUILD")
@@ -33,6 +41,19 @@ fn main() {
         fs::create_dir_all(&path).unwrap_or_else(|error| {
             panic!("failed to create resource dir {}: {error}", path.display())
         });
+    }
+
+    for resource in REQUIRED_RELEASE_RESOURCES {
+        let path = manifest_dir.join(resource);
+        println!("cargo:rerun-if-changed={}", path.display());
+        if profile != "debug" {
+            let metadata = fs::metadata(&path).unwrap_or_else(|error| {
+                panic!("missing required bundled resource {}: {error}", path.display())
+            });
+            if metadata.len() == 0 {
+                panic!("required bundled resource is empty: {}", path.display());
+            }
+        }
     }
 
     let windows =
