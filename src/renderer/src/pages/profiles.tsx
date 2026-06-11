@@ -1,8 +1,6 @@
 import { Button, Tab, Tabs } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import { useCallback, useRef, useState } from 'react'
-import { LuFileText } from 'react-icons/lu'
-import { FaGithub } from 'react-icons/fa6'
 import { MdTune } from 'react-icons/md'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '@renderer/i18n'
@@ -52,35 +50,7 @@ const ProfilesPage: React.FC = () => {
         ? t('page.profiles.providersTitle')
         : t('page.profiles.title')
 
-  const pageHeader =
-    activeTab === 'overrides' ? (
-      <>
-        <Button
-          size="sm"
-          variant="light"
-          title={t('page.profiles.docs')}
-          isIconOnly
-          className="app-nodrag"
-          onPress={() => {
-            open('https://mihomo.party/docs/guide/override')
-          }}
-        >
-          <LuFileText className="h-[18px] w-[18px]" />
-        </Button>
-        <Button
-          className="app-nodrag"
-          title={t('page.profiles.overrideHub')}
-          isIconOnly
-          variant="light"
-          size="sm"
-          onPress={() => {
-            open('https://github.com/mihomo-party-org/override-hub')
-          }}
-        >
-          <FaGithub className="h-[18px] w-[18px]" />
-        </Button>
-      </>
-    ) : activeTab === 'profiles' ? (
+  const pageHeader = activeTab === 'profiles' ? (
       <Button
         size="sm"
         title={t('page.profiles.settings')}

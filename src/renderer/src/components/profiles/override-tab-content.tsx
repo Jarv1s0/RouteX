@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Key, KeyboardEvent } from 'react'
 import { MdContentPaste } from 'react-icons/md'
+import { IoMdRefresh } from 'react-icons/io'
 import {
   DndContext,
   closestCenter,
@@ -54,6 +55,7 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
 
   const [sortedOverrideItems, setSortedOverrideItems] = useState(overrideItemsArray)
   const [overrideImporting, setOverrideImporting] = useState(false)
+  const [overrideUpdating, setOverrideUpdating] = useState(false)
   const [fileOver, setFileOver] = useState(false)
   const [showOverrideEditModal, setShowOverrideEditModal] = useState(false)
   const [editingOverrideItem, setEditingOverrideItem] = useState<OverrideItem | null>(null)
@@ -184,6 +186,18 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
     },
     [handleOverrideImport, isOverrideUrlEmpty]
   )
+
+  const handleUpdateAllOverrides = useCallback(async (): Promise<void> => {
+    setOverrideUpdating(true)
+    try {
+      for (const item of overrideItemsArray) {
+        if (item.type !== 'remote') continue
+        await addOverrideItem(item)
+      }
+    } finally {
+      setOverrideUpdating(false)
+    }
+  }, [addOverrideItem, overrideItemsArray])
 
   const pageRef = useRef<HTMLDivElement>(null)
   const isProcessingDrop = useRef(false)
@@ -316,6 +330,16 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
               onPress={() => handleOverrideImport()}
             >
               {t('common.import')}
+            </Button>
+            <Button
+              size="sm"
+              isIconOnly
+              color="primary"
+              isLoading={overrideUpdating}
+              title={t('page.profiles.updateAllOverrides')}
+              onPress={() => void handleUpdateAllOverrides()}
+            >
+              <IoMdRefresh className="text-lg" />
             </Button>
             <Dropdown>
               <DropdownTrigger>

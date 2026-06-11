@@ -1,6 +1,7 @@
 import { Button, Tab, Tabs } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import { IoLogoGithub, IoSettingsOutline, IoBuildOutline } from 'react-icons/io5'
+import { openExternalUrl } from '@renderer/api/app'
 import GeneralConfig from '@renderer/components/settings/general-config'
 import AdvancedSettings from '@renderer/components/settings/advanced-settings'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
@@ -21,7 +22,7 @@ const Settings: React.FC = () => {
             className="app-nodrag"
             title={t('page.settings.github')}
             onPress={() => {
-              window.open('https://github.com/Jarv1s0/RouteX')
+              void openExternalUrl('https://github.com/Jarv1s0/RouteX')
             }}
           >
             <IoLogoGithub className="text-lg" />
