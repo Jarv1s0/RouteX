@@ -3,10 +3,11 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Tooltip } from '@heroui/react'
 
-import { quitApp, quitWithoutCore, resetAppConfig } from '@renderer/api/app'
+import { quitApp, quitWithoutCore, resetAppConfig, openExternalUrl } from '@renderer/api/app'
 import { version } from '@renderer/utils/init'
 import { ROUTEX_BUILD_VARIANT } from '../../../../shared/build'
 import { IoIosHelpCircle } from 'react-icons/io'
+import { IoLogoGithub } from 'react-icons/io5'
 import ConfirmModal from '../base/base-confirm'
 import { useI18n } from '@renderer/i18n'
 
@@ -119,7 +120,19 @@ const AdvancedSettings: React.FC = () => {
           </Button>
         </SettingItem>
         <SettingItem title={t('settings.advanced.appVersion')}>
-          <div>{displayVersion}</div>
+          <div className="flex items-center gap-2">
+            <span className="text-default-600">{displayVersion}</span>
+            <Button
+              isIconOnly
+              size="sm"
+              variant="light"
+              className="text-default-500 hover:text-foreground"
+              title={t('page.settings.github')}
+              onPress={() => openExternalUrl('https://github.com/Jarv1s0/RouteX')}
+            >
+              <IoLogoGithub className="text-lg" />
+            </Button>
+          </div>
         </SettingItem>
       </SettingCard>
     </div>
