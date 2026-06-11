@@ -1,6 +1,19 @@
 use super::prelude::*;
 use super::*;
 
+const RUNTIME_CHECK_DIR_NAME: &str = "check";
+const LEGACY_RUNTIME_TEST_DIR_NAME: &str = "test";
+
+fn migrate_legacy_runtime_check_dir(profile_base: &Path) -> Result<(), String> {
+    let legacy_test_dir = profile_base.join(LEGACY_RUNTIME_TEST_DIR_NAME);
+    let check_dir = profile_base.join(RUNTIME_CHECK_DIR_NAME);
+    if !legacy_test_dir.exists() || check_dir.exists() {
+        return Ok(());
+    }
+
+    fs::rename(&legacy_test_dir, &check_dir).map_err(|e| e.to_string())
+}
+
 pub(crate) fn prepare_runtime_data_dir(
     app: &tauri::AppHandle,
     data_dir: &Path,
@@ -63,16 +76,18 @@ pub(crate) fn ensure_runtime_dirs(
         logs_base.clone()
     };
 
+    migrate_legacy_runtime_check_dir(&profile_base)?;
+
     let work_dir = profile_base.join("work");
     let logs_dir = profile_logs_base;
-    let test_dir = profile_base.join("test");
+    let check_dir = profile_base.join(RUNTIME_CHECK_DIR_NAME);
     let log_path = logs_dir.join("mihomo.log");
 
     fs::create_dir_all(&work_dir).map_err(|e| e.to_string())?;
     fs::create_dir_all(&logs_dir).map_err(|e| e.to_string())?;
-    fs::create_dir_all(&test_dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&check_dir).map_err(|e| e.to_string())?;
 
-    Ok((base, work_dir, log_path, test_dir))
+    Ok((base, work_dir, log_path, check_dir))
 }
 
 pub(crate) fn read_max_log_days(app: &tauri::AppHandle) -> u64 {
@@ -779,18 +794,18 @@ pub(crate) fn reload_core_config_process(
         &controller_address,
     );
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
-    let test_dir = work_dir
+    let check_dir = work_dir
         .parent()
-        .ok_or_else(|| "Mihomo test dir is not available".to_string())?
-        .join("test");
+        .ok_or_else(|| "Mihomo check dir is not available".to_string())?
+        .join(RUNTIME_CHECK_DIR_NAME);
 
     prepare_runtime_data_dir(app, &work_dir)?;
-    prepare_runtime_data_dir(app, &test_dir)?;
+    prepare_runtime_data_dir(app, &check_dir)?;
 
     let safe_paths = read_safe_paths(app)?;
     let check_path = work_dir.join(format!("config-hot-reload-{}.yaml", current_timestamp_ms()));
     fs::write(&check_path, &config_yaml).map_err(|e| e.to_string())?;
-    let check_result = check_runtime_profile(&binary_path, &check_path, &test_dir, &safe_paths);
+    let check_result = check_runtime_profile(&binary_path, &check_path, &check_dir, &safe_paths);
     let _ = fs::remove_file(&check_path);
     check_result?;
 
