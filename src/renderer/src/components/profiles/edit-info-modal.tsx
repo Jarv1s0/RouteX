@@ -59,7 +59,6 @@ const EditInfoModal: React.FC<Props> = (props) => {
       style={{ zIndex: 99999 }}
       hideCloseButton
       isOpen={true}
-      placement="top"
       onOpenChange={onClose}
       scrollBehavior="inside"
     >

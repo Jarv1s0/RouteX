@@ -26,7 +26,7 @@ export function createSecondaryModalClassNames(overrides: ModalClassNames = {}):
   return {
     base: mergeClassNames(`${CARD_STYLES.GLASS_CARD} shadow-2xl`, overrides.base),
     backdrop: mergeClassNames('top-[48px]', overrides.backdrop),
-    wrapper: mergeClassNames('top-[48px]', overrides.wrapper),
+    wrapper: overrides.wrapper,
     header: mergeClassNames(`border-b ${MODAL_BORDER}`, overrides.header),
     body: overrides.body,
     footer: mergeClassNames(`border-t ${MODAL_BORDER}`, overrides.footer),
