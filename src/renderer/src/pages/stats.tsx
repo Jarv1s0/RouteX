@@ -182,7 +182,24 @@ const Stats: React.FC = () => {
   }, [clearStats, t])
 
   return (
-    <BasePage title={t('page.stats.title')}>
+    <BasePage
+      title={
+        <div className="flex items-center gap-3">
+          <span>{t('page.stats.title')}</span>
+          <Button
+            size="sm"
+            variant="flat"
+            color="danger"
+            className="h-6 min-w-0 px-2 text-xs app-nodrag"
+            startContent={<CgTrash className="text-sm" />}
+            isLoading={clearingStats}
+            onPress={() => setShowClearConfirm(true)}
+          >
+            {t('page.stats.clear')}
+          </Button>
+        </div>
+      }
+    >
       {showClearConfirm && (
         <ConfirmModal
           onChange={setShowClearConfirm}
@@ -194,19 +211,6 @@ const Stats: React.FC = () => {
         />
       )}
       <div className="p-2 space-y-2">
-        <div className="flex justify-end px-1">
-          <Button
-            size="sm"
-            variant="flat"
-            color="danger"
-            startContent={<CgTrash className="text-lg" />}
-            isLoading={clearingStats}
-            onPress={() => setShowClearConfirm(true)}
-          >
-            {t('page.stats.clear')}
-          </Button>
-        </div>
-
         {/* Row 1: Status Grid */}
         <StatusGrid />
 
