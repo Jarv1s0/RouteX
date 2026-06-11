@@ -36,7 +36,6 @@
       "../extra/files/geoip.dat": "tools/geoip.dat",
       "../extra/files/geoip.metadb": "tools/geoip.metadb",
       "../extra/files/geosite.dat": "tools/geosite.dat",
-      "../extra/files/routex-run*": "tools/",
       "../extra/files/routex-service*": "tools/"
     },
     "windows": {

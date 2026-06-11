@@ -1,0 +1,8 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "bundle": {
+    "resources": {
+      "../extra/files/routex-run.exe": "tools/routex-run.exe"
+    }
+  }
+}
