@@ -184,18 +184,19 @@ const Stats: React.FC = () => {
   return (
     <BasePage
       title={
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span>{t('page.stats.title')}</span>
           <Button
             size="sm"
-            variant="flat"
+            variant="light"
             color="danger"
-            className="h-6 min-w-0 px-2 text-xs app-nodrag"
-            startContent={<CgTrash className="text-sm" />}
+            isIconOnly
+            className="h-6 w-6 min-w-0 app-nodrag"
+            title={t('page.stats.clear')}
             isLoading={clearingStats}
             onPress={() => setShowClearConfirm(true)}
           >
-            {t('page.stats.clear')}
+            <CgTrash className="text-base" />
           </Button>
         </div>
       }
