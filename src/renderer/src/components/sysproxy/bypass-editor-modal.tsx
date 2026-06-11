@@ -3,7 +3,7 @@ import yaml from 'js-yaml'
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import { BaseEditor } from '../base/base-editor-lazy'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { getMainPaneModalContentStyle, MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
 interface Props {
@@ -40,10 +40,7 @@ const ByPassEditorModal: React.FC<Props> = (props) => {
   return (
     <Modal
       backdrop="blur"
-      classNames={{
-        base: 'max-w-none w-full',
-        backdrop: 'top-[48px]'
-      }}
+      classNames={MAIN_PANE_MODAL_CLASSNAMES}
       style={{ zIndex: 99999 }}
       size="5xl"
       hideCloseButton

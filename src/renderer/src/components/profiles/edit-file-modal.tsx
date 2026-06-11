@@ -4,7 +4,7 @@ import { BaseEditor } from '../base/base-editor-lazy'
 import { getProfileStr, setProfileStr } from '@renderer/utils/profile-ipc'
 import { useNavigate } from 'react-router-dom'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { getMainPaneModalContentStyle, MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 import ConfirmModal from '../base/base-confirm'
 import { notifyError } from '@renderer/utils/notify'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
@@ -52,10 +52,7 @@ const EditFileModal: React.FC<Props> = (props) => {
   return (
     <Modal
       backdrop="blur"
-      classNames={{
-        base: 'max-w-none w-full',
-        backdrop: 'top-[48px]'
-      }}
+      classNames={MAIN_PANE_MODAL_CLASSNAMES}
       style={{ zIndex: 99999 }}
       size="5xl"
       hideCloseButton

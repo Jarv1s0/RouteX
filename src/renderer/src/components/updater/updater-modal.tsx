@@ -68,7 +68,6 @@ const UpdaterModal: React.FC<Props> = (props) => {
       size="md"
       classNames={createSecondaryModalClassNames({
         body: 'p-0',
-        backdrop: 'top-[48px]',
         footer: 'px-5 py-4'
       })}
     >

@@ -6,7 +6,7 @@ import { getOverrideProfileStr } from '@renderer/utils/override-ipc'
 import { getProfileConfig, getRawProfileStr } from '@renderer/utils/profile-ipc'
 import useSWR from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { getMainPaneModalContentStyle, MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -54,10 +54,7 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
   return (
     <Modal
       backdrop="blur"
-      classNames={{
-        base: 'max-w-none w-full',
-        backdrop: 'top-[48px]'
-      }}
+      classNames={MAIN_PANE_MODAL_CLASSNAMES}
       style={{ zIndex: 99999 }}
       size="5xl"
       hideCloseButton

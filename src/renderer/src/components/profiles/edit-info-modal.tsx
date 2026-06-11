@@ -53,7 +53,6 @@ const EditInfoModal: React.FC<Props> = (props) => {
       backdrop="blur"
       size="5xl"
       classNames={{
-        backdrop: 'top-[48px]',
         base: 'w-[600px] md:w-[600px] lg:w-[800px] xl:w-[1024px]'
       }}
       style={{ zIndex: 99999 }}

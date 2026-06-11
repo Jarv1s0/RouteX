@@ -1,7 +1,7 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import { BaseEditor } from '@renderer/components/base/base-editor-lazy'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { getMainPaneModalContentStyle, MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 import { readTheme } from '@renderer/utils/theme-ipc'
 import { useI18n } from '@renderer/i18n'
 import React, { useEffect, useState } from 'react'
@@ -27,10 +27,7 @@ const CSSEditorModal: React.FC<Props> = (props) => {
   return (
     <Modal
       backdrop="blur"
-      classNames={{
-        base: 'max-w-none w-full',
-        backdrop: 'top-[48px]'
-      }}
+      classNames={MAIN_PANE_MODAL_CLASSNAMES}
       style={{ zIndex: 99999 }}
       size="5xl"
       hideCloseButton

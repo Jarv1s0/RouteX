@@ -298,7 +298,6 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
       {showEditModal && editingItem && (
         <EditInfoModal
           item={editingItem}
-          isCurrent={editingItem.id === current}
           updateProfileItem={async (item: ProfileItem) => {
             if (item.id) {
               await patchProfileItemServer(item)

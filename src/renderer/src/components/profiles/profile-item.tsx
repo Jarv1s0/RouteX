@@ -279,7 +279,6 @@ const ProfileItem: React.FC<Props> = (props) => {
       {openInfoEditor && (
         <EditInfoModal
           item={info}
-          isCurrent={isCurrent}
           onClose={() => setOpenInfoEditor(false)}
           updateProfileItem={updateProfileItem}
         />
