@@ -2,8 +2,7 @@ import React, { useState, useCallback } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { Button, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
 import { clearTrafficStats } from '@renderer/utils/stats-ipc'
-import { IoClose } from 'react-icons/io5'
-import { CgTrash } from 'react-icons/cg'
+import { IoClose, IoRefresh } from 'react-icons/io5'
 import ConfirmModal from '@renderer/components/base/base-confirm'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
@@ -196,7 +195,7 @@ const Stats: React.FC = () => {
             isLoading={clearingStats}
             onPress={() => setShowClearConfirm(true)}
           >
-            <CgTrash className="text-base" />
+            <IoRefresh className="text-base" />
           </Button>
         </div>
       }
