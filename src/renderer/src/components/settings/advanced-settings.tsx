@@ -126,7 +126,7 @@ const AdvancedSettings: React.FC = () => {
               isIconOnly
               size="sm"
               variant="light"
-              className="text-default-500 hover:text-foreground -ml-1 h-7 w-7 min-w-0"
+              className="-ml-1 h-7 w-7 min-w-0"
               title={t('page.settings.github')}
               onPress={() => openExternalUrl('https://github.com/Jarv1s0/RouteX')}
             >
