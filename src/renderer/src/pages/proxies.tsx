@@ -761,7 +761,7 @@ const Proxies: React.FC = () => {
             size="sm"
             isIconOnly
             variant="light"
-            className="h-6 w-6 min-w-0 app-nodrag"
+            className="h-6 w-6 min-w-0 app-nodrag text-default-500"
             title={t('page.proxies.settings')}
             onPress={() => setIsSettingModalOpen(true)}
           >
