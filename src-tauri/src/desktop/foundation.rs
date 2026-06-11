@@ -144,6 +144,7 @@ pub(crate) fn mihomo_http_client() -> Result<&'static Client, String> {
     match MIHOMO_HTTP_CLIENT.get_or_init(|| {
         Client::builder()
             .timeout(Duration::from_secs(15))
+            .no_proxy()
             .build()
             .map_err(|e| e.to_string())
     }) {
@@ -403,7 +404,6 @@ pub(crate) fn merge_config_value(base: &mut Value, patch: &Value, is_override: b
 pub(crate) fn default_quick_rules_config() -> QuickRulesConfigData {
     QuickRulesConfigData {
         version: 1,
-        migrated_legacy_quick_rules: false,
         migrated_profile_quick_rules_to_global: false,
         profiles: HashMap::new(),
     }
@@ -472,39 +472,6 @@ pub(crate) fn quick_rule_dedupe_key(rule: &QuickRule) -> String {
     format!("{},{}", quick_rule_string(rule), rule.enabled)
 }
 
-pub(crate) fn parse_quick_rule_string(raw: &str) -> Option<QuickRuleInput> {
-    let parts = raw
-        .split(',')
-        .map(str::trim)
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>();
-    if parts.len() < 3 {
-        return None;
-    }
-
-    Some(QuickRuleInput {
-        id: None,
-        rule_type: Some(parts[0].to_string()),
-        value: Some(parts[1].to_string()),
-        target: Some(parts[2].to_string()),
-        no_resolve: Some(parts.get(3).copied() == Some("no-resolve")),
-        enabled: Some(true),
-        source: Some("connection".to_string()),
-    })
-}
-
-pub(crate) fn parse_legacy_quick_rules(content: &str) -> Vec<QuickRuleInput> {
-    content
-        .lines()
-        .filter_map(|line| {
-            let trimmed = line.trim();
-            trimmed
-                .strip_prefix("- ")
-                .and_then(|rule| parse_quick_rule_string(rule.trim()))
-        })
-        .collect()
-}
-
 pub(crate) fn ensure_quick_rule_profile_mut<'a>(
     config: &'a mut QuickRulesConfigData,
     profile_id: &str,
@@ -570,84 +537,6 @@ pub(crate) fn quick_rule_from_input(
     })
 }
 
-pub(crate) fn migrate_legacy_quick_rules_if_needed(
-    app: &tauri::AppHandle,
-    config: &mut QuickRulesConfigData,
-) -> Result<(), String> {
-    pub(crate) const LEGACY_QUICK_RULES_ID: &str = "quick-rules";
-    if config.migrated_legacy_quick_rules {
-        return Ok(());
-    }
-
-    let override_config = read_override_config(app)?;
-    let Some(legacy_item) = override_config
-        .items
-        .iter()
-        .find(|item| item.id == LEGACY_QUICK_RULES_ID)
-    else {
-        config.migrated_legacy_quick_rules = true;
-        write_quick_rules_config(app, config)?;
-        return Ok(());
-    };
-
-    let legacy_content = read_override_text(app, LEGACY_QUICK_RULES_ID, &legacy_item.ext)?;
-    let legacy_rules = parse_legacy_quick_rules(&legacy_content);
-    let mut profile_config = read_profile_config(app)?;
-    let mut profile_config_changed = false;
-
-    if !legacy_rules.is_empty() {
-        let target_profile_ids = profile_config
-            .items
-            .iter()
-            .filter(|profile| {
-                profile
-                    .override_ids
-                    .as_ref()
-                    .map(|ids| ids.iter().any(|id| id == LEGACY_QUICK_RULES_ID))
-                    .unwrap_or(false)
-            })
-            .map(|profile| profile.id.clone())
-            .collect::<Vec<_>>();
-
-        for profile_id in target_profile_ids {
-            let profile_rules = ensure_quick_rule_profile_mut(config, &profile_id);
-            let mut existing = profile_rules
-                .rules
-                .iter()
-                .map(quick_rule_string)
-                .collect::<HashSet<_>>();
-            for legacy_rule in legacy_rules.iter().cloned() {
-                let rule = quick_rule_from_input(legacy_rule, profile_rules.rules.len())?;
-                let rule_string = quick_rule_string(&rule);
-                if existing.insert(rule_string) {
-                    profile_rules.rules.push(rule);
-                }
-            }
-        }
-    }
-
-    for profile in &mut profile_config.items {
-        let Some(ids) = profile.override_ids.as_mut() else {
-            continue;
-        };
-        let before_len = ids.len();
-        ids.retain(|id| id != LEGACY_QUICK_RULES_ID);
-        if ids.len() != before_len {
-            profile_config_changed = true;
-        }
-        if ids.is_empty() {
-            profile.override_ids = None;
-        }
-    }
-
-    if profile_config_changed {
-        write_profile_config(app, &profile_config)?;
-    }
-
-    config.migrated_legacy_quick_rules = true;
-    write_quick_rules_config(app, config)
-}
-
 pub(crate) fn migrate_profile_quick_rules_to_global_if_needed(
     app: &tauri::AppHandle,
     config: &mut QuickRulesConfigData,
@@ -688,7 +577,6 @@ pub(crate) fn read_quick_rules_config(
     app: &tauri::AppHandle,
 ) -> Result<QuickRulesConfigData, String> {
     let mut config = read_quick_rules_config_raw(app)?;
-    migrate_legacy_quick_rules_if_needed(app, &mut config)?;
     migrate_profile_quick_rules_to_global_if_needed(app, &mut config)?;
     Ok(config)
 }

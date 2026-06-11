@@ -184,8 +184,6 @@ pub(crate) struct OverrideItemInput {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct QuickRulesConfigData {
     pub(crate) version: u8,
-    #[serde(rename = "migratedLegacyQuickRules", default)]
-    pub(crate) migrated_legacy_quick_rules: bool,
     #[serde(rename = "migratedProfileQuickRulesToGlobal", default)]
     pub(crate) migrated_profile_quick_rules_to_global: bool,
     #[serde(default)]

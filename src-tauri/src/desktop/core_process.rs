@@ -29,7 +29,7 @@ pub(crate) fn prepare_runtime_data_dir(
             let _ = fs::remove_file(&target_path);
         }
 
-        let Ok(source_path) = resolve_resource_binary(app, "files", file_name) else {
+        let Ok(source_path) = resolve_resource_binary(app, "tools", file_name) else {
             continue;
         };
 
@@ -44,7 +44,9 @@ pub(crate) fn ensure_runtime_dirs(
     current_profile_id: Option<&str>,
     diff_work_dir: bool,
 ) -> Result<(PathBuf, PathBuf, PathBuf, PathBuf), String> {
-    let base = app_data_root(app)?.join(MIHOMO_RUNTIME_DIR_NAME);
+    let app_root = app_data_root(app)?;
+    let base = app_runtime_root_path(&app_root);
+    let logs_base = app_runtime_logs_root_path(&app_root);
     let profile_base = if diff_work_dir {
         current_profile_id
             .filter(|value| !value.trim().is_empty())
@@ -53,9 +55,17 @@ pub(crate) fn ensure_runtime_dirs(
     } else {
         base.clone()
     };
+    let profile_logs_base = if diff_work_dir {
+        current_profile_id
+            .filter(|value| !value.trim().is_empty())
+            .map(|id| logs_base.join("profiles").join(id))
+            .unwrap_or_else(|| logs_base.clone())
+    } else {
+        logs_base.clone()
+    };
 
     let work_dir = profile_base.join("work");
-    let logs_dir = profile_base.join("logs");
+    let logs_dir = profile_logs_base;
     let test_dir = profile_base.join("test");
     let log_path = logs_dir.join("mihomo.log");
 

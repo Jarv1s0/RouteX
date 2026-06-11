@@ -257,7 +257,7 @@ pub(crate) fn app_data_root_before_tauri() -> Result<PathBuf, String> {
 
 #[cfg(target_os = "windows")]
 pub(crate) fn task_dir_before_tauri() -> Result<PathBuf, String> {
-    ensure_dir(app_data_root_before_tauri()?.join(TASKS_DIR_NAME))
+    ensure_dir(app_runtime_tasks_root_path(&app_data_root_before_tauri()?))
 }
 
 #[cfg(target_os = "windows")]
@@ -272,9 +272,8 @@ pub(crate) fn routex_run_args_path_before_tauri() -> Result<PathBuf, String> {
 
 #[cfg(target_os = "windows")]
 pub(crate) fn read_core_permission_mode_before_tauri() -> Result<String, String> {
-    let config_path = app_data_root_before_tauri()?
-        .join(ROUTEX_STORE_DIR_NAME)
-        .join(APP_CONFIG_FILE);
+    let app_root = app_data_root_before_tauri()?;
+    let config_path = app_config_root_path(&app_root).join(APP_CONFIG_FILE);
     let config = read_json_file::<Value>(&config_path)?.unwrap_or_else(|| json!({}));
     Ok(config
         .get("corePermissionMode")
@@ -287,6 +286,7 @@ pub(crate) fn read_core_permission_mode_before_tauri() -> Result<String, String>
 pub(crate) fn resolve_routex_run_binary_before_tauri() -> Result<PathBuf, String> {
     let mut candidates = Vec::new();
     let mut seen = HashSet::new();
+    let dir_names = ["tools"];
 
     if cfg!(debug_assertions) {
         push_resource_candidate(
@@ -302,7 +302,6 @@ pub(crate) fn resolve_routex_run_binary_before_tauri() -> Result<PathBuf, String
     if let Some(exe_dir) = current_exe_dir() {
         for base in [
             exe_dir.clone(),
-            exe_dir.join("extra"),
             exe_dir.join("resources"),
             exe_dir
                 .parent()
@@ -310,11 +309,13 @@ pub(crate) fn resolve_routex_run_binary_before_tauri() -> Result<PathBuf, String
                 .unwrap_or_default(),
         ] {
             if !base.as_os_str().is_empty() {
-                push_resource_candidate(
-                    &mut candidates,
-                    &mut seen,
-                    base.join("files").join(ROUTEX_RUN_BINARY),
-                );
+                for dir_name in dir_names {
+                    push_resource_candidate(
+                        &mut candidates,
+                        &mut seen,
+                        base.join(dir_name).join(ROUTEX_RUN_BINARY),
+                    );
+                }
             }
         }
     }

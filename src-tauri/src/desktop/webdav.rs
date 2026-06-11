@@ -15,6 +15,22 @@ pub(crate) fn webdav_request(
     }
 }
 
+pub(crate) fn sanitize_webdav_backup_entry(
+    relative: &Path,
+    bytes: Vec<u8>,
+) -> Result<Vec<u8>, String> {
+    if relative != Path::new(APP_CONFIG_FILE) {
+        return Ok(bytes);
+    }
+
+    let mut value = serde_json::from_slice::<Value>(&bytes).map_err(|e| e.to_string())?;
+    if let Some(object) = value.as_object_mut() {
+        object.remove("webdavPassword");
+    }
+
+    serde_json::to_vec_pretty(&value).map_err(|e| e.to_string())
+}
+
 pub(crate) fn ensure_webdav_directory(config: &WebdavConfig) -> Result<(), String> {
     ensure_webdav_config(config)?;
 
@@ -83,8 +99,9 @@ pub(crate) fn build_webdav_backup_archive(app: &tauri::AppHandle) -> Result<Path
                 writer
                     .start_file(name, options)
                     .map_err(|e| e.to_string())?;
-                let mut input = fs::File::open(path).map_err(|e| e.to_string())?;
-                std::io::copy(&mut input, &mut writer).map_err(|e| e.to_string())?;
+                let bytes = fs::read(path).map_err(|e| e.to_string())?;
+                let bytes = sanitize_webdav_backup_entry(relative, bytes)?;
+                writer.write_all(&bytes).map_err(|e| e.to_string())?;
             }
         }
 

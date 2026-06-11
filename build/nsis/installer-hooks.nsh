@@ -1,7 +1,7 @@
 !define ROUTEX_PRODUCT_NAME "RouteX"
 !define ROUTEX_MAIN_BINARY "routex"
 !define ROUTEX_SERVICE_NAME "RouteXService"
-!define ROUTEX_SERVICE_PATH "extra\files\routex-service.exe"
+!define ROUTEX_SERVICE_PATH "tools\routex-service.exe"
 !define ROUTEX_BUNDLE_ID "com.jarv1s0.routex.tauri"
 
 Var ROUTEX_SERVICE_WAS_INSTALLED
@@ -232,11 +232,10 @@ Var ROUTEX_SERVICE_WAS_RUNNING
   StrCpy $2 "$PLUGINSDIR\routex-close-processes.ps1"
   FileOpen $1 "$2" w
   FileWrite $1 "$$installDir = [System.IO.Path]::GetFullPath($$args[0])$\r$\n"
-  FileWrite $1 "$$candidateDirs = @((Join-Path $$installDir 'extra\sidecar'))$\r$\n"
+  FileWrite $1 "$$candidateDirs = @((Join-Path $$installDir 'core'))$\r$\n"
   FileWrite $1 "foreach ($$base in @($$env:APPDATA, $$env:LOCALAPPDATA)) {$\r$\n"
   FileWrite $1 "  if ([string]::IsNullOrWhiteSpace($$base)) { continue }$\r$\n"
-  FileWrite $1 "  $$candidateDirs += (Join-Path $$base 'routex.app\runtime-assets\sidecar')$\r$\n"
-  FileWrite $1 "  $$candidateDirs += (Join-Path $$base 'com.jarv1s0.routex.tauri\runtime-assets\sidecar')$\r$\n"
+  FileWrite $1 "  $$candidateDirs += (Join-Path $$base 'routex.app\core')$\r$\n"
   FileWrite $1 "}$\r$\n"
   FileWrite $1 "$$candidateDirs = @($$candidateDirs | ForEach-Object { try { [System.IO.Path]::GetFullPath($$_).TrimEnd('\', '/') } catch { $$null } } | Where-Object { $$_ })$\r$\n"
   FileWrite $1 "function Test-UnderRouteXDir($$path) {$\r$\n"

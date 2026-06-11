@@ -10,65 +10,33 @@ pub(crate) fn ensure_dir(path: PathBuf) -> Result<PathBuf, String> {
     Ok(path)
 }
 
-pub(crate) fn copy_path_if_missing(source: &Path, target: &Path) -> Result<(), String> {
-    if !source.exists() {
-        return Ok(());
-    }
-
-    if source.is_dir() {
-        fs::create_dir_all(target).map_err(|e| e.to_string())?;
-        for entry in fs::read_dir(source).map_err(|e| e.to_string())? {
-            let entry = entry.map_err(|e| e.to_string())?;
-            copy_path_if_missing(&entry.path(), &target.join(entry.file_name()))?;
-        }
-        return Ok(());
-    }
-
-    if target.exists() {
-        return Ok(());
-    }
-
-    ensure_parent(target)?;
-    fs::copy(source, target)
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+pub(crate) fn app_config_root_path(root: &Path) -> PathBuf {
+    root.join(APP_CONFIG_DIR_NAME)
 }
 
-pub(crate) fn migrate_tauri_app_data_root_if_needed(
-    source_root: &Path,
-    target_root: &Path,
-) -> Result<(), String> {
-    if source_root == target_root || !source_root.exists() {
-        return Ok(());
-    }
+pub(crate) fn app_runtime_root_path(root: &Path) -> PathBuf {
+    root.join(APP_RUNTIME_DIR_NAME)
+}
 
-    let target_store = target_root.join(ROUTEX_STORE_DIR_NAME);
-    let target_core = target_root.join(MIHOMO_RUNTIME_DIR_NAME);
-    if target_store.exists() && target_core.exists() {
-        return Ok(());
-    }
+pub(crate) fn app_core_root_path(root: &Path) -> PathBuf {
+    root.join(APP_CORE_DIR_NAME)
+}
 
-    fs::create_dir_all(target_root).map_err(|e| e.to_string())?;
+pub(crate) fn app_runtime_logs_root_path(root: &Path) -> PathBuf {
+    app_runtime_root_path(root).join(APP_RUNTIME_LOGS_DIR_NAME)
+}
 
-    for entry_name in [
-        ROUTEX_STORE_DIR_NAME,
-        MIHOMO_RUNTIME_DIR_NAME,
-        UPDATES_DIR_NAME,
-        TASKS_DIR_NAME,
-        RUNTIME_ASSETS_DIR_NAME,
-    ] {
-        copy_path_if_missing(&source_root.join(entry_name), &target_root.join(entry_name))?;
-    }
+pub(crate) fn app_runtime_tasks_root_path(root: &Path) -> PathBuf {
+    app_runtime_root_path(root).join(APP_RUNTIME_TASKS_DIR_NAME)
+}
 
-    Ok(())
+pub(crate) fn app_runtime_tools_root_path(root: &Path) -> PathBuf {
+    app_runtime_root_path(root).join(APP_RUNTIME_TOOLS_DIR_NAME)
 }
 
 #[cfg(target_os = "windows")]
 pub(crate) fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let default_root = default_app_data_root(app)?;
-    let primary_root = primary_tauri_app_data_root(app)?;
-    migrate_tauri_app_data_root_if_needed(&default_root, &primary_root)?;
-    ensure_dir(primary_root)
+    ensure_dir(primary_tauri_app_data_root(app)?)
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -77,7 +45,7 @@ pub(crate) fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 }
 
 pub(crate) fn app_storage_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(app_data_root(app)?.join(ROUTEX_STORE_DIR_NAME))
+    ensure_dir(app_config_root_path(&app_data_root(app)?))
 }
 
 pub(crate) fn storage_file(app: &tauri::AppHandle, file_name: &str) -> Result<PathBuf, String> {

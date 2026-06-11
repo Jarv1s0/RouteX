@@ -13,11 +13,11 @@ fi
 sed -i 's/Name=routex/Name=RouteX/' '/usr/share/applications/routex.desktop'
 
 chmod 4755 '/opt/RouteX/chrome-sandbox' || true
-chmod +sx /opt/RouteX/resources/sidecar/mihomo
-chmod +sx /opt/RouteX/resources/sidecar/mihomo-alpha
+chmod +sx /opt/RouteX/resources/core/mihomo
+chmod +sx /opt/RouteX/resources/core/mihomo-alpha
 
-if [ -d '/opt/RouteX/resources/files/sub-store-frontend' ]; then
-    chmod -R go-w '/opt/RouteX/resources/files/sub-store-frontend' 2>/dev/null || true
+if [ -d '/opt/RouteX/resources/tools/sub-store-frontend' ]; then
+    chmod -R go-w '/opt/RouteX/resources/tools/sub-store-frontend' 2>/dev/null || true
 fi
 
 if hash update-mime-database 2>/dev/null; then

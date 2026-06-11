@@ -244,7 +244,7 @@ pub(crate) fn collect_resource_candidates(
     }
 
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
-    for base in [resource_dir.clone(), resource_dir.join("extra")] {
+    for base in [resource_dir.clone()] {
         if !base.as_os_str().is_empty() {
             push_resource_candidate(
                 &mut candidates,
@@ -298,19 +298,15 @@ pub(crate) fn resolve_resource_binary(
     ))
 }
 
-pub(crate) fn runtime_sidecar_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(
-        app_data_root(app)?
-            .join(RUNTIME_ASSETS_DIR_NAME)
-            .join("sidecar"),
-    )
+pub(crate) fn runtime_core_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    ensure_dir(app_core_root_path(&app_data_root(app)?))
 }
 
 pub(crate) fn runtime_core_binary_path(
     app: &tauri::AppHandle,
     file_name: &str,
 ) -> Result<PathBuf, String> {
-    Ok(runtime_sidecar_dir(app)?.join(file_name))
+    Ok(runtime_core_dir(app)?.join(file_name))
 }
 
 pub(crate) fn resolve_core_binary(app: &tauri::AppHandle, core: &str) -> Result<PathBuf, String> {
@@ -326,7 +322,7 @@ pub(crate) fn resolve_core_binary(app: &tauri::AppHandle, core: &str) -> Result<
         }
     }
 
-    if let Ok(path) = resolve_resource_binary(app, "sidecar", &file_name) {
+    if let Ok(path) = resolve_resource_binary(app, "core", &file_name) {
         return Ok(path);
     }
 
@@ -732,6 +728,6 @@ pub(crate) fn resolve_service_binary(app: &tauri::AppHandle) -> Result<PathBuf, 
         ""
     };
     let file_name = format!("routex-service{extension}");
-    resolve_resource_binary(app, "files", &file_name)
+    resolve_resource_binary(app, "tools", &file_name)
         .map_err(|_| format!("RouteX service not found: {file_name}"))
 }

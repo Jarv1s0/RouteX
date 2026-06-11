@@ -57,15 +57,11 @@ pub(crate) fn get_interfaces_value() -> Value {
 }
 
 pub(crate) fn runtime_files_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(
-        app_data_root(app)?
-            .join(RUNTIME_ASSETS_DIR_NAME)
-            .join("files"),
-    )
+    ensure_dir(app_runtime_tools_root_path(&app_data_root(app)?))
 }
 
 pub(crate) fn traffic_monitor_pid_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    Ok(app_data_root(app)?.join(TRAFFIC_MONITOR_PID_FILE))
+    Ok(app_runtime_root_path(&app_data_root(app)?).join(TRAFFIC_MONITOR_PID_FILE))
 }
 
 pub(crate) fn fetch_latest_github_release_assets(
@@ -179,7 +175,7 @@ pub(crate) fn ensure_traffic_monitor_binary(
     {
         if let Ok(executable_path) = resolve_resource_binary(
             app,
-            "files/TrafficMonitor/TrafficMonitor",
+            "tools/TrafficMonitor/TrafficMonitor",
             "TrafficMonitor.exe",
         ) {
             let cwd = executable_path
@@ -340,7 +336,7 @@ pub(crate) fn download_binary_file(url: &str, target_path: &Path) -> Result<(), 
 }
 
 pub(crate) fn ensure_enable_loopback_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    if let Ok(path) = resolve_resource_binary(app, "files", "enableLoopback.exe") {
+    if let Ok(path) = resolve_resource_binary(app, "tools", "enableLoopback.exe") {
         return Ok(path);
     }
 

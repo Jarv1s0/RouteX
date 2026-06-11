@@ -1,43 +1,26 @@
 use super::prelude::*;
 use super::*;
 
-pub(crate) fn resolve_tray_icon_path(
-    app: &tauri::AppHandle,
-    file_name: &str,
-) -> Result<PathBuf, String> {
-    let mut candidates = Vec::new();
+pub(crate) fn embedded_app_icon_bytes(file_name: &str) -> Option<&'static [u8]> {
+    match file_name {
+        "icon_tun.ico" => Some(include_bytes!("../../../resources/icon_tun.ico")),
+        "icon_tun_tray.ico" => Some(include_bytes!("../../../resources/icon_tun_tray.ico")),
+        "icon_proxy.ico" => Some(include_bytes!("../../../resources/icon_proxy.ico")),
+        "icon_proxy_tray.ico" => Some(include_bytes!("../../../resources/icon_proxy_tray.ico")),
+        "icon.ico" => Some(include_bytes!("../../../resources/icon.ico")),
+        "icon_tray.ico" => Some(include_bytes!("../../../resources/icon_tray.ico")),
+        "icon.png" => Some(include_bytes!("../../../resources/icon.png")),
+        "iconTemplate.png" => Some(include_bytes!("../../../resources/iconTemplate.png")),
+        _ => None,
+    }
+}
 
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        candidates.push(resource_dir.join(file_name));
-        candidates.push(resource_dir.join("resources").join(file_name));
+pub(crate) fn resolve_tray_icon_image(file_name: &str) -> Result<Image<'static>, String> {
+    if let Some(bytes) = embedded_app_icon_bytes(file_name) {
+        return Image::from_bytes(bytes).map_err(|e| e.to_string());
     }
 
-    #[cfg(debug_assertions)]
-    {
-        let manifest_resource_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("resources")
-            .join(file_name);
-        candidates.push(manifest_resource_path);
-    }
-
-    if let Some(path) = candidates.iter().find(|path| path.exists()) {
-        return Ok(path.clone());
-    }
-
-    let tried_paths = if candidates.is_empty() {
-        "<no candidate paths>".to_string()
-    } else {
-        candidates
-            .iter()
-            .map(|path| path.to_string_lossy().into_owned())
-            .collect::<Vec<_>>()
-            .join(", ")
-    };
-
-    Err(format!(
-        "Tray icon not found: {file_name}. Tried: {tried_paths}"
-    ))
+    Err(format!("Tray icon not embedded: {file_name}"))
 }
 
 pub(crate) fn set_tray_icon_from_path(
@@ -47,8 +30,7 @@ pub(crate) fn set_tray_icon_from_path(
     let Some(tray) = app.tray_by_id(TRAY_ICON_ID) else {
         return Ok(());
     };
-    let path = resolve_tray_icon_path(app, file_name)?;
-    let image = Image::from_path(path).map_err(|e| e.to_string())?;
+    let image = resolve_tray_icon_image(file_name)?;
     tray.set_icon(Some(image)).map_err(|e| e.to_string())
 }
 
@@ -59,8 +41,7 @@ pub(crate) fn set_main_window_icon_from_path(
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());
     };
-    let path = resolve_tray_icon_path(app, file_name)?;
-    let image = Image::from_path(path).map_err(|e| e.to_string())?;
+    let image = resolve_tray_icon_image(file_name)?;
     window.set_icon(image).map_err(|e| e.to_string())
 }
 

@@ -22,6 +22,10 @@ runs:
       shell: bash
       run: pnpm clippy
 
+    - name: IPC Contract Guard
+      shell: bash
+      run: pnpm check:ipc-contract
+
     - name: Dead-code Guard
       shell: bash
       run: pnpm check:dead-code

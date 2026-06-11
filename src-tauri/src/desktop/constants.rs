@@ -1,7 +1,7 @@
 use super::prelude::*;
 use super::*;
 
-pub(crate) const ROUTEX_STORE_DIR_NAME: &str = "routex-store";
+pub(crate) const APP_CONFIG_DIR_NAME: &str = "config";
 pub(crate) const APP_CONFIG_FILE: &str = "app-config.json";
 pub(crate) const CHAINS_CONFIG_FILE: &str = "chains-config.json";
 pub(crate) const CONTROLLED_CONFIG_FILE: &str = "controlled-mihomo-config.json";
@@ -15,10 +15,11 @@ pub(crate) const OVERRIDE_DIR_NAME: &str = "overrides";
 pub(crate) const THEME_DIR_NAME: &str = "themes";
 pub(crate) const DEFAULT_THEME_FILE_NAME: &str = "default.css";
 pub(crate) const RUNTIME_DIR_NAME: &str = "runtime-files";
-pub(crate) const MIHOMO_RUNTIME_DIR_NAME: &str = "mihomo-runtime";
-pub(crate) const UPDATES_DIR_NAME: &str = "updates";
-pub(crate) const TASKS_DIR_NAME: &str = "tasks";
-pub(crate) const RUNTIME_ASSETS_DIR_NAME: &str = "runtime-assets";
+pub(crate) const APP_RUNTIME_DIR_NAME: &str = "runtime";
+pub(crate) const APP_CORE_DIR_NAME: &str = "core";
+pub(crate) const APP_RUNTIME_LOGS_DIR_NAME: &str = "logs";
+pub(crate) const APP_RUNTIME_TASKS_DIR_NAME: &str = "tasks";
+pub(crate) const APP_RUNTIME_TOOLS_DIR_NAME: &str = "tools";
 pub(crate) const TRAFFIC_MONITOR_REPO: &str = "zhongyang219/TrafficMonitor";
 pub(crate) const TRAFFIC_MONITOR_PID_FILE: &str = "traffic-monitor.pid";
 #[cfg(target_os = "windows")]

@@ -18,6 +18,15 @@ const TS_INVOKE_CHANNEL_SOURCES: [&str; 4] = [
     include_str!("../../../src/shared/ipc/invoke-system.ts"),
 ];
 
+const TAURI_SEND_FORWARD_CHANNELS: [&str; 6] = [
+    "closeTrayMenuWindow",
+    "quitConfirmResult",
+    "trayIconUpdate",
+    "updateFloatingWindow",
+    "updateTaskbarIcon",
+    "updateTrayMenu",
+];
+
 fn collect_rust_ipc_channels() -> HashSet<String> {
     RUST_IPC_HANDLER_SOURCES
         .iter()
@@ -57,6 +66,168 @@ fn desktop_invoke_channels_match_typescript_contract() {
     assert!(
         missing_in_rust.is_empty(),
         "IPC invoke channels declared in TypeScript are missing Rust handlers: {missing_in_rust:?}"
+    );
+}
+
+#[test]
+fn desktop_invoke_handlers_match_typescript_contract() {
+    let rust_channels = collect_rust_ipc_channels();
+    let mut ts_channels = collect_ts_invoke_channels();
+    ts_channels.extend(
+        TAURI_SEND_FORWARD_CHANNELS
+            .iter()
+            .map(|value| value.to_string()),
+    );
+
+    let missing_in_typescript = rust_channels
+        .difference(&ts_channels)
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(
+        missing_in_typescript.is_empty(),
+        "Rust IPC handlers are missing TypeScript invoke declarations: {missing_in_typescript:?}"
+    );
+}
+
+#[test]
+fn profile_config_normalization_repairs_current_and_dedupes_actives() {
+    let config = ProfileConfigData {
+        current: Some("missing".to_string()),
+        actives: Some(vec![
+            "beta".to_string(),
+            "beta".to_string(),
+            "missing".to_string(),
+            "alpha".to_string(),
+        ]),
+        items: vec![
+            ProfileItemData {
+                id: "alpha".to_string(),
+                item_type: "local".to_string(),
+                name: "Alpha".to_string(),
+                url: None,
+                fingerprint: None,
+                ua: None,
+                file: None,
+                verify: None,
+                interval: None,
+                home: None,
+                updated: None,
+                override_ids: None,
+                use_proxy: None,
+                extra: None,
+                reset_day: None,
+                locked: None,
+                auto_update: Some(true),
+            },
+            ProfileItemData {
+                id: "beta".to_string(),
+                item_type: "local".to_string(),
+                name: "Beta".to_string(),
+                url: None,
+                fingerprint: None,
+                ua: None,
+                file: None,
+                verify: None,
+                interval: None,
+                home: None,
+                updated: None,
+                override_ids: None,
+                use_proxy: None,
+                extra: None,
+                reset_day: None,
+                locked: None,
+                auto_update: Some(true),
+            },
+        ],
+    };
+
+    let normalized = normalize_profile_config(config);
+
+    assert_eq!(normalized.current.as_deref(), Some("beta"));
+    assert_eq!(
+        normalized.actives,
+        Some(vec!["beta".to_string(), "alpha".to_string()])
+    );
+}
+
+#[test]
+fn quick_rules_normalization_drops_invalid_rules_and_forces_version() {
+    let valid_rule = QuickRule {
+        id: "rule-1".to_string(),
+        rule_type: "DOMAIN-SUFFIX".to_string(),
+        value: "example.com".to_string(),
+        target: "DIRECT".to_string(),
+        no_resolve: Some(false),
+        enabled: true,
+        source: "external".to_string(),
+        created_at: 1,
+        updated_at: 2,
+    };
+    let invalid_rule = QuickRule {
+        id: "rule-2".to_string(),
+        rule_type: String::new(),
+        value: "invalid.example".to_string(),
+        target: "DIRECT".to_string(),
+        no_resolve: None,
+        enabled: true,
+        source: "manual".to_string(),
+        created_at: 1,
+        updated_at: 2,
+    };
+    let mut profiles = HashMap::new();
+    profiles.insert(
+        "profile-a".to_string(),
+        QuickRuleProfileConfig {
+            enabled: true,
+            rules: vec![valid_rule, invalid_rule],
+        },
+    );
+
+    let normalized = normalize_quick_rules_config(QuickRulesConfigData {
+        version: 9,
+        migrated_profile_quick_rules_to_global: false,
+        profiles,
+    });
+    let rules = &normalized.profiles["profile-a"].rules;
+
+    assert_eq!(normalized.version, 1);
+    assert_eq!(rules.len(), 1);
+    assert_eq!(rules[0].id, "rule-1");
+    assert_eq!(rules[0].source, "manual");
+}
+
+#[test]
+fn webdav_backup_sanitizes_password_from_app_config() {
+    let app_config = br#"{
+  "webdavUrl": "https://example.com/dav",
+  "webdavUsername": "alice",
+  "webdavPassword": "secret",
+  "webdavDir": "routex"
+}"#;
+
+    let sanitized = sanitize_webdav_backup_entry(Path::new(APP_CONFIG_FILE), app_config.to_vec())
+        .expect("app config should sanitize");
+    let value = serde_json::from_slice::<Value>(&sanitized).expect("sanitized JSON should parse");
+
+    assert_eq!(
+        value.get("webdavUrl").and_then(Value::as_str),
+        Some("https://example.com/dav")
+    );
+    assert_eq!(
+        value.get("webdavUsername").and_then(Value::as_str),
+        Some("alice")
+    );
+    assert!(value.get("webdavPassword").is_none());
+}
+
+#[test]
+fn webdav_backup_keeps_non_app_config_entries_unchanged() {
+    let bytes = b"webdavPassword=not-an-app-config".to_vec();
+
+    assert_eq!(
+        sanitize_webdav_backup_entry(Path::new("profiles/default.yaml"), bytes.clone())
+            .expect("non app config should pass through"),
+        bytes
     );
 }
 
@@ -369,6 +540,24 @@ fn elevated_startup_runs_task_when_unelevated_task_matches() {
         choose_windows_unelevated_startup_action(true),
         WindowsUnelevatedStartupAction::RunElevateTask
     );
+}
+
+#[test]
+fn runtime_tray_icons_are_embedded() {
+    for file_name in [
+        "icon_tun.ico",
+        "icon_tun_tray.ico",
+        "icon_proxy.ico",
+        "icon_proxy_tray.ico",
+        "icon.ico",
+        "icon_tray.ico",
+        "icon.png",
+        "iconTemplate.png",
+    ] {
+        let bytes = embedded_app_icon_bytes(file_name)
+            .unwrap_or_else(|| panic!("expected embedded icon bytes for {file_name}"));
+        assert!(!bytes.is_empty(), "embedded icon should not be empty: {file_name}");
+    }
 }
 
 #[test]

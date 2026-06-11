@@ -10,7 +10,7 @@ pub(crate) fn config_bool_string(config: &Value, key: &str) -> String {
 }
 
 pub(crate) fn task_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(app_data_root(app)?.join(TASKS_DIR_NAME))
+    ensure_dir(app_runtime_tasks_root_path(&app_data_root(app)?))
 }
 
 pub(crate) fn routex_run_binary_task_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -30,7 +30,7 @@ pub(crate) fn routex_autorun_task_xml_path(app: &tauri::AppHandle) -> Result<Pat
 }
 
 pub(crate) fn resolve_routex_run_binary(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    resolve_resource_binary(app, "files", ROUTEX_RUN_BINARY)
+    resolve_resource_binary(app, "tools", ROUTEX_RUN_BINARY)
         .map_err(|_| format!("RouteX run helper not found: {ROUTEX_RUN_BINARY}"))
 }
 
