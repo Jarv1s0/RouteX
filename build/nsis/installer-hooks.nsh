@@ -300,20 +300,11 @@ Var ROUTEX_SERVICE_WAS_RUNNING
 
 !macro ROUTEX_REFRESH_SHORTCUT_ICON LINK_PATH
   ${If} ${FileExists} `${LINK_PATH}`
-    Push $0
     Push $1
-    System::Call 'kernel32::GetCurrentProcessId() i.r0'
     StrCpy $1 "$INSTDIR\${ROUTEX_MAIN_BINARY}.exe"
-    SetOutPath "$INSTDIR"
-    CopyFiles /SILENT "$INSTDIR\resources\icon.ico" "$INSTDIR\resources\shortcut-icon-$0.ico"
-    ${If} ${FileExists} "$INSTDIR\resources\shortcut-icon-$0.ico"
-      CreateShortcut `${LINK_PATH}` "$1" "" "$INSTDIR\resources\shortcut-icon-$0.ico" 0
-    ${Else}
-      CreateShortcut `${LINK_PATH}` "$1" "" "$INSTDIR\resources\icon.ico" 0
-    ${EndIf}
+    CreateShortcut `${LINK_PATH}` "$1" "" "$1" 0
     !insertmacro ROUTEX_SET_LNK_APP_USER_MODEL_ID `${LINK_PATH}`
     Pop $1
-    Pop $0
   ${EndIf}
 !macroend
 
