@@ -197,12 +197,14 @@ fn quick_rules_normalization_drops_invalid_rules_and_forces_version() {
 }
 
 #[test]
-fn webdav_backup_sanitizes_password_from_app_config() {
+fn webdav_backup_sanitizes_local_machine_state_from_app_config() {
     let app_config = br#"{
   "webdavUrl": "https://example.com/dav",
   "webdavUsername": "alice",
   "webdavPassword": "secret",
-  "webdavDir": "routex"
+  "webdavDir": "routex",
+  "serviceAuthKey": "old-machine-key",
+  "corePermissionMode": "service"
 }"#;
 
     let sanitized = sanitize_webdav_backup_entry(Path::new(APP_CONFIG_FILE), app_config.to_vec())
@@ -218,6 +220,8 @@ fn webdav_backup_sanitizes_password_from_app_config() {
         Some("alice")
     );
     assert!(value.get("webdavPassword").is_none());
+    assert!(value.get("serviceAuthKey").is_none());
+    assert!(value.get("corePermissionMode").is_none());
 }
 
 #[test]

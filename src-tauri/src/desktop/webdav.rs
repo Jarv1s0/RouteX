@@ -26,6 +26,8 @@ pub(crate) fn sanitize_webdav_backup_entry(
     let mut value = serde_json::from_slice::<Value>(&bytes).map_err(|e| e.to_string())?;
     if let Some(object) = value.as_object_mut() {
         object.remove("webdavPassword");
+        object.remove("serviceAuthKey");
+        object.remove("corePermissionMode");
     }
 
     serde_json::to_vec_pretty(&value).map_err(|e| e.to_string())
@@ -136,15 +138,17 @@ pub(crate) fn restore_webdav_backup_archive(
             continue;
         };
 
-        let output_path = root.join(relative_path);
+        let output_path = root.join(&relative_path);
         if file.name().ends_with('/') {
             fs::create_dir_all(&output_path).map_err(|e| e.to_string())?;
             continue;
         }
 
         ensure_parent(&output_path)?;
-        let mut output = fs::File::create(&output_path).map_err(|e| e.to_string())?;
-        std::io::copy(&mut file, &mut output).map_err(|e| e.to_string())?;
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+        let bytes = sanitize_webdav_backup_entry(relative_path.as_path(), bytes)?;
+        fs::write(&output_path, bytes).map_err(|e| e.to_string())?;
     }
 
     Ok(())
