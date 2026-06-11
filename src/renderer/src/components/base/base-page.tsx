@@ -3,13 +3,10 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import {
   closeMainWindow,
-  isAlwaysOnTop,
-  setAlwaysOnTop,
   windowMax,
   windowMin
 } from '@renderer/utils/window-ipc'
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { LuPin } from 'react-icons/lu'
+import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import { VscChromeClose, VscChromeMaximize, VscChromeMinimize } from 'react-icons/vsc'
 import { useI18n } from '@renderer/i18n'
 import SysproxySwitcher from '@renderer/components/sider/sysproxy-switcher'
@@ -30,29 +27,10 @@ interface Props {
 export const FLOATING_ACTION_BUTTON_CLASS =
   'app-nodrag h-8 min-w-[72px] rounded-lg px-3 text-sm font-medium shadow-[0_5px_12px_rgba(23,201,100,0.18)]'
 
-let saveOnTop = false
-
 const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
   const { appConfig } = useAppConfig()
   const { t } = useI18n()
   const { useWindowFrame = false } = appConfig || {}
-
-  const [onTop, setOnTop] = useState(saveOnTop)
-
-  const updateAlwaysOnTop = async (): Promise<void> => {
-    try {
-      const state = await isAlwaysOnTop()
-      setOnTop(state)
-      saveOnTop = state
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  // Initial check
-  useEffect(() => {
-    updateAlwaysOnTop()
-  }, [])
 
   const contentRef = useRef<HTMLDivElement>(null)
   useImperativeHandle(ref, () => {
@@ -70,34 +48,15 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
             <span className="text-lg font-bold tracking-tight text-foreground">{props.title}</span>
           </div>
           <div className="header flex gap-0 h-full items-center">
-            <div
-              className={`flex items-center p-1 rounded-2xl mr-3 app-nodrag ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}
-            >
-              <SysproxySwitcher headerMode />
-              <div className="w-[1px] h-3.5 bg-default-300/50 dark:bg-white/10 mx-0.5" />
-              <TunSwitcher headerMode />
-            </div>
             {props.header}
             <div className="flex items-center gap-1.5 mr-2 ml-1.5 h-full app-nodrag">
-              <Button
-                size="sm"
-                className={`min-w-8 w-8 h-8 rounded-lg active:scale-90 transition-all ${
-                  onTop
-                    ? 'text-primary bg-primary/15 hover:bg-primary/25'
-                    : 'text-foreground-500 hover:text-foreground-700 hover:bg-default-200/60'
-                }`}
-                isIconOnly
-                title={t('basePage.alwaysOnTop')}
-                variant="light"
-                onPress={() => {
-                  const newState = !onTop
-                  setOnTop(newState)
-                  saveOnTop = newState
-                  setAlwaysOnTop(newState)
-                }}
+              <div
+                className={`flex items-center p-1 rounded-2xl mr-1 ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}
               >
-                <LuPin className="w-4 h-4" />
-              </Button>
+                <SysproxySwitcher headerMode />
+                <div className="w-[1px] h-3.5 bg-default-300/50 dark:bg-white/10 mx-0.5" />
+                <TunSwitcher headerMode />
+              </div>
 
               {!useWindowFrame && platform !== 'darwin' && (
                 <>
