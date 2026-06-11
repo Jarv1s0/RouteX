@@ -1,7 +1,6 @@
 use std::{env, fs, path::PathBuf};
 
 const REQUIRED_RELEASE_RESOURCES: &[&str] = &[
-    "../extra/files/ASN.mmdb",
     "../extra/files/country.mmdb",
     "../extra/files/geoip.dat",
     "../extra/files/geoip.metadb",

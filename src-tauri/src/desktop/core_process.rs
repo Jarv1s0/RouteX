@@ -10,7 +10,6 @@ pub(crate) fn prepare_runtime_data_dir(
         "geoip.metadb",
         "geoip.dat",
         "geosite.dat",
-        "ASN.mmdb",
     ] {
         let target_path = data_dir.join(file_name);
         let should_copy = if target_path.exists() {
