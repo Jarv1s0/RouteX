@@ -3,7 +3,7 @@ import BasePage from '@renderer/components/base/base-page'
 import { Button, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
 import { clearTrafficStats } from '@renderer/utils/stats-ipc'
 import { IoClose } from 'react-icons/io5'
-import { VscClearAll } from 'react-icons/vsc'
+import { BiEraser } from 'react-icons/bi'
 import ConfirmModal from '@renderer/components/base/base-confirm'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
@@ -196,7 +196,7 @@ const Stats: React.FC = () => {
             isLoading={clearingStats}
             onPress={() => setShowClearConfirm(true)}
           >
-            <VscClearAll className="text-base" />
+            <BiEraser className="text-base" />
           </Button>
         </div>
       }
