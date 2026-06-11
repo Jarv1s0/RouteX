@@ -24,6 +24,15 @@ const ROUTEX_RUN_ASSETS = {
   ia32: 'routex-run-windows-386.exe',
   arm64: 'routex-run-windows-arm64.exe'
 }
+const GEODATA_RELEASE_PREFIX =
+  'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest'
+const GEODATA_RESOURCES = [
+  { file: 'ASN.mmdb', asset: 'GeoLite2-ASN.mmdb' },
+  { file: 'country.mmdb', asset: 'country.mmdb' },
+  { file: 'geoip.dat', asset: 'geoip-lite.dat' },
+  { file: 'geoip.metadb', asset: 'geoip.metadb' },
+  { file: 'geosite.dat', asset: 'geosite.dat' }
+]
 const DEFAULT_TASK_RETRY = 5
 const platform = process.platform
 const debugPrepare = process.env.ROUTEX_PREPARE_DEBUG === '1'
@@ -541,6 +550,14 @@ const resolveRunner = () => {
     downloadURL: `${ROUTEX_SERVICE_RELEASE_PREFIX}/${asset}`
   }).then(() => patchRunnerGuiSubsystem(targetPath))
 }
+const resolveGeoData = async () => {
+  for (const { file, asset } of GEODATA_RESOURCES) {
+    await resolveResource({
+      file,
+      downloadURL: `${GEODATA_RELEASE_PREFIX}/${asset}`
+    })
+  }
+}
 const removeStaleWindowsFiles = () => {
   const staleFiles = ['routex-launcher.exe']
   for (const file of staleFiles) {
@@ -595,6 +612,11 @@ const tasks = [
   {
     name: 'routex-service',
     func: resolveRoutexService,
+    retry: DEFAULT_TASK_RETRY
+  },
+  {
+    name: 'geodata',
+    func: resolveGeoData,
     retry: DEFAULT_TASK_RETRY
   },
   {
