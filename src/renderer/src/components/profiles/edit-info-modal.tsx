@@ -7,7 +7,6 @@ import { FaPlus } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
-import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 
@@ -43,9 +42,6 @@ const EditInfoModal: React.FC<Props> = (props) => {
       }
 
       await updateProfileItem(itemToSave)
-      if (item.id && isCurrent) {
-        restartCoreInBackground(t('profiles.applyProfileFailed'))
-      }
       onClose()
     } catch (e) {
       notifyError(e, {

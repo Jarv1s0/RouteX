@@ -3,7 +3,6 @@ import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
-import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -31,9 +30,6 @@ const EditInfoModal: React.FC<Props> = (props) => {
       }
 
       await updateOverrideItem(itemToSave)
-      if (item.id) {
-        restartCoreInBackground(t('profiles.applyOverrideFailed'))
-      }
       onClose()
     } catch (e) {
       notifyError(e, {

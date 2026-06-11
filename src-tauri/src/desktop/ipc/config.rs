@@ -206,9 +206,12 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
             .map_err(|e| e.to_string())?;
-            add_or_replace_profile_item(app, item)?;
+            let runtime_profile_affected = add_or_replace_profile_item(app, item)?;
             emit_ipc_event(app, "profileConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
+            if runtime_profile_affected {
+                restart_core_and_emit(app, state)?;
+            }
             Ok(Value::Null)
         
     })().map_err(crate::desktop::error::AppError::from) });
@@ -222,9 +225,12 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
             .map_err(|e| e.to_string())?;
-            update_profile_item_store(app, item)?;
+            let runtime_profile_affected = update_profile_item_store(app, item)?;
             emit_ipc_event(app, "profileConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
+            if runtime_profile_affected {
+                restart_core_and_emit(app, state)?;
+            }
             Ok(Value::Null)
         
     })().map_err(crate::desktop::error::AppError::from) });
@@ -347,9 +353,12 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
             .map_err(|e| e.to_string())?;
-            add_or_replace_override_item(app, item)?;
+            let runtime_override_affected = add_or_replace_override_item(app, item)?;
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
+            if runtime_override_affected {
+                restart_core_and_emit(app, state)?;
+            }
             Ok(Value::Null)
         
     })().map_err(crate::desktop::error::AppError::from) });
@@ -363,9 +372,12 @@ pub(crate) fn register_config_handlers(map: &mut std::collections::HashMap<&'sta
                 args.first().cloned().unwrap_or_else(|| json!({})),
             )
             .map_err(|e| e.to_string())?;
-            update_override_item_store(app, item)?;
+            let runtime_override_affected = update_override_item_store(app, item)?;
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
+            if runtime_override_affected {
+                restart_core_and_emit(app, state)?;
+            }
             Ok(Value::Null)
         
     })().map_err(crate::desktop::error::AppError::from) });

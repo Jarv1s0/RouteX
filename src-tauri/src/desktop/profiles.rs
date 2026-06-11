@@ -106,6 +106,25 @@ pub(crate) fn get_profile_item_from_config(
     id.and_then(|target| config.items.iter().find(|item| item.id == target).cloned())
 }
 
+fn profile_affects_runtime(config: &ProfileConfigData, id: &str) -> bool {
+    let active_ids = active_profile_ids(config);
+    active_ids.is_empty() || active_ids.iter().any(|active_id| active_id == id)
+}
+
+fn active_profiles_reference_override(config: &ProfileConfigData, override_id: &str) -> bool {
+    let active_ids = active_profile_ids(config)
+        .into_iter()
+        .collect::<HashSet<_>>();
+
+    config.items.iter().any(|profile| {
+        active_ids.contains(&profile.id)
+            && profile
+                .override_ids
+                .as_ref()
+                .is_some_and(|override_ids| override_ids.iter().any(|id| id == override_id))
+    })
+}
+
 pub(crate) fn current_profile_item(app: &tauri::AppHandle) -> Result<ProfileItemData, String> {
     let config = read_profile_config(app)?;
     Ok(
@@ -204,7 +223,7 @@ pub(crate) fn build_profile_item(
 pub(crate) fn add_or_replace_profile_item(
     app: &tauri::AppHandle,
     item: ProfileItemInput,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let mut config = read_profile_config(app)?;
     let existing_index = item
         .id
@@ -217,6 +236,7 @@ pub(crate) fn add_or_replace_profile_item(
         .clone()
         .or_else(|| existing.as_ref().map(|value| value.id.clone()))
         .unwrap_or_else(create_id);
+    let runtime_profile_affected = profile_affects_runtime(&config, &id);
     let item_type = item
         .item_type
         .clone()
@@ -267,19 +287,22 @@ pub(crate) fn add_or_replace_profile_item(
         config.actives = Some(vec![id]);
     }
 
-    write_profile_config(app, &config)
+    write_profile_config(app, &config)?;
+    Ok(runtime_profile_affected)
 }
 
 pub(crate) fn update_profile_item_store(
     app: &tauri::AppHandle,
     item: ProfileItemData,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let mut config = read_profile_config(app)?;
     let Some(index) = config.items.iter().position(|value| value.id == item.id) else {
         return Err("Profile not found".to_string());
     };
+    let runtime_profile_affected = profile_affects_runtime(&config, &item.id);
     config.items[index] = item;
-    write_profile_config(app, &config)
+    write_profile_config(app, &config)?;
+    Ok(runtime_profile_affected)
 }
 
 pub(crate) fn change_current_profile_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
@@ -418,7 +441,7 @@ pub(crate) fn remove_override_reference_store(
 pub(crate) fn add_or_replace_override_item(
     app: &tauri::AppHandle,
     item: OverrideItemInput,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let mut config = read_override_config(app)?;
     let existing_index = item
         .id
@@ -507,19 +530,39 @@ pub(crate) fn add_or_replace_override_item(
         config.items.push(next_item);
     }
 
-    write_override_config(app, &config)
+    let profile_config = read_profile_config(app)?;
+    let runtime_override_affected = active_profiles_reference_override(&profile_config, &id)
+        || existing
+            .as_ref()
+            .and_then(|value| value.global)
+            .unwrap_or(false)
+        || config
+            .items
+            .iter()
+            .find(|value| value.id == id)
+            .and_then(|value| value.global)
+            .unwrap_or(false);
+
+    write_override_config(app, &config)?;
+    Ok(runtime_override_affected)
 }
 
 pub(crate) fn update_override_item_store(
     app: &tauri::AppHandle,
     item: OverrideItemData,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let mut config = read_override_config(app)?;
     let Some(index) = config.items.iter().position(|value| value.id == item.id) else {
         return Err("Override not found".to_string());
     };
+    let previous = config.items[index].clone();
+    let profile_config = read_profile_config(app)?;
+    let runtime_override_affected = active_profiles_reference_override(&profile_config, &item.id)
+        || previous.global.unwrap_or(false)
+        || item.global.unwrap_or(false);
     config.items[index] = item;
-    write_override_config(app, &config)
+    write_override_config(app, &config)?;
+    Ok(runtime_override_affected)
 }
 
 pub(crate) fn remove_override_item_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {

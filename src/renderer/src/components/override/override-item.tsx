@@ -155,7 +155,6 @@ const OverrideItem: React.FC<Props> = (props) => {
     if (info.global === global) return
     await updateOverrideItem({ ...info, global })
     mutateOverrideConfig()
-    restartCoreInBackground(t('profiles.applyOverrideFailed'))
   }
 
   const onStatusAction = async (key: Key): Promise<void> => {
@@ -360,9 +359,6 @@ const OverrideItem: React.FC<Props> = (props) => {
                       try {
                         await addOverrideItem(info)
                         setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
-                        if (info.global || isActive) {
-                          restartCoreInBackground(t('override.remoteApplyFailed'))
-                        }
                       } catch (e) {
                         alert(e)
                       } finally {

@@ -20,7 +20,6 @@ import { SortableContext } from '@dnd-kit/sortable'
 import { FaPlus } from 'react-icons/fa6'
 import { notifyError } from '@renderer/utils/notify'
 import { desktop } from '@renderer/api/desktop'
-import { createQueuedCoreRestartRunner } from '@renderer/utils/core-restart'
 import {
   DEFAULT_JAVASCRIPT_OVERRIDE,
   inferOverrideExt,
@@ -67,11 +66,6 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
         distance: 2
       }
     })
-  )
-
-  const scheduleCoreRestart = useMemo(
-    () => createQueuedCoreRestartRunner(t('profiles.applyOverrideFailed')),
-    [t]
   )
 
   const handleOverrideImport = useCallback(async () => {
@@ -166,9 +160,8 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
 
       await updateProfileItem({ ...currentProfile, override: newOverride })
       mutateProfileConfig()
-      scheduleCoreRestart()
     },
-    [currentProfile, mutateProfileConfig, scheduleCoreRestart]
+    [currentProfile, mutateProfileConfig]
   )
 
   const onOverrideDragEnd = async (event: DragEndEvent): Promise<void> => {
@@ -277,9 +270,6 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
               await updateOverrideItem(item)
             } else {
               await addOverrideItem(item)
-            }
-            if (item.global) {
-              scheduleCoreRestart()
             }
             setShowOverrideEditModal(false)
             setEditingOverrideItem(null)
