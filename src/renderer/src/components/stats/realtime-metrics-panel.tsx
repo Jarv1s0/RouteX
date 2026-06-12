@@ -113,27 +113,44 @@ function MiniMetricChart({
         trigger: 'axis',
         transitionDuration: 0,
         hideDelay: 120,
-        backgroundColor: 'rgba(255,255,255,0.88)',
-        borderColor: 'rgba(148,163,184,0.18)',
-        textStyle: {
-          color: '#0f172a'
-        },
+        backgroundColor: 'transparent',
+        borderColor: 'transparent',
+        padding: 0,
         formatter: (params: unknown) => {
           const tooltipParams = (Array.isArray(params) ? params : [params]) as TooltipSeriesParam[]
-          return tooltipParams
-            .map((entry) => {
-              const rawValue = Array.isArray(entry.value) ? entry.value[1] : entry.value
-              return `
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:128px;">
-                  <div style="display:flex;align-items:center;gap:8px;min-width:0;">
-                    <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;flex:none;"></span>
-                    <span style="color:#334155;font-size:12px;white-space:nowrap;">${entry.seriesName}</span>
-                  </div>
-                  <span style="color:#0f172a;font-size:13px;font-weight:800;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;">${valueFormatter(Number(rawValue))}</span>
-                </div>
-              `
-            })
-            .join('')
+          const uid = Math.random().toString(36).substring(7)
+          return `
+            <style>
+              .echart-glass-tooltip-${uid} {
+                background: rgba(255, 255, 255, 0.4);
+                backdrop-filter: blur(12px) saturate(150%);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+                padding: 8px 12px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+              }
+              .dark .echart-glass-tooltip-${uid} {
+                background: rgba(0, 0, 0, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+              }
+            </style>
+            <div class="echart-glass-tooltip-${uid}">
+              ${tooltipParams
+                .map((entry) => {
+                  const rawValue = Array.isArray(entry.value) ? entry.value[1] : entry.value
+                  return `
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:128px;margin-bottom:4px;">
+                      <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                        <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;flex:none;box-shadow: 0 0 6px ${entry.color}"></span>
+                        <span style="color:var(--heroui-foreground, #334155);font-size:12px;white-space:nowrap;opacity:0.8;">${entry.seriesName}</span>
+                      </div>
+                      <span style="color:var(--heroui-foreground, #0f172a);font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;">${valueFormatter(Number(rawValue))}</span>
+                    </div>
+                  `
+                })
+                .join('')}
+            </div>
+          `
         }
       },
       xAxis: {

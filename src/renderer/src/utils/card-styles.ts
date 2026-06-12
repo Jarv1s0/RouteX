@@ -13,11 +13,11 @@ export const CARD_STYLES = {
 
   // Inactive state: iOS 26 Liquid Glass
   INACTIVE:
-    'bg-gradient-to-b from-white/12 to-white/4 dark:from-white/3 dark:to-transparent border-white/14 dark:border-white/6 hover:border-white/22 dark:hover:border-white/10 backdrop-blur-[6px] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22),0_2px_10px_0_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.26),0_4px_12px_0_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]',
+    'bg-gradient-to-b from-white/8 to-transparent dark:from-white/2 dark:to-transparent hover:from-white/16 hover:to-white/5 dark:hover:from-white/8 dark:hover:to-white/2 border-white/14 dark:border-white/6 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22),0_2px_10px_0_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_8px_20px_0_rgba(0,0,0,0.1)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_4px_16px_0_rgba(0,0,0,0.3)]',
 
   // Toolbar style: Same as INACTIVE but without scale and tuned for toolbar
   GLASS_TOOLBAR:
-    'flex items-center transition-[background-color,border-color,box-shadow,opacity] duration-150 bg-gradient-to-b from-white/12 to-white/4 dark:from-white/3 dark:to-transparent border border-white/14 dark:border-white/6 hover:border-white/22 dark:hover:border-white/10 backdrop-blur-[6px] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22),0_2px_10px_0_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.26),0_4px_12px_0_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] overflow-visible',
+    'flex items-center transition-[background-color,border-color,box-shadow,opacity] duration-150 bg-gradient-to-b from-white/8 to-transparent dark:from-white/2 dark:to-transparent hover:from-white/16 hover:to-white/5 dark:hover:from-white/8 dark:hover:to-white/2 border border-white/14 dark:border-white/6 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22),0_2px_10px_0_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_8px_20px_0_rgba(0,0,0,0.1)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_4px_16px_0_rgba(0,0,0,0.3)] overflow-visible',
 
   // Input style: Matches the glass toolbar aesthetic
   GLASS_INPUT: {
