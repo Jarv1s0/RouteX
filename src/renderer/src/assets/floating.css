@@ -43,6 +43,13 @@ body,
   opacity: 0.8;
 }
 
+.floating-thumb.is-spinning {
+  animation-name: routex-floating-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
 .floating-thumb.is-default {
   background: hsl(var(--heroui-default, 240 5% 84%));
 }
@@ -108,4 +115,14 @@ html {
 
 * {
   user-select: none;
+}
+
+@keyframes routex-floating-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }

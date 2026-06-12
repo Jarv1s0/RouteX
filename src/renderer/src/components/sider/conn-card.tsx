@@ -19,6 +19,7 @@ let currentDownload: number | undefined = undefined
 let hasShowTraffic = false
 let drawing = false
 let trayIconBase64Promise: Promise<string> | null = null
+const SIDEBAR_TRAFFIC_VISUAL_INTERVAL_MS = 1000
 
 interface Props {
   iconOnly?: boolean
@@ -98,9 +99,9 @@ const ConnCard: React.FC<Props> = (props) => {
     void warmConnectionSnapshot()
   }
 
-  const [upload, setUpload] = useState(0)
-  const [download, setDownload] = useState(0)
+  const [traffic, setTraffic] = useState({ upload: 0, download: 0 })
   const lastVisualUpdateAtRef = useRef(0)
+  const lastVisibleTrafficRef = useRef({ upload: 0, download: 0 })
 
   const [trafficData, setTrafficData] = useState(() =>
     Array(16)
@@ -127,16 +128,19 @@ const ConnCard: React.FC<Props> = (props) => {
 
     const handleTraffic = async (info: ControllerTraffic): Promise<void> => {
       const now = Date.now()
-      if (now - lastVisualUpdateAtRef.current < 250) {
+      if (now - lastVisualUpdateAtRef.current < SIDEBAR_TRAFFIC_VISUAL_INTERVAL_MS) {
         return
       }
       lastVisualUpdateAtRef.current = now
 
-      setUpload(info.up)
-      setDownload(info.down)
+      const nextTraffic = { upload: info.up, download: info.down }
+      const trafficChanged =
+        nextTraffic.upload !== lastVisibleTrafficRef.current.upload ||
+        nextTraffic.download !== lastVisibleTrafficRef.current.download
 
-      // 只有窗口可见时才更新图表（性能优化）
-      if (isWindowFocusedRef.current) {
+      if (isWindowFocusedRef.current && trafficChanged) {
+        lastVisibleTrafficRef.current = nextTraffic
+        setTraffic(nextTraffic)
         setTrafficData((prev) => {
           const newData = [...prev]
           newData.shift()
@@ -222,8 +226,12 @@ const ConnCard: React.FC<Props> = (props) => {
 
           <div className="flex justify-between items-end relative z-10 mt-auto">
             <div className="flex items-center justify-between w-full">
-              <SidebarTrafficValue value={upload} tone="upload" icon={LuCircleArrowUp} />
-              <SidebarTrafficValue value={download} tone="download" icon={LuCircleArrowDown} />
+              <SidebarTrafficValue value={traffic.upload} tone="upload" icon={LuCircleArrowUp} />
+              <SidebarTrafficValue
+                value={traffic.download}
+                tone="download"
+                icon={LuCircleArrowDown}
+              />
             </div>
           </div>
         </CardBody>
