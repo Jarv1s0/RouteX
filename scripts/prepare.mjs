@@ -522,24 +522,31 @@ const resolveRoutexService = async () => {
     return
   }
 
-  verifyRoutexServiceSysproxyCommand(path.join(cwd, 'extra', 'files', file))
+  verifyRoutexServiceCommands(path.join(cwd, 'extra', 'files', file))
 }
 
-function verifyRoutexServiceSysproxyCommand(binaryPath) {
-  try {
-    execFileSync(binaryPath, ['sysproxy', 'disable', '--help'], {
-      stdio: 'pipe',
-      timeout: 10_000
-    })
-  } catch (error) {
-    const output = [error.stdout, error.stderr]
-      .filter(Boolean)
-      .map((value) => value.toString().trim())
-      .filter(Boolean)
-      .join('\n')
-    throw new Error(
-      `routex-service must support "sysproxy disable"; refresh the routex-service pre-release asset. ${output}`
-    )
+function verifyRoutexServiceCommands(binaryPath) {
+  const checks = [
+    { args: ['sysproxy', 'disable', '--help'], label: 'sysproxy disable' },
+    { args: ['sys', 'tun-cleanup', '--help'], label: 'sys tun-cleanup' }
+  ]
+
+  for (const check of checks) {
+    try {
+      execFileSync(binaryPath, check.args, {
+        stdio: 'pipe',
+        timeout: 10_000
+      })
+    } catch (error) {
+      const output = [error.stdout, error.stderr]
+        .filter(Boolean)
+        .map((value) => value.toString().trim())
+        .filter(Boolean)
+        .join('\n')
+      throw new Error(
+        `routex-service must support "${check.label}"; refresh the routex-service pre-release asset. ${output}`
+      )
+    }
   }
 }
 const resolveRunner = () => {

@@ -231,6 +231,25 @@ pub(crate) fn configured_tun_device_for_cleanup(
         })
 }
 
+pub(crate) fn runtime_fake_ip_ranges_for_cleanup(runtime_config: &Value) -> Vec<String> {
+    let mut ranges = Vec::new();
+    if let Some(range) = runtime_config
+        .get("dns")
+        .and_then(Value::as_object)
+        .and_then(|dns| dns.get("fake-ip-range"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|range| !range.is_empty())
+    {
+        ranges.push(range.to_string());
+    }
+
+    if ranges.is_empty() {
+        ranges.push("198.18.0.0/15".to_string());
+    }
+    ranges
+}
+
 #[cfg(target_os = "windows")]
 pub(crate) fn cleanup_stale_tun_artifacts(
     app: &tauri::AppHandle,
@@ -242,52 +261,19 @@ pub(crate) fn cleanup_stale_tun_artifacts(
     if device.eq_ignore_ascii_case("localhost") || device.eq_ignore_ascii_case("loopback") {
         return Ok(());
     }
+    let fake_ip_ranges = runtime_fake_ip_ranges_for_cleanup(runtime_config);
 
-    let escaped_device = device.replace('\'', "''");
-    let script = format!(
-        r#"
-$ErrorActionPreference = 'SilentlyContinue'
-$device = '{escaped_device}'
-$adapter = Get-NetAdapter -Name $device -ErrorAction SilentlyContinue
-if ($null -eq $adapter) {{
-  exit 0
-}}
-$index = $adapter.ifIndex
-$hasTunAddress = @(Get-NetIPAddress -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-  Where-Object {{ $_.IPAddress -like '198.18.*' -or $_.IPAddress -like '198.19.*' }}).Count -gt 0
-$hasTunRoute = @(Get-NetRoute -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-  Where-Object {{ $_.DestinationPrefix -eq '0.0.0.0/0' -or $_.DestinationPrefix -like '198.18.*' -or $_.DestinationPrefix -like '198.19.*' -or $_.NextHop -like '198.18.*' -or $_.NextHop -like '198.19.*' }}).Count -gt 0
-$hasTunDns = @(Get-DnsClientServerAddress -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-  ForEach-Object {{ $_.ServerAddresses }} |
-  Where-Object {{ $_ -like '198.18.*' -or $_ -like '198.19.*' }}).Count -gt 0
-if (-not ($hasTunAddress -or $hasTunRoute -or $hasTunDns)) {{
-  exit 0
-}}
-Get-NetRoute -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-  Where-Object {{ $_.DestinationPrefix -eq '0.0.0.0/0' -or $_.DestinationPrefix -like '198.18.*' -or $_.DestinationPrefix -like '198.19.*' -or $_.NextHop -like '198.18.*' -or $_.NextHop -like '198.19.*' }} |
-  Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue
-Set-DnsClientServerAddress -InterfaceIndex $index -ResetServerAddresses -ErrorAction SilentlyContinue
-Get-NetIPAddress -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-  Where-Object {{ $_.IPAddress -like '198.18.*' -or $_.IPAddress -like '198.19.*' }} |
-  Remove-NetIPAddress -Confirm:$false -ErrorAction SilentlyContinue
-Disable-NetAdapter -Name $device -Confirm:$false -ErrorAction SilentlyContinue
-"#
-    );
-    let output = powershell_command()
-        .arg("-Command")
-        .arg(script)
-        .output()
-        .map_err(|e| e.to_string())?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        let message = command_output_text(&output);
-        if message.is_empty() {
-            Err(format!("清理 TUN 残留失败: {}", output.status))
-        } else {
-            Err(format!("清理 TUN 残留失败: {message}"))
-        }
-    }
+    run_service_command(
+        app,
+        &[
+            "--device".to_string(),
+            device,
+            "sys".to_string(),
+            "tun-cleanup".to_string(),
+            "--fake-ip-ranges".to_string(),
+            fake_ip_ranges.join(","),
+        ],
+    )
 }
 
 #[cfg(not(target_os = "windows"))]
