@@ -414,6 +414,7 @@ export const zhCN = {
   'settings.clash.keepCore': '仅保留内核',
   'settings.clash.closeRenderer': '仅关闭渲染进程',
   'settings.clash.lightweightDelay': '自动开启轻量模式延时',
+  'settings.clash.configureLightweight': '配置',
   'settings.clash.seconds': '秒',
   'settings.clash.copyTerminalProxy': '复制终端代理命令',
   'settings.clash.copyCommand': '复制命令',

@@ -199,6 +199,59 @@ function createTooltipFormatter(speed: boolean): (params: unknown) => string {
   }
 }
 
+function createLineSeries(
+  name: string,
+  color: string,
+  data: number[],
+  areaStart: string,
+  areaEnd: string
+) {
+  return {
+    name,
+    type: 'line',
+    color,
+    smooth: true,
+    symbol: 'none',
+    data,
+    lineStyle: {
+      color,
+      width: 2.25,
+      opacity: 1,
+      cap: 'round',
+      join: 'round'
+    },
+    areaStyle: {
+      color: {
+        type: 'linear',
+        x: 0,
+        y: 0,
+        x2: 0,
+        y2: 1,
+        colorStops: [
+          { offset: 0, color: areaStart },
+          { offset: 1, color: areaEnd }
+        ]
+      }
+    },
+    emphasis: {
+      disabled: true
+    }
+  }
+}
+
+function createBarSeries(name: string, color: string, data: number[]) {
+  return {
+    name,
+    type: 'bar',
+    barMaxWidth: 18,
+    itemStyle: {
+      color,
+      borderRadius: [4, 4, 0, 0]
+    },
+    data
+  }
+}
+
 // ─── 按数据依赖拆分的图表渲染器 ───
 // RealtimeChartRenderer 仅订阅 trafficHistory（~1Hz 高频更新）
 // HourlyChartRenderer 仅订阅 hourlyData（30s 低频刷新）
@@ -262,68 +315,20 @@ const RealtimeChartRenderer = React.memo(function RealtimeChartRenderer() {
         }
       },
       series: [
-        {
-          name: t('stats.uploadSpeed'),
-          type: 'line',
-          color: uploadColor,
-          smooth: true,
-          symbol: 'none',
-          data: realtimeData.upload,
-          lineStyle: {
-            color: uploadColor,
-            width: 2.25,
-            opacity: 1,
-            cap: 'round',
-            join: 'round'
-          },
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(6,182,212,0.40)' },
-                { offset: 1, color: 'rgba(6,182,212,0.05)' }
-              ]
-            }
-          },
-          emphasis: {
-            disabled: true
-          }
-        },
-        {
-          name: t('stats.downloadSpeed'),
-          type: 'line',
-          color: downloadColor,
-          smooth: true,
-          symbol: 'none',
-          data: realtimeData.download,
-          lineStyle: {
-            color: downloadColor,
-            width: 2.25,
-            opacity: 1,
-            cap: 'round',
-            join: 'round'
-          },
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: downloadAreaStart },
-                { offset: 1, color: downloadAreaEnd }
-              ]
-            }
-          },
-          emphasis: {
-            disabled: true
-          }
-        }
+        createLineSeries(
+          t('stats.uploadSpeed'),
+          uploadColor,
+          realtimeData.upload,
+          'rgba(6,182,212,0.40)',
+          'rgba(6,182,212,0.05)'
+        ),
+        createLineSeries(
+          t('stats.downloadSpeed'),
+          downloadColor,
+          realtimeData.download,
+          downloadAreaStart,
+          downloadAreaEnd
+        )
       ]
     } as EChartsCoreOption
   }, [isDark, realtimeData, t])
@@ -371,26 +376,16 @@ const HourlyChartRenderer = React.memo(function HourlyChartRenderer() {
         }
       },
       series: [
-        {
-          name: t('stats.upload'),
-          type: 'bar',
-          barMaxWidth: 18,
-          itemStyle: {
-            color: uploadColor,
-            borderRadius: [4, 4, 0, 0]
-          },
-          data: chartData.map((item) => item.upload)
-        },
-        {
-          name: t('stats.download'),
-          type: 'bar',
-          barMaxWidth: 18,
-          itemStyle: {
-            color: downloadColor,
-            borderRadius: [4, 4, 0, 0]
-          },
-          data: chartData.map((item) => item.download)
-        }
+        createBarSeries(
+          t('stats.upload'),
+          uploadColor,
+          chartData.map((item) => item.upload)
+        ),
+        createBarSeries(
+          t('stats.download'),
+          downloadColor,
+          chartData.map((item) => item.download)
+        )
       ]
     } as EChartsCoreOption
   }, [isDark, formattedHourlyData, t])

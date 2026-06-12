@@ -13,12 +13,9 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { mihomoChangeProxy } from '@renderer/utils/mihomo-ipc'
 import { testRuleMatch } from '@renderer/utils/tools-ipc'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { IoOpenOutline, IoReload } from 'react-icons/io5'
-import {
-  createSecondaryModalClassNames,
-  getMainPaneModalContentStyle
-} from '@renderer/utils/modal-styles'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
 interface Props {
@@ -29,7 +26,7 @@ interface Props {
 export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { t } = useI18n()
   const { groups = [], mutate } = useGroups()
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(1400)
   const isTauriHost = __ROUTEX_HOST__ === 'tauri'
 
   // Site Selection State
@@ -151,7 +148,7 @@ export const IPCheckModal: React.FC<Props> = ({ isOpen, onClose }) => {
       })}
     >
       <ModalContent
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+        style={modalContentStyle}
       >
         <ModalHeader className="flex flex-col gap-3 py-4 border-b border-default-100 pr-10">
           {/* Top Bar: Site Selection & Actions */}

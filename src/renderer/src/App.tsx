@@ -14,6 +14,7 @@ import { applyTheme } from '@renderer/utils/theme-ipc'
 import { DEFAULT_CUSTOM_THEME } from '../../shared/defaults/app'
 import { startTauriMihomoEventBridge } from '@renderer/utils/mihomo-ipc'
 import { ensureTauriTrafficRecorder } from '@renderer/utils/tauri-traffic-stats'
+import { scheduleIdleTask } from '@renderer/utils/idle-task'
 import AppSidebar from '@renderer/components/layout/AppSidebar'
 import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
 import { GlobalDialogModal } from '@renderer/components/base/global-dialog-modal'
@@ -22,37 +23,6 @@ import ErrorBoundary from '@renderer/components/base/error-boundary'
 
 const SIDER_WIDTH_CSS_VAR = '--sider-width'
 type ConnectionListenerMode = 'off' | 'summary' | 'full'
-
-function scheduleIdleDeferredTask(task: () => void, delay = 0, timeout = 4000): () => void {
-  let idleId: number | null = null
-  const win = window as Window & {
-    requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number
-    cancelIdleCallback?: (handle: number) => void
-  }
-
-  const timeoutId = window.setTimeout(() => {
-    if (typeof win.requestIdleCallback === 'function') {
-      idleId = win.requestIdleCallback(() => task(), { timeout })
-      return
-    }
-
-    idleId = window.setTimeout(task, 0)
-  }, delay)
-
-  return () => {
-    window.clearTimeout(timeoutId)
-    if (idleId === null) {
-      return
-    }
-
-    if (typeof win.cancelIdleCallback === 'function') {
-      win.cancelIdleCallback(idleId)
-      return
-    }
-
-    window.clearTimeout(idleId)
-  }
-}
 
 const App: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -120,7 +90,7 @@ const App: React.FC = () => {
       }
     }
 
-    const cancelInitialCheck = scheduleIdleDeferredTask(() => {
+    const cancelInitialCheck = scheduleIdleTask(() => {
       if (!document.hidden) {
         void runUpdateCheck(true)
       }
@@ -174,7 +144,7 @@ const App: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    return scheduleIdleDeferredTask(
+    return scheduleIdleTask(
       () => {
         preloadSidebarRoutes()
         void warmConnectionSnapshot()

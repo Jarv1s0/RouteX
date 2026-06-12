@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
+import { normalizeConnectionMetadata } from '@renderer/utils/connection-metadata'
 import {
   isExpectedMihomoUnavailableError,
   mihomoCloseAllConnections,
@@ -104,10 +105,7 @@ function createSeedActiveConnections(
 ): ExtendedConnection[] {
   return connections.map((connection) => ({
     ...connection,
-    metadata:
-      connection.metadata.type === 'Inner'
-        ? { ...connection.metadata, process: 'mihomo', processPath: 'mihomo' }
-        : connection.metadata,
+    metadata: normalizeConnectionMetadata(connection.metadata),
     isActive: true,
     downloadSpeed: 0,
     uploadSpeed: 0

@@ -5,8 +5,8 @@ import { getRuntimeConfigStr } from '@renderer/utils/mihomo-ipc'
 import { getOverrideProfileStr } from '@renderer/utils/override-ipc'
 import { getProfileConfig, getRawProfileStr } from '@renderer/utils/profile-ipc'
 import useSWR from 'swr'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle, MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
+import { MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -18,7 +18,7 @@ type DiffSource = 'raw' | 'override'
 
 const ConfigViewer: React.FC<Props> = ({ onClose }) => {
   const { t } = useI18n()
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(1400)
   const [runtimeConfig, setRuntimeConfig] = useState('')
   const [rawProfile, setRawProfile] = useState('')
   const [overrideConfig, setOverrideConfig] = useState('')
@@ -64,7 +64,7 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
     >
       <ModalContent
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+        style={modalContentStyle}
       >
         <ModalHeader className="flex pb-0 app-drag">{t('configViewer.title')}</ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-hidden">

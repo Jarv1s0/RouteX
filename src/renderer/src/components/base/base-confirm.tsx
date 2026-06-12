@@ -1,8 +1,8 @@
 import React from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { useI18n } from '@renderer/i18n'
-import { getMainPaneModalContentStyle, MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
+import { MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 
 export interface ConfirmButton {
   key: string
@@ -35,9 +35,7 @@ const ConfirmModal: React.FC<Props> = (props) => {
     buttons,
     className
   } = props
-  const {
-    appConfig: { collapseSidebar = false, siderWidth = 250 } = {}
-  } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(400)
 
   const renderButtons = () => {
     if (buttons && buttons.length > 0) {
@@ -90,7 +88,7 @@ const ConfirmModal: React.FC<Props> = (props) => {
     >
       <ModalContent
         className={className}
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 400 })}
+        style={modalContentStyle}
       >
         {() => (
           <div className="animate-pop-in">

@@ -59,28 +59,28 @@ function getInitialMetricPoints(): MetricPoint[] {
 
 const formatIntegerValue = (value: number): string => `${Math.round(value)}`
 
+const MEMORY_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const
+
+function scaleMemoryValue(byte: number): { value: number; unit: (typeof MEMORY_UNITS)[number] } {
+  let value = byte
+  let unitIndex = 0
+
+  while (value >= 1000 && unitIndex < MEMORY_UNITS.length - 1) {
+    value /= 1000
+    unitIndex += 1
+  }
+
+  return { value, unit: MEMORY_UNITS[unitIndex] }
+}
+
 const formatMemoryValue = (byte: number): string => {
-  if (byte < 1000) return `${Math.round(byte)} B`
-  byte /= 1000
-  if (byte < 1000) return `${byte.toFixed(1)} KB`
-  byte /= 1000
-  if (byte < 1000) return `${byte.toFixed(1)} MB`
-  byte /= 1000
-  if (byte < 1000) return `${byte.toFixed(1)} GB`
-  byte /= 1000
-  return `${byte.toFixed(1)} TB`
+  const { value, unit } = scaleMemoryValue(byte)
+  return unit === 'B' ? `${Math.round(value)} B` : `${value.toFixed(1)} ${unit}`
 }
 
 const formatMemoryAxisValue = (byte: number): string => {
-  if (byte < 1000) return `${Math.round(byte)}`
-  byte /= 1000
-  if (byte < 1000) return Number(byte.toFixed(1)).toString()
-  byte /= 1000
-  if (byte < 1000) return Number(byte.toFixed(1)).toString()
-  byte /= 1000
-  if (byte < 1000) return Number(byte.toFixed(1)).toString()
-  byte /= 1000
-  return Number(byte.toFixed(1)).toString()
+  const { value, unit } = scaleMemoryValue(byte)
+  return unit === 'B' ? `${Math.round(value)}` : Number(value.toFixed(1)).toString()
 }
 
 function MiniMetricChart({

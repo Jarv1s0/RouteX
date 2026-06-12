@@ -201,6 +201,103 @@ pub(crate) fn trigger_sys_proxy(
     Ok(())
 }
 
+pub(crate) fn runtime_tun_device(config: &Value) -> Option<String> {
+    config
+        .get("tun")
+        .and_then(Value::as_object)
+        .and_then(|tun| tun.get("device"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|device| !device.is_empty())
+        .map(str::to_string)
+}
+
+pub(crate) fn configured_tun_device_for_cleanup(
+    app: &tauri::AppHandle,
+    runtime_config: &Value,
+) -> Option<String> {
+    runtime_tun_device(runtime_config)
+        .or_else(|| {
+            read_controlled_config_store(app)
+                .ok()
+                .and_then(|config| runtime_tun_device(&config))
+        })
+        .or_else(|| {
+            if cfg!(target_os = "macos") {
+                None
+            } else {
+                Some("mihomo".to_string())
+            }
+        })
+}
+
+#[cfg(target_os = "windows")]
+pub(crate) fn cleanup_stale_tun_artifacts(
+    app: &tauri::AppHandle,
+    runtime_config: &Value,
+) -> Result<(), String> {
+    let Some(device) = configured_tun_device_for_cleanup(app, runtime_config) else {
+        return Ok(());
+    };
+    if device.eq_ignore_ascii_case("localhost") || device.eq_ignore_ascii_case("loopback") {
+        return Ok(());
+    }
+
+    let escaped_device = device.replace('\'', "''");
+    let script = format!(
+        r#"
+$ErrorActionPreference = 'SilentlyContinue'
+$device = '{escaped_device}'
+$adapter = Get-NetAdapter -Name $device -ErrorAction SilentlyContinue
+if ($null -eq $adapter) {{
+  exit 0
+}}
+$index = $adapter.ifIndex
+$hasTunAddress = @(Get-NetIPAddress -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+  Where-Object {{ $_.IPAddress -like '198.18.*' -or $_.IPAddress -like '198.19.*' }}).Count -gt 0
+$hasTunRoute = @(Get-NetRoute -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+  Where-Object {{ $_.DestinationPrefix -eq '0.0.0.0/0' -or $_.DestinationPrefix -like '198.18.*' -or $_.DestinationPrefix -like '198.19.*' -or $_.NextHop -like '198.18.*' -or $_.NextHop -like '198.19.*' }}).Count -gt 0
+$hasTunDns = @(Get-DnsClientServerAddress -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+  ForEach-Object {{ $_.ServerAddresses }} |
+  Where-Object {{ $_ -like '198.18.*' -or $_ -like '198.19.*' }}).Count -gt 0
+if (-not ($hasTunAddress -or $hasTunRoute -or $hasTunDns)) {{
+  exit 0
+}}
+Get-NetRoute -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+  Where-Object {{ $_.DestinationPrefix -eq '0.0.0.0/0' -or $_.DestinationPrefix -like '198.18.*' -or $_.DestinationPrefix -like '198.19.*' -or $_.NextHop -like '198.18.*' -or $_.NextHop -like '198.19.*' }} |
+  Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue
+Set-DnsClientServerAddress -InterfaceIndex $index -ResetServerAddresses -ErrorAction SilentlyContinue
+Get-NetIPAddress -InterfaceIndex $index -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+  Where-Object {{ $_.IPAddress -like '198.18.*' -or $_.IPAddress -like '198.19.*' }} |
+  Remove-NetIPAddress -Confirm:$false -ErrorAction SilentlyContinue
+Disable-NetAdapter -Name $device -Confirm:$false -ErrorAction SilentlyContinue
+"#
+    );
+    let output = powershell_command()
+        .arg("-Command")
+        .arg(script)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        let message = command_output_text(&output);
+        if message.is_empty() {
+            Err(format!("清理 TUN 残留失败: {}", output.status))
+        } else {
+            Err(format!("清理 TUN 残留失败: {message}"))
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+pub(crate) fn cleanup_stale_tun_artifacts(
+    _app: &tauri::AppHandle,
+    _runtime_config: &Value,
+) -> Result<(), String> {
+    Ok(())
+}
+
 pub(crate) fn is_core_running(state: &State<'_, CoreState>) -> Result<bool, String> {
     let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
     let is_running = if let Some(child) = runtime.child.as_mut() {

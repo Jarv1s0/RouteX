@@ -28,6 +28,9 @@ import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import useSWR from 'swr'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useRulesStore } from '@renderer/store/use-rules-store'
+import { resolveFinalProxyNode } from '@renderer/utils/proxy-groups'
+import { getProxyColor } from '@renderer/utils/proxy-colors'
+import { BUILT_IN_RULE_TARGETS } from '@renderer/utils/rule-targets'
 
 import { useI18n } from '@renderer/i18n'
 
@@ -48,16 +51,6 @@ const formatQuickRule = (
   return text
 }
 
-const getProxyColor = (
-  proxy: string
-): 'danger' | 'success' | 'secondary' | 'primary' | 'warning' | 'default' => {
-  if (proxy === 'REJECT') return 'danger'
-  if (proxy === 'DIRECT') return 'default'
-  return 'secondary'
-}
-
-const BUILT_IN_RULE_TARGETS = ['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'PASS-RULE', 'GLOBAL']
-
 const runtimeEntryName = (entry: unknown): string | undefined => {
   if (!entry || typeof entry !== 'object') return undefined
   const name = (entry as { name?: unknown }).name
@@ -76,26 +69,6 @@ const RulesPage: React.FC = () => {
   const { groups = [] } = useGroups()
 
   const { disabledRules, setRuleDisabledBatch, toggleRuleDisabled } = useRulesStore()
-
-  // 递归查找最终节点
-  const getFinalNode = useCallback(
-    (proxyName: string, visited: Set<string> = new Set()): string | null => {
-      if (visited.has(proxyName)) return null
-      visited.add(proxyName)
-
-      const group = groups.find((g) => g.name === proxyName)
-      if (!group || !group.now) return null
-
-      // 检查 now 是否也是一个代理组
-      const subGroup = groups.find((g) => g.name === group.now)
-      if (subGroup) {
-        return getFinalNode(group.now, visited)
-      }
-
-      return group.now
-    },
-    [groups]
-  )
 
   const [showDetails, setShowDetails] = useState({
     show: false,
@@ -511,7 +484,7 @@ const RulesPage: React.FC = () => {
               <div className="flex flex-col">
                 {filteredQuickRules.map((rule, index) => {
                   const targetMissing = missingRuleTargetIds.has(rule.id)
-                  const finalNode = getFinalNode(rule.target)
+                  const finalNode = resolveFinalProxyNode(groups, rule.target)
                   return (
                     <div key={rule.id} className="w-full pb-2">
                       <Card

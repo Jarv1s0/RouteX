@@ -47,7 +47,10 @@ fn main() {
         println!("cargo:rerun-if-changed={}", path.display());
         if profile != "debug" {
             let metadata = fs::metadata(&path).unwrap_or_else(|error| {
-                panic!("missing required bundled resource {}: {error}", path.display())
+                panic!(
+                    "missing required bundled resource {}: {error}",
+                    path.display()
+                )
             });
             if metadata.len() == 0 {
                 panic!("required bundled resource is empty: {}", path.display());

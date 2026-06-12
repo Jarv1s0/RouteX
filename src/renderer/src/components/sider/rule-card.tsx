@@ -11,6 +11,7 @@ import {
   mihomoRuleProviders,
   mihomoUpdateRuleProviders
 } from '@renderer/utils/mihomo-ipc'
+import { scheduleIdleTask } from '@renderer/utils/idle-task'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { useI18n } from '@renderer/i18n'
 
@@ -67,37 +68,6 @@ function writeCachedRuleCardCounts(counts: CachedRuleCardCounts): void {
     window.localStorage.setItem(RULE_CARD_COUNT_CACHE_KEY, JSON.stringify(counts))
   } catch {
     // ignore storage write errors
-  }
-}
-
-function scheduleIdleTask(task: () => void, delay = 0, timeout = 4000): () => void {
-  let idleId: number | null = null
-  const win = window as Window & {
-    requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number
-    cancelIdleCallback?: (handle: number) => void
-  }
-
-  const timeoutId = window.setTimeout(() => {
-    if (typeof win.requestIdleCallback === 'function') {
-      idleId = win.requestIdleCallback(() => task(), { timeout })
-      return
-    }
-
-    idleId = window.setTimeout(task, 0)
-  }, delay)
-
-  return () => {
-    window.clearTimeout(timeoutId)
-    if (idleId === null) {
-      return
-    }
-
-    if (typeof win.cancelIdleCallback === 'function') {
-      win.cancelIdleCallback(idleId)
-      return
-    }
-
-    window.clearTimeout(idleId)
   }
 }
 

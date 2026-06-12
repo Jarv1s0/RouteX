@@ -5,6 +5,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useEffect, memo, useState } from 'react'
 import { addFlag } from '@renderer/utils/flags'
 import { useI18n } from '@renderer/i18n'
+import { getDelayColorClass } from '@renderer/utils/delay-color'
 
 function isRemoteIcon(value: string): boolean {
   return /^https?:\/\//i.test(value)
@@ -71,16 +72,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
   const [iconSrc, setIconSrc] = useState('')
   const [iconLoadFailed, setIconLoadFailed] = useState(false)
 
-  const delayColor =
-    currentDelay === -1
-      ? 'text-default-400'
-      : currentDelay === 0
-        ? 'text-danger'
-        : currentDelay < delayThresholds.good
-          ? 'text-success'
-          : currentDelay < delayThresholds.fair
-            ? 'text-warning'
-            : 'text-danger'
+  const delayColor = getDelayColorClass(currentDelay, delayThresholds, 'text-default-400')
 
   // Icon handling
   useEffect(() => {

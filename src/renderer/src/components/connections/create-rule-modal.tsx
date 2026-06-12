@@ -21,8 +21,9 @@ import {
   removeQuickRule,
   updateQuickRule
 } from '@renderer/utils/quick-rules-ipc'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
+import { COMMON_RULE_TARGETS } from '@renderer/utils/rule-targets'
+import { RULE_TYPES } from '@renderer/utils/rule-types'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
 interface Props {
   connection: ControllerConnectionDetail
@@ -43,81 +44,10 @@ function ruleToString(rule: RuleDraft): string {
   return s
 }
 
-// mihomo 支持的规则类型
-const RULE_TYPES = [
-  // 域名类
-  { key: 'DOMAIN', label: 'DOMAIN', descKey: 'rules.desc.domain', category: 'domain' },
-  {
-    key: 'DOMAIN-SUFFIX',
-    label: 'DOMAIN-SUFFIX',
-    descKey: 'rules.desc.domainSuffix',
-    category: 'domain'
-  },
-  {
-    key: 'DOMAIN-KEYWORD',
-    label: 'DOMAIN-KEYWORD',
-    descKey: 'rules.desc.domainKeyword',
-    category: 'domain'
-  },
-  {
-    key: 'DOMAIN-WILDCARD',
-    label: 'DOMAIN-WILDCARD',
-    descKey: 'rules.desc.domainWildcard',
-    category: 'domain'
-  },
-  {
-    key: 'DOMAIN-REGEX',
-    label: 'DOMAIN-REGEX',
-    descKey: 'rules.desc.domainRegex',
-    category: 'domain'
-  },
-  // IP 类
-  { key: 'IP-CIDR', label: 'IP-CIDR', descKey: 'rules.desc.ipCidr4', category: 'ip' },
-  { key: 'IP-CIDR6', label: 'IP-CIDR6', descKey: 'rules.desc.ipCidr6', category: 'ip' },
-  { key: 'IP-SUFFIX', label: 'IP-SUFFIX', descKey: 'rules.desc.ipSuffix', category: 'ip' },
-  { key: 'IP-ASN', label: 'IP-ASN', descKey: 'rules.desc.ipAsn', category: 'ip' },
-  { key: 'GEOIP', label: 'GEOIP', descKey: 'rules.desc.geoip', category: 'ip' },
-  { key: 'SRC-GEOIP', label: 'SRC-GEOIP', descKey: 'rules.desc.srcGeoip', category: 'ip' },
-  // 进程类
-  {
-    key: 'PROCESS-NAME',
-    label: 'PROCESS-NAME',
-    descKey: 'rules.desc.processName',
-    category: 'process'
-  },
-  {
-    key: 'PROCESS-PATH',
-    label: 'PROCESS-PATH',
-    descKey: 'rules.desc.processPath',
-    category: 'process'
-  },
-  {
-    key: 'PROCESS-NAME-REGEX',
-    label: 'PROCESS-NAME-REGEX',
-    descKey: 'rules.desc.processNameRegex',
-    category: 'process'
-  },
-  {
-    key: 'PROCESS-PATH-REGEX',
-    label: 'PROCESS-PATH-REGEX',
-    descKey: 'rules.desc.processPathRegex',
-    category: 'process'
-  },
-  // 端口/网络类
-  { key: 'DST-PORT', label: 'DST-PORT', descKey: 'rules.desc.dstPort', category: 'port' },
-  { key: 'SRC-PORT', label: 'SRC-PORT', descKey: 'rules.desc.srcPort', category: 'port' },
-  { key: 'NETWORK', label: 'NETWORK', descKey: 'rules.desc.network', category: 'port' },
-  // GEO 类
-  { key: 'GEOSITE', label: 'GEOSITE', descKey: 'rules.desc.geosite', category: 'geo' }
-] as const
-
-// 常用规则快捷选项
-const COMMON_PROXIES = ['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS']
-
 const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
   const { t } = useI18n()
   const { groups = [] } = useGroups()
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(720)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // 已有的快速规则列表
@@ -277,7 +207,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
 
   // 可用的代理目标列表
   const proxyOptions = useMemo(() => {
-    const options = [...COMMON_PROXIES]
+    const options = [...COMMON_RULE_TARGETS]
     groups.forEach((g) => {
       if (!options.includes(g.name)) {
         options.push(g.name)
@@ -603,7 +533,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
     <Modal isOpen={true} onClose={onClose} size="lg" scrollBehavior="inside" placement="center">
       <ModalContent
         className="mx-4 my-4"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 720 })}
+        style={modalContentStyle}
       >
         <ModalBody className="py-4">{renderContent()}</ModalBody>
       </ModalContent>

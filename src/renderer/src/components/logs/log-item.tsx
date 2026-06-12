@@ -1,5 +1,6 @@
 import { Card, CardBody } from '@heroui/react'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { getLogTypeBadgeClass, getLogTypeMarkerClass } from '@renderer/utils/log-styles'
 import React, { memo, useCallback } from 'react'
 
 interface Props extends ControllerLog {
@@ -15,13 +16,6 @@ const LogItem: React.FC<Props> = (props) => {
       onPress({ type, payload, time })
     }
   }, [onPress, payload, time, type])
-
-  const borderColors: Record<string, string> = {
-    error: 'bg-danger',
-    warning: 'bg-warning',
-    info: 'bg-primary',
-    debug: 'bg-slate-500'
-  }
 
   return (
     <div className="px-2 pb-2">
@@ -39,24 +33,14 @@ const LogItem: React.FC<Props> = (props) => {
         onPress={handlePress}
       >
         <div
-          className={`absolute left-0 top-0 bottom-0 w-1 ${borderColors[type] || 'bg-default'} opacity-60 group-hover:opacity-100 transition-opacity`}
+          className={`absolute left-0 top-0 bottom-0 w-1 ${getLogTypeMarkerClass(type)} opacity-60 group-hover:opacity-100 transition-opacity`}
         />
 
         <CardBody className="py-2.5 px-3 pl-4">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
               <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                  type === 'error'
-                    ? 'border-danger/30 text-danger bg-danger/10'
-                    : type === 'warning'
-                      ? 'border-warning/30 text-warning bg-warning/10'
-                      : type === 'info'
-                        ? 'border-primary/30 text-primary bg-primary/10'
-                        : type === 'debug'
-                          ? 'border-dashed border-slate-500/35 text-slate-600 bg-slate-500/10 dark:text-slate-300'
-                          : 'border-default/30 text-default-500 bg-default/10'
-                }`}
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getLogTypeBadgeClass(type, 'list')}`}
               >
                 {type.toUpperCase()}
               </span>

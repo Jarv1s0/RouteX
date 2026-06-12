@@ -6,6 +6,7 @@ import { FaMapPin } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getProxyDisplayDelay, getResolvedProxyTarget } from '@renderer/utils/proxy-delay'
 import { useI18n } from '@renderer/i18n'
+import { getDelayColor } from '@renderer/utils/delay-color'
 
 interface Props {
   mutateProxies: () => void
@@ -69,14 +70,6 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
   }, [proxy, delayVersion])
 
   const [loading, setLoading] = useState(false)
-
-  function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
-    if (delay === -1) return 'primary'
-    if (delay === 0) return 'danger'
-    if (delay < delayThresholds.good) return 'success'
-    if (delay < delayThresholds.fair) return 'warning'
-    return 'danger'
-  }
 
   function delayText(delay: number): string {
     if (delay === -1) return t('proxies.test')
@@ -180,7 +173,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 <Button
                   title={proxy.type}
                   isDisabled={loading}
-                  color={delayColor(displayDelay)}
+              color={getDelayColor(displayDelay, delayThresholds)}
                   onPress={onDelay}
                   variant="light"
                   className="h-[28px] min-w-[48px] px-2 p-0 text-[11px] font-mono font-bold hover:bg-default-100/50"
@@ -257,7 +250,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   <Button
                     title={proxy.type}
                     isDisabled={loading}
-                    color={delayColor(displayDelay)}
+                    color={getDelayColor(displayDelay, delayThresholds)}
                     onPress={onDelay}
                     variant="light"
                     className="h-[30px] min-w-[48px] px-2 p-0 text-xs font-mono font-bold hover:bg-default-100/50"

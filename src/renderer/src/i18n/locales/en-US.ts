@@ -433,6 +433,7 @@ export const enUS: Record<TranslationKey, string> = {
   'settings.clash.keepCore': 'Keep core only',
   'settings.clash.closeRenderer': 'Close renderer only',
   'settings.clash.lightweightDelay': 'Auto lightweight delay',
+  'settings.clash.configureLightweight': 'Configure',
   'settings.clash.seconds': 's',
   'settings.clash.copyTerminalProxy': 'Copy terminal proxy command',
   'settings.clash.copyCommand': 'Copy command',

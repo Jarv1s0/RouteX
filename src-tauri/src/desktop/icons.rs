@@ -59,7 +59,11 @@ pub(crate) fn read_local_icon_data_url(app_path: &str) -> Option<String> {
 }
 
 pub(crate) fn icon_data_url_cache() -> &'static Mutex<lru::LruCache<String, String>> {
-    ICON_DATA_URL_CACHE.get_or_init(|| Mutex::new(lru::LruCache::new(std::num::NonZeroUsize::new(500).unwrap())))
+    ICON_DATA_URL_CACHE.get_or_init(|| {
+        Mutex::new(lru::LruCache::new(
+            std::num::NonZeroUsize::new(500).unwrap(),
+        ))
+    })
 }
 
 pub(crate) fn is_icon_remote_or_data_resource(app_path: &str) -> bool {

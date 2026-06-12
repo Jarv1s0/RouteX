@@ -40,6 +40,7 @@ import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
 import useSWR from 'swr'
 import { notifyError, notifyInfo, notifySuccess } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
+import { hasMihomoUpdate } from '@renderer/utils/mihomo-version'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const Mihomo: React.FC = () => {
@@ -82,20 +83,7 @@ const Mihomo: React.FC = () => {
     }
   }, [core])
 
-  // 比较版本号，判断是否有新版本
-  const hasNewVersion = (): boolean => {
-    if (!version?.version || !latestVersion) return false
-
-    // Alpha 版本使用 Hash 匹配
-    if (core === 'mihomo-alpha') {
-      return !version.version.includes(latestVersion)
-    }
-
-    // Stable 版本使用语义化比较
-    const current = version.version.replace(/^v/, '')
-    const latest = latestVersion.replace(/^v/, '')
-    return current !== latest && latest > current
-  }
+  const hasNewVersion = (): boolean => hasMihomoUpdate(version?.version, latestVersion, core)
 
   const onChangeNeedRestart = async (patch: Partial<MihomoConfig>): Promise<void> => {
     await patchControledMihomoConfig(patch)

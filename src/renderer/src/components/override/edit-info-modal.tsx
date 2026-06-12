@@ -1,8 +1,7 @@
 import { cn, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem } from '@heroui/react'
 import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -15,7 +14,7 @@ interface Props {
 const EditInfoModal: React.FC<Props> = (props) => {
   const { item, updateOverrideItem, onClose } = props
   const { t } = useI18n()
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(1024)
   const [values, setValues] = useState(item)
   const [saving, setSaving] = useState(false)
   const inputWidth = 'w-[400px] md:w-[400px] lg:w-[600px] xl:w-[800px]'
@@ -52,7 +51,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
     >
       <ModalContent
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1024 })}
+        style={modalContentStyle}
       >
         <ModalHeader className="flex app-drag">
           {item.id ? t('override.editTitle') : t('override.importRemote')}

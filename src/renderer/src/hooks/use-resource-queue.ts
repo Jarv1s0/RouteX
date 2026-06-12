@@ -78,6 +78,17 @@ function clearQueuedTimer(timerRef: { current: ReturnType<typeof setTimeout> | n
   timerRef.current = null
 }
 
+function setQueuedTimer(
+  timerRef: { current: ReturnType<typeof setTimeout> | null },
+  delay: number,
+  callback: () => void | Promise<void>
+): void {
+  timerRef.current = setTimeout(() => {
+    timerRef.current = null
+    void callback()
+  }, delay)
+}
+
 function mergeCappedRecord(
   previous: Record<string, string>,
   next: Record<string, string>,
@@ -99,6 +110,13 @@ function readCachedIcon(path: string): string | null {
 
 function writeCachedIcon(path: string, dataUrl: string): void {
   writeSharedCache(sharedIconMemoryCache, path, dataUrl, SHARED_ICON_CACHE_LIMIT)
+}
+
+function hasQueuedIconRequests(
+  visibleQueue: Set<string>,
+  preloadQueue: Set<string>
+): boolean {
+  return visibleQueue.size > 0 || preloadQueue.size > 0
 }
 
 export function useResourceQueue(
@@ -155,10 +173,7 @@ export function useResourceQueue(
     }
 
     if (appNameRequestQueue.current.size > 0) {
-      processAppNameTimer.current = setTimeout(() => {
-        processAppNameTimer.current = null
-        void processAppNameQueue()
-      }, 100)
+      setQueuedTimer(processAppNameTimer, 100, processAppNameQueue)
     }
   }, [])
 
@@ -228,13 +243,11 @@ export function useResourceQueue(
       }
     }
 
-    if (visibleIconRequestQueue.current.size > 0 || preloadIconRequestQueue.current.size > 0) {
-      processIconTimer.current = setTimeout(
-        () => {
-          processIconTimer.current = null
-          void processIconQueue()
-        },
-        visibleIconRequestQueue.current.size > 0 ? 20 : 60
+    if (hasQueuedIconRequests(visibleIconRequestQueue.current, preloadIconRequestQueue.current)) {
+      setQueuedTimer(
+        processIconTimer,
+        visibleIconRequestQueue.current.size > 0 ? 20 : 60,
+        processIconQueue
       )
     }
   }, [filteredConnectionsFirstPath])
@@ -265,12 +278,9 @@ export function useResourceQueue(
     }
 
     // Start processing immediately if queue is not empty, otherwise ensure timer is cleared
-    if (visibleIconRequestQueue.current.size > 0 || preloadIconRequestQueue.current.size > 0) {
+    if (hasQueuedIconRequests(visibleIconRequestQueue.current, preloadIconRequestQueue.current)) {
       clearQueuedTimer(processIconTimer)
-      processIconTimer.current = setTimeout(() => {
-        processIconTimer.current = null
-        void processIconQueue()
-      }, 10)
+      setQueuedTimer(processIconTimer, 10, processIconQueue)
     }
 
     return () => {
@@ -288,10 +298,7 @@ export function useResourceQueue(
 
     if (appNameRequestQueue.current.size > 0) {
       clearQueuedTimer(processAppNameTimer)
-      processAppNameTimer.current = setTimeout(() => {
-        processAppNameTimer.current = null
-        void processAppNameQueue()
-      }, 10)
+      setQueuedTimer(processAppNameTimer, 10, processAppNameQueue)
     }
 
     return () => {
@@ -335,10 +342,7 @@ export function useResourceQueue(
         displayIcon &&
         findProcessMode !== 'off'
       ) {
-        processIconTimer.current = setTimeout(() => {
-          processIconTimer.current = null
-          void processIconQueue()
-        }, 10)
+        setQueuedTimer(processIconTimer, 10, processIconQueue)
       }
     },
     [filteredConnectionsFirstPath, displayIcon, findProcessMode, processIconQueue]
@@ -369,10 +373,7 @@ export function useResourceQueue(
 
       appNameRequestQueue.current.add(path)
       if (!processAppNameTimer.current && processingAppNames.current.size === 0 && displayAppName) {
-        processAppNameTimer.current = setTimeout(() => {
-          processAppNameTimer.current = null
-          void processAppNameQueue()
-        }, 10)
+        setQueuedTimer(processAppNameTimer, 10, processAppNameQueue)
       }
     },
     [displayAppName, processAppNameQueue]

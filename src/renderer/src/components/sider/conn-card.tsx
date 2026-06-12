@@ -24,6 +24,61 @@ interface Props {
   iconOnly?: boolean
 }
 
+type TrafficTone = 'upload' | 'download'
+
+const TRAFFIC_TONE_STYLES: Record<
+  TrafficTone,
+  {
+    icon: string
+    amount: string
+    unit: string
+  }
+> = {
+  upload: {
+    icon: 'text-[12px] text-cyan-500 dark:text-cyan-400',
+    amount: 'text-[15px] font-bold font-data-numeric tabular-nums leading-none text-cyan-500 dark:text-cyan-400',
+    unit: 'text-[9px] font-medium uppercase tracking-[0.1em] leading-none text-cyan-600/60 dark:text-cyan-400/60'
+  },
+  download: {
+    icon: 'text-[12px] text-purple-500 dark:text-purple-400',
+    amount: 'text-[15px] font-bold font-data-numeric tabular-nums leading-none text-purple-500 dark:text-purple-400',
+    unit: 'text-[9px] font-medium uppercase tracking-[0.1em] leading-none text-purple-600/60 dark:text-purple-400/60'
+  }
+}
+
+function splitTrafficValue(value: number): { amount: string; unit: string } {
+  const text = calcTraffic(value)
+  return {
+    amount: text.replace(/[A-Za-z]/g, ''),
+    unit: text.replace(/[^A-Za-z]/g, '')
+  }
+}
+
+function SidebarTrafficValue({
+  value,
+  tone,
+  icon: Icon
+}: {
+  value: number
+  tone: TrafficTone
+  icon: React.ElementType
+}): React.JSX.Element {
+  const { amount, unit } = splitTrafficValue(value)
+  const styles = TRAFFIC_TONE_STYLES[tone]
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
+        <Icon className={styles.icon} />
+      </span>
+      <div className="flex items-baseline gap-1">
+        <span className={styles.amount}>{amount}</span>
+        <span className={styles.unit}>{unit}/s</span>
+      </div>
+    </div>
+  )
+}
+
 const ConnCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
   const { t } = useI18n()
@@ -167,45 +222,8 @@ const ConnCard: React.FC<Props> = (props) => {
 
           <div className="flex justify-between items-end relative z-10 mt-auto">
             <div className="flex items-center justify-between w-full">
-              {/* Upload */}
-              <div className="flex items-center gap-1.5">
-                <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                  <LuCircleArrowUp className={`text-[12px] text-cyan-500 dark:text-cyan-400`} />
-                </span>
-                <div className="flex items-baseline gap-1">
-                  <span
-                    className={`text-[15px] font-bold font-data-numeric tabular-nums leading-none text-cyan-500 dark:text-cyan-400`}
-                  >
-                    {calcTraffic(upload).replace(/[A-Za-z]/g, '')}
-                  </span>
-                  <span
-                    className={`text-[9px] font-medium uppercase tracking-[0.1em] leading-none text-cyan-600/60 dark:text-cyan-400/60`}
-                  >
-                    {calcTraffic(upload).replace(/[^A-Za-z]/g, '')}/s
-                  </span>
-                </div>
-              </div>
-
-              {/* Download */}
-              <div className="flex items-center gap-1.5">
-                <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                  <LuCircleArrowDown
-                    className={`text-[12px] text-purple-500 dark:text-purple-400`}
-                  />
-                </span>
-                <div className="flex items-baseline gap-1">
-                  <span
-                    className={`text-[15px] font-bold font-data-numeric tabular-nums leading-none text-purple-500 dark:text-purple-400`}
-                  >
-                    {calcTraffic(download).replace(/[A-Za-z]/g, '')}
-                  </span>
-                  <span
-                    className={`text-[9px] font-medium uppercase tracking-[0.1em] leading-none text-purple-600/60 dark:text-purple-400/60`}
-                  >
-                    {calcTraffic(download).replace(/[^A-Za-z]/g, '')}/s
-                  </span>
-                </div>
-              </div>
+              <SidebarTrafficValue value={upload} tone="upload" icon={LuCircleArrowUp} />
+              <SidebarTrafficValue value={download} tone="download" icon={LuCircleArrowDown} />
             </div>
           </div>
         </CardBody>

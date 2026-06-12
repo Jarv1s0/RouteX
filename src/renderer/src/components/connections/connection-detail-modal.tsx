@@ -35,6 +35,7 @@ import { useI18n } from '@renderer/i18n'
 import MihomoIcon from '@renderer/components/base/mihomo-icon'
 import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
 import { getIconDataURL } from '@renderer/utils/resource-ipc'
+import { getDelayColorClass } from '@renderer/utils/delay-color'
 
 interface Props {
   connection: ControllerConnectionDetail
@@ -53,14 +54,6 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
     } = {}
   } = useAppConfig()
   const { groups = [] } = useGroups()
-
-  // 辅助函数：获取延迟颜色
-  const getDelayColorClass = (delay: number) => {
-    if (delay === 0) return 'text-danger'
-    if (delay < delayThresholds.good) return 'text-success'
-    if (delay < delayThresholds.fair) return 'text-warning'
-    return 'text-danger'
-  }
 
   // 查找代理链中的组信息
   const chainGroups = useMemo(() => {
@@ -509,7 +502,9 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                           : undefined
                       }
                       delay={delay}
-                      delayColorClass={delay === undefined ? undefined : getDelayColorClass(delay)}
+                      delayColorClass={
+                        delay === undefined ? undefined : getDelayColorClass(delay, delayThresholds)
+                      }
                       isGroup={!!group}
                       icon={group?.icon}
                       groupType={group?.type}

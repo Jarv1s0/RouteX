@@ -16,6 +16,7 @@ import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { useI18n } from '@renderer/i18n'
+import { hasMihomoUpdate } from '@renderer/utils/mihomo-version'
 
 interface Props {
   iconOnly?: boolean
@@ -117,15 +118,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
     }
   }, [core, match])
 
-  const hasNewVersion = (): boolean => {
-    if (!version?.version || !latestVersion) return false
-    if (core === 'mihomo-alpha') {
-      return !version.version.includes(latestVersion)
-    }
-    const current = version.version.replace(/^v/, '')
-    const latest = latestVersion.replace(/^v/, '')
-    return current !== latest && latest > current
-  }
+  const hasNewVersion = (): boolean => hasMihomoUpdate(version?.version, latestVersion, core)
 
   useEffect(() => {
     const token = PubSub.subscribe('mihomo-core-changed', () => void refreshVersion())

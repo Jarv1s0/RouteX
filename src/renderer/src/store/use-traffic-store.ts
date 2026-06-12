@@ -14,6 +14,17 @@ interface TrafficDataPoint {
   download: number
 }
 
+interface TrafficSample {
+  up: number
+  down: number
+}
+
+interface ConnectionTotals {
+  upload: number
+  download: number
+  at: number
+}
+
 interface TrafficState {
   trafficHistory: TrafficDataPoint[]
   hourlyData: { hour: string; upload: number; download: number }[]
@@ -63,7 +74,7 @@ let currentConnectionsThrottle: { cancel: () => void } | null = null
 let currentConnectionsUnsubscribe: (() => void) | null = null
 let lastIpcTrafficEventAt = 0
 let lastIpcTrafficSample: { up: number; down: number; at: number } | null = null
-let lastConnectionTotals: { upload: number; download: number; at: number } | null = null
+let lastConnectionTotals: ConnectionTotals | null = null
 let routeTrafficConnectionSamples = new Map<
   string,
   { upload: number; download: number; isDirect: boolean }
@@ -76,6 +87,36 @@ let pendingTrafficDelta = { up: 0, down: 0 }
 
 function getTimeKey(): string {
   return new Date().toTimeString().split(' ')[0]
+}
+
+function normalizeTrafficSample(sample: TrafficSample): TrafficSample {
+  return {
+    up: Math.max(0, Math.trunc(sample.up || 0)),
+    down: Math.max(0, Math.trunc(sample.down || 0))
+  }
+}
+
+function getConnectionTrafficDelta(
+  current: ConnectionTotals,
+  previous: ConnectionTotals
+): TrafficSample {
+  return {
+    up: Math.max(0, current.upload - previous.upload),
+    down: Math.max(0, current.download - previous.download)
+  }
+}
+
+function hasTraffic(sample: TrafficSample): boolean {
+  return sample.up > 0 || sample.down > 0
+}
+
+function isStuckZeroIpcTrafficSample(now: number): boolean {
+  return (
+    lastIpcTrafficSample !== null &&
+    lastIpcTrafficSample.up === 0 &&
+    lastIpcTrafficSample.down === 0 &&
+    now - lastIpcTrafficSample.at <= TRAFFIC_EVENT_STALE_MS
+  )
 }
 
 function clearTrafficStatsPolling() {
@@ -134,17 +175,11 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
     // Traffic Listener Definition
     const applyTrafficSample = (
-      displayTraffic: { up: number; down: number },
+      displayTraffic: TrafficSample,
       trafficDelta = displayTraffic
     ): void => {
-      const normalizedDisplay = {
-        up: Math.max(0, Math.trunc(displayTraffic.up || 0)),
-        down: Math.max(0, Math.trunc(displayTraffic.down || 0))
-      }
-      const normalizedDelta = {
-        up: Math.max(0, Math.trunc(trafficDelta.up || 0)),
-        down: Math.max(0, Math.trunc(trafficDelta.down || 0))
-      }
+      const normalizedDisplay = normalizeTrafficSample(displayTraffic)
+      const normalizedDelta = normalizeTrafficSample(trafficDelta)
       const timeStr = getTimeKey()
 
       set((state) => {
@@ -172,12 +207,9 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       })
     }
 
-    const handleTraffic = (traffic: { up: number; down: number }): void => {
+    const handleTraffic = (traffic: TrafficSample): void => {
       lastIpcTrafficEventAt = Date.now()
-      const normalized = {
-        up: Math.max(0, Math.trunc(traffic.up || 0)),
-        down: Math.max(0, Math.trunc(traffic.down || 0))
-      }
+      const normalized = normalizeTrafficSample(traffic)
       lastIpcTrafficSample = { ...normalized, at: lastIpcTrafficEventAt }
 
       // 累积增量以保证 sessionStats 不丢失，展示值取最新
@@ -208,44 +240,23 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
         const uploadTotal = Math.max(0, Math.trunc(snapshot.uploadTotal || 0))
         const downloadTotal = Math.max(0, Math.trunc(snapshot.downloadTotal || 0))
         const previousTotals = lastConnectionTotals
-        lastConnectionTotals = { upload: uploadTotal, download: downloadTotal, at: now }
+        const currentTotals = { upload: uploadTotal, download: downloadTotal, at: now }
+        lastConnectionTotals = currentTotals
 
-        if (previousTotals && now - lastIpcTrafficEventAt > TRAFFIC_EVENT_STALE_MS) {
-          const uploadDelta = Math.max(0, uploadTotal - previousTotals.upload)
-          const downloadDelta = Math.max(0, downloadTotal - previousTotals.download)
+        if (previousTotals) {
+          const trafficDelta = getConnectionTrafficDelta(currentTotals, previousTotals)
+          const shouldFallbackToConnectionTotals =
+            now - lastIpcTrafficEventAt > TRAFFIC_EVENT_STALE_MS ||
+            isStuckZeroIpcTrafficSample(now)
 
-          if (uploadDelta > 0 || downloadDelta > 0) {
+          if (shouldFallbackToConnectionTotals && hasTraffic(trafficDelta)) {
             const elapsedMs = Math.max(1, now - previousTotals.at)
             applyTrafficSample(
               {
-                up: Math.trunc((uploadDelta * 1000) / elapsedMs),
-                down: Math.trunc((downloadDelta * 1000) / elapsedMs)
+                up: Math.trunc((trafficDelta.up * 1000) / elapsedMs),
+                down: Math.trunc((trafficDelta.down * 1000) / elapsedMs)
               },
-              {
-                up: uploadDelta,
-                down: downloadDelta
-              }
-            )
-          }
-        } else if (previousTotals && lastIpcTrafficSample) {
-          const uploadDelta = Math.max(0, uploadTotal - previousTotals.upload)
-          const downloadDelta = Math.max(0, downloadTotal - previousTotals.download)
-          const ipcSampleLooksStuck =
-            lastIpcTrafficSample.up === 0 &&
-            lastIpcTrafficSample.down === 0 &&
-            now - lastIpcTrafficSample.at <= TRAFFIC_EVENT_STALE_MS
-
-          if (ipcSampleLooksStuck && (uploadDelta > 0 || downloadDelta > 0)) {
-            const elapsedMs = Math.max(1, now - previousTotals.at)
-            applyTrafficSample(
-              {
-                up: Math.trunc((uploadDelta * 1000) / elapsedMs),
-                down: Math.trunc((downloadDelta * 1000) / elapsedMs)
-              },
-              {
-                up: uploadDelta,
-                down: downloadDelta
-              }
+              trafficDelta
             )
           }
         }

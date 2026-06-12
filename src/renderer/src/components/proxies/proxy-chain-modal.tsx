@@ -10,14 +10,12 @@ import {
   removeChainItem
 } from '@renderer/utils/chains-ipc'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
-import {
-  createSecondaryModalClassNames,
-  getMainPaneModalContentStyle
-} from '@renderer/utils/modal-styles'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
+import { CHAIN_BASE_TARGETS } from '@renderer/utils/rule-targets'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const polishedInputClassNames = {
@@ -41,7 +39,7 @@ interface Props {
 const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
   const { t } = useI18n()
   const { groups = [] } = useGroups()
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(900)
   const [chains, setChains] = useState<ChainItem[]>([])
   const [loading, setLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -70,7 +68,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
 
   // 所有可用的节点和组名称
   const allProxies = useMemo(() => {
-    const proxies: string[] = ['DIRECT', 'REJECT']
+    const proxies: string[] = [...CHAIN_BASE_TARGETS]
     groups.forEach((g) => {
       if (!proxies.includes(g.name)) proxies.push(g.name)
       g.all?.forEach((p) => {
@@ -183,7 +181,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
     >
       <ModalContent
         className="overflow-hidden"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 900 })}
+        style={modalContentStyle}
       >
         <ModalHeader className="flex items-start justify-between gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">

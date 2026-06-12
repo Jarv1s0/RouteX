@@ -1,5 +1,5 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@heroui/react'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { relaunchApp } from '@renderer/api/app'
 import { webdavDelete, webdavRestore } from '@renderer/utils/webdav-ipc'
 import React, { useState } from 'react'
@@ -7,7 +7,6 @@ import { MdDeleteForever } from 'react-icons/md'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
-  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
@@ -18,7 +17,7 @@ interface Props {
 const WebdavRestoreModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { filenames: names, onClose } = props
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(480)
   const [filenames, setFilenames] = useState<string[]>(names)
   const [restoring, setRestoring] = useState(false)
 
@@ -31,9 +30,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 480 })}
-      >
+      <ModalContent style={modalContentStyle}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span className="text-sm font-semibold">{t('settings.webdav.restoreTitle')}</span>
           <SecondaryModalCloseButton onPress={onClose} />

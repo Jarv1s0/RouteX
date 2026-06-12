@@ -2,8 +2,8 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from
 import React, { useEffect, useState } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
 import { getOverride, setOverride } from '@renderer/utils/override-ipc'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle, MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
+import { MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 import ConfirmModal from '../base/base-confirm'
 import { notifyError } from '@renderer/utils/notify'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
@@ -19,7 +19,7 @@ interface Props {
 const EditFileModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { id, language, onClose } = props
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(1400)
   const [currData, setCurrData] = useState('')
   const [originalData, setOriginalData] = useState('')
   const [isDiff, setIsDiff] = useState(false)
@@ -70,7 +70,7 @@ const EditFileModal: React.FC<Props> = (props) => {
       )}
       <ModalContent
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+        style={modalContentStyle}
       >
         <ModalHeader className="flex pb-0 app-drag">
           {language === 'javascript'

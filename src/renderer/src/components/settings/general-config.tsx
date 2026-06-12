@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Tooltip, Tabs, Tab, Input, Select, SelectItem } from '@heroui/react'
+import {
+  Button,
+  Tooltip,
+  Tabs,
+  Tab,
+  Input,
+  Select,
+  SelectItem,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter
+} from '@heroui/react'
 import useSWR from 'swr'
 import {
   checkAutoRun,
@@ -22,6 +35,8 @@ import { platform } from '@renderer/utils/init'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { useI18n, type LanguagePreference, type TranslationKey } from '@renderer/i18n'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 
 import WebdavConfigModal from './webdav-config-modal'
 
@@ -56,6 +71,8 @@ const GeneralConfig: React.FC = () => {
   const [pauseSSIDInput, setPauseSSIDInput] = useState(pauseSSIDArray)
 
   const [isWebdavModalOpen, setIsWebdavModalOpen] = useState(false)
+  const [isLightweightModalOpen, setIsLightweightModalOpen] = useState(false)
+  const lightweightModalContentStyle = useMainPaneModalContentStyle(460)
 
   useEffect(() => {
     setPauseSSIDInput(pauseSSIDArray)
@@ -96,6 +113,11 @@ const GeneralConfig: React.FC = () => {
     }
   }
 
+  const handleAutoLightweightChange = (v: boolean): void => {
+    void patchAppConfig({ autoLightweight: v })
+    setIsLightweightModalOpen(v)
+  }
+
   return (
     <>
       {openUpdate && (
@@ -131,6 +153,86 @@ const GeneralConfig: React.FC = () => {
           }}
         />
       )}
+      <Modal
+        isOpen={isLightweightModalOpen}
+        onOpenChange={setIsLightweightModalOpen}
+        size="2xl"
+        backdrop="blur"
+        scrollBehavior="inside"
+        classNames={createSecondaryModalClassNames({ closeButton: 'top-2 right-2' })}
+      >
+        <ModalContent style={lightweightModalContentStyle}>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col py-2 px-4">
+                <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+                  {t('settings.clash.autoLightweight')}
+                </span>
+              </ModalHeader>
+              <ModalBody className="py-2 px-4">
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 rounded-xl border border-default-100 bg-content1/50 p-2 shadow-sm transition-all duration-300 hover:border-default-200 hover:bg-content1 hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-sm font-medium text-foreground-600">
+                      {t('settings.clash.lightweightBehavior')}
+                    </span>
+                    <Tabs
+                      size="sm"
+                      color="primary"
+                      variant="solid"
+                      radius="lg"
+                      selectedKey={autoLightweightMode}
+                      onSelectionChange={(v) => {
+                        void patchAppConfig({ autoLightweightMode: v as 'core' | 'tray' })
+                        if (v === 'core') {
+                          void patchAppConfig({
+                            autoLightweightDelay: 1 /* delay check handled by hook */
+                          })
+                        }
+                      }}
+                    >
+                      <Tab key="core" title={t('settings.clash.keepCore')} />
+                      <Tab key="tray" title={t('settings.clash.closeRenderer')} />
+                    </Tabs>
+                  </div>
+                  <div className="flex flex-col gap-2 rounded-xl border border-default-100 bg-content1/50 p-2 shadow-sm transition-all duration-300 hover:border-default-200 hover:bg-content1 hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-sm font-medium text-foreground-600">
+                      {t('settings.clash.lightweightDelay')}
+                    </span>
+                    <Input
+                      size="sm"
+                      className="w-full sm:w-[120px]"
+                      classNames={{
+                        input: 'bg-transparent',
+                        inputWrapper:
+                          'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
+                      }}
+                      type="number"
+                      endContent={t('settings.clash.seconds')}
+                      value={appConfig?.autoLightweightDelay?.toString()}
+                      onValueChange={async (v: string) => {
+                        let num = parseInt(v)
+                        if (isNaN(num)) num = 0
+                        await patchAppConfig({ autoLightweightDelay: num })
+                      }}
+                    />
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter className="py-2 px-4">
+                <Button
+                  size="sm"
+                  color="primary"
+                  variant="shadow"
+                  onPress={onClose}
+                  className="font-medium px-8"
+                >
+                  {t('common.done')}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
       <SettingCard title={t('settings.system.title')}>
         <SettingItem title={t('settings.system.autoLaunch')} divider>
           <AppSwitch
@@ -159,6 +261,30 @@ const GeneralConfig: React.FC = () => {
               patchAppConfig({ silentStart: v })
             }}
           />
+        </SettingItem>
+        <SettingItem
+          title={t('settings.clash.autoLightweight')}
+          actions={
+            <Tooltip content={t('settings.clash.autoLightweightHelp')}>
+              <Button isIconOnly size="sm" variant="light">
+                <IoIosHelpCircle className="text-lg" />
+              </Button>
+            </Tooltip>
+          }
+          divider
+        >
+          <div className="flex items-center gap-2">
+            {autoLightweight && (
+              <Button size="sm" variant="flat" onPress={() => setIsLightweightModalOpen(true)}>
+                {t('settings.clash.configureLightweight')}
+              </Button>
+            )}
+            <AppSwitch
+              size="sm"
+              isSelected={autoLightweight}
+              onValueChange={handleAutoLightweightChange}
+            />
+          </div>
         </SettingItem>
         <SettingItem title={t('settings.system.language')} divider>
           <Select
@@ -254,68 +380,6 @@ const GeneralConfig: React.FC = () => {
             {t('settings.clash.openDir')}
           </Button>
         </SettingItem>
-        <SettingItem
-          title={t('settings.clash.autoLightweight')}
-          actions={
-            <Tooltip content={t('settings.clash.autoLightweightHelp')}>
-              <Button isIconOnly size="sm" variant="light">
-                <IoIosHelpCircle className="text-lg" />
-              </Button>
-            </Tooltip>
-          }
-          divider
-        >
-          <AppSwitch
-            size="sm"
-            isSelected={autoLightweight}
-            onValueChange={(v) => {
-              patchAppConfig({ autoLightweight: v })
-            }}
-          />
-        </SettingItem>
-        {autoLightweight && (
-          <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-2">
-            <div className="ml-2 text-sm">
-              <SettingItem title={t('settings.clash.lightweightBehavior')} divider>
-                <Tabs
-                  size="sm"
-                  color="primary"
-                  variant="solid"
-                  radius="lg"
-                  selectedKey={autoLightweightMode}
-                  onSelectionChange={(v) => {
-                    patchAppConfig({ autoLightweightMode: v as 'core' | 'tray' })
-                    if (v === 'core') {
-                      patchAppConfig({ autoLightweightDelay: 1 /* delay check handled by hook */ })
-                    }
-                  }}
-                >
-                  <Tab key="core" title={t('settings.clash.keepCore')} />
-                  <Tab key="tray" title={t('settings.clash.closeRenderer')} />
-                </Tabs>
-              </SettingItem>
-              <SettingItem title={t('settings.clash.lightweightDelay')} divider>
-                <Input
-                  size="sm"
-                  className="w-[100px]"
-                  classNames={{
-                    input: 'bg-transparent',
-                    inputWrapper:
-                      'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
-                  }}
-                  type="number"
-                  endContent={t('settings.clash.seconds')}
-                  value={appConfig?.autoLightweightDelay?.toString()}
-                  onValueChange={async (v: string) => {
-                    let num = parseInt(v)
-                    if (isNaN(num)) num = 0
-                    await patchAppConfig({ autoLightweightDelay: num })
-                  }}
-                />
-              </SettingItem>
-            </div>
-          </div>
-        )}
         <SettingItem title={t('settings.clash.copyTerminalProxy')} divider>
           <Button
             size="sm"

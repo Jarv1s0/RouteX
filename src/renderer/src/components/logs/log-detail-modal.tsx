@@ -1,14 +1,14 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@heroui/react'
 import React from 'react'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { IoCopy } from 'react-icons/io5'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
-  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
+import { getLogTypeBadgeClass } from '@renderer/utils/log-styles'
 
 interface Props {
   log: ControllerLog & { time?: string }
@@ -18,27 +18,12 @@ interface Props {
 const LogDetailModal: React.FC<Props> = (props) => {
   const { log, onClose } = props
   const { t } = useI18n()
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(800)
 
   const fullLog = `[${log.time}] [${log.type.toUpperCase()}] ${log.payload}`
 
   const handleCopy = () => {
     navigator.clipboard.writeText(fullLog)
-  }
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'error':
-        return 'bg-danger/10 text-danger border-danger/20'
-      case 'warning':
-        return 'bg-warning/10 text-warning border-warning/20'
-      case 'info':
-        return 'bg-primary/10 text-primary border-primary/20'
-      case 'debug':
-        return 'bg-slate-500/10 text-slate-600 border-dashed border-slate-500/35 dark:text-slate-300'
-      default:
-        return 'bg-default/10 text-default-500 border-default/20'
-    }
   }
 
   return (
@@ -51,9 +36,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
-      <ModalContent
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 800 })}
-      >
+      <ModalContent style={modalContentStyle}>
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold">{t('page.logs.detail')}</span>
@@ -76,7 +59,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
             {/* Metadata Info */}
             <div className="flex items-center gap-2 select-text">
               <div
-                className={`px-1.5 py-[1px] rounded-[4px] border text-[10px] font-bold uppercase tracking-wider ${getTypeColor(log.type)}`}
+                className={`px-1.5 py-[1px] rounded-[4px] border text-[10px] font-bold uppercase tracking-wider ${getLogTypeBadgeClass(log.type, 'detail')}`}
               >
                 {log.type}
               </div>

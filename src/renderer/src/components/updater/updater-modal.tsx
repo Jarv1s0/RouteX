@@ -9,12 +9,9 @@ import {
 } from '@heroui/react'
 import React, { Suspense, useState } from 'react'
 import { downloadAndInstallUpdate } from '@renderer/api/app'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { FiX, FiDownload } from 'react-icons/fi'
-import {
-  createSecondaryModalClassNames,
-  getMainPaneModalContentStyle
-} from '@renderer/utils/modal-styles'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
 const ReleaseNotesMarkdown = React.lazy(() => import('./release-notes-markdown'))
@@ -34,7 +31,7 @@ interface Props {
 const UpdaterModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { version, releaseNotes, updateStatus, onClose, onCancel } = props
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(560, 48)
   const [downloading, setDownloading] = useState(false)
   const onUpdate = async (): Promise<void> => {
     try {
@@ -73,12 +70,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
     >
       <ModalContent
         className="w-full max-h-[min(720px,calc(100vh-96px))]"
-        style={getMainPaneModalContentStyle({
-          collapseSidebar,
-          siderWidth,
-          maxWidthPx: 560,
-          viewportPaddingPx: 48
-        })}
+        style={modalContentStyle}
       >
         <ModalHeader className="flex items-center justify-between gap-4 app-drag px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">

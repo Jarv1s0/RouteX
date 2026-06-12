@@ -111,7 +111,8 @@ pub(crate) const MAX_TRAFFIC_HOURLY_RECORDS: usize = 24 * 7;
 pub(crate) const MAX_TRAFFIC_DAILY_RECORDS: usize = 30;
 
 pub(crate) static APP_STARTED_AT: OnceLock<Instant> = OnceLock::new();
-pub(crate) static ICON_DATA_URL_CACHE: OnceLock<Mutex<lru::LruCache<String, String>>> = OnceLock::new();
+pub(crate) static ICON_DATA_URL_CACHE: OnceLock<Mutex<lru::LruCache<String, String>>> =
+    OnceLock::new();
 pub(crate) static MIHOMO_HTTP_CLIENT: OnceLock<Result<Client, String>> = OnceLock::new();
 pub(crate) static PROFILE_RUNTIME_CONFIG_CACHE: OnceLock<Mutex<Option<ProfileRuntimeConfigCache>>> =
     OnceLock::new();

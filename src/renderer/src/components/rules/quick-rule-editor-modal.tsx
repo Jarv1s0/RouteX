@@ -1,16 +1,21 @@
 import { Autocomplete, AutocompleteItem, Button, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem } from '@heroui/react'
 import React, { useCallback, useMemo, useState } from 'react'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { addQuickRule, updateQuickRule } from '@renderer/utils/quick-rules-ipc'
 import { secondaryInputClassNames } from '@renderer/components/settings/advanced-settings'
 import {
   createSecondaryModalClassNames,
-  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
+import { COMMON_RULE_TARGETS } from '@renderer/utils/rule-targets'
+import {
+  getSuggestedRuleValue,
+  RULE_TYPES,
+  supportsNoResolveForRuleType
+} from '@renderer/utils/rule-types'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
@@ -20,58 +25,10 @@ interface Props {
   onSaved: () => Promise<void> | void
 }
 
-const RULE_TYPES = [
-  { key: 'DOMAIN', label: 'DOMAIN', descKey: 'rules.desc.domain' },
-  { key: 'DOMAIN-SUFFIX', label: 'DOMAIN-SUFFIX', descKey: 'rules.desc.domainSuffix' },
-  { key: 'DOMAIN-KEYWORD', label: 'DOMAIN-KEYWORD', descKey: 'rules.desc.domainKeyword' },
-  { key: 'DOMAIN-WILDCARD', label: 'DOMAIN-WILDCARD', descKey: 'rules.desc.domainWildcard' },
-  { key: 'DOMAIN-REGEX', label: 'DOMAIN-REGEX', descKey: 'rules.desc.domainRegex' },
-  { key: 'IP-CIDR', label: 'IP-CIDR', descKey: 'rules.desc.ipCidr4' },
-  { key: 'IP-CIDR6', label: 'IP-CIDR6', descKey: 'rules.desc.ipCidr6' },
-  { key: 'IP-SUFFIX', label: 'IP-SUFFIX', descKey: 'rules.desc.ipSuffix' },
-  { key: 'IP-ASN', label: 'IP-ASN', descKey: 'rules.desc.ipAsn' },
-  { key: 'GEOIP', label: 'GEOIP', descKey: 'rules.desc.geoip' },
-  { key: 'SRC-GEOIP', label: 'SRC-GEOIP', descKey: 'rules.desc.srcGeoip' },
-  { key: 'PROCESS-NAME', label: 'PROCESS-NAME', descKey: 'rules.desc.processName' },
-  { key: 'PROCESS-PATH', label: 'PROCESS-PATH', descKey: 'rules.desc.processPath' },
-  {
-    key: 'PROCESS-NAME-REGEX',
-    label: 'PROCESS-NAME-REGEX',
-    descKey: 'rules.desc.processNameRegex'
-  },
-  {
-    key: 'PROCESS-PATH-REGEX',
-    label: 'PROCESS-PATH-REGEX',
-    descKey: 'rules.desc.processPathRegex'
-  },
-  { key: 'DST-PORT', label: 'DST-PORT', descKey: 'rules.desc.dstPort' },
-  { key: 'SRC-PORT', label: 'SRC-PORT', descKey: 'rules.desc.srcPort' },
-  { key: 'NETWORK', label: 'NETWORK', descKey: 'rules.desc.network' },
-  { key: 'GEOSITE', label: 'GEOSITE', descKey: 'rules.desc.geosite' }
-] as const
-
-const COMMON_PROXIES = ['DIRECT', 'REJECT', 'REJECT-DROP', 'PASS']
-
-const supportsNoResolveForRuleType = (ruleType: string): boolean => {
-  return ['IP-CIDR', 'IP-CIDR6', 'IP-SUFFIX', 'IP-ASN', 'GEOIP', 'SRC-GEOIP'].includes(ruleType)
-}
-
-const getSuggestedValue = (ruleType: string): string => {
-  switch (ruleType) {
-    case 'GEOIP':
-    case 'SRC-GEOIP':
-      return 'CN'
-    case 'NETWORK':
-      return 'tcp'
-    default:
-      return ''
-  }
-}
-
 const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSaved }) => {
   const { t } = useI18n()
   const { groups = [] } = useGroups()
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(640)
   const isEditing = Boolean(rule)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [ruleType, setRuleType] = useState(rule?.type || 'DOMAIN')
@@ -91,7 +48,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
   }, [noResolve, proxyTarget, ruleType, ruleValue, supportsNoResolve])
 
   const proxyOptions = useMemo(() => {
-    const options = [...COMMON_PROXIES]
+    const options = [...COMMON_RULE_TARGETS]
     groups.forEach((group) => {
       if (!options.includes(group.name)) {
         options.push(group.name)
@@ -103,7 +60,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
   const handleRuleTypeChange = useCallback((selectedKey: string) => {
     if (!selectedKey) return
     setRuleType(selectedKey)
-    setRuleValue(getSuggestedValue(selectedKey))
+    setRuleValue(getSuggestedRuleValue(selectedKey))
     setNoResolve(supportsNoResolveForRuleType(selectedKey))
   }, [])
 
@@ -162,7 +119,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({ profileId, rule, onClose, onSav
       classNames={createSecondaryModalClassNames()}
     >
       <ModalContent
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 640 })}
+        style={modalContentStyle}
       >
         <>
           <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>

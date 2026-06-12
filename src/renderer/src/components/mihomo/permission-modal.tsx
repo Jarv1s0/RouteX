@@ -12,7 +12,7 @@ import {
   Chip,
   Divider
 } from '@heroui/react'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import {
   checkCorePermission,
   checkElevateTask,
@@ -23,7 +23,6 @@ import { platform } from '@renderer/utils/init'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
-  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
@@ -37,7 +36,7 @@ interface Props {
 const PermissionModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { onChange, onRevoke, onGrant } = props
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(450)
   const [loading, setLoading] = useState<{ mihomo?: boolean; 'mihomo-alpha'?: boolean }>({})
   const [hasPermission, setHasPermission] = useState<
     { mihomo: boolean; 'mihomo-alpha': boolean } | boolean | null
@@ -134,7 +133,7 @@ const PermissionModal: React.FC<Props> = (props) => {
     >
       <ModalContent
         className="w-[450px]"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 450 })}
+        style={modalContentStyle}
       >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>

@@ -3,12 +3,11 @@ import React, { useEffect, useState } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
 import { getFileStr, setFileStr, convertMrsRuleset } from '@renderer/utils/file-ipc'
 import yaml from 'js-yaml'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { Spinner } from '@heroui/react'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
-  getMainPaneModalContentStyle,
   SECONDARY_MODAL_HEADER_CLASSNAME
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
@@ -29,7 +28,7 @@ interface Props {
 const Viewer: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { type, path, title, format, privderType, behavior, onClose } = props
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(undefined, 100)
   const [currData, setCurrData] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   let language: Language = !format || format === 'YamlRule' ? 'yaml' : 'text'
@@ -99,11 +98,7 @@ const Viewer: React.FC<Props> = (props) => {
     >
       <ModalContent
         className="h-full"
-        style={getMainPaneModalContentStyle({
-          collapseSidebar,
-          siderWidth,
-          viewportPaddingPx: 100
-        })}
+        style={modalContentStyle}
       >
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <span>{title}</span>

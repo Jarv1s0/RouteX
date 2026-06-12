@@ -1,7 +1,7 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import { BaseEditor } from '@renderer/components/base/base-editor-lazy'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle, MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
+import { MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 import { readTheme } from '@renderer/utils/theme-ipc'
 import { useI18n } from '@renderer/i18n'
 import React, { useEffect, useState } from 'react'
@@ -13,7 +13,7 @@ interface Props {
 const CSSEditorModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { theme, onCancel, onConfirm } = props
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(1400)
   const [currData, setCurrData] = useState('')
 
   useEffect(() => {
@@ -37,7 +37,7 @@ const CSSEditorModal: React.FC<Props> = (props) => {
     >
       <ModalContent
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+        style={modalContentStyle}
       >
         <ModalHeader className="flex pb-0 app-drag">
           {t('settings.appearance.editTheme')}

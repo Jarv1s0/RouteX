@@ -18,12 +18,7 @@ pub(crate) fn prepare_runtime_data_dir(
     app: &tauri::AppHandle,
     data_dir: &Path,
 ) -> Result<(), String> {
-    for file_name in [
-        "country.mmdb",
-        "geoip.metadb",
-        "geoip.dat",
-        "geosite.dat",
-    ] {
+    for file_name in ["country.mmdb", "geoip.metadb", "geoip.dat", "geosite.dat"] {
         let target_path = data_dir.join(file_name);
         let should_copy = if target_path.exists() {
             fs::metadata(&target_path)
@@ -949,6 +944,11 @@ pub(crate) fn restart_core_process(
     let auto_set_dns_mode = read_auto_set_dns_mode(app)?;
     if tun_enabled && auto_set_dns_mode != "none" {
         set_public_dns(app)?;
+    }
+    if !tun_enabled {
+        if let Err(error) = cleanup_stale_tun_artifacts(app, &merged_runtime_config) {
+            eprintln!("[desktop.tun_cleanup] {error}");
+        }
     }
 
     if use_service_mode {

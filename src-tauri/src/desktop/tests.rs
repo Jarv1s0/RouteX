@@ -560,7 +560,10 @@ fn runtime_tray_icons_are_embedded() {
     ] {
         let bytes = embedded_app_icon_bytes(file_name)
             .unwrap_or_else(|| panic!("expected embedded icon bytes for {file_name}"));
-        assert!(!bytes.is_empty(), "embedded icon should not be empty: {file_name}");
+        assert!(
+            !bytes.is_empty(),
+            "embedded icon should not be empty: {file_name}"
+        );
     }
 }
 

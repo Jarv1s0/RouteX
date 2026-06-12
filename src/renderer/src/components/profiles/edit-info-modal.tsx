@@ -4,9 +4,8 @@ import SettingItem from '../base/base-setting-item'
 import { useOverrideConfig } from '@renderer/hooks/use-override-config'
 import { MdDeleteForever } from 'react-icons/md'
 import { FaPlus } from 'react-icons/fa6'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { IoIosHelpCircle } from 'react-icons/io'
-import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 
@@ -20,7 +19,7 @@ interface Props {
 const EditInfoModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { item, updateProfileItem, onClose } = props
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(1024)
   const { overrideConfig } = useOverrideConfig()
   const { items: overrideItems = [] } = overrideConfig || {}
   const [values, setValues] = useState({ ...item, autoUpdate: item.autoUpdate ?? true })
@@ -63,7 +62,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
     >
       <ModalContent
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1024 })}
+        style={modalContentStyle}
       >
         <ModalHeader className="flex app-drag">
           {item.id ? t('profiles.editInfo') : t('page.profiles.importRemote')}

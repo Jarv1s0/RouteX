@@ -21,6 +21,7 @@ import { calcTraffic } from './utils/calc'
 import { closeFloatingWindow, showFloatingWindow, triggerMainWindow } from './utils/window-ipc'
 import { checkElevateTask } from './utils/service-ipc'
 import { useI18n } from './i18n'
+import { getBoundedDelayColor } from './utils/delay-color'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 interface TrafficData {
@@ -186,16 +187,6 @@ const TrayMenuApp: React.FC = () => {
     } catch {
       // ignore
     }
-  }
-
-  const getDelayColor = (
-    delay: number | undefined
-  ): 'success' | 'warning' | 'danger' | 'default' => {
-    if (delay === undefined || delay < 0) return 'default'
-    if (delay === 0) return 'danger'
-    if (delay <= 150) return 'success'
-    if (delay <= 300) return 'warning'
-    return 'danger'
   }
 
   const formatDelay = (delay: number | undefined): string => {
@@ -391,7 +382,7 @@ const TrayMenuApp: React.FC = () => {
                         </Button>
                         <Chip
                           size="sm"
-                          color={getDelayColor(getCurrentDelay(group))}
+                          color={getBoundedDelayColor(getCurrentDelay(group), 150, 300)}
                           variant="flat"
                           className="h-5 min-w-[56px] rounded-full text-[10px]"
                         >
@@ -427,7 +418,7 @@ const TrayMenuApp: React.FC = () => {
                           </div>
                           <Chip
                             size="sm"
-                            color={getDelayColor(delay)}
+                            color={getBoundedDelayColor(delay, 150, 300)}
                             variant="flat"
                             className="h-5 min-w-[52px] shrink-0 rounded-full text-[10px]"
                           >

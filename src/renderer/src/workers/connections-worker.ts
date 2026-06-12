@@ -1,5 +1,10 @@
 /// <reference lib="webworker" />
 
+import {
+  hasConnectionMetadataChanged,
+  normalizeConnectionMetadata
+} from '@renderer/utils/connection-metadata'
+
 export interface ExtendedConnection extends ControllerConnectionDetail {
   isActive: boolean
   downloadSpeed: number
@@ -84,28 +89,8 @@ self.onmessage = (event: MessageEvent) => {
           ? Math.round((Math.max(0, conn.upload - previousSample.upload) * 1000) / elapsedMs)
           : prev?.uploadSpeed || 0
 
-      // Enhance metadata
-      const metadata =
-        conn.metadata.type === 'Inner'
-          ? { ...conn.metadata, process: 'mihomo', processPath: 'mihomo' }
-          : conn.metadata
-
-      const prevMetadata = prev?.metadata
-      const metadataChanged =
-        !prevMetadata ||
-        prevMetadata.process !== metadata.process ||
-        prevMetadata.processPath !== metadata.processPath ||
-        prevMetadata.host !== metadata.host ||
-        prevMetadata.destinationIP !== metadata.destinationIP ||
-        prevMetadata.remoteDestination !== metadata.remoteDestination ||
-        prevMetadata.sniffHost !== metadata.sniffHost ||
-        prevMetadata.sourceIP !== metadata.sourceIP ||
-        prevMetadata.sourcePort !== metadata.sourcePort ||
-        prevMetadata.destinationPort !== metadata.destinationPort ||
-        prevMetadata.type !== metadata.type ||
-        prevMetadata.network !== metadata.network ||
-        prevMetadata.inboundName !== metadata.inboundName ||
-        prevMetadata.inboundUser !== metadata.inboundUser
+      const metadata = normalizeConnectionMetadata(conn.metadata)
+      const metadataChanged = hasConnectionMetadataChanged(prev?.metadata, metadata)
 
       if (
         prev &&

@@ -6,6 +6,8 @@ import dayjs from 'dayjs'
 import React from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { useI18n } from '@renderer/i18n'
+import { resolveFinalProxyNode } from '@renderer/utils/proxy-groups'
+import { getProxyColor } from '@renderer/utils/proxy-colors'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 interface RemoteRuleItemProps {
@@ -32,32 +34,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
   const { t } = useI18n()
   const { groups = [] } = useGroups()
 
-  // 递归查找最终节点
-  const getFinalNode = (proxyName: string, visited: Set<string> = new Set()): string | null => {
-    if (visited.has(proxyName)) return null
-    visited.add(proxyName)
-
-    const group = groups.find((g) => g.name === proxyName)
-    if (!group || !group.now) return null
-
-    // 检查 now 是否也是一个代理组
-    const subGroup = groups.find((g) => g.name === group.now)
-    if (subGroup) {
-      return getFinalNode(group.now, visited)
-    }
-
-    return group.now
-  }
-
-  const currentNode = rule?.proxy ? getFinalNode(rule.proxy) : null
-
-  const getProxyColor = (
-    proxy: string
-  ): 'danger' | 'success' | 'secondary' | 'primary' | 'warning' | 'default' => {
-    if (proxy === 'REJECT') return 'danger'
-    if (proxy === 'DIRECT') return 'default'
-    return 'secondary'
-  }
+  const currentNode = rule?.proxy ? resolveFinalProxyNode(groups, rule.proxy) : null
 
   // 名称：优先使用 provider 的名称，如果没有则使用 rule 的 payload
   const name = provider?.name || rule?.payload || 'Unknown'

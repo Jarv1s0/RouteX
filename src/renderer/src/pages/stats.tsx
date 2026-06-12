@@ -5,8 +5,7 @@ import { clearTrafficStats } from '@renderer/utils/stats-ipc'
 import { IoClose } from 'react-icons/io5'
 import { MdOutlineCleaningServices } from 'react-icons/md'
 import ConfirmModal from '@renderer/components/base/base-confirm'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle } from '@renderer/utils/modal-styles'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 
 import StatusGrid from '@renderer/components/stats/status-grid'
 import TrafficChart from '@renderer/components/stats/traffic-chart'
@@ -107,7 +106,7 @@ const RuleDetailsModalSection = React.memo(function RuleDetailsModalSection({
       ? (state.ruleHitDetails.get(selectedRule) ?? EMPTY_RULE_HIT_DETAILS)
       : EMPTY_RULE_HIT_DETAILS
   ) as RuleHitDetail[]
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(900)
   const { t } = useI18n()
 
   return (
@@ -125,7 +124,7 @@ const RuleDetailsModalSection = React.memo(function RuleDetailsModalSection({
       }}
     >
       <ModalContent
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 900 })}
+        style={modalContentStyle}
       >
         {(closeModal) => (
           <>

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import yaml from 'js-yaml'
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import { BaseEditor } from '../base/base-editor-lazy'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { getMainPaneModalContentStyle, MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
+import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
+import { MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 
 interface Props {
@@ -19,7 +19,7 @@ interface ParsedYaml {
 const ByPassEditorModal: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const { bypass, onCancel, onConfirm } = props
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const modalContentStyle = useMainPaneModalContentStyle(1400)
   const [currData, setCurrData] = useState<string>('')
   useEffect(() => {
     setCurrData(yaml.dump({ bypass }))
@@ -50,7 +50,7 @@ const ByPassEditorModal: React.FC<Props> = (props) => {
     >
       <ModalContent
         className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
+        style={modalContentStyle}
       >
         <ModalHeader className="flex pb-0 app-drag">{t('sysproxy.editBypassYaml')}</ModalHeader>
         <ModalBody className="flex-1 min-h-0 overflow-hidden">
