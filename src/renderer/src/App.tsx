@@ -1,10 +1,10 @@
 import { useTheme } from 'next-themes'
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useRoutes } from 'react-router-dom'
-import routes, { preloadSidebarRoutes, setRouterNavigate } from '@renderer/routes'
+import routes, { setRouterNavigate } from '@renderer/routes'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
-import { useConnectionsStore, warmConnectionSnapshot } from '@renderer/store/use-connections-store'
+import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
@@ -141,17 +141,6 @@ const App: React.FC = () => {
 
     startTauriMihomoEventBridge()
     ensureTauriTrafficRecorder()
-  }, [])
-
-  useEffect(() => {
-    return scheduleIdleTask(
-      () => {
-        preloadSidebarRoutes()
-        void warmConnectionSnapshot()
-      },
-      2000,
-      8000
-    )
   }, [])
 
   useEffect(() => {

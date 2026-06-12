@@ -19,7 +19,7 @@ function getSpinSpeed(totalTraffic: number): number {
 const FloatingApp: React.FC = () => {
   const { appConfig } = useAppConfig()
   const { controledMihomoConfig } = useControledMihomoConfig()
-  const { sysProxy, spinFloatingIcon = true } = appConfig || {}
+  const { sysProxy, spinFloatingIcon = false } = appConfig || {}
   const { tun } = controledMihomoConfig || {}
   const sysProxyEnabled = sysProxy?.enable
   const tunEnabled = tun?.enable

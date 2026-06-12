@@ -30,6 +30,7 @@ export function createDefaultAppConfig(platform: NodeJS.Platform, osRelease?: st
     hotReloadCoreOnSave: true,
     autoDelayTestOnShow: true,
     customTheme: DEFAULT_CUSTOM_THEME,
+    spinFloatingIcon: false,
     controlDns: true,
     controlSniff: true,
     delayTestConcurrency: 4,

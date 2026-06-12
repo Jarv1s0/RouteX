@@ -61,7 +61,7 @@ const AppearanceConfig: React.FC = () => {
     proxyInTray = true,
     disableTray = false,
     showFloatingWindow: showFloating = false,
-    spinFloatingIcon = true,
+    spinFloatingIcon = false,
     collapseSidebar = false,
 
     customTheme = DEFAULT_CUSTOM_THEME,
