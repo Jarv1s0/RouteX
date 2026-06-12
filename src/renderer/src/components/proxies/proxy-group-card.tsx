@@ -147,7 +147,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
 
   const activeStyle = isOpen
     ? 'bg-gradient-to-br from-default-100/95 to-default-50/90 backdrop-blur-2xl border-default-200/70 shadow-[inset_0_-1px_0_rgba(255,255,255,0.45),0_12px_28px_rgba(15,23,42,0.06)] scale-[1.005] relative'
-    : 'bg-default-50/40 dark:bg-default-50/20 backdrop-blur-md border-white/10 dark:border-white/5 shadow-sm hover:scale-[1.002] hover:bg-default-100/60 hover:shadow-md hover:border-default-200/40'
+    : 'bg-default-50/40 dark:bg-default-50/20 backdrop-blur-md border-white/10 dark:border-white/5 shadow-sm hover:-translate-y-[1px] hover:bg-default-100/60 hover:shadow-md hover:border-default-300/50 dark:hover:border-white/20'
 
   return (
     <div className="w-full pt-2 px-2">
@@ -156,7 +156,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
         isPressable
         fullWidth
         onPress={toggleOpen}
-        className={`transition-all duration-200 border group ${activeStyle}`}
+        className={`transition-all duration-300 border group ${activeStyle}`}
       >
         <CardBody className="w-full py-3 px-4 min-h-[64px] flex justify-center">
           {/* Header Row */}
@@ -188,7 +188,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                   >
                     {group.name}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-default-100 text-default-500 uppercase font-bold tracking-wider opacity-60">
+                  <span className="inline-flex h-[18px] items-center rounded bg-default-100/80 dark:bg-white/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-500/80 dark:text-default-400">
                     {group.type}
                   </span>
                 </div>

@@ -14,7 +14,7 @@ const SELECTED_CARD_CLASS =
   'bg-primary/[0.08] dark:bg-primary/[0.12] border border-primary/24 shadow-[0_4px_14px_rgba(16,185,129,0.08)]'
 
 const DEFAULT_CARD_CLASS =
-  'bg-default-100/70 dark:bg-default-50/28 border border-default-200/60 dark:border-white/8 hover:bg-default-100/85 dark:hover:bg-default-100/36 hover:border-default-300/50 dark:hover:border-white/12 hover:shadow'
+  'bg-default-100/70 dark:bg-default-50/28 border border-default-200/60 dark:border-white/8 transition-all duration-200 hover:bg-default-100/85 dark:hover:bg-default-100/36 hover:border-default-300/50 dark:hover:border-white/12 hover:shadow-md hover:-translate-y-[1px]'
 
 const META_PILL_CLASS =
   'bg-default-100/50 dark:bg-default-50/30 rounded-full border border-default-200/50 dark:border-white/10'

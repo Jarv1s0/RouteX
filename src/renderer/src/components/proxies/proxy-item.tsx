@@ -6,7 +6,7 @@ import { FaMapPin } from 'react-icons/fa6'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getProxyDisplayDelay, getResolvedProxyTarget } from '@renderer/utils/proxy-delay'
 import { useI18n } from '@renderer/i18n'
-import { getDelayColor } from '@renderer/utils/delay-color'
+import { getDelayColorClass } from '@renderer/utils/delay-color'
 
 interface Props {
   mutateProxies: () => void
@@ -136,7 +136,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   </span>
                 </div>
                 <div className="mt-0.5 flex min-h-5 items-center gap-1.5 leading-5 opacity-90">
-                  <span className="inline-flex h-[18px] items-center rounded bg-default-200/50 dark:bg-white/10 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-600 dark:text-default-300 border border-black/5 dark:border-white/5">
+                  <span className="inline-flex h-[18px] items-center rounded bg-default-100/80 dark:bg-white/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-500/80 dark:text-default-400">
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
                   </span>
                   {subGroupInfo && (
@@ -182,17 +182,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                     <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-current border-t-transparent animate-spin opacity-70" />
                   ) : (
                     <span
-                      className={
-                        displayDelay < 0
-                          ? 'text-default-500'
-                          : displayDelay === 0
-                            ? 'text-rose-600 dark:text-rose-400'
-                            : displayDelay < delayThresholds.good
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : displayDelay < delayThresholds.fair
-                                ? 'text-amber-600 dark:text-amber-400'
-                                : 'text-rose-600 dark:text-rose-400'
-                      }
+                      className={getDelayColorClass(displayDelay, delayThresholds, 'text-default-500')}
                     >
                       {delayText(displayDelay)}
                     </span>
@@ -221,7 +211,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 </span>
                 {proxyDisplayLayout === 'single' && (
                   <span
-                    className="ml-2 inline-flex h-[18px] items-center rounded bg-default-200/50 dark:bg-white/10 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-600 dark:text-default-300 border border-black/5 dark:border-white/5"
+                    className="ml-2 inline-flex h-[18px] items-center rounded bg-default-100/80 dark:bg-white/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-500/80 dark:text-default-400"
                     title={proxy.type}
                   >
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
@@ -272,17 +262,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                       <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-current border-t-transparent animate-spin opacity-70" />
                     ) : (
                       <span
-                        className={
-                          displayDelay < 0
-                            ? 'text-default-500'
-                            : displayDelay === 0
-                              ? 'text-rose-600 dark:text-rose-400'
-                              : displayDelay < delayThresholds.good
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : displayDelay < delayThresholds.fair
-                                  ? 'text-amber-600 dark:text-amber-400'
-                                  : 'text-rose-600 dark:text-rose-400'
-                        }
+                        className={getDelayColorClass(displayDelay, delayThresholds, 'text-default-500')}
                       >
                         {delayText(displayDelay)}
                       </span>

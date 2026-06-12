@@ -15,8 +15,17 @@ interface Props {
 
 type ProxyLookupItem = {
   name: string
+  icon?: string
   now?: string
   all?: Array<ProxyLookupItem>
+}
+
+function toSvgDataUrl(value: string): string {
+  return `data:image/svg+xml;utf8,${value}`
+}
+
+function getIconImageSrc(icon: string): string {
+  return icon.startsWith('<svg') ? toSvgDataUrl(icon) : icon
 }
 
 const ProxyCard: React.FC<Props> = (props) => {
@@ -62,6 +71,12 @@ const ProxyCard: React.FC<Props> = (props) => {
     const groupName = firstGroup?.now
     return groupName ? getFlag(groupName) : ''
   }, [firstGroup])
+
+  const currentGroupIcon = useMemo(() => {
+    const groupName = firstGroup?.now
+    if (!groupName) return ''
+    return allProxies[groupName]?.icon?.trim() || ''
+  }, [allProxies, firstGroup])
 
   const finalNodeName = useMemo(() => {
     const visited = new Set<string>()
@@ -134,7 +149,18 @@ const ProxyCard: React.FC<Props> = (props) => {
 
           <div className="flex items-center gap-1.5 mt-auto max-w-full overflow-hidden">
             <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-[13px] leading-none flag-emoji">
-              {currentGroupFlag}
+              {currentGroupIcon ? (
+                <img
+                  className="h-4 w-4 object-contain"
+                  src={getIconImageSrc(currentGroupIcon)}
+                  alt=""
+                  onError={(event) => {
+                    ;(event.currentTarget as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              ) : (
+                currentGroupFlag
+              )}
             </span>
             <div className="flex flex-1 min-w-0 items-center gap-1.5 overflow-hidden">
               <span
