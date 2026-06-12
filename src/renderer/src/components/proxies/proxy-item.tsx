@@ -99,27 +99,28 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
       className={`
         ${
           fixed
-            ? 'bg-secondary/18 border border-secondary/40'
+            ? 'bg-secondary/10 border border-secondary/40 shadow-sm'
             : selected
-              ? 'bg-primary/[0.08] dark:bg-primary/[0.12] border border-primary/24 shadow-[0_4px_14px_rgba(16,185,129,0.08)]'
-              : 'bg-default-100/70 dark:bg-default-50/28 border border-default-200/60 dark:border-white/8 hover:bg-default-100/85 dark:hover:bg-default-100/36 hover:border-default-300/50 dark:hover:border-white/12 hover:shadow'
+              ? 'bg-primary/[0.08] dark:bg-primary/[0.12] border-primary/30 dark:border-primary/40 shadow-[0_2px_12px_rgba(var(--heroui-primary)/0.12)] z-10'
+              : 'bg-default-100/40 dark:bg-default-50/20 border-default-200/50 dark:border-white/5 hover:bg-default-100/80 dark:hover:bg-default-100/30 hover:border-default-300/60 dark:hover:border-white/15 hover:shadow-md hover:-translate-y-[1px]'
         } 
+        border transition-all duration-200
         ${displayDelay === 0 ? 'opacity-70 grayscale-[30%] hover:grayscale-0' : ''}
-        ${CARD_STYLES.BASE} data-[pressed=true]:scale-[0.995]
+        ${CARD_STYLES.BASE} data-[pressed=true]:scale-[0.985]
       `}
       radius="lg"
     >
-      <CardBody className="py-1.5 px-2">
+      <CardBody className="py-2 px-2.5">
         <div
           className={`flex ${proxyDisplayLayout === 'double' ? 'gap-1' : 'justify-between items-center'}`}
         >
           {proxyDisplayLayout === 'double' ? (
             <>
-              <div className="flex flex-col gap-0 flex-1 min-w-0">
-                <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
+              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1.5">
                   {proxy.icon && (
                     <img
-                      className={`w-4 h-4 object-contain ${displayDelay === 0 ? 'opacity-50' : ''}`}
+                      className={`w-4 h-4 object-contain drop-shadow-sm ${displayDelay === 0 ? 'opacity-50' : ''}`}
                       src={proxy.icon}
                       alt=""
                       onError={(e) => {
@@ -128,21 +129,21 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                     />
                   )}
                   <span
-                    className="flag-emoji font-medium tracking-wide text-[12.5px]"
+                    className="flag-emoji font-semibold tracking-wide text-[12.5px] text-foreground/90"
                     title={proxy.name}
                   >
                     {proxy.name}
                   </span>
                 </div>
-                <div className="mt-1 flex min-h-5 items-center gap-1.5 leading-5">
-                  <span className="inline-flex h-5 items-center rounded-md border border-default-200/50 bg-default-100/80 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-500 dark:bg-default-50/50">
+                <div className="mt-0.5 flex min-h-5 items-center gap-1.5 leading-5 opacity-90">
+                  <span className="inline-flex h-[18px] items-center rounded bg-default-200/50 dark:bg-white/10 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-600 dark:text-default-300 border border-black/5 dark:border-white/5">
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
                   </span>
                   {subGroupInfo && (
                     <>
-                      <span className="text-default-300 dark:text-default-600/50">|</span>
+                      <span className="text-default-300 dark:text-default-600/50 text-[10px]">|</span>
                       <span
-                        className="flag-emoji truncate text-[11.5px] font-medium tracking-wide leading-5 text-default-500"
+                        className="flag-emoji truncate text-[11px] font-medium tracking-wide leading-5 text-default-500"
                         title={subGroupInfo.now}
                       >
                         {subGroupInfo.now}
@@ -152,7 +153,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 </div>
               </div>
               <div
-                className="flex items-center justify-center gap-0.5 shrink-0"
+                className="flex items-center justify-center gap-1 shrink-0"
                 onClick={(event) => event.stopPropagation()}
               >
                 {fixed && (
@@ -164,34 +165,47 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                       await mihomoUnfixedProxy(group.name)
                       mutateProxies()
                     }}
-                    variant="light"
-                    className="h-[24px] w-[24px] min-w-[24px] p-0 text-xs"
+                    variant="flat"
+                    className="h-[26px] w-[26px] min-w-[26px] p-0 text-xs"
                   >
-                    <FaMapPin className="text-xs le" />
+                    <FaMapPin className="text-xs" />
                   </Button>
                 )}
                 <Button
                   title={proxy.type}
                   isDisabled={loading}
-              color={getDelayColor(displayDelay, delayThresholds)}
                   onPress={onDelay}
                   variant="light"
-                  className="h-[28px] min-w-[48px] px-2 p-0 text-[11px] font-mono font-bold hover:bg-default-100/50"
+                  className="h-[26px] min-w-[48px] px-2 p-0 text-[11.5px] font-mono font-bold tracking-tight hover:bg-default-100/50 transition-all"
                 >
                   {loading ? (
                     <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-current border-t-transparent animate-spin opacity-70" />
                   ) : (
-                    delayText(displayDelay)
+                    <span
+                      className={
+                        displayDelay < 0
+                          ? 'text-default-500'
+                          : displayDelay === 0
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : displayDelay < delayThresholds.good
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : displayDelay < delayThresholds.fair
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-rose-600 dark:text-rose-400'
+                      }
+                    >
+                      {delayText(displayDelay)}
+                    </span>
                   )}
                 </Button>
               </div>
             </>
           ) : (
             <>
-              <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1">
+              <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1.5">
                 {proxy.icon && (
                   <img
-                    className={`w-4 h-4 object-contain ${displayDelay === 0 ? 'opacity-50' : ''}`}
+                    className={`w-4 h-4 object-contain drop-shadow-sm ${displayDelay === 0 ? 'opacity-50' : ''}`}
                     src={proxy.icon}
                     alt=""
                     onError={(e) => {
@@ -200,14 +214,14 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   />
                 )}
                 <span
-                  className="flag-emoji font-medium tracking-wide text-[12.5px]"
+                  className="flag-emoji font-semibold tracking-wide text-[13px] text-foreground/90"
                   title={proxy.name}
                 >
                   {proxy.name === 'COMPATIBLE' ? 'DIRECT' : proxy.name}
                 </span>
                 {proxyDisplayLayout === 'single' && (
                   <span
-                    className="ml-2.5 text-[9px] px-1.5 py-[2px] rounded-md bg-default-100/80 dark:bg-default-50/50 text-default-500 uppercase font-bold tracking-wider border border-default-200/50"
+                    className="ml-2 inline-flex h-[18px] items-center rounded bg-default-200/50 dark:bg-white/10 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-600 dark:text-default-300 border border-black/5 dark:border-white/5"
                     title={proxy.type}
                   >
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
@@ -215,9 +229,9 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 )}
                 {subGroupInfo && (
                   <>
-                    <span className="text-default-300 dark:text-default-600/50 ml-2">|</span>
+                    <span className="text-default-300 dark:text-default-600/50 text-[10px] ml-2">|</span>
                     <span
-                      className="ml-1.5 text-[12px] font-medium tracking-wide text-default-500 flag-emoji truncate"
+                      className="ml-1.5 text-[11.5px] font-medium tracking-wide text-default-500 flag-emoji truncate"
                       title={subGroupInfo.now}
                     >
                       {subGroupInfo.now}
@@ -226,7 +240,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 )}
               </div>
               <div
-                className="flex items-center gap-0.5 shrink-0"
+                className="flex items-center gap-1 shrink-0 pl-2"
                 onClick={(event) => event.stopPropagation()}
               >
                 {fixed && (
@@ -239,10 +253,10 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                         await mihomoUnfixedProxy(group.name)
                         mutateProxies()
                       }}
-                      variant="light"
-                      className="h-[24px] w-[24px] min-w-[24px] p-0 text-xs"
+                      variant="flat"
+                      className="h-[26px] w-[26px] min-w-[26px] p-0 text-xs"
                     >
-                      <FaMapPin className="text-xs le" />
+                      <FaMapPin className="text-xs" />
                     </Button>
                   </div>
                 )}
@@ -250,15 +264,28 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   <Button
                     title={proxy.type}
                     isDisabled={loading}
-                    color={getDelayColor(displayDelay, delayThresholds)}
                     onPress={onDelay}
                     variant="light"
-                    className="h-[30px] min-w-[48px] px-2 p-0 text-xs font-mono font-bold hover:bg-default-100/50"
+                    className="h-[26px] min-w-[48px] px-2 p-0 text-[11.5px] font-mono font-bold tracking-tight hover:bg-default-100/50 transition-all"
                   >
                     {loading ? (
-                      <div className="w-4 h-4 rounded-full border-[1.5px] border-current border-t-transparent animate-spin opacity-70" />
+                      <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-current border-t-transparent animate-spin opacity-70" />
                     ) : (
-                      delayText(displayDelay)
+                      <span
+                        className={
+                          displayDelay < 0
+                            ? 'text-default-500'
+                            : displayDelay === 0
+                              ? 'text-rose-600 dark:text-rose-400'
+                              : displayDelay < delayThresholds.good
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : displayDelay < delayThresholds.fair
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-rose-600 dark:text-rose-400'
+                        }
+                      >
+                        {delayText(displayDelay)}
+                      </span>
                     )}
                   </Button>
                 </div>
