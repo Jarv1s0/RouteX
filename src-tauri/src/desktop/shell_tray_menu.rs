@@ -3,7 +3,7 @@ use super::*;
 
 pub(crate) fn hide_traymenu_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window(TRAYMENU_WINDOW_LABEL) {
-        let _ = window.hide();
+        let _ = window.close();
     }
 }
 

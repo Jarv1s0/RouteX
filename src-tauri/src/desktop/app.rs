@@ -3,7 +3,8 @@ use super::*;
 
 pub fn run() {
     wait_for_admin_relaunch_parent_exit();
-    let context = tauri::generate_context!();
+    let mut context = tauri::generate_context!();
+    apply_webview_browser_args_to_config(context.config_mut());
     if !prepare_windows_elevated_startup_before_tauri(context.config().identifier.as_str()) {
         return;
     }

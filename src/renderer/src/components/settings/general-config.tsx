@@ -286,6 +286,28 @@ const GeneralConfig: React.FC = () => {
             />
           </div>
         </SettingItem>
+        {platform === 'win32' && (
+          <SettingItem
+            title={t('settings.system.disableGpu')}
+            actions={
+              <Tooltip content={t('settings.system.disableGpuHelp')}>
+                <Button isIconOnly size="sm" variant="light">
+                  <IoIosHelpCircle className="text-lg" />
+                </Button>
+              </Tooltip>
+            }
+            divider
+          >
+            <AppSwitch
+              size="sm"
+              isSelected={pendingDisableGPU}
+              onValueChange={(v) => {
+                setPendingDisableGPU(v)
+                setShowRestartConfirm(true)
+              }}
+            />
+          </SettingItem>
+        )}
         <SettingItem title={t('settings.system.language')} divider>
           <Select
             classNames={CARD_STYLES.GLASS_SELECT}
@@ -339,29 +361,6 @@ const GeneralConfig: React.FC = () => {
             {t('settings.system.checkNow')}
           </Button>
         </SettingItem>
-
-        {!isTauriHost && (
-          <SettingItem
-            title={t('settings.system.disableGpu')}
-            actions={
-              <Tooltip content={t('settings.system.disableGpuHelp')}>
-                <Button isIconOnly size="sm" variant="light">
-                  <IoIosHelpCircle className="text-lg" />
-                </Button>
-              </Tooltip>
-            }
-            divider
-          >
-            <AppSwitch
-              size="sm"
-              isSelected={pendingDisableGPU}
-              onValueChange={(v) => {
-                setPendingDisableGPU(v)
-                setShowRestartConfirm(true)
-              }}
-            />
-          </SettingItem>
-        )}
       </SettingCard>
 
       <SettingCard title={t('settings.clash.title')}>

@@ -190,10 +190,11 @@ pub(crate) fn build_main_window(app: &tauri::AppHandle) -> Result<tauri::Webview
         .find(|config| config.label == "main")
         .cloned()
         .ok_or_else(|| "main window config is missing".to_string())?;
-    let window = WebviewWindowBuilder::from_config(app, &config)
-        .map_err(|e| e.to_string())?
-        .build()
-        .map_err(|e| e.to_string())?;
+    let mut builder = WebviewWindowBuilder::from_config(app, &config).map_err(|e| e.to_string())?;
+    if let Some(browser_args) = webview_browser_args(app) {
+        builder = builder.additional_browser_args(browser_args);
+    }
+    let window = builder.build().map_err(|e| e.to_string())?;
     install_main_window_handlers(app, &window);
     Ok(window)
 }

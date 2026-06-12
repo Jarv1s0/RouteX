@@ -81,6 +81,57 @@ pub(crate) fn emit_ipc_event(app: &tauri::AppHandle, channel: &str, payload: Val
     let _ = app.emit(channel, payload);
 }
 
+#[cfg(target_os = "windows")]
+const WEBVIEW2_DISABLE_GPU_BROWSER_ARGS: &str =
+    "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu";
+
+#[cfg(target_os = "windows")]
+fn app_config_disables_gpu(config: &Value) -> bool {
+    config
+        .get("disableGPU")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
+#[cfg(target_os = "windows")]
+pub(crate) fn webview_browser_args_for_config(config: &Value) -> Option<&'static str> {
+    app_config_disables_gpu(config).then_some(WEBVIEW2_DISABLE_GPU_BROWSER_ARGS)
+}
+
+#[cfg(not(target_os = "windows"))]
+pub(crate) fn webview_browser_args_for_config(_config: &Value) -> Option<&'static str> {
+    None
+}
+
+pub(crate) fn webview_browser_args(app: &tauri::AppHandle) -> Option<&'static str> {
+    read_app_config_store(app)
+        .ok()
+        .and_then(|config| webview_browser_args_for_config(&config))
+}
+
+#[cfg(target_os = "windows")]
+pub(crate) fn webview_browser_args_before_tauri() -> Option<&'static str> {
+    let config_path =
+        app_config_root_path(&app_data_root_before_tauri().ok()?).join(APP_CONFIG_FILE);
+    let config = read_json_file::<Value>(&config_path).ok().flatten()?;
+    webview_browser_args_for_config(&config)
+}
+
+#[cfg(not(target_os = "windows"))]
+pub(crate) fn webview_browser_args_before_tauri() -> Option<&'static str> {
+    None
+}
+
+pub(crate) fn apply_webview_browser_args_to_config(config: &mut tauri::Config) {
+    let Some(browser_args) = webview_browser_args_before_tauri() else {
+        return;
+    };
+
+    for window in &mut config.app.windows {
+        window.additional_browser_args = Some(browser_args.to_string());
+    }
+}
+
 pub(crate) fn apply_background_command(command: &mut Command) -> &mut Command {
     #[cfg(target_os = "windows")]
     {

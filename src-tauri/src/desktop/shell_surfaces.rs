@@ -23,6 +23,10 @@ pub(crate) fn ensure_floating_window(
     .visible(false)
     .focused(true);
 
+    if let Some(browser_args) = webview_browser_args(app) {
+        builder = builder.additional_browser_args(browser_args);
+    }
+
     #[cfg(target_os = "windows")]
     {
         builder = builder.transparent(true);
@@ -98,7 +102,7 @@ pub(crate) fn ensure_traymenu_window(
         return Ok(window);
     }
 
-    let window = WebviewWindowBuilder::new(
+    let mut builder = WebviewWindowBuilder::new(
         app,
         TRAYMENU_WINDOW_LABEL,
         WebviewUrl::App("traymenu.html".into()),
@@ -113,10 +117,14 @@ pub(crate) fn ensure_traymenu_window(
     .visible(false)
     .focused(true);
 
-    #[cfg(target_os = "windows")]
-    let window = window.transparent(true);
+    if let Some(browser_args) = webview_browser_args(app) {
+        builder = builder.additional_browser_args(browser_args);
+    }
 
-    let window = window.build().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "windows")]
+    let builder = builder.transparent(true);
+
+    let window = builder.build().map_err(|e| e.to_string())?;
 
     window.on_window_event({
         let handle = app.clone();
@@ -150,7 +158,7 @@ pub(crate) fn toggle_traymenu_window(
 ) -> Result<(), String> {
     let window = ensure_traymenu_window(app)?;
     if window.is_visible().map_err(|e| e.to_string())? {
-        let _ = window.hide();
+        hide_traymenu_window(app);
         return Ok(());
     }
     show_traymenu_window(app, position)
