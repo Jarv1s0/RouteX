@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useRoutes } from 'react-router-dom'
 import routes, { preloadSidebarRoutes, setRouterNavigate } from '@renderer/routes'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
-import { useConnectionsStore } from '@renderer/store/use-connections-store'
+import { useConnectionsStore, warmConnectionSnapshot } from '@renderer/store/use-connections-store'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
@@ -21,6 +21,7 @@ import { GlobalDialogModal } from '@renderer/components/base/global-dialog-modal
 import ErrorBoundary from '@renderer/components/base/error-boundary'
 
 const SIDER_WIDTH_CSS_VAR = '--sider-width'
+type ConnectionListenerMode = 'off' | 'summary' | 'full'
 
 function scheduleIdleDeferredTask(task: () => void, delay = 0, timeout = 4000): () => void {
   let idleId: number | null = null
@@ -84,7 +85,7 @@ const App: React.FC = () => {
   const routerNavigate = useNavigate()
   const location = useLocation()
   const page = useRoutes(routes)
-  const connectionsListenerActiveRef = useRef(false)
+  const connectionListenerModeRef = useRef<ConnectionListenerMode>('off')
   const trafficListenerActiveRef = useRef(false)
   const mainWindowReadySentRef = useRef(false)
   const lastUpdateCheckAtRef = useRef(0)
@@ -173,7 +174,14 @@ const App: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    return scheduleIdleDeferredTask(preloadSidebarRoutes, 2000, 8000)
+    return scheduleIdleDeferredTask(
+      () => {
+        preloadSidebarRoutes()
+        void warmConnectionSnapshot()
+      },
+      2000,
+      8000
+    )
   }, [])
 
   useEffect(() => {
@@ -244,16 +252,26 @@ const App: React.FC = () => {
 
   const syncStoreListeners = useCallback(() => {
     const pathname = location.pathname
-    const needsConnections =
-      pathname.includes('/connections') || pathname.includes('/map') || pathname.includes('/stats')
+    const nextConnectionMode =
+      pathname.includes('/connections') || pathname.includes('/map')
+        ? 'full'
+        : pathname.includes('/stats')
+          ? 'summary'
+          : 'off'
     const needsTraffic = pathname.includes('/stats')
 
-    if (needsConnections && !connectionsListenerActiveRef.current) {
-      useConnectionsStore.getState().initializeListeners()
-      connectionsListenerActiveRef.current = true
-    } else if (!needsConnections && connectionsListenerActiveRef.current) {
-      useConnectionsStore.getState().cleanupListeners()
-      connectionsListenerActiveRef.current = false
+    if (connectionListenerModeRef.current !== nextConnectionMode) {
+      if (connectionListenerModeRef.current !== 'off') {
+        useConnectionsStore.getState().cleanupListeners({ clearSnapshot: false })
+      }
+
+      if (nextConnectionMode !== 'off') {
+        useConnectionsStore
+          .getState()
+          .initializeListeners({ summaryOnly: nextConnectionMode === 'summary' })
+      }
+
+      connectionListenerModeRef.current = nextConnectionMode
     }
 
     if (needsTraffic && !trafficListenerActiveRef.current) {
@@ -284,9 +302,9 @@ const App: React.FC = () => {
         window.cancelAnimationFrame(resizeFrameRef.current)
         resizeFrameRef.current = null
       }
-      if (connectionsListenerActiveRef.current) {
+      if (connectionListenerModeRef.current !== 'off') {
         useConnectionsStore.getState().cleanupListeners()
-        connectionsListenerActiveRef.current = false
+        connectionListenerModeRef.current = 'off'
       }
       if (trafficListenerActiveRef.current) {
         useTrafficStore.getState().cleanupListeners()
@@ -295,7 +313,7 @@ const App: React.FC = () => {
     }
   }, [onResizeEnd])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     syncStoreListeners()
   }, [syncStoreListeners])
 

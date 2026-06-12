@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { getImageDataURL } from '@renderer/utils/resource-ipc'
 const REMOTE_IMAGE_CACHE_PREFIX = 'routex:remote-image:'
+const REMOTE_IMAGE_MEMORY_CACHE_LIMIT = 64
 const memoryCache = new Map<string, string>()
 const pendingRequests = new Map<string, Promise<string>>()
 
@@ -11,14 +12,28 @@ function getCacheKey(url: string): string {
   return `${REMOTE_IMAGE_CACHE_PREFIX}${url}`
 }
 
+function writeMemoryCache(url: string, dataUrl: string): void {
+  memoryCache.delete(url)
+  memoryCache.set(url, dataUrl)
+
+  while (memoryCache.size > REMOTE_IMAGE_MEMORY_CACHE_LIMIT) {
+    const oldestKey = memoryCache.keys().next().value
+    if (oldestKey === undefined) break
+    memoryCache.delete(oldestKey)
+  }
+}
+
 function readCachedRemoteImage(url: string): string | null {
   const cached = memoryCache.get(url)
-  if (cached) return cached
+  if (cached) {
+    writeMemoryCache(url, cached)
+    return cached
+  }
 
   try {
     const fromStorage = localStorage.getItem(getCacheKey(url))
     if (!fromStorage) return null
-    memoryCache.set(url, fromStorage)
+    writeMemoryCache(url, fromStorage)
     return fromStorage
   } catch {
     return null
@@ -26,7 +41,7 @@ function readCachedRemoteImage(url: string): string | null {
 }
 
 function writeCachedRemoteImage(url: string, dataUrl: string): void {
-  memoryCache.set(url, dataUrl)
+  writeMemoryCache(url, dataUrl)
   try {
     localStorage.setItem(getCacheKey(url), dataUrl)
   } catch {

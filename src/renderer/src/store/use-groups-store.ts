@@ -17,7 +17,7 @@ let updateTimer: NodeJS.Timeout | null = null
 let unavailableRetryTimer: number | null = null
 let groupsListenerRefCount = 0
 let fetchGroupsPromise: Promise<void> | null = null
-
+const PROXY_DELAY_HISTORY_LIMIT = 20
 
 // 精确的监听器引用，避免使用 removeAllListeners
 let currentGroupsCleanup: (() => void) | null = null
@@ -53,6 +53,71 @@ function unregisterGroupHandlers(): void {
   }
 }
 
+type ProxyNode = ControllerProxiesDetail | ControllerGroupDetail
+
+function isProxyNode(value: unknown): value is ProxyNode {
+  return Boolean(value && typeof value === 'object' && 'name' in value)
+}
+
+function trimProxyDelayHistory<T extends ProxyNode>(proxy: T): T {
+  let changed = false
+  const nextHistory =
+    proxy.history && proxy.history.length > PROXY_DELAY_HISTORY_LIMIT
+      ? proxy.history.slice(-PROXY_DELAY_HISTORY_LIMIT)
+      : proxy.history
+
+  if (nextHistory !== proxy.history) {
+    changed = true
+  }
+
+  const nextAll =
+    'all' in proxy && Array.isArray(proxy.all)
+      ? proxy.all.map((child) => {
+          if (!isProxyNode(child)) {
+            return child
+          }
+
+          const nextChild = trimProxyDelayHistory(child)
+          if (nextChild !== child) {
+            changed = true
+          }
+          return nextChild
+        })
+      : undefined
+
+  if (!changed) {
+    return proxy
+  }
+
+  return {
+    ...proxy,
+    ...(nextHistory ? { history: nextHistory } : {}),
+    ...(nextAll ? { all: nextAll } : {})
+  }
+}
+
+function trimGroupsDelayHistory(groups: ControllerMixedGroup[]): ControllerMixedGroup[] {
+  let changed = false
+  const nextGroups = groups.map((group) => {
+    const nextGroup = trimProxyDelayHistory(group)
+    if (nextGroup !== group) {
+      changed = true
+    }
+    return nextGroup
+  })
+
+  return changed ? nextGroups : groups
+}
+
+function appendProxyDelayHistory(
+  history: ControllerProxiesHistory[] | undefined,
+  delay: number
+): ControllerProxiesHistory[] {
+  return [...(history || []), { time: new Date().toISOString(), delay }].slice(
+    -PROXY_DELAY_HISTORY_LIMIT
+  )
+}
+
 export const useGroupsStore = create<GroupsState>((set, get) => ({
   groups: undefined,
   isLoading: true,
@@ -64,7 +129,7 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
 
     const promise = (async (): Promise<void> => {
       try {
-        const groups = await mihomoGroups()
+        const groups = trimGroupsDelayHistory(await mihomoGroups())
         clearUnavailableRetryTimer()
         set({ groups, isLoading: false })
       } catch (e) {
@@ -104,14 +169,13 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
       if (!state.groups) return state
 
       let changed = false
-      const nextGroups = state.groups.map(group => {
+      const nextGroups = state.groups.map((group) => {
         let groupChanged = false
-        const nextAll = group.all?.map(proxy => {
+        const nextAll = group.all?.map((proxy) => {
           if (proxy && proxy.name === proxyName && 'history' in proxy) {
             groupChanged = true
             changed = true
-            const history = proxy.history ? [...proxy.history] : []
-            history.push({ time: new Date().toISOString(), delay })
+            const history = appendProxyDelayHistory(proxy.history, delay)
             return { ...proxy, history }
           }
           return proxy

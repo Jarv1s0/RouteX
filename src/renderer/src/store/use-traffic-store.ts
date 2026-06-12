@@ -46,8 +46,8 @@ interface TrafficState {
 // Keep track of processed connection IDs to avoid double counting
 const processedConnIds = new Set<string>()
 const MAX_DATA_POINTS = 60
-const MAX_DETAILS_PER_RULE = 20
-const MAX_RULES_TRACKED = 1000
+const MAX_DETAILS_PER_RULE = 10
+const MAX_RULES_TRACKED = 500
 const TRAFFIC_EVENT_STALE_MS = 900
 const CONNECTION_SNAPSHOT_THROTTLE_MS = 1000
 const HISTORICAL_STATS_REFRESH_INTERVAL_MS = 30_000
@@ -112,14 +112,20 @@ function isDirectConnection(conn: ControllerConnectionDetail): boolean {
   return !currentOutbound || currentOutbound === 'DIRECT'
 }
 
+function createEmptyRuleStats(): Pick<TrafficState, 'ruleStats' | 'ruleHitDetails'> {
+  return {
+    ruleStats: new Map(),
+    ruleHitDetails: new Map()
+  }
+}
+
 export const useTrafficStore = create<TrafficState>((set, get) => ({
   trafficHistory: [],
   hourlyData: [],
   dailyData: [],
   sessionStats: { upload: 0, download: 0 },
   routeStats: { proxy: 0, direct: 0 },
-  ruleStats: new Map(),
-  ruleHitDetails: new Map(),
+  ...createEmptyRuleStats(),
 
   initializeListeners: () => {
     // Clean up any existing listeners first using stored references
@@ -409,6 +415,8 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
   cleanupListeners: () => {
     unregisterTrafficHandlers()
     clearTrafficStatsPolling()
+    processedConnIds.clear()
+    set(createEmptyRuleStats())
   },
 
   fetchInitialStats: async () => {
@@ -432,8 +440,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       dailyData: [],
       sessionStats: { upload: 0, download: 0 },
       routeStats: { proxy: 0, direct: 0 },
-      ruleStats: new Map(),
-      ruleHitDetails: new Map()
+      ...createEmptyRuleStats()
     })
     resetTauriTrafficRecorder()
     processedConnIds.clear()

@@ -60,6 +60,36 @@ const RealtimeSpeedBadges = React.memo(function RealtimeSpeedBadges() {
   )
 })
 
+function ChartLegend(): React.JSX.Element {
+  const { t } = useI18n()
+  const { theme, systemTheme } = useTheme()
+  const isDark = (theme === 'system' ? systemTheme : theme) === 'dark'
+  const { uploadColor, downloadColor } = getChartColors(isDark)
+  const items = [
+    { label: t('stats.uploadSpeed'), color: uploadColor },
+    { label: t('stats.downloadSpeed'), color: downloadColor }
+  ]
+
+  return (
+    <div className="pointer-events-none absolute left-1/2 hidden min-w-0 -translate-x-1/2 items-center justify-center gap-5 md:flex">
+      {items.map((item) => (
+        <div key={item.label} className="flex min-w-0 items-center gap-2 text-sm text-slate-500">
+          <span
+            className="relative inline-flex h-[2px] w-9 shrink-0 items-center rounded-full bg-current"
+            style={{ color: item.color }}
+          >
+            <span
+              className="absolute left-1/2 h-3 w-3 -translate-x-1/2 rounded-full"
+              style={{ backgroundColor: item.color }}
+            />
+          </span>
+          <span className="truncate font-medium">{item.label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── 图表共享工具函数 ───
 
 function formatHourLabel(hour: string): string {
@@ -82,18 +112,11 @@ function createBaseChartOption(axisLabelColor: string, splitLineColor: string) {
   return {
     animation: false,
     grid: {
-      top: 36,
+      top: 12,
       right: 12,
       bottom: 24,
       left: 48,
       containLabel: false
-    },
-    legend: {
-      top: 0,
-      textStyle: {
-        color: '#64748b',
-        fontSize: 12
-      }
     },
     tooltip: {
       trigger: 'axis' as const,
@@ -384,8 +407,8 @@ const TrafficChart: React.FC = () => {
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
     >
       <CardBody className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-4">
+        <div className="relative mb-4 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-4">
             <Tabs
               size="sm"
               classNames={CARD_STYLES.GLASS_TABS}
@@ -396,7 +419,10 @@ const TrafficChart: React.FC = () => {
               <Tab key="hourly" title={t('stats.hourly')} />
             </Tabs>
           </div>
-          {historyTab === 'realtime' && <RealtimeSpeedBadges />}
+          <ChartLegend />
+          <div className="min-w-0 justify-self-end">
+            {historyTab === 'realtime' && <RealtimeSpeedBadges />}
+          </div>
         </div>
 
         <div className="h-[200px] w-full">

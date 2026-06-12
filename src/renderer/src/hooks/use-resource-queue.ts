@@ -4,6 +4,9 @@ import { getAppName, getIconDataURLs } from '@renderer/utils/resource-ipc'
 const VISIBLE_ICON_BATCH_SIZE = 12
 const PRELOAD_ICON_BATCH_SIZE = 2
 const RESOURCE_FAILURE_CACHE_MS = 5 * 60 * 1000
+const SHARED_ICON_CACHE_LIMIT = 256
+const SHARED_APP_NAME_CACHE_LIMIT = 1024
+const RESOURCE_FAILURE_CACHE_LIMIT = 2048
 const sharedIconMemoryCache = new Map<string, string>()
 const sharedAppNameMemoryCache = new Map<string, string>()
 const sharedIconFailureCache = new Map<string, number>()
@@ -32,24 +35,70 @@ function hasRecentResourceFailure(cache: Map<string, number>, path: string): boo
 }
 
 function rememberResourceFailure(cache: Map<string, number>, path: string): void {
+  cache.delete(path)
   cache.set(path, Date.now())
+  trimCache(cache, RESOURCE_FAILURE_CACHE_LIMIT)
 }
 
 function forgetResourceFailure(cache: Map<string, number>, path: string): void {
   cache.delete(path)
 }
 
-function readCachedIcon(path: string): string | null {
-  const fromMemory = sharedIconMemoryCache.get(path)
-  if (fromMemory) {
-    return fromMemory
+function trimCache<K, V>(cache: Map<K, V>, limit: number): void {
+  while (cache.size > limit) {
+    const oldestKey = cache.keys().next().value
+    if (oldestKey === undefined) break
+    cache.delete(oldestKey)
   }
+}
 
-  return null
+function writeSharedCache(
+  cache: Map<string, string>,
+  key: string,
+  value: string,
+  limit: number
+): void {
+  cache.delete(key)
+  cache.set(key, value)
+  trimCache(cache, limit)
+}
+
+function readSharedCache(cache: Map<string, string>, key: string, limit: number): string | null {
+  const value = cache.get(key)
+  if (!value) return null
+
+  writeSharedCache(cache, key, value, limit)
+  return value
+}
+
+function clearQueuedTimer(timerRef: { current: ReturnType<typeof setTimeout> | null }): void {
+  if (!timerRef.current) return
+
+  clearTimeout(timerRef.current)
+  timerRef.current = null
+}
+
+function mergeCappedRecord(
+  previous: Record<string, string>,
+  next: Record<string, string>,
+  limit: number
+): Record<string, string> {
+  const entries = new Map(Object.entries(previous))
+
+  Object.entries(next).forEach(([key, value]) => {
+    entries.delete(key)
+    entries.set(key, value)
+  })
+
+  return Object.fromEntries(Array.from(entries).slice(-limit))
+}
+
+function readCachedIcon(path: string): string | null {
+  return readSharedCache(sharedIconMemoryCache, path, SHARED_ICON_CACHE_LIMIT)
 }
 
 function writeCachedIcon(path: string, dataUrl: string): void {
-  sharedIconMemoryCache.set(path, dataUrl)
+  writeSharedCache(sharedIconMemoryCache, path, dataUrl, SHARED_ICON_CACHE_LIMIT)
 }
 
 export function useResourceQueue(
@@ -58,12 +107,8 @@ export function useResourceQueue(
   findProcessMode: string,
   filteredConnectionsFirstPath: string | undefined
 ): UseResourceQueueResult {
-  const [iconMap, setIconMap] = useState<Record<string, string>>(() =>
-    Object.fromEntries(sharedIconMemoryCache)
-  )
-  const [appNameCache, setAppNameCache] = useState<Record<string, string>>(() =>
-    Object.fromEntries(sharedAppNameMemoryCache)
-  )
+  const [iconMap, setIconMap] = useState<Record<string, string>>({})
+  const [appNameCache, setAppNameCache] = useState<Record<string, string>>({})
   const [firstItemRefreshTrigger, setFirstItemRefreshTrigger] = useState(0)
 
   const visibleIconRequestQueue = useRef(new Set<string>())
@@ -91,7 +136,7 @@ export function useResourceQueue(
         const appName = await getAppName(path)
         if (appName) {
           forgetResourceFailure(sharedAppNameFailureCache, path)
-          sharedAppNameMemoryCache.set(path, appName)
+          writeSharedCache(sharedAppNameMemoryCache, path, appName, SHARED_APP_NAME_CACHE_LIMIT)
           nextAppNames[path] = appName
         } else {
           rememberResourceFailure(sharedAppNameFailureCache, path)
@@ -106,7 +151,7 @@ export function useResourceQueue(
     await Promise.all(promises)
 
     if (!disposedRef.current && Object.keys(nextAppNames).length > 0) {
-      setAppNameCache((prev) => ({ ...prev, ...nextAppNames }))
+      setAppNameCache((prev) => mergeCappedRecord(prev, nextAppNames, SHARED_APP_NAME_CACHE_LIMIT))
     }
 
     if (appNameRequestQueue.current.size > 0) {
@@ -177,7 +222,7 @@ export function useResourceQueue(
     }
 
     if (!disposedRef.current && Object.keys(nextIcons).length > 0) {
-      setIconMap((prev) => ({ ...prev, ...nextIcons }))
+      setIconMap((prev) => mergeCappedRecord(prev, nextIcons, SHARED_ICON_CACHE_LIMIT))
       if (shouldRefreshFirstItem) {
         setFirstItemRefreshTrigger((prev) => prev + 1)
       }
@@ -205,26 +250,23 @@ export function useResourceQueue(
       appNameRequestQueue.current.clear()
       processingIcons.current.clear()
       processingAppNames.current.clear()
-      if (processIconTimer.current) {
-        clearTimeout(processIconTimer.current)
-        processIconTimer.current = null
-      }
-      if (processAppNameTimer.current) {
-        clearTimeout(processAppNameTimer.current)
-        processAppNameTimer.current = null
-      }
+      clearQueuedTimer(processIconTimer)
+      clearQueuedTimer(processAppNameTimer)
     }
   }, [])
 
   useEffect(() => {
     if (!displayIcon || findProcessMode === 'off') {
-      if (processIconTimer.current) clearTimeout(processIconTimer.current)
+      clearQueuedTimer(processIconTimer)
+      visibleIconRequestQueue.current.clear()
+      preloadIconRequestQueue.current.clear()
+      setIconMap({})
       return
     }
 
     // Start processing immediately if queue is not empty, otherwise ensure timer is cleared
     if (visibleIconRequestQueue.current.size > 0 || preloadIconRequestQueue.current.size > 0) {
-      if (processIconTimer.current) clearTimeout(processIconTimer.current)
+      clearQueuedTimer(processIconTimer)
       processIconTimer.current = setTimeout(() => {
         processIconTimer.current = null
         void processIconQueue()
@@ -232,21 +274,20 @@ export function useResourceQueue(
     }
 
     return () => {
-      if (processIconTimer.current) {
-        clearTimeout(processIconTimer.current)
-        processIconTimer.current = null
-      }
+      clearQueuedTimer(processIconTimer)
     }
   }, [displayIcon, findProcessMode, processIconQueue])
 
   useEffect(() => {
     if (!displayAppName) {
-      if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
+      clearQueuedTimer(processAppNameTimer)
+      appNameRequestQueue.current.clear()
+      setAppNameCache({})
       return
     }
 
     if (appNameRequestQueue.current.size > 0) {
-      if (processAppNameTimer.current) clearTimeout(processAppNameTimer.current)
+      clearQueuedTimer(processAppNameTimer)
       processAppNameTimer.current = setTimeout(() => {
         processAppNameTimer.current = null
         void processAppNameQueue()
@@ -254,10 +295,7 @@ export function useResourceQueue(
     }
 
     return () => {
-      if (processAppNameTimer.current) {
-        clearTimeout(processAppNameTimer.current)
-        processAppNameTimer.current = null
-      }
+      clearQueuedTimer(processAppNameTimer)
     }
   }, [displayAppName, processAppNameQueue])
 
@@ -272,7 +310,11 @@ export function useResourceQueue(
       const fromStorage = readCachedIcon(path)
       if (fromStorage) {
         forgetResourceFailure(sharedIconFailureCache, path)
-        setIconMap((prev) => (prev[path] ? prev : { ...prev, [path]: fromStorage }))
+        setIconMap((prev) =>
+          prev[path]
+            ? prev
+            : mergeCappedRecord(prev, { [path]: fromStorage }, SHARED_ICON_CACHE_LIMIT)
+        )
         if (isVisible && filteredConnectionsFirstPath === path) {
           setFirstItemRefreshTrigger((prev) => prev + 1)
         }
@@ -286,10 +328,7 @@ export function useResourceQueue(
         preloadIconRequestQueue.current.add(path)
       }
 
-      // Trigger consumer if not running?
-      // The consumer effects watch the queue? No, they watch deps.
-      // But adding to ref doesn't trigger re-render.
-      // So we need to ensure the timer starts if it wasn't running.
+      // Queue refs do not trigger effects, so start the consumer here when needed.
       if (
         !processIconTimer.current &&
         processingIcons.current.size === 0 &&
@@ -313,10 +352,18 @@ export function useResourceQueue(
       )
         return
 
-      const fromMemory = sharedAppNameMemoryCache.get(path)
+      const fromMemory = readSharedCache(
+        sharedAppNameMemoryCache,
+        path,
+        SHARED_APP_NAME_CACHE_LIMIT
+      )
       if (fromMemory) {
         forgetResourceFailure(sharedAppNameFailureCache, path)
-        setAppNameCache((prev) => (prev[path] ? prev : { ...prev, [path]: fromMemory }))
+        setAppNameCache((prev) =>
+          prev[path]
+            ? prev
+            : mergeCappedRecord(prev, { [path]: fromMemory }, SHARED_APP_NAME_CACHE_LIMIT)
+        )
         return
       }
 

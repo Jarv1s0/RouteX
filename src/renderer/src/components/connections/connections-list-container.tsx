@@ -3,7 +3,10 @@ import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useDerivedConnections } from '@renderer/hooks/use-connection-derived'
 import { useResourceQueue } from '@renderer/hooks/use-resource-queue'
 import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
-import { RESOURCE_PRELOAD_BUFFER, getConnectionHideRule } from '@renderer/components/connections/shared'
+import {
+  RESOURCE_PRELOAD_BUFFER,
+  getConnectionHideRule
+} from '@renderer/components/connections/shared'
 import { useI18n } from '@renderer/i18n'
 import { Button } from '@heroui/react'
 import { IoAddCircleOutline } from 'react-icons/io5'
@@ -51,7 +54,7 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
   const activeConnections = useConnectionsStore((state) => state.activeConnections)
   const closedConnections = useConnectionsStore((state) => state.closedConnections)
 
-  const { filteredConnections, connectionMap } = useDerivedConnections({
+  const { filteredConnections, getConnectionById } = useDerivedConnections({
     activeConnections,
     closedConnections,
     tab,
@@ -73,25 +76,31 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
     })
   }, [filter, closeAllConnections, filteredConnections, closeConnection])
 
-  const hideConnection = useCallback((id: string) => {
-    const connection = connectionMap.get(id)
-    if (!connection) return
+  const hideConnection = useCallback(
+    (id: string) => {
+      const connection = getConnectionById(id)
+      if (!connection) return
 
-    const hideRule = getConnectionHideRule(connection)
-    updateHiddenRules((previousRules) => new Set([...previousRules, hideRule]))
-  }, [connectionMap, updateHiddenRules])
+      const hideRule = getConnectionHideRule(connection)
+      updateHiddenRules((previousRules) => new Set([...previousRules, hideRule]))
+    },
+    [getConnectionById, updateHiddenRules]
+  )
 
-  const unhideConnection = useCallback((id: string) => {
-    const connection = connectionMap.get(id)
-    if (!connection) return
+  const unhideConnection = useCallback(
+    (id: string) => {
+      const connection = getConnectionById(id)
+      if (!connection) return
 
-    const hideRule = getConnectionHideRule(connection)
-    updateHiddenRules((previousRules) => {
-      const nextRules = new Set(previousRules)
-      nextRules.delete(hideRule)
-      return nextRules
-    })
-  }, [connectionMap, updateHiddenRules])
+      const hideRule = getConnectionHideRule(connection)
+      updateHiddenRules((previousRules) => {
+        const nextRules = new Set(previousRules)
+        nextRules.delete(hideRule)
+        return nextRules
+      })
+    },
+    [getConnectionById, updateHiddenRules]
+  )
 
   const clearAllHidden = useCallback((): void => {
     updateHiddenRules(() => new Set())
@@ -203,11 +212,11 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
   useEffect(() => {
     if (!selected) return
 
-    const latestSelected = connectionMap.get(selected.id)
+    const latestSelected = getConnectionById(selected.id)
     if (latestSelected && latestSelected !== selected) {
       setSelected(latestSelected)
     }
-  }, [connectionMap, selected])
+  }, [getConnectionById, selected])
 
   return (
     <>

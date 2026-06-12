@@ -95,8 +95,9 @@ function MiniMetricChart({
   const chartOption = useMemo(() => {
     const axisLabelColor = '#94a3b8'
     const splitLineColor = 'rgba(148, 163, 184, 0.16)'
-    const labels = Array.from({ length: Math.max(...series.map((item) => item.values.length), 1) }, (_, index) =>
-      String(index + 1)
+    const labels = Array.from(
+      { length: Math.max(...series.map((item) => item.values.length), 1) },
+      (_, index) => String(index + 1)
     )
 
     return {
@@ -248,7 +249,9 @@ const RealtimeMetricsPanel: React.FC = () => {
     const sampleMetrics = (): void => {
       const state = useConnectionsStore.getState()
       const active = state.connectionCount || state.activeConnections.length
-      const tracked = state.activeConnections.length + state.closedConnections.length
+      const tracked =
+        state.trackedConnectionCount ||
+        state.activeConnections.length + state.closedConnections.length
 
       setPoints((prev) => {
         const nextPoints = [

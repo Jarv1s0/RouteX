@@ -10,6 +10,7 @@ import { getIconDataURL } from '@renderer/utils/resource-ipc'
 import { platform } from '@renderer/utils/init'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
+import { warmConnectionSnapshot } from '@renderer/store/use-connections-store'
 import TrafficChart from './traffic-chart'
 import { useI18n } from '@renderer/i18n'
 
@@ -34,10 +35,12 @@ const ConnCard: React.FC<Props> = (props) => {
   const location = useLocation()
   const match = location.pathname.includes('/connections')
   const handleNavigate = (): void => {
+    void warmConnectionSnapshot()
     navigateSidebarRoute('/connections')
   }
   const handlePreload = (): void => {
     preloadSidebarRoute('/connections')
+    void warmConnectionSnapshot()
   }
 
   const [upload, setUpload] = useState(0)
@@ -63,6 +66,10 @@ const ConnCard: React.FC<Props> = (props) => {
   }, [])
 
   useEffect(() => {
+    if (iconOnly && !(platform === 'darwin' && showTraffic)) {
+      return
+    }
+
     const handleTraffic = async (info: ControllerTraffic): Promise<void> => {
       const now = Date.now()
       if (now - lastVisualUpdateAtRef.current < 250) {
@@ -104,7 +111,7 @@ const ConnCard: React.FC<Props> = (props) => {
     return subscribeDesktopTraffic((info) => {
       void handleTraffic(info)
     }, true)
-  }, [])
+  }, [iconOnly, showTraffic])
 
   if (iconOnly) {
     return (

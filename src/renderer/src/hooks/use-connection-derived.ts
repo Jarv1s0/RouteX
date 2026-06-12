@@ -1,5 +1,5 @@
 import { includesIgnoreCase } from '@renderer/utils/includes'
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import {
   getConnectionHideRule,
   type ConnectionOrderBy,
@@ -152,7 +152,7 @@ interface DerivedConnectionsInput {
 
 export interface DerivedConnectionsResult {
   filteredConnections: ControllerConnectionDetail[]
-  connectionMap: Map<string, ControllerConnectionDetail>
+  getConnectionById: (id: string) => ControllerConnectionDetail | undefined
 }
 
 export function useDerivedConnections({
@@ -200,19 +200,18 @@ export function useDerivedConnections({
     return sortConnections(searchedConnections, deferredOrder, deferredDirection)
   }, [deferredDirection, deferredFilter, deferredOrder, searchedConnections])
 
-  const connectionMap = useMemo(() => {
-    const map = new Map<string, ControllerConnectionDetail>()
-    activeConnections.forEach((connection) => {
-      map.set(connection.id, connection)
-    })
-    closedConnections.forEach((connection) => {
-      map.set(connection.id, connection)
-    })
-    return map
-  }, [activeConnections, closedConnections])
+  const getConnectionById = useCallback(
+    (id: string) => {
+      return (
+        activeConnections.find((connection) => connection.id === id) ||
+        closedConnections.find((connection) => connection.id === id)
+      )
+    },
+    [activeConnections, closedConnections]
+  )
 
   return {
     filteredConnections,
-    connectionMap
+    getConnectionById
   }
 }

@@ -17,7 +17,19 @@ let speedSamples = new Map<string, ConnectionSpeedSample>()
 let prevActiveMap = new Map<string, ExtendedConnection>()
 let prevClosed: ExtendedConnection[] = []
 
-function updateSpeedSamples(connections: ControllerConnectionDetail[], activeIds: Set<string>, now: number) {
+function releaseWorkerState(clearClosed: boolean): void {
+  speedSamples = new Map()
+  prevActiveMap = new Map()
+  if (clearClosed) {
+    prevClosed = []
+  }
+}
+
+function updateSpeedSamples(
+  connections: ControllerConnectionDetail[],
+  activeIds: Set<string>,
+  now: number
+) {
   connections.forEach((connection) => {
     speedSamples.set(connection.id, {
       upload: Math.max(0, connection.upload || 0),
@@ -26,13 +38,11 @@ function updateSpeedSamples(connections: ControllerConnectionDetail[], activeIds
     })
   })
 
-  const idsToRemove: string[] = []
   speedSamples.forEach((_sample, id) => {
     if (!activeIds.has(id)) {
-      idsToRemove.push(id)
+      speedSamples.delete(id)
     }
   })
-  idsToRemove.forEach((id) => speedSamples.delete(id))
 }
 
 self.onmessage = (event: MessageEvent) => {
@@ -127,11 +137,10 @@ self.onmessage = (event: MessageEvent) => {
 
     updateSpeedSamples(connections, activeIds, now)
 
-    const newActiveIds = activeIds
     const prevActiveList = Array.from(prevActiveMap.values())
 
     const newlyClosed = prevActiveList
-      .filter((c) => !newActiveIds.has(c.id))
+      .filter((c) => !activeIds.has(c.id))
       .map((c) => ({
         ...c,
         isActive: false,
@@ -166,5 +175,7 @@ self.onmessage = (event: MessageEvent) => {
   } else if (type === 'trashAllClosedConnections') {
     prevClosed = []
     self.postMessage({ type: 'closed_update', payload: { closedConnections: prevClosed } })
+  } else if (type === 'release') {
+    releaseWorkerState(payload?.clearClosed !== false)
   }
 }

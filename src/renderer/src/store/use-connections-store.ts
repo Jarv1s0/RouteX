@@ -25,14 +25,15 @@ interface ConnectionsState {
   activeConnections: ExtendedConnection[]
   closedConnections: ExtendedConnection[]
   connectionCount: number
+  trackedConnectionCount: number
   loading: boolean
   memory: number
 
   isPaused: boolean
 
   // Actions
-  initializeListeners: () => void
-  cleanupListeners: () => void
+  initializeListeners: (options?: { summaryOnly?: boolean }) => void
+  cleanupListeners: (options?: { clearSnapshot?: boolean }) => void
   setPaused: (paused: boolean) => void
 
   // Management actions
@@ -44,14 +45,14 @@ interface ConnectionsState {
 
 type ConnectionSnapshotListener = (snapshot: ControllerConnections) => void
 const connectionSnapshotListeners = new Set<ConnectionSnapshotListener>()
-let latestConnectionSnapshot: ControllerConnections | null = null
+let latestSeedActiveConnections: ExtendedConnection[] | null = null
+let warmConnectionSnapshotPromise: Promise<void> | null = null
 let unavailableRetryTimer: number | null = null
 // 记录 bridge 已完成一次 connections WS 建立，连接页可借此判断是否需要补拉快照。
 // 当 bridge 重启时会递增，使旧的待发 setTimeout 回调能被识别为过期。
 let bridgeReadySeq = 0
 
 function emitConnectionSnapshot(snapshot: ControllerConnections): void {
-  latestConnectionSnapshot = snapshot
   connectionSnapshotListeners.forEach((listener) => {
     try {
       listener(snapshot)
@@ -61,22 +62,33 @@ function emitConnectionSnapshot(snapshot: ControllerConnections): void {
   })
 }
 
-export function subscribeConnectionSnapshot(
-  listener: ConnectionSnapshotListener,
-  emitCurrent = true
-): () => void {
+export function subscribeConnectionSnapshot(listener: ConnectionSnapshotListener): () => void {
   connectionSnapshotListeners.add(listener)
-
-  if (emitCurrent && latestConnectionSnapshot) {
-    listener(latestConnectionSnapshot)
-  }
 
   return () => {
     connectionSnapshotListeners.delete(listener)
   }
 }
 
+export function warmConnectionSnapshot(): Promise<void> {
+  if (warmConnectionSnapshotPromise) {
+    return warmConnectionSnapshotPromise
+  }
 
+  warmConnectionSnapshotPromise = mihomoConnections()
+    .then((snapshot) => {
+      if (snapshot?.connections) {
+        emitConnectionSnapshot(snapshot)
+        useConnectionsStore.setState(retainSeedConnectionState(snapshot.connections))
+      }
+    })
+    .catch(() => undefined)
+    .finally(() => {
+      warmConnectionSnapshotPromise = null
+    })
+
+  return warmConnectionSnapshotPromise
+}
 
 function clearUnavailableRetryTimer(): void {
   if (unavailableRetryTimer === null) {
@@ -87,39 +99,111 @@ function clearUnavailableRetryTimer(): void {
   unavailableRetryTimer = null
 }
 
+function createSeedActiveConnections(
+  connections: ControllerConnectionDetail[]
+): ExtendedConnection[] {
+  return connections.map((connection) => ({
+    ...connection,
+    metadata:
+      connection.metadata.type === 'Inner'
+        ? { ...connection.metadata, process: 'mihomo', processPath: 'mihomo' }
+        : connection.metadata,
+    isActive: true,
+    downloadSpeed: 0,
+    uploadSpeed: 0
+  }))
+}
+
+type ConnectionListState = Pick<
+  ConnectionsState,
+  | 'activeConnections'
+  | 'closedConnections'
+  | 'connectionCount'
+  | 'trackedConnectionCount'
+  | 'loading'
+>
+
+function createEmptyConnectionState(): ConnectionListState {
+  return {
+    activeConnections: [],
+    closedConnections: [],
+    connectionCount: 0,
+    trackedConnectionCount: 0,
+    loading: true
+  }
+}
+
+function createSeedConnectionStateFromActive(
+  activeConnections: ExtendedConnection[]
+): ConnectionListState {
+  return {
+    activeConnections,
+    closedConnections: [],
+    connectionCount: activeConnections.length,
+    trackedConnectionCount: activeConnections.length,
+    loading: false
+  }
+}
+
+function retainSeedConnectionState(
+  connections: ControllerConnectionDetail[] = []
+): ConnectionListState {
+  const state = createSeedConnectionStateFromActive(createSeedActiveConnections(connections))
+  latestSeedActiveConnections = state.activeConnections
+  return state
+}
+
 export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
-  activeConnections: [],
-  closedConnections: [],
-  connectionCount: 0,
-  loading: true,
+  ...createEmptyConnectionState(),
   memory: 0,
   isPaused: false,
 
   setPaused: (paused: boolean) => set({ isPaused: paused }),
 
-  initializeListeners: () => {
+  initializeListeners: (options = {}) => {
+    const { summaryOnly = false } = options
     let lastForegroundSnapshotAt = 0
     let isBaselineSnapshot = false
     let initialSnapshotFallbackTimer: number | null = null
 
     connectionsWorker.onmessage = (event) => {
+      if (summaryOnly) {
+        return
+      }
+
       const { type, payload } = event.data
       if (type === 'process_result') {
         const { activeConnections, closedConnections, connectionCount } = payload
+        latestSeedActiveConnections = activeConnections
         set({
           activeConnections,
           closedConnections,
           connectionCount,
+          trackedConnectionCount: activeConnections.length + closedConnections.length,
           loading: false
         })
       } else if (type === 'closed_update') {
         const { closedConnections } = payload
-        set({ closedConnections })
+        set((state) => ({
+          closedConnections,
+          trackedConnectionCount: state.activeConnections.length + closedConnections.length
+        }))
       }
     }
 
     const handleConnections = (_e: unknown, info: ControllerConnections): void => {
       if (!info || !info.connections) return
+
+      if (summaryOnly) {
+        // 摘要模式只保留可直接渲染的 seed，进入连接页后再由实时数据校准。
+        emitConnectionSnapshot(info)
+        if (isBaselineSnapshot) {
+          isBaselineSnapshot = false
+        }
+
+        set(retainSeedConnectionState(info.connections))
+        return
+      }
 
       // 先把解析后的连接快照广播出去，供其他 store 复用，避免重复监听和重复 JSON.parse。
       emitConnectionSnapshot(info)
@@ -177,12 +261,8 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
         })
         .catch((error) => {
           if (isExpectedMihomoUnavailableError(error)) {
-            const previousSnapshot = latestConnectionSnapshot
             set({
-              loading:
-                !previousSnapshot ||
-                !Array.isArray(previousSnapshot.connections) ||
-                previousSnapshot.connections.length === 0
+              loading: !latestSeedActiveConnections || latestSeedActiveConnections.length === 0
             })
 
             scheduleConnectionsSnapshotRetry()
@@ -228,6 +308,18 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       handleWindowFocus
     )
 
+    if (summaryOnly) {
+      set({
+        closedConnections: [],
+        trackedConnectionCount: get().activeConnections.length
+      })
+    }
+
+    if (!summaryOnly && latestSeedActiveConnections) {
+      set(createSeedConnectionStateFromActive(latestSeedActiveConnections))
+      isBaselineSnapshot = true
+    }
+
     // 页面需要完整连接快照时才保留 connections bridge，离开页面后释放。
     // bridge 真正收到第一条消息后补拉一次快照，兜住 dev 重启/TUN 切换窗口期。
     const releaseConnectionsBridge = retainTauriConnectionsBridge()
@@ -250,7 +342,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
 
     const previousCleanup = get().cleanupListeners
     set({
-      cleanupListeners: () => {
+      cleanupListeners: (cleanupOptions) => {
         releaseConnectionsBridge()
         releaseMemoryBridge()
         cancelBridgeReady()
@@ -258,13 +350,25 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
           window.clearTimeout(initialSnapshotFallbackTimer)
           initialSnapshotFallbackTimer = null
         }
-        previousCleanup()
+        previousCleanup(cleanupOptions)
       }
     })
   },
 
-  cleanupListeners: () => {
+  cleanupListeners: (options = {}) => {
+    const { clearSnapshot = true } = options
     unregisterHandlers()
+    connectionsWorker.postMessage({ type: 'release', payload: { clearClosed: true } })
+    if (clearSnapshot) {
+      latestSeedActiveConnections = null
+      set(createEmptyConnectionState())
+      return
+    }
+
+    set({
+      closedConnections: [],
+      trackedConnectionCount: get().activeConnections.length
+    })
   },
 
   closeConnection: (id: string) => {

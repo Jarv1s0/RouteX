@@ -120,4 +120,8 @@ export function releaseLogsView(): void {
   }
 
   logsViewRefCount -= 1
+  if (logsViewRefCount === 0) {
+    updateStore.cancel()
+    useLogsStore.setState({ logs: [] })
+  }
 }
