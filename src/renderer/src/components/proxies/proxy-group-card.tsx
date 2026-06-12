@@ -2,8 +2,8 @@ import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/resource-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { useEffect, memo, useState } from 'react'
-import { addFlag } from '@renderer/utils/flags'
+import { useEffect, memo, useMemo, useState } from 'react'
+import { addFlag, removeFlag } from '@renderer/utils/flags'
 import { useI18n } from '@renderer/i18n'
 import { getDelayColorClass } from '@renderer/utils/delay-color'
 
@@ -45,6 +45,24 @@ function writeCachedGroupIcon(icon: string, src: string): void {
   }
 }
 
+type ProxyListItem = ControllerProxiesDetail | ControllerGroupDetail
+
+function isProxyListItem(value: unknown): value is ProxyListItem {
+  return Boolean(value && typeof value === 'object' && 'name' in value)
+}
+
+function getCurrentProxyIcon(group: ControllerMixedGroup): string {
+  const currentProxy = (group.all || []).find(
+    (proxy): proxy is ProxyListItem => isProxyListItem(proxy) && proxy.name === group.now
+  )
+
+  return currentProxy?.icon?.trim() || ''
+}
+
+function getIconImageSrc(icon: string): string {
+  return icon.startsWith('<svg') ? toSvgDataUrl(icon) : icon
+}
+
 interface Props {
   group: ControllerMixedGroup
   isOpen: boolean
@@ -64,13 +82,17 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
   delaying,
   currentDelay,
   liveCount,
-  onGroupDelay,
+  onGroupDelay
 }) => {
   const { appConfig } = useAppConfig()
   const { t } = useI18n()
   const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
   const [iconSrc, setIconSrc] = useState('')
   const [iconLoadFailed, setIconLoadFailed] = useState(false)
+  const currentProxyIcon = useMemo(() => getCurrentProxyIcon(group), [group.all, group.now])
+  const currentProxyLabel = currentProxyIcon
+    ? removeFlag(group.now).trim() || group.now
+    : addFlag(group.now)
 
   const delayColor = getDelayColorClass(currentDelay, delayThresholds, 'text-default-400')
 
@@ -197,7 +219,17 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                     className={`text-[12.5px] font-medium leading-5 truncate flag-emoji tracking-wide flex items-center gap-1.5 overflow-visible transition-colors ${currentDelay === 0 ? 'text-default-400' : 'text-foreground/80'}`}
                     title={group.now}
                   >
-                    {addFlag(group.now)}
+                    {currentProxyIcon && (
+                      <img
+                        className="w-4 h-4 object-contain flex-shrink-0"
+                        src={getIconImageSrc(currentProxyIcon)}
+                        alt=""
+                        onError={(e) => {
+                          ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                        }}
+                      />
+                    )}
+                    {currentProxyLabel}
                   </span>
                 </div>
 
@@ -261,6 +293,7 @@ export const ProxyGroupCard = memo(ProxyGroupCardComponent, (prev, next) => {
     prev.group.name === next.group.name &&
     prev.group.icon === next.group.icon &&
     prev.group.now === next.group.now &&
+    getCurrentProxyIcon(prev.group) === getCurrentProxyIcon(next.group) &&
     prev.group.all?.length === next.group.all?.length
   )
 })
