@@ -465,7 +465,6 @@ textarea:focus-visible {
   }
 }
 .animate-sweep {
-  background-size: 200% auto;
   animation: sweep 4s linear infinite;
 }
 
