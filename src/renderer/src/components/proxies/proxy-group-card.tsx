@@ -146,8 +146,8 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
   }, [group.icon])
 
   const activeStyle = isOpen
-    ? 'bg-gradient-to-br from-default-100/95 to-default-50/90 backdrop-blur-2xl border-default-200/70 shadow-[inset_0_-1px_0_rgba(255,255,255,0.45),0_12px_28px_rgba(15,23,42,0.06)] scale-[1.005] relative'
-    : 'bg-default-50/40 dark:bg-default-50/20 backdrop-blur-md border-white/10 dark:border-white/5 shadow-sm hover:-translate-y-[1px] hover:bg-default-100/60 hover:shadow-md hover:border-default-300/50 dark:hover:border-white/20'
+    ? 'bg-gradient-to-br from-default-100/90 to-default-50/80 dark:from-default-50/60 dark:to-default-100/40 backdrop-blur-xl border-default-200/50 dark:border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_8px_24px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_8px_24px_rgba(0,0,0,0.15)] relative z-10'
+    : 'bg-default-50/50 dark:bg-default-50/20 backdrop-blur-md border-white/20 dark:border-white/5 shadow-sm hover:bg-default-100/70 dark:hover:bg-white/5 hover:shadow-md hover:border-default-300/40 dark:hover:border-white/10'
 
   return (
     <div className="w-full pt-2 px-2">

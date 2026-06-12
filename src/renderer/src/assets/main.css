@@ -47,6 +47,33 @@ body,
   background: hsl(var(--heroui-background));
 }
 
+/* Global Subtle Grid Background */
+body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  background-image:
+    linear-gradient(to right, rgba(128, 128, 128, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(128, 128, 128, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+/* Subtle glow in dark mode for a premium feel */
+.dark body::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: -10%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, rgba(var(--heroui-primary-500), 0.06) 0%, transparent 60%);
+  z-index: -10;
+  pointer-events: none;
+  filter: blur(80px);
+}
+
 code,
 pre,
 .font-mono {
@@ -426,6 +453,22 @@ textarea:focus-visible {
   transition: background 0.15s ease !important;
 }
 
+@keyframes sweep {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+.animate-sweep {
+  background-size: 200% auto;
+  animation: sweep 4s linear infinite;
+}
+
 [data-slot='thumb'] {
   transition:
     transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
@@ -593,4 +636,3 @@ textarea:focus-visible {
   transform-origin: center left;
   opacity: 0;
 }
-

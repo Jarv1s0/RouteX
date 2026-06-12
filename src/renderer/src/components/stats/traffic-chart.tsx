@@ -7,6 +7,7 @@ import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useI18n } from '@renderer/i18n'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
+import CountUp from 'react-countup'
 
 const TrafficEChart = React.lazy(() => import('./traffic-echart'))
 
@@ -44,17 +45,30 @@ const RealtimeSpeedBadges = React.memo(function RealtimeSpeedBadges() {
   const currentUploadSpeed = latestTraffic?.upload ?? 0
   const currentDownloadSpeed = latestTraffic?.download ?? 0
 
+  const { amount: upAmount, unit: upUnit } = splitTrafficText(currentUploadSpeed, true)
+  const { amount: downAmount, unit: downUnit } = splitTrafficText(currentDownloadSpeed, true)
+
+  const numUp = parseFloat(upAmount) || 0
+  const decUp = upAmount.includes('.') ? upAmount.split('.')[1].length : 0
+
+  const numDown = parseFloat(downAmount) || 0
+  const decDown = downAmount.includes('.') ? downAmount.split('.')[1].length : 0
+
   return (
     <div className="flex items-center gap-4">
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 tabular-nums">
         <IoArrowUp className="text-cyan-500 text-sm" />
-        <span className="text-cyan-500 font-bold">{calcTraffic(currentUploadSpeed)}/s</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <IoArrowDown className="stats-download-accent text-sm" />
-        <span className="stats-download-accent font-bold">
-          {calcTraffic(currentDownloadSpeed)}/s
+        <span className="text-cyan-500 font-bold leading-none">
+          <CountUp end={numUp} decimals={decUp} duration={1} preserveValue />
         </span>
+        <span className="text-cyan-500 font-bold leading-none text-[11px] uppercase tracking-wider opacity-80">{upUnit}</span>
+      </div>
+      <div className="flex items-center gap-1 tabular-nums">
+        <IoArrowDown className="stats-download-accent text-sm" />
+        <span className="stats-download-accent font-bold leading-none">
+          <CountUp end={numDown} decimals={decDown} duration={1} preserveValue />
+        </span>
+        <span className="stats-download-accent font-bold leading-none text-[11px] uppercase tracking-wider opacity-80">{downUnit}</span>
       </div>
     </div>
   )
@@ -73,13 +87,13 @@ function ChartLegend(): React.JSX.Element {
   return (
     <div className="pointer-events-none absolute left-1/2 hidden min-w-0 -translate-x-1/2 items-center justify-center gap-5 md:flex">
       {items.map((item) => (
-        <div key={item.label} className="flex min-w-0 items-center gap-2 text-sm text-slate-500">
+        <div key={item.label} className="flex min-w-0 items-center gap-1.5 text-xs text-slate-500/80">
           <span
-            className="relative inline-flex h-[2px] w-9 shrink-0 items-center rounded-full bg-current"
+            className="relative inline-flex h-[2px] w-6 shrink-0 items-center rounded-full bg-current"
             style={{ color: item.color }}
           >
             <span
-              className="absolute left-1/2 h-3 w-3 -translate-x-1/2 rounded-full"
+              className="absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full shadow-sm"
               style={{ backgroundColor: item.color }}
             />
           </span>

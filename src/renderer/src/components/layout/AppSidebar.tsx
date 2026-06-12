@@ -112,7 +112,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
             className={`flex items-center justify-between p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
           >
             <div className="flex min-w-0 items-center gap-2 pl-1 justify-self-start">
-              <h3 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-600 bg-clip-text text-transparent">
+              <h3 className="text-lg font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 bg-clip-text text-transparent animate-sweep">
                 RouteX
               </h3>
             </div>

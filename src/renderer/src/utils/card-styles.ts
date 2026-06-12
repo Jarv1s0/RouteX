@@ -5,15 +5,15 @@ export const CARD_STYLES = {
 
   // Active state: Lightweight Glass Selection (Brand-tinted)
   ACTIVE:
-    'bg-primary/20 dark:bg-primary/22 backdrop-blur-sm shadow-sm shadow-primary/5 border-primary/16',
+    'bg-primary/10 dark:bg-primary/15 backdrop-blur-md border-primary/20 dark:border-primary/30 shadow-sm shadow-primary/10',
 
   // Secondary active state: enabled in merged runtime but not the primary profile
   ACTIVE_SECONDARY:
-    'bg-primary/10 dark:bg-primary/12 backdrop-blur-sm border-primary/16 shadow-sm shadow-primary/5',
+    'bg-primary/5 dark:bg-primary/10 backdrop-blur-md border-primary/10 shadow-sm',
 
-  // Inactive state: iOS 26 Liquid Glass
+  // Inactive state: iOS Liquid Glass (Subtle and restrained)
   INACTIVE:
-    'bg-gradient-to-b from-white/8 to-transparent dark:from-white/2 dark:to-transparent hover:from-white/16 hover:to-white/5 dark:hover:from-white/8 dark:hover:to-white/2 border-white/14 dark:border-white/6 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22),0_2px_10px_0_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_8px_20px_0_rgba(0,0,0,0.1)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_4px_16px_0_rgba(0,0,0,0.3)]',
+    'bg-white/30 dark:bg-black/20 hover:bg-white/50 dark:hover:bg-white/5 backdrop-blur-lg border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 shadow-sm hover:shadow-md transition-all',
 
   // Toolbar style: Same as INACTIVE but without scale and tuned for toolbar
   GLASS_TOOLBAR:
@@ -42,10 +42,10 @@ export const CARD_STYLES = {
     'bg-default-100/50 dark:bg-default-100/10 border border-default-200/50 dark:border-white/5 shadow-sm hover:shadow transition-[transform,background-color,border-color,box-shadow,opacity] duration-150',
 
   // Sidebar row hover state: clearer than the default gray strip
-  SIDEBAR_ITEM: 'hover:bg-primary/10 dark:hover:bg-primary/20',
+  SIDEBAR_ITEM: 'hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm transition-all duration-300',
 
   // Sidebar active state: Match mode switcher active pill
-  SIDEBAR_ACTIVE: 'bg-primary/30 dark:bg-primary/30 backdrop-blur-md border-transparent shadow-sm',
+  SIDEBAR_ACTIVE: 'bg-primary/20 dark:bg-primary/20 backdrop-blur-md border-transparent shadow-sm shadow-primary/10 transition-all duration-300',
 
   // Glass card style (used for tooltips etc)
   GLASS_CARD:

@@ -1,4 +1,5 @@
 import { Button, Card, CardBody, Tooltip } from '@heroui/react'
+import CountUp from 'react-countup'
 import { LuCircleArrowDown, LuCircleArrowUp, LuPlug } from 'react-icons/lu'
 import { useLocation } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
@@ -37,12 +38,14 @@ const TRAFFIC_TONE_STYLES: Record<
 > = {
   upload: {
     icon: 'text-[12px] text-cyan-500 dark:text-cyan-400',
-    amount: 'text-[15px] font-bold font-data-numeric tabular-nums leading-none text-cyan-500 dark:text-cyan-400',
+    amount:
+      'text-[15px] font-bold font-data-numeric tabular-nums leading-none text-cyan-500 dark:text-cyan-400',
     unit: 'text-[9px] font-medium uppercase tracking-[0.1em] leading-none text-cyan-600/60 dark:text-cyan-400/60'
   },
   download: {
     icon: 'text-[12px] text-purple-500 dark:text-purple-400',
-    amount: 'text-[15px] font-bold font-data-numeric tabular-nums leading-none text-purple-500 dark:text-purple-400',
+    amount:
+      'text-[15px] font-bold font-data-numeric tabular-nums leading-none text-purple-500 dark:text-purple-400',
     unit: 'text-[9px] font-medium uppercase tracking-[0.1em] leading-none text-purple-600/60 dark:text-purple-400/60'
   }
 }
@@ -66,6 +69,8 @@ function SidebarTrafficValue({
 }): React.JSX.Element {
   const { amount, unit } = splitTrafficValue(value)
   const styles = TRAFFIC_TONE_STYLES[tone]
+  const numericAmount = parseFloat(amount) || 0
+  const decimals = amount.includes('.') ? amount.split('.')[1].length : 0
 
   return (
     <div className="flex items-center gap-1.5">
@@ -73,7 +78,13 @@ function SidebarTrafficValue({
         <Icon className={styles.icon} />
       </span>
       <div className="flex items-baseline gap-1">
-        <span className={styles.amount}>{amount}</span>
+        <CountUp
+          end={numericAmount}
+          decimals={decimals}
+          duration={1}
+          preserveValue={true}
+          className={styles.amount}
+        />
         <span className={styles.unit}>{unit}/s</span>
       </div>
     </div>

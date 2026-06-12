@@ -124,8 +124,8 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
             x2="0"
             y2="1"
           >
-            <stop offset="0%" stopColor={uploadColor} stopOpacity={0.4} />
-            <stop offset="100%" stopColor={uploadColor} stopOpacity={0.05} />
+            <stop offset="0%" stopColor={uploadColor} stopOpacity={0.6} />
+            <stop offset="100%" stopColor={uploadColor} stopOpacity={0.0} />
           </linearGradient>
           <linearGradient
             id={isActive ? 'conn-download-active' : 'conn-download'}
@@ -134,8 +134,8 @@ const TrafficChart: React.FC<TrafficChartProps> = (props) => {
             x2="0"
             y2="1"
           >
-            <stop offset="0%" stopColor={downloadColor} stopOpacity={0.4} />
-            <stop offset="100%" stopColor={downloadColor} stopOpacity={0.04} />
+            <stop offset="0%" stopColor={downloadColor} stopOpacity={0.6} />
+            <stop offset="100%" stopColor={downloadColor} stopOpacity={0.0} />
           </linearGradient>
         </defs>
         <g clipPath={`url(#${chartGeometry.chartClipId})`}>

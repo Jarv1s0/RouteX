@@ -43,7 +43,7 @@ const TrafficEChart: React.FC<TrafficEChartProps> = ({ option }) => {
       chartRef.current = chart
       chart.setOption(optionRef.current, {
         lazyUpdate: true,
-        notMerge: true
+        notMerge: false
       })
 
       resizeChartHandler = (): void => {
@@ -84,7 +84,7 @@ const TrafficEChart: React.FC<TrafficEChartProps> = ({ option }) => {
   useEffect(() => {
     chartRef.current?.setOption(option, {
       lazyUpdate: true,
-      notMerge: true
+      notMerge: false
     })
   }, [option])
 
