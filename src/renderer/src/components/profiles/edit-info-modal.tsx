@@ -25,6 +25,14 @@ import { useI18n } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
+
+const overrideDropdownClassNames = {
+  ...CARD_STYLES.GLASS_DROPDOWN,
+  content: `${CARD_STYLES.GLASS_DROPDOWN.content} min-w-[160px] w-[160px]`
+}
+
+const overrideDropdownItemClasses = { base: 'rounded-xl' }
+
 interface Props {
   item: ProfileItem
   updateProfileItem: (item: ProfileItem) => Promise<void>
@@ -40,16 +48,18 @@ const EditInfoModal: React.FC<Props> = (props) => {
   const [values, setValues] = useState({ ...item, autoUpdate: item.autoUpdate ?? true })
   const [saving, setSaving] = useState(false)
   const inputWidth = 'w-[400px] md:w-[400px] lg:w-[600px] xl:w-[800px]'
+  const getOverrideItem = (id: string): OverrideItem | undefined =>
+    overrideItems.find((overrideItem) => overrideItem.id === id)
 
   const onSave = async (): Promise<void> => {
     setSaving(true)
     try {
       const itemToSave = {
         ...values,
-        override: values.override?.filter(
-          (i) =>
-            overrideItems.find((t) => t.id === i) && !overrideItems.find((t) => t.id === i)?.global
-        )
+        override: values.override?.filter((id) => {
+          const overrideItem = getOverrideItem(id)
+          return overrideItem && !overrideItem.global
+        })
       }
 
       await updateProfileItem(itemToSave)
@@ -205,24 +215,24 @@ const EditInfoModal: React.FC<Props> = (props) => {
                 .map((i) => {
                   return (
                     <div className="flex mb-2" key={i.id}>
-                      <Button disabled fullWidth variant="flat" size="sm">
+                      <Button disabled fullWidth variant="flat" size="sm" className="rounded-2xl">
                         {i.name} ({t('profiles.globalSuffix')})
                       </Button>
                     </div>
                   )
                 })}
               {values.override?.map((i) => {
-                if (!overrideItems.find((t) => t.id === i)) return null
-                if (overrideItems.find((t) => t.id === i)?.global) return null
+                const overrideItem = getOverrideItem(i)
+                if (!overrideItem || overrideItem.global) return null
                 return (
                   <div className="flex mb-2" key={i}>
-                    <Button disabled fullWidth variant="flat" size="sm">
-                      {overrideItems.find((t) => t.id === i)?.name}
+                    <Button disabled fullWidth variant="flat" size="sm" className="rounded-2xl">
+                      {overrideItem.name}
                     </Button>
                     <Button
                       color="warning"
                       variant="flat"
-                      className="ml-2"
+                      className="ml-2 rounded-2xl"
                       size="sm"
                       onPress={() => {
                         setValues({
@@ -236,13 +246,20 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   </div>
                 )
               })}
-              <Dropdown classNames={CARD_STYLES.GLASS_DROPDOWN}>
+              <Dropdown classNames={overrideDropdownClassNames}>
                 <DropdownTrigger>
-                  <Button fullWidth size="sm" variant="flat" color="default">
+                  <Button
+                    fullWidth
+                    size="sm"
+                    variant="flat"
+                    color="default"
+                    className="rounded-2xl"
+                  >
                     <FaPlus />
                   </Button>
                 </DropdownTrigger>
                 <DropdownMenu
+                  itemClasses={overrideDropdownItemClasses}
                   emptyContent={t('profiles.noOverrides')}
                   onAction={(key) => {
                     setValues({
@@ -254,7 +271,11 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   {overrideItems
                     .filter((i) => !values.override?.includes(i.id) && !i.global)
                     .map((i) => (
-                      <DropdownItem key={i.id}>{i.name}</DropdownItem>
+                      <DropdownItem key={i.id} className="truncate">
+                        <span className="block truncate" title={i.name}>
+                          {i.name}
+                        </span>
+                      </DropdownItem>
                     ))}
                 </DropdownMenu>
               </Dropdown>

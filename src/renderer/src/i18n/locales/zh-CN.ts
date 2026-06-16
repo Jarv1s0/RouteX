@@ -59,7 +59,7 @@ export const zhCN = {
   'page.proxies.emptyTitle': '暂无代理组',
   'page.proxies.emptyDescription': '当前运行配置未返回可显示的代理组',
   'page.profiles.title': '订阅',
-  'page.profiles.overridesTitle': '覆写管理',
+  'page.profiles.overridesTitle': '覆写',
   'page.profiles.providersTitle': '代理集合',
   'page.profiles.settings': '订阅设置',
   'page.profiles.profilesTab': '订阅',

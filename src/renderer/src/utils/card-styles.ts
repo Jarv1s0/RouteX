@@ -1,5 +1,11 @@
 const GLASS_POPOVER_CONTENT =
-  'backdrop-blur-[12px] bg-background/80 dark:bg-default-100/60 rounded-2xl border border-default-200/50 dark:border-white/10 shadow-xl animate-pop-in'
+  'backdrop-blur-[12px] bg-background/80 dark:bg-default-100/60 rounded-2xl border border-default-200/50 dark:border-white/10 shadow-xl animate-pop-in max-h-[300px] overflow-y-auto'
+const GLASS_CONTROL_BASE =
+  'bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_1px_2px_rgba(0,0,0,0.2)]'
+const GLASS_INPUT_STATE =
+  'group-data-[hover=true]:bg-white/60 dark:group-data-[hover=true]:bg-white/10 group-data-[focus=true]:bg-white dark:group-data-[focus=true]:bg-default-100/60 group-data-[focus=true]:border-primary/50 group-data-[focus=true]:shadow-[0_0_0_1px_hsl(var(--heroui-primary)),0_4px_12px_rgba(0,0,0,0.05)]'
+const GLASS_SELECT_STATE =
+  'data-[hover=true]:bg-white/60 dark:data-[hover=true]:bg-white/10 data-[open=true]:bg-white dark:data-[open=true]:bg-default-100/60 data-[focus=true]:border-primary/50 data-[open=true]:shadow-[0_0_0_1px_hsl(var(--heroui-primary)),0_4px_12px_rgba(0,0,0,0.05)]'
 
 export const CARD_STYLES = {
   // Base styles shared by all cards (transitions, borders, overflow)
@@ -28,8 +34,7 @@ export const CARD_STYLES = {
 
   // Input style: Matches the glass toolbar aesthetic
   GLASS_INPUT: {
-    inputWrapper:
-      'bg-default-200/50 dark:bg-default-100/50 shadow-none border border-default-200/50 dark:border-transparent group-data-[focus=true]:bg-default-200/80 group-data-[hover=true]:bg-default-200/80 rounded-2xl h-8 transition-[background-color,border-color,box-shadow]',
+    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-2xl h-8 transition-all duration-300`,
     input: 'text-sm',
     innerWrapper: 'bg-transparent'
   },
@@ -73,8 +78,7 @@ export const CARD_STYLES = {
   MANAGEMENT_FOOTER_ROW: 'flex items-center justify-between text-sm text-foreground',
 
   GLASS_SELECT: {
-    trigger:
-      'bg-default-200/50 dark:bg-default-100/50 shadow-none border border-default-200/50 dark:border-transparent data-[hover=true]:bg-default-200/80 data-[focus=true]:bg-default-200/80 data-[open=true]:border-primary/50 rounded-2xl h-8 min-h-8 transition-[background-color,border-color,box-shadow]',
+    trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} rounded-2xl h-8 min-h-8 transition-all duration-300`,
     value: 'text-sm',
     popoverContent: GLASS_POPOVER_CONTENT
   },

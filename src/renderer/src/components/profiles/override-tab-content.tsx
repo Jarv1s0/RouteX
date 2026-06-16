@@ -341,7 +341,7 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
             >
               <IoMdRefresh className="text-lg" />
             </Button>
-            <Dropdown classNames={CARD_STYLES.GLASS_DROPDOWN}>
+            <Dropdown classNames={CARD_STYLES.GLASS_DROPDOWN} placement="bottom-end">
               <DropdownTrigger>
                 <Button
                   size="sm"

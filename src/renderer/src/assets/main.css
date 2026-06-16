@@ -666,3 +666,46 @@ textarea:focus-visible {
   opacity: 0;
   animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* GLOBAL INPUT OVERRIDE FOR PREMIUM GLASS STYLE */
+div[data-slot='input-wrapper'] {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 1rem !important; /* rounded-2xl */
+  height: 2rem !important; /* h-8 */
+  transition: all 300ms ease !important;
+}
+
+.dark div[data-slot='input-wrapper'] {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+div[data-slot='input-wrapper'][data-hover='true'] {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.dark div[data-slot='input-wrapper'][data-hover='true'] {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+div[data-slot='input-wrapper'][data-focus='true'] {
+  background-color: white !important;
+  border-color: hsl(var(--heroui-primary) / 0.5) !important;
+  box-shadow:
+    0 0 0 1px hsl(var(--heroui-primary)),
+    0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark div[data-slot='input-wrapper'][data-focus='true'] {
+  background-color: hsl(var(--heroui-default-100) / 0.6) !important;
+}
