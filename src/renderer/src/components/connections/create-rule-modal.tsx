@@ -25,6 +25,8 @@ import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-moda
 import { COMMON_RULE_TARGETS } from '@renderer/utils/rule-targets'
 import { RULE_TYPES } from '@renderer/utils/rule-types'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 interface Props {
   connection: ControllerConnectionDetail
   onClose: () => void
@@ -43,6 +45,10 @@ function ruleToString(rule: RuleDraft): string {
   if (rule.noResolve) s += ',no-resolve'
   return s
 }
+
+const modalClassNames = createSecondaryModalClassNames({
+  base: 'max-w-none w-full'
+})
 
 const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
   const { t } = useI18n()
@@ -443,7 +449,7 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
 
         {/* 规则预览 */}
         {ruleString && (
-          <div className="p-3 rounded-lg bg-default-100">
+          <div className="p-3 rounded-2xl bg-default-100/50 border border-default-200/50 dark:border-white/10 backdrop-blur-md">
             <div className="text-xs text-foreground-400 mb-1">{t('rules.preview')}</div>
             <code className="text-sm font-mono text-primary break-all">{ruleString}</code>
           </div>
@@ -461,10 +467,10 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
               {existingRules.map((rule, index) => (
                 <div
                   key={index}
-                  className={`flex items-center justify-between p-2 rounded-lg text-xs ${
+                  className={`flex items-center justify-between p-2 rounded-2xl text-xs ${
                     editingIndex === index
-                      ? 'bg-primary-50 border border-primary-200'
-                      : 'bg-default-100 hover:bg-default-200'
+                      ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                      : CARD_STYLES.GLASS_ITEM_CARD
                   } transition-colors`}
                 >
                   <code className="font-mono text-foreground-700 break-all flex-1 mr-2">
@@ -530,11 +536,15 @@ const CreateRuleModal: React.FC<Props> = ({ connection, onClose }) => {
   )
 
   return (
-    <Modal isOpen={true} onClose={onClose} size="lg" scrollBehavior="inside" placement="center">
-      <ModalContent
-        className="mx-4 my-4"
-        style={modalContentStyle}
-      >
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      size="lg"
+      scrollBehavior="inside"
+      placement="center"
+      classNames={modalClassNames}
+    >
+      <ModalContent className="mx-4 my-4" style={modalContentStyle}>
         <ModalBody className="py-4">{renderContent()}</ModalBody>
       </ModalContent>
     </Modal>

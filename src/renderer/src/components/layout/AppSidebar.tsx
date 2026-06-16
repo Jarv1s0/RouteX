@@ -57,7 +57,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
         <div
           ref={ref}
           style={{ width: 'var(--sider-width)' }}
-          className="side relative z-[80] h-full shrink-0 pointer-events-auto flex flex-col bg-default-100/50 backdrop-blur-xl border-r border-default-200/50 dark:border-white/5 transition-[width] duration-300"
+          className="side relative z-[80] h-full shrink-0 pointer-events-auto flex flex-col bg-default-100/50 backdrop-blur-xl border-r border-default-200/50 dark:border-white/5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.15)] dark:shadow-[inset_1px_1px_0_rgba(255,255,255,0.05)] transition-[width] duration-300"
         >
           <div className="app-drag flex justify-center items-center z-40 bg-transparent h-[49px] shrink-0">
             {platform !== 'darwin' && <MihomoIcon className="h-[32px] leading-[32px] text-lg" />}
@@ -102,7 +102,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
       <div
         ref={ref}
         style={{ width: 'var(--sider-width)' }}
-        className="side relative z-[80] h-full shrink-0 overflow-y-auto no-scrollbar pointer-events-auto bg-default-100/50 backdrop-blur-xl border-r border-default-200/50 dark:border-white/5 transition-[width] duration-300 flex flex-col"
+        className="side relative z-[80] h-full shrink-0 overflow-y-auto no-scrollbar pointer-events-auto bg-default-100/50 backdrop-blur-xl border-r border-default-200/50 dark:border-white/5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.15)] dark:shadow-[inset_1px_1px_0_rgba(255,255,255,0.05)] transition-[width] duration-300 flex flex-col"
       >
         <div
           className="app-drag sticky top-0 z-40 bg-transparent backdrop-blur h-[49px] shrink-0"

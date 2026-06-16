@@ -23,7 +23,9 @@ export const SECONDARY_MODAL_HEADER_CLASSNAME =
   'flex items-center justify-between gap-3 app-drag pl-6 pr-4 py-3'
 
 export const MAIN_PANE_MODAL_CLASSNAMES: ModalClassNames = {
-  base: 'max-w-none w-full'
+  base: `max-w-none w-full ${CARD_STYLES.GLASS_CARD} shadow-2xl`,
+  backdrop: 'bg-black/40 backdrop-blur-[2px]',
+  closeButton: SECONDARY_MODAL_CLOSE_BUTTON_CLASSNAME
 }
 
 export function createSecondaryModalClassNames(overrides: ModalClassNames = {}): ModalClassNames {

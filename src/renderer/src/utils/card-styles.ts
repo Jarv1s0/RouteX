@@ -1,19 +1,26 @@
+const GLASS_POPOVER_CONTENT =
+  'backdrop-blur-[12px] bg-background/80 dark:bg-default-100/60 rounded-2xl border border-default-200/50 dark:border-white/10 shadow-xl animate-pop-in'
+
 export const CARD_STYLES = {
   // Base styles shared by all cards (transitions, borders, overflow)
   ROUNDED: 'rounded-2xl',
   BASE: 'relative overflow-hidden border antialiased transition-[transform,background-color,border-color,box-shadow,opacity] duration-150 ease-out',
 
-  // Active state: Lightweight Glass Selection (Brand-tinted)
+  // Active state: Lightweight Glass Selection (Brand-tinted) with glow and edge lighting
   ACTIVE:
-    'bg-primary/10 dark:bg-primary/15 backdrop-blur-md border-primary/20 dark:border-primary/30 shadow-sm shadow-primary/10',
+    'bg-primary/10 dark:bg-primary/15 backdrop-blur-md border-primary/20 dark:border-primary/30 shadow-[0_4px_16px_rgba(0,112,243,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] dark:shadow-[0_4px_16px_rgba(0,112,243,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]',
 
   // Secondary active state: enabled in merged runtime but not the primary profile
   ACTIVE_SECONDARY:
-    'bg-primary/5 dark:bg-primary/10 backdrop-blur-md border-primary/10 shadow-sm',
+    'bg-primary/5 dark:bg-primary/10 backdrop-blur-md border-primary/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]',
 
-  // Inactive state: iOS Liquid Glass (Subtle and restrained)
+  // Inactive state: iOS Liquid Glass with edge highlight and interactive scale
   INACTIVE:
-    'bg-white/30 dark:bg-black/20 hover:bg-white/50 dark:hover:bg-white/5 backdrop-blur-lg border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 shadow-sm hover:shadow-md transition-all',
+    'bg-white/30 dark:bg-black/20 hover:bg-white/50 dark:hover:bg-white/5 backdrop-blur-lg border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_8px_20px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_20px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]',
+
+  // Header switcher: subtle floating pill, safe color/shadow hover effect (no spatial translation)
+  HEADER_SWITCHER:
+    'bg-white/40 dark:bg-black/30 hover:bg-white/60 dark:hover:bg-white/5 backdrop-blur-lg border-white/40 dark:border-white/10 hover:border-white/60 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_8px_rgba(0,0,0,0.2)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_6px_16px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_6px_16px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-[0.98]',
 
   // Toolbar style: Same as INACTIVE but without scale and tuned for toolbar
   GLASS_TOOLBAR:
@@ -42,10 +49,12 @@ export const CARD_STYLES = {
     'bg-default-100/50 dark:bg-default-100/10 border border-default-200/50 dark:border-white/5 shadow-sm hover:shadow transition-[transform,background-color,border-color,box-shadow,opacity] duration-150',
 
   // Sidebar row hover state: clearer than the default gray strip
-  SIDEBAR_ITEM: 'hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm transition-all duration-300',
+  SIDEBAR_ITEM:
+    'hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm transition-all duration-300',
 
   // Sidebar active state: Match mode switcher active pill
-  SIDEBAR_ACTIVE: 'bg-primary/20 dark:bg-primary/20 backdrop-blur-md border-transparent shadow-sm shadow-primary/10 transition-all duration-300',
+  SIDEBAR_ACTIVE:
+    'bg-primary/20 dark:bg-primary/20 backdrop-blur-md border-transparent shadow-sm shadow-primary/10 transition-all duration-300',
 
   // Glass card style (used for tooltips etc)
   GLASS_CARD:
@@ -63,19 +72,22 @@ export const CARD_STYLES = {
   MANAGEMENT_META_BUTTON: 'h-[20px] p-1 m-0 text-xs text-foreground',
   MANAGEMENT_FOOTER_ROW: 'flex items-center justify-between text-sm text-foreground',
 
-  // Select style: Matches GLASS_INPUT
   GLASS_SELECT: {
     trigger:
-      'bg-default-200/50 dark:bg-default-100/50 shadow-none border border-default-200/50 dark:border-transparent data-[hover=true]:bg-default-200/80 rounded-2xl h-8 min-h-8 transition-[background-color,border-color,box-shadow]',
+      'bg-default-200/50 dark:bg-default-100/50 shadow-none border border-default-200/50 dark:border-transparent data-[hover=true]:bg-default-200/80 data-[focus=true]:bg-default-200/80 data-[open=true]:border-primary/50 rounded-2xl h-8 min-h-8 transition-[background-color,border-color,box-shadow]',
     value: 'text-sm',
-    popoverContent:
-      'backdrop-blur-[10px] bg-background/78 dark:bg-default-100/50 rounded-2xl border border-default-200/45 dark:border-white/8 shadow-lg'
+    popoverContent: GLASS_POPOVER_CONTENT
+  },
+
+  // Dropdown style: Matches GLASS_SELECT popover
+  GLASS_DROPDOWN: {
+    content: GLASS_POPOVER_CONTENT
   },
 
   // Data Grid Style
   GLASS_TABLE_HEADER:
-    'sticky top-0 z-10 bg-default-100/78 dark:bg-default-50/78 backdrop-blur-[10px] border-b border-default-200/45 dark:border-white/8 text-xs font-semibold text-default-500 flex items-center w-full',
+    'sticky top-0 z-10 bg-default-100/78 dark:bg-default-50/78 backdrop-blur-[12px] border-b border-default-200/50 dark:border-white/10 text-xs font-semibold text-default-500 flex items-center w-full shadow-sm',
   GLASS_TABLE_ROW:
-    'group relative flex items-center border-b border-default-200/50 dark:border-white/5 hover:bg-default-100/50 dark:hover:bg-white/5 transition-colors cursor-pointer data-[selected=true]:bg-primary/10 data-[selected=true]:border-primary/20',
+    'group relative flex items-center border-b border-default-200/50 dark:border-white/5 hover:bg-default-100/50 dark:hover:bg-white/5 transition-all duration-300 ease-out cursor-pointer data-[selected=true]:bg-gradient-to-r data-[selected=true]:from-primary/15 data-[selected=true]:to-transparent data-[selected=true]:border-primary/20 data-[selected=true]:shadow-[inset_3px_0_0_0_hsl(var(--heroui-primary))]',
   GLASS_TABLE_CELL: 'px-3 py-2.5 text-sm truncate flex items-center'
 }

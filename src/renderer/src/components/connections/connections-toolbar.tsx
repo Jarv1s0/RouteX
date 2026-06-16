@@ -179,7 +179,7 @@ export default function ConnectionsToolbar({
           )}
         </Button>
 
-        <Dropdown>
+        <Dropdown classNames={CARD_STYLES.GLASS_DROPDOWN}>
           <DropdownTrigger>
             <Button size="sm" isIconOnly className="bg-content2">
               {VIEW_MODE_ICONS[viewMode]}

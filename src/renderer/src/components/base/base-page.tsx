@@ -1,11 +1,7 @@
 import { Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
-import {
-  closeMainWindow,
-  windowMax,
-  windowMin
-} from '@renderer/utils/window-ipc'
+import { closeMainWindow, windowMax, windowMin } from '@renderer/utils/window-ipc'
 import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import { VscChromeClose, VscChromeMaximize, VscChromeMinimize } from 'react-icons/vsc'
 import { useI18n } from '@renderer/i18n'
@@ -51,7 +47,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
             {props.header}
             <div className="flex items-center gap-1.5 mr-2 ml-1.5 h-full app-nodrag">
               <div
-                className={`flex items-center p-1 rounded-2xl mr-1 ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}
+                className={`flex items-center p-1 rounded-2xl mr-1 ${CARD_STYLES.BASE} ${CARD_STYLES.HEADER_SWITCHER}`}
               >
                 <SysproxySwitcher headerMode />
                 <div className="w-[1px] h-3.5 bg-default-300/50 dark:bg-white/10 mx-0.5" />

@@ -1,4 +1,18 @@
-import { cn, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Tooltip } from '@heroui/react'
+import {
+  cn,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Tooltip
+} from '@heroui/react'
 import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useOverrideConfig } from '@renderer/hooks/use-override-config'
@@ -10,6 +24,7 @@ import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 interface Props {
   item: ProfileItem
   updateProfileItem: (item: ProfileItem) => Promise<void>
@@ -221,7 +236,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   </div>
                 )
               })}
-              <Dropdown>
+              <Dropdown classNames={CARD_STYLES.GLASS_DROPDOWN}>
                 <DropdownTrigger>
                   <Button fullWidth size="sm" variant="flat" color="default">
                     <FaPlus />

@@ -197,7 +197,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   }
 
   const statusControl = (
-    <Dropdown placement="bottom-start">
+    <Dropdown placement="bottom-start" classNames={CARD_STYLES.GLASS_DROPDOWN}>
       <DropdownTrigger>
         <Button
           size="sm"
@@ -355,7 +355,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                   </Button>
                 )}
 
-                <Dropdown>
+                <Dropdown classNames={CARD_STYLES.GLASS_DROPDOWN}>
                   <DropdownTrigger>
                     <Button
                       isIconOnly

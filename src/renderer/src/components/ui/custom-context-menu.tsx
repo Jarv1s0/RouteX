@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Card } from '@heroui/react'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   isOpen: boolean
@@ -51,7 +52,10 @@ export const CustomContextMenu: React.FC<Props> = ({ isOpen, onClose, position, 
           top: position.y
         }}
       >
-        <Card shadow="md" className="min-w-[140px] p-1">
+        <Card
+          shadow="none"
+          className={`min-w-[140px] p-1 animate-pop-in ${CARD_STYLES.GLASS_CARD}`}
+        >
           {children}
         </Card>
       </div>

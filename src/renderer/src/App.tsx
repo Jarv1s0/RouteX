@@ -338,8 +338,15 @@ const App: React.FC = () => {
           className={`transition-colors duration-200 hover:bg-primary/50 ${resizing ? 'bg-primary' : ''}`}
         />
 
-        <div ref={mainRef} className="main relative z-0 min-w-0 flex-1 h-full overflow-y-auto">
-          <ErrorBoundary>{page}</ErrorBoundary>
+        <div
+          ref={mainRef}
+          className="main relative z-0 min-w-0 flex-1 h-full overflow-y-auto overflow-x-hidden"
+        >
+          <ErrorBoundary>
+            <div key={location.pathname} className="animate-page-enter h-full w-full">
+              {page}
+            </div>
+          </ErrorBoundary>
         </div>
       </div>
     </>

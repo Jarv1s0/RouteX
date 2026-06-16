@@ -372,7 +372,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                   </Button>
                 )}
 
-                <Dropdown>
+                <Dropdown classNames={CARD_STYLES.GLASS_DROPDOWN}>
                   <DropdownTrigger>
                     <Button
                       isIconOnly
@@ -406,7 +406,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                 className={`flex justify-start items-center gap-2`}
                 onClick={(e) => e.stopPropagation()}
               >
-                <Dropdown placement="bottom-start">
+                <Dropdown placement="bottom-start" classNames={CARD_STYLES.GLASS_DROPDOWN}>
                   <DropdownTrigger>
                     <Button
                       size="sm"

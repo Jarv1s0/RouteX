@@ -223,8 +223,16 @@ pre,
 [data-slot='content'][role='tooltip'] {
   font-size: 12px;
   padding: 6px 10px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  background-color: hsl(var(--heroui-content1) / 0.85) !important;
+  backdrop-filter: blur(8px) saturate(120%);
+  border: 1px solid hsl(var(--heroui-default-200) / 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  color: hsl(var(--heroui-foreground));
+}
+.dark [data-slot='content'][role='tooltip'] {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 /* 设置分组标题加粗 */
@@ -327,10 +335,12 @@ textarea:focus-visible {
 /* 深色模式优化 */
 .dark {
   /* 提高文字对比度 */
-  --heroui-foreground: 0 0% 95%;
-  /* 卡片背景稍微亮一点 */
-  --heroui-content1: 240 6% 15%;
-  --heroui-content2: 240 5% 18%;
+  --heroui-foreground: 210 20% 98%;
+  /* 全局背景增加极轻微的冷色调环境光反射，避免死黑 */
+  --heroui-background: 230 15% 8%;
+  /* 卡片背景跟随环境光色调 */
+  --heroui-content1: 230 12% 14%;
+  --heroui-content2: 230 10% 18%;
   /* 降低危险色在深色背景下的亮度和饱和度 */
   --heroui-danger-50: 2 30% 14%;
   --heroui-danger-100: 2 28% 18%;
@@ -620,6 +630,17 @@ textarea:focus-visible {
   }
 }
 
+@keyframes page-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.99) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 /* Utility classes for animations */
 .animate-fade-in-up {
   animation: fade-in-up 0.4s ease-out forwards;
@@ -634,4 +655,14 @@ textarea:focus-visible {
   animation: scale-x-up 0.6s ease-out forwards;
   transform-origin: center left;
   opacity: 0;
+}
+
+.animate-page-enter {
+  animation: page-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.animate-pop-in-staggered {
+  opacity: 0;
+  animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
