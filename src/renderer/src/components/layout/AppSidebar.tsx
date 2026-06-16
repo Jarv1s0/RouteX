@@ -67,8 +67,8 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
               <ProxyCard iconOnly />
               <ConnCard iconOnly />
               <ProfileCard iconOnly />
-              <MihomoCoreCard iconOnly />
               <RuleCard iconOnly />
+              <MihomoCoreCard iconOnly />
               <StatsCard iconOnly />
               <MapCard iconOnly />
               <DnsCard iconOnly />
@@ -151,8 +151,8 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
             className={`flex h-[180px] shrink-0 flex-col gap-1.5 px-2 py-2 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}
           >
             <ProfileCard compact className="flex-1" />
-            <MihomoCoreCard compact className="flex-1" />
             <RuleCard compact className="flex-1" />
+            <MihomoCoreCard compact className="flex-1" />
           </div>
 
           {/* Navigation Menu Area */}
