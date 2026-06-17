@@ -6,7 +6,11 @@ const __filename = fileURLToPath(import.meta.url)
 const repoRoot = path.resolve(path.dirname(__filename), '..')
 
 const rustIpcFiles = [
-  'src-tauri/src/desktop/ipc/config.rs',
+  'src-tauri/src/desktop/ipc/config_app.rs',
+  'src-tauri/src/desktop/ipc/config_chains.rs',
+  'src-tauri/src/desktop/ipc/config_profiles.rs',
+  'src-tauri/src/desktop/ipc/config_overrides.rs',
+  'src-tauri/src/desktop/ipc/config_quick_rules.rs',
   'src-tauri/src/desktop/ipc/mihomo.rs',
   'src-tauri/src/desktop/ipc/network.rs',
   'src-tauri/src/desktop/ipc/shell.rs',

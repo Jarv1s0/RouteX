@@ -3,8 +3,12 @@ use super::*;
 use std::collections::HashSet;
 use std::path::Path;
 
-const RUST_IPC_HANDLER_SOURCES: [&str; 5] = [
-    include_str!("ipc/config.rs"),
+const RUST_IPC_HANDLER_SOURCES: [&str; 9] = [
+    include_str!("ipc/config_app.rs"),
+    include_str!("ipc/config_chains.rs"),
+    include_str!("ipc/config_profiles.rs"),
+    include_str!("ipc/config_overrides.rs"),
+    include_str!("ipc/config_quick_rules.rs"),
     include_str!("ipc/mihomo.rs"),
     include_str!("ipc/network.rs"),
     include_str!("ipc/shell.rs"),
