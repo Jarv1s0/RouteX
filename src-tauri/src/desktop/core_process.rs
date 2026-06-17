@@ -945,10 +945,9 @@ pub(crate) fn restart_core_process(
     if tun_enabled && auto_set_dns_mode != "none" {
         set_public_dns(app)?;
     }
-    if !tun_enabled {
-        if let Err(error) = cleanup_stale_tun_artifacts(app, &merged_runtime_config) {
-            eprintln!("[desktop.tun_cleanup] {error}");
-        }
+    
+    if let Err(error) = cleanup_stale_tun_artifacts(app, &merged_runtime_config) {
+        eprintln!("[desktop.tun_cleanup] {error}");
     }
 
     if use_service_mode {
