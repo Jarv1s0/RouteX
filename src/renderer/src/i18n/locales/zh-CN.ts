@@ -109,6 +109,7 @@ export const zhCN = {
   'rules.updateProviderFailed': '{name} 更新失败\n{error}',
   'rules.toggleFailed': '切换状态失败: {error}',
   'rules.deleteConfirm': '确认删除这条本地规则？\n\n{rule}',
+  'rules.deleteConfirmDescription': '确认删除这条本地规则？',
   'rules.deleteFailed': '删除本地规则失败: {error}',
   'rules.disabledBadge': '已停用',
   'rules.disabledDescription': '本地规则处于全局停用状态，以下规则暂不会注入当前配置。',

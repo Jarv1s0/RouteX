@@ -67,7 +67,7 @@ export default function ConnectionsContent({
     (index: number, connection: ControllerConnectionDetail) => {
       const processPath = connection.metadata.processPath || ''
       const iconUrl = (displayIcon && findProcessMode !== 'off' && iconMap[processPath]) || ''
-      const itemKey = index === 0 ? `${connection.id}-${firstItemRefreshTrigger}` : connection.id
+      const itemKey = connection.id
       const displayName =
         displayAppName && connection.metadata.processPath
           ? appNameCache[connection.metadata.processPath]

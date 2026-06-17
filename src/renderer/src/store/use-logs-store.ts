@@ -78,9 +78,9 @@ export const useLogsStore = create<LogsState>((set) => ({
 
   initializeListeners: () => {
     currentLogsCleanup?.()
+    currentLogsCleanup = onIpc(ON.mihomoLogs, handleLog)
     currentLogsBridgeCleanup?.()
     currentLogsBridgeCleanup = retainTauriLogsBridge()
-    currentLogsCleanup = onIpc(ON.mihomoLogs, handleLog)
   },
 
   cleanupListeners: () => {

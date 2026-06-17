@@ -14,6 +14,7 @@ import { applyTheme } from '@renderer/utils/theme-ipc'
 import { DEFAULT_CUSTOM_THEME } from '../../shared/defaults/app'
 import { startTauriMihomoEventBridge } from '@renderer/utils/mihomo-ipc'
 import { ensureTauriTrafficRecorder } from '@renderer/utils/tauri-traffic-stats'
+import { releaseLogsListeners, retainLogsListeners } from '@renderer/store/use-logs-store'
 import { scheduleIdleTask } from '@renderer/utils/idle-task'
 import AppSidebar from '@renderer/components/layout/AppSidebar'
 import GlobalConfirmModals from '@renderer/components/base/GlobalConfirmModals'
@@ -139,8 +140,13 @@ const App: React.FC = () => {
       return
     }
 
+    retainLogsListeners()
     startTauriMihomoEventBridge()
     ensureTauriTrafficRecorder()
+
+    return () => {
+      releaseLogsListeners()
+    }
   }, [])
 
   useEffect(() => {

@@ -112,6 +112,7 @@ export const enUS: Record<TranslationKey, string> = {
   'rules.updateProviderFailed': 'Failed to update {name}\n{error}',
   'rules.toggleFailed': 'Failed to toggle status: {error}',
   'rules.deleteConfirm': 'Delete this local rule?\n\n{rule}',
+  'rules.deleteConfirmDescription': 'Delete this local rule?',
   'rules.deleteFailed': 'Failed to delete local rule: {error}',
   'rules.disabledBadge': 'Disabled',
   'rules.disabledDescription':

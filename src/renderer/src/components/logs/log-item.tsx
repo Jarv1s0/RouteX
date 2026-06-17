@@ -24,12 +24,7 @@ const LogItem: React.FC<Props> = (props) => {
         isPressable
         shadow="none"
         radius="lg"
-        className={`w-full group ${CARD_STYLES.BASE}
-          bg-default-100/70 dark:bg-default-50/28
-          border-default-200/60 dark:border-white/8
-          hover:bg-default-100/85 dark:hover:bg-default-100/36 hover:border-default-300/50 dark:hover:border-white/12 hover:shadow
-          data-[pressed=true]:scale-[0.995] data-[pressed=true]:bg-default-200/70 dark:data-[pressed=true]:bg-default-100/44
-        `}
+        className={`w-full group ${CARD_STYLES.BASE} ${CARD_STYLES.LIST_CARD} data-[pressed=true]:scale-[0.995] data-[pressed=true]:bg-default-200/70 dark:data-[pressed=true]:bg-default-100/44`}
         onPress={handlePress}
       >
         <div

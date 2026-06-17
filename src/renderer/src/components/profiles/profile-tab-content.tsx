@@ -7,6 +7,7 @@ import {
   DropdownTrigger,
   Input
 } from '@heroui/react'
+
 import ProfileItemCard from '@renderer/components/profiles/profile-item'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
@@ -340,11 +341,14 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
                     <MdContentPaste className="text-lg" />
                   </Button>
                   <Checkbox
-                    className="whitespace-nowrap"
-                    checked={useProxy}
+                    size="sm"
+                    radius="sm"
+                    color="primary"
+                    className="whitespace-nowrap mr-1"
+                    isSelected={useProxy}
                     onValueChange={setUseProxy}
                   >
-                    {t('page.profiles.useProxy')}
+                    <span className="text-sm text-default-600">{t('page.profiles.useProxy')}</span>
                   </Checkbox>
                 </>
               }

@@ -14,15 +14,15 @@ export const CARD_STYLES = {
 
   // Active state: Lightweight Glass Selection (Brand-tinted) with glow and edge lighting
   ACTIVE:
-    'bg-primary/10 dark:bg-primary/15 backdrop-blur-md border-primary/20 dark:border-primary/30 shadow-[0_4px_16px_rgba(0,112,243,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] dark:shadow-[0_4px_16px_rgba(0,112,243,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]',
+    'bg-primary/10 dark:bg-primary/15 hover:bg-primary/15 dark:hover:bg-primary/20 backdrop-blur-md border-primary/20 dark:border-primary/30 hover:border-primary/30 dark:hover:border-primary/40 shadow-[0_4px_16px_rgba(0,112,243,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] dark:shadow-[0_4px_16px_rgba(0,112,243,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] hover:shadow-[0_6px_20px_rgba(0,112,243,0.15),inset_0_1px_0_rgba(255,255,255,0.3)] dark:hover:shadow-[0_6px_20px_rgba(0,112,243,0.2),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-300 active:scale-[0.98]',
 
   // Secondary active state: enabled in merged runtime but not the primary profile
   ACTIVE_SECONDARY:
-    'bg-primary/5 dark:bg-primary/10 backdrop-blur-md border-primary/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]',
+    'bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/15 backdrop-blur-md border-primary/10 hover:border-primary/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] hover:shadow-md transition-all duration-300 active:scale-[0.98]',
 
   // Inactive state: iOS Liquid Glass with edge highlight and interactive scale
   INACTIVE:
-    'bg-white/30 dark:bg-black/20 hover:bg-white/50 dark:hover:bg-white/5 backdrop-blur-lg border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_8px_20px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_20px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98]',
+    'bg-white/30 dark:bg-black/20 hover:bg-white/50 dark:hover:bg-white/5 backdrop-blur-lg border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-lg dark:hover:shadow-black/60 transition-all duration-300 active:scale-[0.98]',
 
   // Header switcher: subtle floating pill, safe color/shadow hover effect (no spatial translation)
   HEADER_SWITCHER:
@@ -34,7 +34,7 @@ export const CARD_STYLES = {
 
   // Input style: Matches the glass toolbar aesthetic
   GLASS_INPUT: {
-    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-2xl h-8 transition-all duration-300`,
+    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-2xl !h-8 !min-h-8 transition-all duration-300`,
     input: 'text-sm',
     innerWrapper: 'bg-transparent'
   },
@@ -52,6 +52,22 @@ export const CARD_STYLES = {
   // Small item cards (like tools connectivity check)
   GLASS_ITEM_CARD:
     'bg-default-100/50 dark:bg-default-100/10 border border-default-200/50 dark:border-white/5 shadow-sm hover:shadow transition-[transform,background-color,border-color,box-shadow,opacity] duration-150',
+
+  // Unified style for list items (connections, logs) without spatial translation
+  LIST_CARD:
+    'bg-default-100/60 dark:bg-default-50/30 border border-default-200/60 dark:border-white/10 hover:bg-default-200/70 dark:hover:bg-default-100/50 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 hover:-translate-y-0 transition-all duration-300',
+
+  // Lighter style for large proxy group container cards
+  PROXY_GROUP_CARD:
+    'bg-default-50/50 dark:bg-default-50/20 border-white/20 dark:border-white/5 shadow-sm hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 hover:-translate-y-0 transition-all duration-300',
+
+  // Style for proxy nodes inside the proxy group
+  PROXY_ITEM_CARD:
+    'bg-default-100/40 dark:bg-default-50/20 border-default-200/50 dark:border-white/5 hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 hover:-translate-y-0 transition-all duration-300',
+
+  // Premium, highly translucent glass style specifically for rule cards
+  RULE_CARD:
+    'bg-white/50 dark:bg-black/20 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 hover:-translate-y-0 transition-all duration-300',
 
   // Sidebar row hover state: clearer than the default gray strip
   SIDEBAR_ITEM:

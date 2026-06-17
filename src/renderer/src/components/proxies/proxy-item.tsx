@@ -101,8 +101,8 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
           fixed
             ? 'bg-secondary/10 border border-secondary/40 shadow-sm'
             : selected
-              ? 'bg-primary/10 dark:bg-primary/15 border-primary/30 dark:border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_12px_rgba(var(--heroui-primary)/0.15)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_12px_rgba(var(--heroui-primary)/0.2)] backdrop-blur-md z-10 hover:-translate-y-[1px]'
-              : 'bg-default-100/40 dark:bg-default-50/20 border-default-200/50 dark:border-white/5 hover:bg-default-100/70 dark:hover:bg-white/10 hover:border-default-300/50 dark:hover:border-white/15 hover:shadow-md hover:-translate-y-[1px]'
+              ? 'bg-primary/10 dark:bg-primary/15 border-primary/30 dark:border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_12px_rgba(var(--heroui-primary)/0.15)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_12px_rgba(var(--heroui-primary)/0.2)] backdrop-blur-md z-10'
+              : CARD_STYLES.PROXY_ITEM_CARD
         } 
         border transition-all duration-300 ease-out
         ${displayDelay === 0 ? 'opacity-70 grayscale-[30%] hover:grayscale-0' : ''}

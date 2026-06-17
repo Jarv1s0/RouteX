@@ -1,13 +1,15 @@
 import BasePage from '@renderer/components/base/base-page'
 import QuickRuleEditorModal from '@renderer/components/rules/quick-rule-editor-modal'
 import RemoteRuleItem from '@renderer/components/rules/remote-rule-item'
+import LocalRuleItem from '@renderer/components/rules/local-rule-item'
+import ConfirmModal from '@renderer/components/base/base-confirm'
 import GeoData from '@renderer/components/resources/geo-data'
 import Viewer from '@renderer/components/resources/viewer'
 import { Virtuoso } from 'react-virtuoso'
 import { useEffect, useMemo, useState, useDeferredValue, useCallback, useRef } from 'react'
-import { Button, Card, CardBody, Chip, Input, Tab, Tabs, Tooltip } from '@heroui/react'
+import { Button, Chip, Input, Tab, Tabs } from '@heroui/react'
 import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
-import { LuFilePenLine, LuTrash2 } from 'react-icons/lu'
+
 import { useRules } from '@renderer/hooks/use-rules'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { includesIgnoreCase } from '@renderer/utils/includes'
@@ -29,12 +31,10 @@ import useSWR from 'swr'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useRulesStore } from '@renderer/store/use-rules-store'
 import { resolveFinalProxyNode } from '@renderer/utils/proxy-groups'
-import { getProxyColor } from '@renderer/utils/proxy-colors'
 import { BUILT_IN_RULE_TARGETS } from '@renderer/utils/rule-targets'
 
 import { useI18n } from '@renderer/i18n'
 
-import AppSwitch from '@renderer/components/base/app-switch'
 const normalizeRuleType = (type: string): string => type.replace(/[^a-z0-9]/gi, '').toLowerCase()
 
 const isRemoteRule = (rule: ControllerRulesDetail): boolean => {
@@ -65,6 +65,7 @@ const RulesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('local')
   const [updating, setUpdating] = useState<Record<string, boolean>>({})
   const [editingQuickRule, setEditingQuickRule] = useState<QuickRule | null>(null)
+  const [pendingDeleteQuickRule, setPendingDeleteQuickRule] = useState<QuickRule | null>(null)
   const [isQuickRuleModalOpen, setIsQuickRuleModalOpen] = useState(false)
   const { groups = [] } = useGroups()
 
@@ -367,13 +368,8 @@ const RulesPage: React.FC = () => {
     [quickRulesProfileId, mutateQuickRules, mutateRules, t]
   )
 
-  const handleDeleteQuickRule = useCallback(
+  const confirmDeleteQuickRule = useCallback(
     async (rule: QuickRule) => {
-      const confirmDelete = window.confirm(
-        t('rules.deleteConfirm', { rule: formatQuickRule(rule) })
-      )
-      if (!confirmDelete) return
-
       try {
         await removeQuickRule(quickRulesProfileId, rule.id)
         await mutateQuickRules()
@@ -386,6 +382,10 @@ const RulesPage: React.FC = () => {
     },
     [quickRulesProfileId, mutateQuickRules, mutateRules, t]
   )
+
+  const handleDeleteQuickRule = useCallback((rule: QuickRule) => {
+    setPendingDeleteQuickRule(rule)
+  }, [])
 
   return (
     <BasePage title={t('page.rules.title')}>
@@ -465,6 +465,27 @@ const RulesPage: React.FC = () => {
               onSaved={handleQuickRuleSaved}
             />
           )}
+          {pendingDeleteQuickRule && (
+            <ConfirmModal
+              title={t('page.rules.delete')}
+              confirmText={t('common.delete')}
+              cancelText={t('common.cancel')}
+              onChange={(open) => {
+                if (!open) setPendingDeleteQuickRule(null)
+              }}
+              onConfirm={() => confirmDeleteQuickRule(pendingDeleteQuickRule)}
+              description={
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-foreground-600">
+                    {t('rules.deleteConfirmDescription')}
+                  </p>
+                  <code className="rounded-2xl border border-danger/20 bg-danger/10 px-3 py-2 font-mono text-sm text-danger">
+                    {formatQuickRule(pendingDeleteQuickRule)}
+                  </code>
+                </div>
+              }
+            />
+          )}
 
           <div className="w-full px-2 pb-6">
             {quickRulesData?.enabled === false && (
@@ -484,155 +505,18 @@ const RulesPage: React.FC = () => {
               <div className="flex flex-col">
                 {filteredQuickRules.map((rule, index) => {
                   const targetMissing = missingRuleTargetIds.has(rule.id)
-                  const finalNode = resolveFinalProxyNode(groups, rule.target)
+                  const finalNode = resolveFinalProxyNode(groups, rule.target) ?? undefined
                   return (
-                    <div key={rule.id} className="w-full pb-2">
-                      <Card
-                        shadow="sm"
-                        radius="lg"
-                        className={`border border-default-200/60 bg-default-100/60 backdrop-blur-md dark:border-white/10 dark:bg-default-50/30 hover:-translate-y-0.5 hover:bg-default-200/60 hover:shadow-md dark:hover:bg-default-100/40 transition-all ${!rule.enabled ? 'grayscale' : ''}`}
-                      >
-                        <CardBody className="w-full py-2 px-3">
-                          <div className="flex items-center gap-2">
-                            {/* 开关 和 序号 */}
-                            <AppSwitch
-                              size="sm"
-                              isSelected={rule.enabled}
-                              onValueChange={() => void handleToggleQuickRule(rule)}
-                              classNames={{
-                                wrapper: 'h-4 w-8',
-                                thumb: 'h-3 w-3'
-                              }}
-                            />
-                            <span
-                              className={`w-6 flex-shrink-0 -mr-1 text-xs text-foreground-400 ${!rule.enabled ? 'line-through' : ''}`}
-                            >
-                              {index + 1}.
-                            </span>
-
-                            <div
-                              className={`flex min-w-0 flex-1 items-center ${!rule.enabled ? 'opacity-60 grayscale' : ''}`}
-                            >
-                              {/* 类型 + 名称 + no-resolve */}
-                              <div className="flex flex-shrink-0 items-center gap-2 min-w-0 max-w-[65%]">
-                                <Chip
-                                  size="sm"
-                                  variant="flat"
-                                  color="default"
-                                  classNames={{ content: 'text-xs' }}
-                                  className="flex-shrink-0"
-                                >
-                                  {rule.type}
-                                </Chip>
-                                <div className="ml-1 flex min-w-0 flex-1 items-center gap-1.5">
-                                  <span className="truncate text-sm font-medium" title={rule.value}>
-                                    {rule.value}
-                                  </span>
-                                  {rule.noResolve && (
-                                    <Chip
-                                      size="sm"
-                                      variant="flat"
-                                      color="warning"
-                                      classNames={{ content: 'text-[10px] px-1' }}
-                                      className="h-5 flex-shrink-0"
-                                    >
-                                      no-resolve
-                                    </Chip>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* 视觉引导线 (Leader Line) */}
-                              <div className="mx-3 mt-1 min-w-[20px] flex-1 self-center border-b border-dashed border-default-400/30 dark:border-default-500/30"></div>
-
-                              {/* 路由策略 Proxy Target */}
-                              <div className="flex flex-shrink-0 items-center gap-1 overflow-hidden">
-                                <Tooltip
-                                  isDisabled={!targetMissing}
-                                  content={t('rules.missingTargetTooltip', {
-                                    target: rule.target
-                                  })}
-                                  delay={300}
-                                  color="warning"
-                                >
-                                  <Chip
-                                    size="sm"
-                                    variant={targetMissing ? 'bordered' : 'flat'}
-                                    color={targetMissing ? 'warning' : getProxyColor(rule.target)}
-                                    classNames={{ content: 'text-xs' }}
-                                    className="max-w-[7rem]"
-                                  >
-                                    <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-                                      {rule.target}
-                                    </span>
-                                  </Chip>
-                                </Tooltip>
-                                {targetMissing && (
-                                  <Chip
-                                    size="sm"
-                                    variant="flat"
-                                    color="warning"
-                                    classNames={{ content: 'text-[10px] px-1' }}
-                                    className="h-5 flex-shrink-0"
-                                  >
-                                    {t('rules.missingTargetBadge')}
-                                  </Chip>
-                                )}
-                                {finalNode && finalNode !== rule.target && (
-                                  <>
-                                    <span className="text-xs text-foreground-300 flex-shrink-0">
-                                      →
-                                    </span>
-                                    <Chip
-                                      size="sm"
-                                      variant="flat"
-                                      classNames={{ content: 'text-xs flag-emoji' }}
-                                      className="max-w-[8rem] border border-secondary/20 bg-secondary/10 text-secondary flex-shrink-0"
-                                    >
-                                      <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-                                        {finalNode}
-                                      </span>
-                                    </Chip>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* 操作按钮组 */}
-                            <div className="ml-2 flex items-center flex-shrink-0 gap-2 pr-1">
-                              <Tooltip content={t('common.edit')} delay={500}>
-                                <Button
-                                  isIconOnly
-                                  size="sm"
-                                  variant="light"
-                                  title={t('page.rules.edit')}
-                                  aria-label={t('page.rules.edit')}
-                                  className="min-w-8 w-8 h-8 text-default-500"
-                                  onPress={() => openEditQuickRule(rule)}
-                                >
-                                  <LuFilePenLine className="text-base" />
-                                </Button>
-                              </Tooltip>
-
-                              <Tooltip content={t('page.rules.delete')} delay={500} color="danger">
-                                <Button
-                                  isIconOnly
-                                  size="sm"
-                                  color="danger"
-                                  variant="light"
-                                  title={t('page.rules.delete')}
-                                  aria-label={t('page.rules.delete')}
-                                  className="min-w-8 w-8 h-8"
-                                  onPress={() => void handleDeleteQuickRule(rule)}
-                                >
-                                  <LuTrash2 className="text-base" />
-                                </Button>
-                              </Tooltip>
-                            </div>
-                          </div>
-                        </CardBody>
-                      </Card>
-                    </div>
+                    <LocalRuleItem
+                      key={rule.id}
+                      rule={rule}
+                      index={index}
+                      targetMissing={targetMissing}
+                      finalNode={finalNode}
+                      onToggle={handleToggleQuickRule}
+                      onEdit={openEditQuickRule}
+                      onDelete={handleDeleteQuickRule}
+                    />
                   )
                 })}
               </div>

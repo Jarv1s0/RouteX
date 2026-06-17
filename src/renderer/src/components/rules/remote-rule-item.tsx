@@ -8,6 +8,7 @@ import { useGroups } from '@renderer/hooks/use-groups'
 import { useI18n } from '@renderer/i18n'
 import { resolveFinalProxyNode } from '@renderer/utils/proxy-groups'
 import { getProxyColor } from '@renderer/utils/proxy-colors'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 interface RemoteRuleItemProps {
@@ -48,9 +49,9 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
       <Card
         shadow="sm"
         radius="lg"
-        className={`bg-default-100/60 dark:bg-default-50/30 backdrop-blur-md border border-default-200/60 dark:border-white/10 hover:bg-default-200/60 dark:hover:bg-default-100/40 hover:-translate-y-0.5 hover:shadow-md transition-all ${!enabled ? 'grayscale' : ''}`}
+        className={`${CARD_STYLES.RULE_CARD} ${!enabled ? 'grayscale' : ''}`}
       >
-        <CardBody className="w-full py-2 px-3">
+        <CardBody className="w-full py-2.5 px-4">
           <div className="flex items-center gap-2">
             {/* 开关 Toggle */}
             {rule && onToggle && (
