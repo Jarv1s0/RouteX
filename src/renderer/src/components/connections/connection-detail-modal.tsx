@@ -17,7 +17,8 @@ import {
   IoShieldCheckmark,
   IoPerson,
   IoArrowForward,
-  IoSwapVertical,
+  IoArrowDown,
+  IoArrowUp,
   IoCopy,
   IoUnlink
 } from 'react-icons/io5'
@@ -247,8 +248,8 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                     <Chip
                       size="sm"
                       variant="flat"
-                      color="warning"
-                      className="h-6 px-1 bg-warning/10 text-warning font-medium border border-warning/20 max-w-[180px] opacity-85"
+                      color="secondary"
+                      className="h-6 px-1 bg-secondary/10 text-secondary font-medium border border-secondary/20 max-w-[180px] opacity-85"
                     >
                       <span className="truncate">{connection.rule}</span>
                     </Chip>
@@ -278,7 +279,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
               <div className="flex min-w-max items-center justify-between gap-6 whitespace-nowrap">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <IoSwapVertical className="text-lg text-[#c084fc] rotate-180" />
+                    <IoArrowDown className="text-lg text-[#c084fc]" />
                     <div className="flex items-center leading-none gap-2">
                       <span className="font-mono font-bold text-sm text-foreground">
                         {calcTraffic(connection.download)}
@@ -298,14 +299,14 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                         {calcTraffic(connection.uploadSpeed || 0)}/s
                       </span>
                     </div>
-                    <IoSwapVertical className="text-lg text-[#22d3ee]" />
+                    <IoArrowUp className="text-lg text-[#22d3ee]" />
                   </div>
                 </div>
                 <div className="ml-auto">
                   <InlineSummary
                     label={t('connections.detail.sniff')}
                     value={sniffSummary}
-                    tone="warning"
+                    tone="primary"
                   />
                 </div>
               </div>
@@ -380,7 +381,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                     ? `Sniffed: ${connection.metadata.sniffHost}`
                     : undefined
                 }
-                theme="orange"
+                theme="cyan"
               />
             </div>
 
@@ -469,7 +470,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
                         : undefined
                     }
                     tagLabel={t('connections.detail.rule')}
-                    tagClassName="text-warning bg-warning/10"
+                    tagClassName="text-secondary bg-secondary/10"
                   />
                 )}
 
@@ -544,7 +545,7 @@ interface InfoCardProps {
   label: string
   value?: string
   subValue?: string
-  theme?: 'green' | 'purple' | 'orange' | 'blue' | 'default'
+  theme?: 'green' | 'purple' | 'orange' | 'blue' | 'cyan' | 'default'
   /** @deprecated */
   accent?: string
   /** @deprecated */
@@ -579,6 +580,11 @@ const THEME_MAP = {
   blue: {
     icon: 'bg-blue-500/15 text-blue-500',
     label: 'text-blue-500/80',
+    value: 'text-foreground'
+  },
+  cyan: {
+    icon: 'bg-cyan-500/15 text-cyan-500',
+    label: 'text-cyan-500/80',
     value: 'text-foreground'
   },
   default: {
