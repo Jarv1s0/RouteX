@@ -4,24 +4,11 @@ import { IoCheckmarkCircle, IoClose, IoRefresh } from 'react-icons/io5'
 import { useAppConfig } from './hooks/use-app-config'
 import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
 import { useGroups } from './hooks/use-groups'
-import { platform } from './utils/init'
-import { quitApp } from './utils/app-ipc'
-import {
-  mihomoChangeProxy,
-  mihomoCloseAllConnections,
-  mihomoGroupDelay,
-  patchControledMihomoConfig,
-  patchMihomoConfig,
-  restartCore,
-  subscribeDesktopTraffic,
-  triggerSysProxy
-} from './utils/mihomo-ipc'
-import { SEND, sendIpc } from './utils/ipc-channels'
+import { subscribeDesktopTraffic } from './utils/mihomo-ipc'
 import { calcTraffic } from './utils/calc'
-import { closeFloatingWindow, showFloatingWindow, triggerMainWindow } from './utils/window-ipc'
-import { checkElevateTask } from './utils/service-ipc'
 import { useI18n } from './i18n'
 import { getBoundedDelayColor } from './utils/delay-color'
+import { useTrayActions } from './hooks/use-tray-actions'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 interface TrafficData {
@@ -31,20 +18,13 @@ interface TrafficData {
 
 const TrayMenuApp: React.FC = () => {
   const { t } = useI18n()
-  const { groups, mutate } = useGroups()
-  const { appConfig, patchAppConfig } = useAppConfig()
+  const { groups } = useGroups()
+  const { appConfig } = useAppConfig()
   const { controledMihomoConfig } = useControledMihomoConfig()
-  const {
-    autoCloseConnection = true,
-    onlyActiveDevice = false,
-    showFloatingWindow: showFloating = false,
-    sysProxy
-  } = appConfig || {}
+  const { sysProxy } = appConfig || {}
   const { tun, mode } = controledMihomoConfig || {}
 
   const [traffic, setTraffic] = useState<TrafficData>({ up: 0, down: 0 })
-  const [testingGroup, setTestingGroup] = useState<string | null>(null)
-  const [busyAction, setBusyAction] = useState<string | null>(null)
 
   const sysProxyEnabled = sysProxy?.enable ?? false
   const tunEnabled = tun?.enable ?? false
@@ -63,131 +43,21 @@ const TrayMenuApp: React.FC = () => {
       setTraffic(info)
     }, true)
   }, [])
-
-  const withBusyAction = async (action: string, job: () => Promise<void>): Promise<void> => {
-    if (busyAction) {
-      return
-    }
-
-    setBusyAction(action)
-    try {
-      await job()
-    } catch (error) {
-      alert(error)
-    } finally {
-      setBusyAction(null)
-    }
-  }
-
-  const handleClose = (): void => {
-    sendIpc(SEND.customTrayClose)
-  }
-
-  const handleRefresh = (): void => {
-    mutate()
-  }
-
-  const handleShowMainWindow = async (): Promise<void> => {
-    await withBusyAction('main-window', async () => {
-      await triggerMainWindow()
-      handleClose()
-    })
-  }
-
-  const handleToggleFloating = async (): Promise<void> => {
-    const nextVisible = !showFloating
-
-    await withBusyAction('floating-window', async () => {
-      if (nextVisible) {
-        await showFloatingWindow()
-      } else {
-        await closeFloatingWindow()
-      }
-      await patchAppConfig({ showFloatingWindow: nextVisible })
-    })
-  }
-
-  const handleToggleSysProxy = async (enable: boolean): Promise<void> => {
-    await withBusyAction('sysproxy', async () => {
-      await triggerSysProxy(enable, onlyActiveDevice)
-      await patchAppConfig({ sysProxy: { enable } })
-    })
-  }
-
-  const handleToggleTun = async (enable: boolean): Promise<void> => {
-    await withBusyAction('tun', async () => {
-      if (enable && platform === 'win32' && __ROUTEX_HOST__ === 'tauri') {
-        const hasElevateTask = await checkElevateTask()
-        if (!hasElevateTask) {
-          throw new Error(t('tray.enableTunFirst'))
-        }
-      }
-
-      const previousTun = tun ? { ...tun } : undefined
-      const previousDns = controledMihomoConfig?.dns ? { ...controledMihomoConfig.dns } : undefined
-
-      if (enable) {
-        await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
-      } else {
-        await patchControledMihomoConfig({ tun: { enable } })
-      }
-      try {
-        await restartCore()
-      } catch (error) {
-        await patchControledMihomoConfig({
-          tun: previousTun,
-          ...(enable ? { dns: previousDns } : {})
-        })
-        throw error
-      }
-    })
-  }
-
-  const handleChangeMode = async (nextMode: OutboundMode): Promise<void> => {
-    if (!mode || mode === nextMode) {
-      return
-    }
-
-    await withBusyAction(`mode-${nextMode}`, async () => {
-      await patchControledMihomoConfig({ mode: nextMode })
-      await patchMihomoConfig({ mode: nextMode })
-      if (autoCloseConnection) {
-        await mihomoCloseAllConnections()
-      }
-      mutate()
-    })
-  }
-
-  const handleQuitApp = async (): Promise<void> => {
-    await withBusyAction('quit-app', async () => {
-      handleClose()
-      await quitApp()
-    })
-  }
-
-  const handleTestDelay = async (groupName: string, testUrl?: string): Promise<void> => {
-    setTestingGroup(groupName)
-    try {
-      await mihomoGroupDelay(groupName, testUrl)
-      mutate()
-    } catch {
-      // ignore
-    } finally {
-      setTestingGroup(null)
-    }
-  }
-
-  const handleSelectProxy = async (groupName: string, proxyName: string): Promise<void> => {
-    try {
-      await mihomoChangeProxy(groupName, proxyName)
-      if (autoCloseConnection) {
-        await mihomoCloseAllConnections()
-      }
-      mutate()
-    } catch {
-      // ignore
-    }
-  }
+  const {
+    busyAction,
+    testingGroup,
+    showFloating,
+    handleClose,
+    handleRefresh,
+    handleShowMainWindow,
+    handleToggleFloating,
+    handleToggleSysProxy,
+    handleToggleTun,
+    handleChangeMode,
+    handleQuitApp,
+    handleTestDelay,
+    handleSelectProxy
+  } = useTrayActions()
 
   const formatDelay = (delay: number | undefined): string => {
     if (delay === undefined || delay < 0) return '--'
