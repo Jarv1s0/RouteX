@@ -7,7 +7,6 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Key, KeyboardEvent } from 'react'
-import { MdContentPaste } from 'react-icons/md'
 import { IoMdRefresh } from 'react-icons/io'
 import {
   DndContext,
@@ -305,21 +304,6 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
               value={overrideUrl}
               onValueChange={setOverrideUrl}
               onKeyUp={handleOverrideInputKeyUp}
-              endContent={
-                <Button
-                  size="sm"
-                  isIconOnly
-                  variant="light"
-                  className="z-10"
-                  onPress={() => {
-                    navigator.clipboard.readText().then((text) => {
-                      setOverrideUrl(text)
-                    })
-                  }}
-                >
-                  <MdContentPaste className="text-lg" />
-                </Button>
-              }
             />
             <Button
               size="sm"

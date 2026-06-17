@@ -467,9 +467,15 @@ pub(crate) fn update_override_item_store(
     Ok(runtime_override_affected)
 }
 
-pub(crate) fn remove_override_item_store(app: &tauri::AppHandle, id: &str) -> Result<(), String> {
+pub(crate) fn remove_override_item_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
     let mut config = read_override_config(app)?;
     let removed = config.items.iter().find(|item| item.id == id).cloned();
+    let profile_config = read_profile_config(app)?;
+    let runtime_override_affected = active_profiles_reference_override(&profile_config, id)
+        || removed
+            .as_ref()
+            .and_then(|item| item.global)
+            .unwrap_or(false);
     config.items.retain(|item| item.id != id);
     write_override_config(app, &config)?;
 
@@ -485,7 +491,7 @@ pub(crate) fn remove_override_item_store(app: &tauri::AppHandle, id: &str) -> Re
         }
     }
 
-    Ok(())
+    Ok(runtime_override_affected)
 }
 
 pub(crate) fn restart_core_and_emit(

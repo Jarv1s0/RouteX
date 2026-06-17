@@ -17,7 +17,6 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Key, KeyboardEvent } from 'react'
-import { MdContentPaste } from 'react-icons/md'
 import {
   DndContext,
   closestCenter,
@@ -326,31 +325,16 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
               onValueChange={setUrl}
               onKeyUp={handleProfileInputKeyUp}
               endContent={
-                <>
-                  <Button
-                    size="sm"
-                    isIconOnly
-                    variant="light"
-                    className="z-10"
-                    onPress={() => {
-                      navigator.clipboard.readText().then((text) => {
-                        setUrl(text)
-                      })
-                    }}
-                  >
-                    <MdContentPaste className="text-lg" />
-                  </Button>
-                  <Checkbox
-                    size="sm"
-                    radius="sm"
-                    color="primary"
-                    className="whitespace-nowrap mr-1"
-                    isSelected={useProxy}
-                    onValueChange={setUseProxy}
-                  >
-                    <span className="text-sm text-default-600">{t('page.profiles.useProxy')}</span>
-                  </Checkbox>
-                </>
+                <Checkbox
+                  size="sm"
+                  radius="sm"
+                  color="primary"
+                  className="whitespace-nowrap mr-1"
+                  isSelected={useProxy}
+                  onValueChange={setUseProxy}
+                >
+                  <span className="text-sm text-default-600">{t('page.profiles.useProxy')}</span>
+                </Checkbox>
               }
             />
 

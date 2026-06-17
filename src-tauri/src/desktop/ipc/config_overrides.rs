@@ -87,10 +87,13 @@ pub(crate) fn register_overrides_config_handlers(map: &mut std::collections::Has
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "removeOverrideItem requires override id".to_string())?;
-            remove_override_item_store(app, id)?;
-            let _ = remove_override_reference_store(app, id)?;
-            restart_core_and_emit(app, state)?;
+            let runtime_override_affected = remove_override_item_store(app, id)?;
+            let runtime_reference_affected = remove_override_reference_store(app, id)?;
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
+            emit_ipc_event(app, "rulesUpdated", Value::Null);
+            if runtime_override_affected || runtime_reference_affected {
+                restart_core_and_emit(app, state)?;
+            }
             Ok(Value::Null)
         
     })().map_err(crate::desktop::error::AppError::from) });
