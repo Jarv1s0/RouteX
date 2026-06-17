@@ -10,23 +10,23 @@ const GLASS_SELECT_STATE =
 export const CARD_STYLES = {
   // Base styles shared by all cards (transitions, borders, overflow)
   ROUNDED: 'rounded-2xl',
-  BASE: 'relative overflow-hidden border antialiased transition-[transform,background-color,border-color,box-shadow,opacity] duration-150 ease-out',
+  BASE: 'relative overflow-hidden border antialiased transition-[background-color,border-color,box-shadow,opacity] duration-300 ease-out',
 
   // Active state: Lightweight Glass Selection (Brand-tinted) with glow and edge lighting
   ACTIVE:
-    'bg-primary/10 dark:bg-primary/15 hover:bg-primary/15 dark:hover:bg-primary/20 backdrop-blur-md border-primary/20 dark:border-primary/30 hover:border-primary/30 dark:hover:border-primary/40 shadow-[0_4px_16px_rgba(0,112,243,0.1),inset_0_1px_0_rgba(255,255,255,0.2)] dark:shadow-[0_4px_16px_rgba(0,112,243,0.15),inset_0_1px_0_rgba(255,255,255,0.05)] hover:shadow-[0_6px_20px_rgba(0,112,243,0.15),inset_0_1px_0_rgba(255,255,255,0.3)] dark:hover:shadow-[0_6px_20px_rgba(0,112,243,0.2),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-300 active:scale-[0.98]',
+    'bg-primary/10 dark:bg-primary/15 hover:bg-primary/15 dark:hover:bg-primary/20 backdrop-blur-md border-primary/20 dark:border-primary/30 hover:border-primary/30 dark:hover:border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_16px_rgba(0,112,243,0.1)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_16px_rgba(0,112,243,0.15)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_6px_20px_rgba(0,112,243,0.15)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_6px_20px_rgba(0,112,243,0.2)]',
 
   // Secondary active state: enabled in merged runtime but not the primary profile
   ACTIVE_SECONDARY:
-    'bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/15 backdrop-blur-md border-primary/10 hover:border-primary/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] hover:shadow-md transition-all duration-300 active:scale-[0.98]',
+    'bg-primary/5 dark:bg-primary/10 hover:bg-primary/10 dark:hover:bg-primary/15 backdrop-blur-md border-primary/10 hover:border-primary/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] hover:shadow-md',
 
-  // Inactive state: iOS Liquid Glass with edge highlight and interactive scale
+  // Inactive state: iOS Liquid Glass with edge highlight and color/shadow feedback
   INACTIVE:
-    'bg-white/30 dark:bg-black/20 hover:bg-white/50 dark:hover:bg-white/5 backdrop-blur-lg border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-lg dark:hover:shadow-black/60 transition-all duration-300 active:scale-[0.98]',
+    'bg-white/30 dark:bg-black/20 hover:bg-white/50 dark:hover:bg-white/5 backdrop-blur-md border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-lg dark:hover:shadow-black/60',
 
   // Header switcher: subtle floating pill, safe color/shadow hover effect (no spatial translation)
   HEADER_SWITCHER:
-    'bg-white/40 dark:bg-black/30 hover:bg-white/60 dark:hover:bg-white/5 backdrop-blur-lg border-white/40 dark:border-white/10 hover:border-white/60 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_8px_rgba(0,0,0,0.2)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_6px_16px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_6px_16px_rgba(0,0,0,0.3)] transition-all duration-300 active:scale-[0.98]',
+    'bg-white/40 dark:bg-black/30 hover:bg-white/60 dark:hover:bg-white/5 backdrop-blur-md border-white/40 dark:border-white/10 hover:border-white/60 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_8px_rgba(0,0,0,0.2)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_6px_16px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_6px_16px_rgba(0,0,0,0.3)]',
 
   // Toolbar style: Same as INACTIVE but without scale and tuned for toolbar
   GLASS_TOOLBAR:
@@ -34,7 +34,7 @@ export const CARD_STYLES = {
 
   // Input style: Matches the glass toolbar aesthetic
   GLASS_INPUT: {
-    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-2xl !h-8 !min-h-8 transition-all duration-300`,
+    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-2xl !h-8 !min-h-8 transition-colors duration-300`,
     input: 'text-sm',
     innerWrapper: 'bg-transparent'
   },
@@ -55,27 +55,27 @@ export const CARD_STYLES = {
 
   // Unified style for list items (connections, logs) without spatial translation
   LIST_CARD:
-    'bg-default-100/60 dark:bg-default-50/30 border border-default-200/60 dark:border-white/10 hover:bg-default-200/70 dark:hover:bg-default-100/50 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 hover:-translate-y-0 transition-all duration-300',
+    'bg-default-100/60 dark:bg-default-50/30 border border-default-200/60 dark:border-white/10 hover:bg-default-200/70 dark:hover:bg-default-100/50 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40',
 
   // Lighter style for large proxy group container cards
   PROXY_GROUP_CARD:
-    'bg-default-50/50 dark:bg-default-50/20 border-white/20 dark:border-white/5 shadow-sm hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 hover:-translate-y-0 transition-all duration-300',
+    'bg-default-50/50 dark:bg-default-50/20 border-white/20 dark:border-white/5 shadow-sm hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40',
 
   // Style for proxy nodes inside the proxy group
   PROXY_ITEM_CARD:
-    'bg-default-100/40 dark:bg-default-50/20 border-default-200/50 dark:border-white/5 hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 hover:-translate-y-0 transition-all duration-300',
+    'bg-default-100/40 dark:bg-default-50/20 border-default-200/50 dark:border-white/5 hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40',
 
   // Premium, highly translucent glass style specifically for rule cards
   RULE_CARD:
-    'bg-white/50 dark:bg-black/20 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 hover:-translate-y-0 transition-all duration-300',
+    'bg-white/50 dark:bg-black/20 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40',
 
   // Sidebar row hover state: clearer than the default gray strip
   SIDEBAR_ITEM:
-    'hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm transition-all duration-300',
+    'hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm',
 
   // Sidebar active state: Match mode switcher active pill
   SIDEBAR_ACTIVE:
-    'bg-primary/20 dark:bg-primary/20 backdrop-blur-md border-transparent shadow-sm shadow-primary/10 transition-all duration-300',
+    'bg-primary/20 dark:bg-primary/20 backdrop-blur-md border-transparent shadow-sm shadow-primary/10',
 
   // Glass card style (used for tooltips etc)
   GLASS_CARD:
@@ -94,7 +94,7 @@ export const CARD_STYLES = {
   MANAGEMENT_FOOTER_ROW: 'flex items-center justify-between text-sm text-foreground',
 
   GLASS_SELECT: {
-    trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} rounded-2xl h-8 min-h-8 transition-all duration-300`,
+    trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} rounded-2xl h-8 min-h-8 transition-colors duration-300`,
     value: 'text-sm',
     popoverContent: GLASS_POPOVER_CONTENT
   },
@@ -108,6 +108,6 @@ export const CARD_STYLES = {
   GLASS_TABLE_HEADER:
     'sticky top-0 z-10 bg-default-100/78 dark:bg-default-50/78 backdrop-blur-[12px] border-b border-default-200/50 dark:border-white/10 text-xs font-semibold text-default-500 flex items-center w-full shadow-sm',
   GLASS_TABLE_ROW:
-    'group relative flex items-center border-b border-default-200/50 dark:border-white/5 hover:bg-default-100/50 dark:hover:bg-white/5 transition-all duration-300 ease-out cursor-pointer data-[selected=true]:bg-gradient-to-r data-[selected=true]:from-primary/15 data-[selected=true]:to-transparent data-[selected=true]:border-primary/20 data-[selected=true]:shadow-[inset_3px_0_0_0_hsl(var(--heroui-primary))]',
+    'group relative flex items-center border-b border-default-200/50 dark:border-white/5 hover:bg-default-100/50 dark:hover:bg-white/5 transition-[background-color,border-color,box-shadow,opacity] duration-300 ease-out cursor-pointer data-[selected=true]:bg-gradient-to-r data-[selected=true]:from-primary/15 data-[selected=true]:to-transparent data-[selected=true]:border-primary/20 data-[selected=true]:shadow-[inset_3px_0_0_0_hsl(var(--heroui-primary))]',
   GLASS_TABLE_CELL: 'px-3 py-2.5 text-sm truncate flex items-center'
 }
