@@ -93,6 +93,7 @@ pub(crate) mod service_lifecycle;
 pub(crate) mod service_permissions;
 pub(crate) mod service_startup;
 pub(crate) mod service_tasks;
+pub(crate) mod service;
 pub(crate) mod shell_app_menu;
 pub(crate) mod shell_icons;
 pub(crate) mod shell_shortcuts;

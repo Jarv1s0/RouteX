@@ -1,83 +1,15 @@
-import React, { memo, useCallback, useMemo, useState, useRef, useEffect } from 'react'
-import { Button } from '@heroui/react'
-
-import { calcTraffic } from '@renderer/utils/calc'
-import { CgClose, CgTrash } from 'react-icons/cg'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { DEFAULT_COLUMNS } from './connection-setting-modal'
+import React, { memo, useCallback, useMemo } from 'react'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
 import { Virtuoso } from 'react-virtuoso'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { getConnectionHideRule } from './shared'
-import { useI18n, type TranslationKey } from '@renderer/i18n'
-import MihomoIcon from '@renderer/components/base/mihomo-icon'
-import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
+import { useI18n } from '@renderer/i18n'
 import { useLatest } from '@renderer/hooks/use-latest'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { DEFAULT_COLUMNS } from './connection-setting-modal'
 
-// 列配置 - 默认宽度
-const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
-  close: 40,
-  host: 200,
-  process: 150,
-  type: 100,
-  rule: 150,
-  chains: 200,
-  downloadSpeed: 120,
-  uploadSpeed: 120,
-  download: 80,
-  upload: 80,
-  time: 90,
-  sourceIP: 120,
-  sourcePort: 80,
-  destinationIP: 120,
-  sniffHost: 150,
-  inboundName: 100,
-  inboundUser: 100
-}
-
-interface Props {
-  connections: ControllerConnectionDetail[]
-  selected: ControllerConnectionDetail | undefined
-  setSelected: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
-  setIsDetailModalOpen: React.Dispatch<React.SetStateAction<boolean>>
-  close: (id: string) => void
-  iconMap: Record<string, string>
-  appNameCache: Record<string, string>
-  displayIcon: boolean
-  displayAppName: boolean
-  sortBy?: string
-  sortDirection?: 'asc' | 'desc'
-  onSort?: (column: string) => void
-  onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
-  onVisibleRangeChange?: (range: { startIndex: number; endIndex: number }) => void
-  hiddenRules?: Set<string>
-}
-
-// ... (existing code)
-
-// 列标签
-const COLUMN_LABEL_KEYS: Record<string, TranslationKey> = {
-  close: 'connections.column.close',
-  host: 'connections.column.host',
-  process: 'connections.column.process',
-  type: 'connections.column.type',
-  rule: 'connections.column.rule',
-  chains: 'connections.column.chains',
-  downloadSpeed: 'connections.column.shortDownloadSpeed',
-  uploadSpeed: 'connections.column.shortUploadSpeed',
-  download: 'connections.column.download',
-  upload: 'connections.column.upload',
-  time: 'connections.column.time',
-  sourceIP: 'connections.column.sourceIP',
-  sourcePort: 'connections.column.sourcePort',
-  destinationIP: 'connections.column.destinationIP',
-  sniffHost: 'connections.column.sniffHost',
-  inboundName: 'connections.column.inboundName',
-  inboundUser: 'connections.column.inboundUser'
-}
-
-// 右对齐的列
-const RIGHT_ALIGN_COLUMNS = ['downloadSpeed', 'uploadSpeed', 'download', 'upload', 'time']
+import { DEFAULT_COLUMN_WIDTHS, COLUMN_LABEL_KEYS, RIGHT_ALIGN_COLUMNS } from './columns'
+import { useColumnResize } from './hooks/use-column-resize'
+import { ConnectionRow } from './connection-row'
 
 // 列宽调整手柄
 const ResizeHandle: React.FC<{
@@ -118,6 +50,24 @@ const ResizeHandle: React.FC<{
   )
 }
 
+interface Props {
+  connections: ControllerConnectionDetail[]
+  selected: ControllerConnectionDetail | undefined
+  setSelected: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
+  setIsDetailModalOpen: React.Dispatch<React.SetStateAction<boolean>>
+  close: (id: string) => void
+  iconMap: Record<string, string>
+  appNameCache: Record<string, string>
+  displayIcon: boolean
+  displayAppName: boolean
+  sortBy?: string
+  sortDirection?: 'asc' | 'desc'
+  onSort?: (column: string) => void
+  onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
+  onVisibleRangeChange?: (range: { startIndex: number; endIndex: number }) => void
+  hiddenRules?: Set<string>
+}
+
 const ConnectionTableComponent: React.FC<Props> = ({
   connections,
   selected,
@@ -136,44 +86,15 @@ const ConnectionTableComponent: React.FC<Props> = ({
   hiddenRules
 }) => {
   const { t, locale } = useI18n()
-  const { appConfig, patchAppConfig } = useAppConfig()
-  const { connectionTableColumns = DEFAULT_COLUMNS, connectionTableColumnWidths = {} } =
-    appConfig || {}
+  const { appConfig } = useAppConfig()
+  const { connectionTableColumns = DEFAULT_COLUMNS } = appConfig || {}
 
-  // 合并默认宽度和用户自定义宽度
-  const columnWidths = useMemo(
-    () => ({
-      ...DEFAULT_COLUMN_WIDTHS,
-      ...connectionTableColumnWidths
-    }),
-    [connectionTableColumnWidths]
-  )
-
-  // 本地状态用于实时更新
-  const [localWidths, setLocalWidths] = useState(columnWidths)
-
-  // 使用 ref 保存最新的 localWidths，解决闭包问题
-  const localWidthsRef = useRef(localWidths)
-  localWidthsRef.current = localWidths
-
-  // 同步配置变化
-  useEffect(() => {
-    setLocalWidths((prev) => {
-      const next = { ...DEFAULT_COLUMN_WIDTHS, ...connectionTableColumnWidths }
-      if (JSON.stringify(prev) === JSON.stringify(next)) {
-        return prev
-      }
-      return next
-    })
-  }, [connectionTableColumnWidths])
+  const { computedWidths, handleResize, saveColumnWidths } = useColumnResize()
 
   // 过滤有效的列
   const visibleColumns = useMemo(() => {
     return connectionTableColumns.filter((col) => COLUMN_LABEL_KEYS[col])
   }, [connectionTableColumns])
-
-  // 直接使用本地列宽，不进行自动布局计算，避免 resizing 时的联动
-  const computedWidths = localWidths
 
   const handleRowClick = useCallback(
     (conn: ControllerConnectionDetail) => {
@@ -190,36 +111,6 @@ const ConnectionTableComponent: React.FC<Props> = ({
     },
     [close]
   )
-
-  // 处理列宽调整
-  const handleResize = useCallback((col: string, delta: number) => {
-    setLocalWidths((prev) => {
-      const newWidth = Math.max(40, (prev[col] || DEFAULT_COLUMN_WIDTHS[col]) + delta)
-      return { ...prev, [col]: newWidth }
-    })
-  }, [])
-
-  // 保存列宽（鼠标释放时）
-  const saveColumnWidths = useCallback(() => {
-    const currentWidths = localWidthsRef.current
-    // 保存所有与默认值不同的列宽
-    const changedWidths: Record<string, number> = {}
-    for (const col of Object.keys(currentWidths)) {
-      if (currentWidths[col] !== DEFAULT_COLUMN_WIDTHS[col]) {
-        changedWidths[col] = Math.round(currentWidths[col])
-      }
-    }
-    // 也保留之前已保存但这次没改的列宽
-    for (const col of Object.keys(connectionTableColumnWidths)) {
-      if (
-        !(col in changedWidths) &&
-        connectionTableColumnWidths[col] !== DEFAULT_COLUMN_WIDTHS[col]
-      ) {
-        changedWidths[col] = connectionTableColumnWidths[col]
-      }
-    }
-    patchAppConfig({ connectionTableColumnWidths: changedWidths })
-  }, [connectionTableColumnWidths, patchAppConfig])
 
   // 使用 useLatest 包装不影响组件结构的上下文依赖
   const latestContext = useLatest({
@@ -311,329 +202,6 @@ const ConnectionTableComponent: React.FC<Props> = ({
     </div>
   )
 }
-
-// 单行组件
-interface RowProps {
-  conn: ControllerConnectionDetail
-  isSelected: boolean
-  onRowClick: (conn: ControllerConnectionDetail) => void
-  onClose: (e: React.MouseEvent, id: string) => void
-  visibleColumns: string[]
-  columnWidths: Record<string, number>
-  iconMap: Record<string, string>
-  appNameCache: Record<string, string>
-  displayIcon: boolean
-  displayAppName: boolean
-  onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
-  hiddenRules?: Set<string>
-  t: (key: TranslationKey, values?: Record<string, string | number>) => string
-  locale: string
-}
-
-const connectionRowRenderKeyCache = new WeakMap<ControllerConnectionDetail, string>()
-const connectionChainDisplayCache = new WeakMap<ControllerConnectionDetail, string>()
-const connectionStartTimeCache = new WeakMap<ControllerConnectionDetail, number>()
-
-function getConnectionStartTime(conn: ControllerConnectionDetail): number {
-  const cached = connectionStartTimeCache.get(conn)
-  if (cached !== undefined) return cached
-
-  const next = Date.parse(conn.start || '') || 0
-  connectionStartTimeCache.set(conn, next)
-  return next
-}
-
-function getConnectionChainDisplay(conn: ControllerConnectionDetail): string {
-  const cached = connectionChainDisplayCache.get(conn)
-  if (cached) return cached
-
-  const chains = conn.chains || []
-  const next = chains.length === 0 ? 'DIRECT' : chains.slice().reverse().join(' → ')
-  connectionChainDisplayCache.set(conn, next)
-  return next
-}
-
-function formatDurationFromStartMs(
-  startMs: number,
-  t: (key: TranslationKey, values?: Record<string, string | number>) => string
-): string {
-  const seconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000))
-  if (seconds < 60) return t('connections.time.secondsAgo', { value: seconds })
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return t('connections.time.minutesAgo', { value: minutes })
-  const hours = Math.floor(minutes / 60)
-  return t('connections.time.hoursAgo', { value: hours })
-}
-
-function getConnectionHost(conn: ControllerConnectionDetail): string {
-  const metadata = conn.metadata
-  return (
-    metadata.host ||
-    metadata.sniffHost ||
-    metadata.destinationIP ||
-    metadata.remoteDestination ||
-    '-'
-  )
-}
-
-function getConnectionType(conn: ControllerConnectionDetail): string {
-  return `${conn.metadata.type} | ${conn.metadata.network}`
-}
-
-function getConnectionRule(conn: ControllerConnectionDetail): string {
-  return conn.rulePayload ? `${conn.rule}: ${conn.rulePayload}` : conn.rule || '-'
-}
-
-function getConnectionRowRenderKey(conn: ControllerConnectionDetail): string {
-  const cached = connectionRowRenderKeyCache.get(conn)
-  if (cached) return cached
-
-  const metadata = conn.metadata
-  const next = [
-    metadata.process,
-    metadata.processPath,
-    metadata.host,
-    metadata.destinationIP,
-    metadata.remoteDestination,
-    metadata.sniffHost,
-    metadata.sourceIP,
-    metadata.sourcePort,
-    metadata.destinationPort,
-    metadata.type,
-    metadata.network,
-    metadata.inboundName,
-    metadata.inboundUser,
-    conn.chains?.join('>'),
-    conn.rule,
-    conn.rulePayload,
-    conn.start
-  ].join('|')
-
-  connectionRowRenderKeyCache.set(conn, next)
-  return next
-}
-
-const ConnectionRowComponent: React.FC<RowProps> = ({
-  conn,
-  isSelected,
-  onRowClick,
-  onClose,
-  visibleColumns,
-  columnWidths,
-  iconMap,
-  appNameCache,
-  displayIcon,
-  displayAppName,
-  onContextMenu,
-  hiddenRules,
-  t
-}) => {
-  const isHidden = useMemo(() => {
-    if (!hiddenRules) return false
-    return hiddenRules.has(getConnectionHideRule(conn))
-  }, [hiddenRules, conn])
-  const processPath = conn.metadata.processPath || ''
-  const iconUrl = displayIcon ? iconMap[processPath] || '' : ''
-  const appName = displayAppName && processPath ? appNameCache[processPath] : undefined
-  const processName =
-    appName || conn.metadata.process?.replace(/\.exe$/, '') || conn.metadata.sourceIP || '-'
-  const useMihomoIcon =
-    displayIcon &&
-    (isMihomoProcessPath(conn.metadata.processPath) || isMihomoProcessPath(conn.metadata.process))
-
-  const getColumnValue = (col: string): string => {
-    switch (col) {
-      case 'host':
-        return getConnectionHost(conn)
-      case 'process':
-        return processName
-      case 'type':
-        return getConnectionType(conn)
-      case 'rule':
-        return getConnectionRule(conn)
-      case 'chains':
-        return getConnectionChainDisplay(conn)
-      case 'downloadSpeed':
-        return conn.downloadSpeed ? `${calcTraffic(conn.downloadSpeed)}/s` : '0 B/s'
-      case 'uploadSpeed':
-        return conn.uploadSpeed ? `${calcTraffic(conn.uploadSpeed)}/s` : '0 B/s'
-      case 'download':
-        return calcTraffic(conn.download)
-      case 'upload':
-        return calcTraffic(conn.upload)
-      case 'time':
-        return formatDurationFromStartMs(getConnectionStartTime(conn), t)
-      case 'sourceIP':
-        return conn.metadata.sourceIP || '-'
-      case 'sourcePort':
-        return conn.metadata.sourcePort || '-'
-      case 'destinationIP':
-        return conn.metadata.destinationIP || '-'
-      case 'sniffHost':
-        return conn.metadata.sniffHost || '-'
-      case 'inboundName':
-        return conn.metadata.inboundName || '-'
-      case 'inboundUser':
-        return conn.metadata.inboundUser || '-'
-      default:
-        return '-'
-    }
-  }
-
-  const renderCell = (col: string) => {
-    if (col === 'close') {
-      return (
-        <div className="flex items-center">
-          <Button
-            isIconOnly
-            size="sm"
-            variant="light"
-            className="w-6 h-6 min-w-6"
-            onPress={(e) => onClose(e as unknown as React.MouseEvent, conn.id)}
-          >
-            {conn.isActive ? (
-              <CgClose className="text-warning" />
-            ) : (
-              <CgTrash className="text-danger" />
-            )}
-          </Button>
-        </div>
-      )
-    }
-
-    if (col === 'process') {
-      return (
-        <div className="flex items-center gap-3 truncate">
-          {displayIcon &&
-            (useMihomoIcon ? (
-              <MihomoIcon className="w-6 h-6 flex-shrink-0 text-default-500" />
-            ) : (
-              <img src={iconUrl} className="w-6 h-6 flex-shrink-0 object-contain" alt="" />
-            ))}
-          <span className="truncate flex items-center gap-1.5" title={processName}>
-            {processName}
-            {isHidden && (
-              <span className="text-default-400 opacity-50" title={t('connections.hiddenTitle')}>
-                <svg
-                  stroke="currentColor"
-                  fill="currentColor"
-                  strokeWidth="0"
-                  viewBox="0 0 512 512"
-                  height="12px"
-                  width="12px"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M256 128a113.84 113.84 0 00-111.94 90.11c-.13.52-.25 1.05-.36 1.58a112.51 112.51 0 001.32 50 114.7 114.7 0 0013.9 33.68l42.6-42.6A63.85 63.85 0 01192 256v-.06a64 64 0 01103.11-51.11L332 168.06A113.59 113.59 0 00256 128zM315.65 244.35l42.6-42.6a113.62 113.62 0 0116.07 101.44 115.35 115.35 0 01-11.95 24.31l-42.6-42.6a64.31 64.31 0 00-4.12-40.55zm-143.24 64h.14L114.61 366.3a256.78 256.78 0 01-38.62-31.54C34.72 297.43 16 256 16 256s18.72-41.43 51.3-71.8a257.65 257.65 0 0153.11-37.58l45 45a64 64 0 007 86.73zM512 256s-18.72 41.43-51.3 71.8a257.65 257.65 0 01-53.11 37.58L362.59 320.4a64.09 64.09 0 00-7-86.73h-.14l57.94-57.94a256.78 256.78 0 0138.62 31.54C477.28 214.57 496 256 496 256s-18.73 41.43-51.31 71.8a256.88 256.88 0 01-32.9 26.65l38.42 38.42a420.9 420.9 0 0041.52-38C496 323.23 512 284 512 256zM80 64l368 384"></path>
-                </svg>
-              </span>
-            )}
-          </span>
-        </div>
-      )
-    }
-
-    if (col === 'chains') {
-      const chains = getColumnValue('chains')
-      return (
-        <div className="flex items-center truncate" title={chains}>
-          <span className={conn.chains[0] === 'DIRECT' ? '' : 'text-primary'}>{chains}</span>
-        </div>
-      )
-    }
-
-    if (col === 'downloadSpeed') {
-      const downloadSpeed = getColumnValue('downloadSpeed')
-      return (
-        <div
-          className={`flex items-center justify-end font-data-numeric ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground-500'}`}
-        >
-          {downloadSpeed}
-        </div>
-      )
-    }
-
-    if (col === 'uploadSpeed') {
-      const uploadSpeed = getColumnValue('uploadSpeed')
-      return (
-        <div
-          className={`flex items-center justify-end font-data-numeric ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground-500'}`}
-        >
-          {uploadSpeed}
-        </div>
-      )
-    }
-
-    const isRightAlign = RIGHT_ALIGN_COLUMNS.includes(col)
-    const color = ['time'].includes(col) ? 'text-foreground-500' : ''
-    const isMono = [
-      'sourceIP',
-      'sourcePort',
-      'destinationIP',
-      'sniffHost',
-      'download',
-      'upload'
-    ].includes(col)
-    const isDataNumeric = ['download', 'upload'].includes(col)
-
-    const value = getColumnValue(col)
-
-    return (
-      <div
-        className={`flex items-center truncate ${isRightAlign ? 'justify-end' : ''} ${color} ${isMono && !isDataNumeric ? 'font-mono' : ''} ${isDataNumeric ? 'font-data-numeric' : ''}`}
-        title={value}
-      >
-        {value}
-      </div>
-    )
-  }
-
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      onContextMenu?.(conn, e)
-    },
-    [onContextMenu, conn]
-  )
-
-  return (
-    <div
-      className={CARD_STYLES.GLASS_TABLE_ROW}
-      data-selected={isSelected}
-      onClick={() => onRowClick(conn)}
-      onContextMenu={handleContextMenu}
-    >
-      {visibleColumns.map((col) => (
-        <div
-          key={col}
-          className="flex-shrink-0 px-3 py-2.5 text-sm"
-          style={{ width: columnWidths[col] || DEFAULT_COLUMN_WIDTHS[col] }}
-        >
-          {renderCell(col)}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-const ConnectionRow = memo(ConnectionRowComponent, (prev, next) => {
-  return (
-    prev.conn.id === next.conn.id &&
-    prev.conn.upload === next.conn.upload &&
-    prev.conn.download === next.conn.download &&
-    prev.conn.uploadSpeed === next.conn.uploadSpeed &&
-    prev.conn.downloadSpeed === next.conn.downloadSpeed &&
-    prev.conn.isActive === next.conn.isActive &&
-    getConnectionRowRenderKey(prev.conn) === getConnectionRowRenderKey(next.conn) &&
-    prev.isSelected === next.isSelected &&
-    prev.columnWidths === next.columnWidths &&
-    prev.iconMap === next.iconMap &&
-    prev.appNameCache === next.appNameCache &&
-    prev.displayIcon === next.displayIcon &&
-    prev.displayAppName === next.displayAppName &&
-    prev.hiddenRules === next.hiddenRules &&
-    prev.locale === next.locale
-  )
-})
 
 const ConnectionTable = memo(ConnectionTableComponent)
 
