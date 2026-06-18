@@ -12,7 +12,6 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import { platform } from '@renderer/utils/init'
 import { IoMdCloudDownload } from 'react-icons/io'
-import PubSub from 'pubsub-js'
 import { relaunchApp, notDialogQuit } from '@renderer/api/app'
 import {
   checkMihomoLatestVersion,
@@ -41,6 +40,7 @@ import useSWR from 'swr'
 import { notifyError, notifyInfo, notifySuccess } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 import { hasMihomoUpdate } from '@renderer/utils/mihomo-version'
+import { emitMihomoCoreChanged } from '@renderer/utils/mihomo-core-events'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const Mihomo: React.FC = () => {
@@ -94,7 +94,7 @@ const Mihomo: React.FC = () => {
     try {
       await patchAppConfig({ [key]: value })
       await restartCore()
-      PubSub.publish('mihomo-core-changed')
+      emitMihomoCoreChanged()
     } catch (e) {
       notifyError(e)
     }
@@ -104,7 +104,7 @@ const Mihomo: React.FC = () => {
     try {
       setUpgrading(true)
       await mihomoUpgrade()
-      setTimeout(() => PubSub.publish('mihomo-core-changed'), 2000)
+      setTimeout(() => emitMihomoCoreChanged(), 2000)
     } catch (e) {
       if (typeof e === 'string' && e.includes('already using latest version')) {
         notifyInfo(t('mihomo.latest'))

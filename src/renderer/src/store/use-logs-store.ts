@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import throttle from 'lodash/throttle'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { retainTauriLogsBridge } from '@renderer/utils/mihomo-ipc'
+import throttle from '@renderer/utils/throttle'
 
 interface LogsState {
   logs: ControllerLog[]

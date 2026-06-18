@@ -7,7 +7,7 @@ import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useI18n } from '@renderer/i18n'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
-import CountUp from 'react-countup'
+import AnimatedNumber from '@renderer/components/base/animated-number'
 
 const TrafficEChart = React.lazy(() => import('./traffic-echart'))
 
@@ -59,14 +59,14 @@ const RealtimeSpeedBadges = React.memo(function RealtimeSpeedBadges() {
       <div className="flex items-center gap-1 tabular-nums">
         <IoArrowUp className="text-cyan-500 text-sm" />
         <span className="text-cyan-500 font-bold leading-none">
-          <CountUp end={numUp} decimals={decUp} duration={1} preserveValue />
+          <AnimatedNumber end={numUp} decimals={decUp} duration={1} preserveValue />
         </span>
         <span className="text-cyan-500 font-bold leading-none text-[11px] uppercase tracking-wider opacity-80">{upUnit}</span>
       </div>
       <div className="flex items-center gap-1 tabular-nums">
         <IoArrowDown className="stats-download-accent text-sm" />
         <span className="stats-download-accent font-bold leading-none">
-          <CountUp end={numDown} decimals={decDown} duration={1} preserveValue />
+          <AnimatedNumber end={numDown} decimals={decDown} duration={1} preserveValue />
         </span>
         <span className="stats-download-accent font-bold leading-none text-[11px] uppercase tracking-wider opacity-80">{downUnit}</span>
       </div>

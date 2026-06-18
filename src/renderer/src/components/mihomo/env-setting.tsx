@@ -8,7 +8,7 @@ import EditableList from '../base/base-list-editor'
 import { platform } from '@renderer/utils/init'
 import { secondaryInputClassNames } from '../settings/advanced-settings'
 import { useI18n } from '@renderer/i18n'
-import PubSub from 'pubsub-js'
+import { emitMihomoCoreChanged } from '@renderer/utils/mihomo-core-events'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const EnvSetting: React.FC = () => {
@@ -28,7 +28,7 @@ const EnvSetting: React.FC = () => {
     } catch (e) {
       alert(e)
     } finally {
-      PubSub.publish('mihomo-core-changed')
+      emitMihomoCoreChanged()
     }
   }
   const [safePathsInput, setSafePathsInput] = useState(safePaths)

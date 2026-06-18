@@ -3,6 +3,7 @@ import { emitDesktopEvent } from '@renderer/api/desktop'
 import { IPC_ON_CHANNELS } from '../../../shared/ipc'
 import { createDefaultAppConfig } from '../../../shared/defaults/app'
 import { stopTauriMihomoEventBridge } from '@renderer/utils/mihomo-ipc'
+import { mergeDeepPlainObject } from '@renderer/utils/merge-deep-plain-object'
 
 let tauriAppConfigCache: AppConfig | null = null
 let tauriAppConfigPromise: Promise<AppConfig> | null = null
@@ -17,26 +18,8 @@ function isTauriHost(): boolean {
   return __ROUTEX_HOST__ === 'tauri'
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
-
 function mergeAppConfig<T>(target: T, patch: Partial<T>): T {
-  const result = structuredClone(target)
-
-  const mergeInto = (base: Record<string, unknown>, source: Record<string, unknown>) => {
-    Object.entries(source).forEach(([key, value]) => {
-      if (isPlainObject(value) && isPlainObject(base[key])) {
-        mergeInto(base[key] as Record<string, unknown>, value)
-        return
-      }
-
-      base[key] = value
-    })
-  }
-
-  mergeInto(result as Record<string, unknown>, patch as Record<string, unknown>)
-  return result
+  return mergeDeepPlainObject(target, patch)
 }
 
 function getDefaultTauriAppConfig(): AppConfig {

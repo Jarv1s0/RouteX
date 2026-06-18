@@ -1,7 +1,7 @@
 import React from 'react'
-import CountUp from 'react-countup'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useI18n } from '@renderer/i18n'
+import AnimatedNumber from '@renderer/components/base/animated-number'
 
 interface TrafficOverviewProps {
   sessionUpload: number
@@ -66,7 +66,7 @@ const DetailMetric: React.FC<DetailMetricProps> = ({ label, value, marker }) => 
       </div>
       <div className="flex items-baseline gap-0.5 leading-none tabular-nums">
         <span className="text-sm leading-none font-semibold text-foreground/90 whitespace-nowrap">
-          <CountUp
+          <AnimatedNumber
             end={value.val}
             decimals={value.val % 1 !== 0 ? 1 : 0}
             duration={1}
@@ -175,7 +175,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
             </div>
             <div className="flex min-w-0 items-baseline gap-2">
               <span className="font-data-numeric text-[34px] font-bold leading-none tracking-normal text-foreground tabular-nums">
-                <CountUp
+                <AnimatedNumber
                   end={sessionTotalFormatted.val}
                   decimals={sessionTotalFormatted.val % 1 !== 0 ? 1 : 0}
                   duration={1}

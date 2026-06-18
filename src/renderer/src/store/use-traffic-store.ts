@@ -5,7 +5,7 @@ import {
   resetTauriTrafficRecorder
 } from '@renderer/utils/tauri-traffic-stats'
 import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
-import throttle from 'lodash/throttle'
+import throttle from '@renderer/utils/throttle'
 import { subscribeConnectionSnapshot } from './use-connections-store'
 
 interface TrafficDataPoint {

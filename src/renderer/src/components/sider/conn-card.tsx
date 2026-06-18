@@ -1,5 +1,4 @@
 import { Button, Card, CardBody, Tooltip } from '@heroui/react'
-import CountUp from 'react-countup'
 import { LuCircleArrowDown, LuCircleArrowUp, LuPlug } from 'react-icons/lu'
 import { useLocation } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
@@ -14,6 +13,7 @@ import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
 import { warmConnectionSnapshot } from '@renderer/store/use-connections-store'
 import TrafficChart from './traffic-chart'
 import { useI18n } from '@renderer/i18n'
+import AnimatedNumber from '@renderer/components/base/animated-number'
 
 let currentUpload: number | undefined = undefined
 let currentDownload: number | undefined = undefined
@@ -78,11 +78,11 @@ function SidebarTrafficValue({
         <Icon className={styles.icon} />
       </span>
       <div className="flex items-baseline gap-1">
-        <CountUp
+        <AnimatedNumber
           end={numericAmount}
           decimals={decimals}
           duration={1}
-          preserveValue={true}
+          preserveValue
           className={styles.amount}
         />
         <span className={styles.unit}>{unit}/s</span>

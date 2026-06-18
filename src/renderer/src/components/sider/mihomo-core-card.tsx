@@ -10,13 +10,13 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { LuRotateCw, LuCpu } from 'react-icons/lu'
 import { useLocation } from 'react-router-dom'
-import PubSub from 'pubsub-js'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { useI18n } from '@renderer/i18n'
 import { hasMihomoUpdate } from '@renderer/utils/mihomo-version'
+import { onMihomoCoreChanged } from '@renderer/utils/mihomo-core-events'
 
 interface Props {
   iconOnly?: boolean
@@ -121,7 +121,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   const hasNewVersion = (): boolean => hasMihomoUpdate(version?.version, latestVersion, core)
 
   useEffect(() => {
-    const token = PubSub.subscribe('mihomo-core-changed', () => void refreshVersion())
+    const offMihomoCoreChanged = onMihomoCoreChanged(() => void refreshVersion())
     const handleMemory = (_e: unknown, info: ControllerMemory): void => setMem(info.inuse)
     const handleCoreStarted = (): void => {
       void refreshVersion()
@@ -137,7 +137,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
     const offCoreStarted = onIpc(ON.coreStarted, handleCoreStarted)
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return (): void => {
-      PubSub.unsubscribe(token)
+      offMihomoCoreChanged()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       offMemory()
       releaseMemoryBridge()

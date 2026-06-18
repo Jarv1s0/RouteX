@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { getAppConfig, patchAppConfig as patch } from '@renderer/api/app'
-import merge from 'lodash/merge'
+import { mergeDeepPlainObject } from '@renderer/utils/merge-deep-plain-object'
 
 let fetchAppConfigPromise: Promise<AppConfig | undefined> | null = null
 
@@ -45,7 +45,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await patch(value)
       const current = get().appConfig
       if (current) {
-        set({ appConfig: merge({}, current, value) })
+        set({ appConfig: mergeDeepPlainObject(current, value) })
         return
       }
       void get().fetchAppConfig()
