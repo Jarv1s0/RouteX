@@ -272,16 +272,28 @@ const createTheme = (isLight: boolean): Extension =>
     { dark: !isLight }
   )
 
+const compactPaddingTheme = EditorView.theme({
+  '.cm-content': {
+    padding: '0 0 8px !important'
+  }
+})
+
 const createExtensions = ({
   language,
   readOnly,
   isLight,
+  compactPadding,
+  suppressNativeContextMenu,
+  onNativeContextMenu,
   onChangeRef,
   suppressChangeRef
 }: {
   language: Language
   readOnly: boolean
   isLight: boolean
+  compactPadding?: boolean
+  suppressNativeContextMenu?: boolean
+  onNativeContextMenu?: (event: MouseEvent) => void
   onChangeRef?: RefObject<((value: string) => void) | undefined>
   suppressChangeRef?: RefObject<boolean>
 }): Extension[] => [
@@ -308,8 +320,17 @@ const createExtensions = ({
   EditorView.lineWrapping,
   EditorState.tabSize.of(['yaml', 'javascript', 'json'].includes(language) ? 2 : 4),
   EditorState.readOnly.of(readOnly),
-  EditorView.editable.of(!readOnly),
+  EditorView.editable.of(true),
+  EditorView.domEventHandlers({
+    contextmenu: (event) => {
+      onNativeContextMenu?.(event)
+      if (!suppressNativeContextMenu) return false
+      event.preventDefault()
+      return true
+    }
+  }),
   createTheme(isLight),
+  compactPadding ? compactPaddingTheme : [],
   keymap.of([
     indentWithTab,
     ...closeBracketsKeymap,
@@ -463,6 +484,9 @@ export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {
     originalValue,
     diffRenderSideBySide = false,
     readOnly = false,
+    compactPadding = false,
+    suppressNativeContextMenu = false,
+    onNativeContextMenu,
     language,
     onChange
   } = props
@@ -479,10 +503,13 @@ export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {
         language,
         readOnly,
         isLight,
+        compactPadding,
+        suppressNativeContextMenu,
+        onNativeContextMenu,
         onChangeRef,
         suppressChangeRef
       }),
-    [isLight, language, readOnly]
+    [compactPadding, isLight, language, onNativeContextMenu, readOnly, suppressNativeContextMenu]
   )
 
   const runtimeProps = {

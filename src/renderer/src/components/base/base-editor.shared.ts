@@ -5,6 +5,9 @@ export interface BaseEditorProps {
   originalValue?: string
   diffRenderSideBySide?: boolean
   preferSimple?: boolean
+  compactPadding?: boolean
+  suppressNativeContextMenu?: boolean
+  onNativeContextMenu?: (event: MouseEvent) => void
   diffOriginalLabel?: string
   diffModifiedLabel?: string
   readOnly?: boolean

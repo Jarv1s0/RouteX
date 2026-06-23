@@ -3,9 +3,12 @@ import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
 import { MdEditDocument } from 'react-icons/md'
 import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import React from 'react'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useI18n } from '@renderer/i18n'
+
+dayjs.extend(relativeTime)
 
 interface Props {
   provider: ControllerProxyProviderDetail

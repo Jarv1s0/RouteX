@@ -364,6 +364,17 @@ pub(crate) fn convert_mrs_ruleset(
     raw_path: &str,
     behavior: &str,
 ) -> Result<String, String> {
+    let behavior = match behavior
+        .trim()
+        .to_ascii_lowercase()
+        .replace(['-', '_'], "")
+        .as_str()
+    {
+        "domain" => "domain",
+        "ipcidr" => "ipcidr",
+        "classical" => "classical",
+        other => return Err(format!("不支持的 MRS 规则类型: {other}")),
+    };
     let source = resolve_runtime_file_path(app, state, raw_path)?;
     if !source.exists() {
         return Err(format!("规则文件不存在: {}", source.display()));
@@ -372,20 +383,32 @@ pub(crate) fn convert_mrs_ruleset(
     let binary = resolve_core_binary(app, "mihomo")?;
     let output = std::env::temp_dir().join(format!("routex-mrs-{}.txt", create_id()));
 
-    let status = Command::new(binary)
+    let output_result = Command::new(binary)
         .arg("convert-ruleset")
         .arg(behavior)
         .arg("mrs")
         .arg(&source)
         .arg(&output)
         .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
+        .output()
         .map_err(|e| e.to_string())?;
 
-    if !status.success() {
-        return Err(format!("convert-ruleset 执行失败: {}", status));
+    if !output_result.status.success() {
+        let stderr = String::from_utf8_lossy(&output_result.stderr)
+            .trim()
+            .to_string();
+        let stdout = String::from_utf8_lossy(&output_result.stdout)
+            .trim()
+            .to_string();
+        let detail = if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            output_result.status.to_string()
+        };
+        let _ = fs::remove_file(output);
+        return Err(format!("convert-ruleset 执行失败: {detail}"));
     }
 
     let text = fs::read_to_string(&output).map_err(|e| e.to_string())?;

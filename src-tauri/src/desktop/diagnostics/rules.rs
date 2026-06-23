@@ -21,6 +21,56 @@ pub(crate) fn extract_domain(input: &str) -> String {
         .to_string()
 }
 
+fn find_matching_connection(items: Vec<Value>, target_domain: &str) -> Option<Value> {
+    for item in items {
+        let host = item
+            .get("metadata")
+            .and_then(Value::as_object)
+            .and_then(|meta| meta.get("host"))
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_lowercase();
+        if host == target_domain || host.ends_with(&format!(".{target_domain}")) {
+            return Some(item);
+        }
+    }
+
+    None
+}
+
+fn read_matching_connection(
+    state: &State<'_, CoreState>,
+    target_domain: &str,
+) -> Result<Option<Value>, String> {
+    let connections = core_request(state, reqwest::Method::GET, "/connections", None, None)?;
+    let items = connections
+        .get("connections")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+
+    Ok(find_matching_connection(items, target_domain))
+}
+
+fn wait_for_matching_connection(
+    state: &State<'_, CoreState>,
+    target_domain: &str,
+) -> Result<Option<Value>, String> {
+    let deadline = Instant::now() + Duration::from_secs(2);
+
+    loop {
+        if let Some(item) = read_matching_connection(state, target_domain)? {
+            return Ok(Some(item));
+        }
+
+        if Instant::now() >= deadline {
+            return Ok(None);
+        }
+
+        thread::sleep(Duration::from_millis(100));
+    }
+}
+
 pub(crate) fn test_rule_match_value(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
@@ -49,30 +99,14 @@ pub(crate) fn test_rule_match_value(
         )
         .build()
         .map_err(|e| e.to_string())?;
-    let _ = client.get(target_url).send();
 
-    std::thread::sleep(Duration::from_millis(500));
+    let response = client.get(target_url).send();
 
     let target_domain = extract_domain(domain).to_lowercase();
-    let connections = core_request(state, reqwest::Method::GET, "/connections", None, None)?;
-    let items = connections
-        .get("connections")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default();
+    let item = wait_for_matching_connection(state, &target_domain)?;
+    drop(response);
 
-    for item in items {
-        let host = item
-            .get("metadata")
-            .and_then(Value::as_object)
-            .and_then(|meta| meta.get("host"))
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_lowercase();
-        if host != target_domain && !host.ends_with(&format!(".{target_domain}")) {
-            continue;
-        }
-
+    if let Some(item) = item {
         if let Some(id) = item.get("id").and_then(Value::as_str) {
             let _ = core_request(
                 state,

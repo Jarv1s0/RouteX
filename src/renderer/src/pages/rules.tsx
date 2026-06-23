@@ -57,6 +57,27 @@ const runtimeEntryName = (entry: unknown): string | undefined => {
   return typeof name === 'string' && name.trim() ? name : undefined
 }
 
+type RuleProviderConfigWithMerge = RuleProviderConfig & {
+  '<<'?: RuleProviderConfig | RuleProviderConfig[]
+}
+
+const mergeRuleProviderConfig = (
+  provider: RuleProviderConfigWithMerge | undefined
+): RuleProviderConfig | undefined => {
+  if (!provider) return undefined
+
+  const mergeValue = provider['<<']
+  const mergedFrom =
+    Array.isArray(mergeValue) ? Object.assign({}, ...mergeValue) : mergeValue || {}
+
+  const ownFields = { ...provider }
+  delete ownFields['<<']
+  return {
+    ...mergedFrom,
+    ...ownFields
+  }
+}
+
 const RulesPage: React.FC = () => {
   const { t } = useI18n()
   const { rules, mutate: mutateRules } = useRules()
@@ -168,7 +189,9 @@ const RulesPage: React.FC = () => {
       const fetchProviderPath = async (name: string): Promise<void> => {
         try {
           const config = await getRuntimeConfig()
-          const provider = config?.['rule-providers']?.[name] as RuleProviderConfig
+          const provider = mergeRuleProviderConfig(
+            config?.['rule-providers']?.[name] as RuleProviderConfigWithMerge | undefined
+          )
           if (provider) {
             setShowDetails((prev) => ({
               ...prev,

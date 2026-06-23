@@ -3,6 +3,7 @@ import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
 import { LuFilePenLine } from 'react-icons/lu'
 import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import React from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { useI18n } from '@renderer/i18n'
@@ -11,6 +12,9 @@ import { getProxyColor } from '@renderer/utils/proxy-colors'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import AppSwitch from '@renderer/components/base/app-switch'
+
+dayjs.extend(relativeTime)
+
 interface RemoteRuleItemProps {
   rule?: ControllerRulesDetail
   provider?: ControllerRuleProviderDetail
