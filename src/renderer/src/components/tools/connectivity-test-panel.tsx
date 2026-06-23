@@ -207,7 +207,7 @@ export const ConnectivityTestPanel: React.FC = () => {
               key={target.id}
               isPressable
               onPress={() => target.status !== 'testing' && testSingle(index)}
-              className={`${CARD_STYLES.GLASS_ITEM_CARD} ${target.status === 'testing' ? 'opacity-70 scale-[0.98]' : 'hover:scale-[1.05] hover:shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:border-success/30'} transition-all duration-300 border-transparent`}
+              className={`${CARD_STYLES.GLASS_ITEM_CARD} ${target.status === 'testing' ? 'opacity-70 scale-[0.98]' : 'hover:scale-[1.05] hover:bg-primary/5 hover:border-primary/30 hover:shadow-md hover:shadow-primary/10'} transition-all duration-300 border-transparent`}
             >
               <CardBody className="p-3 text-center">
                 <RemoteImage
@@ -219,31 +219,26 @@ export const ConnectivityTestPanel: React.FC = () => {
                 {target.status === 'testing' ? (
                   <div className="text-primary text-xs animate-pulse">{t('tools.testing')}</div>
                 ) : target.status === 'success' || target.status === 'unlocked' ? (
-                  <div className="animate-in fade-in duration-200">
-                    <div className="flex justify-center mb-1">
-                      <IoCheckmarkCircle className="text-success text-xl animate-in zoom-in duration-200" />
-                    </div>
-                    <div className="text-success text-xs">
+                  <div className="inline-flex items-center justify-center gap-1 text-success text-xs whitespace-nowrap animate-in fade-in duration-200">
+                    <IoCheckmarkCircle className="shrink-0 text-base animate-in zoom-in duration-200" />
+                    <span>
                       {target.type === 'connectivity'
                         ? `${target.latency}ms`
                         : target.region || t('tools.unlocked')}
-                    </div>
+                    </span>
                   </div>
                 ) : target.status === 'locked' ? (
-                  <div className="animate-in fade-in duration-200">
-                    <div className="flex justify-center mb-1">
-                      <IoCloseCircle className="text-danger text-xl animate-in zoom-in duration-200" />
-                    </div>
-                    <div className="text-danger text-xs">{t('tools.locked')}</div>
+                  <div className="inline-flex items-center justify-center gap-1 text-danger text-xs whitespace-nowrap animate-in fade-in duration-200">
+                    <IoCloseCircle className="shrink-0 text-base animate-in zoom-in duration-200" />
+                    <span>{t('tools.locked')}</span>
                   </div>
                 ) : target.status === 'error' ? (
-                  <div className="animate-in fade-in duration-200">
-                    <div className="flex justify-center mb-1">
-                      <IoCloseCircle className="text-warning text-xl animate-in zoom-in duration-200" />
-                    </div>
-                    <div className="text-warning text-xs" title={target.error}>
-                      {t('tools.testFailed')}
-                    </div>
+                  <div
+                    className="inline-flex items-center justify-center gap-1 text-warning text-xs whitespace-nowrap animate-in fade-in duration-200"
+                    title={target.error}
+                  >
+                    <IoCloseCircle className="shrink-0 text-base animate-in zoom-in duration-200" />
+                    <span>{t('tools.testFailed')}</span>
                   </div>
                 ) : (
                   <div className="text-primary text-xs">{t('tools.clickToTest')}</div>

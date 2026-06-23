@@ -15,13 +15,26 @@ import {
 import { fetchIpInfo as fetchIpInfoIpc } from '@renderer/utils/tools-ipc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useI18n } from '@renderer/i18n'
-import { IpCheckerPanel } from './ip-checker-panel'
 
-const PROBE_NAME_MAP: Record<string, string> = {
-  ipip: 'IPIP.net',
-  ipsb: 'IP.SB',
-  ifconfig: 'ifconfig.co'
-}
+const IpInfoMetaItem: React.FC<{
+  icon: React.ReactNode
+  label: string
+  value: string
+  mono?: boolean
+}> = ({ icon, label, value, mono = false }) => (
+  <div className="min-w-0">
+    <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium text-foreground-400">
+      {icon}
+      <span>{label}</span>
+    </div>
+    <div
+      className={`${mono ? 'font-mono ' : ''}truncate text-[13px] font-semibold text-foreground-800`}
+      title={value}
+    >
+      {value}
+    </div>
+  </div>
+)
 
 interface IpInfoPanelProps {
   showIp: boolean
@@ -47,9 +60,6 @@ export const IpInfoPanel: React.FC<IpInfoPanelProps> = ({ showIp, setShowIp }) =
   const [ipError, setIpError] = useState<string | null>(null)
   const [ipInfoCopied, setIpInfoCopied] = useState(false)
   const ipInfoCopiedTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const [probeResults, setProbeResults] = useState<
-    Record<string, { ip: string; location: string; isp: string }>
-  >({})
 
   const fetchIpInfo = useCallback(async () => {
     setIpLoading(true)
@@ -94,18 +104,11 @@ export const IpInfoPanel: React.FC<IpInfoPanelProps> = ({ showIp, setShowIp }) =
 
   const copyIpInfo = useCallback(async () => {
     if (!ipInfo) return
-    let info = `${t('tools.nativeIp')}: ${ipInfo.ip}
+    const info = `${t('tools.publicIp')}: ${ipInfo.ip}
 ${t('tools.location')}: ${ipInfo.country} ${ipInfo.city}, ${ipInfo.region}
 ${t('tools.timezone')}: ${ipInfo.timezone}
 ISP: ${ipInfo.isp}
 ASN: ${ipInfo.as}`
-
-    if (Object.keys(probeResults).length > 0) {
-      info += `\n\n--- ${t('tools.probeResults')} ---\n`
-      Object.entries(probeResults).forEach(([id, res]) => {
-        info += `[${PROBE_NAME_MAP[id] || id}] IP: ${res.ip} | ${t('tools.probeBelongsTo')}: ${res.location} ${res.isp}\n`
-      })
-    }
 
     try {
       await navigator.clipboard.writeText(info)
@@ -120,7 +123,7 @@ ASN: ${ipInfo.as}`
       document.body.removeChild(textArea)
       markIpInfoCopied()
     }
-  }, [ipInfo, markIpInfoCopied, probeResults, t])
+  }, [ipInfo, markIpInfoCopied, t])
 
   useEffect(() => {
     void fetchIpInfo()
@@ -147,9 +150,9 @@ ASN: ${ipInfo.as}`
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default`}
     >
       <CardBody className="p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/20">
+            <div className="rounded-lg bg-primary/20 p-2">
               <IoLocation className="text-primary text-lg" />
             </div>
             <span className="font-medium">{t('tools.ipInfo')}</span>
@@ -193,98 +196,68 @@ ASN: ${ipInfo.as}`
         </div>
 
         {ipLoading && !ipInfo ? (
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <Skeleton className="h-36 rounded-xl" />
+          <div className="space-y-2.5">
+            <Skeleton className="h-20 rounded-xl" />
             <Skeleton className="h-36 rounded-xl" />
           </div>
         ) : ipError ? (
           <div className="text-danger text-sm">{ipError}</div>
         ) : ipInfo ? (
-          <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(380px,1.05fr)]">
-            <div className="h-full rounded-xl border border-default-200/40 bg-default-50/60 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="mb-2 flex items-center gap-2">
-                    <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                      <IoGlobe className="text-lg" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-medium text-foreground-400">
-                        {t('tools.publicIp')}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className="max-w-full truncate font-mono text-2xl font-bold leading-tight text-foreground-900"
-                    title={showIp ? ipInfo.ip : t('tools.ipHidden')}
-                  >
-                    {showIp ? ipInfo.ip : '•••.•••.•••.•••'}
-                  </div>
+          <div className="grid gap-3 rounded-xl bg-default-50/50 px-3 py-2.5 md:grid-cols-[minmax(180px,0.55fr)_minmax(0,1.45fr)] md:items-center">
+            <div className="relative min-w-0 pr-9">
+              <div className="min-w-0">
+                <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium text-foreground-400">
+                  <IoGlobe className="text-primary" />
+                  <span>{t('tools.publicIp')}</span>
                 </div>
-
-                <Button
-                  size="sm"
-                  variant="flat"
-                  color={ipInfoCopied ? 'success' : 'primary'}
-                  onPress={copyIpInfo}
-                  title={ipInfoCopied ? t('common.copied') : t('tools.copyFullIpInfo')}
-                  isDisabled={!ipInfo}
-                  startContent={
-                    ipInfoCopied ? (
-                      <IoCheckmarkCircle className="text-sm" />
-                    ) : (
-                      <IoCopy className="text-sm" />
-                    )
-                  }
+                <div
+                  className="max-w-full truncate font-mono text-xl font-bold leading-tight text-foreground-900"
+                  title={showIp ? ipInfo.ip : t('tools.ipHidden')}
                 >
-                  {ipInfoCopied ? t('common.copied') : t('common.copy')}
-                </Button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
-                  <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
-                    <IoMap className="text-success" />
-                    <span>{t('tools.location')}</span>
-                  </div>
-                  <div className="truncate text-sm font-semibold" title={ipLocationText}>
-                    {ipLocationText}
-                  </div>
-                </div>
-
-                <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
-                  <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
-                    <IoTime className="text-warning" />
-                    <span>{t('tools.timezone')}</span>
-                  </div>
-                  <div className="truncate text-sm font-semibold" title={ipTimezoneText}>
-                    {ipTimezoneText}
-                  </div>
-                </div>
-
-                <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
-                  <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
-                    <IoBusiness className="text-secondary" />
-                    <span>ISP</span>
-                  </div>
-                  <div className="truncate text-sm font-semibold" title={ipIspText}>
-                    {ipIspText}
-                  </div>
-                </div>
-
-                <div className="min-w-0 rounded-lg border border-default-200/40 bg-content1/60 p-3">
-                  <div className="mb-1 flex items-center gap-2 text-xs text-foreground-400">
-                    <IoGlobe className="text-primary" />
-                    <span>ASN</span>
-                  </div>
-                  <div className="truncate font-mono text-sm font-semibold" title={ipAsnText}>
-                    {ipAsnText}
-                  </div>
+                  {showIp ? ipInfo.ip : '•••.•••.•••.•••'}
                 </div>
               </div>
+
+              <Button
+                size="sm"
+                isIconOnly
+                variant="light"
+                color={ipInfoCopied ? 'success' : 'default'}
+                className="absolute right-0 top-0 h-6 w-6 min-w-6"
+                onPress={copyIpInfo}
+                title={ipInfoCopied ? t('common.copied') : t('tools.copyFullIpInfo')}
+                isDisabled={!ipInfo}
+              >
+                {ipInfoCopied ? (
+                  <IoCheckmarkCircle className="text-xs" />
+                ) : (
+                  <IoCopy className="text-xs text-foreground-400" />
+                )}
+              </Button>
             </div>
-            <div className="min-w-0 h-full">
-              <IpCheckerPanel showIp={showIp} onResultsChange={setProbeResults} enabled />
+
+            <div className="grid grid-cols-1 gap-x-5 gap-y-2.5 border-t border-default-200/40 pt-2.5 sm:grid-cols-2 md:border-l md:border-t-0 md:pl-3 md:pt-0">
+              <IpInfoMetaItem
+                icon={<IoMap className="text-success" />}
+                label={t('tools.location')}
+                value={ipLocationText}
+              />
+              <IpInfoMetaItem
+                icon={<IoTime className="text-warning" />}
+                label={t('tools.timezone')}
+                value={ipTimezoneText}
+              />
+              <IpInfoMetaItem
+                icon={<IoBusiness className="text-secondary" />}
+                label="ISP"
+                value={ipIspText}
+              />
+              <IpInfoMetaItem
+                icon={<IoGlobe className="text-primary" />}
+                label="ASN"
+                value={ipAsnText}
+                mono
+              />
             </div>
           </div>
         ) : null}
