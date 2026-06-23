@@ -296,6 +296,27 @@ const RulesPage: React.FC = () => {
     return ids
   }, [quickRulesData, runtimeConfig, runtimeRuleTargets])
 
+  const getQuickRuleRuntimeIndex = useCallback(
+    (targetRule: QuickRule): number | null => {
+      if (quickRulesData?.enabled === false) {
+        return null
+      }
+
+      let runtimeIndex = 0
+      for (const rule of quickRulesData?.rules ?? []) {
+        if (!runtimeRuleTargets.has(rule.target)) {
+          continue
+        }
+        if (rule.id === targetRule.id) {
+          return runtimeIndex
+        }
+        runtimeIndex += 1
+      }
+      return null
+    },
+    [quickRulesData, runtimeRuleTargets]
+  )
+
   const remoteItems = useMemo(() => {
     if (!rules?.rules || !providersData) return []
 
@@ -378,17 +399,40 @@ const RulesPage: React.FC = () => {
 
   const handleToggleQuickRule = useCallback(
     async (rule: QuickRule) => {
+      const nextEnabled = !rule.enabled
+      const runtimeIndex = getQuickRuleRuntimeIndex(rule)
+      const previousQuickRulesData = quickRulesData
+      await mutateQuickRules(
+        (current) =>
+          current
+            ? {
+                ...current,
+                rules: current.rules.map((item) =>
+                  item.id === rule.id ? { ...item, enabled: nextEnabled } : item
+                )
+              }
+            : current,
+        { revalidate: false }
+      )
+
       try {
-        await updateQuickRule(quickRulesProfileId, rule.id, { enabled: !rule.enabled })
+        if (runtimeIndex !== null) {
+          await mihomoToggleRuleDisabled({ [runtimeIndex]: !nextEnabled })
+        }
+        await updateQuickRule(quickRulesProfileId, rule.id, { enabled: nextEnabled })
         await mutateQuickRules()
         setTimeout(() => {
           void mutateRules()
         }, 250)
       } catch (error) {
+        if (runtimeIndex !== null) {
+          await mihomoToggleRuleDisabled({ [runtimeIndex]: !rule.enabled }).catch(() => undefined)
+        }
+        await mutateQuickRules(previousQuickRulesData, { revalidate: false })
         alert(t('rules.toggleFailed', { error: String(error) }))
       }
     },
-    [quickRulesProfileId, mutateQuickRules, mutateRules, t]
+    [getQuickRuleRuntimeIndex, quickRulesData, quickRulesProfileId, mutateQuickRules, mutateRules, t]
   )
 
   const confirmDeleteQuickRule = useCallback(

@@ -63,13 +63,21 @@ pub(crate) fn register_quick_rules_config_handlers(map: &mut std::collections::H
                 .get(1)
                 .and_then(Value::as_str)
                 .ok_or_else(|| "updateQuickRule requires rule id".to_string())?;
+            let patch = args.get(2).cloned().unwrap_or_else(|| json!({}));
+            let enabled_only = patch
+                .as_object()
+                .is_some_and(|object| object.len() == 1 && object.contains_key("enabled"));
             update_quick_rule_store(
                 app,
                 profile_id,
                 rule_id,
-                args.get(2).cloned().unwrap_or_else(|| json!({})),
+                patch,
             )?;
-            restart_core_and_emit(app, state)?;
+            if !enabled_only {
+                restart_core_and_emit(app, state)?;
+            } else {
+                emit_ipc_event(app, "rulesUpdated", Value::Null);
+            }
             emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             Ok(Value::Null)
         

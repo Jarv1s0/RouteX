@@ -8,12 +8,19 @@ import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import {
   getRuntimeConfig,
   isExpectedMihomoUnavailableError,
+  mihomoRules,
   mihomoRuleProviders,
   mihomoUpdateRuleProviders
 } from '@renderer/utils/mihomo-ipc'
 import { scheduleIdleTask } from '@renderer/utils/idle-task'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { useI18n } from '@renderer/i18n'
+import { useRulesStore } from '@renderer/store/use-rules-store'
+import {
+  GLOBAL_QUICK_RULES_PROFILE_ID,
+  getQuickRules
+} from '@renderer/utils/quick-rules-ipc'
+import { BUILT_IN_RULE_TARGETS } from '@renderer/utils/rule-targets'
 
 interface Props {
   iconOnly?: boolean
@@ -26,6 +33,27 @@ const RULE_CARD_STARTUP_POLL_INTERVAL_MS = 800
 const RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS = 6
 const RULE_CARD_COUNT_CACHE_KEY = 'routex:rule-card-counts'
 const RULE_CARD_IDLE_REFRESH_DELAY_MS = 2000
+const QUICK_RULES_SWR_KEY = ['quickRules', GLOBAL_QUICK_RULES_PROFILE_ID] as const
+
+const normalizeRuleType = (type: string): string => type.replace(/[^a-z0-9]/gi, '').toLowerCase()
+
+const isRuleSetRule = (rule: ControllerRulesDetail | undefined): boolean => {
+  return !!rule && normalizeRuleType(rule.type) === 'ruleset'
+}
+
+const runtimeEntryName = (entry: unknown): string | undefined => {
+  if (!entry || typeof entry !== 'object') return undefined
+  const name = (entry as { name?: unknown }).name
+  return typeof name === 'string' && name.trim() ? name : undefined
+}
+
+const quickRuleString = (rule: QuickRule): string => {
+  let text = `${rule.type},${rule.value},${rule.target}`
+  if (rule.noResolve) {
+    text += ',no-resolve'
+  }
+  return text
+}
 
 interface CachedRuleCardCounts {
   providerCount: number
@@ -76,6 +104,7 @@ const RuleCard: React.FC<Props> = (props) => {
   const { t } = useI18n()
   const location = useLocation()
   const match = location.pathname.includes('/rules')
+  const disabledRules = useRulesStore((state) => state.disabledRules)
   const [updating, setUpdating] = useState(false)
   const [startupCountsReady, setStartupCountsReady] = useState(__ROUTEX_HOST__ !== 'tauri')
   const [ruleCardFetchReady, setRuleCardFetchReady] = useState(__ROUTEX_HOST__ !== 'tauri' || match)
@@ -146,6 +175,26 @@ const RuleCard: React.FC<Props> = (props) => {
     shouldRetryOnError: false,
     refreshInterval: match ? 30000 : 0
   })
+  const disabledRuleIndices = useMemo(() => {
+    return Object.entries(disabledRules)
+      .filter(([, disabled]) => disabled)
+      .map(([index]) => Number.parseInt(index, 10))
+      .filter(Number.isInteger)
+  }, [disabledRules])
+  const { data: rulesData, mutate: mutateRules } = useSWR(
+    ruleCardFetchReady && disabledRuleIndices.length > 0 ? 'mihomoRules' : null,
+    mihomoRules,
+    {
+      shouldRetryOnError: false
+    }
+  )
+  const { data: quickRulesData, mutate: mutateQuickRules } = useSWR(
+    ruleCardFetchReady ? QUICK_RULES_SWR_KEY : null,
+    () => getQuickRules(GLOBAL_QUICK_RULES_PROFILE_ID),
+    {
+      shouldRetryOnError: false
+    }
+  )
 
   const providerMap = providersData?.providers
 
@@ -160,13 +209,70 @@ const RuleCard: React.FC<Props> = (props) => {
       .map(([name]) => name)
   }, [providerMap])
 
+  const runtimeRuleTargets = useMemo(() => {
+    const targets = new Set(BUILT_IN_RULE_TARGETS)
+    runtimeConfig?.proxies?.forEach((entry) => {
+      const name = runtimeEntryName(entry)
+      if (name) targets.add(name)
+    })
+    runtimeConfig?.['proxy-groups']?.forEach((entry) => {
+      const name = runtimeEntryName(entry)
+      if (name) targets.add(name)
+    })
+    return targets
+  }, [runtimeConfig])
+
   const ruleCount = useMemo(() => {
+    const disabledProviderNames = new Set<string>()
+    if (providerMap && rulesData?.rules && disabledRuleIndices.length > 0) {
+      disabledRuleIndices.forEach((index) => {
+        const rule = rulesData.rules[index]
+        if (isRuleSetRule(rule) && providerMap[rule.payload]) {
+          disabledProviderNames.add(rule.payload)
+        }
+      })
+    }
+
     const providerRuleCount = providerMap
-      ? Object.values(providerMap).reduce((total, provider) => total + (provider.ruleCount || 0), 0)
+      ? Object.values(providerMap).reduce((total, provider) => {
+          if (disabledProviderNames.has(provider.name)) {
+            return total
+          }
+          return total + (provider.ruleCount || 0)
+        }, 0)
       : 0
-    const manualRuleCount = Array.isArray(runtimeConfig?.rules) ? runtimeConfig.rules.length : 0
+
+    const runtimeRules = Array.isArray(runtimeConfig?.rules) ? runtimeConfig.rules : []
+    let manualRuleCount = runtimeRules.length
+    if (quickRulesData) {
+      const knownQuickRuleTexts = new Set(quickRulesData.rules.map(quickRuleString))
+      let injectedQuickRuleCount = 0
+      for (const ruleText of runtimeRules) {
+        if (!knownQuickRuleTexts.has(ruleText)) {
+          break
+        }
+        injectedQuickRuleCount += 1
+      }
+
+      const expectedQuickRuleCount =
+        quickRulesData.enabled === false
+          ? 0
+          : quickRulesData.rules.filter(
+              (rule) => rule.enabled && runtimeRuleTargets.has(rule.target)
+            ).length
+      manualRuleCount =
+        Math.max(0, runtimeRules.length - injectedQuickRuleCount) + expectedQuickRuleCount
+    }
+
     return providerRuleCount + manualRuleCount
-  }, [providerMap, runtimeConfig])
+  }, [
+    disabledRuleIndices,
+    providerMap,
+    quickRulesData,
+    rulesData,
+    runtimeConfig,
+    runtimeRuleTargets
+  ])
 
   const countsSignature = useMemo(() => {
     return `${providerCount}:${ruleCount}`
@@ -243,6 +349,8 @@ const RuleCard: React.FC<Props> = (props) => {
       clearRetryTimer()
       void mutateProviders()
       void mutateRuntimeConfig()
+      void mutateRules()
+      void mutateQuickRules()
     }
 
     const scheduleRefresh = (): void => {
@@ -267,6 +375,7 @@ const RuleCard: React.FC<Props> = (props) => {
     const offRulesUpdated = onIpc(ON.rulesUpdated, scheduleRefresh)
     const offProfileConfigUpdated = onIpc(ON.profileConfigUpdated, scheduleRefresh)
     const offOverrideConfigUpdated = onIpc(ON.overrideConfigUpdated, scheduleRefresh)
+    const offQuickRulesConfigUpdated = onIpc(ON.quickRulesConfigUpdated, scheduleRefresh)
     const offControledConfigUpdated = onIpc(ON.controledMihomoConfigUpdated, scheduleRefresh)
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
@@ -279,6 +388,7 @@ const RuleCard: React.FC<Props> = (props) => {
       offRulesUpdated()
       offProfileConfigUpdated()
       offOverrideConfigUpdated()
+      offQuickRulesConfigUpdated()
       offControledConfigUpdated()
     }
   }, [
@@ -286,7 +396,9 @@ const RuleCard: React.FC<Props> = (props) => {
     clearRetryTimer,
     clearStartupPollTimer,
     mutateProviders,
+    mutateQuickRules,
     mutateRuntimeConfig,
+    mutateRules,
     ruleCardFetchReady
   ])
 

@@ -158,9 +158,13 @@ pub(crate) fn register_overrides_config_handlers(map: &mut std::collections::Has
                 .get(2)
                 .and_then(Value::as_str)
                 .ok_or_else(|| "setOverride requires content".to_string())?;
+            let runtime_override_affected = override_file_affects_runtime(app, id)?;
             write_override_text(app, id, ext, content)?;
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
+            if runtime_override_affected {
+                restart_core_and_emit(app, state)?;
+            }
             Ok(Value::Null)
         
     })().map_err(crate::desktop::error::AppError::from) });

@@ -135,7 +135,7 @@ pub(crate) fn quick_rule_from_input(
         source: input.source.unwrap_or_else(|| "manual".to_string()),
         created_at: now,
         updated_at: now,
-        })
+    })
 }
 
 pub(crate) fn migrate_profile_quick_rules_to_global_if_needed(
@@ -306,10 +306,17 @@ pub(crate) fn clear_quick_rules_store(
 }
 
 pub(crate) fn quick_rule_target_names(profile: &Value) -> HashSet<String> {
-    let mut names = ["DIRECT", "REJECT", "REJECT-DROP", "PASS", "GLOBAL"]
-        .iter()
-        .map(|value| value.to_string())
-        .collect::<HashSet<_>>();
+    let mut names = [
+        "DIRECT",
+        "REJECT",
+        "REJECT-DROP",
+        "PASS",
+        "PASS-RULE",
+        "GLOBAL",
+    ]
+    .iter()
+    .map(|value| value.to_string())
+    .collect::<HashSet<_>>();
 
     if let Some(object) = profile.as_object() {
         for key in ["proxies", "proxy-groups"] {
@@ -338,10 +345,55 @@ pub(crate) fn quick_rule_strings(
     Ok(quick_rules
         .rules
         .iter()
-        .filter(|rule| rule.enabled)
         .filter(|rule| valid_targets.contains(&rule.target))
         .map(quick_rule_string)
         .collect())
+}
+
+pub(crate) fn quick_rules_disabled_state(
+    app: &tauri::AppHandle,
+    runtime_profile: &Value,
+) -> Result<serde_json::Map<String, Value>, String> {
+    let quick_rules = read_quick_rules(app, GLOBAL_QUICK_RULES_PROFILE_ID)?;
+    let mut disabled = serde_json::Map::new();
+    if !quick_rules.enabled {
+        return Ok(disabled);
+    }
+
+    let valid_targets = quick_rule_target_names(runtime_profile);
+    let mut runtime_index = 0usize;
+    for rule in quick_rules
+        .rules
+        .iter()
+        .filter(|rule| valid_targets.contains(&rule.target))
+    {
+        if !rule.enabled {
+            disabled.insert(runtime_index.to_string(), Value::Bool(true));
+        }
+        runtime_index += 1;
+    }
+
+    Ok(disabled)
+}
+
+pub(crate) fn apply_quick_rules_disabled_state(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    runtime_profile: &Value,
+) -> Result<(), String> {
+    let disabled = quick_rules_disabled_state(app, runtime_profile)?;
+    if disabled.is_empty() {
+        return Ok(());
+    }
+
+    core_request(
+        state,
+        reqwest::Method::PATCH,
+        "/rules/disable",
+        None,
+        Some(Value::Object(disabled)),
+    )
+    .map(|_| ())
 }
 
 pub(crate) fn inject_quick_rules(

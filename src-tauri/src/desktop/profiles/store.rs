@@ -27,6 +27,23 @@ fn active_profiles_reference_override(config: &ProfileConfigData, override_id: &
     })
 }
 
+pub(crate) fn override_file_affects_runtime(
+    app: &tauri::AppHandle,
+    override_id: &str,
+) -> Result<bool, String> {
+    let profile_config = read_profile_config(app)?;
+    let override_config = read_override_config(app)?;
+    Ok(
+        override_config
+            .items
+            .iter()
+            .find(|item| item.id == override_id)
+            .and_then(|item| item.global)
+            .unwrap_or(false)
+            || active_profiles_reference_override(&profile_config, override_id),
+    )
+}
+
 pub(crate) fn current_profile_item(app: &tauri::AppHandle) -> Result<ProfileItemData, String> {
     let config = read_profile_config(app)?;
     Ok(

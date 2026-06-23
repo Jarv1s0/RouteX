@@ -134,6 +134,8 @@ pub(crate) fn reload_core_config_process(
         eprintln!("[desktop.core_reload] renderer data not fully ready yet: {error}");
     }
 
+    apply_quick_rules_disabled_state(app, state, &runtime_config)?;
+
     if close_connections {
         if let Err(error) = core_request(state, reqwest::Method::DELETE, "/connections", None, None)
         {
@@ -241,7 +243,7 @@ pub(crate) fn restart_core_process(
     if tun_enabled && auto_set_dns_mode != "none" {
         set_public_dns(app)?;
     }
-    
+
     if let Err(error) = cleanup_stale_tun_artifacts(app, &merged_runtime_config) {
         eprintln!("[desktop.tun_cleanup] {error}");
     }
@@ -280,6 +282,8 @@ pub(crate) fn restart_core_process(
             let _ = stop_core_process(app, state);
             return Err(error);
         }
+
+        apply_quick_rules_disabled_state(app, state, &runtime_config)?;
 
         let _ = start_core_events_monitor(app, state);
 
@@ -340,6 +344,8 @@ pub(crate) fn restart_core_process(
         let _ = stop_core_process(app, state);
         return Err(error);
     }
+
+    apply_quick_rules_disabled_state(app, state, &runtime_config)?;
 
     if let Err(error) = validate_runtime_start_log(&log_path, log_start_offset, &runtime_config) {
         let _ = recover_dns(app);
