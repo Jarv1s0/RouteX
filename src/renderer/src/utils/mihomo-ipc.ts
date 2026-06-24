@@ -43,13 +43,22 @@ const mihomoSocketManager = new MihomoSocketManager({
 })
 
 export const RULE_PROVIDER_UPDATED_EVENT = 'routex:rule-provider-updated'
+export const RULE_USAGE_CHANGED_EVENT = 'routex:rule-usage-changed'
 
-function emitRuleProviderUpdatedEvent(name: string): void {
+function emitRendererEvent(type: string, detail: unknown): void {
   if (typeof window === 'undefined') {
     return
   }
 
-  window.dispatchEvent(new CustomEvent(RULE_PROVIDER_UPDATED_EVENT, { detail: { name } }))
+  window.dispatchEvent(new CustomEvent(type, { detail }))
+}
+
+function emitRuleProviderUpdatedEvent(name: string): void {
+  emitRendererEvent(RULE_PROVIDER_UPDATED_EVENT, { name })
+}
+
+function emitRuleUsageChangedEvent(data: Record<number, boolean>): void {
+  emitRendererEvent(RULE_USAGE_CHANGED_EVENT, { data })
 }
 
 export function stopTauriMihomoEventBridge(): void {
@@ -355,6 +364,7 @@ export async function mihomoProxyDelay(
 export async function mihomoToggleRuleDisabled(data: Record<number, boolean>): Promise<void> {
   await invokeSafe(C.mihomoToggleRuleDisabled, data)
   mihomoConfigCache.clearInFlightRequests(C.mihomoRules)
+  emitRuleUsageChangedEvent(data)
 }
 
 export async function checkMihomoLatestVersion(isAlpha: boolean): Promise<string | null> {

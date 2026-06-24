@@ -11,7 +11,8 @@ import {
   mihomoRules,
   mihomoRuleProviders,
   mihomoUpdateRuleProviders,
-  RULE_PROVIDER_UPDATED_EVENT
+  RULE_PROVIDER_UPDATED_EVENT,
+  RULE_USAGE_CHANGED_EVENT
 } from '@renderer/utils/mihomo-ipc'
 import { scheduleIdleTask } from '@renderer/utils/idle-task'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
@@ -32,7 +33,7 @@ interface Props {
 
 const RULE_CARD_REFRESH_DEBOUNCE_MS = 150
 const RULE_CARD_STARTUP_POLL_INTERVAL_MS = 800
-const RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS = 30
+const RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS = 75
 const RULE_CARD_COUNT_CACHE_KEY = 'routex:rule-card-counts'
 const RULE_CARD_IDLE_REFRESH_DELAY_MS = 2000
 const QUICK_RULES_SWR_KEY = ['quickRules', GLOBAL_QUICK_RULES_PROFILE_ID] as const
@@ -367,7 +368,7 @@ const RuleCard: React.FC<Props> = (props) => {
     }
 
     const scheduleRefresh = (
-      waitForStableCounts = __ROUTEX_HOST__ === 'tauri',
+      waitForStableCounts = false,
       commitReason: string | null = null
     ): void => {
       if (commitReason) {
@@ -412,8 +413,12 @@ const RuleCard: React.FC<Props> = (props) => {
     const handleRuleProviderUpdated = (): void => {
       scheduleRefresh(true, 'manual-rule-provider-update')
     }
+    const handleRuleUsageChanged = (): void => {
+      scheduleRefresh(true, 'manual-rule-usage-change')
+    }
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener(RULE_PROVIDER_UPDATED_EVENT, handleRuleProviderUpdated)
+    window.addEventListener(RULE_USAGE_CHANGED_EVENT, handleRuleUsageChanged)
 
     return (): void => {
       clearRetryTimer()
@@ -427,6 +432,7 @@ const RuleCard: React.FC<Props> = (props) => {
       offQuickRulesConfigUpdated()
       offControledConfigUpdated()
       window.removeEventListener(RULE_PROVIDER_UPDATED_EVENT, handleRuleProviderUpdated)
+      window.removeEventListener(RULE_USAGE_CHANGED_EVENT, handleRuleUsageChanged)
     }
   }, [
     clearRefreshTimer,
