@@ -32,9 +32,9 @@ dayjs.locale('zh-cn')
 interface Props {
   info: ProfileItem
   isCurrent: boolean
-  addProfileItem: (item: Partial<ProfileItem>) => Promise<void>
-  updateProfileItem: (item: ProfileItem) => Promise<void>
-  removeProfileItem: (id: string) => Promise<void>
+  addProfileItem: (item: Partial<ProfileItem>) => Promise<boolean | void>
+  updateProfileItem: (item: ProfileItem) => Promise<boolean | void>
+  removeProfileItem: (id: string) => Promise<boolean | void>
   mutateProfileConfig: () => void
   onClick: () => Promise<void>
   onSetPrimary: () => Promise<void>
@@ -344,8 +344,11 @@ const ProfileItem: React.FC<Props> = (props) => {
                     disabled={updating}
                     onPress={async () => {
                       setUpdating(true)
-                      await addProfileItem(info)
-                      setUpdating(false)
+                      try {
+                        await addProfileItem(info)
+                      } finally {
+                        setUpdating(false)
+                      }
                     }}
                   >
                     <IoMdRefresh

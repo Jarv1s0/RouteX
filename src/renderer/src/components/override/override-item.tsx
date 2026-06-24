@@ -23,7 +23,6 @@ import ConfirmModal from '../base/base-confirm'
 import ExecLogModal from './exec-log-modal'
 import 'dayjs/locale/zh-cn'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
 
 dayjs.extend(relativeTime)
@@ -32,9 +31,9 @@ dayjs.locale('zh-cn')
 interface Props {
   info: OverrideItem
   isActive?: boolean
-  addOverrideItem: (item: Partial<OverrideItem>) => Promise<void>
-  updateOverrideItem: (item: OverrideItem) => Promise<void>
-  removeOverrideItem: (id: string) => Promise<void>
+  addOverrideItem: (item: Partial<OverrideItem>) => Promise<boolean | void>
+  updateOverrideItem: (item: OverrideItem) => Promise<boolean | void>
+  removeOverrideItem: (id: string) => Promise<boolean | void>
   mutateOverrideConfig: () => void
   onToggleOverride?: (id: string, active: boolean) => Promise<void>
 }
@@ -146,15 +145,18 @@ const OverrideItem: React.FC<Props> = (props) => {
       ? 'bg-yellow-400 text-black font-bold shadow-sm'
       : CARD_STYLES.MANAGEMENT_STATUS_INACTIVE
 
-  const setLocalOverrideActive = async (active: boolean): Promise<void> => {
-    if (!onToggleOverride || active === !!isActive) return
+  const setLocalOverrideActive = async (active: boolean): Promise<boolean> => {
+    if (!onToggleOverride || active === !!isActive) return true
     await onToggleOverride(info.id, !!isActive)
+    return true
   }
 
-  const setGlobalOverride = async (global: boolean): Promise<void> => {
-    if (info.global === global) return
-    await updateOverrideItem({ ...info, global })
+  const setGlobalOverride = async (global: boolean): Promise<boolean> => {
+    if (info.global === global) return true
+    const success = await updateOverrideItem({ ...info, global })
+    if (success === false) return false
     mutateOverrideConfig()
+    return true
   }
 
   const onStatusAction = async (key: Key): Promise<void> => {
@@ -162,12 +164,12 @@ const OverrideItem: React.FC<Props> = (props) => {
       setUpdating(true)
       switch (key) {
         case 'disabled': {
-          await setGlobalOverride(false)
+          if (!(await setGlobalOverride(false))) return
           await setLocalOverrideActive(false)
           break
         }
         case 'enabled': {
-          await setGlobalOverride(false)
+          if (!(await setGlobalOverride(false))) return
           await setLocalOverrideActive(true)
           break
         }
@@ -207,9 +209,6 @@ const OverrideItem: React.FC<Props> = (props) => {
           await rollbackOverride(info.id, info.ext)
           mutateOverrideConfig()
           setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
-          if (info.global || isActive) {
-            restartCoreInBackground(t('override.rollbackFailed'))
-          }
         } catch (e) {
           alert(e)
         } finally {
@@ -306,11 +305,9 @@ const OverrideItem: React.FC<Props> = (props) => {
           confirmText={t('settings.advanced.confirmDelete')}
           cancelText={t('common.cancel')}
           onConfirm={() => {
-            void removeOverrideItem(info.id).then(() => {
+            void removeOverrideItem(info.id).then((success) => {
+              if (success === false) return
               mutateOverrideConfig()
-              if (info.global || isActive) {
-                restartCoreInBackground(t('override.deleteApplyFailed'))
-              }
             })
           }}
         />
@@ -357,8 +354,10 @@ const OverrideItem: React.FC<Props> = (props) => {
                     onPress={async () => {
                       setUpdating(true)
                       try {
-                        await addOverrideItem(info)
-                        setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
+                        const success = await addOverrideItem(info)
+                        if (success) {
+                          setRollbackAvailable(await canRollbackOverride(info.id, info.ext))
+                        }
                       } catch (e) {
                         alert(e)
                       } finally {

@@ -74,13 +74,15 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
     try {
       const urlObj = new URL(overrideUrl)
       const name = urlObj.pathname.split('/').pop()
-      await addOverrideItem({
+      const success = await addOverrideItem({
         name: name ? decodeURIComponent(name) : undefined,
         type: 'remote',
         url: overrideUrl,
         ext: urlObj.pathname.endsWith('.js') ? 'js' : 'yaml'
       })
-      setOverrideUrl('')
+      if (success) {
+        setOverrideUrl('')
+      }
     } catch (e) {
       notifyError(e, { title: t('profiles.importOverrideFailed') })
     } finally {
@@ -280,9 +282,11 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
           item={editingOverrideItem}
           updateOverrideItem={async (item: OverrideItem) => {
             if (item.id) {
-              await updateOverrideItem(item)
+              const success = await updateOverrideItem(item)
+              if (!success) return
             } else {
-              await addOverrideItem(item)
+              const success = await addOverrideItem(item)
+              if (!success) return
             }
             setShowOverrideEditModal(false)
             setEditingOverrideItem(null)

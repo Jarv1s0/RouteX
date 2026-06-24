@@ -9,7 +9,6 @@ import {
   mihomoCloseAllConnections,
   mihomoGroupDelay,
   patchControledMihomoConfig,
-  patchMihomoConfig,
   restartCore,
   triggerSysProxy
 } from '@renderer/utils/mihomo-ipc'
@@ -21,6 +20,7 @@ import {
 } from '@renderer/utils/window-ipc'
 import { checkElevateTask } from '@renderer/utils/service-ipc'
 import { useI18n } from '@renderer/i18n'
+import { applyOutboundModeChange } from '@renderer/utils/outbound-mode'
 
 export function useTrayActions() {
   const { t } = useI18n()
@@ -123,11 +123,15 @@ export function useTrayActions() {
     }
 
     await withBusyAction(`mode-${nextMode}`, async () => {
-      await patchControledMihomoConfig({ mode: nextMode })
-      await patchMihomoConfig({ mode: nextMode })
-      if (autoCloseConnection) {
-        await mihomoCloseAllConnections()
-      }
+      await applyOutboundModeChange({
+        currentMode: mode,
+        nextMode,
+        autoCloseConnection,
+        persistMode: async (mode) => {
+          await patchControledMihomoConfig({ mode })
+          return true
+        }
+      })
       mutate()
     })
   }

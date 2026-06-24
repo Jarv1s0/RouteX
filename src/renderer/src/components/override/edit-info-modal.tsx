@@ -1,4 +1,15 @@
-import { cn, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem } from '@heroui/react'
+import {
+  cn,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Input,
+  Select,
+  SelectItem
+} from '@heroui/react'
 import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
@@ -7,7 +18,7 @@ import { useI18n } from '@renderer/i18n'
 import AppSwitch from '@renderer/components/base/app-switch'
 interface Props {
   item: OverrideItem
-  updateOverrideItem: (item: OverrideItem) => Promise<void>
+  updateOverrideItem: (item: OverrideItem) => Promise<boolean | void>
   onClose: () => void
 }
 
@@ -26,7 +37,11 @@ const EditInfoModal: React.FC<Props> = (props) => {
         ...values
       }
 
-      await updateOverrideItem(itemToSave)
+      const success = await updateOverrideItem(itemToSave)
+      if (success === false) {
+        setSaving(false)
+        return
+      }
       onClose()
     } catch (e) {
       notifyError(e, {
@@ -76,16 +91,6 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   value={values.url || ''}
                   onValueChange={(v) => {
                     setValues({ ...values, url: v })
-                  }}
-                />
-              </SettingItem>
-              <SettingItem title={t('override.fingerprint')}>
-                <Input
-                  size="sm"
-                  className={cn(inputWidth)}
-                  value={values.fingerprint ?? ''}
-                  onValueChange={(v) => {
-                    setValues({ ...values, fingerprint: v.trim() || undefined })
                   }}
                 />
               </SettingItem>

@@ -167,8 +167,11 @@ const ProfileCard: React.FC<Props> = (props) => {
                 variant="light"
                 onPress={async () => {
                   setUpdating(true)
-                  await addProfileItem(info)
-                  setUpdating(false)
+                  try {
+                    await addProfileItem(info)
+                  } finally {
+                    setUpdating(false)
+                  }
                 }}
               >
                 <LuRotateCw

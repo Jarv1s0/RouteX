@@ -6,7 +6,6 @@ import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-moda
 import { MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
 import ConfirmModal from '../base/base-confirm'
 import { notifyError } from '@renderer/utils/notify'
-import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -109,7 +108,6 @@ const EditFileModal: React.FC<Props> = (props) => {
                 try {
                   await setOverride(id, language === 'javascript' ? 'js' : 'yaml', currData)
                   onClose()
-                  restartCoreInBackground(t('profiles.applyOverrideFailed'))
                 } catch (e) {
                   notifyError(e, { title: t('override.saveFailedTitle') })
                   setSaving(false)

@@ -168,13 +168,28 @@ pub(crate) fn add_or_replace_profile_item(
             .clone()
             .or_else(|| existing.as_ref().and_then(|value| value.url.clone()))
             .ok_or_else(|| "远程配置缺少 URL".to_string())?;
+        let use_proxy = item
+            .use_proxy
+            .or_else(|| existing.as_ref().and_then(|value| value.use_proxy))
+            .unwrap_or(false);
+        let verify = item
+            .verify
+            .or_else(|| existing.as_ref().and_then(|value| value.verify))
+            .unwrap_or(false);
         let content = fetch_remote_text(
             app,
             &url,
-            item.ua
-                .as_deref()
-                .or_else(|| existing.as_ref().and_then(|value| value.ua.as_deref())),
+            RemoteFetchOptions {
+                user_agent: item
+                    .ua
+                    .as_deref()
+                    .or_else(|| existing.as_ref().and_then(|value| value.ua.as_deref())),
+                use_proxy,
+            },
         )?;
+        if verify {
+            parse_profile_yaml_value(&content)?;
+        }
         Some(content)
     } else {
         item.file.clone()
@@ -390,7 +405,7 @@ pub(crate) fn add_or_replace_override_item(
             .clone()
             .or_else(|| existing.as_ref().and_then(|value| value.url.clone()))
             .ok_or_else(|| "远程覆写缺少 URL".to_string())?;
-        Some(fetch_remote_text(app, &url, None)?)
+        Some(fetch_remote_text(app, &url, RemoteFetchOptions::default())?)
     } else {
         item.file.clone()
     };

@@ -98,9 +98,20 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
 
   const handleImport = async (importUrl: string): Promise<void> => {
     setImporting(true)
-    await addProfileItem({ name: '', type: 'remote', url: importUrl, useProxy, autoUpdate: true })
-    setUrl('')
-    setImporting(false)
+    try {
+      const success = await addProfileItem({
+        name: '',
+        type: 'remote',
+        url: importUrl,
+        useProxy,
+        autoUpdate: true
+      })
+      if (success) {
+        setUrl('')
+      }
+    } finally {
+      setImporting(false)
+    }
   }
 
   const handleProfileInputKeyUp = useCallback(
@@ -149,15 +160,19 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
     [addProfileItem, t]
   )
 
-  const runSelectionMutation = useCallback(async (action: () => Promise<void>): Promise<void> => {
-    setSwitching(true)
-    try {
-      await action()
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setSwitching(false)
-    }
-  }, [])
+  const runSelectionMutation = useCallback(
+    async (action: () => Promise<boolean | void>): Promise<boolean> => {
+      setSwitching(true)
+      try {
+        const success = await action()
+        return success !== false
+      } finally {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        setSwitching(false)
+      }
+    },
+    []
+  )
 
   const handleSetPrimaryProfile = useCallback(
     async (id: string): Promise<void> => {
@@ -302,7 +317,8 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
             if (item.id) {
               await patchProfileItemServer(item)
             } else {
-              await addProfileItem(item)
+              const success = await addProfileItem(item)
+              if (!success) return
             }
             setShowEditModal(false)
             setEditingItem(null)

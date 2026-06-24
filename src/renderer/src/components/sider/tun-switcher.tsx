@@ -64,11 +64,16 @@ const TunSwitcher: React.FC<Props> = (props) => {
       const previousTun = tun ? { ...tun } : undefined
       const previousDns = dns ? { ...dns } : undefined
 
+      let patched = false
       if (enable) {
-        await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
+        patched = await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
       } else {
-        await patchControledMihomoConfig({ tun: { enable } })
+        patched = await patchControledMihomoConfig({ tun: { enable } })
       }
+      if (!patched) {
+        return
+      }
+
       try {
         await restartCore()
       } catch (error) {
@@ -128,15 +133,13 @@ const TunSwitcher: React.FC<Props> = (props) => {
         className={`flex items-center gap-1.5 px-2 py-1 rounded-xl cursor-pointer transition-colors hover:bg-default-200/50 dark:hover:bg-white/5 select-none`}
       >
         <LuNetwork className={`text-[14px] ${isSelected ? 'text-primary' : 'text-default-500'}`} />
-        <span className={`text-[12px] leading-none ${isSelected ? 'font-bold text-foreground' : 'font-medium text-default-500'}`}>
+        <span
+          className={`text-[12px] leading-none ${isSelected ? 'font-bold text-foreground' : 'font-medium text-default-500'}`}
+        >
           {t('sidebar.tun')}
         </span>
         <div onClick={(e) => e.stopPropagation()} className="ml-0.5 flex items-center">
-          <SidebarTrailingSwitch
-            isSelected={isSelected}
-            onValueChange={onChange}
-            size="sm"
-          />
+          <SidebarTrailingSwitch isSelected={isSelected} onValueChange={onChange} size="sm" />
         </div>
       </div>
     )

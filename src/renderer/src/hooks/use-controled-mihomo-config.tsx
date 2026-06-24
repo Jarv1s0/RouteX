@@ -10,7 +10,7 @@ import { useI18n } from '@renderer/i18n'
 interface ControledMihomoConfigContextType {
   controledMihomoConfig: Partial<MihomoConfig> | undefined
   mutateControledMihomoConfig: () => void
-  patchControledMihomoConfig: (value: Partial<MihomoConfig>) => Promise<void>
+  patchControledMihomoConfig: (value: Partial<MihomoConfig>) => Promise<boolean>
 }
 
 const ControledMihomoConfigContext = createContext<ControledMihomoConfigContextType | undefined>(
@@ -25,12 +25,14 @@ export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = 
   )
 
   const patchControledMihomoConfig = React.useCallback(
-    async (value: Partial<MihomoConfig>): Promise<void> => {
+    async (value: Partial<MihomoConfig>): Promise<boolean> => {
       try {
         await patch(value)
+        return true
       } catch (e) {
         const { notifyError } = await import('@renderer/utils/notify')
         notifyError(e, { title: t('common.updateConfigFailed') })
+        return false
       } finally {
         mutateControledMihomoConfig()
       }

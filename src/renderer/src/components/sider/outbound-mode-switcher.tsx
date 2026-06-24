@@ -1,13 +1,15 @@
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { mihomoCloseAllConnections, patchMihomoConfig } from '@renderer/utils/mihomo-ipc'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { MdOutlineAltRoute } from 'react-icons/md'
 import { TbWorld, TbBolt } from 'react-icons/tb'
 import clsx from 'clsx'
+import { useState } from 'react'
 import { useI18n, type TranslationKey } from '@renderer/i18n'
+import { applyOutboundModeChange } from '@renderer/utils/outbound-mode'
+import { notifyError } from '@renderer/utils/notify'
 
 interface Props {
   iconOnly?: boolean
@@ -22,16 +24,27 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
   const { appConfig } = useAppConfig()
   const { autoCloseConnection = true } = appConfig || {}
   const { mode } = controledMihomoConfig || {}
+  const [switching, setSwitching] = useState(false)
 
   const onChangeMode = async (newMode: OutboundMode): Promise<void> => {
-    if (mode === newMode) return
-    await patchControledMihomoConfig({ mode: newMode })
-    await patchMihomoConfig({ mode: newMode })
-    if (autoCloseConnection) {
-      await mihomoCloseAllConnections()
+    if (!mode || mode === newMode || switching) return
+
+    setSwitching(true)
+    try {
+      const success = await applyOutboundModeChange({
+        currentMode: mode,
+        nextMode: newMode,
+        autoCloseConnection,
+        persistMode: (nextMode) => patchControledMihomoConfig({ mode: nextMode })
+      })
+      if (!success) return
+      mutateGroups()
+      sendIpc(SEND.updateTrayMenu)
+    } catch (error) {
+      notifyError(error, { title: t('common.updateConfigFailed') })
+    } finally {
+      setSwitching(false)
     }
-    mutateGroups()
-    sendIpc(SEND.updateTrayMenu)
   }
 
   if (!mode) return null
@@ -54,6 +67,7 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
           <button
             key={m.key}
             onClick={() => onChangeMode(m.key as OutboundMode)}
+            disabled={switching}
             className={clsx(
               'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm transition-colors duration-200 rounded-xl z-10 box-border',
               isActive

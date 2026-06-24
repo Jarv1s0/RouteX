@@ -35,7 +35,7 @@ const overrideDropdownItemClasses = { base: 'rounded-xl' }
 
 interface Props {
   item: ProfileItem
-  updateProfileItem: (item: ProfileItem) => Promise<void>
+  updateProfileItem: (item: ProfileItem) => Promise<boolean | void>
   onClose: () => void
 }
 
@@ -62,7 +62,11 @@ const EditInfoModal: React.FC<Props> = (props) => {
         })
       }
 
-      await updateProfileItem(itemToSave)
+      const success = await updateProfileItem(itemToSave)
+      if (success === false) {
+        setSaving(false)
+        return
+      }
       onClose()
     } catch (e) {
       notifyError(e, {
@@ -112,16 +116,6 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   value={values.url}
                   onValueChange={(v) => {
                     setValues({ ...values, url: v })
-                  }}
-                />
-              </SettingItem>
-              <SettingItem title={t('profiles.fingerprint')}>
-                <Input
-                  size="sm"
-                  className={cn(inputWidth)}
-                  value={values.fingerprint ?? ''}
-                  onValueChange={(v) => {
-                    setValues({ ...values, fingerprint: v.trim() || undefined })
                   }}
                 />
               </SettingItem>

@@ -5,6 +5,12 @@ pub(crate) const DEFAULT_SUBSCRIPTION_USER_AGENT: &str = "clash.meta/alpha-e89af
 pub(crate) const DEFAULT_REMOTE_PROFILE_NAME: &str = "Subscribe";
 pub(crate) const DEFAULT_LOCAL_PROFILE_NAME: &str = "本地配置";
 
+#[derive(Default)]
+pub(crate) struct RemoteFetchOptions<'a> {
+    pub(crate) user_agent: Option<&'a str>,
+    pub(crate) use_proxy: bool,
+}
+
 pub(crate) fn non_empty_trimmed(value: Option<&str>) -> Option<&str> {
     value.map(str::trim).filter(|value| !value.is_empty())
 }
@@ -28,7 +34,7 @@ pub(crate) fn resolve_remote_user_agent(
 pub(crate) fn fetch_remote_text(
     app: &tauri::AppHandle,
     url: &str,
-    user_agent: Option<&str>,
+    options: RemoteFetchOptions<'_>,
 ) -> Result<String, String> {
     let trimmed = url.trim();
     if trimmed.is_empty() {
@@ -38,16 +44,25 @@ pub(crate) fn fetch_remote_text(
         return Err("Tauri 宿主暂不支持相对远程地址".to_string());
     }
 
-    let client = Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|e| e.to_string())?;
+    let mut client_builder = Client::builder().timeout(Duration::from_secs(30));
+    if options.use_proxy {
+        let controlled_config = read_controlled_config_store(app)?;
+        let mixed_port = controlled_config
+            .get("mixed-port")
+            .and_then(Value::as_u64)
+            .unwrap_or(7890);
+        let proxy_url = format!("http://127.0.0.1:{mixed_port}");
+        let proxy = reqwest::Proxy::all(&proxy_url).map_err(|e| e.to_string())?;
+        client_builder = client_builder.proxy(proxy);
+    }
+
+    let client = client_builder.build().map_err(|e| e.to_string())?;
 
     let response = client
         .get(trimmed)
         .header(
             reqwest::header::USER_AGENT,
-            resolve_remote_user_agent(app, user_agent)?,
+            resolve_remote_user_agent(app, options.user_agent)?,
         )
         .send()
         .map_err(|e| e.to_string())?;
