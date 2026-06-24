@@ -28,64 +28,47 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     getOverrideConfig()
   )
 
-  const setOverrideConfig = React.useCallback(
-    async (config: OverrideConfig): Promise<boolean> => {
+  const runOverrideMutation = React.useCallback(
+    async (action: () => Promise<void>, errorTitle: string): Promise<boolean> => {
       try {
-        await set(config)
+        await action()
         return true
       } catch (e) {
-        notifyError(e, { title: t('override.saveConfigFailed') })
+        notifyError(e, { title: errorTitle })
         return false
       } finally {
         mutateOverrideConfig()
       }
     },
-    [mutateOverrideConfig, t]
+    [mutateOverrideConfig]
+  )
+
+  const setOverrideConfig = React.useCallback(
+    async (config: OverrideConfig): Promise<boolean> => {
+      return runOverrideMutation(() => set(config), t('override.saveConfigFailed'))
+    },
+    [runOverrideMutation, t]
   )
 
   const addOverrideItem = React.useCallback(
     async (item: Partial<OverrideItem>): Promise<boolean> => {
-      try {
-        await add(item)
-        return true
-      } catch (e) {
-        notifyError(e, { title: t('override.addFailed') })
-        return false
-      } finally {
-        mutateOverrideConfig()
-      }
+      return runOverrideMutation(() => add(item), t('override.addFailed'))
     },
-    [mutateOverrideConfig, t]
+    [runOverrideMutation, t]
   )
 
   const removeOverrideItem = React.useCallback(
     async (id: string): Promise<boolean> => {
-      try {
-        await remove(id)
-        return true
-      } catch (e) {
-        notifyError(e, { title: t('override.deleteFailed') })
-        return false
-      } finally {
-        mutateOverrideConfig()
-      }
+      return runOverrideMutation(() => remove(id), t('override.deleteFailed'))
     },
-    [mutateOverrideConfig, t]
+    [runOverrideMutation, t]
   )
 
   const updateOverrideItem = React.useCallback(
     async (item: OverrideItem): Promise<boolean> => {
-      try {
-        await update(item)
-        return true
-      } catch (e) {
-        notifyError(e, { title: t('override.updateFailed') })
-        return false
-      } finally {
-        mutateOverrideConfig()
-      }
+      return runOverrideMutation(() => update(item), t('override.updateFailed'))
     },
-    [mutateOverrideConfig, t]
+    [runOverrideMutation, t]
   )
 
   useEffect(() => {

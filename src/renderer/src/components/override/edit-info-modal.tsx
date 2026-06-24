@@ -1,5 +1,4 @@
 import {
-  cn,
   Modal,
   ModalContent,
   ModalHeader,
@@ -25,10 +24,10 @@ interface Props {
 const EditInfoModal: React.FC<Props> = (props) => {
   const { item, updateOverrideItem, onClose } = props
   const { t } = useI18n()
-  const modalContentStyle = useMainPaneModalContentStyle(1024)
+  const modalContentStyle = useMainPaneModalContentStyle(720)
   const [values, setValues] = useState(item)
   const [saving, setSaving] = useState(false)
-  const inputWidth = 'w-[400px] md:w-[400px] lg:w-[600px] xl:w-[800px]'
+  const inputClassName = 'w-full sm:max-w-[420px]'
 
   const onSave = async (): Promise<void> => {
     setSaving(true)
@@ -54,10 +53,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
   return (
     <Modal
       backdrop="blur"
-      size="5xl"
-      classNames={{
-        base: 'w-[600px] md:w-[600px] lg:w-[800px] xl:w-[1024px]'
-      }}
+      size="md"
       style={{ zIndex: 99999 }}
       hideCloseButton
       isOpen={true}
@@ -65,17 +61,17 @@ const EditInfoModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent
-        className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden"
+        className="flex max-h-[calc(100vh-4rem)] flex-col overflow-hidden"
         style={modalContentStyle}
       >
-        <ModalHeader className="flex app-drag">
+        <ModalHeader className="flex px-6 pb-2 pt-5 app-drag">
           {item.id ? t('override.editTitle') : t('override.importRemote')}
         </ModalHeader>
-        <ModalBody className="flex-1 min-h-0 overflow-y-auto">
+        <ModalBody className="gap-4 px-6 py-3 overflow-y-auto">
           <SettingItem title={t('override.name')}>
             <Input
               size="sm"
-              className={cn(inputWidth)}
+              className={inputClassName}
               value={values.name}
               onValueChange={(v) => {
                 setValues({ ...values, name: v })
@@ -87,7 +83,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
               <SettingItem title={t('override.url')}>
                 <Input
                   size="sm"
-                  className={cn(inputWidth)}
+                  className={inputClassName}
                   value={values.url || ''}
                   onValueChange={(v) => {
                     setValues({ ...values, url: v })
@@ -99,7 +95,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
           <SettingItem title={t('override.fileType')}>
             <Select
               size="sm"
-              className={cn(inputWidth)}
+              className={inputClassName}
               selectedKeys={[values.ext]}
               onSelectionChange={(keys) => {
                 const key = Array.from(keys)[0] as 'js' | 'yaml'
@@ -120,7 +116,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
             />
           </SettingItem>
         </ModalBody>
-        <ModalFooter>
+        <ModalFooter className="px-6 pb-5 pt-2">
           <Button size="sm" variant="light" onPress={onClose}>
             {t('common.cancel')}
           </Button>

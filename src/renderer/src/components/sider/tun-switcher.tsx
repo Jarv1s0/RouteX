@@ -64,12 +64,8 @@ const TunSwitcher: React.FC<Props> = (props) => {
       const previousTun = tun ? { ...tun } : undefined
       const previousDns = dns ? { ...dns } : undefined
 
-      let patched = false
-      if (enable) {
-        patched = await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
-      } else {
-        patched = await patchControledMihomoConfig({ tun: { enable } })
-      }
+      const patch = enable ? { tun: { enable }, dns: { enable: true } } : { tun: { enable } }
+      const patched = await patchControledMihomoConfig(patch)
       if (!patched) {
         return
       }
