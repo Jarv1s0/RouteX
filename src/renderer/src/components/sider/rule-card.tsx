@@ -10,7 +10,8 @@ import {
   isExpectedMihomoUnavailableError,
   mihomoRules,
   mihomoRuleProviders,
-  mihomoUpdateRuleProviders
+  mihomoUpdateRuleProviders,
+  RULE_PROVIDER_UPDATED_EVENT
 } from '@renderer/utils/mihomo-ipc'
 import { scheduleIdleTask } from '@renderer/utils/idle-task'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
@@ -31,7 +32,7 @@ interface Props {
 
 const RULE_CARD_REFRESH_DEBOUNCE_MS = 150
 const RULE_CARD_STARTUP_POLL_INTERVAL_MS = 800
-const RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS = 6
+const RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS = 30
 const RULE_CARD_COUNT_CACHE_KEY = 'routex:rule-card-counts'
 const RULE_CARD_IDLE_REFRESH_DELAY_MS = 2000
 const QUICK_RULES_SWR_KEY = ['quickRules', GLOBAL_QUICK_RULES_PROFILE_ID] as const
@@ -53,6 +54,7 @@ const quickRuleString = (rule: QuickRule): string => {
 interface CachedRuleCardCounts {
   providerCount: number
   ruleCount: number
+  providerSignature?: string
 }
 
 interface RuleCardDisplayCounts {
@@ -79,7 +81,9 @@ function readCachedRuleCardCounts(): CachedRuleCardCounts | null {
 
     return {
       providerCount: parsed.providerCount,
-      ruleCount: parsed.ruleCount
+      ruleCount: parsed.ruleCount,
+      providerSignature:
+        typeof parsed.providerSignature === 'string' ? parsed.providerSignature : undefined
     }
   } catch {
     return null
@@ -112,6 +116,9 @@ const RuleCard: React.FC<Props> = (props) => {
   const startupPollAttemptsRef = useRef(0)
   const startupStableHitsRef = useRef(0)
   const startupSignatureRef = useRef('')
+  const pendingCountCommitReasonRef = useRef<string | null>(
+    cachedCounts?.providerSignature ? null : 'initial'
+  )
   const handleNavigate = (): void => {
     navigateSidebarRoute('/rules')
   }
@@ -197,6 +204,15 @@ const RuleCard: React.FC<Props> = (props) => {
     return providerMap ? Object.keys(providerMap).length : 0
   }, [providerMap])
 
+  const providerSignature = useMemo(() => {
+    if (!providerMap) return ''
+
+    return Object.values(providerMap)
+      .map((provider) => `${provider.name}:${provider.ruleCount}:${provider.updatedAt ?? ''}`)
+      .sort()
+      .join('|')
+  }, [providerMap])
+
   const updatableProviderNames = useMemo(() => {
     if (!providerMap) return []
     return Object.entries(providerMap)
@@ -257,23 +273,24 @@ const RuleCard: React.FC<Props> = (props) => {
   ])
 
   const countsSignature = useMemo(() => {
-    return `${providerCount}:${ruleCount}`
-  }, [providerCount, ruleCount])
+    return `${providerCount}:${ruleCount}:${providerSignature}`
+  }, [providerCount, providerSignature, ruleCount])
 
   const displayCounts = useMemo<RuleCardDisplayCounts>(() => {
-    if (startupCountsReady) {
-      return {
-        providerText: t('sidebar.ruleProviders', { count: providerCount.toLocaleString() }),
-        ruleText: t('sidebar.rulesCount', { count: ruleCount.toLocaleString() })
-      }
-    }
+    const committedCounts =
+      __ROUTEX_HOST__ === 'tauri'
+        ? cachedCounts
+        : {
+            providerCount,
+            ruleCount
+          }
 
-    if (cachedCounts) {
+    if (committedCounts) {
       return {
         providerText: t('sidebar.ruleProviders', {
-          count: cachedCounts.providerCount.toLocaleString()
+          count: committedCounts.providerCount.toLocaleString()
         }),
-        ruleText: t('sidebar.rulesCount', { count: cachedCounts.ruleCount.toLocaleString() })
+        ruleText: t('sidebar.rulesCount', { count: committedCounts.ruleCount.toLocaleString() })
       }
     }
 
@@ -281,7 +298,7 @@ const RuleCard: React.FC<Props> = (props) => {
       providerText: t('sidebar.ruleProvidersLoading'),
       ruleText: t('sidebar.rulesLoading')
     }
-  }, [cachedCounts, providerCount, ruleCount, startupCountsReady, t])
+  }, [cachedCounts, providerCount, ruleCount, t])
 
   useEffect(() => {
     if (ruleCardFetchReady) {
@@ -300,15 +317,29 @@ const RuleCard: React.FC<Props> = (props) => {
     }, RULE_CARD_IDLE_REFRESH_DELAY_MS)
   }, [match, ruleCardFetchReady])
 
-  useEffect(() => {
-    if (providerCount <= 0 || ruleCount <= 0) {
+  const commitRuleCardCounts = useCallback((counts: CachedRuleCardCounts): void => {
+    if (
+      !Number.isFinite(counts.providerCount) ||
+      !Number.isFinite(counts.ruleCount) ||
+      counts.providerCount < 0 ||
+      counts.ruleCount < 0
+    ) {
       return
     }
 
-    const nextCounts = { providerCount, ruleCount }
-    setCachedCounts(nextCounts)
-    writeCachedRuleCardCounts(nextCounts)
-  }, [providerCount, ruleCount])
+    setCachedCounts((previous) => {
+      if (
+        previous?.providerCount === counts.providerCount &&
+        previous.ruleCount === counts.ruleCount &&
+        previous.providerSignature === counts.providerSignature
+      ) {
+        return previous
+      }
+
+      writeCachedRuleCardCounts(counts)
+      return counts
+    })
+  }, [])
 
   const updateAll = useCallback(async (): Promise<void> => {
     if (updating) return
@@ -335,7 +366,18 @@ const RuleCard: React.FC<Props> = (props) => {
       void mutateQuickRules()
     }
 
-    const scheduleRefresh = (): void => {
+    const scheduleRefresh = (
+      waitForStableCounts = __ROUTEX_HOST__ === 'tauri',
+      commitReason: string | null = null
+    ): void => {
+      if (commitReason) {
+        pendingCountCommitReasonRef.current = commitReason
+      }
+
+      if (waitForStableCounts) {
+        resetStartupCountsState()
+      }
+
       clearRefreshTimer()
       refreshTimerRef.current = window.setTimeout(() => {
         refreshTimerRef.current = null
@@ -349,17 +391,29 @@ const RuleCard: React.FC<Props> = (props) => {
 
     const handleVisibilityChange = (): void => {
       if (!document.hidden) {
-        scheduleRefresh()
+        scheduleRefresh(false)
       }
     }
 
-    const offCoreStarted = onIpc(ON.coreStarted, scheduleRefresh)
-    const offRulesUpdated = onIpc(ON.rulesUpdated, scheduleRefresh)
-    const offProfileConfigUpdated = onIpc(ON.profileConfigUpdated, scheduleRefresh)
-    const offOverrideConfigUpdated = onIpc(ON.overrideConfigUpdated, scheduleRefresh)
-    const offQuickRulesConfigUpdated = onIpc(ON.quickRulesConfigUpdated, scheduleRefresh)
-    const offControledConfigUpdated = onIpc(ON.controledMihomoConfigUpdated, scheduleRefresh)
+    const offCoreStarted = onIpc(ON.coreStarted, () => scheduleRefresh())
+    const offRulesUpdated = onIpc(ON.rulesUpdated, () => scheduleRefresh())
+    const offProfileConfigUpdated = onIpc(ON.profileConfigUpdated, () =>
+      scheduleRefresh(true, 'local-rule-config')
+    )
+    const offOverrideConfigUpdated = onIpc(ON.overrideConfigUpdated, () =>
+      scheduleRefresh(true, 'local-rule-config')
+    )
+    const offQuickRulesConfigUpdated = onIpc(ON.quickRulesConfigUpdated, () =>
+      scheduleRefresh(true, 'local-rule-config')
+    )
+    const offControledConfigUpdated = onIpc(ON.controledMihomoConfigUpdated, () =>
+      scheduleRefresh()
+    )
+    const handleRuleProviderUpdated = (): void => {
+      scheduleRefresh(true, 'manual-rule-provider-update')
+    }
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener(RULE_PROVIDER_UPDATED_EVENT, handleRuleProviderUpdated)
 
     return (): void => {
       clearRetryTimer()
@@ -372,6 +426,7 @@ const RuleCard: React.FC<Props> = (props) => {
       offOverrideConfigUpdated()
       offQuickRulesConfigUpdated()
       offControledConfigUpdated()
+      window.removeEventListener(RULE_PROVIDER_UPDATED_EVENT, handleRuleProviderUpdated)
     }
   }, [
     clearRefreshTimer,
@@ -381,6 +436,7 @@ const RuleCard: React.FC<Props> = (props) => {
     mutateQuickRules,
     mutateRuntimeConfig,
     mutateRules,
+    resetStartupCountsState,
     ruleCardFetchReady
   ])
 
@@ -421,7 +477,7 @@ const RuleCard: React.FC<Props> = (props) => {
       return
     }
 
-    if (!providerMap || !runtimeConfig || !rulesData) {
+    if (!providerMap || !runtimeConfig || !rulesData || !quickRulesData) {
       resetStartupCountsState()
       return
     }
@@ -439,16 +495,31 @@ const RuleCard: React.FC<Props> = (props) => {
 
     const providerCountsPending = hasPendingRuleProviderCounts(providerMap, rulesData.rules)
 
-    if (!providerCountsPending && startupStableHitsRef.current >= 1) {
-      setStartupCountsReady(true)
-      clearStartupPollTimer()
-      return
-    }
+    const countsStable =
+      !providerCountsPending &&
+      (startupStableHitsRef.current >= 1 ||
+        startupPollAttemptsRef.current >= RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS)
 
-    if (startupPollAttemptsRef.current >= RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS) {
-      setStartupCountsReady(true)
-      clearStartupPollTimer()
-      return
+    if (countsStable) {
+      const providerSignatureChanged =
+        !!cachedCounts?.providerSignature && cachedCounts.providerSignature !== providerSignature
+      const needsInitialCommit = !cachedCounts || !cachedCounts.providerSignature
+      const shouldCommit =
+        needsInitialCommit || !!pendingCountCommitReasonRef.current || providerSignatureChanged
+
+      if (shouldCommit) {
+        commitRuleCardCounts({ providerCount, ruleCount, providerSignature })
+        pendingCountCommitReasonRef.current = null
+        setStartupCountsReady(true)
+        clearStartupPollTimer()
+        return
+      }
+
+      if (startupPollAttemptsRef.current >= RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS) {
+        setStartupCountsReady(true)
+        clearStartupPollTimer()
+        return
+      }
     }
 
     clearStartupPollTimer()
@@ -463,11 +534,17 @@ const RuleCard: React.FC<Props> = (props) => {
     }
   }, [
     countsSignature,
+    cachedCounts,
+    commitRuleCardCounts,
     mutateProviders,
     mutateRules,
     mutateRuntimeConfig,
     providerMap,
+    providerCount,
+    providerSignature,
+    quickRulesData,
     resetStartupCountsState,
+    ruleCount,
     rulesData,
     runtimeConfig,
     startupCountsReady

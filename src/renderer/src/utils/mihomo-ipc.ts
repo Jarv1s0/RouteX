@@ -42,6 +42,16 @@ const mihomoSocketManager = new MihomoSocketManager({
   invalidateRuntimeConfigCache: () => mihomoConfigCache.invalidateRuntimeConfigCache()
 })
 
+export const RULE_PROVIDER_UPDATED_EVENT = 'routex:rule-provider-updated'
+
+function emitRuleProviderUpdatedEvent(name: string): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.dispatchEvent(new CustomEvent(RULE_PROVIDER_UPDATED_EVENT, { detail: { name } }))
+}
+
 export function stopTauriMihomoEventBridge(): void {
   mihomoSocketManager.stopTauriMihomoEventBridge()
 }
@@ -327,6 +337,7 @@ export async function mihomoUpdateProxyProviders(name: string): Promise<void> {
 export async function mihomoUpdateRuleProviders(name: string): Promise<void> {
   await invokeSafe(C.mihomoUpdateRuleProviders, name)
   mihomoConfigCache.clearInFlightRequests(C.mihomoRuleProviders)
+  emitRuleProviderUpdatedEvent(name)
 }
 
 export async function mihomoProxyDelay(
