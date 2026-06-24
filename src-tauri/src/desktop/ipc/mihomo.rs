@@ -288,17 +288,25 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
         let _window = window;
         let _state = state;
         let _args = args;
-         core_request(
-            state,
-            reqwest::Method::PATCH,
-            "/configs",
-            None,
-            Some(args.first().cloned().unwrap_or(Value::Null)),
-        )
-        .map(|_| {
-            emit_mihomo_config_updated(app);
-            Value::Null
-        }) 
+
+            let patch = args.first().cloned().unwrap_or(Value::Null);
+            core_request(
+                state,
+                reqwest::Method::PATCH,
+                "/configs",
+                None,
+                Some(patch.clone()),
+            )
+            .map(|_| {
+                if let Ok(mut runtime) = state.runtime.lock() {
+                    if let Some(cached) = runtime.cached_runtime_config.as_mut() {
+                        merge_json(&mut cached.value, &patch);
+                    }
+                }
+                emit_mihomo_config_updated(app);
+                Value::Null
+            })
+
     })().map_err(crate::desktop::error::AppError::from) });
     map.insert("reloadCoreConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;

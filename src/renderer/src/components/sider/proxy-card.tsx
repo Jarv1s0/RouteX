@@ -1,5 +1,6 @@
 import { Button, Card, CardBody, Tooltip } from '@heroui/react'
 import { LuChevronRight, LuRocket } from 'react-icons/lu'
+import { TbBolt } from 'react-icons/tb'
 import { useLocation } from 'react-router-dom'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
@@ -57,28 +58,38 @@ const ProxyCard: React.FC<Props> = (props) => {
   }, [groups])
 
   const firstGroup = useMemo(() => {
+    if (mode === 'direct') return undefined
+
     return mode === 'global'
       ? groups.find((g) => g.name === 'GLOBAL')
       : groups.find((g) => g.name !== 'GLOBAL')
   }, [groups, mode])
 
   const currentGroupLabel = useMemo(() => {
+    if (mode === 'direct') return t('outbound.direct')
+
     const groupName = firstGroup?.now
     return groupName ? cleanNodeName(groupName) : t('sidebar.proxyGroups')
-  }, [firstGroup, t])
+  }, [firstGroup, mode, t])
 
   const currentGroupFlag = useMemo(() => {
+    if (mode === 'direct') return ''
+
     const groupName = firstGroup?.now
     return groupName ? getFlag(groupName) : ''
-  }, [firstGroup])
+  }, [firstGroup, mode])
 
   const currentGroupIcon = useMemo(() => {
+    if (mode === 'direct') return ''
+
     const groupName = firstGroup?.now
     if (!groupName) return ''
     return allProxies[groupName]?.icon?.trim() || ''
-  }, [allProxies, firstGroup])
+  }, [allProxies, firstGroup, mode])
 
   const finalNodeName = useMemo(() => {
+    if (mode === 'direct') return ''
+
     const visited = new Set<string>()
 
     const findFinalNode = (nodeName: string | undefined): string | undefined => {
@@ -99,7 +110,7 @@ const ProxyCard: React.FC<Props> = (props) => {
       return cleanNodeName(removeFlag(finalNode))
     }
     return ''
-  }, [allProxies, firstGroup])
+  }, [allProxies, firstGroup, mode])
 
   const hasFinalNode = finalNodeName.length > 0
 
@@ -149,7 +160,9 @@ const ProxyCard: React.FC<Props> = (props) => {
 
           <div className="flex items-center gap-1.5 mt-auto max-w-full overflow-hidden">
             <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-[13px] leading-none flag-emoji">
-              {currentGroupIcon ? (
+              {mode === 'direct' ? (
+                <TbBolt className="h-4 w-4 text-teal-500" />
+              ) : currentGroupIcon ? (
                 <img
                   className="h-4 w-4 object-contain"
                   src={getIconImageSrc(currentGroupIcon)}

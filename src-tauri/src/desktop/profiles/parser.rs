@@ -295,7 +295,6 @@ pub(crate) fn inject_chain_proxies(
     Ok(())
 }
 
-
 pub(crate) fn build_merged_name(prefix: &str, name: &str) -> String {
     format!("[{prefix}] {name}")
 }
@@ -485,12 +484,209 @@ pub(crate) fn parse_profile_yaml_value(text: &str) -> Result<Value, String> {
         return Ok(json!({}));
     }
 
-    serde_yaml::from_str::<Value>(trimmed).map_err(|e| e.to_string())
+    match serde_yaml::from_str::<Value>(trimmed) {
+        Ok(value) if value.as_object().is_some() => Ok(value),
+        Ok(value) => Ok(subscription_text_to_profile_value(trimmed).unwrap_or(value)),
+        Err(error) => subscription_text_to_profile_value(trimmed).ok_or_else(|| error.to_string()),
+    }
+}
+
+fn subscription_text_to_profile_value(text: &str) -> Option<Value> {
+    let lines = subscription_uri_lines(text)?;
+    let mut taken_names = HashSet::new();
+    let mut proxies = Vec::new();
+
+    for line in lines {
+        let Some(mut proxy) = parse_subscription_proxy_uri(&line) else {
+            continue;
+        };
+        let Some(proxy_object) = proxy.as_object_mut() else {
+            continue;
+        };
+        let Some(name) = proxy_object.get("name").and_then(Value::as_str) else {
+            continue;
+        };
+        let unique_name = create_unique_name(name, &mut taken_names, "订阅");
+        if unique_name != name {
+            proxy_object.insert("name".to_string(), Value::String(unique_name));
+        }
+        proxies.push(proxy);
+    }
+
+    if proxies.is_empty() {
+        return None;
+    }
+
+    let mut group_proxies = proxies.iter().filter_map(value_name).collect::<Vec<_>>();
+    group_proxies.push("DIRECT".to_string());
+
+    Some(json!({
+        "proxies": proxies,
+        "proxy-groups": [{
+            "name": "Proxy",
+            "type": "select",
+            "proxies": group_proxies
+        }],
+        "rules": ["MATCH,Proxy"]
+    }))
+}
+
+fn subscription_uri_lines(text: &str) -> Option<Vec<String>> {
+    let direct = collect_subscription_uri_lines(text);
+    if !direct.is_empty() {
+        return Some(direct);
+    }
+
+    decode_subscription_base64(text)
+        .map(|decoded| collect_subscription_uri_lines(&decoded))
+        .filter(|lines| !lines.is_empty())
+}
+
+fn collect_subscription_uri_lines(text: &str) -> Vec<String> {
+    text.lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .filter(|line| is_subscription_proxy_uri(line))
+        .map(str::to_string)
+        .collect()
+}
+
+fn decode_subscription_base64(text: &str) -> Option<String> {
+    let compact = text.split_whitespace().collect::<String>();
+    if compact.is_empty() {
+        return None;
+    }
+
+    for decoded in [
+        base64::engine::general_purpose::STANDARD.decode(compact.as_bytes()),
+        base64::engine::general_purpose::STANDARD_NO_PAD.decode(compact.as_bytes()),
+        base64::engine::general_purpose::URL_SAFE.decode(compact.as_bytes()),
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(compact.as_bytes()),
+    ] {
+        if let Ok(bytes) = decoded {
+            if let Ok(text) = String::from_utf8(bytes) {
+                return Some(text);
+            }
+        }
+    }
+
+    None
+}
+
+fn is_subscription_proxy_uri(line: &str) -> bool {
+    matches!(
+        line.split_once("://").map(|(scheme, _)| scheme),
+        Some("vless" | "vmess" | "trojan" | "ss" | "ssr" | "hysteria" | "hysteria2" | "hy2")
+    )
+}
+
+fn parse_subscription_proxy_uri(line: &str) -> Option<Value> {
+    let (scheme, _) = line.split_once("://")?;
+    match scheme {
+        "vless" => parse_vless_uri(line),
+        _ => None,
+    }
+}
+
+fn parse_vless_uri(line: &str) -> Option<Value> {
+    let url = reqwest::Url::parse(line).ok()?;
+    let server = url.host_str()?.to_string();
+    let query = url
+        .query_pairs()
+        .map(|(key, value)| (key.to_string(), value.to_string()))
+        .collect::<HashMap<_, _>>();
+    let security = query.get("security").map(String::as_str).unwrap_or("");
+    let port = url
+        .port()
+        .unwrap_or(if matches!(security, "tls" | "reality") {
+            443
+        } else {
+            80
+        });
+    let name = url
+        .fragment()
+        .and_then(|fragment| {
+            urlencoding::decode(fragment)
+                .ok()
+                .map(|value| value.into_owned())
+        })
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| format!("{server}:{port}"));
+
+    let mut proxy = serde_json::Map::new();
+    proxy.insert("name".to_string(), Value::String(name));
+    proxy.insert("type".to_string(), Value::String("vless".to_string()));
+    proxy.insert("server".to_string(), Value::String(server));
+    proxy.insert("port".to_string(), Value::Number(port.into()));
+    proxy.insert(
+        "uuid".to_string(),
+        Value::String(url.username().to_string()),
+    );
+    proxy.insert("udp".to_string(), Value::Bool(true));
+
+    insert_query_string(&mut proxy, &query, "type", "network");
+    insert_query_string(&mut proxy, &query, "flow", "flow");
+    insert_query_string(&mut proxy, &query, "sni", "servername");
+    insert_query_string(&mut proxy, &query, "servername", "servername");
+    insert_query_string(&mut proxy, &query, "fp", "client-fingerprint");
+    insert_query_bool(&mut proxy, &query, "allowInsecure", "skip-cert-verify");
+    insert_query_bool(&mut proxy, &query, "allow-insecure", "skip-cert-verify");
+
+    if matches!(security, "tls" | "reality") || query.get("tls").is_some_and(|value| value == "1") {
+        proxy.insert("tls".to_string(), Value::Bool(true));
+    }
+
+    if security == "reality" || query.contains_key("pbk") {
+        let mut reality_opts = serde_json::Map::new();
+        insert_query_string(&mut reality_opts, &query, "pbk", "public-key");
+        insert_query_string(&mut reality_opts, &query, "sid", "short-id");
+        insert_query_string(&mut reality_opts, &query, "spx", "spider-x");
+        if !reality_opts.is_empty() {
+            proxy.insert("reality-opts".to_string(), Value::Object(reality_opts));
+        }
+    }
+
+    Some(Value::Object(proxy))
+}
+
+fn insert_query_string(
+    target: &mut serde_json::Map<String, Value>,
+    query: &HashMap<String, String>,
+    source_key: &str,
+    target_key: &str,
+) {
+    if let Some(value) = query
+        .get(source_key)
+        .filter(|value| !value.trim().is_empty())
+    {
+        target.insert(target_key.to_string(), Value::String(value.to_string()));
+    }
+}
+
+fn insert_query_bool(
+    target: &mut serde_json::Map<String, Value>,
+    query: &HashMap<String, String>,
+    source_key: &str,
+    target_key: &str,
+) {
+    if let Some(value) = query
+        .get(source_key)
+        .and_then(|value| parse_uri_bool(value))
+    {
+        target.insert(target_key.to_string(), Value::Bool(value));
+    }
+}
+
+fn parse_uri_bool(value: &str) -> Option<bool> {
+    match value.to_ascii_lowercase().as_str() {
+        "1" | "true" => Some(true),
+        "0" | "false" => Some(false),
+        _ => None,
+    }
 }
 
 pub(crate) const JS_OVERRIDE_LOOP_ITERATION_LIMIT: u64 = 1_000_000;
 pub(crate) const JS_OVERRIDE_RECURSION_LIMIT: usize = 128;
-
 
 pub(crate) fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, String> {
     let cache_revision = current_profile_runtime_config_revision();

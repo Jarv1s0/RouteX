@@ -16,11 +16,12 @@ import { scheduleIdleTask } from '@renderer/utils/idle-task'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { useI18n } from '@renderer/i18n'
 import { useRulesStore } from '@renderer/store/use-rules-store'
-import {
-  GLOBAL_QUICK_RULES_PROFILE_ID,
-  getQuickRules
-} from '@renderer/utils/quick-rules-ipc'
+import { GLOBAL_QUICK_RULES_PROFILE_ID, getQuickRules } from '@renderer/utils/quick-rules-ipc'
 import { BUILT_IN_RULE_TARGETS } from '@renderer/utils/rule-targets'
+import {
+  countRuleProviderRules,
+  hasPendingRuleProviderCounts
+} from '@renderer/utils/rule-card-counts'
 
 interface Props {
   iconOnly?: boolean
@@ -34,12 +35,6 @@ const RULE_CARD_STARTUP_POLL_MAX_ATTEMPTS = 6
 const RULE_CARD_COUNT_CACHE_KEY = 'routex:rule-card-counts'
 const RULE_CARD_IDLE_REFRESH_DELAY_MS = 2000
 const QUICK_RULES_SWR_KEY = ['quickRules', GLOBAL_QUICK_RULES_PROFILE_ID] as const
-
-const normalizeRuleType = (type: string): string => type.replace(/[^a-z0-9]/gi, '').toLowerCase()
-
-const isRuleSetRule = (rule: ControllerRulesDetail | undefined): boolean => {
-  return !!rule && normalizeRuleType(rule.type) === 'ruleset'
-}
 
 const runtimeEntryName = (entry: unknown): string | undefined => {
   if (!entry || typeof entry !== 'object') return undefined
@@ -181,13 +176,13 @@ const RuleCard: React.FC<Props> = (props) => {
       .map(([index]) => Number.parseInt(index, 10))
       .filter(Number.isInteger)
   }, [disabledRules])
-  const { data: rulesData, mutate: mutateRules } = useSWR(
-    ruleCardFetchReady && disabledRuleIndices.length > 0 ? 'mihomoRules' : null,
-    mihomoRules,
-    {
-      shouldRetryOnError: false
-    }
-  )
+  const {
+    data: rulesData,
+    error: rulesError,
+    mutate: mutateRules
+  } = useSWR(ruleCardFetchReady ? 'mihomoRules' : null, mihomoRules, {
+    shouldRetryOnError: false
+  })
   const { data: quickRulesData, mutate: mutateQuickRules } = useSWR(
     ruleCardFetchReady ? QUICK_RULES_SWR_KEY : null,
     () => getQuickRules(GLOBAL_QUICK_RULES_PROFILE_ID),
@@ -223,24 +218,11 @@ const RuleCard: React.FC<Props> = (props) => {
   }, [runtimeConfig])
 
   const ruleCount = useMemo(() => {
-    const disabledProviderNames = new Set<string>()
-    if (providerMap && rulesData?.rules && disabledRuleIndices.length > 0) {
-      disabledRuleIndices.forEach((index) => {
-        const rule = rulesData.rules[index]
-        if (isRuleSetRule(rule) && providerMap[rule.payload]) {
-          disabledProviderNames.add(rule.payload)
-        }
-      })
-    }
-
-    const providerRuleCount = providerMap
-      ? Object.values(providerMap).reduce((total, provider) => {
-          if (disabledProviderNames.has(provider.name)) {
-            return total
-          }
-          return total + (provider.ruleCount || 0)
-        }, 0)
-      : 0
+    const providerRuleCount = countRuleProviderRules(
+      providerMap,
+      rulesData?.rules,
+      disabledRuleIndices
+    )
 
     const runtimeRules = Array.isArray(runtimeConfig?.rules) ? runtimeConfig.rules : []
     let manualRuleCount = runtimeRules.length
@@ -336,13 +318,13 @@ const RuleCard: React.FC<Props> = (props) => {
     setUpdating(true)
     try {
       await Promise.all(updatableProviderNames.map((name) => mihomoUpdateRuleProviders(name)))
-      await Promise.all([mutateProviders(), mutateRuntimeConfig()])
+      await Promise.all([mutateProviders(), mutateRuntimeConfig(), mutateRules()])
     } catch (e) {
       new Notification(`${t('sidebar.ruleProviderUpdateFailed')}\n${e}`)
     } finally {
       setUpdating(false)
     }
-  }, [mutateProviders, mutateRuntimeConfig, t, updatableProviderNames, updating])
+  }, [mutateProviders, mutateRules, mutateRuntimeConfig, t, updatableProviderNames, updating])
 
   useEffect(() => {
     const refresh = (): void => {
@@ -407,7 +389,8 @@ const RuleCard: React.FC<Props> = (props) => {
 
     if (
       (!isExpectedMihomoUnavailableError(providersError) &&
-        !isExpectedMihomoUnavailableError(runtimeConfigError)) ||
+        !isExpectedMihomoUnavailableError(runtimeConfigError) &&
+        !isExpectedMihomoUnavailableError(rulesError)) ||
       document.hidden
     ) {
       return
@@ -417,19 +400,28 @@ const RuleCard: React.FC<Props> = (props) => {
       retryTimerRef.current = null
       void mutateProviders()
       void mutateRuntimeConfig()
+      void mutateRules()
     }, 1200)
 
     return (): void => {
       clearRetryTimer()
     }
-  }, [clearRetryTimer, mutateProviders, mutateRuntimeConfig, providersError, runtimeConfigError])
+  }, [
+    clearRetryTimer,
+    mutateProviders,
+    mutateRules,
+    mutateRuntimeConfig,
+    providersError,
+    rulesError,
+    runtimeConfigError
+  ])
 
   useEffect(() => {
     if (__ROUTEX_HOST__ !== 'tauri') {
       return
     }
 
-    if (!providerMap || !runtimeConfig) {
+    if (!providerMap || !runtimeConfig || !rulesData) {
       resetStartupCountsState()
       return
     }
@@ -445,7 +437,9 @@ const RuleCard: React.FC<Props> = (props) => {
       startupStableHitsRef.current = 0
     }
 
-    if (startupStableHitsRef.current >= 1) {
+    const providerCountsPending = hasPendingRuleProviderCounts(providerMap, rulesData.rules)
+
+    if (!providerCountsPending && startupStableHitsRef.current >= 1) {
       setStartupCountsReady(true)
       clearStartupPollTimer()
       return
@@ -461,7 +455,7 @@ const RuleCard: React.FC<Props> = (props) => {
     startupPollTimerRef.current = window.setTimeout(() => {
       startupPollTimerRef.current = null
       startupPollAttemptsRef.current += 1
-      void Promise.all([mutateProviders(), mutateRuntimeConfig()])
+      void Promise.all([mutateProviders(), mutateRuntimeConfig(), mutateRules()])
     }, RULE_CARD_STARTUP_POLL_INTERVAL_MS)
 
     return (): void => {
@@ -470,9 +464,11 @@ const RuleCard: React.FC<Props> = (props) => {
   }, [
     countsSignature,
     mutateProviders,
+    mutateRules,
     mutateRuntimeConfig,
     providerMap,
     resetStartupCountsState,
+    rulesData,
     runtimeConfig,
     startupCountsReady
   ])

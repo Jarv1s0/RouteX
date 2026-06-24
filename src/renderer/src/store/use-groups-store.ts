@@ -1,5 +1,9 @@
 import { create } from 'zustand'
-import { isExpectedMihomoUnavailableError, mihomoGroups } from '@renderer/utils/mihomo-ipc'
+import {
+  clearMihomoGroupsRequestCache,
+  isExpectedMihomoUnavailableError,
+  mihomoGroups
+} from '@renderer/utils/mihomo-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface GroupsState {
@@ -7,7 +11,7 @@ interface GroupsState {
   isLoading: boolean
 
   // Actions
-  fetchGroups: () => Promise<void>
+  fetchGroups: (force?: boolean) => Promise<void>
   updateProxyDelay: (proxyName: string, delay: number) => void
   initializeListeners: () => void
   cleanupListeners: () => void
@@ -17,6 +21,7 @@ let updateTimer: NodeJS.Timeout | null = null
 let unavailableRetryTimer: number | null = null
 let groupsListenerRefCount = 0
 let fetchGroupsPromise: Promise<void> | null = null
+let fetchGroupsRequestId = 0
 const PROXY_DELAY_HISTORY_LIMIT = 20
 
 // 精确的监听器引用，避免使用 removeAllListeners
@@ -122,17 +127,27 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
   groups: undefined,
   isLoading: true,
 
-  fetchGroups: async () => {
-    if (fetchGroupsPromise) {
+  fetchGroups: async (force = false) => {
+    if (!force && fetchGroupsPromise) {
       return fetchGroupsPromise
     }
+
+    if (force) {
+      clearMihomoGroupsRequestCache()
+    }
+
+    const requestId = ++fetchGroupsRequestId
+    const isLatestRequest = (): boolean => requestId === fetchGroupsRequestId
 
     const promise = (async (): Promise<void> => {
       try {
         const groups = trimGroupsDelayHistory(await mihomoGroups())
+        if (!isLatestRequest()) return
         clearUnavailableRetryTimer()
         set({ groups, isLoading: false })
       } catch (e) {
+        if (!isLatestRequest()) return
+
         if (isExpectedMihomoUnavailableError(e)) {
           const previousGroups = get().groups
           set({
@@ -198,14 +213,14 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
     unregisterGroupHandlers()
     clearUpdateTimer()
 
-    const fetchGroups = (): void => void get().fetchGroups()
+    const fetchGroups = (force = false): void => void get().fetchGroups(force)
 
     // 保存引用并注册
-    currentGroupsCleanup = onIpc(ON.groupsUpdated, fetchGroups)
-    currentCoreStartedCleanup = onIpc(ON.coreStarted, fetchGroups)
+    currentGroupsCleanup = onIpc(ON.groupsUpdated, () => fetchGroups(true))
+    currentCoreStartedCleanup = onIpc(ON.coreStarted, () => fetchGroups(true))
     currentVisibilityChangeHandler = () => {
       if (!document.hidden) {
-        fetchGroups()
+        fetchGroups(true)
       }
     }
     document.addEventListener('visibilitychange', currentVisibilityChangeHandler)

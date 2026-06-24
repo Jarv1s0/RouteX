@@ -13,7 +13,12 @@ export function isExpectedMihomoUnavailableError(error: unknown): boolean {
   const message = `${error ?? ''}`
   return (
     message.includes('connect ENOENT \\\\.\\pipe\\RouteX\\mihomo') ||
+    message.includes('Mihomo core is not running') ||
     message.includes('socket hang up') ||
+    message.includes('connection refused') ||
+    message.includes('Connection refused') ||
+    message.includes('ECONNREFUSED') ||
+    message.includes('Timed out waiting for Mihomo controller') ||
     message.includes('Mihomo controller is not available') ||
     message.includes('503 Service Unavailable') ||
     message.includes('504 Gateway Timeout')
@@ -199,6 +204,10 @@ export async function mihomoGroups(): Promise<ControllerMixedGroup[]> {
   })
 }
 
+export function clearMihomoGroupsRequestCache(): void {
+  mihomoConfigCache.clearInFlightRequests(C.mihomoGroups)
+}
+
 export async function mihomoCloseConnection(id: string): Promise<void> {
   return invokeSafe(C.mihomoCloseConnection, id)
 }
@@ -288,6 +297,7 @@ export async function restartCore(): Promise<void> {
     const result = (await invokeSafe(C.restartCore)) as { controller?: string } | undefined
     mihomoConfigCache.clearInFlightRequests(
       C.getRuntimeConfig,
+      C.mihomoGroups,
       C.mihomoProxies,
       C.mihomoRules,
       C.mihomoRuleProviders
@@ -302,6 +312,7 @@ export async function restartCore(): Promise<void> {
   await invokeSafe(C.restartCore)
   mihomoConfigCache.clearInFlightRequests(
     C.getRuntimeConfig,
+    C.mihomoGroups,
     C.mihomoProxies,
     C.mihomoRules,
     C.mihomoRuleProviders
@@ -377,23 +388,23 @@ export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): 
       ...patch
     })
     mihomoConfigCache.invalidateRuntimeConfigCache()
-    mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
+    mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig, C.mihomoGroups)
     return
   }
 
   await invokeSafe(C.patchControledMihomoConfig, patch)
-  mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
+  mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig, C.mihomoGroups)
 }
 
 export async function patchMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   if (isTauriHost()) {
     await invokeSafe(C.patchMihomoConfig, patch)
-    mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
+    mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig, C.mihomoGroups)
     return
   }
 
   await invokeSafe(C.patchMihomoConfig, patch)
-  mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
+  mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig, C.mihomoGroups)
 }
 
 export async function reloadCoreConfig(closeConnections = false): Promise<void> {
@@ -401,7 +412,7 @@ export async function reloadCoreConfig(closeConnections = false): Promise<void> 
   if (isTauriHost()) {
     mihomoConfigCache.invalidateRuntimeConfigCache()
   }
-  mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig)
+  mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig, C.mihomoGroups)
 }
 
 export async function getRuntimeConfigStr(): Promise<string> {
