@@ -126,9 +126,6 @@ pub(crate) fn build_profile_item(
             .extra
             .clone()
             .or_else(|| existing.and_then(|value| value.extra.clone())),
-        reset_day: item
-            .reset_day
-            .or_else(|| existing.and_then(|value| value.reset_day)),
         locked: item
             .locked
             .or_else(|| existing.and_then(|value| value.locked)),

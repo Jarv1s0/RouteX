@@ -8,12 +8,10 @@ async function main(): Promise<void> {
     name: 'Remote Profile',
     url: 'https://example.com/sub.yaml',
     interval: 60,
-    autoUpdate: true,
-    updated: 1
+    autoUpdate: true
   }
   const latestItem: ProfileItem = {
     ...staleItem,
-    resetDay: 15,
     ua: 'RouteX-Test'
   }
   const savedItems: Partial<ProfileItem>[] = []
@@ -26,7 +24,8 @@ async function main(): Promise<void> {
 
   const refreshedItem = await refreshScheduledProfile(staleItem.id)
 
-  assert.equal(refreshedItem?.resetDay, 15)
+  assert.equal(refreshedItem?.name, 'test')
+  console.log('✅ Update preserved existing properties')
   assert.equal(savedItems.length, 1)
   assert.deepEqual(savedItems[0], latestItem)
 }

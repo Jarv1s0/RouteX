@@ -824,8 +824,6 @@ export const zhCN = {
   'profiles.autoUpdate': '自动更新',
   'profiles.updateIntervalMinutes': '更新间隔（分钟）',
   'profiles.remoteManagedInterval': '当前更新间隔由远程管理',
-  'profiles.resetDay': '流量结算日',
-  'profiles.resetDayPlaceholder': '默认为 1（每月1日重置）',
   'profiles.overrides': '覆写',
   'profiles.globalSuffix': '全局',
   'profiles.noOverrides': '没有可用的覆写',

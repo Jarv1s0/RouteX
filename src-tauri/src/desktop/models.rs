@@ -110,8 +110,6 @@ pub(crate) struct ProfileItemData {
     pub(crate) use_proxy: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) extra: Option<Value>,
-    #[serde(rename = "resetDay", skip_serializing_if = "Option::is_none")]
-    pub(crate) reset_day: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) locked: Option<bool>,
     #[serde(rename = "autoUpdate", skip_serializing_if = "Option::is_none")]
@@ -137,8 +135,6 @@ pub(crate) struct ProfileItemInput {
     #[serde(rename = "useProxy")]
     pub(crate) use_proxy: Option<bool>,
     pub(crate) extra: Option<Value>,
-    #[serde(rename = "resetDay")]
-    pub(crate) reset_day: Option<u64>,
     pub(crate) locked: Option<bool>,
     #[serde(rename = "autoUpdate")]
     pub(crate) auto_update: Option<bool>,

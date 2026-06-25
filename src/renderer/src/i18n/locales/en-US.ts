@@ -857,8 +857,6 @@ export const enUS: Record<TranslationKey, string> = {
   'profiles.autoUpdate': 'Auto update',
   'profiles.updateIntervalMinutes': 'Update interval (minutes)',
   'profiles.remoteManagedInterval': 'This update interval is managed remotely.',
-  'profiles.resetDay': 'Traffic reset day',
-  'profiles.resetDayPlaceholder': 'Default is 1 (resets on the 1st day of each month)',
   'profiles.overrides': 'Overrides',
   'profiles.globalSuffix': 'Global',
   'profiles.noOverrides': 'No available overrides',

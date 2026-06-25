@@ -27,7 +27,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
   const modalContentStyle = useMainPaneModalContentStyle(720)
   const [values, setValues] = useState(item)
   const [saving, setSaving] = useState(false)
-  const inputClassName = 'w-full sm:max-w-[420px]'
+  const inputClassName = 'w-[80%] sm:w-[85%]'
 
   const onSave = async (): Promise<void> => {
     setSaving(true)

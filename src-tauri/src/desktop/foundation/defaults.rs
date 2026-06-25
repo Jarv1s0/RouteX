@@ -67,7 +67,6 @@ pub(crate) fn default_empty_profile_item() -> ProfileItemData {
         override_ids: None,
         use_proxy: None,
         extra: None,
-        reset_day: None,
         locked: None,
         auto_update: Some(true),
     }

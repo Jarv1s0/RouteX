@@ -149,7 +149,6 @@ interface ProfileItem {
   override?: string[]
   useProxy?: boolean
   extra?: SubscriptionUserInfo
-  resetDay?: number // 流量结算日 (1-31)，默认为1
   locked?: boolean
   autoUpdate?: boolean
 }
