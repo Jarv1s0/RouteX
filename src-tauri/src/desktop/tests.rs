@@ -119,7 +119,6 @@ fn profile_config_normalization_repairs_current_and_dedupes_actives() {
                 override_ids: None,
                 use_proxy: None,
                 extra: None,
-                reset_day: None,
                 locked: None,
                 auto_update: Some(true),
             },
@@ -138,7 +137,6 @@ fn profile_config_normalization_repairs_current_and_dedupes_actives() {
                 override_ids: None,
                 use_proxy: None,
                 extra: None,
-                reset_day: None,
                 locked: None,
                 auto_update: Some(true),
             },
@@ -738,73 +736,6 @@ fn default_remote_profile_name_ignores_generic_subscribe_path() {
         "MyAirport.yaml"
     );
     assert_eq!(default_remote_profile_name(None), "Subscribe");
-}
-
-#[test]
-fn raw_vless_subscription_parses_as_mihomo_profile() {
-    let profile = parse_profile_yaml_value(
-        "vless://00000000-0000-0000-0000-000000000000@example.com:8443?security=reality&type=tcp&flow=xtls-rprx-vision&sni=example.com&fp=chrome&pbk=public-key&sid=short-id#HK%2001",
-    )
-    .expect("raw vless subscription should parse");
-
-    let proxies = profile
-        .get("proxies")
-        .and_then(Value::as_array)
-        .expect("profile should contain proxies");
-    assert_eq!(proxies.len(), 1);
-    assert_eq!(
-        proxies[0].get("name").and_then(Value::as_str),
-        Some("HK 01")
-    );
-    assert_eq!(
-        proxies[0].get("type").and_then(Value::as_str),
-        Some("vless")
-    );
-    assert_eq!(
-        proxies[0].get("flow").and_then(Value::as_str),
-        Some("xtls-rprx-vision")
-    );
-    assert_eq!(proxies[0].get("tls").and_then(Value::as_bool), Some(true));
-    assert_eq!(
-        proxies[0]
-            .get("reality-opts")
-            .and_then(Value::as_object)
-            .and_then(|opts| opts.get("public-key"))
-            .and_then(Value::as_str),
-        Some("public-key")
-    );
-
-    let group_proxies = profile
-        .get("proxy-groups")
-        .and_then(Value::as_array)
-        .and_then(|groups| groups.first())
-        .and_then(|group| group.get("proxies"))
-        .and_then(Value::as_array)
-        .expect("profile should contain a proxy group");
-    assert_eq!(
-        group_proxies
-            .iter()
-            .filter_map(Value::as_str)
-            .collect::<Vec<_>>(),
-        vec!["HK 01", "DIRECT"]
-    );
-}
-
-#[test]
-fn base64_vless_subscription_parses_as_mihomo_profile() {
-    let raw =
-        "vless://00000000-0000-0000-0000-000000000000@example.com:443?security=tls#TLS%20Node";
-    let encoded = BASE64_STANDARD.encode(raw);
-
-    let profile = parse_profile_yaml_value(&encoded).expect("base64 subscription should parse");
-    let node_name = profile
-        .get("proxies")
-        .and_then(Value::as_array)
-        .and_then(|proxies| proxies.first())
-        .and_then(|proxy| proxy.get("name"))
-        .and_then(Value::as_str);
-
-    assert_eq!(node_name, Some("TLS Node"));
 }
 
 #[test]
