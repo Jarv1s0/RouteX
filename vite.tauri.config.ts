@@ -17,8 +17,13 @@ const tauriBuildVariant =
       ? 'dev'
       : 'release')
 
+const routexBuildCommit = (process.env.ROUTEX_BUILD_COMMIT || '').trim()
+const routexBuildNumber = (process.env.ROUTEX_BUILD_NUMBER || '').trim()
+
 const routexBuildDefines = {
   __ROUTEX_AUTO_BUILD__: JSON.stringify(process.env.ROUTEX_AUTO_BUILD === 'true'),
+  __ROUTEX_BUILD_COMMIT__: JSON.stringify(routexBuildCommit),
+  __ROUTEX_BUILD_NUMBER__: JSON.stringify(routexBuildNumber),
   __ROUTEX_BUILD_VARIANT__: JSON.stringify(tauriBuildVariant),
   __ROUTEX_HOST__: JSON.stringify('tauri'),
   __ROUTEX_PLATFORM__: JSON.stringify(process.platform)

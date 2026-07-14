@@ -1,11 +1,15 @@
 import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import { Button, Tooltip } from '@heroui/react'
+import { Button, Chip, Tooltip } from '@heroui/react'
 
 import { quitApp, quitWithoutCore, resetAppConfig, openExternalUrl } from '@renderer/api/app'
 import { version } from '@renderer/utils/init'
-import { ROUTEX_BUILD_VARIANT } from '../../../../shared/build'
+import {
+  ROUTEX_BUILD_COMMIT,
+  ROUTEX_BUILD_NUMBER,
+  ROUTEX_BUILD_VARIANT
+} from '../../../../shared/build'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { IoLogoGithub } from 'react-icons/io5'
 import ConfirmModal from '../base/base-confirm'
@@ -58,8 +62,8 @@ import AppearanceConfig from './appearance-config'
 const AdvancedSettings: React.FC = () => {
   const { t } = useI18n()
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const displayVersion =
-    ROUTEX_BUILD_VARIANT === 'autobuild' ? `v${version} (autobuild)` : `v${version}`
+  const isAutobuild = ROUTEX_BUILD_VARIANT === 'autobuild'
+  const buildDetails = ROUTEX_BUILD_COMMIT ? `Commit: ${ROUTEX_BUILD_COMMIT}` : 'Autobuild'
 
   return (
     <div className="flex flex-col gap-2">
@@ -134,7 +138,21 @@ const AdvancedSettings: React.FC = () => {
             </Button>
           }
         >
-          <div className="text-default-600">{displayVersion}</div>
+          {isAutobuild ? (
+            <Tooltip content={buildDetails} placement="top">
+              <div className="flex items-center gap-2 text-default-600">
+                <span>v{version}</span>
+                <Chip size="sm" color="warning" variant="flat" className="h-5 px-0 text-[10px]">
+                  AUTOBUILD
+                </Chip>
+                {ROUTEX_BUILD_NUMBER && (
+                  <span className="font-mono text-sm tabular-nums">#{ROUTEX_BUILD_NUMBER}</span>
+                )}
+              </div>
+            </Tooltip>
+          ) : (
+            <div className="text-default-600">v{version}</div>
+          )}
         </SettingItem>
       </SettingCard>
     </div>

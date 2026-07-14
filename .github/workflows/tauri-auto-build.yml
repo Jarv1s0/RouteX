@@ -244,6 +244,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           ROUTEX_AUTO_BUILD: 'true'
+          ROUTEX_BUILD_COMMIT: ${{ github.sha }}
+          ROUTEX_BUILD_NUMBER: ${{ github.run_number }}
           ROUTEX_TAURI_BUILD_VARIANT: autobuild
           CARGO_PROFILE_RELEASE_LTO: 'false'
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: '16'
