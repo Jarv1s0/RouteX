@@ -182,6 +182,7 @@ pub(crate) fn list_webdav_backup_names(config: &WebdavConfig) -> Result<Vec<Stri
         match reader.read_event() {
             Ok(Event::Start(event)) if event.local_name().as_ref() == b"href" => {
                 let text = reader.read_text(event.name()).map_err(|e| e.to_string())?;
+                let text = std::str::from_utf8(text.as_ref()).map_err(|e| e.to_string())?;
                 let basename = text
                     .split('/')
                     .rfind(|segment| !segment.is_empty())

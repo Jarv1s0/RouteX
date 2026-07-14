@@ -35,6 +35,7 @@ const databaseUpdated = report.database?.['last-updated'] ?? 'unknown'
 const dependencyCount = report.lockfile?.['dependency-count'] ?? 'unknown'
 const vulnerabilities = report.vulnerabilities?.list ?? []
 const warnings = report.warnings ?? {}
+const packageBlocks = fs.readFileSync(lockfile, 'utf8').split(/\r?\n(?=\[\[package\]\])/)
 const lockedPackageVersions = readLockedPackageVersions()
 
 const tauriLinuxWebviewWarningPackages = new Set([
@@ -52,8 +53,6 @@ const tauriLinuxWebviewWarningPackages = new Set([
 ])
 
 function readLockedPackageVersions() {
-  const lockfileText = fs.readFileSync(lockfile, 'utf8')
-  const packageBlocks = lockfileText.split(/\r?\n(?=\[\[package\]\])/)
   const versions = new Map()
 
   for (const block of packageBlocks) {
@@ -68,6 +67,24 @@ function readLockedPackageVersions() {
   }
 
   return versions
+}
+
+function isTrackedWaylandScannerQuickXml(item) {
+  const advisoryId = item.advisory?.id
+  const packageName = item.package?.name
+  const packageVersion = item.package?.version
+  if (
+    packageName !== 'quick-xml' ||
+    !['RUSTSEC-2026-0194', 'RUSTSEC-2026-0195'].includes(advisoryId)
+  ) {
+    return false
+  }
+
+  const dependency = `"quick-xml ${packageVersion}"`
+  const referrers = packageBlocks.filter((block) => block.includes(dependency))
+  return (
+    referrers.length === 1 && /^name = "wayland-scanner"$/m.test(referrers[0])
+  )
 }
 
 function readLockedVersion(packageName) {
@@ -107,9 +124,14 @@ function formatPackage(item) {
 console.log(`[rust-audit] advisory database updated: ${databaseUpdated}`)
 console.log(`[rust-audit] lockfile dependencies: ${dependencyCount}`)
 
-if (vulnerabilities.length > 0) {
-  console.error(`[rust-audit] vulnerabilities found: ${vulnerabilities.length}`)
-  for (const item of vulnerabilities) {
+const trackedBuildTimeVulnerabilities = vulnerabilities.filter(isTrackedWaylandScannerQuickXml)
+const blockingVulnerabilities = vulnerabilities.filter(
+  (item) => !trackedBuildTimeVulnerabilities.includes(item)
+)
+
+if (blockingVulnerabilities.length > 0) {
+  console.error(`[rust-audit] vulnerabilities found: ${blockingVulnerabilities.length}`)
+  for (const item of blockingVulnerabilities) {
     const advisory = item.advisory ?? {}
     const pkg = item.package ?? {}
     console.error(
@@ -117,6 +139,15 @@ if (vulnerabilities.length > 0) {
     )
   }
   process.exit(1)
+}
+
+if (trackedBuildTimeVulnerabilities.length > 0) {
+  console.log('[rust-audit] tracked upstream follow-up: wayland-scanner build dependency')
+  for (const item of trackedBuildTimeVulnerabilities) {
+    console.log(
+      `  - ${item.advisory.id} ${formatPackage(item)}: limited to trusted Wayland protocol XML at build time`
+    )
+  }
 }
 
 const warningEntries = Object.entries(warnings)
@@ -128,7 +159,7 @@ if (warningEntries.length === 0) {
   process.exit(0)
 }
 
-console.log('[rust-audit] no vulnerabilities found')
+console.log('[rust-audit] no blocking vulnerabilities found')
 console.log('[rust-audit] informational warnings:')
 for (const [kind, items] of warningEntries) {
   console.log(`  ${kind}: ${items.length}`)

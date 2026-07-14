@@ -361,16 +361,15 @@ pub(crate) fn quick_rules_disabled_state(
     }
 
     let valid_targets = quick_rule_target_names(runtime_profile);
-    let mut runtime_index = 0usize;
-    for rule in quick_rules
+    for (runtime_index, rule) in quick_rules
         .rules
         .iter()
         .filter(|rule| valid_targets.contains(&rule.target))
+        .enumerate()
     {
         if !rule.enabled {
             disabled.insert(runtime_index.to_string(), Value::Bool(true));
         }
-        runtime_index += 1;
     }
 
     Ok(disabled)
