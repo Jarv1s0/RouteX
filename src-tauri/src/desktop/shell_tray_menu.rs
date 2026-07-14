@@ -231,9 +231,7 @@ pub(crate) fn read_tray_env_types(app: &tauri::AppHandle) -> Result<Vec<String>,
 
 pub(crate) fn load_native_tray_groups(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
     let state = app.state::<CoreState>();
-    let proxies = core_request(&state, reqwest::Method::GET, "/proxies", None, None)?;
-    let runtime = current_runtime_value(app, &state)?;
-    Ok(build_mihomo_groups_value(&proxies, &runtime)
+    Ok(load_mihomo_groups_value(app, &state)?
         .as_array()
         .cloned()
         .unwrap_or_default())

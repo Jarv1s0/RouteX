@@ -36,7 +36,6 @@ pub(crate) fn current_override_profile_text(app: &tauri::AppHandle) -> Result<St
     Ok(blocks.join("\n\n"))
 }
 
-
 pub(crate) fn write_override_exec_log(
     app: &tauri::AppHandle,
     id: &str,

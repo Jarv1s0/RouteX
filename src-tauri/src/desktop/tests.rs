@@ -449,6 +449,70 @@ fn mihomo_groups_expand_nested_group_children() {
 }
 
 #[test]
+fn mihomo_groups_expand_provider_children_from_providers_api() {
+    let proxies = json!({
+        "proxies": {
+            "Proxy": {
+                "name": "Proxy",
+                "type": "Selector",
+                "now": "Provider 01",
+                "all": ["Provider 01", "Provider 02"],
+                "history": [],
+                "extra": {}
+            }
+        }
+    });
+    let proxy_providers = json!({
+        "providers": {
+            "subscription": {
+                "name": "subscription",
+                "type": "Proxy",
+                "vehicleType": "HTTP",
+                "proxies": [
+                    {
+                        "name": "Provider 01",
+                        "type": "Shadowsocks",
+                        "history": [{ "time": "2026-07-08T00:00:00.000Z", "delay": 80 }]
+                    },
+                    {
+                        "name": "Provider 02",
+                        "type": "Vmess",
+                        "history": [{ "time": "2026-07-08T00:00:00.000Z", "delay": 120 }]
+                    }
+                ]
+            }
+        }
+    });
+    let runtime = json!({
+        "mode": "rule",
+        "proxy-groups": [
+            { "name": "Proxy", "type": "Selector", "use": ["subscription"] }
+        ],
+        "proxy-providers": {
+            "subscription": { "type": "http", "url": "https://example.com/sub.yaml" }
+        }
+    });
+
+    let groups =
+        build_mihomo_groups_value_with_providers(&proxies, Some(&proxy_providers), &runtime);
+    let provider_children = groups
+        .as_array()
+        .and_then(|items| items.first())
+        .and_then(|group| group.get("all"))
+        .and_then(Value::as_array)
+        .expect("provider children should be expanded from /providers/proxies");
+    let names = provider_children
+        .iter()
+        .filter_map(value_name)
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        names,
+        vec!["Provider 01".to_string(), "Provider 02".to_string()]
+    );
+}
+
+#[test]
 fn sysproxy_service_commands_use_nested_command_group() {
     let args = service_command_args(false, "disable", Vec::new());
     let args = args.iter().map(String::as_str).collect::<Vec<_>>();

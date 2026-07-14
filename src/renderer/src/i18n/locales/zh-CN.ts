@@ -150,6 +150,7 @@ export const zhCN = {
   'rules.desc.dstPort': '目标端口匹配',
   'rules.desc.srcPort': '源端口匹配',
   'rules.desc.network': '网络协议（tcp/udp）',
+  'rules.desc.rematchName': '按 rematch 出站名称匹配',
   'rules.desc.geosite': 'GeoSite 域名集合',
   'page.stats.title': '统计',
   'page.stats.clear': '重置统计数据',

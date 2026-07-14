@@ -128,7 +128,11 @@ pub(super) fn validate_geo_data_bytes(key: &str, bytes: &[u8]) -> Result<(), Str
     }
 }
 
-fn replace_geo_data_file(temp_path: &Path, target_path: &Path, backup_path: &Path) -> Result<(), String> {
+fn replace_geo_data_file(
+    temp_path: &Path,
+    target_path: &Path,
+    backup_path: &Path,
+) -> Result<(), String> {
     if backup_path.exists() {
         fs::remove_file(backup_path).map_err(|e| format!("清理旧 Geo 数据库备份失败: {e}"))?;
     }
@@ -171,7 +175,8 @@ fn upgrade_geo_data_file(
         return Err("Geo 数据库下载地址不能为空".to_string());
     }
 
-    let parsed_url = reqwest::Url::parse(url).map_err(|e| format!("Geo 数据库下载地址无效: {e}"))?;
+    let parsed_url =
+        reqwest::Url::parse(url).map_err(|e| format!("Geo 数据库下载地址无效: {e}"))?;
     if !matches!(parsed_url.scheme(), "http" | "https") {
         return Err("Geo 数据库下载地址只支持 http 或 https".to_string());
     }
@@ -201,93 +206,117 @@ fn upgrade_geo_data_file(
 }
 
 #[allow(clippy::redundant_closure_call)]
-pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
-    map.insert("ensureMihomoCoreAvailable", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+pub(crate) fn register_mihomo_handlers(
+    map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>,
+) {
+    map.insert("ensureMihomoCoreAvailable", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let core = args.first().and_then(Value::as_str).unwrap_or("mihomo");
             let path = ensure_mihomo_core_available(app, core)?;
             Ok(json!(path.to_string_lossy().to_string()))
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoVersion", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-         core_request(state, reqwest::Method::GET, "/version", None, None) 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoConfig", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-         core_request(state, reqwest::Method::GET, "/configs", None, None) 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoConnections", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoVersion", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+            core_request(state, reqwest::Method::GET, "/version", None, None)
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoConfig", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+            core_request(state, reqwest::Method::GET, "/configs", None, None)
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoConnections", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             core_request(state, reqwest::Method::GET, "/connections", None, None)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoRules", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-         core_request(state, reqwest::Method::GET, "/rules", None, None) 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoProxies", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-         core_request(state, reqwest::Method::GET, "/proxies", None, None) 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoGroups", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
-            let proxies = core_request(state, reqwest::Method::GET, "/proxies", None, None)?;
-            let runtime = current_runtime_value(app, state)?;
-            Ok(build_mihomo_groups_value(&proxies, &runtime))
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoProxyProviders", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-         core_request(
-            state,
-            reqwest::Method::GET,
-            "/providers/proxies",
-            None,
-            None,
-        ) 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoRuleProviders", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoRules", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+            core_request(state, reqwest::Method::GET, "/rules", None, None)
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoProxies", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+            core_request(state, reqwest::Method::GET, "/proxies", None, None)
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoGroups", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
+            load_mihomo_groups_value(app, state)
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoProxyProviders", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+            core_request(
+                state,
+                reqwest::Method::GET,
+                "/providers/proxies",
+                None,
+                None,
+            )
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoRuleProviders", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             core_request(state, reqwest::Method::GET, "/providers/rules", None, None)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("patchMihomoConfig", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("patchMihomoConfig", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
 
             let patch = args.first().cloned().unwrap_or(Value::Null);
             core_request(
@@ -306,26 +335,30 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 emit_mihomo_config_updated(app);
                 Value::Null
             })
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("reloadCoreConfig", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("reloadCoreConfig", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
             let close_connections = args.first().and_then(Value::as_bool).unwrap_or(false);
             reload_core_config_process(app, state, close_connections).inspect(|_value| {
                 emit_mihomo_config_updated(app);
             })
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoChangeProxy", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoChangeProxy", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let group = args
                 .first()
                 .and_then(Value::as_str)
@@ -344,14 +377,16 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
             .inspect(|_value| {
                 emit_ipc_event(app, "groupsUpdated", Value::Null);
             })
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoUnfixedProxy", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoUnfixedProxy", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let group = args
                 .first()
                 .and_then(Value::as_str)
@@ -366,14 +401,16 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
             .inspect(|_value| {
                 emit_ipc_event(app, "groupsUpdated", Value::Null);
             })
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoCloseConnection", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoCloseConnection", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let id = args
                 .first()
                 .and_then(Value::as_str)
@@ -386,14 +423,16 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 None,
             )
             .map(|_| Value::Null)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoCloseAllConnections", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoCloseAllConnections", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             if let Some(name) = args.first().and_then(Value::as_str) {
                 close_connections_by_group(state, name)?;
                 Ok(Value::Null)
@@ -401,14 +440,16 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 core_request(state, reqwest::Method::DELETE, "/connections", None, None)
                     .map(|_| Value::Null)
             }
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoProxyDelay", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoProxyDelay", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let proxy = args
                 .first()
                 .and_then(Value::as_str)
@@ -422,14 +463,16 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 Some(&[("url", url), ("timeout", timeout)]),
                 None,
             )
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoGroupDelay", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoGroupDelay", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let group = args
                 .first()
                 .and_then(Value::as_str)
@@ -443,14 +486,16 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 Some(&[("url", url), ("timeout", timeout)]),
                 None,
             )
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoDnsQuery", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoDnsQuery", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let name = args
                 .first()
                 .and_then(Value::as_str)
@@ -468,31 +513,36 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 Some(&[("name", name), ("type", record_type)]),
                 None,
             )
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoToggleRuleDisabled", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-         core_request(
-            state,
-            reqwest::Method::PATCH,
-            "/rules/disable",
-            None,
-            Some(args.first().cloned().unwrap_or_else(|| json!({}))),
-        )
-        .map(|_| {
-            emit_ipc_event(app, "rulesUpdated", Value::Null);
-            Value::Null
-        }) 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoUpdateProxyProviders", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoToggleRuleDisabled", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+            core_request(
+                state,
+                reqwest::Method::PATCH,
+                "/rules/disable",
+                None,
+                Some(args.first().cloned().unwrap_or_else(|| json!({}))),
+            )
+            .map(|_| {
+                emit_ipc_event(app, "rulesUpdated", Value::Null);
+                Value::Null
+            })
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoUpdateProxyProviders", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let name = args
                 .first()
                 .and_then(Value::as_str)
@@ -508,14 +558,16 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 emit_ipc_event(app, "groupsUpdated", Value::Null);
                 Value::Null
             })
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoUpdateRuleProviders", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoUpdateRuleProviders", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let name = args
                 .first()
                 .and_then(Value::as_str)
@@ -531,31 +583,38 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 emit_ipc_event(app, "rulesUpdated", Value::Null);
                 Value::Null
             })
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoUpgrade", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-         upgrade_mihomo_core(app, state, read_core_name(app)? == "mihomo-alpha") 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoUpgradeGeo", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoUpgrade", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+            upgrade_mihomo_core(app, state, read_core_name(app)? == "mihomo-alpha")
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoUpgradeGeo", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             core_request(state, reqwest::Method::POST, "/upgrade/geo", None, None)
                 .map(|_| Value::Null)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoUpgradeGeoFile", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoUpgradeGeoFile", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let key = args
                 .first()
                 .and_then(Value::as_str)
@@ -565,22 +624,27 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 .and_then(Value::as_str)
                 .ok_or_else(|| "mihomoUpgradeGeoFile requires url".to_string())?;
             upgrade_geo_data_file(app, state, key, url)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("mihomoUpgradeUI", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-         core_request(state, reqwest::Method::POST, "/upgrade/ui", None, None)
-            .map(|_| Value::Null) 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("checkMihomoLatestVersion", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("mihomoUpgradeUI", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+            core_request(state, reqwest::Method::POST, "/upgrade/ui", None, None)
+                .map(|_| Value::Null)
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("checkMihomoLatestVersion", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let is_alpha = args.first().and_then(Value::as_bool).unwrap_or(false);
             let url = if is_alpha {
                 "https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt"
@@ -591,52 +655,62 @@ pub(crate) fn register_mihomo_handlers(map: &mut std::collections::HashMap<&'sta
                 Ok(text) => Ok(json!(text.trim())),
                 Err(_) => Ok(Value::Null),
             }
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("restartMihomoConnections", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("restartMihomoConnections", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             if current_controller_url(state)?.is_some() {
                 start_core_events_monitor(app, state)?;
             } else {
                 stop_core_events_monitor(state)?;
             }
             Ok(Value::Null)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("restartCore", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-         restart_core_process(app, state, args.first()).inspect(|value| {
-            emit_ipc_event(app, "core-started", value.clone());
-            emit_ipc_event(app, "groupsUpdated", Value::Null);
-            emit_ipc_event(app, "rulesUpdated", Value::Null);
-        }) 
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("setNativeTheme", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("restartCore", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+            restart_core_process(app, state, args.first()).inspect(|value| {
+                emit_ipc_event(app, "core-started", value.clone());
+                emit_ipc_event(app, "groupsUpdated", Value::Null);
+                emit_ipc_event(app, "rulesUpdated", Value::Null);
+            })
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("setNativeTheme", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             let theme = args.first().and_then(Value::as_str);
             apply_window_theme(window, theme);
             Ok(Value::Null)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("relaunchApp", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
+    map.insert("relaunchApp", |app, window, state, args| {
+        (|| -> Result<Value, String> {
+            let _app = app;
+            let _window = window;
+            let _state = state;
+            let _args = args;
+
             relaunch_current_app(app, state)?;
             Ok(Value::Null)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
+        })()
+        .map_err(crate::desktop::error::AppError::from)
+    });
 }

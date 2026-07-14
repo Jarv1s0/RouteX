@@ -57,6 +57,12 @@ export const RULE_TYPES = [
   { key: 'DST-PORT', label: 'DST-PORT', descKey: 'rules.desc.dstPort', category: 'port' },
   { key: 'SRC-PORT', label: 'SRC-PORT', descKey: 'rules.desc.srcPort', category: 'port' },
   { key: 'NETWORK', label: 'NETWORK', descKey: 'rules.desc.network', category: 'port' },
+  {
+    key: 'REMATCH-NAME',
+    label: 'REMATCH-NAME',
+    descKey: 'rules.desc.rematchName',
+    category: 'proxy'
+  },
   { key: 'GEOSITE', label: 'GEOSITE', descKey: 'rules.desc.geosite', category: 'geo' }
 ] as const
 

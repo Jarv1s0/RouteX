@@ -1,5 +1,5 @@
-use crate::desktop::*;
 use super::http::http_get_response;
+use crate::desktop::*;
 
 pub(crate) fn check_streaming_unlock(service: &str) -> Result<Value, String> {
     let timeout = 15_000;

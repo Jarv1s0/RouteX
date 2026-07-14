@@ -19,6 +19,8 @@ interface MihomoConfig {
   'interface-name': string
   'log-level': LogLevel
   'find-process-mode': FindProcessMode
+  'routing-mark'?: number
+  'external-controller-routing-mark'?: number
   'socks-port'?: number
   'redir-port'?: number
   'tproxy-port'?: number
@@ -78,6 +80,7 @@ interface MihomoProxyGroupConfig {
   interval?: number
   timeout?: number
   'empty-fallback'?: string
+  'default-selected'?: string
   lazy?: boolean
   filter?: string
   hidden?: boolean
@@ -137,6 +140,8 @@ interface MihomoDNSConfig {
   'proxy-server-nameserver'?: string[]
   'direct-nameserver'?: string[]
   'direct-nameserver-follow-policy'?: boolean
+  'fallback-lazy-query'?: boolean
+  'listen-routing-mark'?: number
   'nameserver-policy'?: { [key: string]: string | string[] }
   'cache-algorithm'?: string
 }
@@ -215,5 +220,6 @@ interface MihomoInboundListenerConfig {
   certificate?: string
   'private-key'?: string
   'client-auth-cert'?: string
+  'routing-mark'?: number
   'allow-insecure'?: boolean
 }

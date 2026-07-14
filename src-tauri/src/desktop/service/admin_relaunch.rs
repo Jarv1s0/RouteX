@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
+use super::*;
 use crate::desktop::prelude::*;
 use crate::desktop::*;
-use super::*;
 
 #[cfg(target_os = "windows")]
 pub const SW_SHOWNORMAL: i32 = 1;
@@ -34,10 +34,7 @@ pub fn shell_execute_parameters(args: impl IntoIterator<Item = String>) -> Strin
 }
 
 #[cfg(target_os = "windows")]
-pub fn admin_relaunch_args(
-    args: impl IntoIterator<Item = String>,
-    parent_pid: u32,
-) -> Vec<String> {
+pub fn admin_relaunch_args(args: impl IntoIterator<Item = String>, parent_pid: u32) -> Vec<String> {
     let mut values = vec![
         ROUTEX_ADMIN_RELAUNCH_PARENT_ARG.to_string(),
         parent_pid.to_string(),

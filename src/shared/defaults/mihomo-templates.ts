@@ -1,4 +1,4 @@
-export const MIHOMO_V11927_YAML_SNIPPETS = [
+export const MIHOMO_V11928_YAML_SNIPPETS = [
   {
     label: 'mihomo-tailscale-proxy',
     detail: 'Tailscale outbound',
@@ -57,12 +57,12 @@ export const MIHOMO_V11927_YAML_SNIPPETS = [
   {
     label: 'mihomo-empty-fallback-group',
     detail: 'Proxy group empty fallback',
-    info: 'Insert a proxy group template with empty-fallback.',
+    info: 'Insert a proxy group template with empty-fallback. The fallback must be a proxy node, not a proxy group.',
     snippet: `- name: \${group_name}
   type: select
   use:
     - \${provider_name}
-  empty-fallback: \${fallback_proxy}`
+  empty-fallback: \${fallback_proxy_node}`
   },
   {
     label: 'mihomo-pass-rule',
@@ -115,4 +115,4 @@ export const MIHOMO_V11927_YAML_SNIPPETS = [
   }
 ] as const
 
-export const MIHOMO_V119_YAML_SNIPPETS = MIHOMO_V11927_YAML_SNIPPETS
+export const MIHOMO_V119_YAML_SNIPPETS = MIHOMO_V11928_YAML_SNIPPETS

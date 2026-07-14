@@ -1,6 +1,6 @@
+use super::*;
 use crate::desktop::prelude::*;
 use crate::desktop::*;
-use super::*;
 
 #[cfg(target_os = "windows")]
 pub fn app_data_root_before_tauri() -> Result<PathBuf, String> {
@@ -176,9 +176,7 @@ pub fn single_instance_window_exists_before_tauri(app_identifier: &str) -> bool 
 }
 
 #[cfg(target_os = "windows")]
-pub fn ensure_windows_elevated_startup_before_tauri(
-    app_identifier: &str,
-) -> Result<bool, String> {
+pub fn ensure_windows_elevated_startup_before_tauri(app_identifier: &str) -> Result<bool, String> {
     if cfg!(debug_assertions) {
         return Ok(true);
     }
@@ -280,9 +278,7 @@ pub fn choose_windows_unelevated_startup_action(
 }
 
 #[cfg(target_os = "windows")]
-pub fn handle_windows_elevated_process_startup(
-    app: &tauri::AppHandle,
-) -> Result<bool, String> {
+pub fn handle_windows_elevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
     match create_elevate_task(app) {
         Ok(()) => Ok(true),
         Err(create_error) => {
@@ -298,9 +294,7 @@ pub fn handle_windows_elevated_process_startup(
 }
 
 #[cfg(target_os = "windows")]
-pub fn handle_windows_unelevated_process_startup(
-    app: &tauri::AppHandle,
-) -> Result<bool, String> {
+pub fn handle_windows_unelevated_process_startup(app: &tauri::AppHandle) -> Result<bool, String> {
     match choose_windows_unelevated_startup_action(check_elevate_task_matches_current_app(app)) {
         WindowsUnelevatedStartupAction::RunElevateTask => match run_elevate_task(app) {
             Ok(()) => Ok(false),

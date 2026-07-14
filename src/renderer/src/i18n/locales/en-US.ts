@@ -155,6 +155,7 @@ export const enUS: Record<TranslationKey, string> = {
   'rules.desc.dstPort': 'Destination port match',
   'rules.desc.srcPort': 'Source port match',
   'rules.desc.network': 'Network protocol (tcp/udp)',
+  'rules.desc.rematchName': 'Match by rematch outbound name',
   'rules.desc.geosite': 'GeoSite domain set',
   'page.stats.title': 'Stats',
   'page.stats.clear': 'Clear stats',

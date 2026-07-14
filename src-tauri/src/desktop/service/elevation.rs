@@ -1,6 +1,6 @@
+use super::*;
 use crate::desktop::prelude::*;
 use crate::desktop::*;
-use super::*;
 
 #[cfg(target_os = "windows")]
 pub fn looks_like_windows_permission_error(error: &str) -> bool {

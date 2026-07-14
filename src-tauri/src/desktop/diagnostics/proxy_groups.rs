@@ -1,5 +1,33 @@
+use crate::desktop::prelude::{core_request, current_runtime_value, CoreState};
 use crate::desktop::*;
 use std::collections::HashSet;
+
+fn merge_provider_proxies(
+    proxies_map: &serde_json::Map<String, Value>,
+    proxy_providers: Option<&Value>,
+) -> serde_json::Map<String, Value> {
+    let mut merged = proxies_map.clone();
+    let Some(providers) = proxy_providers
+        .and_then(|value| value.get("providers"))
+        .and_then(Value::as_object)
+    else {
+        return merged;
+    };
+
+    for proxies in providers
+        .values()
+        .filter_map(|provider| provider.get("proxies").and_then(Value::as_array))
+    {
+        for proxy in proxies {
+            let Some(name) = proxy.get("name").and_then(Value::as_str) else {
+                continue;
+            };
+            merged.insert(name.to_string(), proxy.clone());
+        }
+    }
+
+    merged
+}
 
 pub(crate) fn build_group_children(
     proxies_map: &serde_json::Map<String, Value>,
@@ -54,6 +82,36 @@ pub(crate) fn build_group_children(
 }
 
 pub(crate) fn build_mihomo_groups_value(proxies: &Value, runtime: &Value) -> Value {
+    build_mihomo_groups_value_with_providers(proxies, None, runtime)
+}
+
+pub(crate) fn load_mihomo_groups_value(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+) -> Result<Value, String> {
+    let proxies = core_request(state, reqwest::Method::GET, "/proxies", None, None)?;
+    let proxy_providers = core_request(
+        state,
+        reqwest::Method::GET,
+        "/providers/proxies",
+        None,
+        None,
+    )
+    .ok();
+    let runtime = current_runtime_value(app, state)?;
+
+    Ok(build_mihomo_groups_value_with_providers(
+        &proxies,
+        proxy_providers.as_ref(),
+        &runtime,
+    ))
+}
+
+pub(crate) fn build_mihomo_groups_value_with_providers(
+    proxies: &Value,
+    proxy_providers: Option<&Value>,
+    runtime: &Value,
+) -> Value {
     let mode = runtime
         .get("mode")
         .and_then(Value::as_str)
@@ -68,10 +126,13 @@ pub(crate) fn build_mihomo_groups_value(proxies: &Value, runtime: &Value) -> Val
         .and_then(Value::as_array)
         .unwrap_or(&empty_array);
     let empty_map = serde_json::Map::new();
-    let proxies_map = proxies
-        .get("proxies")
-        .and_then(Value::as_object)
-        .unwrap_or(&empty_map);
+    let proxies_map = merge_provider_proxies(
+        proxies
+            .get("proxies")
+            .and_then(Value::as_object)
+            .unwrap_or(&empty_map),
+        proxy_providers,
+    );
     let mut icon_map = serde_json::Map::new();
     let mut runtime_group_map = serde_json::Map::new();
     for group in proxy_groups {
@@ -117,7 +178,7 @@ pub(crate) fn build_mihomo_groups_value(proxies: &Value, runtime: &Value) -> Val
             object.insert(
                 "all".to_string(),
                 Value::Array(build_group_children(
-                    proxies_map,
+                    &proxies_map,
                     all_names,
                     &runtime_group_map,
                     &icon_map,
@@ -145,7 +206,7 @@ pub(crate) fn build_mihomo_groups_value(proxies: &Value, runtime: &Value) -> Val
                         object.insert(
                             "all".to_string(),
                             Value::Array(build_group_children(
-                                proxies_map,
+                                &proxies_map,
                                 all_names,
                                 &runtime_group_map,
                                 &icon_map,

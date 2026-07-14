@@ -1,6 +1,6 @@
+use super::*;
 use crate::desktop::prelude::*;
 use crate::desktop::*;
-use super::*;
 
 pub fn escape_task_xml_text(value: &Path) -> String {
     value
@@ -10,10 +10,7 @@ pub fn escape_task_xml_text(value: &Path) -> String {
         .replace('>', "&gt;")
 }
 
-pub fn build_routex_run_task_xml_for_paths(
-    routex_run_path: &Path,
-    exe_path: &Path,
-) -> String {
+pub fn build_routex_run_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
     let routex_run_path = escape_task_xml_text(routex_run_path);
     let exe_path = escape_task_xml_text(exe_path);
     format!(
@@ -66,10 +63,7 @@ pub fn build_routex_run_task_xml(app: &tauri::AppHandle) -> Result<String, Strin
     ))
 }
 
-pub fn build_routex_autorun_task_xml_for_paths(
-    routex_run_path: &Path,
-    exe_path: &Path,
-) -> String {
+pub fn build_routex_autorun_task_xml_for_paths(routex_run_path: &Path, exe_path: &Path) -> String {
     let routex_run_path = escape_task_xml_text(routex_run_path);
     let exe_path = escape_task_xml_text(exe_path);
     format!(

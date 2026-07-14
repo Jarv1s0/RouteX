@@ -46,6 +46,7 @@ type MihomoProxyType =
   | 'OpenVPN'
   | 'Tailscale'
   | 'GostRelay'
+  | 'Rematch'
 type TunStack = 'gvisor' | 'mixed' | 'system'
 type FindProcessMode = 'off' | 'strict' | 'always'
 type DnsMode = 'normal' | 'fake-ip' | 'redir-host'

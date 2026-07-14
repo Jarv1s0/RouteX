@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
+use super::*;
 use crate::desktop::prelude::*;
 use crate::desktop::*;
-use super::*;
 
 pub fn encode_utf16le_with_bom(value: &str) -> Vec<u8> {
     let mut bytes = vec![0xFF, 0xFE];

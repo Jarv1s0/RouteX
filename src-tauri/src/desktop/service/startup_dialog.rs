@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
+use super::*;
 use crate::desktop::prelude::*;
 use crate::desktop::*;
-use super::*;
 
 #[cfg(target_os = "windows")]
 pub const TDF_ALLOW_DIALOG_CANCELLATION: u32 = 0x0008;
@@ -195,7 +195,9 @@ pub fn show_windows_startup_relaunch_failed_dialog(create_error: &str, run_error
         "已检测到提权任务，但自动拉起高权限实例失败。\r
 \r
 请到“内核设置 -> 任务状态”重新注册后再试。",
-        Some(&format!("创建任务错误：{create_error}\r
-启动任务错误：{run_error}")),
+        Some(&format!(
+            "创建任务错误：{create_error}\r
+启动任务错误：{run_error}"
+        )),
     );
 }

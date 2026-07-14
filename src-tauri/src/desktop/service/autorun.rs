@@ -1,6 +1,6 @@
+use super::*;
 use crate::desktop::prelude::*;
 use crate::desktop::*;
-use super::*;
 
 pub fn config_bool_string(config: &Value, key: &str) -> String {
     config
