@@ -32,6 +32,9 @@ pub fn run() {
             }
             allow_single_instance_messages_from_unelevated_launchers(&app_handle);
             let _ = initialize_traffic_stats_store(&app_handle);
+            if let Err(error) = start_profile_updater(&app_handle) {
+                eprintln!("profile updater startup failed: {error}");
+            }
             let _ = init_global_shortcuts(&app_handle);
             let _ = install_process_signal_handlers(&app_handle);
             #[cfg(target_os = "macos")]

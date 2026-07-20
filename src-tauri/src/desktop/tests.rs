@@ -152,6 +152,68 @@ fn profile_config_normalization_repairs_current_and_dedupes_actives() {
     );
 }
 
+fn remote_profile(
+    interval: Option<u64>,
+    updated: Option<u64>,
+    auto_update: Option<bool>,
+) -> ProfileItemData {
+    ProfileItemData {
+        id: "remote-profile".to_string(),
+        item_type: "remote".to_string(),
+        name: "Remote".to_string(),
+        url: Some("https://example.com/profile.yaml".to_string()),
+        fingerprint: None,
+        ua: None,
+        file: None,
+        verify: None,
+        interval,
+        home: None,
+        updated,
+        override_ids: None,
+        use_proxy: None,
+        extra: None,
+        locked: None,
+        auto_update,
+    }
+}
+
+#[test]
+fn profile_auto_update_delay_uses_saved_update_time() {
+    let item = remote_profile(Some(60), Some(1_000), Some(true));
+    assert_eq!(profile_update_delay_ms(&item, 1_000, None), Some(3_600_000));
+    assert_eq!(profile_update_delay_ms(&item, 3_601_000, None), Some(0));
+}
+
+#[test]
+fn profile_auto_update_delay_throttles_failed_attempts() {
+    let item = remote_profile(Some(60), Some(1_000), Some(true));
+    assert_eq!(
+        profile_update_delay_ms(&item, 3_601_000, Some(3_600_000)),
+        Some(3_599_000)
+    );
+}
+
+#[test]
+fn profile_auto_update_ignores_disabled_or_local_profiles() {
+    let mut disabled = remote_profile(Some(60), Some(1_000), Some(false));
+    assert_eq!(profile_update_delay_ms(&disabled, 3_601_000, None), None);
+
+    disabled.auto_update = Some(true);
+    disabled.item_type = "local".to_string();
+    assert_eq!(profile_update_delay_ms(&disabled, 3_601_000, None), None);
+}
+
+#[test]
+fn profile_auto_update_discards_download_when_settings_change() {
+    let item = remote_profile(Some(60), Some(1_000), Some(true));
+    let signature = serde_json::to_string(&item).unwrap();
+    assert!(profile_matches_update_attempt(&item, &signature));
+
+    let mut edited = item;
+    edited.url = Some("https://example.com/edited.yaml".to_string());
+    assert!(!profile_matches_update_attempt(&edited, &signature));
+}
+
 #[test]
 fn quick_rules_normalization_drops_invalid_rules_and_forces_version() {
     let valid_rule = QuickRule {

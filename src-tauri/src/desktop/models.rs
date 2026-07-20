@@ -44,6 +44,10 @@ pub(crate) struct SsidCheckHandle {
     pub(crate) shutdown: mpsc::Sender<()>,
 }
 
+pub(crate) struct ProfileUpdaterHandle {
+    pub(crate) shutdown: mpsc::Sender<()>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub(crate) struct NetworkHealthState {
     pub(crate) latency_history: Vec<i64>,
@@ -63,6 +67,7 @@ pub(crate) struct CoreState {
     pub(crate) ssid_check: Mutex<Option<SsidCheckHandle>>,
     pub(crate) core_events_monitor: Mutex<Option<CoreEventsMonitorHandle>>,
     pub(crate) network_health_monitor: Mutex<Option<NetworkHealthMonitorHandle>>,
+    pub(crate) profile_updater: Mutex<Option<ProfileUpdaterHandle>>,
     pub(crate) network_health_state: Mutex<NetworkHealthState>,
     pub(crate) network_down_handled: Mutex<bool>,
     pub(crate) update_download_cancel: Mutex<Option<Arc<AtomicBool>>>,

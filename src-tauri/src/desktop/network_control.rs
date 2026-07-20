@@ -623,6 +623,7 @@ pub(crate) fn start_network_detection(
 }
 
 pub(crate) fn shutdown_runtime(app: &tauri::AppHandle, state: &State<'_, CoreState>) {
+    let _ = stop_profile_updater(state);
     let only_active_device = read_only_active_device(app).unwrap_or(false);
     let _ = stop_network_detection(state);
     let _ = trigger_sys_proxy(app, state, false, only_active_device);
@@ -642,6 +643,7 @@ pub(crate) fn shutdown_runtime_once(app: &tauri::AppHandle) {
     }
 
     if state.preserve_core_on_exit.load(AtomicOrdering::SeqCst) {
+        let _ = stop_profile_updater(&state);
         let _ = stop_lightweight_mode(app);
         return;
     }

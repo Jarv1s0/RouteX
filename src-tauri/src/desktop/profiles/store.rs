@@ -8,7 +8,7 @@ pub(crate) fn get_profile_item_from_config(
     id.and_then(|target| config.items.iter().find(|item| item.id == target).cloned())
 }
 
-fn profile_affects_runtime(config: &ProfileConfigData, id: &str) -> bool {
+pub(crate) fn profile_affects_runtime(config: &ProfileConfigData, id: &str) -> bool {
     let active_ids = active_profile_ids(config);
     active_ids.is_empty() || active_ids.iter().any(|active_id| active_id == id)
 }
