@@ -63,6 +63,7 @@ const AdvancedSettings: React.FC = () => {
   const { t } = useI18n()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const isAutobuild = ROUTEX_BUILD_VARIANT === 'autobuild'
+  const displayVersion = isAutobuild ? version.replace(/-autobuild\.\d+$/, '') : version
   const buildDetails = ROUTEX_BUILD_COMMIT ? `Commit: ${ROUTEX_BUILD_COMMIT}` : 'Autobuild'
 
   return (
@@ -141,7 +142,7 @@ const AdvancedSettings: React.FC = () => {
           {isAutobuild ? (
             <Tooltip content={buildDetails} placement="top">
               <div className="flex items-center gap-2 text-default-600">
-                <span>v{version}</span>
+                <span>v{displayVersion}</span>
                 <Chip size="sm" color="warning" variant="flat" className="h-5 px-0 text-[10px]">
                   AUTOBUILD
                 </Chip>
