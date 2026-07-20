@@ -66,8 +66,34 @@ interface MihomoProxyConfig {
   udp?: boolean
   'client-fingerprint'?: string
   'skip-cert-verify'?: boolean
+  'name-cert-verify'?: string
+  'shadow-tls-opts'?: MihomoShadowTlsOptions
+  'restls-opts'?: MihomoRestlsOptions
+  'jls-opts'?: MihomoJlsOptions
+  'data-ciphers'?: string[]
+  'data-ciphers-fallback'?: string
+  'tls-auth'?: string
+  'key-direction'?: '0' | '1'
+  'tls-crypt'?: string
+  'tls-crypt-v2'?: string
   ping?: number
   'ping-restart'?: number
+}
+
+interface MihomoShadowTlsOptions {
+  version?: number
+  password?: string
+}
+
+interface MihomoRestlsOptions {
+  password?: string
+  'version-hint'?: 'tls12' | 'tls13'
+  'restls-script'?: string
+}
+
+interface MihomoJlsOptions {
+  username?: string
+  password?: string
 }
 
 interface MihomoProxyGroupConfig {
@@ -187,6 +213,7 @@ interface ProxyProviderConfig {
   'size-limit'?: number
   payload?: Record<string, unknown>[]
   'age-secret-key'?: string
+  override?: ProxyProviderOverrideConfig
   'health-check'?: {
     enable?: boolean
     url?: string
@@ -196,6 +223,22 @@ interface ProxyProviderConfig {
     'expected-status'?: string
   }
   header?: Record<string, string[]>
+}
+
+interface ProxyProviderOverrideConfig {
+  [key: string]: unknown
+  udp?: boolean
+  up?: string
+  down?: string
+  'dialer-proxy'?: string
+  'skip-cert-verify'?: boolean
+  'name-cert-verify'?: string
+  'interface-name'?: string
+  'routing-mark'?: number
+  'ip-version'?: string
+  'additional-prefix'?: string
+  'additional-suffix'?: string
+  'override-expr'?: string[]
 }
 
 interface RuleProviderConfig {

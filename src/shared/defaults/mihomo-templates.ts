@@ -115,4 +115,62 @@ export const MIHOMO_V11928_YAML_SNIPPETS = [
   }
 ] as const
 
-export const MIHOMO_V119_YAML_SNIPPETS = MIHOMO_V11928_YAML_SNIPPETS
+export const MIHOMO_V119_YAML_SNIPPETS = [
+  ...MIHOMO_V11928_YAML_SNIPPETS,
+  {
+    label: 'mihomo-shadowquic-proxy',
+    detail: 'ShadowQUIC outbound',
+    info: 'Insert a Mihomo v1.19.29 ShadowQUIC outbound template.',
+    snippet: `- name: \${name}
+  type: shadowquic
+  server: \${server}
+  port: \${port}
+  username: \${username}
+  password: \${password}
+  sni: \${sni}
+  alpn:
+    - h3
+  congestion-controller: bbr
+  udp: true`
+  },
+  {
+    label: 'mihomo-openvpn-v11929-options',
+    detail: 'OpenVPN v1.19.29 options',
+    info: 'Insert OpenVPN cipher negotiation and TLS key options introduced in Mihomo v1.19.29.',
+    snippet: `data-ciphers:
+  - AES-256-GCM
+  - AES-128-GCM
+data-ciphers-fallback: AES-128-CBC
+tls-auth: |
+  \${tls_auth_key}
+key-direction: "1"
+# tls-crypt-v2: |
+#   \${tls_crypt_v2_key}`
+  },
+  {
+    label: 'mihomo-tls-obfuscation-options',
+    detail: 'ShadowTLS / Restls / JLS options',
+    info: 'Insert TLS obfuscation options supported by Mihomo v1.19.29.',
+    snippet: `name-cert-verify: \${certificate_name}
+# Choose one of the following option blocks.
+shadow-tls-opts:
+  version: 3
+  password: \${shadow_tls_password}
+# restls-opts:
+#   password: \${restls_password}
+#   version-hint: tls13
+# jls-opts:
+#   username: \${jls_username}
+#   password: \${jls_password}`
+  },
+  {
+    label: 'mihomo-provider-override-expr',
+    detail: 'Proxy provider override expressions',
+    info: 'Insert proxy-provider override expressions introduced in Mihomo v1.19.29.',
+    snippet: `override:
+  name-cert-verify: \${certificate_name}
+  override-expr:
+    - '.name = "[\${provider_name}] " + .name'
+    - '(select(.port == 443) | .tls) = true'`
+  }
+] as const

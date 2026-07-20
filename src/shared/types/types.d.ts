@@ -43,6 +43,7 @@ type MihomoProxyType =
   | 'Sudoku'
   | 'Masque'
   | 'TrustTunnel'
+  | 'ShadowQuic'
   | 'OpenVPN'
   | 'Tailscale'
   | 'GostRelay'
