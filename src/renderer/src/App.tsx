@@ -80,7 +80,7 @@ const App: React.FC = () => {
       lastUpdateCheckAtRef.current = now
 
       try {
-        const nextLatest = await checkUpdate()
+        const nextLatest = await checkUpdate(force)
         if (!cancelled) {
           setLatest(nextLatest)
         }

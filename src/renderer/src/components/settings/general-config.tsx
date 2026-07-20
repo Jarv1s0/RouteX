@@ -28,7 +28,7 @@ import {
   openUWPTool
 } from '@renderer/api/app'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { IoIosHelpCircle } from 'react-icons/io'
+import { IoIosHelpCircle, IoMdRefresh } from 'react-icons/io'
 import ConfirmModal from '../base/base-confirm'
 import { toast } from 'sonner'
 import { platform } from '@renderer/utils/init'
@@ -53,6 +53,14 @@ const LANGUAGE_OPTIONS: {
   { key: 'en-US', labelKey: 'common.language.enUS' }
 ]
 
+const UPDATE_CHANNEL_OPTIONS: {
+  key: AppConfig['updateChannel']
+  labelKey: TranslationKey
+}[] = [
+  { key: 'stable', labelKey: 'settings.system.updateChannelStable' },
+  { key: 'autobuild', labelKey: 'settings.system.updateChannelAutobuild' }
+]
+
 const GeneralConfig: React.FC = () => {
   const isTauriHost = __ROUTEX_HOST__ === 'tauri'
   const { t, language, setLanguage } = useI18n()
@@ -64,7 +72,8 @@ const GeneralConfig: React.FC = () => {
     pauseSSID,
     autoLightweight = false,
     autoLightweightMode = 'core',
-    hotReloadCoreOnSave = true
+    hotReloadCoreOnSave = true,
+    updateChannel = 'stable'
   } = appConfig || {}
 
   const pauseSSIDArray = pauseSSID ?? emptyArray
@@ -85,6 +94,7 @@ const GeneralConfig: React.FC = () => {
   const [releaseNotes, setReleaseNotes] = useState('')
   const [openUpdate, setOpenUpdate] = useState(false)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [changingUpdateChannel, setChangingUpdateChannel] = useState(false)
   const [updateStatus, setUpdateStatus] = useState<{
     downloading: boolean
     progress: number
@@ -116,6 +126,48 @@ const GeneralConfig: React.FC = () => {
   const handleAutoLightweightChange = (v: boolean): void => {
     void patchAppConfig({ autoLightweight: v })
     setIsLightweightModalOpen(v)
+  }
+
+  const handleUpdateChannelChange = async (
+    nextChannel: AppConfig['updateChannel'] | undefined
+  ): Promise<void> => {
+    if (!nextChannel || nextChannel === updateChannel) return
+
+    try {
+      setChangingUpdateChannel(true)
+      await patchAppConfig({ updateChannel: nextChannel })
+      void checkUpdate(true)
+    } catch (e) {
+      toast.error(String(e))
+    } finally {
+      setChangingUpdateChannel(false)
+    }
+  }
+
+  const handleCheckUpdate = async (): Promise<void> => {
+    try {
+      setCheckingUpdate(true)
+      const availableVersion = await checkUpdate()
+      if (availableVersion) {
+        setNewVersion(availableVersion.version)
+        setReleaseNotes(availableVersion.releaseNotes)
+        setOpenUpdate(true)
+        return
+      }
+
+      toast.success(t('settings.system.upToDate'))
+    } catch (e) {
+      const errorMessage = String(e)
+      if (errorMessage.includes('404')) {
+        toast.error(t('settings.system.checkFailed'), {
+          description: t('settings.system.noUpdate')
+        })
+      } else {
+        toast.error(errorMessage)
+      }
+    } finally {
+      setCheckingUpdate(false)
+    }
   }
 
   return (
@@ -328,38 +380,55 @@ const GeneralConfig: React.FC = () => {
             ))}
           </Select>
         </SettingItem>
-        <SettingItem title={t('settings.system.checkUpdate')} divider={!isTauriHost}>
-          <Button
-            size="sm"
-            variant="flat"
-            isLoading={checkingUpdate}
-            onPress={async () => {
-              try {
-                setCheckingUpdate(true)
-                const version = await checkUpdate()
-                if (version) {
-                  setNewVersion(version.version)
-                  setReleaseNotes(version.releaseNotes)
-                  setOpenUpdate(true)
-                } else {
-                  toast.success(t('settings.system.upToDate'))
-                }
-              } catch (e) {
-                const errorMsg = String(e)
-                if (errorMsg.includes('404')) {
-                  toast.error(t('settings.system.checkFailed'), {
-                    description: t('settings.system.noUpdate')
-                  })
-                } else {
-                  toast.error(String(e))
-                }
-              } finally {
-                setCheckingUpdate(false)
+        <SettingItem
+          title={t('settings.system.softwareUpdate')}
+          actions={
+            <Tooltip content={t('settings.system.updateChannelHelp')}>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                aria-label={t('settings.system.updateChannelHelp')}
+              >
+                <IoIosHelpCircle className="text-lg" />
+              </Button>
+            </Tooltip>
+          }
+          divider={!isTauriHost}
+        >
+          <div className="flex w-[230px] items-center justify-end gap-2">
+            <Tooltip content={t('settings.system.checkNow')}>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                isLoading={checkingUpdate}
+                isDisabled={changingUpdateChannel}
+                aria-label={t('settings.system.checkNow')}
+                onPress={handleCheckUpdate}
+              >
+                <IoMdRefresh className="text-lg" />
+              </Button>
+            </Tooltip>
+            <Select
+              classNames={CARD_STYLES.GLASS_SELECT}
+              className="w-[190px]"
+              size="sm"
+              selectedKeys={new Set([updateChannel])}
+              disallowEmptySelection={true}
+              isDisabled={checkingUpdate || changingUpdateChannel}
+              aria-label={t('settings.system.updateChannel')}
+              onSelectionChange={(selection) =>
+                void handleUpdateChannelChange(
+                  selection.currentKey as AppConfig['updateChannel'] | undefined
+                )
               }
-            }}
-          >
-            {t('settings.system.checkNow')}
-          </Button>
+            >
+              {UPDATE_CHANNEL_OPTIONS.map((option) => (
+                <SelectItem key={option.key}>{t(option.labelKey)}</SelectItem>
+              ))}
+            </Select>
+          </div>
         </SettingItem>
       </SettingCard>
 

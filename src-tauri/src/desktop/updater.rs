@@ -2,22 +2,34 @@ use super::prelude::*;
 use super::*;
 
 pub(crate) fn update_channel(app: &tauri::AppHandle) -> Result<String, String> {
-    Ok(read_app_config_store(app)?
+    let app_config = read_app_config_store(app)?;
+    let configured = app_config
         .get("updateChannel")
         .and_then(Value::as_str)
-        .unwrap_or("stable")
-        .to_string())
+        .unwrap_or("stable");
+    Ok(normalize_update_channel(configured).to_string())
+}
+
+pub(crate) fn normalize_update_channel(channel: &str) -> &'static str {
+    match channel {
+        "autobuild" | "beta" => "autobuild",
+        _ => "stable",
+    }
+}
+
+pub(crate) fn default_update_manifest_url(channel: &str) -> &'static str {
+    if normalize_update_channel(channel) == "autobuild" {
+        "https://github.com/Jarv1s0/RouteX/releases/download/autobuild-main/latest.json"
+    } else {
+        "https://github.com/Jarv1s0/RouteX/releases/latest/download/latest.json"
+    }
 }
 
 pub(crate) fn update_manifest_url(app: &tauri::AppHandle) -> Result<String, String> {
     let update_channel = update_channel(app)?;
-    let fallback = if update_channel == "beta" {
-        "https://github.com/Jarv1s0/RouteX/releases/download/pre-release/latest.json"
-    } else {
-        "https://github.com/Jarv1s0/RouteX/releases/latest/download/latest.json"
-    };
-    let env_endpoint = if update_channel == "beta" {
-        option_env!("ROUTEX_UPDATER_BETA_ENDPOINT")
+    let fallback = default_update_manifest_url(&update_channel);
+    let env_endpoint = if update_channel == "autobuild" {
+        option_env!("ROUTEX_UPDATER_AUTOBUILD_ENDPOINT")
     } else {
         option_env!("ROUTEX_UPDATER_STABLE_ENDPOINT")
     };

@@ -397,6 +397,12 @@ export const zhCN = {
   'settings.system.autoLaunch': '开机自启',
   'settings.system.silentStart': '静默启动',
   'settings.system.language': '界面语言',
+  'settings.system.softwareUpdate': '软件更新',
+  'settings.system.updateChannel': '更新通道',
+  'settings.system.updateChannelStable': '正式版',
+  'settings.system.updateChannelAutobuild': '自动构建',
+  'settings.system.updateChannelHelp':
+    '两个通道相互独立。正式通道仅接收正式版；自动构建通道仅接收最新开发构建，可能存在未经充分验证的问题。',
   'settings.system.checkUpdate': '检查更新',
   'settings.system.checkNow': '立即检查',
   'settings.system.upToDate': '当前已是最新版本',

@@ -4,6 +4,7 @@ const [, , tagArg, outputArg = 'latest.json'] = process.argv
 const tag = tagArg || process.env.RELEASE_TAG
 const repository = process.env.GITHUB_REPOSITORY || 'Jarv1s0/RouteX'
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
+const assetVersion = process.env.RELEASE_ASSET_VERSION?.trim()
 
 if (!tag) {
   throw new Error('Missing release tag argument')
@@ -107,7 +108,14 @@ function releaseAssetUrl(assetName) {
 }
 
 const release = await fetchRelease()
-const assets = release.assets || []
+const releaseAssets = release.assets || []
+const assets = assetVersion
+  ? releaseAssets.filter((asset) => asset.name.includes(assetVersion))
+  : releaseAssets
+
+if (assetVersion && assets.length === 0) {
+  throw new Error(`No release assets found for version ${assetVersion} in release ${tag}`)
+}
 const signatures = new Map()
 
 for (const asset of assets) {

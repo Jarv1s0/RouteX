@@ -18,7 +18,7 @@ interface IHost {
 }
 
 interface AppConfig {
-  updateChannel: 'stable' | 'beta'
+  updateChannel: 'stable' | 'autobuild'
   core: 'mihomo' | 'mihomo-alpha' | 'system'
   systemCorePath?: string
   corePermissionMode?: 'elevated' | 'service'

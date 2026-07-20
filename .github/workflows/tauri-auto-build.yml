@@ -21,6 +21,7 @@ jobs:
       contents: write
     outputs:
       release_tag: ${{ steps.build-meta.outputs.release_tag }}
+      autobuild_version: ${{ steps.build-meta.outputs.autobuild_version }}
     steps:
       - uses: actions/checkout@v6.0.1
         with:
@@ -37,6 +38,7 @@ jobs:
         shell: bash
         run: |
           VERSION=$(node -p "require('./package.json').version")
+          AUTOBUILD_VERSION="${VERSION}-autobuild.${GITHUB_RUN_NUMBER}"
           RELEASE_TAG="autobuild-${GITHUB_REF_NAME}"
           RELEASE_TITLE="Autobuild ${GITHUB_REF_NAME}"
 
@@ -44,6 +46,7 @@ jobs:
           echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
           echo "RELEASE_TITLE=$RELEASE_TITLE" >> $GITHUB_ENV
           echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "autobuild_version=$AUTOBUILD_VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate Release Notes
         run: node scripts/extract-latest-changelog.mjs changelog.md release_notes.md
@@ -56,14 +59,21 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
-          gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
-          sleep 2
-
-          gh release create "$RELEASE_TAG" \
-            --title "$RELEASE_TITLE" \
-            --notes-file release_notes.md \
-            --prerelease \
-            --target ${{ github.sha }}
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            git tag --force "$RELEASE_TAG" "${{ github.sha }}"
+            git push origin "refs/tags/$RELEASE_TAG" --force
+            gh release edit "$RELEASE_TAG" \
+              --title "$RELEASE_TITLE" \
+              --notes-file release_notes.md \
+              --prerelease \
+              --target ${{ github.sha }}
+          else
+            gh release create "$RELEASE_TAG" \
+              --title "$RELEASE_TITLE" \
+              --notes-file release_notes.md \
+              --prerelease \
+              --target ${{ github.sha }}
+          fi
 
   build-and-upload:
     needs: update-tag
@@ -246,20 +256,27 @@ jobs:
           ROUTEX_AUTO_BUILD: 'true'
           ROUTEX_BUILD_COMMIT: ${{ github.sha }}
           ROUTEX_BUILD_NUMBER: ${{ github.run_number }}
+          ROUTEX_BUILD_VERSION: ${{ needs.update-tag.outputs.autobuild_version }}
           ROUTEX_TAURI_BUILD_VARIANT: autobuild
+          ROUTEX_UPDATER_PUBLIC_KEY: ${{ secrets.ROUTEX_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           CARGO_PROFILE_RELEASE_LTO: 'false'
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: '16'
         shell: bash
         run: |
+          pnpm check:release-env
+          node scripts/write-release-tauri-config.mjs
+
           case "${{ matrix.platform }}" in
             windows)
-              pnpm tauri build --bundles nsis
+              pnpm tauri build --bundles nsis --config src-tauri/tauri.release.conf.json
               ;;
             linux)
-              pnpm tauri build --bundles deb rpm
+              pnpm tauri build --bundles deb rpm --config src-tauri/tauri.release.conf.json
               ;;
             macos)
-              pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg
+              pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config src-tauri/tauri.release.conf.json
               ;;
             *)
               echo "Unsupported platform: ${{ matrix.platform }}"
@@ -268,6 +285,8 @@ jobs:
           esac
 
       - name: Prepare Release Artifacts
+        env:
+          AUTOBUILD_VERSION: ${{ needs.update-tag.outputs.autobuild_version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -275,7 +294,7 @@ jobs:
           artifact_dir="release-artifacts"
           rm -rf "$artifact_dir"
           mkdir -p "$artifact_dir"
-          version=$(node -p "require('./package.json').version")
+          version="$AUTOBUILD_VERSION"
           short_hash=$(git rev-parse --short=8 HEAD)
           artifact_prefix="RouteX-${version}"
 
@@ -384,6 +403,24 @@ jobs:
             fi
           done
 
+          signature_count=0
+          while IFS= read -r signature_file; do
+            signed_file="${signature_file%.sig}"
+            if [ ! -f "$signed_file" ]; then
+              echo "Missing updater artifact for signature: $signature_file"
+              exit 1
+            fi
+
+            cp "$signed_file" "$artifact_dir/$(basename "$signed_file")"
+            cp "$signature_file" "$artifact_dir/$(basename "$signature_file")"
+            signature_count=$((signature_count + 1))
+          done < <(find src-tauri/target -type f -name '*.sig' -print | sort)
+
+          if [ "$signature_count" -eq 0 ]; then
+            echo "No signed updater artifacts found for platform: ${{ matrix.platform }}"
+            exit 1
+          fi
+
           find "$artifact_dir" -maxdepth 1 -type f -print | sort
 
       - name: Upload Artifacts
@@ -403,3 +440,37 @@ jobs:
           fi
 
           gh release upload "${{ needs.update-tag.outputs.release_tag }}" "${files[@]}" --clobber
+
+  publish-updater-manifest:
+    needs:
+      - update-tag
+      - build-and-upload
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6.0.1
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-node@v6.1.0
+        with:
+          node-version: 20
+
+      - name: Generate and Upload Autobuild Updater Manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.update-tag.outputs.autobuild_version }}
+          RELEASE_ASSET_VERSION: ${{ needs.update-tag.outputs.autobuild_version }}
+        shell: bash
+        run: |
+          node scripts/generate-tauri-updater-manifest.mjs "${{ needs.update-tag.outputs.release_tag }}" latest.json
+          gh release upload "${{ needs.update-tag.outputs.release_tag }}" latest.json --clobber
+
+          while IFS= read -r asset_name; do
+            if [ "$asset_name" != "latest.json" ] && [[ "$asset_name" != *"${VERSION}"* ]]; then
+              gh release delete-asset "${{ needs.update-tag.outputs.release_tag }}" "$asset_name" --yes
+            fi
+          done < <(gh release view "${{ needs.update-tag.outputs.release_tag }}" --json assets --jq '.assets[].name')

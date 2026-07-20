@@ -10,6 +10,7 @@ let tauriAppConfigPromise: Promise<AppConfig> | null = null
 let checkUpdatePromise: Promise<AppVersion | undefined> | null = null
 let lastCheckUpdateAt = 0
 let lastCheckUpdateResult: AppVersion | undefined
+let updateCheckGeneration = 0
 
 const CHECK_UPDATE_CACHE_MS = 60 * 1000
 export const UPDATE_CHECK_RESULT_EVENT = 'routex:update-check-result'
@@ -27,7 +28,11 @@ function getDefaultTauriAppConfig(): AppConfig {
 }
 
 function normalizeTauriAppConfig(config?: Partial<AppConfig>): AppConfig {
-  return mergeAppConfig(getDefaultTauriAppConfig(), config || {})
+  const normalized = mergeAppConfig(getDefaultTauriAppConfig(), config || {})
+  if ((config?.updateChannel as string | undefined) === 'beta') {
+    normalized.updateChannel = 'autobuild'
+  }
+  return normalized
 }
 
 function emitUpdateCheckResult(result: AppVersion | undefined): void {
@@ -90,29 +95,42 @@ export async function patchAppConfig(patch: Partial<AppConfig>): Promise<void> {
   return invokeSafe(C.patchAppConfig, patch)
 }
 
-export async function checkUpdate(): Promise<AppVersion | undefined> {
+export async function checkUpdate(force = false): Promise<AppVersion | undefined> {
+  if (force) {
+    updateCheckGeneration += 1
+  }
+  const generation = updateCheckGeneration
   const now = Date.now()
-  if (now - lastCheckUpdateAt < CHECK_UPDATE_CACHE_MS && lastCheckUpdateResult !== undefined) {
+  if (
+    !force &&
+    now - lastCheckUpdateAt < CHECK_UPDATE_CACHE_MS &&
+    lastCheckUpdateResult !== undefined
+  ) {
     emitUpdateCheckResult(lastCheckUpdateResult)
     return lastCheckUpdateResult
   }
 
-  if (checkUpdatePromise) {
+  if (checkUpdatePromise && !force) {
     return checkUpdatePromise
   }
 
-  checkUpdatePromise = invokeSafe<AppVersion | undefined>(C.checkUpdate)
+  const request = invokeSafe<AppVersion | undefined>(C.checkUpdate)
     .then((result) => {
-      lastCheckUpdateAt = Date.now()
-      lastCheckUpdateResult = result
-      emitUpdateCheckResult(result)
+      if (generation === updateCheckGeneration) {
+        lastCheckUpdateAt = Date.now()
+        lastCheckUpdateResult = result
+        emitUpdateCheckResult(result)
+      }
       return result
     })
     .finally(() => {
-      checkUpdatePromise = null
+      if (checkUpdatePromise === request) {
+        checkUpdatePromise = null
+      }
     })
 
-  return checkUpdatePromise
+  checkUpdatePromise = request
+  return request
 }
 
 export async function downloadAndInstallUpdate(version: string): Promise<void> {

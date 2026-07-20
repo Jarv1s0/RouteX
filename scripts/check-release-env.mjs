@@ -1,11 +1,8 @@
-const requiredEnv = [
-  'ROUTEX_UPDATER_PUBLIC_KEY',
-  'TAURI_SIGNING_PRIVATE_KEY'
-]
+const requiredEnv = ['ROUTEX_UPDATER_PUBLIC_KEY', 'TAURI_SIGNING_PRIVATE_KEY']
 const optionalEnv = [
   'TAURI_SIGNING_PRIVATE_KEY_PASSWORD',
   'ROUTEX_UPDATER_STABLE_ENDPOINT',
-  'ROUTEX_UPDATER_BETA_ENDPOINT'
+  'ROUTEX_UPDATER_AUTOBUILD_ENDPOINT'
 ]
 
 if (process.env.ROUTEX_SKIP_UPDATER_ENV_CHECK === 'true') {
@@ -50,13 +47,17 @@ if (!publicKey) {
 }
 
 if (publicKey !== process.env.ROUTEX_UPDATER_PUBLIC_KEY.trim()) {
-  console.warn('[release-env] ROUTEX_UPDATER_PUBLIC_KEY contains extra text; release build will use the extracted public key value')
+  console.warn(
+    '[release-env] ROUTEX_UPDATER_PUBLIC_KEY contains extra text; release build will use the extracted public key value'
+  )
 }
 
 for (const name of optionalEnv) {
   if (!process.env[name]?.trim()) {
     if (name === 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD') {
-      console.warn('[release-env] TAURI_SIGNING_PRIVATE_KEY_PASSWORD is not set; assuming the signing key has no password')
+      console.warn(
+        '[release-env] TAURI_SIGNING_PRIVATE_KEY_PASSWORD is not set; assuming the signing key has no password'
+      )
       continue
     }
 

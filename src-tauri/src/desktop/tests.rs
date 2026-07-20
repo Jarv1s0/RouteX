@@ -943,3 +943,15 @@ fn stale_profile_runtime_config_cache_write_is_ignored() {
     assert_eq!(cached.get("mode").and_then(Value::as_str), Some("global"));
     assert!(read_cached_profile_runtime_config(stale_revision).is_none());
 }
+
+#[test]
+fn update_channels_are_independent_and_legacy_beta_migrates_to_autobuild() {
+    assert_eq!(normalize_update_channel("stable"), "stable");
+    assert_eq!(normalize_update_channel("autobuild"), "autobuild");
+    assert_eq!(normalize_update_channel("beta"), "autobuild");
+    assert_eq!(normalize_update_channel("unexpected"), "stable");
+
+    assert!(default_update_manifest_url("stable").contains("releases/latest/download"));
+    assert!(default_update_manifest_url("autobuild")
+        .contains("releases/download/autobuild-main/latest.json"));
+}

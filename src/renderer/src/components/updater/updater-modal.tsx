@@ -81,7 +81,9 @@ const UpdaterModal: React.FC<Props> = (props) => {
               <div className="truncate text-xl font-semibold">
                 {t('updater.versionReady', { version })}
               </div>
-              <div className="text-xs font-normal text-default-500">{t('updater.releaseNotes')}</div>
+              <div className="text-xs font-normal text-default-500">
+                {t('updater.releaseNotes')}
+              </div>
             </div>
           </div>
           {!isDownloading && (
@@ -91,8 +93,8 @@ const UpdaterModal: React.FC<Props> = (props) => {
               variant="flat"
               className="shrink-0 app-nodrag"
               onPress={() => {
-                if (version.includes('beta')) {
-                  open('https://github.com/Jarv1s0/RouteX/releases/tag/pre-release')
+                if (version.includes('-autobuild.')) {
+                  open('https://github.com/Jarv1s0/RouteX/releases/tag/autobuild-main')
                   return
                 }
                 open(`https://github.com/Jarv1s0/RouteX/releases/tag/v${version}`)
@@ -137,12 +139,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
             </div>
           ) : (
             <>
-              <Button
-                size="sm"
-                variant="light"
-                onPress={handleCancel}
-                startContent={<FiX />}
-              >
+              <Button size="sm" variant="light" onPress={handleCancel} startContent={<FiX />}>
                 {t('common.cancel')}
               </Button>
               <Button

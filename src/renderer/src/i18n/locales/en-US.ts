@@ -414,6 +414,12 @@ export const enUS: Record<TranslationKey, string> = {
   'settings.system.autoLaunch': 'Launch at startup',
   'settings.system.silentStart': 'Silent start',
   'settings.system.language': 'Language',
+  'settings.system.softwareUpdate': 'Software updates',
+  'settings.system.updateChannel': 'Update channel',
+  'settings.system.updateChannelStable': 'Official release',
+  'settings.system.updateChannelAutobuild': 'Autobuild',
+  'settings.system.updateChannelHelp':
+    'The channels are independent. Stable only receives official releases; Autobuild only receives the latest development builds, which may not be fully tested.',
   'settings.system.checkUpdate': 'Check for updates',
   'settings.system.checkNow': 'Check now',
   'settings.system.upToDate': 'You are on the latest version',
