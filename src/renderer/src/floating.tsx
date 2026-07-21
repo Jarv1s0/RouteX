@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import { HeroUIProvider } from '@heroui/react'
 import '@renderer/assets/floating.css'
 import FloatingApp from '@renderer/FloatingApp'
 import ErrorBoundary from './components/base/error-boundary'
@@ -9,6 +10,7 @@ import { ControledMihomoConfigProvider } from './hooks/use-controled-mihomo-conf
 import { useTheme } from 'next-themes'
 import { useAppConfig } from './hooks/use-app-config'
 import { applyTheme } from './utils/theme-ipc'
+import { I18nProvider } from './i18n'
 import { DEFAULT_CUSTOM_THEME } from '../../shared/defaults/app'
 
 const FloatingWindowThemeBridge: React.FC = () => {
@@ -35,14 +37,18 @@ const FloatingWindowThemeBridge: React.FC = () => {
 }
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
-    <ErrorBoundary>
-      <AppConfigProvider>
-        <ControledMihomoConfigProvider>
-          <FloatingWindowThemeBridge />
-          <FloatingApp />
-        </ControledMihomoConfigProvider>
-      </AppConfigProvider>
-    </ErrorBoundary>
-  </NextThemesProvider>
+  <HeroUIProvider>
+    <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
+      <ErrorBoundary>
+        <AppConfigProvider>
+          <I18nProvider>
+            <ControledMihomoConfigProvider>
+              <FloatingWindowThemeBridge />
+              <FloatingApp />
+            </ControledMihomoConfigProvider>
+          </I18nProvider>
+        </AppConfigProvider>
+      </ErrorBoundary>
+    </NextThemesProvider>
+  </HeroUIProvider>
 )

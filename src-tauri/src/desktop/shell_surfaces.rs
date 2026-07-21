@@ -19,7 +19,7 @@ pub(crate) fn ensure_floating_window(
     .decorations(false)
     .always_on_top(true)
     .skip_taskbar(true)
-    .shadow(true)
+    .shadow(false)
     .visible(false)
     .focused(true);
 
