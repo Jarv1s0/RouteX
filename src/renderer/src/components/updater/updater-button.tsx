@@ -1,6 +1,6 @@
 import { Button } from '@heroui/react'
 import React, { Suspense, useEffect, useState } from 'react'
-import { FiDownload } from 'react-icons/fi'
+import { LuCircleArrowDown } from 'react-icons/lu'
 import { cancelUpdate } from '@renderer/api/app'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
@@ -73,7 +73,7 @@ const UpdaterButton: React.FC<Props> = (props) => {
             setOpenModal(true)
           }}
         >
-          <FiDownload className="text-lg" />
+          <LuCircleArrowDown className="text-lg" />
         </Button>
       ) : (
         <Button
@@ -85,7 +85,7 @@ const UpdaterButton: React.FC<Props> = (props) => {
             setOpenModal(true)
           }}
         >
-          <FiDownload className="text-lg" />
+          <LuCircleArrowDown className="text-lg" />
         </Button>
       )}
     </>
