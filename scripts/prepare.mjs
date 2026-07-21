@@ -43,7 +43,6 @@ const reuseExistingResources =
 const OPTIONAL_EXTRA_PATHS = [
   path.join(cwd, 'extra', 'sidecar', platform === 'win32' ? 'mihomo-alpha.exe' : 'mihomo-alpha'),
   path.join(cwd, 'extra', 'files', 'enableLoopback.exe'),
-  path.join(cwd, 'extra', 'files', 'TrafficMonitor'),
   path.join(cwd, 'extra', 'files', '7za.exe'),
   path.join(cwd, 'extra', 'files', 'sub-store.bundle.js'),
   path.join(cwd, 'extra', 'files', 'sub-store-frontend')

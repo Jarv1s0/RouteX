@@ -4,10 +4,6 @@ import { useLocation } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useEffect, useState, useRef } from 'react'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
-import { getIconDataURL } from '@renderer/utils/resource-ipc'
-import { platform } from '@renderer/utils/init'
 import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { subscribeDesktopTraffic } from '@renderer/utils/mihomo-ipc'
 import { warmConnectionSnapshot } from '@renderer/store/use-connections-store'
@@ -15,11 +11,6 @@ import TrafficChart from './traffic-chart'
 import { useI18n } from '@renderer/i18n'
 import AnimatedNumber from '@renderer/components/base/animated-number'
 
-let currentUpload: number | undefined = undefined
-let currentDownload: number | undefined = undefined
-let hasShowTraffic = false
-let drawing = false
-let trayIconBase64Promise: Promise<string> | null = null
 const SIDEBAR_TRAFFIC_VISUAL_INTERVAL_MS = 1000
 
 interface Props {
@@ -94,10 +85,6 @@ function SidebarTrafficValue({
 const ConnCard: React.FC<Props> = (props) => {
   const { iconOnly } = props
   const { t } = useI18n()
-  const { appConfig } = useAppConfig()
-  const { showTraffic = false } = appConfig || {}
-  const showTrafficRef = useRef(showTraffic)
-  showTrafficRef.current = showTraffic
 
   const location = useLocation()
   const match = location.pathname.includes('/connections')
@@ -133,7 +120,7 @@ const ConnCard: React.FC<Props> = (props) => {
   }, [])
 
   useEffect(() => {
-    if (iconOnly && !(platform === 'darwin' && showTraffic)) {
+    if (iconOnly) {
       return
     }
 
@@ -159,29 +146,12 @@ const ConnCard: React.FC<Props> = (props) => {
           return newData
         })
       }
-
-      if (platform === 'darwin' && showTrafficRef.current) {
-        if (drawing) return
-        drawing = true
-        try {
-          await drawSvg(info.up, info.down)
-          hasShowTraffic = true
-        } catch {
-          // ignore
-        } finally {
-          drawing = false
-        }
-      } else {
-        if (!hasShowTraffic) return
-        sendIpc(SEND.trayIconUpdate, await getTrayIconBase64())
-        hasShowTraffic = false
-      }
     }
 
     return subscribeDesktopTraffic((info) => {
       void handleTraffic(info)
     }, true)
-  }, [iconOnly, showTraffic])
+  }, [iconOnly])
 
   if (iconOnly) {
     return (
@@ -254,40 +224,3 @@ const ConnCard: React.FC<Props> = (props) => {
 export default React.memo(ConnCard, (prevProps, nextProps) => {
   return prevProps.iconOnly === nextProps.iconOnly
 })
-
-async function getTrayIconBase64(): Promise<string> {
-  if (!trayIconBase64Promise) {
-    trayIconBase64Promise = getIconDataURL('mihomo')
-  }
-
-  return await trayIconBase64Promise
-}
-
-const drawSvg = async (upload: number, download: number): Promise<void> => {
-  if (upload === currentUpload && download === currentDownload) return
-  currentUpload = upload
-  currentDownload = download
-  const trayIconBase64 = await getTrayIconBase64()
-  const svg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 36"><image height="36" width="36" href="${trayIconBase64}"/><text x="140" y="15" font-size="18" font-family="PingFang SC" font-weight="bold" text-anchor="end">${calcTraffic(upload)}/s</text><text x="140" y="34" font-size="18" font-family="PingFang SC" font-weight="bold" text-anchor="end">${calcTraffic(download)}/s</text></svg>`
-  const image = await loadImage(svg)
-  sendIpc(SEND.trayIconUpdate, image)
-}
-
-const loadImage = (url: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = (): void => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      canvas.width = 156
-      canvas.height = 36
-      ctx?.drawImage(img, 0, 0)
-      const png = canvas.toDataURL('image/png')
-      resolve(png)
-    }
-    img.onerror = (): void => {
-      reject()
-    }
-    img.src = url
-  })
-}

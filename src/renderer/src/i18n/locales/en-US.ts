@@ -509,8 +509,6 @@ export const enUS: Record<TranslationKey, string> = {
   'settings.appearance.spinFloatingIcon': 'Spin floating icon by traffic speed',
   'settings.appearance.disableTray': 'Disable tray icon',
   'settings.appearance.proxyInTray': 'Show node info in tray menu',
-  'settings.appearance.trafficInTaskbar': 'Show traffic speed in taskbar',
-  'settings.appearance.trafficInStatusbar': 'Show traffic speed in status bar',
   'settings.appearance.showDock': 'Show Dock icon',
   'settings.appearance.collapseSidebar': 'Collapse sidebar',
   'settings.appearance.background': 'Background',

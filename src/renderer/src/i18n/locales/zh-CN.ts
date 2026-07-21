@@ -485,8 +485,6 @@ export const zhCN = {
   'settings.appearance.spinFloatingIcon': '根据网速旋转悬浮窗图标',
   'settings.appearance.disableTray': '禁用托盘图标',
   'settings.appearance.proxyInTray': '托盘菜单显示节点信息',
-  'settings.appearance.trafficInTaskbar': '任务栏显示网速信息',
-  'settings.appearance.trafficInStatusbar': '状态栏显示网速信息',
   'settings.appearance.showDock': '显示 Dock 图标',
   'settings.appearance.collapseSidebar': '折叠侧边栏',
   'settings.appearance.background': '背景色',

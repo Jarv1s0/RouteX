@@ -628,7 +628,6 @@ pub(crate) fn shutdown_runtime(app: &tauri::AppHandle, state: &State<'_, CoreSta
     let _ = stop_network_detection(state);
     let _ = trigger_sys_proxy(app, state, false, only_active_device);
     let _ = recover_dns(app);
-    let _ = stop_traffic_monitor(app);
     let _ = stop_core_process(app, state);
 }
 

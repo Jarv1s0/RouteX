@@ -68,7 +68,6 @@ export const SYSTEM_IPC_INVOKE_CHANNELS = {
   showFloatingWindow: 'showFloatingWindow',
   showMainWindow: 'showMainWindow',
   showTrayIcon: 'showTrayIcon',
-  startMonitor: 'startMonitor',
   startNetworkDetection: 'startNetworkDetection',
   startNetworkHealthMonitor: 'startNetworkHealthMonitor',
   startService: 'startService',

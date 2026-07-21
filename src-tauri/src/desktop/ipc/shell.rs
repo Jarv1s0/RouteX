@@ -287,32 +287,6 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
             Ok(Value::Null)
         
     })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("trayIconUpdate", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
-            let data_url = args
-                .first()
-                .and_then(Value::as_str)
-                .ok_or_else(|| "trayIconUpdate requires data url".to_string())?;
-            apply_tray_icon_data_url(app, data_url)?;
-            Ok(Value::Null)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("startMonitor", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
-            start_traffic_monitor(app)?;
-            update_tray_icon_for_state(app)?;
-            refresh_native_tray_menu(app)?;
-            Ok(Value::Null)
-        
-    })().map_err(crate::desktop::error::AppError::from) });
     map.insert("setupFirewall", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;

@@ -22,10 +22,9 @@ const TS_INVOKE_CHANNEL_SOURCES: [&str; 4] = [
     include_str!("../../../src/shared/ipc/invoke-system.ts"),
 ];
 
-const TAURI_SEND_FORWARD_CHANNELS: [&str; 6] = [
+const TAURI_SEND_FORWARD_CHANNELS: [&str; 5] = [
     "closeTrayMenuWindow",
     "quitConfirmResult",
-    "trayIconUpdate",
     "updateFloatingWindow",
     "updateTaskbarIcon",
     "updateTrayMenu",

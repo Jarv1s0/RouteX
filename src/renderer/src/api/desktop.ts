@@ -262,7 +262,6 @@ export const desktop: DesktopApi = {
       const invokeChannelMap: Partial<Record<IpcSendChannel, string>> = {
         'customTray:close': 'closeTrayMenuWindow',
         'quit-confirm-result': 'quitConfirmResult',
-        trayIconUpdate: 'trayIconUpdate',
         updateFloatingWindow: 'updateFloatingWindow',
         'update-taskbar-icon': 'updateTaskbarIcon',
         updateTrayMenu: 'updateTrayMenu'

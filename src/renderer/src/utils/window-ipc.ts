@@ -56,7 +56,3 @@ export async function showFloatingWindow(): Promise<void> {
 export async function closeFloatingWindow(): Promise<void> {
   return invokeSafe(C.closeFloatingWindow)
 }
-
-export async function startMonitor(): Promise<void> {
-  return invokeSafe(C.startMonitor)
-}

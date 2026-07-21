@@ -5,7 +5,6 @@ pub(crate) struct StartupAlignmentConfig {
     pub(crate) sysproxy_enabled: bool,
     pub(crate) only_active_device: bool,
     pub(crate) network_detection: bool,
-    pub(crate) show_traffic: bool,
 }
 
 pub(crate) fn read_startup_alignment_config(
@@ -39,11 +38,6 @@ pub(crate) fn read_startup_alignment_config(
         .get("networkDetection")
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    let show_traffic = config
-        .get("showTraffic")
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-
     sync_shell_surfaces(app)?;
 
     if silent_start && startup_launch {
@@ -54,7 +48,6 @@ pub(crate) fn read_startup_alignment_config(
         sysproxy_enabled,
         only_active_device,
         network_detection,
-        show_traffic,
     })
 }
 
@@ -83,10 +76,6 @@ pub(crate) fn run_startup_alignment(
 
     if startup_config.network_detection {
         let _ = start_network_detection(app, &state);
-    }
-
-    if startup_config.show_traffic {
-        let _ = start_traffic_monitor(app);
     }
 
     let _ = refresh_ssid_check(app);

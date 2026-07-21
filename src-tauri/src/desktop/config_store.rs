@@ -148,7 +148,6 @@ pub(crate) fn patch_requires_shell_surface_sync(patch: &Value) -> bool {
     .iter()
     .any(|key| patch_map.contains_key(*key))
         || patch_map.contains_key("sysProxy")
-        || (cfg!(target_os = "macos") && patch_map.contains_key("showTraffic"))
 }
 
 pub(crate) fn read_connection_interval_ms(app: &tauri::AppHandle) -> u64 {

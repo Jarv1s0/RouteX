@@ -40,7 +40,6 @@ pub(crate) fn exit_app_without_core(app: &tauri::AppHandle) -> Result<(), String
         .preserve_core_on_exit
         .store(true, AtomicOrdering::SeqCst);
     let _ = stop_lightweight_mode(app);
-    let _ = start_traffic_monitor(app);
     close_main_window_renderer(app)?;
     app.exit(0);
     Ok(())

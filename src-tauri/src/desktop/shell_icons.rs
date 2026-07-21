@@ -104,14 +104,7 @@ pub(crate) fn update_tray_icon_for_state(app: &tauri::AppHandle) -> Result<(), S
     }
 
     if cfg!(target_os = "macos") {
-        let config = read_app_config_store(app)?;
-        let show_traffic = config
-            .get("showTraffic")
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
-        if !show_traffic {
-            return set_tray_icon_from_path(app, "iconTemplate.png");
-        }
+        return set_tray_icon_from_path(app, "iconTemplate.png");
     }
 
     if cfg!(target_os = "linux") {
@@ -119,29 +112,4 @@ pub(crate) fn update_tray_icon_for_state(app: &tauri::AppHandle) -> Result<(), S
     }
 
     Ok(())
-}
-
-pub(crate) fn apply_tray_icon_data_url(
-    app: &tauri::AppHandle,
-    data_url: &str,
-) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        let Some(tray) = app.tray_by_id(TRAY_ICON_ID) else {
-            return Ok(());
-        };
-        let encoded = data_url
-            .split_once(',')
-            .map(|(_, value)| value)
-            .ok_or_else(|| "invalid tray icon data url".to_string())?;
-        let bytes = BASE64_STANDARD.decode(encoded).map_err(|e| e.to_string())?;
-        let image = Image::from_bytes(&bytes).map_err(|e| e.to_string())?;
-        tray.set_icon(Some(image)).map_err(|e| e.to_string())
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    {
-        let _ = (app, data_url);
-        Ok(())
-    }
 }
