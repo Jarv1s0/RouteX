@@ -137,9 +137,10 @@ pub(crate) fn canonical_windows_icon_request_path(app_path: &str) -> Option<Stri
     let path = Path::new(app_path);
 
     if path_file_name_eq(path, "mihomo.exe")
-        && path
-            .parent()
-            .is_some_and(|parent| path_file_name_eq(parent, APP_CORE_DIR_NAME))
+        && path.parent().is_some_and(|parent| {
+            path_file_name_eq(parent, APP_BIN_DIR_NAME)
+                || path_file_name_eq(parent, LEGACY_APP_CORE_DIR_NAME)
+        })
     {
         return current_exe_path_string();
     }

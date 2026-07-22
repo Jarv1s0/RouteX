@@ -7,12 +7,11 @@ pub(crate) const LEGACY_RUNTIME_TEST_DIR_NAME: &str = "test";
 pub(crate) fn migrate_legacy_runtime_check_dir(profile_base: &Path) -> Result<(), String> {
     let legacy_test_dir = profile_base.join(LEGACY_RUNTIME_TEST_DIR_NAME);
     let check_dir = profile_base.join(RUNTIME_CHECK_DIR_NAME);
-    if !legacy_test_dir.exists() || check_dir.exists() {
-        return Ok(());
-    }
+    migrate_directory(&legacy_test_dir, &check_dir)
+}
 
-    fs::rename(&legacy_test_dir, &check_dir).map_err(|e| e.to_string())?;
-    Ok(())
+pub(crate) fn migrate_legacy_runtime_work_dir(profile_base: &Path) -> Result<(), String> {
+    migrate_directory(&profile_base.join("work"), profile_base)
 }
 
 pub(crate) fn prepare_runtime_data_dir(
@@ -73,10 +72,11 @@ pub(crate) fn ensure_runtime_dirs(
     };
 
     migrate_legacy_runtime_check_dir(&profile_base)?;
+    migrate_legacy_runtime_work_dir(&profile_base)?;
 
-    let work_dir = profile_base.join("work");
     let logs_dir = profile_logs_base;
     let check_dir = profile_base.join(RUNTIME_CHECK_DIR_NAME);
+    let work_dir = profile_base;
     let log_path = logs_dir.join("mihomo.log");
 
     fs::create_dir_all(&work_dir).map_err(|e| e.to_string())?;

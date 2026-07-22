@@ -954,3 +954,157 @@ fn update_channels_are_independent_and_legacy_beta_migrates_to_autobuild() {
     assert!(default_update_manifest_url("autobuild")
         .contains("releases/download/autobuild-main/latest.json"));
 }
+
+fn migration_test_dir(name: &str) -> PathBuf {
+    std::env::temp_dir().join(format!(
+        "routex-{name}-{}-{}",
+        std::process::id(),
+        current_timestamp_ms()
+    ))
+}
+
+#[test]
+fn app_data_layout_migration_flattens_legacy_directories() {
+    let root = migration_test_dir("layout-migration");
+    let legacy_ui = root
+        .join("runtime")
+        .join("work")
+        .join("ui")
+        .join("zashboard")
+        .join("zashboard");
+    fs::create_dir_all(&legacy_ui).expect("legacy ui directory should be created");
+    fs::create_dir_all(root.join("core")).expect("legacy core directory should be created");
+    fs::create_dir_all(root.join("runtime").join("tasks"))
+        .expect("legacy task directory should be created");
+    fs::create_dir_all(root.join("runtime").join("tools"))
+        .expect("legacy tool directory should be created");
+    fs::create_dir_all(root.join("runtime").join("test"))
+        .expect("legacy check directory should be created");
+    fs::create_dir_all(root.join("config")).expect("config directory should be created");
+    fs::write(root.join("core").join("mihomo.exe"), b"core").expect("core should be written");
+    fs::write(
+        root.join("runtime").join("tasks").join("routex-run.exe"),
+        b"task",
+    )
+    .expect("task helper should be written");
+    fs::write(
+        root.join("runtime")
+            .join("tools")
+            .join("enableLoopback.exe"),
+        b"tool",
+    )
+    .expect("runtime tool should be written");
+    fs::write(
+        root.join("runtime").join("work").join("config.yaml"),
+        b"mode: rule",
+    )
+    .expect("runtime config should be written");
+    fs::write(root.join("runtime").join("test").join("cache.db"), b"cache")
+        .expect("legacy check cache should be written");
+    fs::write(legacy_ui.join("index.html"), b"ui").expect("ui file should be written");
+    write_json_file(
+        &root.join("config").join(CONTROLLED_CONFIG_FILE),
+        &json!({
+            "external-ui": "ui/zashboard",
+            "external-ui-name": "zashboard"
+        }),
+    )
+    .expect("controlled config should be written");
+
+    migrate_app_data_layout(&root).expect("layout migration should succeed");
+    migrate_app_data_layout(&root).expect("layout migration should be idempotent");
+    migrate_legacy_runtime_check_dir(&root.join("runtime"))
+        .expect("legacy check directory should migrate");
+
+    assert!(root.join("bin").join("mihomo.exe").is_file());
+    assert!(root.join("bin").join("routex-run.exe").is_file());
+    assert!(root.join("bin").join("enableLoopback.exe").is_file());
+    assert!(!root.join("core").exists());
+    assert!(root
+        .join("runtime")
+        .join("tasks")
+        .join("routex-run.exe")
+        .is_file());
+    assert!(root.join("runtime").join("config.yaml").is_file());
+    assert!(!root.join("runtime").join("work").exists());
+    assert!(!root.join("runtime").join("tools").exists());
+    assert!(root
+        .join("runtime")
+        .join("check")
+        .join("cache.db")
+        .is_file());
+    assert!(!root.join("runtime").join("test").exists());
+    assert!(root
+        .join("runtime")
+        .join("ui")
+        .join("zashboard")
+        .join("index.html")
+        .is_file());
+    assert!(!root
+        .join("runtime")
+        .join("ui")
+        .join("zashboard")
+        .join("zashboard")
+        .exists());
+    let controlled = read_json_file::<Value>(&root.join("config").join(CONTROLLED_CONFIG_FILE))
+        .expect("controlled config should be readable")
+        .expect("controlled config should exist");
+    assert_eq!(
+        controlled.get("external-ui").and_then(Value::as_str),
+        Some("ui")
+    );
+
+    cleanup_legacy_runtime_tasks(&root).expect("legacy task compatibility files should be removed");
+    assert!(!root.join("runtime").join("tasks").exists());
+
+    fs::remove_dir_all(&root).expect("migration fixture should be removed");
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn windows_app_data_root_migration_renames_legacy_root() {
+    let base = migration_test_dir("root-migration");
+    let legacy_root = base.join(LEGACY_WINDOWS_APP_DATA_DIR_NAME);
+    fs::create_dir_all(legacy_root.join("config")).expect("legacy app data root should be created");
+    fs::write(legacy_root.join("config").join(APP_CONFIG_FILE), b"{}")
+        .expect("legacy app config should be written");
+
+    let root = migrate_windows_app_data_root(&base).expect("root migration should succeed");
+
+    assert_eq!(root, base.join(WINDOWS_APP_DATA_DIR_NAME));
+    assert!(root.join("config").join(APP_CONFIG_FILE).is_file());
+    assert!(!legacy_root.exists());
+
+    fs::remove_dir_all(&base).expect("migration fixture should be removed");
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn windows_app_data_root_migration_preserves_newer_conflicts() {
+    let base = migration_test_dir("root-merge");
+    let root = base.join(WINDOWS_APP_DATA_DIR_NAME);
+    let legacy_root = base.join(LEGACY_WINDOWS_APP_DATA_DIR_NAME);
+    fs::create_dir_all(root.join("config")).expect("new app data root should be created");
+    fs::create_dir_all(legacy_root.join("config")).expect("legacy app data root should be created");
+    fs::write(root.join("config").join(APP_CONFIG_FILE), b"new")
+        .expect("new app config should be written");
+    fs::write(legacy_root.join("config").join(APP_CONFIG_FILE), b"legacy")
+        .expect("legacy app config should be written");
+    fs::write(
+        legacy_root.join("config").join(TRAFFIC_STATS_FILE),
+        b"stats",
+    )
+    .expect("legacy traffic stats should be written");
+
+    migrate_windows_app_data_root(&base).expect("root merge should succeed");
+
+    assert_eq!(
+        fs::read(root.join("config").join(APP_CONFIG_FILE))
+            .expect("new app config should remain readable"),
+        b"new"
+    );
+    assert!(root.join("config").join(TRAFFIC_STATS_FILE).is_file());
+    assert!(!legacy_root.exists());
+
+    fs::remove_dir_all(&base).expect("migration fixture should be removed");
+}

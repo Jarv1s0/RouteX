@@ -92,6 +92,7 @@ pub fn create_elevate_task(app: &tauri::AppHandle) -> Result<(), String> {
                 .ok_or_else(|| "invalid task xml path".to_string())?,
             "/f",
         ])?;
+        cleanup_legacy_runtime_tasks(&app_data_root(app)?)?;
         Ok(())
     }
 

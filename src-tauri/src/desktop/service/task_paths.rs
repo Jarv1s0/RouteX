@@ -4,7 +4,7 @@ use crate::desktop::prelude::*;
 use crate::desktop::*;
 
 pub fn task_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(app_runtime_tasks_root_path(&app_data_root(app)?))
+    ensure_dir(app_bin_root_path(&app_data_root(app)?))
 }
 
 pub fn routex_run_binary_task_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {

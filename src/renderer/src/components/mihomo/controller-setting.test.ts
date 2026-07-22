@@ -24,7 +24,7 @@ describe('buildExternalUiOpenUrl', () => {
     const url = new URL(
       buildExternalUiOpenUrl(
         '127.0.0.1:9090',
-        'ui/metacubexd-gh-pages',
+        'ui',
         'https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip',
         'token'
       )
@@ -42,7 +42,7 @@ describe('buildExternalUiOpenUrl', () => {
     const url = new URL(
       buildExternalUiOpenUrl(
         'localhost:9090',
-        'ui/metacubexd-gh-pages',
+        'ui',
         'https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip',
         ''
       )
@@ -57,7 +57,7 @@ describe('buildExternalUiOpenUrl', () => {
     const url = new URL(
       buildExternalUiOpenUrl(
         '127.0.0.1:9090',
-        'ui/zashboard',
+        'ui',
         'https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip',
         'token'
       )

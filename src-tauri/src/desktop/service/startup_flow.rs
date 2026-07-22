@@ -4,15 +4,17 @@ use crate::desktop::*;
 
 #[cfg(target_os = "windows")]
 pub fn app_data_root_before_tauri() -> Result<PathBuf, String> {
-    std::env::var_os("APPDATA")
+    let base = std::env::var_os("APPDATA")
         .map(PathBuf::from)
-        .map(|base| base.join(WINDOWS_APP_DATA_DIR_NAME))
-        .ok_or_else(|| "无法解析 APPDATA 目录".to_string())
+        .ok_or_else(|| "无法解析 APPDATA 目录".to_string())?;
+    let root = ensure_windows_app_data_root_migrated(&base)?;
+    migrate_app_data_layout(&root)?;
+    Ok(root)
 }
 
 #[cfg(target_os = "windows")]
 pub fn task_dir_before_tauri() -> Result<PathBuf, String> {
-    ensure_dir(app_runtime_tasks_root_path(&app_data_root_before_tauri()?))
+    ensure_dir(app_bin_root_path(&app_data_root_before_tauri()?))
 }
 
 #[cfg(target_os = "windows")]
@@ -23,6 +25,12 @@ pub fn routex_run_binary_task_path_before_tauri() -> Result<PathBuf, String> {
 #[cfg(target_os = "windows")]
 pub fn routex_run_args_path_before_tauri() -> Result<PathBuf, String> {
     Ok(task_dir_before_tauri()?.join(ROUTEX_RUN_ARGS_FILE))
+}
+
+#[cfg(target_os = "windows")]
+pub fn legacy_task_dir_before_tauri() -> Result<PathBuf, String> {
+    Ok(app_runtime_root_path(&app_data_root_before_tauri()?)
+        .join(LEGACY_APP_RUNTIME_TASKS_DIR_NAME))
 }
 
 #[cfg(target_os = "windows")]
@@ -93,19 +101,35 @@ pub fn resolve_routex_run_binary_before_tauri() -> Result<PathBuf, String> {
 
 #[cfg(target_os = "windows")]
 pub fn copy_routex_run_binary_for_task_before_tauri() -> Result<(), String> {
-    let routex_run_dest = routex_run_binary_task_path_before_tauri()?;
     let routex_run_source = resolve_routex_run_binary_before_tauri()?;
     let source_digest = file_sha256(&routex_run_source)?;
 
-    if routex_run_dest.exists() {
-        if let Ok(dest_digest) = file_sha256(&routex_run_dest) {
-            if dest_digest == source_digest {
-                return Ok(());
-            }
-        }
+    copy_routex_run_binary_to_destination(
+        &routex_run_source,
+        &source_digest,
+        &routex_run_binary_task_path_before_tauri()?,
+    )?;
+    let legacy_dir = legacy_task_dir_before_tauri()?;
+    let legacy_dest = legacy_dir.join(ROUTEX_RUN_BINARY);
+    if legacy_dir.is_dir() {
+        copy_routex_run_binary_to_destination(&routex_run_source, &source_digest, &legacy_dest)?;
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn copy_routex_run_binary_to_destination(
+    routex_run_source: &Path,
+    source_digest: &[u8; 32],
+    routex_run_dest: &Path,
+) -> Result<(), String> {
+    if routex_run_dest.exists()
+        && file_sha256(routex_run_dest).is_ok_and(|digest| digest == *source_digest)
+    {
+        return Ok(());
     }
 
-    fs::copy(&routex_run_source, &routex_run_dest)
+    fs::copy(routex_run_source, routex_run_dest)
         .map(|_| ())
         .map_err(|e| {
             format!(
@@ -120,7 +144,12 @@ pub fn copy_routex_run_binary_for_task_before_tauri() -> Result<(), String> {
 pub fn write_elevate_task_params_before_tauri() -> Result<(), String> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     let value = serde_json::to_string(&args).map_err(|e| e.to_string())?;
-    fs::write(routex_run_args_path_before_tauri()?, value).map_err(|e| e.to_string())
+    fs::write(routex_run_args_path_before_tauri()?, &value).map_err(|e| e.to_string())?;
+    let legacy_dir = legacy_task_dir_before_tauri()?;
+    if legacy_dir.is_dir() {
+        fs::write(legacy_dir.join(ROUTEX_RUN_ARGS_FILE), value).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
@@ -129,6 +158,9 @@ pub fn check_elevate_task_matches_current_app_before_tauri() -> bool {
         Ok(path) => path,
         Err(_) => return false,
     };
+    let legacy_routex_run_path = legacy_task_dir_before_tauri()
+        .ok()
+        .map(|path| path.join(ROUTEX_RUN_BINARY));
     let exe_path = match std::env::current_exe() {
         Ok(path) => path,
         Err(_) => return false,
@@ -139,6 +171,9 @@ pub fn check_elevate_task_matches_current_app_before_tauri() -> bool {
     };
     let xml = String::from_utf8_lossy(&output.stdout);
     task_xml_matches_current_exec(&xml, &routex_run_path, &exe_path, None)
+        || legacy_routex_run_path.is_some_and(|legacy_path| {
+            task_xml_matches_current_exec(&xml, &legacy_path, &exe_path, None)
+        })
 }
 
 #[cfg(target_os = "windows")]

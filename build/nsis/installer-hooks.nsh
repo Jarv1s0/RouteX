@@ -235,6 +235,9 @@ Var ROUTEX_SERVICE_WAS_RUNNING
   FileWrite $1 "$$candidateDirs = @((Join-Path $$installDir 'core'))$\r$\n"
   FileWrite $1 "foreach ($$base in @($$env:APPDATA, $$env:LOCALAPPDATA)) {$\r$\n"
   FileWrite $1 "  if ([string]::IsNullOrWhiteSpace($$base)) { continue }$\r$\n"
+  FileWrite $1 "  $$candidateDirs += (Join-Path $$base 'routex\bin')$\r$\n"
+  FileWrite $1 "  $$candidateDirs += (Join-Path $$base 'routex\core')$\r$\n"
+  FileWrite $1 "  $$candidateDirs += (Join-Path $$base 'routex.app\bin')$\r$\n"
   FileWrite $1 "  $$candidateDirs += (Join-Path $$base 'routex.app\core')$\r$\n"
   FileWrite $1 "}$\r$\n"
   FileWrite $1 "$$candidateDirs = @($$candidateDirs | ForEach-Object { try { [System.IO.Path]::GetFullPath($$_).TrimEnd('\', '/') } catch { $$null } } | Where-Object { $$_ })$\r$\n"
@@ -382,6 +385,8 @@ FunctionEnd
   ${If} $DeleteAppDataCheckboxState = 1
   ${AndIf} $UpdateMode <> 1
     SetShellVarContext current
+    RmDir /r "$APPDATA\routex"
+    RmDir /r "$LOCALAPPDATA\routex"
     RmDir /r "$APPDATA\routex.app"
     RmDir /r "$LOCALAPPDATA\routex.app"
   ${EndIf}

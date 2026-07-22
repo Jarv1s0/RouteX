@@ -299,7 +299,7 @@ pub(crate) fn resolve_resource_binary(
 }
 
 pub(crate) fn runtime_core_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(app_core_root_path(&app_data_root(app)?))
+    ensure_dir(app_bin_root_path(&app_data_root(app)?))
 }
 
 pub(crate) fn runtime_core_binary_path(

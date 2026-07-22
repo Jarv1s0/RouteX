@@ -18,30 +18,18 @@ pub(crate) fn app_runtime_root_path(root: &Path) -> PathBuf {
     root.join(APP_RUNTIME_DIR_NAME)
 }
 
-pub(crate) fn app_core_root_path(root: &Path) -> PathBuf {
-    root.join(APP_CORE_DIR_NAME)
+pub(crate) fn app_bin_root_path(root: &Path) -> PathBuf {
+    root.join(APP_BIN_DIR_NAME)
 }
 
 pub(crate) fn app_runtime_logs_root_path(root: &Path) -> PathBuf {
     app_runtime_root_path(root).join(APP_RUNTIME_LOGS_DIR_NAME)
 }
 
-pub(crate) fn app_runtime_tasks_root_path(root: &Path) -> PathBuf {
-    app_runtime_root_path(root).join(APP_RUNTIME_TASKS_DIR_NAME)
-}
-
-pub(crate) fn app_runtime_tools_root_path(root: &Path) -> PathBuf {
-    app_runtime_root_path(root).join(APP_RUNTIME_TOOLS_DIR_NAME)
-}
-
-#[cfg(target_os = "windows")]
 pub(crate) fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(primary_tauri_app_data_root(app)?)
-}
-
-#[cfg(not(target_os = "windows"))]
-pub(crate) fn app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(primary_tauri_app_data_root(app)?)
+    let root = primary_tauri_app_data_root(app)?;
+    ensure_app_data_layout_migrated(&root)?;
+    ensure_dir(root)
 }
 
 pub(crate) fn app_storage_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {

@@ -18,6 +18,7 @@ const inputClassNames = {
   inputWrapper:
     'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
 }
+const EXTERNAL_UI_PATH = 'ui'
 
 function getExternalUiName(externalUiUrl: string): string {
   if (externalUiUrl.includes('zashboard')) {
@@ -27,10 +28,6 @@ function getExternalUiName(externalUiUrl: string): string {
     return 'metacubexd-gh-pages'
   }
   return 'ui'
-}
-
-function getExternalUiPath(externalUiUrl: string): string {
-  return `ui/${getExternalUiName(externalUiUrl)}`
 }
 
 function normalizeExternalUiPath(value: string): string {
@@ -194,7 +191,7 @@ const ControllerSetting: React.FC = () => {
   const persistedExternalController = externalController.trim()
   const persistedExternalUi = normalizeExternalUiPath(externalUi)
   const hasExternalController = persistedExternalController !== ''
-  const expectedExternalUi = getExternalUiPath(externalUiUrlInput)
+  const expectedExternalUi = EXTERNAL_UI_PATH
   const expectedExternalUiName = getExternalUiName(externalUiUrlInput)
   const externalUiPathChanged =
     enableExternalUi &&
@@ -344,7 +341,7 @@ const ControllerSetting: React.FC = () => {
           onValueChange={(v) => {
             setEnableExternalUi(v)
             onChangeNeedRestart({
-              'external-ui': v ? getExternalUiPath(externalUiUrlInput) : undefined,
+              'external-ui': v ? EXTERNAL_UI_PATH : undefined,
               'external-ui-name': v ? getExternalUiName(externalUiUrlInput) : undefined
             })
           }}
@@ -397,9 +394,7 @@ const ControllerSetting: React.FC = () => {
                 className="mr-2"
                 onPress={() => {
                   onChangeNeedRestart({
-                    'external-ui': enableExternalUi
-                      ? getExternalUiPath(externalUiUrlInput)
-                      : undefined,
+                    'external-ui': enableExternalUi ? EXTERNAL_UI_PATH : undefined,
                     'external-ui-url': externalUiUrlInput,
                     'external-ui-name': enableExternalUi
                       ? getExternalUiName(externalUiUrlInput)

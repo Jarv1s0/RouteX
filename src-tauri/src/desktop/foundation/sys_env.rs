@@ -19,15 +19,11 @@ pub(crate) fn global_shortcut_plugin_enabled() -> bool {
 #[cfg(target_os = "windows")]
 pub(crate) fn primary_tauri_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let default_root = default_app_data_root(app)?;
-    Ok(std::env::var_os("APPDATA")
+    let base = std::env::var_os("APPDATA")
         .map(PathBuf::from)
-        .map(|base| base.join(WINDOWS_APP_DATA_DIR_NAME))
-        .or_else(|| {
-            default_root
-                .parent()
-                .map(|parent| parent.join(WINDOWS_APP_DATA_DIR_NAME))
-        })
-        .unwrap_or(default_root))
+        .or_else(|| default_root.parent().map(Path::to_path_buf))
+        .unwrap_or_else(|| default_root.clone());
+    ensure_windows_app_data_root_migrated(&base)
 }
 
 #[cfg(not(target_os = "windows"))]

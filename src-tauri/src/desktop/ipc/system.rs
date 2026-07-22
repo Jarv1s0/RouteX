@@ -89,21 +89,10 @@ pub(crate) fn register_system_handlers(map: &mut std::collections::HashMap<&'sta
         let _window = window;
         let _state = state;
         let _args = args;
-        
-            let runtime_work_dir = {
-                let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
-                runtime.work_dir.clone()
-            };
-            let path = match runtime_work_dir {
-                Some(path) => path,
-                None => {
-                    let (_, work_dir, _, _) = resolve_current_runtime_dirs(app)?;
-                    work_dir
-                }
-            };
-            open_path_in_shell(&path)?;
+
+            open_path_in_shell(&app_storage_root(app)?)?;
             Ok(Value::Null)
-        
+
     })().map_err(crate::desktop::error::AppError::from) });
     map.insert("getGistUrl", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;

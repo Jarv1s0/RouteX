@@ -72,6 +72,7 @@ pub(crate) mod app;
 pub(crate) mod common;
 pub(crate) mod config_store;
 pub(crate) mod core_process;
+pub(crate) mod data_migration;
 pub(crate) mod diagnostics;
 pub(crate) mod dialogs;
 pub(crate) mod dns;
@@ -119,6 +120,7 @@ pub(crate) mod prelude {
     pub(crate) use super::common::*;
     pub(crate) use super::config_store::*;
     pub(crate) use super::core_process::*;
+    pub(crate) use super::data_migration::*;
     pub(crate) use super::diagnostics::*;
     pub(crate) use super::dialogs::*;
     pub(crate) use super::dns::*;

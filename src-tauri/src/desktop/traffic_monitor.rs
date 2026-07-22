@@ -57,7 +57,7 @@ pub(crate) fn get_interfaces_value() -> Value {
 }
 
 pub(crate) fn runtime_files_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    ensure_dir(app_runtime_tools_root_path(&app_data_root(app)?))
+    ensure_dir(app_bin_root_path(&app_data_root(app)?))
 }
 
 pub(crate) fn download_binary_file(url: &str, target_path: &Path) -> Result<(), String> {
