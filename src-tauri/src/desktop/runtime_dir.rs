@@ -3,6 +3,8 @@ use super::*;
 
 pub(crate) const RUNTIME_CHECK_DIR_NAME: &str = "check";
 pub(crate) const LEGACY_RUNTIME_TEST_DIR_NAME: &str = "test";
+const RUNTIME_DATA_FILE_NAMES: [&str; 4] =
+    ["country.mmdb", "geoip.metadb", "geoip.dat", "geosite.dat"];
 
 pub(crate) fn migrate_legacy_runtime_check_dir(profile_base: &Path) -> Result<(), String> {
     let legacy_test_dir = profile_base.join(LEGACY_RUNTIME_TEST_DIR_NAME);
@@ -18,7 +20,7 @@ pub(crate) fn prepare_runtime_data_dir(
     app: &tauri::AppHandle,
     data_dir: &Path,
 ) -> Result<(), String> {
-    for file_name in ["country.mmdb", "geoip.metadb", "geoip.dat", "geosite.dat"] {
+    for file_name in RUNTIME_DATA_FILE_NAMES {
         let target_path = data_dir.join(file_name);
         let should_copy = if target_path.exists() {
             fs::metadata(&target_path)
@@ -41,6 +43,60 @@ pub(crate) fn prepare_runtime_data_dir(
         };
 
         fs::copy(source_path, target_path).map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+pub(crate) fn link_or_copy_runtime_data_file_with(
+    source_path: &Path,
+    target_path: &Path,
+    hard_link: impl FnOnce(&Path, &Path) -> std::io::Result<()>,
+) -> Result<(), String> {
+    match hard_link(source_path, target_path) {
+        Ok(()) => Ok(()),
+        Err(link_error) => fs::copy(source_path, target_path)
+            .map(|_| ())
+            .map_err(|copy_error| {
+                format!(
+                    "无法准备校验数据文件 {}（硬链接失败: {link_error}; 复制失败: {copy_error}）",
+                    target_path.display()
+                )
+            }),
+    }
+}
+
+fn remove_file_if_exists(path: &Path) -> Result<(), String> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!("无法删除文件 {}: {error}", path.display())),
+    }
+}
+
+pub(crate) fn cleanup_runtime_check_cache(check_dir: &Path) {
+    if let Err(error) = remove_file_if_exists(&check_dir.join("cache.db")) {
+        eprintln!("[desktop.core_check] {error}");
+    }
+}
+
+pub(crate) fn prepare_runtime_check_dir(
+    runtime_dir: &Path,
+    check_dir: &Path,
+) -> Result<(), String> {
+    fs::create_dir_all(check_dir).map_err(|e| e.to_string())?;
+    remove_file_if_exists(&check_dir.join("cache.db"))?;
+
+    for file_name in RUNTIME_DATA_FILE_NAMES {
+        let source_path = runtime_dir.join(file_name);
+        let target_path = check_dir.join(file_name);
+        remove_file_if_exists(&target_path)?;
+
+        if source_path.is_file() {
+            link_or_copy_runtime_data_file_with(&source_path, &target_path, |source, target| {
+                fs::hard_link(source, target)
+            })?;
+        }
     }
 
     Ok(())

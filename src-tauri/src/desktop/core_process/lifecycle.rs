@@ -91,7 +91,7 @@ pub(crate) fn reload_core_config_process(
         .join(RUNTIME_CHECK_DIR_NAME);
 
     prepare_runtime_data_dir(app, &work_dir)?;
-    prepare_runtime_data_dir(app, &check_dir)?;
+    prepare_runtime_check_dir(&work_dir, &check_dir)?;
 
     let safe_paths = read_safe_paths(app)?;
     let check_path = work_dir.join(format!("config-hot-reload-{}.yaml", current_timestamp_ms()));
@@ -221,7 +221,7 @@ pub(crate) fn restart_core_process(
         .map(|b| format!("{:02x}", b))
         .collect::<String>();
     prepare_runtime_data_dir(app, &work_dir)?;
-    prepare_runtime_data_dir(app, &test_dir)?;
+    prepare_runtime_check_dir(&work_dir, &test_dir)?;
     fs::write(&config_path, &config_yaml).map_err(|e| e.to_string())?;
     let should_check_profile = PROFILE_CHECK_CACHE
         .get_or_init(|| Mutex::new(None))

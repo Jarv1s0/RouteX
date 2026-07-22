@@ -964,6 +964,60 @@ fn migration_test_dir(name: &str) -> PathBuf {
 }
 
 #[test]
+fn runtime_check_dir_links_runtime_data_and_clears_cache() {
+    let root = migration_test_dir("runtime-check-links");
+    let runtime_dir = root.join("runtime");
+    let check_dir = runtime_dir.join("check");
+    fs::create_dir_all(&check_dir).expect("check directory should be created");
+
+    let runtime_geoip = runtime_dir.join("geoip.dat");
+    let check_geoip = check_dir.join("geoip.dat");
+    fs::write(&runtime_geoip, b"initial").expect("runtime GeoData should be written");
+    fs::write(&check_geoip, b"stale").expect("stale check GeoData should be written");
+    fs::write(check_dir.join("cache.db"), b"cache").expect("check cache should be written");
+
+    prepare_runtime_check_dir(&runtime_dir, &check_dir)
+        .expect("runtime check directory should be prepared");
+
+    assert!(!check_dir.join("cache.db").exists());
+    assert_eq!(
+        fs::read(&check_geoip).expect("linked GeoData should be readable"),
+        b"initial"
+    );
+
+    fs::write(&runtime_geoip, b"updated").expect("runtime GeoData should be updated in place");
+    assert_eq!(
+        fs::read(&check_geoip).expect("linked GeoData should reflect updates"),
+        b"updated"
+    );
+
+    fs::remove_dir_all(&root).expect("runtime check fixture should be removed");
+}
+
+#[test]
+fn runtime_check_data_falls_back_to_copy_when_hard_link_fails() {
+    let root = migration_test_dir("runtime-check-copy");
+    fs::create_dir_all(&root).expect("runtime check fixture should be created");
+    let source_path = root.join("source.dat");
+    let target_path = root.join("target.dat");
+    fs::write(&source_path, b"GeoData").expect("source GeoData should be written");
+
+    link_or_copy_runtime_data_file_with(&source_path, &target_path, |_, _| {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "simulated hard-link failure",
+        ))
+    })
+    .expect("copy fallback should succeed");
+
+    assert_eq!(
+        fs::read(&target_path).expect("copied GeoData should be readable"),
+        b"GeoData"
+    );
+    fs::remove_dir_all(&root).expect("runtime check fixture should be removed");
+}
+
+#[test]
 fn app_data_layout_migration_flattens_legacy_directories() {
     let root = migration_test_dir("layout-migration");
     let legacy_ui = root

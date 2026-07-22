@@ -20,7 +20,9 @@ pub(crate) fn check_runtime_profile(
         command.env("SAFE_PATHS", safe_paths.join(path_delimiter()));
     }
 
-    let output = command.output().map_err(|e| e.to_string())?;
+    let output = command.output();
+    cleanup_runtime_check_cache(test_dir);
+    let output = output.map_err(|e| e.to_string())?;
     if output.status.success() {
         return Ok(());
     }
