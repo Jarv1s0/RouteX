@@ -1,13 +1,13 @@
 import { Button } from '@heroui/react'
 import React, { Suspense, useEffect, useState } from 'react'
-import { LuCircleArrowDown } from 'react-icons/lu'
+import { FiDownload } from 'react-icons/fi'
 import { cancelUpdate } from '@renderer/api/app'
+import { useI18n } from '@renderer/i18n'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 const UpdaterModal = React.lazy(() => import('./updater-modal'))
 
 interface Props {
-  iconOnly?: boolean
   latest?: {
     version: string
     releaseNotes: string
@@ -15,7 +15,8 @@ interface Props {
 }
 
 const UpdaterButton: React.FC<Props> = (props) => {
-  const { iconOnly, latest } = props
+  const { latest } = props
+  const { t } = useI18n()
   const [openModal, setOpenModal] = useState(false)
   const [updateStatus, setUpdateStatus] = useState<{
     downloading: boolean
@@ -47,6 +48,7 @@ const UpdaterButton: React.FC<Props> = (props) => {
   }
 
   if (!latest) return null
+  const updateLabel = t('sidebar.newVersion', { version: latest.version })
 
   return (
     <>
@@ -63,31 +65,20 @@ const UpdaterButton: React.FC<Props> = (props) => {
           />
         </Suspense>
       )}
-      {iconOnly ? (
-        <Button
-          isIconOnly
-          className={`app-nodrag`}
-          color="danger"
-          size="md"
-          onPress={() => {
-            setOpenModal(true)
-          }}
-        >
-          <LuCircleArrowDown className="text-lg" />
-        </Button>
-      ) : (
-        <Button
-          isIconOnly
-          className={`fixed right-[45px] app-nodrag`}
-          color="danger"
-          size="sm"
-          onPress={() => {
-            setOpenModal(true)
-          }}
-        >
-          <LuCircleArrowDown className="text-lg" />
-        </Button>
-      )}
+      <Button
+        isIconOnly
+        aria-label={updateLabel}
+        className="app-nodrag h-8 w-8 min-w-8 rounded-lg p-0"
+        color="danger"
+        size="sm"
+        title={updateLabel}
+        variant="light"
+        onPress={() => {
+          setOpenModal(true)
+        }}
+      >
+        <FiDownload className="text-[18px]" />
+      </Button>
     </>
   )
 }

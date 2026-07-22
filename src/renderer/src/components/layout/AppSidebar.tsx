@@ -78,7 +78,7 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
             </div>
           </div>
           <div className="app-nodrag p-2 flex flex-col items-center gap-2 shrink-0 border-t border-divider">
-            {latest && latest.version && <UpdaterButton iconOnly={true} latest={latest} />}
+            {latest && latest.version && <UpdaterButton latest={latest} />}
             <OutboundModeSwitcher iconOnly />
             <Button
               size="sm"
