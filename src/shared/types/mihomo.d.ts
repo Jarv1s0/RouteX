@@ -78,6 +78,61 @@ interface MihomoProxyConfig {
   'tls-crypt-v2'?: string
   ping?: number
   'ping-restart'?: number
+  'handshake-timeout'?: number
+  'tran-window'?: number
+  'client-metadata'?: string
+  'ip-stack'?: MihomoIPStackOptions
+  'amnezia-wg-option'?: MihomoAmneziaWGOptions
+  network?: string
+  'state-dir'?: string
+  planet?: string
+  mtu?: number
+  'physical-mtu'?: number
+  'primary-port'?: number
+  'secondary-port'?: number
+  'tcp-fallback-mode'?: 'auto' | 'force' | 'disable'
+  'tcp-fallback-relay'?: string
+  'remote-trace-target'?: string
+  'remote-trace-level'?: number
+  'low-bandwidth'?: boolean
+  'encrypted-hello'?: boolean
+  orbit?: MihomoZeroTierOrbitOptions[]
+  'remote-dns-resolve'?: boolean
+  dns?: string[]
+}
+
+interface MihomoIPStackOptions {
+  mode?: 'auto' | 'gvisor' | 'mips'
+  'congestion-controller'?: 'cubic' | 'reno' | 'bbr' | 'bbr3'
+}
+
+interface MihomoAmneziaWGOptions {
+  [key: string]: unknown
+  version?: number
+  'header-protection-key'?: string
+  'content-padding-addition'?: string
+  'rekey-after-time'?: string | number
+  'rekey-timeout'?: string | number
+  'reject-after-time'?: string | number
+  'keepalive-timeout'?: string | number
+  'max-handshake-attempts'?: string | number
+  'random-trailers'?: boolean
+  'disable-cookies'?: boolean
+}
+
+interface MihomoZeroTierOrbitOptions {
+  world: string
+  seed: string
+}
+
+interface MihomoInboundRestlsOptions {
+  enable?: boolean
+  dest?: string
+  password?: string
+  'restls-script'?: string
+  'min-record-len'?: number
+  'rate-limit'?: number
+  proxy?: string
 }
 
 interface MihomoShadowTlsOptions {
@@ -265,4 +320,5 @@ interface MihomoInboundListenerConfig {
   'client-auth-cert'?: string
   'routing-mark'?: number
   'allow-insecure'?: boolean
+  'res-tls'?: MihomoInboundRestlsOptions
 }

@@ -13,6 +13,7 @@ import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { isValidDomainWildcard } from '@renderer/utils/validate'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 interface SnifferEditorValues {
@@ -30,6 +31,7 @@ interface SnifferEditorValues {
 export interface SnifferSettingsEditorState {
   values: SnifferEditorValues
   changed: boolean
+  saveDisabled: boolean
   save: () => Promise<void>
   setValues: (next: SnifferEditorValues) => void
   handleSniffPortChange: (
@@ -116,7 +118,16 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
     return JSON.stringify(values) !== JSON.stringify(initialValues)
   }, [initialValues, values])
 
+  const saveDisabled = useMemo(() => {
+    if (!values.controlSniff) return false
+    return [...values.skipDomain, ...values.forceDomain].some(
+      (domain) => !isValidDomainWildcard(domain).ok
+    )
+  }, [values.controlSniff, values.forceDomain, values.skipDomain])
+
   const save = async (): Promise<void> => {
+    if (saveDisabled) return
+
     if (!values.controlSniff) {
       try {
         await patchAppConfig({ controlSniff: false })
@@ -168,6 +179,7 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
   return {
     values,
     changed,
+    saveDisabled,
     save,
     setValues: setValuesState,
     handleSniffPortChange
@@ -180,6 +192,8 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
   const { t } = useI18n()
   const { values, setValues, handleSniffPortChange } = editor
   const snifferFieldsDisabled = !values.controlSniff
+  const skipDomainHasError = values.skipDomain.some((item) => !isValidDomainWildcard(item).ok)
+  const forceDomainHasError = values.forceDomain.some((item) => !isValidDomainWildcard(item).ok)
 
   return (
     <div className="space-y-2">
@@ -294,9 +308,11 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
           title={t('sniffer.skipDomain')}
           countLabel={t('sniffer.itemCount', { count: values.skipDomain.length })}
           isDisabled={snifferFieldsDisabled}
+          hasError={skipDomainHasError}
         >
           <EditableList
             items={values.skipDomain}
+            validate={(part) => isValidDomainWildcard(part as string)}
             onChange={(list) => setValues({ ...values, skipDomain: list as string[] })}
             placeholder={t('sniffer.placeholder.skipDomain')}
             divider={false}
@@ -308,9 +324,11 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
           title={t('sniffer.forceDomain')}
           countLabel={t('sniffer.itemCount', { count: values.forceDomain.length })}
           isDisabled={snifferFieldsDisabled}
+          hasError={forceDomainHasError}
         >
           <EditableList
             items={values.forceDomain}
+            validate={(part) => isValidDomainWildcard(part as string)}
             onChange={(list) => setValues({ ...values, forceDomain: list as string[] })}
             placeholder={t('sniffer.placeholder.forceDomain')}
             divider={false}

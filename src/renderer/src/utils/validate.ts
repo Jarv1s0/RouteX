@@ -82,7 +82,10 @@ export const isValidListenAddress = (s: string | undefined): ValidationResult =>
 
 export const isValidDomainWildcard = (s: string | undefined): ValidationResult => {
   if (!s || s.trim() === '') return { ok: false, error: translate('validate.required') }
-  const v = s.trim()
+  if (s !== s.trim()) return { ok: false, error: translate('validate.domainWildcardInvalid') }
+  const v = s
+  const isValidWildcardLabel = (label: string): boolean =>
+    label === '*' || /^[a-zA-Z0-9-]+$/.test(label)
   if (v.startsWith('rule-set:') || v.startsWith('geosite:')) {
     const rest = v.split(':')[1]
     if (!!rest && rest.length > 0) return { ok: true }
@@ -91,20 +94,22 @@ export const isValidDomainWildcard = (s: string | undefined): ValidationResult =
   if (v === '*') return { ok: true }
 
   if (v.startsWith('+.')) {
-    const domain = v.slice(2)
-    if (/^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*$/.test(domain)) return { ok: true }
+    const labels = v.slice(2).split('.')
+    if (labels.length > 0 && labels.every(isValidWildcardLabel)) return { ok: true }
     return { ok: false, error: translate('validate.plusDomainInvalid') }
   }
 
   if (v.startsWith('.')) {
-    const domain = v.slice(1)
-    if (/^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*$/.test(domain)) return { ok: true }
+    const labels = v.slice(1).split('.')
+    if (labels.length > 0 && labels.every(isValidWildcardLabel)) return { ok: true }
     return { ok: false, error: translate('validate.dotDomainInvalid') }
   }
 
+  if (v.includes('+')) return { ok: false, error: translate('validate.wildcardInvalid') }
+
   if (v.includes('*')) {
     const labels = v.split('.')
-    if (labels.every((lab) => lab === '*' || /^[a-zA-Z0-9-]+$/.test(lab))) return { ok: true }
+    if (labels.every(isValidWildcardLabel)) return { ok: true }
     return { ok: false, error: translate('validate.wildcardInvalid') }
   }
 

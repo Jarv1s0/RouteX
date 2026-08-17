@@ -172,5 +172,76 @@ shadow-tls-opts:
   override-expr:
     - '.name = "[\${provider_name}] " + .name'
     - '(select(.port == 443) | .tls) = true'`
+  },
+  {
+    label: 'mihomo-zerotier-proxy',
+    detail: 'ZeroTier outbound',
+    info: 'Insert a Mihomo v1.19.30 ZeroTier outbound template.',
+    snippet: `- name: \${name}
+  type: zerotier
+  network: "\${network_id}"
+  state-dir: ./zerotier-node
+  mtu: 1400
+  physical-mtu: 1432
+  udp: true
+  remote-dns-resolve: true
+  ip-stack:
+    mode: auto
+    congestion-controller: cubic`
+  },
+  {
+    label: 'mihomo-ip-stack-options',
+    detail: 'WireGuard-style outbound IP stack',
+    info: 'Insert IP stack options supported by WireGuard, ZeroTier, OpenVPN, and Masque in Mihomo v1.19.30.',
+    snippet: `ip-stack:
+  mode: auto
+  congestion-controller: bbr3`
+  },
+  {
+    label: 'mihomo-amneziawg-v3-options',
+    detail: 'AmneziaWG v3.1 options',
+    info: 'Insert AmneziaWG v3 and v3.1 options supported by Mihomo v1.19.30.',
+    snippet: `amnezia-wg-option:
+  version: 3
+  header-protection-key: \${header_protection_key_base64}
+  content-padding-addition: 0-32
+  rekey-after-time: 120
+  rekey-timeout: 5
+  reject-after-time: 180
+  keepalive-timeout: 10
+  max-handshake-attempts: 18
+  random-trailers: true
+  disable-cookies: true`
+  },
+  {
+    label: 'mihomo-hysteria2-v11930-options',
+    detail: 'Hysteria2 v1.19.30 options',
+    info: 'Insert the Hysteria2 handshake timeout introduced in Mihomo v1.19.30.',
+    snippet: `handshake-timeout: 30`
+  },
+  {
+    label: 'mihomo-openvpn-v11930-options',
+    detail: 'OpenVPN v1.19.30 options',
+    info: 'Insert OpenVPN transition-window and IP stack options introduced in Mihomo v1.19.30.',
+    snippet: `tran-window: 3600
+ip-stack:
+  mode: auto
+  congestion-controller: cubic`
+  },
+  {
+    label: 'mihomo-anytls-client-metadata',
+    detail: 'AnyTLS client metadata',
+    info: 'Explicitly configure AnyTLS client metadata, which is no longer sent by default in Mihomo v1.19.30.',
+    snippet: `client-metadata: \${client_metadata}`
+  },
+  {
+    label: 'mihomo-restls-listener-rate-limit',
+    detail: 'Restls listener fallback rate limit',
+    info: 'Insert the Restls listener fallback rate limit introduced in Mihomo v1.19.30.',
+    snippet: `res-tls:
+  enable: true
+  dest: \${fallback_host}:\${fallback_port}
+  password: \${restls_password}
+  rate-limit: 0`
   }
 ] as const

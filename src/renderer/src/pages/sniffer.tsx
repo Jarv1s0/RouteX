@@ -21,6 +21,7 @@ const Sniffer: React.FC = () => {
             size="sm"
             className={FLOATING_ACTION_BUTTON_CLASS}
             color="primary"
+            isDisabled={editor.saveDisabled}
             onPress={() => void editor.save()}
           >
             {t('common.save')}

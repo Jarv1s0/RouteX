@@ -36,13 +36,21 @@ describe('isValidListenAddress', () => {
 describe('isValidDomainWildcard', () => {
   it('accepts mihomo domain wildcard forms', () => {
     expect(isValidDomainWildcard('+.example.com').ok).toBe(true)
+    expect(isValidDomainWildcard('+.*').ok).toBe(true)
     expect(isValidDomainWildcard('*.example.com').ok).toBe(true)
+    expect(isValidDomainWildcard('stun.*.*.*').ok).toBe(true)
     expect(isValidDomainWildcard('geosite:cn').ok).toBe(true)
   })
 
   it('rejects empty and malformed wildcard expressions', () => {
     expect(isValidDomainWildcard('').ok).toBe(false)
     expect(isValidDomainWildcard('*.bad_domain').ok).toBe(false)
+    expect(isValidDomainWildcard('stun.+').ok).toBe(false)
+    expect(isValidDomainWildcard('a.+.b').ok).toBe(false)
+    expect(isValidDomainWildcard('a*b.com').ok).toBe(false)
+    expect(isValidDomainWildcard('example.com.').ok).toBe(false)
+    expect(isValidDomainWildcard(' example.com').ok).toBe(false)
+    expect(isValidDomainWildcard('example.com ').ok).toBe(false)
     expect(isValidDomainWildcard('geosite:').ok).toBe(false)
   })
 })

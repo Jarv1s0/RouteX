@@ -46,6 +46,7 @@ type MihomoProxyType =
   | 'ShadowQuic'
   | 'OpenVPN'
   | 'Tailscale'
+  | 'ZeroTier'
   | 'GostRelay'
   | 'Rematch'
 type TunStack = 'gvisor' | 'mixed' | 'system'
