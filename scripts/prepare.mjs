@@ -39,6 +39,11 @@ const debugPrepare = process.env.ROUTEX_PREPARE_DEBUG === '1'
 const reuseExistingResources =
   process.env.ROUTEX_REUSE_EXISTING_RESOURCES === '1' ||
   process.env.ROUTEX_REUSE_EXISTING_RESOURCES === 'true'
+const pinnedMihomoVersion = process.env.ROUTEX_MIHOMO_VERSION?.trim()
+
+if (pinnedMihomoVersion && !/^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(pinnedMihomoVersion)) {
+  throw new Error(`invalid ROUTEX_MIHOMO_VERSION: ${pinnedMihomoVersion}`)
+}
 
 const OPTIONAL_EXTRA_PATHS = [
   path.join(cwd, 'extra', 'sidecar', platform === 'win32' ? 'mihomo-alpha.exe' : 'mihomo-alpha'),
@@ -126,32 +131,32 @@ function getAssetPrefixCandidates(platform, arch) {
   switch (key) {
     case 'win32-x64':
       return [
-        'mihomo-windows-amd64',
         'mihomo-windows-amd64-compatible',
         'mihomo-windows-amd64-v1',
         'mihomo-windows-amd64-v2',
-        'mihomo-windows-amd64-v3'
+        'mihomo-windows-amd64-v3',
+        'mihomo-windows-amd64'
       ]
     case 'win32-ia32':
       return ['mihomo-windows-386']
     case 'win32-arm64':
       return ['mihomo-windows-arm64']
     case 'darwin-x64':
-      return ['mihomo-darwin-amd64', 'mihomo-darwin-amd64-compatible', 'mihomo-darwin-amd64-v1']
+      return ['mihomo-darwin-amd64-compatible', 'mihomo-darwin-amd64-v1', 'mihomo-darwin-amd64']
     case 'darwin-arm64':
       return ['mihomo-darwin-arm64']
     case 'linux-x64':
       return [
-        'mihomo-linux-amd64',
         'mihomo-linux-amd64-compatible',
         'mihomo-linux-amd64-v1',
         'mihomo-linux-amd64-v2',
-        'mihomo-linux-amd64-v3'
+        'mihomo-linux-amd64-v3',
+        'mihomo-linux-amd64'
       ]
     case 'linux-arm64':
       return ['mihomo-linux-arm64']
     case 'linux-loong64':
-      return ['mihomo-linux-loong64', 'mihomo-linux-loong64-abi2']
+      return ['mihomo-linux-loong64-abi2', 'mihomo-linux-loong64']
     default:
       throw new Error(`unsupported platform "${key}"`)
   }
@@ -269,6 +274,9 @@ async function getLatestVersion(url, label) {
     const response = await fetch(url, {
       method: 'GET'
     })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
     const version = (await response.text()).trim()
     console.log(`Latest ${label} version: ${version}`)
     return version
@@ -313,7 +321,13 @@ async function createMihomoBinaryInfo(name, versionUrl, isAlpha) {
   }
 
   try {
-    const version = await getLatestVersion(versionUrl, isAlpha ? 'alpha' : 'release')
+    const version =
+      !isAlpha && pinnedMihomoVersion
+        ? pinnedMihomoVersion
+        : await getLatestVersion(versionUrl, isAlpha ? 'alpha' : 'release')
+    if (!isAlpha && pinnedMihomoVersion) {
+      console.log(`[INFO]: Using pinned mihomo release version: ${version}`)
+    }
     const asset = await resolveReleaseAsset(version, isAlpha)
 
     return {

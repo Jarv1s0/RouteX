@@ -57,6 +57,8 @@ jobs:
 
   verify:
     runs-on: ubuntu-latest
+    outputs:
+      mihomo_version: ${{ steps.mihomo-version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6.0.1
@@ -142,7 +144,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Resolve Mihomo version
+        id: mihomo-version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mihomo_version=$(curl --fail --silent --show-error --location \
+            https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt | tr -d '\r\n')
+          if [[ ! "$mihomo_version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid Mihomo version: $mihomo_version"
+            exit 1
+          fi
+          echo "version=$mihomo_version" >> "$GITHUB_OUTPUT"
+          echo "Resolved Mihomo version: $mihomo_version"
+
       - name: Setup bundled resource cache
+        id: resource-cache
         uses: actions/cache@v5
         continue-on-error: true
         with:
@@ -150,14 +168,16 @@ jobs:
             extra/files
             extra/sidecar
             src/renderer/src/assets/twemoji.ttf
-          key: ${{ runner.os }}-verify-routex-resources-v3-${{ hashFiles('scripts/prepare.mjs') }}
+          key: ${{ runner.os }}-verify-routex-resources-v4-${{ steps.mihomo-version.outputs.version }}-${{ hashFiles('scripts/prepare.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-verify-routex-resources-v3-
+            ${{ runner.os }}-verify-routex-resources-v4-${{ steps.mihomo-version.outputs.version }}-
 
       - name: Prepare Resources
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROUTEX_MIHOMO_VERSION: ${{ steps.mihomo-version.outputs.version }}
+          ROUTEX_REUSE_EXISTING_RESOURCES: ${{ steps.resource-cache.outputs.cache-hit == 'true' && '1' || '0' }}
         run: pnpm prepare:resources
 
       - name: Verify Project
@@ -271,9 +291,9 @@ jobs:
             extra/files
             extra/sidecar
             src/renderer/src/assets/twemoji.ttf
-          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v3-${{ hashFiles('scripts/prepare.mjs') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v4-${{ needs.verify.outputs.mihomo_version }}-${{ hashFiles('scripts/prepare.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v3-
+            ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v4-${{ needs.verify.outputs.mihomo_version }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -282,6 +302,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ROUTEX_MIHOMO_VERSION: ${{ needs.verify.outputs.mihomo_version }}
+          ROUTEX_REUSE_EXISTING_RESOURCES: ${{ steps.resource-cache.outputs.cache-hit == 'true' && '1' || '0' }}
         shell: bash
         run: |
           if [ "${{ matrix.platform }}" = "macos" ]; then

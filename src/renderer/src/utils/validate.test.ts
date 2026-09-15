@@ -72,10 +72,19 @@ describe('isValidDnsServer', () => {
     expect(isValidDnsServer('system').ok).toBe(true)
     expect(isValidDnsServer('https://dns.example.com/dns-query').ok).toBe(true)
     expect(isValidDnsServer('tls://1.1.1.1:853').ok).toBe(true)
+    expect(isValidDnsServer('easytier://mesh-dns').ok).toBe(true)
+    expect(isValidDnsServer('et://mesh-dns').ok).toBe(true)
   })
 
   it('rejects domains when ipOnly is enabled', () => {
     expect(isValidDnsServer('https://dns.example.com/dns-query', true).ok).toBe(false)
     expect(isValidDnsServer('1.1.1.1', true).ok).toBe(true)
+    expect(isValidDnsServer('easytier://mesh-dns', true).ok).toBe(false)
+  })
+
+  it('rejects malformed EasyTier DNS transports', () => {
+    expect(isValidDnsServer('easytier://').ok).toBe(false)
+    expect(isValidDnsServer('easytier://mesh dns').ok).toBe(false)
+    expect(isValidDnsServer('easytier://mesh-dns/path').ok).toBe(false)
   })
 })

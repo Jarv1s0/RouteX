@@ -22,6 +22,7 @@ jobs:
     outputs:
       release_tag: ${{ steps.build-meta.outputs.release_tag }}
       autobuild_version: ${{ steps.build-meta.outputs.autobuild_version }}
+      mihomo_version: ${{ steps.build-meta.outputs.mihomo_version }}
     steps:
       - uses: actions/checkout@v6.0.1
         with:
@@ -37,16 +38,27 @@ jobs:
         id: build-meta
         shell: bash
         run: |
+          set -euo pipefail
+
           VERSION=$(node -p "require('./package.json').version")
           AUTOBUILD_VERSION="${VERSION}-autobuild.${GITHUB_RUN_NUMBER}"
           RELEASE_TAG="autobuild-${GITHUB_REF_NAME}"
           RELEASE_TITLE="Autobuild ${GITHUB_REF_NAME}"
+          MIHOMO_VERSION=$(curl --fail --silent --show-error --location \
+            https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt | tr -d '\r\n')
+
+          if [[ ! "$MIHOMO_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid Mihomo version: $MIHOMO_VERSION"
+            exit 1
+          fi
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
           echo "RELEASE_TITLE=$RELEASE_TITLE" >> $GITHUB_ENV
           echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
           echo "autobuild_version=$AUTOBUILD_VERSION" >> $GITHUB_OUTPUT
+          echo "mihomo_version=$MIHOMO_VERSION" >> $GITHUB_OUTPUT
+          echo "Resolved Mihomo version: $MIHOMO_VERSION"
 
       - name: Generate Release Notes
         run: node scripts/extract-latest-changelog.mjs changelog.md release_notes.md
@@ -182,9 +194,9 @@ jobs:
             extra/files
             extra/sidecar
             src/renderer/src/assets/twemoji.ttf
-          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v3-${{ hashFiles('scripts/prepare.mjs') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v4-${{ needs.update-tag.outputs.mihomo_version }}-${{ hashFiles('scripts/prepare.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v3-
+            ${{ runner.os }}-${{ matrix.platform }}-routex-resources-v4-${{ needs.update-tag.outputs.mihomo_version }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -194,6 +206,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ROUTEX_AUTO_BUILD: 'true'
+          ROUTEX_MIHOMO_VERSION: ${{ needs.update-tag.outputs.mihomo_version }}
           ROUTEX_REUSE_EXISTING_RESOURCES: ${{ steps.resource-cache.outputs.cache-hit == 'true' && '1' || '0' }}
         shell: bash
         run: |

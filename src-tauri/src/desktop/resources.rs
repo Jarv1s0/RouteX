@@ -332,29 +332,29 @@ pub(crate) fn resolve_core_binary(app: &tauri::AppHandle, core: &str) -> Result<
 pub(crate) fn get_mihomo_asset_prefix_candidates() -> Result<Vec<&'static str>, String> {
     match (std::env::consts::OS, std::env::consts::ARCH) {
         ("windows", "x86_64") => Ok(vec![
-            "mihomo-windows-amd64",
             "mihomo-windows-amd64-compatible",
             "mihomo-windows-amd64-v1",
             "mihomo-windows-amd64-v2",
             "mihomo-windows-amd64-v3",
+            "mihomo-windows-amd64",
         ]),
         ("windows", "x86") => Ok(vec!["mihomo-windows-386"]),
         ("windows", "aarch64") => Ok(vec!["mihomo-windows-arm64"]),
         ("macos", "x86_64") => Ok(vec![
-            "mihomo-darwin-amd64",
             "mihomo-darwin-amd64-compatible",
             "mihomo-darwin-amd64-v1",
+            "mihomo-darwin-amd64",
         ]),
         ("macos", "aarch64") => Ok(vec!["mihomo-darwin-arm64"]),
         ("linux", "x86_64") => Ok(vec![
-            "mihomo-linux-amd64",
             "mihomo-linux-amd64-compatible",
             "mihomo-linux-amd64-v1",
             "mihomo-linux-amd64-v2",
             "mihomo-linux-amd64-v3",
+            "mihomo-linux-amd64",
         ]),
         ("linux", "aarch64") => Ok(vec!["mihomo-linux-arm64"]),
-        ("linux", "loongarch64") => Ok(vec!["mihomo-linux-loong64", "mihomo-linux-loong64-abi2"]),
+        ("linux", "loongarch64") => Ok(vec!["mihomo-linux-loong64-abi2", "mihomo-linux-loong64"]),
         (os, arch) => Err(format!("unsupported mihomo platform \"{os}-{arch}\"")),
     }
 }

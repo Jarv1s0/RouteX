@@ -826,6 +826,43 @@ fn merge_profile_nodes_keeps_secondary_groups_out_of_runtime_profile() {
 }
 
 #[test]
+fn mihomo_asset_matching_supports_v11931_release_names() {
+    let prefixes = [
+        "mihomo-windows-amd64-compatible",
+        "mihomo-windows-amd64-v1",
+        "mihomo-windows-amd64",
+    ];
+
+    assert!(mihomo_asset_matches(
+        "mihomo-windows-amd64-compatible-v1.19.31.zip",
+        "v1.19.31",
+        false,
+        ".zip",
+        &prefixes,
+    ));
+    assert!(mihomo_asset_matches(
+        "mihomo-windows-amd64-v1-go125-v1.19.31.zip",
+        "v1.19.31",
+        false,
+        ".zip",
+        &prefixes,
+    ));
+    assert!(!mihomo_asset_matches(
+        "mihomo-windows-amd64-compatible-v1.19.31.gz",
+        "v1.19.31",
+        false,
+        ".zip",
+        &prefixes,
+    ));
+
+    let fallback = fallback_mihomo_asset("v1.19.31", "v1.19.31", &prefixes, ".zip");
+    assert_eq!(
+        fallback.name,
+        "mihomo-windows-amd64-compatible-v1.19.31.zip"
+    );
+}
+
+#[test]
 fn theme_display_label_reads_first_line_comment() {
     assert_eq!(
         theme_display_label("anime.css", "/* 二刺螈 */\n:root { --x: 1; }"),

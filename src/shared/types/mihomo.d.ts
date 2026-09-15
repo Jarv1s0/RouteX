@@ -85,6 +85,7 @@ interface MihomoProxyConfig {
   'amnezia-wg-option'?: MihomoAmneziaWGOptions
   network?: string
   'state-dir'?: string
+  'identity-secret'?: string
   planet?: string
   mtu?: number
   'physical-mtu'?: number
@@ -99,6 +100,33 @@ interface MihomoProxyConfig {
   orbit?: MihomoZeroTierOrbitOptions[]
   'remote-dns-resolve'?: boolean
   dns?: string[]
+  'network-name'?: string
+  'network-secret'?: string
+  hostname?: string
+  ipv4?: string
+  dhcp?: boolean
+  peers?: string[]
+  listeners?: string[]
+  'no-listener'?: boolean
+  'mapped-listeners'?: string[]
+  'exit-nodes'?: string[]
+  'proxy-networks'?: string[]
+  'instance-name'?: string
+  'accept-dns'?: boolean
+  'enable-exit-node'?: boolean
+  'enable-encryption'?: boolean
+  'encryption-algorithm'?: string
+  'private-mode'?: boolean
+  'latency-first'?: boolean
+  'disable-p2p'?: boolean
+  'enable-kcp-proxy'?: boolean
+  'disable-kcp-input'?: boolean
+  'enable-quic-proxy'?: boolean
+  'disable-quic-input'?: boolean
+  'tld-dns-zone'?: string
+  'secure-mode'?: boolean
+  'local-private-key'?: string
+  'local-public-key'?: string
 }
 
 interface MihomoIPStackOptions {

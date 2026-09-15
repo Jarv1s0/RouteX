@@ -181,6 +181,8 @@ shadow-tls-opts:
   type: zerotier
   network: "\${network_id}"
   state-dir: ./zerotier-node
+  # Sensitive: complete identity.secret contents. Do not share this value.
+  # identity-secret: "\${identity_secret}"
   mtu: 1400
   physical-mtu: 1432
   udp: true
@@ -188,6 +190,20 @@ shadow-tls-opts:
   ip-stack:
     mode: auto
     congestion-controller: cubic`
+  },
+  {
+    label: 'mihomo-easytier-proxy',
+    detail: 'EasyTier outbound',
+    info: 'Insert a Mihomo v1.19.31 EasyTier outbound template.',
+    snippet: `- name: \${name}
+  type: easytier
+  network-name: \${network_name}
+  network-secret: "\${network_secret}"
+  dhcp: true
+  peers:
+    - "tcp://\${peer_host}:\${peer_port}"
+  state-dir: ./easytier
+  udp: true`
   },
   {
     label: 'mihomo-ip-stack-options',

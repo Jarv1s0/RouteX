@@ -25,4 +25,10 @@ describe('Mihomo v1.19 YAML snippets', () => {
     expect(snippets.get('mihomo-anytls-client-metadata')).toContain('client-metadata:')
     expect(snippets.get('mihomo-restls-listener-rate-limit')).toContain('rate-limit: 0')
   })
+
+  it('covers Mihomo v1.19.31 configuration additions', () => {
+    expect(snippets.get('mihomo-zerotier-proxy')).toContain('identity-secret:')
+    expect(snippets.get('mihomo-easytier-proxy')).toContain('type: easytier')
+    expect(snippets.get('mihomo-easytier-proxy')).toContain('network-name:')
+  })
 })

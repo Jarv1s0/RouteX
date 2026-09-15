@@ -140,6 +140,7 @@ const Tun: React.FC = () => {
               >
                 <Tab key="gvisor" title="gVisor" />
                 <Tab key="mixed" title="Mixed" />
+                <Tab key="mips" title="Mips" />
                 <Tab key="system" title="System" />
               </Tabs>
             </SettingItem>

@@ -252,6 +252,12 @@ export const isValidDnsServer = (s: string | undefined, ipOnly = false): Validat
   if (schemeMatch) {
     const scheme = schemeMatch[1].toLowerCase()
     const rest = schemeMatch[2]
+    if (scheme === 'et' || scheme === 'easytier') {
+      if (ipOnly) return { ok: false, error: translate('validate.hostMustBeIp') }
+      return /^[^\s/?#]+$/.test(rest)
+        ? { ok: true }
+        : { ok: false, error: translate('validate.schemeHostRequired', { scheme }) }
+    }
     if (!['udp', 'tcp', 'tls', 'quic'].includes(scheme)) {
       return { ok: false, error: translate('validate.unsupportedScheme', { scheme }) }
     }
