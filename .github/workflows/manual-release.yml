@@ -70,7 +70,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.1.0
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5.0.0
@@ -203,7 +203,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.1.0
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Read Version
         shell: bash
@@ -452,7 +452,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.1.0
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Read Version
         id: version
