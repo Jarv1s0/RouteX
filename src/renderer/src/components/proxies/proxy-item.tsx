@@ -120,7 +120,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1.5">
                   {proxy.icon && (
                     <img
-                      className={`w-4 h-4 object-contain drop-shadow-sm ${displayDelay === 0 ? 'opacity-50' : ''}`}
+                      className={`w-4 h-4 shrink-0 object-contain drop-shadow-sm ${displayDelay === 0 ? 'opacity-50' : ''}`}
                       src={proxy.icon}
                       alt=""
                       onError={(e) => {
@@ -129,7 +129,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                     />
                   )}
                   <span
-                    className="flag-emoji font-semibold tracking-wide text-[12.5px] text-foreground/90"
+                    className="flag-emoji min-w-0 flex-1 truncate font-semibold tracking-wide text-[12.5px] text-foreground/90"
                     title={proxy.name}
                   >
                     {proxy.name}
@@ -201,7 +201,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
               <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1.5">
                 {proxy.icon && (
                   <img
-                    className={`w-4 h-4 object-contain drop-shadow-sm ${displayDelay === 0 ? 'opacity-50' : ''}`}
+                    className={`w-4 h-4 shrink-0 object-contain drop-shadow-sm ${displayDelay === 0 ? 'opacity-50' : ''}`}
                     src={proxy.icon}
                     alt=""
                     onError={(e) => {
@@ -210,7 +210,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   />
                 )}
                 <span
-                  className="flag-emoji font-semibold tracking-wide text-[13px] text-foreground/90"
+                  className="flag-emoji min-w-0 flex-1 truncate font-semibold tracking-wide text-[13px] text-foreground/90"
                   title={proxy.name}
                 >
                   {proxy.name === 'COMPATIBLE' ? 'DIRECT' : proxy.name}

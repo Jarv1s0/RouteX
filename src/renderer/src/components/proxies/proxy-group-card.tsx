@@ -161,9 +161,9 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
       >
         <CardBody className="w-full py-3 px-4 min-h-[64px] flex justify-center">
           {/* Header Row */}
-          <div className="flex justify-between items-center">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             {/* Left: Info */}
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 items-center gap-4 sm:flex-1">
               {iconSrc && !iconLoadFailed ? (
                 <img
                   className="w-6 h-6 object-contain flex-shrink-0"
@@ -182,14 +182,15 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                 </div>
               )}
 
-              <div className="flex flex-col items-start gap-0.5">
-                <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-col items-start gap-0.5">
+                <div className="flex min-w-0 max-w-full items-center gap-2">
                   <span
-                    className={`font-bold text-base tracking-tight transition-colors ${isOpen ? 'text-foreground' : 'text-foreground/80'}`}
+                    className={`min-w-0 truncate font-bold text-base tracking-tight transition-colors ${isOpen ? 'text-foreground' : 'text-foreground/80'}`}
+                    title={group.name}
                   >
                     {group.name}
                   </span>
-                  <span className="inline-flex h-[18px] items-center rounded bg-default-100/80 dark:bg-white/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-500/80 dark:text-default-400">
+                  <span className="inline-flex h-[18px] shrink-0 items-center rounded bg-default-100/80 dark:bg-white/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-500/80 dark:text-default-400">
                     {group.type}
                   </span>
                 </div>
@@ -212,31 +213,31 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
             </div>
 
             {/* Right: Controls & Delay */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center overflow-visible bg-default-100/50 dark:bg-default-50/50 border border-default-200/50 rounded-xl px-1.5 py-1.5 backdrop-blur-md transition-colors hover:bg-default-200/50">
+            <div className="flex min-w-0 w-full items-center gap-2 sm:w-auto sm:max-w-[240px] sm:flex-[0_1_240px]">
+              <div className="flex min-w-0 w-full items-center overflow-hidden bg-default-100/50 dark:bg-default-50/50 border border-default-200/50 rounded-xl px-1.5 py-1.5 backdrop-blur-md transition-colors hover:bg-default-200/50">
                 {/* Node Name */}
-                <div className="flex items-center max-w-[140px] overflow-visible px-2 border-r border-default-200/50">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5 border-r border-default-200/50 px-2">
+                  {currentProxyIcon && (
+                    <img
+                      className="w-4 h-4 shrink-0 object-contain"
+                      src={getIconImageSrc(currentProxyIcon)}
+                      alt=""
+                      onError={(e) => {
+                        ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  )}
                   <span
-                    className={`text-[12.5px] font-medium leading-5 truncate flag-emoji tracking-wide flex items-center gap-1.5 overflow-visible transition-colors ${currentDelay === 0 ? 'text-default-400' : 'text-foreground/80'}`}
+                    className={`flag-emoji min-w-0 truncate text-[12.5px] font-medium leading-5 transition-colors ${currentDelay === 0 ? 'text-default-400' : 'text-foreground/80'}`}
                     title={group.now}
                   >
-                    {currentProxyIcon && (
-                      <img
-                        className="w-4 h-4 object-contain flex-shrink-0"
-                        src={getIconImageSrc(currentProxyIcon)}
-                        alt=""
-                        onError={(e) => {
-                          ;(e.currentTarget as HTMLImageElement).style.display = 'none'
-                        }}
-                      />
-                    )}
                     {currentProxyLabel}
                   </span>
                 </div>
 
                 {/* Delay Value */}
-                <div className="flex items-center justify-center min-w-[54px] px-2">
-                  <span className={`text-sm font-bold font-mono ${delayColor}`}>
+                <div className="flex shrink-0 items-center justify-center min-w-[54px] px-2">
+                  <span className={`text-sm font-bold font-mono tabular-nums ${delayColor}`}>
                     {currentDelay === -1
                       ? '--'
                       : currentDelay === 0
@@ -251,7 +252,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
 
               {isOpen && (
                 <div
-                  className="flex items-center animate-appearance-in"
+                  className="flex shrink-0 items-center animate-appearance-in"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Button
