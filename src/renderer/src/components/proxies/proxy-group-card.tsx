@@ -216,7 +216,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
             <div className="flex min-w-0 w-full items-center gap-2 sm:w-auto sm:max-w-full">
               <div className="flex min-w-0 w-auto max-w-full items-center overflow-hidden bg-default-100/50 dark:bg-default-50/50 border border-default-200/50 rounded-xl px-1.5 py-1.5 backdrop-blur-md transition-colors hover:bg-default-200/50">
                 {/* Node Name */}
-                <div className="flex min-w-0 max-w-[140px] shrink items-center gap-1.5 border-r border-default-200/50 px-2">
+                <div className="flex min-w-0 max-w-[160px] shrink items-center gap-1.5 border-r border-default-200/50 px-2">
                   {currentProxyIcon && (
                     <img
                       className="w-4 h-4 shrink-0 object-contain"
