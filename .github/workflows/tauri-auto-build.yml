@@ -313,51 +313,12 @@ jobs:
 
           case "${{ matrix.platform }}" in
             windows)
-              bundle_dir="src-tauri/target/release/bundle"
-              setup_file=$(find "$bundle_dir/nsis" -type f -name '*.exe' -print -quit)
-              if [ -z "$setup_file" ]; then
-                echo "Missing Windows NSIS setup artifact"
-                exit 1
-              fi
-              cp "$setup_file" "$artifact_dir/${artifact_prefix}-windows-x64-setup-${short_hash}.exe"
-
-              portable_dir="$artifact_dir/RouteX-portable"
-              mkdir -p "$portable_dir"
-              cp src-tauri/target/release/routex.exe "$portable_dir/RouteX.exe"
-              for dir in core tools; do
-                if [ ! -d "src-tauri/target/release/$dir" ]; then
-                  echo "Missing Windows portable resources: src-tauri/target/release/$dir"
-                  exit 1
-                fi
-                cp -R "src-tauri/target/release/$dir" "$portable_dir/$dir"
-              done
-              if [ -d "src-tauri/target/release/resources" ]; then
-                cp -R "src-tauri/target/release/resources" "$portable_dir/resources"
-              fi
-
-              if command -v 7z >/dev/null 2>&1; then
-                seven_zip="7z"
-              elif [ -x "/c/Program Files/7-Zip/7z.exe" ]; then
-                seven_zip="/c/Program Files/7-Zip/7z.exe"
-              else
-                echo "7-Zip is required to create ${artifact_prefix}-windows-x64-portable-${short_hash}.7z"
-                exit 1
-              fi
-              (cd "$portable_dir" && "$seven_zip" a -t7z "../${artifact_prefix}-windows-x64-portable-${short_hash}.7z" .)
-              rm -rf "$portable_dir"
+              # Windows updater/install assets are copied below from Tauri's
+              # signed output. Do not create a second renamed installer.
               ;;
             linux)
-              bundle_dir="src-tauri/target/release/bundle"
-              deb_file=$(find "$bundle_dir/deb" -type f -name '*.deb' -print -quit)
-              rpm_file=$(find "$bundle_dir/rpm" -type f -name '*.rpm' -print -quit)
-
-              if [ -z "$deb_file" ] || [ -z "$rpm_file" ]; then
-                echo "Missing one or more Linux artifacts"
-                exit 1
-              fi
-
-              cp "$deb_file" "$artifact_dir/${artifact_prefix}-linux-amd64-${short_hash}.deb"
-              cp "$rpm_file" "$artifact_dir/${artifact_prefix}-linux-x86_64-${short_hash}.rpm"
+              # Linux updater/install assets are copied below from Tauri's
+              # signed output. Do not create second renamed packages.
               ;;
             macos)
               bundle_dirs=()
@@ -398,12 +359,6 @@ jobs:
 
           expected_files=()
           case "${{ matrix.platform }}" in
-            windows)
-              expected_files=("${artifact_prefix}-windows-x64-portable-${short_hash}.7z" "${artifact_prefix}-windows-x64-setup-${short_hash}.exe")
-              ;;
-            linux)
-              expected_files=("${artifact_prefix}-linux-amd64-${short_hash}.deb" "${artifact_prefix}-linux-x86_64-${short_hash}.rpm")
-              ;;
             macos)
               expected_files=("${artifact_prefix}-macos-arm64-${short_hash}.dmg" "${artifact_prefix}-macos-arm64-${short_hash}.pkg")
               ;;
