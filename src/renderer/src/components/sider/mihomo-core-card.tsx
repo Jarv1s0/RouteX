@@ -3,7 +3,6 @@ import { calcTraffic } from '@renderer/utils/calc'
 import {
   mihomoVersion,
   restartCore,
-  checkMihomoLatestVersion,
   isExpectedMihomoUnavailableError,
   retainTauriMemoryBridge
 } from '@renderer/utils/mihomo-ipc'
@@ -17,6 +16,7 @@ import { navigateSidebarRoute, preloadSidebarRoute } from '@renderer/routes'
 import { useI18n } from '@renderer/i18n'
 import { hasMihomoUpdate } from '@renderer/utils/mihomo-version'
 import { onMihomoCoreChanged } from '@renderer/utils/mihomo-core-events'
+import { useMihomoLatestVersion } from '@renderer/hooks/use-mihomo-latest-version'
 
 interface Props {
   iconOnly?: boolean
@@ -47,7 +47,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
 
   const [mem, setMem] = useState(0)
   const [restarting, setRestarting] = useState(false)
-  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+  const latestVersion = useMihomoLatestVersion(core)
   const retryTimerRef = useRef<number | null>(null)
   const versionMountedRef = useRef(true)
 
@@ -91,32 +91,6 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
       clearRetryTimer()
     }
   }, [clearRetryTimer, refreshVersion])
-
-  useEffect(() => {
-    if (!match) {
-      return
-    }
-
-    let cancelled = false
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        try {
-          const isAlpha = core === 'mihomo-alpha'
-          const latest = await checkMihomoLatestVersion(isAlpha)
-          if (!cancelled) {
-            setLatestVersion(latest)
-          }
-        } catch {
-          // ignore
-        }
-      })()
-    }, 2500)
-
-    return (): void => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [core, match])
 
   const hasNewVersion = (): boolean => hasMihomoUpdate(version?.version, latestVersion, core)
 

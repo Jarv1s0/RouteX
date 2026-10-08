@@ -381,7 +381,9 @@ export async function checkMihomoLatestVersion(isAlpha: boolean): Promise<string
 
   const request = invokeSafe<string | null>(C.checkMihomoLatestVersion, isAlpha)
     .then((result) => {
-      mihomoConfigCache.setCachedLatestVersion(isAlpha, result)
+      if (result) {
+        mihomoConfigCache.setCachedLatestVersion(isAlpha, result)
+      }
       return result
     })
     .finally(() => {

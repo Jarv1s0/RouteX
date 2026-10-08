@@ -14,7 +14,6 @@ import { platform } from '@renderer/utils/init'
 import { IoMdCloudDownload } from 'react-icons/io'
 import { relaunchApp, notDialogQuit } from '@renderer/api/app'
 import {
-  checkMihomoLatestVersion,
   ensureMihomoCoreAvailable,
   mihomoUpgrade,
   mihomoVersion,
@@ -32,7 +31,7 @@ import {
   initService,
   restartService
 } from '@renderer/utils/service-ipc'
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
@@ -41,6 +40,7 @@ import { notifyError, notifyInfo, notifySuccess } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 import { hasMihomoUpdate } from '@renderer/utils/mihomo-version'
 import { emitMihomoCoreChanged } from '@renderer/utils/mihomo-core-events'
+import { useMihomoLatestVersion } from '@renderer/hooks/use-mihomo-latest-version'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const Mihomo: React.FC = () => {
@@ -55,33 +55,13 @@ const Mihomo: React.FC = () => {
     revalidateIfStale: false,
     revalidateOnMount: false
   })
-  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+  const latestVersion = useMihomoLatestVersion(core)
   const [upgrading, setUpgrading] = useState(false)
   const [showGrantConfirm, setShowGrantConfirm] = useState(false)
   const [showUnGrantConfirm, setShowUnGrantConfirm] = useState(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
   const [pendingPermissionMode, setPendingPermissionMode] = useState<string>('')
-
-  // 检查最新版本
-  useEffect(() => {
-    setLatestVersion(null)
-    let cancelled = false
-    const timer = setTimeout(() => {
-      void (async () => {
-        const isAlpha = core === 'mihomo-alpha'
-        const latest = await checkMihomoLatestVersion(isAlpha)
-        if (!cancelled) {
-          setLatestVersion(latest)
-        }
-      })()
-    }, 2500)
-
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [core])
 
   const hasNewVersion = (): boolean => hasMihomoUpdate(version?.version, latestVersion, core)
 
