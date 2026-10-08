@@ -188,6 +188,8 @@ interface MihomoProxyGroupConfig {
   url?: string
   interval?: number
   timeout?: number
+  strategy?: 'consistent-hashing' | 'round-robin' | 'sticky-sessions'
+  'hash-key'?: 'in-user'
   'empty-fallback'?: string
   'default-selected'?: string
   lazy?: boolean
@@ -199,6 +201,7 @@ interface MihomoProxyGroupConfig {
 interface MihomoTunConfig {
   enable?: boolean
   stack?: TunStack
+  'congestion-controller'?: MihomoIPStackOptions['congestion-controller']
   'auto-route'?: boolean
   'auto-redirect'?: boolean
   'auto-detect-interface'?: boolean
@@ -339,6 +342,7 @@ interface RuleProviderConfig {
 
 interface MihomoInboundListenerConfig {
   [key: string]: unknown
+  'congestion-controller'?: MihomoIPStackOptions['congestion-controller']
   type?: string
   enable?: boolean
   listen?: string

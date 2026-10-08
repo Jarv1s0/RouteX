@@ -208,7 +208,7 @@ shadow-tls-opts:
   {
     label: 'mihomo-ip-stack-options',
     detail: 'WireGuard-style outbound IP stack',
-    info: 'Insert IP stack options supported by WireGuard, ZeroTier, OpenVPN, and Masque in Mihomo v1.19.30.',
+    info: 'Insert IP stack options supported by WireGuard, ZeroTier, OpenVPN, and Masque. Since v1.19.32, auto uses MIPS; congestion-controller is ignored by gVisor.',
     snippet: `ip-stack:
   mode: auto
   congestion-controller: bbr3`
@@ -259,5 +259,26 @@ ip-stack:
   dest: \${fallback_host}:\${fallback_port}
   password: \${restls_password}
   rate-limit: 0`
+  },
+  {
+    label: 'mihomo-load-balance-in-user',
+    detail: 'Load balance by inbound user (v1.19.32)',
+    info: 'Pin requests by authenticated inbound user. Only consistent-hashing and sticky-sessions support hash-key; round-robin rejects it. Unauthenticated requests use the strategy default key.',
+    snippet: `- name: \${group_name}
+  type: load-balance
+  proxies:
+    - \${proxy_name}
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  strategy: consistent-hashing
+  hash-key: in-user`
+  },
+  {
+    label: 'mihomo-tun-congestion-controller',
+    detail: 'TUN congestion controller (v1.19.32)',
+    info: 'Insert TUN options. Congestion control only applies to the mips stack; supported values are cubic, reno, bbr, and bbr3. The same options apply to TUN listeners.',
+    snippet: `tun:
+  stack: mips
+  congestion-controller: cubic`
   }
 ] as const

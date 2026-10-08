@@ -31,4 +31,18 @@ describe('Mihomo v1.19 YAML snippets', () => {
     expect(snippets.get('mihomo-easytier-proxy')).toContain('type: easytier')
     expect(snippets.get('mihomo-easytier-proxy')).toContain('network-name:')
   })
+
+  it('uses a hashing strategy for inbound-user pinning', () => {
+    const groups = load(snippets.get('mihomo-load-balance-in-user')!) as MihomoProxyGroupConfig[]
+    expect(groups[0]).toMatchObject({
+      type: 'load-balance',
+      strategy: 'consistent-hashing',
+      'hash-key': 'in-user'
+    })
+  })
+
+  it('enables MIPS for TUN congestion control', () => {
+    const config = load(snippets.get('mihomo-tun-congestion-controller')!) as Partial<MihomoConfig>
+    expect(config.tun).toMatchObject({ stack: 'mips', 'congestion-controller': 'cubic' })
+  })
 })

@@ -46,6 +46,7 @@ interface ControllerTunDetail {
   enable: boolean
   device: string
   stack: TunStack
+  'congestion-controller'?: MihomoIPStackOptions['congestion-controller']
   'dns-hijack': string[]
   'auto-route': boolean
   'auto-redirect'?: boolean
