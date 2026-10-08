@@ -132,27 +132,29 @@ pub(crate) fn handle_tray_toggle_profile_active(
     state: &State<'_, CoreState>,
     profile_id: &str,
 ) -> Result<(), String> {
-    let profile_config = read_profile_config(app)?;
-    let mut next_actives = active_profile_ids(&profile_config);
-    let current_id = primary_profile_id(&profile_config, &next_actives);
-    let existed = next_actives.iter().any(|id| id == profile_id);
+    with_profile_mutation(app, state, || {
+        let profile_config = read_profile_config(app)?;
+        let mut next_actives = active_profile_ids(&profile_config);
+        let current_id = primary_profile_id(&profile_config, &next_actives);
+        let existed = next_actives.iter().any(|id| id == profile_id);
 
-    if existed {
-        next_actives.retain(|id| id != profile_id);
-    } else {
-        next_actives.push(profile_id.to_string());
-    }
+        if existed {
+            next_actives.retain(|id| id != profile_id);
+        } else {
+            next_actives.push(profile_id.to_string());
+        }
 
-    let next_current = if existed && current_id.as_deref() == Some(profile_id) {
-        next_actives.first().cloned()
-    } else {
-        current_id
-    };
+        let next_current = if existed && current_id.as_deref() == Some(profile_id) {
+            next_actives.first().cloned()
+        } else {
+            current_id
+        };
 
-    set_active_profiles_store(app, &next_actives, next_current.as_deref())?;
-    emit_ipc_event(app, "profileConfigUpdated", Value::Null);
-    restart_core_and_emit(app, state)?;
-    Ok(())
+        set_active_profiles_store(app, &next_actives, next_current.as_deref())?;
+        restart_core_and_emit(app, state)?;
+        emit_ipc_event(app, "profileConfigUpdated", Value::Null);
+        Ok(())
+    })
 }
 
 pub(crate) fn handle_tray_change_current_profile(
@@ -160,10 +162,12 @@ pub(crate) fn handle_tray_change_current_profile(
     state: &State<'_, CoreState>,
     profile_id: &str,
 ) -> Result<(), String> {
-    change_current_profile_store(app, profile_id)?;
-    emit_ipc_event(app, "profileConfigUpdated", Value::Null);
-    restart_core_and_emit(app, state)?;
-    Ok(())
+    with_profile_mutation(app, state, || {
+        change_current_profile_store(app, profile_id)?;
+        restart_core_and_emit(app, state)?;
+        emit_ipc_event(app, "profileConfigUpdated", Value::Null);
+        Ok(())
+    })
 }
 
 pub(crate) fn resolve_current_runtime_dirs(

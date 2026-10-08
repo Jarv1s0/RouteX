@@ -402,7 +402,7 @@ pub(crate) fn merge_profile_nodes(
         .cloned()
         .unwrap_or_default();
 
-    let mut proxy_names = target_proxies
+    let proxy_names = target_proxies
         .iter()
         .filter_map(value_name)
         .collect::<HashSet<_>>();
@@ -418,6 +418,9 @@ pub(crate) fn merge_profile_nodes(
         .into_iter()
         .map(str::to_string)
         .collect::<HashSet<_>>();
+    let mut taken_names = proxy_names.clone();
+    taken_names.extend(group_names.iter().cloned());
+    taken_names.extend(builtin_names.iter().cloned());
 
     for (provider_name, provider_value) in source_proxy_providers {
         let next_provider_name =
@@ -439,11 +442,12 @@ pub(crate) fn merge_profile_nodes(
     let mut proxy_name_map = HashMap::new();
     for proxy in &source_proxies {
         if let Some(proxy_name) = value_name(proxy) {
-            let next_proxy_name = create_unique_name(&proxy_name, &mut proxy_names, profile_name);
+            let next_proxy_name = create_unique_name(&proxy_name, &mut taken_names, profile_name);
             proxy_name_map.insert(proxy_name, next_proxy_name);
         }
     }
 
+    let mut merged_proxies = Vec::new();
     for proxy in source_proxies {
         let mut cloned_proxy = proxy;
         let Some(proxy_object) = cloned_proxy.as_object_mut() else {
@@ -458,17 +462,35 @@ pub(crate) fn merge_profile_nodes(
 
         if let Some(dialer_proxy) = proxy_object.get("dialer-proxy").and_then(Value::as_str) {
             let resolved = map_named_reference(dialer_proxy, &proxy_name_map, &group_name_map);
-            if !builtin_names.contains(&resolved)
-                && !proxy_names.contains(&resolved)
-                && !group_names.contains(&resolved)
-            {
-                continue;
-            }
             proxy_object.insert("dialer-proxy".to_string(), Value::String(resolved));
         }
 
-        target_proxies.push(cloned_proxy);
+        merged_proxies.push(cloned_proxy);
     }
+    // A filtered node can itself be the dialer of another node. Recompute the
+    // surviving names until removing a dependency no longer leaves dangling edges.
+    loop {
+        let surviving_names = merged_proxies
+            .iter()
+            .filter_map(value_name)
+            .collect::<HashSet<_>>();
+        let previous_len = merged_proxies.len();
+        merged_proxies.retain(|proxy| {
+            proxy
+                .get("dialer-proxy")
+                .and_then(Value::as_str)
+                .is_none_or(|name| {
+                    builtin_names.contains(name)
+                        || proxy_names.contains(name)
+                        || group_names.contains(name)
+                        || surviving_names.contains(name)
+                })
+        });
+        if merged_proxies.len() == previous_len {
+            break;
+        }
+    }
+    target_proxies.extend(merged_proxies);
 
     target_object.insert("proxies".to_string(), Value::Array(target_proxies));
     target_object.insert("proxy-groups".to_string(), Value::Array(target_groups));

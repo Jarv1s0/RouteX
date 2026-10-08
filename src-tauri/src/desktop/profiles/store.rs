@@ -70,6 +70,8 @@ pub(crate) fn build_profile_item(
     } else {
         DEFAULT_LOCAL_PROFILE_NAME
     };
+    let default_interval =
+        (item_type == "remote").then_some(DEFAULT_PROFILE_UPDATE_INTERVAL_MINUTES);
 
     ProfileItemData {
         id,
@@ -103,7 +105,8 @@ pub(crate) fn build_profile_item(
             .or_else(|| existing.and_then(|value| value.verify)),
         interval: item
             .interval
-            .or_else(|| existing.and_then(|value| value.interval)),
+            .or_else(|| existing.and_then(|value| value.interval))
+            .or(default_interval),
         home: item
             .home
             .clone()
@@ -167,10 +170,6 @@ pub(crate) fn add_or_replace_profile_item(
             .use_proxy
             .or_else(|| existing.as_ref().and_then(|value| value.use_proxy))
             .unwrap_or(false);
-        let verify = item
-            .verify
-            .or_else(|| existing.as_ref().and_then(|value| value.verify))
-            .unwrap_or(false);
         let content = fetch_remote_text(
             app,
             &url,
@@ -182,9 +181,7 @@ pub(crate) fn add_or_replace_profile_item(
                 use_proxy,
             },
         )?;
-        if verify {
-            parse_profile_yaml_value(&content)?;
-        }
+        parse_profile_yaml_value(&content)?;
         Some(content)
     } else {
         item.file.clone()
@@ -298,26 +295,29 @@ pub(crate) fn set_active_profiles_store(
 
 pub(crate) fn remove_profile_item_store(app: &tauri::AppHandle, id: &str) -> Result<bool, String> {
     let mut config = read_profile_config(app)?;
-    let runtime_profile_affected = active_profile_ids(&config)
-        .iter()
-        .any(|active| active == id);
-    config.items.retain(|item| item.id != id);
-
-    if config.current.as_deref() == Some(id) {
-        config.current = config.items.first().map(|item| item.id.clone());
-    }
-
-    if let Some(actives) = config.actives.as_mut() {
-        actives.retain(|active| active != id);
-    }
+    let runtime_profile_affected = remove_profile_from_config(&mut config, id);
 
     let path = profile_file_path(app, id)?;
     if path.exists() {
-        let _ = fs::remove_file(path);
+        fs::remove_file(path).map_err(|e| e.to_string())?;
     }
 
     write_profile_config(app, &config)?;
     Ok(runtime_profile_affected)
+}
+
+pub(crate) fn remove_profile_from_config(config: &mut ProfileConfigData, id: &str) -> bool {
+    let runtime_profile_affected = active_profile_ids(config).iter().any(|active| active == id);
+    config.items.retain(|item| item.id != id);
+
+    if let Some(actives) = config.actives.as_mut() {
+        actives.retain(|active| active != id);
+    }
+    if config.current.as_deref() == Some(id) {
+        config.current = None;
+    }
+    *config = normalize_profile_config(config.clone());
+    runtime_profile_affected
 }
 
 pub(crate) fn remove_override_reference_store(

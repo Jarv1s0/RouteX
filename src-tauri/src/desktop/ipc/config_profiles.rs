@@ -169,6 +169,11 @@ pub(crate) fn register_profiles_config_handlers(map: &mut std::collections::Hash
                 .and_then(Value::as_str)
                 .ok_or_else(|| "setProfileStr requires content".to_string())?;
             write_profile_text(app, id, content)?;
+            if profile_affects_runtime(&read_profile_config(app)?, id) {
+                restart_core_and_emit(app, state)?;
+            }
+            emit_ipc_event(app, "profileConfigUpdated", Value::Null);
+            emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)
         
     })().map_err(crate::desktop::error::AppError::from) });

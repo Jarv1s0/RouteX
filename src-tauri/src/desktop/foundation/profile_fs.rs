@@ -19,6 +19,7 @@ pub(crate) fn write_profile_text(
     id: &str,
     content: &str,
 ) -> Result<(), String> {
+    parse_profile_yaml_value(content)?;
     let path = profile_file_path(app, id)?;
     ensure_parent(&path)?;
     invalidate_profile_runtime_config_cache_after(

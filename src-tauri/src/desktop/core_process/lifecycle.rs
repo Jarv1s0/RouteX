@@ -1,6 +1,18 @@
 use crate::desktop::prelude::*;
 use crate::desktop::*;
 
+pub(crate) fn validate_runtime_candidate(
+    work_dir: &Path,
+    config_yaml: &str,
+    validate: impl FnOnce(&Path) -> Result<(), String>,
+) -> Result<(), String> {
+    let check_path = work_dir.join(format!("config-candidate-{}.yaml", create_id()));
+    fs::write(&check_path, config_yaml).map_err(|e| e.to_string())?;
+    let result = validate(&check_path);
+    let cleanup = fs::remove_file(&check_path).map_err(|e| e.to_string());
+    result.and(cleanup)
+}
+
 pub(crate) fn stop_core_process(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
@@ -185,9 +197,6 @@ pub(crate) fn restart_core_process(
     config: Option<&Value>,
 ) -> Result<Value, String> {
     let _restart_guard = state.restart_lock.lock().map_err(|e| e.to_string())?;
-    let _ = recover_dns(app);
-    stop_core_process(app, state)?;
-
     let core = read_core_name(app)?;
     let binary_path = ensure_mihomo_core_available(app, &core)?;
     let use_service_mode = read_core_permission_mode(app)? == "service";
@@ -222,20 +231,25 @@ pub(crate) fn restart_core_process(
         .collect::<String>();
     prepare_runtime_data_dir(app, &work_dir)?;
     prepare_runtime_check_dir(&work_dir, &test_dir)?;
-    fs::write(&config_path, &config_yaml).map_err(|e| e.to_string())?;
     let should_check_profile = PROFILE_CHECK_CACHE
         .get_or_init(|| Mutex::new(None))
         .lock()
         .map(|cache| cache.as_ref() != Some(&config_digest))
         .unwrap_or(true);
     if should_check_profile {
-        check_runtime_profile(&binary_path, &config_path, &test_dir, &safe_paths)?;
+        // Validate a separate candidate while the previous core and config stay intact.
+        validate_runtime_candidate(&work_dir, &config_yaml, |check_path| {
+            check_runtime_profile(&binary_path, check_path, &test_dir, &safe_paths)
+        })?;
         if let Ok(mut cache) = PROFILE_CHECK_CACHE.get_or_init(|| Mutex::new(None)).lock() {
             *cache = Some(config_digest.clone());
         }
     } else {
         eprintln!("[desktop.core_ready] skip profile check: config unchanged");
     }
+    let _ = recover_dns(app);
+    stop_core_process(app, state)?;
+    fs::write(&config_path, &config_yaml).map_err(|e| e.to_string())?;
     let tun_enabled = runtime_tun_enabled(&runtime_config);
     prepare_runtime_log_file(app, &log_path);
     let log_start_offset = fs::metadata(&log_path).map(|m| m.len()).unwrap_or(0);

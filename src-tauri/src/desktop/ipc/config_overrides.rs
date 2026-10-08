@@ -19,7 +19,13 @@ pub(crate) fn register_overrides_config_handlers(map: &mut std::collections::Has
                     .unwrap_or_else(|| json!({ "items": [] })),
             )
             .map_err(|e| e.to_string())?;
+            let runtime_override_affected = override_config_runtime_changed(
+                &read_profile_config(app)?, &read_override_config(app)?, &config,
+            );
             write_override_config(app, &config)?;
+            if runtime_override_affected {
+                restart_core_and_emit(app, state)?;
+            }
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Ok(Value::Null)

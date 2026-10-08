@@ -174,10 +174,13 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
     const newOrder = sortedOverrideItems.slice()
     const activeIndex = newOrder.findIndex((item) => item.id === active.id)
     const overIndex = newOrder.findIndex((item) => item.id === over.id)
-    newOrder.splice(activeIndex, 1)
-    newOrder.splice(overIndex, 0, overrideItemsArray[activeIndex])
+    if (activeIndex < 0 || overIndex < 0) return
+    const [movedItem] = newOrder.splice(activeIndex, 1)
+    newOrder.splice(overIndex, 0, movedItem)
     setSortedOverrideItems(newOrder)
-    await setOverrideConfig({ items: newOrder })
+    if (!(await setOverrideConfig({ items: newOrder }))) {
+      setSortedOverrideItems(overrideItemsArray)
+    }
   }
 
   const handleOverrideInputKeyUp = useCallback(

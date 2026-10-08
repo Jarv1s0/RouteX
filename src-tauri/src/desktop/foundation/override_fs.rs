@@ -36,6 +36,9 @@ pub(crate) fn write_override_text(
     ext: &str,
     content: &str,
 ) -> Result<(), String> {
+    if ext == "yaml" {
+        parse_profile_yaml_value(content)?;
+    }
     let path = override_file_path(app, id, ext)?;
     let rollback_path = override_rollback_path(app, id, ext)?;
 

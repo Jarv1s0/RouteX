@@ -4,6 +4,7 @@ use super::super::*;
 const PROFILE_UPDATER_POLL_INTERVAL: Duration = Duration::from_secs(60);
 const PROFILE_UPDATER_INITIAL_DELAY: Duration = Duration::from_secs(10);
 const MILLIS_PER_MINUTE: u64 = 60_000;
+pub(crate) const DEFAULT_PROFILE_UPDATE_INTERVAL_MINUTES: u64 = 1440;
 
 struct ProfileUpdateAttempt {
     signature: String,
@@ -19,7 +20,10 @@ fn shutdown_requested(receiver: &mpsc::Receiver<()>, timeout: Duration) -> bool 
 
 pub(crate) fn is_profile_auto_update_enabled(item: &ProfileItemData) -> bool {
     item.item_type == "remote"
-        && item.interval.is_some_and(|interval| interval > 0)
+        && item
+            .interval
+            .unwrap_or(DEFAULT_PROFILE_UPDATE_INTERVAL_MINUTES)
+            > 0
         && item.auto_update.unwrap_or(true)
 }
 
@@ -32,7 +36,10 @@ pub(crate) fn profile_update_delay_ms(
         return None;
     }
 
-    let interval_ms = item.interval?.saturating_mul(MILLIS_PER_MINUTE);
+    let interval_ms = item
+        .interval
+        .unwrap_or(DEFAULT_PROFILE_UPDATE_INTERVAL_MINUTES)
+        .saturating_mul(MILLIS_PER_MINUTE);
     let reference_time = item.updated.unwrap_or(0).max(last_attempt_at.unwrap_or(0));
     Some(interval_ms.saturating_sub(now.saturating_sub(reference_time)))
 }
@@ -48,11 +55,11 @@ pub(crate) fn profile_matches_update_attempt(
     is_profile_auto_update_enabled(item) && profile_update_signature(item) == expected_signature
 }
 
-fn refresh_profile(
+fn download_profile_update(
     app: &tauri::AppHandle,
     id: &str,
     expected_signature: &str,
-) -> Result<Option<bool>, String> {
+) -> Result<Option<(ProfileItemData, String)>, String> {
     let config = read_profile_config(app)?;
     let item = get_profile_item_from_config(&config, Some(id))
         .ok_or_else(|| "Profile not found".to_string())?;
@@ -72,23 +79,8 @@ fn refresh_profile(
             use_proxy: item.use_proxy.unwrap_or(false),
         },
     )?;
-    if item.verify.unwrap_or(false) {
-        parse_profile_yaml_value(&content)?;
-    }
-
-    let mut latest_config = read_profile_config(app)?;
-    let Some(index) = latest_config.items.iter().position(|value| value.id == id) else {
-        return Ok(None);
-    };
-    if !profile_matches_update_attempt(&latest_config.items[index], expected_signature) {
-        return Ok(None);
-    }
-
-    let runtime_profile_affected = profile_affects_runtime(&latest_config, id);
-    write_profile_text(app, id, &content)?;
-    latest_config.items[index].updated = Some(current_timestamp_ms());
-    write_profile_config(app, &latest_config)?;
-    Ok(Some(runtime_profile_affected))
+    parse_profile_yaml_value(&content)?;
+    Ok(Some((item, content)))
 }
 
 fn run_profile_update_tick(
@@ -102,8 +94,7 @@ fn run_profile_update_tick(
         .map(|item| item.id.clone())
         .collect::<HashSet<_>>();
     attempts.retain(|id, _| known_ids.contains(id));
-    let mut any_profile_updated = false;
-    let mut runtime_profile_affected = false;
+    let mut updates = Vec::new();
 
     for item in config.items {
         if !is_profile_auto_update_enabled(&item) {
@@ -129,11 +120,8 @@ fn run_profile_update_tick(
             },
         );
 
-        match refresh_profile(app, &item.id, &signature) {
-            Ok(Some(affects_runtime)) => {
-                any_profile_updated = true;
-                runtime_profile_affected |= affects_runtime;
-            }
+        match download_profile_update(app, &item.id, &signature) {
+            Ok(Some(update)) => updates.push(update),
             Ok(None) => {}
             Err(_) => {
                 eprintln!("scheduled profile update failed for {}", item.id);
@@ -142,21 +130,46 @@ fn run_profile_update_tick(
     }
 
     let state = app.state::<CoreState>();
-    if state.shutdown_started.load(AtomicOrdering::SeqCst) {
+    if updates.is_empty() || state.shutdown_started.load(AtomicOrdering::SeqCst) {
         return Ok(());
     }
 
-    if any_profile_updated {
-        emit_ipc_event(app, "profileConfigUpdated", Value::Null);
-        emit_ipc_event(app, "rulesUpdated", Value::Null);
-    }
-    if runtime_profile_affected {
-        if let Err(error) = restart_core_and_emit(app, &state) {
-            eprintln!("scheduled profile core restart failed: {error}");
+    // Downloads happen outside the mutation lock. Recheck settings before committing
+    // the batch, and keep the old files if applying the runtime configuration fails.
+    with_profile_mutation(app, &state, || {
+        let mut latest_config = read_profile_config(app)?;
+        let mut any_profile_updated = false;
+        let mut runtime_profile_affected = false;
+        for (downloaded_item, content) in updates {
+            let Some(index) = latest_config
+                .items
+                .iter()
+                .position(|value| value.id == downloaded_item.id)
+            else {
+                continue;
+            };
+            if !profile_matches_update_attempt(
+                &latest_config.items[index],
+                &profile_update_signature(&downloaded_item),
+            ) {
+                continue;
+            }
+            runtime_profile_affected |=
+                profile_affects_runtime(&latest_config, &downloaded_item.id);
+            write_profile_text(app, &downloaded_item.id, &content)?;
+            latest_config.items[index].updated = Some(current_timestamp_ms());
+            any_profile_updated = true;
         }
-    }
-
-    Ok(())
+        if any_profile_updated {
+            write_profile_config(app, &latest_config)?;
+            if runtime_profile_affected {
+                restart_core_and_emit(app, &state)?;
+            }
+            emit_ipc_event(app, "profileConfigUpdated", Value::Null);
+            emit_ipc_event(app, "rulesUpdated", Value::Null);
+        }
+        Ok(())
+    })
 }
 
 pub(crate) fn start_profile_updater(app: &tauri::AppHandle) -> Result<(), String> {

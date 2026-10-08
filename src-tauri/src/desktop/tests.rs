@@ -214,6 +214,134 @@ fn profile_auto_update_discards_download_when_settings_change() {
 }
 
 #[test]
+fn newly_imported_remote_profile_gets_default_update_interval() {
+    let item = build_profile_item(
+        ProfileItemInput {
+            item_type: Some("remote".to_string()),
+            auto_update: Some(true),
+            ..Default::default()
+        },
+        None,
+        true,
+    );
+    assert_eq!(item.interval, Some(1440));
+    assert!(is_profile_auto_update_enabled(&item));
+    let legacy = remote_profile(None, Some(1000), Some(true));
+    assert_eq!(
+        profile_update_delay_ms(&legacy, 1000, None),
+        Some(86_400_000)
+    );
+    let disabled = remote_profile(Some(0), Some(1000), Some(true));
+    assert!(!is_profile_auto_update_enabled(&disabled));
+}
+
+#[test]
+fn deleting_primary_prefers_remaining_merged_profile() {
+    let mut config: ProfileConfigData = serde_json::from_value(json!({
+        "current": "A", "actives": ["A", "B"],
+        "items": [
+            { "id": "C", "name": "C", "type": "local" },
+            { "id": "A", "name": "A", "type": "local" },
+            { "id": "B", "name": "B", "type": "local" }
+        ]
+    }))
+    .unwrap();
+    assert!(remove_profile_from_config(&mut config, "A"));
+    assert_eq!(config.current.as_deref(), Some("B"));
+    assert_eq!(active_profile_ids(&config), vec!["B"]);
+    assert!(remove_profile_from_config(&mut config, "B"));
+    assert_eq!(config.current.as_deref(), Some("C"));
+    assert_eq!(active_profile_ids(&config), vec!["C"]);
+}
+
+#[test]
+fn deleting_secondary_or_inactive_preserves_primary_and_active_set() {
+    let mut config: ProfileConfigData = serde_json::from_value(json!({
+        "current": "A", "actives": ["A", "B"],
+        "items": [
+            { "id": "C", "name": "C", "type": "local" },
+            { "id": "A", "name": "A", "type": "local" },
+            { "id": "B", "name": "B", "type": "local" }
+        ]
+    }))
+    .unwrap();
+    assert!(!remove_profile_from_config(&mut config, "C"));
+    assert_eq!(active_profile_ids(&config), vec!["A", "B"]);
+    assert!(remove_profile_from_config(&mut config, "B"));
+    assert_eq!(config.current.as_deref(), Some("A"));
+    assert_eq!(active_profile_ids(&config), vec!["A"]);
+}
+
+#[test]
+fn effective_overrides_follow_list_order_including_global_items() {
+    let config: OverrideConfigData = serde_json::from_value(json!({"items": [
+        { "id": "B", "name": "B", "type": "local", "ext": "yaml", "updated": 0 },
+        { "id": "G", "name": "G", "type": "local", "ext": "js", "updated": 0, "global": true },
+        { "id": "unused", "name": "unused", "type": "local", "ext": "yaml", "updated": 0 },
+        { "id": "A", "name": "A", "type": "local", "ext": "js", "updated": 0 }
+    ]}))
+    .unwrap();
+    let mut profile = remote_profile(Some(60), None, Some(true));
+    profile.override_ids = Some(vec![
+        "A".into(),
+        "G".into(),
+        "B".into(),
+        "A".into(),
+        "missing".into(),
+    ]);
+    let ids = effective_override_items(&config, Some(&profile))
+        .iter()
+        .map(|item| item.id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(ids, vec!["B", "G", "A"]);
+    assert_eq!(
+        effective_override_items(&config, None)
+            .iter()
+            .map(|item| item.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["G"]
+    );
+}
+
+#[test]
+fn override_sort_detects_changes_for_secondary_active_profile() {
+    let mut secondary = remote_profile(Some(60), None, Some(true));
+    secondary.id = "secondary".into();
+    secondary.override_ids = Some(vec!["B".into(), "A".into()]);
+    let mut primary = secondary.clone();
+    primary.id = "primary".into();
+    primary.override_ids = None;
+    let profiles = ProfileConfigData {
+        current: Some("primary".into()),
+        actives: Some(vec!["primary".into(), "secondary".into()]),
+        items: vec![primary, secondary],
+    };
+    let previous: OverrideConfigData = serde_json::from_value(json!({"items": [
+        { "id": "A", "name": "A", "type": "local", "ext": "yaml", "updated": 0 },
+        { "id": "B", "name": "B", "type": "local", "ext": "js", "updated": 0 },
+        { "id": "unused", "name": "unused", "type": "local", "ext": "yaml", "updated": 0 }
+    ]}))
+    .unwrap();
+    let mut next = previous.clone();
+    next.items.swap(0, 1);
+    assert!(override_config_runtime_changed(&profiles, &previous, &next));
+    let mut unused_reorder = previous.clone();
+    unused_reorder.items.rotate_right(1);
+    assert!(!override_config_runtime_changed(
+        &profiles,
+        &previous,
+        &unused_reorder
+    ));
+    let globals_only = ProfileConfigData::default();
+    next.items[0].global = Some(true);
+    assert!(override_config_runtime_changed(
+        &globals_only,
+        &previous,
+        &next
+    ));
+}
+
+#[test]
 fn quick_rules_normalization_drops_invalid_rules_and_forces_version() {
     let valid_rule = QuickRule {
         id: "rule-1".to_string(),
@@ -826,6 +954,82 @@ fn merge_profile_nodes_keeps_secondary_groups_out_of_runtime_profile() {
 }
 
 #[test]
+fn merged_nodes_drop_transitive_missing_dialers_in_any_order() {
+    for names in [["X", "Y", "Z"], ["Z", "Y", "X"]] {
+        let proxies = names
+            .iter()
+            .map(|name| {
+                json!({
+                    "name": name,
+                    "dialer-proxy": match *name { "X" => "HK", "Y" => "X", _ => "Y" }
+                })
+            })
+            .collect::<Vec<_>>();
+        let mut primary = json!({"proxies": [{"name": "Primary"}], "proxy-groups": []});
+        merge_profile_nodes(
+            &mut primary,
+            &json!({
+                "proxies": proxies,
+                "proxy-groups": [{"name": "HK", "proxies": ["DIRECT"]}]
+            }),
+            "secondary",
+            "Secondary",
+        );
+        assert_eq!(primary["proxies"], json!([{"name": "Primary"}]));
+    }
+}
+
+#[test]
+fn merged_nodes_avoid_group_builtin_and_node_names_and_rewrite_dialers() {
+    let mut primary = json!({
+        "proxies": [{"name": "Shared"}],
+        "proxy-groups": [{"name": "Proxy", "type": "select", "proxies": ["Shared"]}]
+    });
+    merge_profile_nodes(
+        &mut primary,
+        &json!({"proxies": [
+            {"name": "Proxy"}, {"name": "DIRECT"}, {"name": "Shared"},
+            {"name": "Relay", "dialer-proxy": "Proxy"}
+        ]}),
+        "secondary",
+        "Secondary",
+    );
+    let names = primary["proxies"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(value_name)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        names,
+        vec![
+            "Shared",
+            "[Secondary] Proxy",
+            "[Secondary] DIRECT",
+            "[Secondary] Shared",
+            "Relay"
+        ]
+    );
+    assert_eq!(primary["proxies"][4]["dialer-proxy"], "[Secondary] Proxy");
+    assert_eq!(primary["proxy-groups"][0]["proxies"], json!(["Shared"]));
+}
+
+#[test]
+fn merged_nodes_keep_valid_forward_dialer_references() {
+    let mut primary = json!({"proxies": [], "proxy-groups": []});
+    merge_profile_nodes(
+        &mut primary,
+        &json!({"proxies": [
+            {"name": "Relay", "dialer-proxy": "Exit"}, {"name": "Exit", "dialer-proxy": "DIRECT"}
+        ]}),
+        "secondary",
+        "Secondary",
+    );
+    assert_eq!(primary["proxies"].as_array().unwrap().len(), 2);
+    assert_eq!(primary["proxies"][0]["dialer-proxy"], "Exit");
+}
+
+#[test]
 fn mihomo_asset_matching_supports_v11931_release_names() {
     let prefixes = [
         "mihomo-windows-amd64-compatible",
@@ -998,6 +1202,90 @@ fn migration_test_dir(name: &str) -> PathBuf {
         std::process::id(),
         current_timestamp_ms()
     ))
+}
+
+#[test]
+fn failed_runtime_candidate_preserves_config_and_removes_temporary_file() {
+    let root = migration_test_dir("runtime-candidate");
+    fs::create_dir_all(&root).unwrap();
+    let config_path = root.join("config.yaml");
+    fs::write(&config_path, "mode: rule").unwrap();
+    let error = validate_runtime_candidate(&root, "proxies: [", |candidate| {
+        assert_ne!(candidate, config_path);
+        assert_eq!(fs::read_to_string(&config_path).unwrap(), "mode: rule");
+        parse_profile_yaml_value(&fs::read_to_string(candidate).unwrap()).map(|_| ())
+    })
+    .expect_err("invalid candidate must fail before replacing the runtime file");
+    assert!(!error.is_empty());
+    assert_eq!(fs::read_to_string(&config_path).unwrap(), "mode: rule");
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    validate_runtime_candidate(&root, "mode: global", |candidate| {
+        parse_profile_yaml_value(&fs::read_to_string(candidate).unwrap()).map(|_| ())
+    })
+    .unwrap();
+    assert_eq!(fs::read_to_string(&config_path).unwrap(), "mode: rule");
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
+fn failed_profile_update_restores_files_metadata_and_rollback_but_keeps_log() {
+    let root = migration_test_dir("profile-transaction");
+    let profiles = root.join(PROFILE_DIR_NAME);
+    let overrides = root.join(OVERRIDE_DIR_NAME);
+    fs::create_dir_all(&profiles).unwrap();
+    fs::create_dir_all(&overrides).unwrap();
+    let original = [
+        (
+            root.join(PROFILE_CONFIG_FILE),
+            "{\"current\":\"A\",\"items\":[]}",
+        ),
+        (root.join(OVERRIDE_CONFIG_FILE), "{\"items\":[]}"),
+        (profiles.join("A.yaml"), "mode: rule"),
+        (overrides.join("B.js"), "function main(c) { return c; }"),
+        (overrides.join("B.js.rollback"), "previous rollback"),
+    ];
+    for (path, content) in &original {
+        fs::write(path, content).unwrap();
+    }
+    let snapshot = ProfileStorageSnapshot::capture(&root).unwrap();
+    fs::write(&original[0].0, "new metadata").unwrap();
+    fs::remove_file(&original[2].0).unwrap();
+    fs::write(
+        &original[3].0,
+        "function main(c) { throw new Error('bad update'); }",
+    )
+    .unwrap();
+    fs::write(&original[4].0, "new rollback").unwrap();
+    fs::write(profiles.join("new.yaml"), "mode: global").unwrap();
+    fs::write(overrides.join("B.log"), "bad update").unwrap();
+    run_override_script(&fs::read_to_string(&original[3].0).unwrap(), &json!({}))
+        .expect_err("the downloaded script should fail");
+    snapshot.restore().unwrap();
+    snapshot.restore().unwrap();
+    for (path, content) in original {
+        assert_eq!(fs::read_to_string(path).unwrap(), content);
+    }
+    assert!(!profiles.join("new.yaml").exists());
+    assert_eq!(
+        fs::read_to_string(overrides.join("B.log")).unwrap(),
+        "bad update"
+    );
+    fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
+fn failed_first_import_restores_absent_config_files() {
+    let root = migration_test_dir("first-profile-transaction");
+    fs::create_dir_all(&root).unwrap();
+    let snapshot = ProfileStorageSnapshot::capture(&root).unwrap();
+    fs::create_dir_all(root.join(PROFILE_DIR_NAME)).unwrap();
+    fs::write(root.join(PROFILE_CONFIG_FILE), "{}").unwrap();
+    fs::write(root.join(PROFILE_DIR_NAME).join("new.yaml"), "proxies: [").unwrap();
+    snapshot.restore().unwrap();
+    assert!(!root.join(PROFILE_CONFIG_FILE).exists());
+    assert!(!root.join(PROFILE_DIR_NAME).join("new.yaml").exists());
+    fs::remove_dir_all(&root).unwrap();
 }
 
 #[test]

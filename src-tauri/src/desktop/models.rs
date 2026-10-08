@@ -60,6 +60,7 @@ pub(crate) struct NetworkHealthState {
 pub(crate) struct CoreState {
     pub(crate) runtime: Mutex<CoreRuntime>,
     pub(crate) restart_lock: Mutex<()>,
+    pub(crate) profile_mutation_lock: Mutex<()>,
     pub(crate) last_sysproxy_signature: Mutex<Option<String>>,
     pub(crate) pac_server: Mutex<Option<PacServerHandle>>,
     pub(crate) lightweight_mode: Mutex<Option<LightweightModeHandle>>,

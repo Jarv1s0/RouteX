@@ -105,6 +105,12 @@ pub(crate) fn desktop_invoke_sync(
     let started_at = Instant::now();
     let map = IPC_HANDLERS.get_or_init(init_ipc_handlers);
     let result = match map.get(channel.as_str()) {
+        Some(handler) if is_profile_mutation_channel(&channel) => {
+            with_profile_mutation(app, &state, || {
+                handler(app, window, &state, &args).map_err(|e| e.to_string())
+            })
+            .map_err(crate::desktop::error::AppError::from)
+        }
         Some(handler) => handler(app, window, &state, &args),
         None => Err(crate::desktop::error::AppError::Generic(format!(
             "Unsupported Tauri desktop channel: {channel}"

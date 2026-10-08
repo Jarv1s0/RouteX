@@ -1,35 +1,52 @@
 use super::super::prelude::*;
 use super::super::*;
 
+pub(crate) fn effective_override_items<'a>(
+    config: &'a OverrideConfigData,
+    profile: Option<&ProfileItemData>,
+) -> Vec<&'a OverrideItemData> {
+    let selected = profile.and_then(|item| item.override_ids.as_ref());
+    let mut seen = HashSet::new();
+    config
+        .items
+        .iter()
+        .filter(|item| {
+            (item.global.unwrap_or(false) || selected.is_some_and(|ids| ids.contains(&item.id)))
+                && seen.insert(item.id.as_str())
+        })
+        .collect()
+}
+
+pub(crate) fn override_config_runtime_changed(
+    profiles: &ProfileConfigData,
+    previous: &OverrideConfigData,
+    next: &OverrideConfigData,
+) -> bool {
+    let mut profile_ids = active_profile_ids(profiles)
+        .into_iter()
+        .map(Some)
+        .collect::<Vec<_>>();
+    if profile_ids.is_empty() {
+        profile_ids.push(None);
+    }
+    profile_ids.iter().any(|id| {
+        let profile = get_profile_item_from_config(profiles, id.as_deref());
+        serde_json::to_value(effective_override_items(previous, profile.as_ref())).ok()
+            != serde_json::to_value(effective_override_items(next, profile.as_ref())).ok()
+    })
+}
+
 pub(crate) fn current_override_profile_text(app: &tauri::AppHandle) -> Result<String, String> {
     let profile_config = read_profile_config(app)?;
     let override_config = read_override_config(app)?;
-    let mut ids = override_config
-        .items
-        .iter()
-        .filter(|item| item.global.unwrap_or(false))
-        .map(|item| item.id.clone())
-        .collect::<Vec<_>>();
-
-    if let Some(current_profile) =
-        get_profile_item_from_config(&profile_config, profile_config.current.as_deref())
-    {
-        if let Some(profile_override_ids) = current_profile.override_ids {
-            for id in profile_override_ids {
-                if !ids.contains(&id) {
-                    ids.push(id);
-                }
-            }
-        }
-    }
+    let current_profile =
+        get_profile_item_from_config(&profile_config, profile_config.current.as_deref());
 
     let mut blocks = Vec::new();
-    for id in ids {
-        if let Some(item) = override_config.items.iter().find(|item| item.id == id) {
-            let text = read_override_text(app, &item.id, &item.ext)?;
-            if !text.trim().is_empty() {
-                blocks.push(text);
-            }
+    for item in effective_override_items(&override_config, current_profile.as_ref()) {
+        let text = read_override_text(app, &item.id, &item.ext)?;
+        if !text.trim().is_empty() {
+            blocks.push(text);
         }
     }
 
@@ -113,29 +130,9 @@ pub(crate) fn apply_overrides_to_profile(
     profile: &mut Value,
 ) -> Result<(), String> {
     let override_config = read_override_config(app)?;
-    let mut ids = override_config
-        .items
-        .iter()
-        .filter(|item| item.global.unwrap_or(false))
-        .map(|item| item.id.clone())
-        .collect::<Vec<_>>();
+    let current_profile = get_profile_item_from_config(&read_profile_config(app)?, profile_id);
 
-    if let Some(current_profile) =
-        get_profile_item_from_config(&read_profile_config(app)?, profile_id)
-    {
-        if let Some(profile_override_ids) = current_profile.override_ids {
-            for id in profile_override_ids {
-                if !ids.contains(&id) {
-                    ids.push(id);
-                }
-            }
-        }
-    }
-
-    for id in ids {
-        let Some(item) = override_config.items.iter().find(|item| item.id == id) else {
-            continue;
-        };
+    for item in effective_override_items(&override_config, current_profile.as_ref()) {
         let text = read_override_text(app, &item.id, &item.ext)?;
         if text.trim().is_empty() {
             continue;

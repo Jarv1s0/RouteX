@@ -235,10 +235,13 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
     const newOrder = sortedItems.slice()
     const activeIndex = newOrder.findIndex((item) => item.id === active.id)
     const overIndex = newOrder.findIndex((item) => item.id === over.id)
-    newOrder.splice(activeIndex, 1)
-    newOrder.splice(overIndex, 0, itemsArray[activeIndex])
+    if (activeIndex < 0 || overIndex < 0) return
+    const [movedItem] = newOrder.splice(activeIndex, 1)
+    newOrder.splice(overIndex, 0, movedItem)
     setSortedItems(newOrder)
-    await setProfileConfig({ current, actives: activeProfileIds, items: newOrder })
+    if (!(await setProfileConfig({ current, actives: activeProfileIds, items: newOrder }))) {
+      setSortedItems(itemsArray)
+    }
   }
 
   const pageRef = useRef<HTMLDivElement>(null)
