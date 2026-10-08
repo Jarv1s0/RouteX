@@ -6,6 +6,8 @@ interface Props {
 }
 
 const ReleaseNotesMarkdown: React.FC<Props> = ({ children }) => {
+  const content = children.replace(/^\s*#{1,6}[\t ]+更新日志[\t ]*(?:\r?\n|$)\s*/, '')
+
   return (
     <ReactMarkdown
       components={{
@@ -15,7 +17,7 @@ const ReleaseNotesMarkdown: React.FC<Props> = ({ children }) => {
         li: ({ children }) => <li className="list-disc list-inside">{children}</li>
       }}
     >
-      {children}
+      {content}
     </ReactMarkdown>
   )
 }
