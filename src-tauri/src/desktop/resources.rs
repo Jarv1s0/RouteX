@@ -244,14 +244,12 @@ pub(crate) fn collect_resource_candidates(
     }
 
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
-    for base in [resource_dir.clone()] {
-        if !base.as_os_str().is_empty() {
-            push_resource_candidate(
-                &mut candidates,
-                &mut seen,
-                base.join(relative_dir).join(file_name),
-            );
-        }
+    if !resource_dir.as_os_str().is_empty() {
+        push_resource_candidate(
+            &mut candidates,
+            &mut seen,
+            resource_dir.join(relative_dir).join(file_name),
+        );
     }
 
     if let Some(exe_dir) = current_exe_dir() {
