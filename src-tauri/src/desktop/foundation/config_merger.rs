@@ -39,6 +39,11 @@ pub(crate) fn normalize_profile_config(mut config: ProfileConfigData) -> Profile
         .map(|item| item.id.clone())
         .collect::<HashSet<_>>();
 
+    config.merge_targets.retain(|id, groups| {
+        *groups = dedupe_ids(std::mem::take(groups));
+        valid_ids.contains(id) && !groups.is_empty()
+    });
+
     let current = config
         .current
         .as_ref()

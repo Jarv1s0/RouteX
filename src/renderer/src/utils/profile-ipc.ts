@@ -4,6 +4,14 @@ export async function getProfileConfig(force = false): Promise<ProfileConfig> {
   return invokeSafe(C.getProfileConfig, force)
 }
 
+export async function getProfileMergeReport(): Promise<ProfileMergeReport> {
+  return invokeSafe(C.getProfileMergeReport)
+}
+
+export async function setProfileMergeTargets(id: string, targets: string[]): Promise<void> {
+  return invokeSafe(C.setProfileMergeTargets, id, targets)
+}
+
 export async function setProfileConfig(config: ProfileConfig): Promise<void> {
   return invokeSafe(C.setProfileConfig, config)
 }

@@ -362,12 +362,17 @@ pub(crate) fn merge_profile_nodes(
     source_profile: &Value,
     profile_id: &str,
     profile_name: &str,
-) {
+) -> ProfileMergeMember {
+    let mut report = ProfileMergeMember {
+        id: profile_id.to_string(),
+        name: profile_name.to_string(),
+        ..Default::default()
+    };
     let Some(target_object) = target_profile.as_object_mut() else {
-        return;
+        return report;
     };
     let Some(source_object) = source_profile.as_object() else {
-        return;
+        return report;
     };
 
     let mut target_proxies = target_object
@@ -422,14 +427,6 @@ pub(crate) fn merge_profile_nodes(
     taken_names.extend(group_names.iter().cloned());
     taken_names.extend(builtin_names.iter().cloned());
 
-    for (provider_name, provider_value) in source_proxy_providers {
-        let next_provider_name =
-            create_unique_name(&provider_name, &mut provider_names, profile_name);
-        let mut cloned_provider = provider_value.clone();
-        rewrite_provider_path(&mut cloned_provider, profile_id);
-        target_proxy_providers.insert(next_provider_name, cloned_provider);
-    }
-
     let mut group_name_map = HashMap::new();
     for group in &source_groups {
         if let Some(group_name) = value_name(group) {
@@ -443,8 +440,46 @@ pub(crate) fn merge_profile_nodes(
     for proxy in &source_proxies {
         if let Some(proxy_name) = value_name(proxy) {
             let next_proxy_name = create_unique_name(&proxy_name, &mut taken_names, profile_name);
+            if next_proxy_name != proxy_name {
+                report.renamed.push(ProfileMergeRename {
+                    kind: "node",
+                    from: proxy_name.clone(),
+                    to: next_proxy_name.clone(),
+                });
+            }
             proxy_name_map.insert(proxy_name, next_proxy_name);
         }
+    }
+
+    for (provider_name, mut provider) in source_proxy_providers {
+        let next_name = create_unique_name(&provider_name, &mut provider_names, profile_name);
+        if next_name != provider_name {
+            report.renamed.push(ProfileMergeRename {
+                kind: "provider",
+                from: provider_name,
+                to: next_name.clone(),
+            });
+        }
+        rewrite_provider_path(&mut provider, profile_id);
+        if let Some(overrides) = provider.get_mut("override").and_then(Value::as_object_mut) {
+            if let Some(dialer) = overrides.get("dialer-proxy").and_then(Value::as_str) {
+                let resolved = map_named_reference(dialer, &proxy_name_map, &group_name_map);
+                overrides.insert("dialer-proxy".to_string(), Value::String(resolved));
+            }
+        }
+        if let Some(payload) = provider.get_mut("payload").and_then(Value::as_array_mut) {
+            for node in payload {
+                if let Some(dialer) = node.get("dialer-proxy").and_then(Value::as_str) {
+                    node["dialer-proxy"] = Value::String(map_named_reference(
+                        dialer,
+                        &proxy_name_map,
+                        &group_name_map,
+                    ));
+                }
+            }
+        }
+        report.providers.push(next_name.clone());
+        target_proxy_providers.insert(next_name, provider);
     }
 
     let mut merged_proxies = Vec::new();
@@ -476,7 +511,7 @@ pub(crate) fn merge_profile_nodes(
             .collect::<HashSet<_>>();
         let previous_len = merged_proxies.len();
         merged_proxies.retain(|proxy| {
-            proxy
+            let keep = proxy
                 .get("dialer-proxy")
                 .and_then(Value::as_str)
                 .is_none_or(|name| {
@@ -484,12 +519,52 @@ pub(crate) fn merge_profile_nodes(
                         || proxy_names.contains(name)
                         || group_names.contains(name)
                         || surviving_names.contains(name)
-                })
+                });
+            if !keep {
+                report.discarded.push(ProfileMergeDiscard {
+                    name: value_name(proxy).unwrap_or_default(),
+                    dialer_proxy: proxy["dialer-proxy"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string(),
+                });
+            }
+            keep
         });
         if merged_proxies.len() == previous_len {
             break;
         }
     }
+    report.nodes = merged_proxies.iter().filter_map(value_name).collect();
+    // A provider may refer to a secondary node/group that cannot survive the
+    // merge. Drop that provider too, including from include-all provider groups.
+    let mut unavailable_dialers = report
+        .discarded
+        .iter()
+        .map(|node| node.name.clone())
+        .collect::<HashSet<_>>();
+    unavailable_dialers.extend(source_groups.iter().filter_map(value_name).filter(|name| {
+        !group_names.contains(name) && !proxy_names.contains(name) && !report.nodes.contains(name)
+    }));
+    for name in &report.providers {
+        if let Some(provider) = target_proxy_providers.get(name) {
+            if let Some(dialer) = profile_merge_provider_dialers(provider)
+                .into_iter()
+                .find(|dialer| unavailable_dialers.contains(dialer))
+            {
+                report.discarded_providers.push(ProfileMergeDiscard {
+                    name: name.clone(),
+                    dialer_proxy: dialer,
+                });
+            }
+        }
+    }
+    for provider in &report.discarded_providers {
+        target_proxy_providers.remove(&provider.name);
+    }
+    report
+        .providers
+        .retain(|name| target_proxy_providers.contains_key(name));
     target_proxies.extend(merged_proxies);
 
     target_object.insert("proxies".to_string(), Value::Array(target_proxies));
@@ -498,6 +573,7 @@ pub(crate) fn merge_profile_nodes(
         "proxy-providers".to_string(),
         Value::Object(target_proxy_providers),
     );
+    report
 }
 
 pub(crate) fn parse_profile_yaml_value(text: &str) -> Result<Value, String> {
@@ -518,6 +594,12 @@ pub(crate) const JS_OVERRIDE_LOOP_ITERATION_LIMIT: u64 = 1_000_000;
 pub(crate) const JS_OVERRIDE_RECURSION_LIMIT: usize = 128;
 
 pub(crate) fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<Value, String> {
+    current_profile_runtime_details(app).map(|(value, _)| value)
+}
+
+pub(crate) fn current_profile_runtime_details(
+    app: &tauri::AppHandle,
+) -> Result<(Value, ProfileMergeReport), String> {
     let cache_revision = current_profile_runtime_config_revision();
     if let Some(cached) = read_cached_profile_runtime_config(cache_revision) {
         return Ok(cached);
@@ -526,6 +608,10 @@ pub(crate) fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<V
     let profile_config = read_profile_config(app)?;
     let active_ids = active_profile_ids(&profile_config);
     let current = primary_profile_id(&profile_config, &active_ids);
+    let mut report = ProfileMergeReport {
+        primary_id: current.clone(),
+        ..Default::default()
+    };
     let app_config = read_app_config_store(app)?;
     let control_dns = app_config
         .get("controlDns")
@@ -565,21 +651,58 @@ pub(crate) fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<V
             .unwrap_or_else(|| json!({}));
 
         let mut merged_profile = primary_profile;
+        if let Some((id, name, value)) = loaded_profiles.iter().find(|(id, _, _)| id == primary_id)
+        {
+            report.members.push(ProfileMergeMember {
+                id: id.clone(),
+                name: name.clone(),
+                primary: true,
+                nodes: value
+                    .get("proxies")
+                    .and_then(Value::as_array)
+                    .map(|nodes| nodes.iter().filter_map(value_name).collect())
+                    .unwrap_or_default(),
+                providers: value
+                    .get("proxy-providers")
+                    .and_then(Value::as_object)
+                    .map(|providers| providers.keys().cloned().collect())
+                    .unwrap_or_default(),
+                ..Default::default()
+            });
+        }
         for (profile_id, profile_name, profile_value) in loaded_profiles {
             if profile_id == primary_id {
                 continue;
             }
-            merge_profile_nodes(
+            report.members.push(merge_profile_nodes(
                 &mut merged_profile,
                 &profile_value,
                 &profile_id,
                 &profile_name,
-            );
+            ));
         }
         merged_profile
     } else if let Some(profile_id) = current.as_deref() {
         let mut profile = parse_profile_yaml_value(&read_profile_text(app, profile_id)?)?;
         apply_overrides_to_profile(app, current.as_deref(), &mut profile)?;
+        report.members.push(ProfileMergeMember {
+            id: profile_id.to_string(),
+            name: get_profile_item_from_config(&profile_config, Some(profile_id))
+                .map(|item| item.name)
+                .unwrap_or_default(),
+            primary: true,
+            nodes: profile
+                .get("proxies")
+                .and_then(Value::as_array)
+                .map(|nodes| nodes.iter().filter_map(value_name).collect())
+                .unwrap_or_default(),
+            providers: profile
+                .get("proxy-providers")
+                .and_then(Value::as_object)
+                .map(|providers| providers.keys().cloned().collect())
+                .unwrap_or_default(),
+            ..Default::default()
+        });
         profile
     } else {
         json!({})
@@ -599,12 +722,18 @@ pub(crate) fn current_profile_runtime_config(app: &tauri::AppHandle) -> Result<V
     }
 
     merge_json(&mut profile_value, &controlled_config);
+    let target_names = current
+        .as_ref()
+        .and_then(|id| profile_config.merge_targets.get(id))
+        .cloned()
+        .unwrap_or_default();
+    attach_merged_profile_nodes(&mut profile_value, &target_names, &mut report);
     inject_chain_proxies(&mut profile_value, app)?;
     sanitize_runtime_profile_value(&mut profile_value, control_dns, control_sniff);
     inject_quick_rules(app, &mut profile_value)?;
-    write_cached_profile_runtime_config(cache_revision, &profile_value);
+    write_cached_profile_runtime_config(cache_revision, &profile_value, &report);
 
-    Ok(profile_value)
+    Ok((profile_value, report))
 }
 
 pub(crate) fn strip_profile_managed_runtime_fields(profile: &mut Value) {

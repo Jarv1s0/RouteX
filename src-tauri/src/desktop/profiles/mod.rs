@@ -1,3 +1,4 @@
+pub(crate) mod merge_report;
 pub(crate) mod network;
 pub(crate) mod overrides;
 pub(crate) mod parser;
@@ -5,6 +6,7 @@ pub(crate) mod store;
 pub(crate) mod transaction;
 pub(crate) mod updater;
 
+pub(crate) use merge_report::*;
 pub(crate) use network::*;
 pub(crate) use overrides::*;
 pub(crate) use parser::*;

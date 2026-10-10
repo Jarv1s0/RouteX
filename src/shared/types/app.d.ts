@@ -130,7 +130,31 @@ interface AppConfig {
 interface ProfileConfig {
   current?: string
   actives?: string[]
+  mergeTargets?: Record<string, string[]>
   items: ProfileItem[]
+}
+
+interface ProfileMergeReport {
+  primaryId?: string
+  members: {
+    id: string
+    name: string
+    primary: boolean
+    nodes: string[]
+    providers: string[]
+    renamed: { kind: 'node' | 'provider'; from: string; to: string }[]
+    discarded: { name: string; dialerProxy: string }[]
+    discardedProviders: { name: string; dialerProxy: string }[]
+  }[]
+  availableTargets: string[]
+  missingTargets: string[]
+  targets: {
+    name: string
+    addedNodes: number
+    addedProviders: number
+    skippedNodes: string[]
+    skippedProviders: string[]
+  }[]
 }
 
 interface ProfileItem {

@@ -84,6 +84,12 @@ pub(crate) struct ProfileConfigData {
     pub(crate) current: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) actives: Option<Vec<String>>,
+    #[serde(
+        rename = "mergeTargets",
+        default,
+        skip_serializing_if = "HashMap::is_empty"
+    )]
+    pub(crate) merge_targets: HashMap<String, Vec<String>>,
     #[serde(default)]
     pub(crate) items: Vec<ProfileItemData>,
 }

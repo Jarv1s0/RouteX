@@ -822,6 +822,40 @@ export const enUS: Record<TranslationKey, string> = {
   'profiles.syncGist': 'Sync runtime config to Gist',
   'profiles.copyGistUrl': 'Copy Gist URL',
   'profiles.status.primary': 'Primary',
+  'profiles.merge.title': 'Profile aggregation',
+  'profiles.merge.summary': '{members} profiles · {nodes} nodes',
+  'profiles.merge.viewReport': 'View report',
+  'profiles.merge.reportTitle': 'Merge report',
+  'profiles.merge.settings': 'Attachment settings',
+  'profiles.merge.helpLabel': 'About aggregation',
+  'profiles.merge.sources': 'Profile sources',
+  'profiles.merge.nodeCount': '{count} nodes',
+  'profiles.merge.providerCount': '{count} providers',
+  'profiles.merge.renamedCount': '{count} renamed',
+  'profiles.merge.warningCount': '{count} items need attention · see report',
+  'profiles.merge.help':
+    'The primary profile supplies groups and routing rules. Select groups to receive nodes and providers from secondary profiles; leave empty to keep the current configuration. Targets are saved separately for each primary profile.',
+  'profiles.merge.targets': 'Target groups',
+  'profiles.merge.targetsHelpLabel': 'About target groups',
+  'profiles.merge.targetsHelp':
+    'Select groups in the primary profile to receive nodes and providers from secondary profiles. This is usually unnecessary if the groups already collect the required nodes or providers automatically. Leave empty to preserve the existing configuration. Settings are saved separately for each primary profile.',
+  'profiles.merge.noTargets': 'No target groups selected',
+  'profiles.merge.apply': 'Save and apply',
+  'profiles.merge.filtersHelp':
+    'Existing filters and automatic inclusion still apply. Attachment counts show newly added candidates. Provider nodes are loaded and updated by the core.',
+  'profiles.merge.reportHelp':
+    'The report is generated from the current configuration. Node counts exclude dynamically loaded provider nodes. Secondary groups, rules and DNS are not merged.',
+  'profiles.merge.loadFailed': 'Could not generate the merge report',
+  'profiles.merge.loading': 'Generating merge report',
+  'profiles.merge.retry': 'Retry',
+  'profiles.merge.missingTargets': 'Groups are missing or unsupported; skipped: {names}',
+  'profiles.merge.cycle':
+    'Possible circular dependencies; not added explicitly: {names}. Existing automatic inclusion may still include these nodes.',
+  'profiles.merge.providerDialerMissing':
+    'Discarded provider {name}: dialer target {dialer} was not retained in the merged configuration',
+  'profiles.merge.nodes': 'Contributed nodes',
+  'profiles.merge.discarded':
+    'Discarded {name}: dialer target {dialer} is missing from the merged configuration',
   'profiles.status.enabled': 'Merged',
   'profiles.status.disabled': 'Not merged',
   'profiles.editInfo': 'Edit properties',

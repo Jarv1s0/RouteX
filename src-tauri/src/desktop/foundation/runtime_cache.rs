@@ -24,6 +24,7 @@ pub(crate) fn runtime_config_modified_at_ms(path: &Path) -> Option<u64> {
 pub(crate) struct ProfileRuntimeConfigCache {
     revision: u64,
     value: Value,
+    report: ProfileMergeReport,
 }
 
 pub(crate) fn profile_runtime_config_cache() -> &'static Mutex<Option<ProfileRuntimeConfigCache>> {
@@ -34,7 +35,9 @@ pub(crate) fn current_profile_runtime_config_revision() -> u64 {
     PROFILE_RUNTIME_CONFIG_REVISION.load(AtomicOrdering::SeqCst)
 }
 
-pub(crate) fn read_cached_profile_runtime_config(revision: u64) -> Option<Value> {
+pub(crate) fn read_cached_profile_runtime_config(
+    revision: u64,
+) -> Option<(Value, ProfileMergeReport)> {
     profile_runtime_config_cache()
         .lock()
         .ok()
@@ -42,16 +45,21 @@ pub(crate) fn read_cached_profile_runtime_config(revision: u64) -> Option<Value>
             cache
                 .as_ref()
                 .filter(|cached| cached.revision == revision)
-                .map(|cached| cached.value.clone())
+                .map(|cached| (cached.value.clone(), cached.report.clone()))
         })
 }
 
-pub(crate) fn write_cached_profile_runtime_config(revision: u64, value: &Value) {
+pub(crate) fn write_cached_profile_runtime_config(
+    revision: u64,
+    value: &Value,
+    report: &ProfileMergeReport,
+) {
     if let Ok(mut cache) = profile_runtime_config_cache().lock() {
         if current_profile_runtime_config_revision() == revision {
             *cache = Some(ProfileRuntimeConfigCache {
                 revision,
                 value: value.clone(),
+                report: report.clone(),
             });
         }
     }

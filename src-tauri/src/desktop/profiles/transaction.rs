@@ -89,6 +89,7 @@ pub(crate) fn is_profile_mutation_channel(channel: &str) -> bool {
     matches!(
         channel,
         "setProfileConfig"
+            | "setProfileMergeTargets"
             | "changeCurrentProfile"
             | "setActiveProfiles"
             | "addProfileItem"

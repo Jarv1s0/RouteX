@@ -95,6 +95,7 @@ fn desktop_invoke_handlers_match_typescript_contract() {
 #[test]
 fn profile_config_normalization_repairs_current_and_dedupes_actives() {
     let config = ProfileConfigData {
+        merge_targets: HashMap::new(),
         current: Some("missing".to_string()),
         actives: Some(vec![
             "beta".to_string(),
@@ -312,6 +313,7 @@ fn override_sort_detects_changes_for_secondary_active_profile() {
     primary.id = "primary".into();
     primary.override_ids = None;
     let profiles = ProfileConfigData {
+        merge_targets: HashMap::new(),
         current: Some("primary".into()),
         actives: Some(vec!["primary".into(), "secondary".into()]),
         items: vec![primary, secondary],
@@ -1030,6 +1032,324 @@ fn merged_nodes_keep_valid_forward_dialer_references() {
 }
 
 #[test]
+fn profile_merge_targets_preserve_primary_policies_and_route_renamed_nodes_and_providers() {
+    let mut profile = json!({
+        "proxies": [{"name": "Shared"}],
+        "proxy-providers": {"sub": {"type": "inline", "payload": []}},
+        "proxy-groups": [
+            {"name": "Proxy", "type": "select", "proxies": ["Shared"], "use": ["sub"], "filter": "HK", "exclude-filter": "expired"},
+            {"name": "Other", "type": "url-test", "proxies": ["Shared"], "url": "https://example.com", "interval": 300}
+        ],
+        "rules": ["MATCH,Proxy"], "dns": {"enable": true}, "hosts": {"primary": "1.1.1.1"}
+    });
+    let secondary = json!({
+        "proxies": [{"name": "Shared"}, {"name": "Exit", "dialer-proxy": "Shared"}],
+        "proxy-providers": {"sub": {"type": "inline", "path": "./providers/sub.yaml", "override": {"dialer-proxy": "Shared"}, "payload": [{"name": "Dynamic", "dialer-proxy": "Shared"}]}},
+        "proxy-groups": [{"name": "Secondary", "type": "select", "proxies": ["Shared"]}],
+        "rules": ["MATCH,Secondary"], "dns": {"enable": false}, "hosts": {"secondary": "2.2.2.2"}
+    });
+    let primary_policies = (
+        profile["rules"].clone(),
+        profile["dns"].clone(),
+        profile["hosts"].clone(),
+    );
+    let member = merge_profile_nodes(&mut profile, &secondary, "B", "Backup");
+    let mut report = ProfileMergeReport {
+        members: vec![member],
+        ..Default::default()
+    };
+    attach_merged_profile_nodes(&mut profile, &["Proxy".into(), "Proxy".into()], &mut report);
+    assert_eq!(
+        profile["proxy-groups"][0]["proxies"],
+        json!(["Shared", "[Backup] Shared", "Exit"])
+    );
+    assert_eq!(
+        profile["proxy-groups"][0]["use"],
+        json!(["sub", "[Backup] sub"])
+    );
+    assert_eq!(profile["proxy-groups"][0]["filter"], "HK");
+    assert_eq!(profile["proxy-groups"][0]["exclude-filter"], "expired");
+    assert_eq!(profile["proxy-groups"][1]["proxies"], json!(["Shared"]));
+    assert_eq!(
+        profile["proxy-providers"]["[Backup] sub"]["override"]["dialer-proxy"],
+        "[Backup] Shared"
+    );
+    assert_eq!(
+        profile["proxy-providers"]["[Backup] sub"]["payload"][0]["dialer-proxy"],
+        "[Backup] Shared"
+    );
+    assert_eq!(
+        profile["proxy-providers"]["[Backup] sub"]["path"],
+        "merged-profiles/B/providers/sub.yaml"
+    );
+    assert_eq!(
+        (
+            profile["rules"].clone(),
+            profile["dns"].clone(),
+            profile["hosts"].clone()
+        ),
+        primary_policies
+    );
+    assert_eq!(report.available_targets, vec!["Proxy", "Other"]);
+    assert_eq!(report.targets.len(), 1);
+    assert_eq!(report.targets[0].added_nodes, 2);
+    assert_eq!(report.targets[0].added_providers, 1);
+    assert_eq!(report.members[0].renamed.len(), 2);
+    // Rebuilding references is idempotent and does not replace the group settings.
+    let configured = profile.clone();
+    let mut repeat = ProfileMergeReport {
+        members: report.members.clone(),
+        ..Default::default()
+    };
+    attach_merged_profile_nodes(&mut profile, &["Proxy".into()], &mut repeat);
+    assert_eq!(profile, configured);
+    assert_eq!(repeat.targets[0].added_nodes, 0);
+    assert_eq!(repeat.targets[0].added_providers, 0);
+}
+
+#[test]
+fn profile_merge_report_tracks_transitive_discarded_nodes_and_keeps_default_groups_unchanged() {
+    let mut profile = json!({"proxies": [], "proxy-groups": [{"name": "Proxy", "type": "select", "proxies": ["DIRECT"]}]});
+    let member = merge_profile_nodes(
+        &mut profile,
+        &json!({"proxies": [
+            {"name": "Leaf", "dialer-proxy": "Relay"},
+            {"name": "Relay", "dialer-proxy": "OnlySecondary"},
+            {"name": "Working", "dialer-proxy": "DIRECT"}
+        ]}),
+        "B",
+        "Backup",
+    );
+    assert_eq!(member.nodes, vec!["Working"]);
+    assert_eq!(member.discarded.len(), 2);
+    assert!(member
+        .discarded
+        .iter()
+        .any(|node| node.name == "Relay" && node.dialer_proxy == "OnlySecondary"));
+    assert!(member
+        .discarded
+        .iter()
+        .any(|node| node.name == "Leaf" && node.dialer_proxy == "Relay"));
+    let unchanged = profile.clone();
+    let mut report = ProfileMergeReport {
+        members: vec![member],
+        ..Default::default()
+    };
+    attach_merged_profile_nodes(&mut profile, &[], &mut report);
+    assert_eq!(profile, unchanged);
+    assert!(report.targets.is_empty());
+}
+
+#[test]
+fn profile_merge_targets_report_missing_groups_and_skip_direct_and_transitive_cycles() {
+    let mut profile = json!({
+        "proxies": [
+            {"name": "Loop", "dialer-proxy": "Proxy"},
+            {"name": "Transitive", "dialer-proxy": "Loop"},
+            {"name": "Safe", "dialer-proxy": "DIRECT"}
+        ],
+        "proxy-providers": {
+            "loop": {"override": {"dialer-proxy": "Proxy"}},
+            "transitive": {"payload": [{"name": "Dynamic", "dialer-proxy": "Loop"}]},
+            "safe": {"override": {"dialer-proxy": "DIRECT"}, "payload": [{"name": "Overridden", "dialer-proxy": "Proxy"}]}
+        },
+        "proxy-groups": [
+            {"name": "Proxy", "type": "select", "proxies": ["DIRECT"]},
+            {"name": "Relay", "type": "relay", "proxies": ["DIRECT"]}
+        ]
+    });
+    let mut report = ProfileMergeReport {
+        members: vec![ProfileMergeMember {
+            nodes: vec!["Loop".into(), "Transitive".into(), "Safe".into()],
+            providers: vec!["loop".into(), "transitive".into(), "safe".into()],
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    attach_merged_profile_nodes(
+        &mut profile,
+        &["Missing".into(), "Relay".into(), "Proxy".into()],
+        &mut report,
+    );
+    assert_eq!(report.available_targets, vec!["Proxy"]);
+    assert_eq!(report.missing_targets, vec!["Missing", "Relay"]);
+    assert_eq!(report.targets[0].skipped_nodes, vec!["Loop", "Transitive"]);
+    assert_eq!(
+        report.targets[0].skipped_providers,
+        vec!["loop", "transitive"]
+    );
+    assert_eq!(
+        profile["proxy-groups"][0]["proxies"],
+        json!(["DIRECT", "Safe"])
+    );
+    assert_eq!(profile["proxy-groups"][0]["use"], json!(["safe"]));
+    assert_eq!(profile["proxy-groups"][1]["proxies"], json!(["DIRECT"]));
+}
+
+#[test]
+fn profile_merge_discards_provider_dependencies_on_removed_secondary_nodes_and_groups() {
+    let mut profile = json!({
+        "proxies": [{"name": "Shared"}],
+        "proxy-groups": [{"name": "Proxy", "type": "select", "proxies": ["Shared"], "include-all-providers": true}]
+    });
+    let member = merge_profile_nodes(
+        &mut profile,
+        &json!({
+            "proxies": [{"name": "Shared", "dialer-proxy": "OnlySecondary"}],
+            "proxy-groups": [{"name": "OnlySecondary", "type": "select", "proxies": ["DIRECT"]}],
+            "proxy-providers": {
+                "removed-node": {"override": {"dialer-proxy": "Shared"}},
+                "removed-group": {"payload": [{"name": "Broken", "dialer-proxy": "OnlySecondary"}]},
+                "primary": {"override": {"dialer-proxy": "Proxy"}},
+                "dynamic": {"override": {"dialer-proxy": "UnknownDynamicNode"}},
+                "safe": {"override": {"dialer-proxy": "DIRECT"}, "payload": [{"name": "Overridden", "dialer-proxy": "Shared"}]}
+            }
+        }),
+        "B",
+        "Backup",
+    );
+    assert_eq!(member.discarded.len(), 1);
+    assert_eq!(member.discarded_providers.len(), 2);
+    assert!(member
+        .discarded_providers
+        .iter()
+        .any(|provider| provider.name == "removed-node"
+            && provider.dialer_proxy == "[Backup] Shared"));
+    assert!(member.discarded_providers.iter().any(
+        |provider| provider.name == "removed-group" && provider.dialer_proxy == "OnlySecondary"
+    ));
+    assert!(profile["proxy-providers"].get("removed-node").is_none());
+    assert!(profile["proxy-providers"].get("removed-group").is_none());
+    assert!(profile["proxy-providers"].get("dynamic").is_some());
+    assert!(profile["proxy-providers"].get("safe").is_some());
+    let mut report = ProfileMergeReport {
+        members: vec![member],
+        ..Default::default()
+    };
+    attach_merged_profile_nodes(&mut profile, &["Proxy".into()], &mut report);
+    assert_eq!(
+        profile["proxy-groups"][0]["use"],
+        json!(["dynamic", "safe"])
+    );
+    assert_eq!(report.targets[0].skipped_providers, vec!["primary"]);
+    assert_eq!(report.targets[0].added_providers, 2);
+}
+
+#[test]
+fn profile_merge_targets_detect_cycles_through_automatic_groups_and_existing_provider_edges() {
+    for automatic_key in ["include-all", "include-all-proxies"] {
+        let mut profile = json!({
+            "proxies": [{"name": "Exit", "dialer-proxy": "Proxy"}, {"name": "Relay", "dialer-proxy": "Automatic"}],
+            "proxy-groups": [{"name": "Proxy", "type": "select", "proxies": ["DIRECT"]}, {"name": "Automatic", "type": "url-test", automatic_key: true}]
+        });
+        let mut report = ProfileMergeReport {
+            members: vec![ProfileMergeMember {
+                nodes: vec!["Relay".into()],
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        attach_merged_profile_nodes(&mut profile, &["Proxy".into()], &mut report);
+        assert_eq!(report.targets[0].skipped_nodes, vec!["Relay"]);
+        assert_eq!(profile["proxy-groups"][0]["proxies"], json!(["DIRECT"]));
+    }
+    let mut profile = json!({
+        "proxies": [{"name": "Relay", "dialer-proxy": "Automatic"}],
+        "proxy-providers": {"primary": {"override": {"dialer-proxy": "Proxy"}}},
+        "proxy-groups": [{"name": "Proxy", "type": "select", "proxies": ["DIRECT"]}, {"name": "Automatic", "type": "fallback", "use": ["primary"]}]
+    });
+    let mut report = ProfileMergeReport {
+        members: vec![ProfileMergeMember {
+            nodes: vec!["Relay".into()],
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    attach_merged_profile_nodes(&mut profile, &["Proxy".into()], &mut report);
+    assert_eq!(report.targets[0].skipped_nodes, vec!["Relay"]);
+}
+
+#[test]
+fn profile_merge_target_settings_migrate_old_configs_and_remain_scoped_to_primary_ids() {
+    let old = normalize_profile_config(
+        serde_json::from_value(
+            json!({"current": "A", "items": [{"id": "A", "name": "A", "type": "local"}]}),
+        )
+        .unwrap(),
+    );
+    assert!(old.merge_targets.is_empty());
+    let mut config = normalize_profile_config(serde_json::from_value(json!({
+        "current": "A", "actives": ["A", "B"],
+        "items": [{"id": "A", "name": "A", "type": "local"}, {"id": "B", "name": "B", "type": "local"}],
+        "mergeTargets": {"A": ["Proxy", "Proxy", ""], "B": ["Backup"], "deleted": ["Ghost"]}
+    })).unwrap());
+    assert_eq!(config.merge_targets.len(), 2);
+    assert_eq!(config.merge_targets["A"], vec!["Proxy"]);
+    config.current = Some("B".into());
+    config = normalize_profile_config(config);
+    assert_eq!(config.merge_targets["B"], vec!["Backup"]);
+    remove_profile_from_config(&mut config, "A");
+    assert!(!config.merge_targets.contains_key("A"));
+    assert_eq!(config.merge_targets["B"], vec!["Backup"]);
+    assert!(is_profile_mutation_channel("setProfileMergeTargets"));
+}
+
+#[test]
+#[ignore = "requires ROUTEX_MIHOMO_TEST_BINARY pointing to the packaged Mihomo executable"]
+fn profile_merge_targets_generate_mihomo_valid_configuration() {
+    let binary =
+        std::env::var_os("ROUTEX_MIHOMO_TEST_BINARY").expect("Mihomo test binary is required");
+    let mut profile = json!({
+        "proxies": [{"name": "Shared", "type": "socks5", "server": "127.0.0.1", "port": 18001}],
+        "proxy-providers": {"sub": {"type": "inline", "payload": [{"name": "Primary dynamic", "type": "socks5", "server": "127.0.0.1", "port": 18002}]}},
+        "proxy-groups": [{"name": "Proxy", "type": "select", "proxies": ["Shared"], "use": ["sub"]}],
+        "rules": ["MATCH,Proxy"]
+    });
+    let member = merge_profile_nodes(
+        &mut profile,
+        &json!({
+        "proxies": [
+            {"name": "Shared", "type": "socks5", "server": "127.0.0.1", "port": 18003},
+            {"name": "Gone", "type": "socks5", "server": "127.0.0.1", "port": 18005, "dialer-proxy": "OnlySecondary"}
+        ],
+        "proxy-groups": [{"name": "OnlySecondary", "type": "select", "proxies": ["DIRECT"]}],
+        "proxy-providers": {
+            "sub": {"type": "inline", "override": {"dialer-proxy": "Shared"}, "payload": [{"name": "Secondary dynamic", "type": "socks5", "server": "127.0.0.1", "port": 18004}]},
+            "broken": {"type": "inline", "override": {"dialer-proxy": "Gone"}, "payload": [{"name": "Broken dynamic", "type": "socks5", "server": "127.0.0.1", "port": 18006}]}
+        }
+        }),
+        "B",
+        "Backup",
+    );
+    let mut report = ProfileMergeReport {
+        members: vec![member],
+        ..Default::default()
+    };
+    attach_merged_profile_nodes(&mut profile, &["Proxy".into()], &mut report);
+    let root = migration_test_dir("profile-merge-mihomo");
+    assert_eq!(report.members[0].discarded_providers.len(), 1);
+    assert!(profile["proxy-providers"].get("broken").is_none());
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("config.yaml");
+    fs::write(&path, serde_yaml::to_string(&profile).unwrap()).unwrap();
+    let output = Command::new(binary)
+        .arg("-t")
+        .arg("-d")
+        .arg(&root)
+        .arg("-f")
+        .arg(&path)
+        .output();
+    fs::remove_dir_all(&root).unwrap();
+    let output = output.expect("Mihomo configuration check should run");
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
 fn mihomo_asset_matching_supports_v11931_release_names() {
     let prefixes = [
         "mihomo-windows-amd64-compatible",
@@ -1175,12 +1495,20 @@ fn stale_profile_runtime_config_cache_write_is_ignored() {
 
     invalidate_profile_runtime_config_cache();
     let fresh_revision = current_profile_runtime_config_revision();
-    write_cached_profile_runtime_config(fresh_revision, &fresh_value);
-    write_cached_profile_runtime_config(stale_revision, &stale_value);
+    write_cached_profile_runtime_config(
+        fresh_revision,
+        &fresh_value,
+        &ProfileMergeReport::default(),
+    );
+    write_cached_profile_runtime_config(
+        stale_revision,
+        &stale_value,
+        &ProfileMergeReport::default(),
+    );
 
     let cached = read_cached_profile_runtime_config(fresh_revision)
         .expect("fresh cache entry should remain available");
-    assert_eq!(cached.get("mode").and_then(Value::as_str), Some("global"));
+    assert_eq!(cached.0.get("mode").and_then(Value::as_str), Some("global"));
     assert!(read_cached_profile_runtime_config(stale_revision).is_none());
 }
 

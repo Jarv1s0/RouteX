@@ -242,6 +242,7 @@ pub(crate) fn change_current_profile_store(app: &tauri::AppHandle, id: &str) -> 
         current: Some(id.to_string()),
         actives: Some(next_actives),
         items: config.items,
+        merge_targets: config.merge_targets,
     };
     write_profile_config(app, &next)
 }
@@ -289,6 +290,7 @@ pub(crate) fn set_active_profiles_store(
         current: next_current,
         actives: Some(actives),
         items: config.items,
+        merge_targets: config.merge_targets,
     };
     write_profile_config(app, &next)
 }
