@@ -153,6 +153,16 @@ patches/          pnpm patch 补丁
 
 版本更新说明见 [changelog.md](changelog.md)。
 
+历史更新日志从 `v4.0.0` 起保留在同一个文件中，每个版本使用 `## v版本号` 标题。发布流程按 `package.json` 的版本精确提取对应章节，自动构建使用同一基础版本；缺少目标版本、目标版本重复或正文为空时会报错。
+
+可在本地生成指定版本的发布说明：
+
+```bash
+node scripts/extract-latest-changelog.mjs changelog.md release-notes.md 4.5.0
+```
+
+省略最后的版本参数时，默认读取 `package.json` 的版本；生成的发布说明仅包含该版本正文。
+
 ## 致谢
 
 - [Mihomo](https://github.com/MetaCubeX/mihomo)

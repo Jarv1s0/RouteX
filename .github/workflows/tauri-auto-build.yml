@@ -61,7 +61,8 @@ jobs:
           echo "Resolved Mihomo version: $MIHOMO_VERSION"
 
       - name: Generate Release Notes
-        run: node scripts/extract-latest-changelog.mjs changelog.md release_notes.md
+        shell: bash
+        run: node scripts/extract-latest-changelog.mjs changelog.md release_notes.md "$VERSION"
 
       - name: Update Tag and Release
         env:
