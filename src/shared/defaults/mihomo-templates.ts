@@ -280,5 +280,13 @@ ip-stack:
     snippet: `tun:
   stack: mips
   congestion-controller: cubic`
+  },
+  {
+    label: 'mihomo-tun-dns-mode',
+    detail: 'TUN system DNS mode (v1.19.33)',
+    info: 'Configure system DNS for TUN or TUN listeners: disabled, native, or hijack. Empty preserves legacy behavior. Extra hijacking requires strict-route on Windows or auto-redirect on Linux. This is separate from dns-hijack.',
+    snippet: `tun:
+  # disabled / native / hijack; empty preserves legacy behavior
+  dns-mode: ""`
   }
 ] as const

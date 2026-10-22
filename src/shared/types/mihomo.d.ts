@@ -198,6 +198,8 @@ interface MihomoProxyGroupConfig {
   icon?: string
 }
 
+type MihomoTunDNSMode = '' | 'disabled' | 'native' | 'hijack'
+
 interface MihomoTunConfig {
   enable?: boolean
   stack?: TunStack
@@ -206,6 +208,7 @@ interface MihomoTunConfig {
   'auto-redirect'?: boolean
   'auto-detect-interface'?: boolean
   'dns-hijack'?: string[]
+  'dns-mode'?: MihomoTunDNSMode
   device?: string
   mtu?: number
   'strict-route'?: boolean
@@ -342,6 +345,7 @@ interface RuleProviderConfig {
 
 interface MihomoInboundListenerConfig {
   [key: string]: unknown
+  'dns-mode'?: MihomoTunDNSMode
   'congestion-controller'?: MihomoIPStackOptions['congestion-controller']
   type?: string
   enable?: boolean

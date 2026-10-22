@@ -125,6 +125,7 @@ function createTauriControllerConfig(): ControllerConfigs {
       stack: config.tun?.stack ?? 'mixed',
       'congestion-controller': config.tun?.['congestion-controller'],
       'dns-hijack': config.tun?.['dns-hijack'] ?? [],
+      'dns-mode': config.tun?.['dns-mode'],
       'auto-route': config.tun?.['auto-route'] ?? true,
       'auto-redirect': config.tun?.['auto-redirect'] ?? false,
       'auto-detect-interface': config.tun?.['auto-detect-interface'] ?? true,

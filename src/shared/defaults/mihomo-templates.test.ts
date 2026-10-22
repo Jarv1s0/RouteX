@@ -45,4 +45,9 @@ describe('Mihomo v1.19 YAML snippets', () => {
     const config = load(snippets.get('mihomo-tun-congestion-controller')!) as Partial<MihomoConfig>
     expect(config.tun).toMatchObject({ stack: 'mips', 'congestion-controller': 'cubic' })
   })
+
+  it('preserves legacy DNS behavior in the TUN DNS mode template', () => {
+    const config = load(snippets.get('mihomo-tun-dns-mode')!) as Partial<MihomoConfig>
+    expect(config.tun?.['dns-mode']).toBe('')
+  })
 })
