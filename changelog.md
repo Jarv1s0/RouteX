@@ -11,6 +11,12 @@
 - 更新日志按版本归档，发布时仅提取对应版本内容，历史记录从 `v4.0.0` 起保留。
 - 升级 mihomo 内核至 `v1.19.33`，包含上游 TLS 安全修复，以及 DoH 请求堆积、Fake-IP 重载状态丢失和不足 1 毫秒测速被误判失败等问题的修复。
 - 升级 Vite 至 `v8.3.5`、Vitest 至 `v5.0.5` 及相关构建插件，修复 Dependabot 报告的 Vite、launch-editor 和 Vitest 开发依赖安全漏洞。
+- 升级 React 至 `v19.3.1`、Tauri 至 `v2.12.5`，同步更新界面组件、编辑器及其他依赖，并适配新版 YAML、XML 和 ZIP 处理接口。
+- 移除更新器对旧版 ZIP 和压缩 AppImage 更新包的支持，保留现有 Windows、macOS 和 Linux 安装包更新流程。
+
+### 修复
+
+- 升级 TLS、证书校验、QUIC、XML 和 ZIP 处理依赖，修复已知安全漏洞，并移除已不需要的 CVE 忽略项。
 
 ## v4.4.0
 

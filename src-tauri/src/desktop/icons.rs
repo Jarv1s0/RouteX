@@ -262,10 +262,11 @@ fn png_data_url_from_rgba(width: u32, height: u32, rgba: &[u8]) -> Option<String
 
 #[cfg(target_os = "windows")]
 pub(crate) fn bgra_to_rgba_with_alpha_fallback(bgra: &[u8]) -> Vec<u8> {
-    let has_alpha = bgra.chunks_exact(4).any(|pixel| pixel[3] != 0);
+    let (pixels, _) = bgra.as_chunks::<4>();
+    let has_alpha = pixels.iter().any(|pixel| pixel[3] != 0);
     let mut rgba = Vec::with_capacity(bgra.len());
 
-    for pixel in bgra.chunks_exact(4) {
+    for pixel in pixels {
         let alpha = if has_alpha { pixel[3] } else { u8::MAX };
         rgba.extend_from_slice(&[pixel[2], pixel[1], pixel[0], alpha]);
     }

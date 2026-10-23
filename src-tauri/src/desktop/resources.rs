@@ -555,7 +555,7 @@ pub(crate) fn find_mihomo_zip_entry(
         if file.is_dir() {
             continue;
         }
-        let name = file.name().replace('\\', "/");
+        let name = file.name().map_err(|e| e.to_string())?.replace('\\', "/");
         let file_name = Path::new(&name)
             .file_name()
             .and_then(|value| value.to_str())

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import yaml from 'js-yaml'
+import * as yaml from 'js-yaml'
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui/react'
 import { BaseEditor } from '../base/base-editor-lazy'
 import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'

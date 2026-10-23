@@ -17,10 +17,12 @@ const RENDERER_ENTRY_FILES = new Set([
   'main.tsx',
   'traymenu.tsx'
 ])
-const PACKAGE_SCRIPT_DEPENDENCIES = new Set([
+const IMPLICIT_PACKAGE_DEPENDENCIES = new Set([
   '@tauri-apps/cli',
   'cross-env',
   'eslint',
+  // HeroUI requires this peer at runtime; pin it explicitly to keep Motion packages compatible.
+  'framer-motion',
   'npm-run-all2',
   'prettier',
   'typescript',
@@ -199,7 +201,7 @@ function checkPackageDependencies() {
     ...walkFiles(path.join(repoRoot, 'scripts')),
     ...walkFiles(path.join(repoRoot, 'src'))
   ].filter((filePath) => fs.existsSync(filePath))
-  const usedPackages = new Set(PACKAGE_SCRIPT_DEPENDENCIES)
+  const usedPackages = new Set(IMPLICIT_PACKAGE_DEPENDENCIES)
 
   for (const filePath of sourceFiles) {
     const source = fs.readFileSync(filePath, 'utf8')

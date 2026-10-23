@@ -88,7 +88,7 @@ function platformKeysForAsset(name) {
     return ['darwin-aarch64-app', 'darwin-aarch64']
   }
 
-  if (lower.endsWith('.appimage') || lower.endsWith('.appimage.tar.gz')) {
+  if (lower.endsWith('.appimage')) {
     return ['linux-x86_64-appimage', 'linux-x86_64']
   }
 

@@ -10,7 +10,7 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { BaseEditor } from '../base/base-editor-lazy'
 import { getFileStr, setFileStr, convertMrsRuleset } from '@renderer/utils/file-ipc'
-import yaml from 'js-yaml'
+import * as yaml from 'js-yaml'
 import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { IoCheckmarkCircle, IoCopy } from 'react-icons/io5'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'

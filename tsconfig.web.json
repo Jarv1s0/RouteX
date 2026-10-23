@@ -22,7 +22,6 @@
     "jsx": "react-jsx",
     "strict": true,
     "noImplicitAny": true,
-    "baseUrl": ".",
     "types": ["vite/client", "node"],
     "paths": {
       "@renderer/*": [

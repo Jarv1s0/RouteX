@@ -139,7 +139,7 @@ pub(crate) fn restore_webdav_backup_archive(
         };
 
         let output_path = root.join(&relative_path);
-        if file.name().ends_with('/') {
+        if file.is_dir() {
             fs::create_dir_all(&output_path).map_err(|e| e.to_string())?;
             continue;
         }
@@ -180,9 +180,8 @@ pub(crate) fn list_webdav_backup_names(config: &WebdavConfig) -> Result<Vec<Stri
     let mut names = Vec::new();
     loop {
         match reader.read_event() {
-            Ok(Event::Start(event)) if event.local_name().as_ref() == b"href" => {
+            Ok(Event::Start(event)) if event.local_name().as_ref() == "href" => {
                 let text = reader.read_text(event.name()).map_err(|e| e.to_string())?;
-                let text = std::str::from_utf8(text.as_ref()).map_err(|e| e.to_string())?;
                 let basename = text
                     .split('/')
                     .rfind(|segment| !segment.is_empty())
