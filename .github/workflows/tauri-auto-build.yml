@@ -287,7 +287,9 @@ jobs:
               pnpm tauri build --bundles nsis --config src-tauri/tauri.release.conf.json
               ;;
             linux)
-              pnpm tauri build --bundles deb rpm --config src-tauri/tauri.release.conf.json
+              pnpm tauri build --bundles deb --config src-tauri/tauri.release.conf.json
+              node scripts/write-release-tauri-config.mjs --rpm
+              pnpm tauri bundle --bundles rpm --config src-tauri/tauri.release.conf.json
               ;;
             macos)
               pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg --config src-tauri/tauri.release.conf.json
@@ -318,8 +320,8 @@ jobs:
               # signed output. Do not create a second renamed installer.
               ;;
             linux)
-              # Linux updater/install assets are copied below from Tauri's
-              # signed output. Do not create second renamed packages.
+              # Signed packages are copied below. RPM uses the full app version
+              # in its asset name so manifest filtering and cleanup retain it.
               ;;
             macos)
               bundle_dirs=()
@@ -380,8 +382,12 @@ jobs:
               exit 1
             fi
 
-            cp "$signed_file" "$artifact_dir/$(basename "$signed_file")"
-            cp "$signature_file" "$artifact_dir/$(basename "$signature_file")"
+            asset_name=$(basename "$signed_file")
+            if [[ "$asset_name" == *.rpm ]]; then
+              asset_name="${artifact_prefix}-linux-x86_64.rpm"
+            fi
+            cp "$signed_file" "$artifact_dir/$asset_name"
+            cp "$signature_file" "$artifact_dir/$asset_name.sig"
             signature_count=$((signature_count + 1))
           done < <(find src-tauri/target -type f -name '*.sig' -print | sort)
 

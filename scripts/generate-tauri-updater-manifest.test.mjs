@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 
 const script = fileURLToPath(new URL('./generate-tauri-updater-manifest.mjs', import.meta.url))
 
-function generateManifest(assetNames) {
+function generateManifest(assetNames, assetVersion = '') {
   const directory = mkdtempSync(path.join(tmpdir(), 'routex-updater-manifest-'))
   const output = path.join(directory, 'latest.json')
   const release = {
@@ -33,8 +33,8 @@ function generateManifest(assetNames) {
         GITHUB_REPOSITORY: 'test/routex',
         GH_TOKEN: '',
         GITHUB_TOKEN: '',
-        VERSION: '',
-        RELEASE_ASSET_VERSION: ''
+        VERSION: assetVersion,
+        RELEASE_ASSET_VERSION: assetVersion
       }
     })
     return {
@@ -82,4 +82,26 @@ test('仅有旧版压缩格式时拒绝生成无法安装的更新清单', () =>
   const result = generateManifest(['RouteX-setup.exe.zip', 'RouteX.AppImage.tar.gz'])
   assert.notEqual(result.status, 0)
   assert.match(result.stderr, /No signed updater platforms found/)
+})
+
+test('自动构建的 RPM 资产保留完整应用版本并进入更新清单', () => {
+  const version = '4.5.0-autobuild.205'
+  const result = generateManifest(
+    [
+      `RouteX-${version}-linux-x86_64.rpm`,
+      `RouteX_${version}_amd64.deb`,
+      'RouteX-4.5.0-autobuild.204-linux-x86_64.rpm'
+    ],
+    version
+  )
+  assert.equal(result.status, 0, result.stderr)
+  assert.equal(result.manifest.version, version)
+  assert.deepEqual(Object.keys(result.manifest.platforms).sort(), [
+    'linux-x86_64-deb',
+    'linux-x86_64-rpm'
+  ])
+  assert.ok(
+    result.manifest.platforms['linux-x86_64-rpm'].url.endsWith(`${version}-linux-x86_64.rpm`)
+  )
+  assert.equal(result.manifest.platforms['linux-x86_64-rpm'].signature, 'test-signature')
 })

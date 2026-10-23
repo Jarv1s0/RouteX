@@ -346,7 +346,9 @@ jobs:
         run: |
           pnpm check:release-env
           node scripts/write-release-tauri-config.mjs
-          pnpm tauri build --bundles deb rpm --config src-tauri/tauri.release.conf.json
+          pnpm tauri build --bundles deb --config src-tauri/tauri.release.conf.json
+          node scripts/write-release-tauri-config.mjs --rpm
+          pnpm tauri bundle --bundles rpm --config src-tauri/tauri.release.conf.json
         env:
           SHORT_COMMIT: ${{ env.SHORT_COMMIT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

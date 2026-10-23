@@ -32,14 +32,31 @@ function normalizePublicKey(value) {
   return publicKey
 }
 
-const outputPath = process.argv[2] || 'src-tauri/tauri.release.conf.json'
+const rpmBundle = process.argv.includes('--rpm')
+const outputPath =
+  process.argv.slice(2).find((arg) => arg !== '--rpm') || 'src-tauri/tauri.release.conf.json'
 const publicKey = normalizePublicKey(requiredEnv('ROUTEX_UPDATER_PUBLIC_KEY'))
 const buildVersion = process.env.ROUTEX_BUILD_VERSION?.trim()
+let rpmVersion
+let rpmRelease
+
+if (rpmBundle) {
+  const version = buildVersion || JSON.parse(fs.readFileSync('package.json', 'utf8')).version
+  const match = version.match(/^(\d+\.\d+\.\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/)
+  if (!match) {
+    throw new Error(`Invalid RPM source version: ${version}`)
+  }
+  // RPM Version rejects SemVer's prerelease separator. Keep the app's compiled
+  // version intact and move the prerelease to Release, below stable Release 1.
+  rpmVersion = match[1]
+  rpmRelease = match[2] ? `0.${match[2].replaceAll('-', '.')}` : '1'
+}
 
 const releaseConfig = {
-  ...(buildVersion ? { version: buildVersion } : {}),
+  ...(rpmBundle ? { version: rpmVersion } : buildVersion ? { version: buildVersion } : {}),
   bundle: {
-    createUpdaterArtifacts: true
+    createUpdaterArtifacts: true,
+    ...(rpmBundle ? { linux: { rpm: { release: rpmRelease } } } : {})
   },
   plugins: {
     updater: {
