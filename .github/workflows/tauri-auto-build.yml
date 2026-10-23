@@ -385,6 +385,8 @@ jobs:
             asset_name=$(basename "$signed_file")
             if [[ "$asset_name" == *.rpm ]]; then
               asset_name="${artifact_prefix}-linux-x86_64.rpm"
+            elif [[ "$asset_name" == *.app.tar.gz ]]; then
+              asset_name="${artifact_prefix}-macos-arm64.app.tar.gz"
             fi
             cp "$signed_file" "$artifact_dir/$asset_name"
             cp "$signature_file" "$artifact_dir/$asset_name.sig"

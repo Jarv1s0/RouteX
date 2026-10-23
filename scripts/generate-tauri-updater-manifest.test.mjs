@@ -84,12 +84,14 @@ test('仅有旧版压缩格式时拒绝生成无法安装的更新清单', () =>
   assert.match(result.stderr, /No signed updater platforms found/)
 })
 
-test('自动构建的 RPM 资产保留完整应用版本并进入更新清单', () => {
+test('自动构建的签名安装包保留完整应用版本并进入更新清单', () => {
   const version = '4.5.0-autobuild.205'
   const result = generateManifest(
     [
       `RouteX-${version}-linux-x86_64.rpm`,
       `RouteX_${version}_amd64.deb`,
+      `RouteX-${version}-macos-arm64.app.tar.gz`,
+      `RouteX_${version}_x64-setup.exe`,
       'RouteX-4.5.0-autobuild.204-linux-x86_64.rpm'
     ],
     version
@@ -97,8 +99,12 @@ test('自动构建的 RPM 资产保留完整应用版本并进入更新清单', 
   assert.equal(result.status, 0, result.stderr)
   assert.equal(result.manifest.version, version)
   assert.deepEqual(Object.keys(result.manifest.platforms).sort(), [
+    'darwin-aarch64',
+    'darwin-aarch64-app',
     'linux-x86_64-deb',
-    'linux-x86_64-rpm'
+    'linux-x86_64-rpm',
+    'windows-x86_64',
+    'windows-x86_64-nsis'
   ])
   assert.ok(
     result.manifest.platforms['linux-x86_64-rpm'].url.endsWith(`${version}-linux-x86_64.rpm`)
