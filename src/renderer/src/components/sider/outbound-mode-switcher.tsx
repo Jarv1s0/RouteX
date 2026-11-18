@@ -35,7 +35,10 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
         currentMode: mode,
         nextMode: newMode,
         autoCloseConnection,
-        persistMode: (nextMode) => patchControledMihomoConfig({ mode: nextMode })
+        persistMode: async (nextMode) => {
+          await patchControledMihomoConfig({ mode: nextMode })
+          return true
+        }
       })
       if (!success) return
       mutateGroups()

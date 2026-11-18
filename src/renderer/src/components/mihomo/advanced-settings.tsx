@@ -1,11 +1,11 @@
+import { notifyError } from '@renderer/utils/notify'
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import InterfaceSelect from '../base/interface-select'
-import {
-  restartCore, startNetworkDetection, stopNetworkDetection
-} from '@renderer/utils/mihomo-ipc'
+import { startNetworkDetection, stopNetworkDetection } from '@renderer/utils/mihomo-ipc'
 import { Button, Input, Tab, Tabs, Tooltip } from '@heroui/react'
 import { useState } from 'react'
 import { IoIosHelpCircle } from 'react-icons/io'
@@ -16,7 +16,7 @@ import { useI18n } from '@renderer/i18n'
 import AppSwitch from '@renderer/components/base/app-switch'
 const AdvancedSetting: React.FC = () => {
   const { t } = useI18n()
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     'unified-delay': unifiedDelay,
@@ -45,8 +45,11 @@ const AdvancedSetting: React.FC = () => {
   const [detectionInterval, setDetectionInterval] = useState(networkDetectionInterval)
 
   const onChangeNeedRestart = async (patch: Partial<MihomoConfig>): Promise<void> => {
-    await patchControledMihomoConfig(patch)
-    await restartCore()
+    try {
+      await applyConfigChange({ core: patch, restart: true })
+    } catch (error) {
+      notifyError(error)
+    }
   }
 
   return (
@@ -207,7 +210,7 @@ const AdvancedSetting: React.FC = () => {
           size="sm"
           isSelected={networkDetection}
           onValueChange={(v) => {
-            patchAppConfig({ networkDetection: v })
+            patchAppConfig({ networkDetection: v }).catch((error) => notifyError(error))
             if (v) {
               startNetworkDetection()
             } else {
@@ -227,8 +230,12 @@ const AdvancedSetting: React.FC = () => {
                     color="primary"
                     className="mr-2"
                     onPress={async () => {
-                      await patchAppConfig({ networkDetectionInterval: detectionInterval })
-                      await startNetworkDetection()
+                      try {
+                        await patchAppConfig({ networkDetectionInterval: detectionInterval })
+                        await startNetworkDetection()
+                      } catch (error) {
+                        notifyError(error)
+                      }
                     }}
                   >
                     {t('common.confirm')}
@@ -254,8 +261,12 @@ const AdvancedSetting: React.FC = () => {
                   size="sm"
                   color="primary"
                   onPress={async () => {
-                    await patchAppConfig({ networkDetectionBypass: bypass })
-                    await startNetworkDetection()
+                    try {
+                      await patchAppConfig({ networkDetectionBypass: bypass })
+                      await startNetworkDetection()
+                    } catch (error) {
+                      notifyError(error)
+                    }
                   }}
                 >
                   {t('common.confirm')}

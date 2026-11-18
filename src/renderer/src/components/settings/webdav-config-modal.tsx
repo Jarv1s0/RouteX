@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   Modal,
@@ -89,7 +90,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   const debouncedPatch = useMemo(
     () =>
       debounce((patch: Partial<AppConfig>) => {
-        void patchAppConfig(patch)
+        void patchAppConfig(patch).catch((error) => notifyError(error))
       }, 500),
     [patchAppConfig]
   )

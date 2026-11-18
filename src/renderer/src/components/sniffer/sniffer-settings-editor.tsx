@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Input } from '@heroui/react'
 
 import CollapsibleSettingList, {
@@ -9,7 +9,7 @@ import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { primaryInputClassNames } from '@renderer/components/settings/advanced-settings'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { restartCoreInBackground } from '@renderer/utils/core-restart'
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -30,6 +30,7 @@ interface SnifferEditorValues {
 
 export interface SnifferSettingsEditorState {
   values: SnifferEditorValues
+  saving: boolean
   changed: boolean
   saveDisabled: boolean
   save: () => Promise<void>
@@ -100,8 +101,8 @@ function buildInitialValues(
 
 export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
   const { t } = useI18n()
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
-  const { appConfig, patchAppConfig } = useAppConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
+  const { appConfig } = useAppConfig()
 
   const initialValues = useMemo(
     () => buildInitialValues(appConfig, controledMihomoConfig),
@@ -109,14 +110,21 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
   )
 
   const [values, setValuesState] = useState<SnifferEditorValues>(initialValues)
+  const [baseline, setBaseline] = useState(initialValues)
+  const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
+  const changed = JSON.stringify(values) !== JSON.stringify(baseline)
 
   useEffect(() => {
-    setValuesState(initialValues)
-  }, [initialValues])
+    if (!changed && !savingRef.current) {
+      setValuesState(initialValues)
+      setBaseline(initialValues)
+    }
+  }, [initialValues, changed, saving])
 
-  const changed = useMemo(() => {
-    return JSON.stringify(values) !== JSON.stringify(initialValues)
-  }, [initialValues, values])
+  const setValues = (next: SnifferEditorValues): void => {
+    if (!savingRef.current) setValuesState(next)
+  }
 
   const saveDisabled = useMemo(() => {
     if (!values.controlSniff) return false
@@ -126,37 +134,34 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
   }, [values.controlSniff, values.forceDomain, values.skipDomain])
 
   const save = async (): Promise<void> => {
-    if (saveDisabled) return
-
-    if (!values.controlSniff) {
-      try {
-        await patchAppConfig({ controlSniff: false })
-        await patchControledMihomoConfig({})
-        restartCoreInBackground(t('sniffer.applyFailed'))
-      } catch (error) {
-        notifyError(error)
-      }
-      return
-    }
-
+    if (saveDisabled || savingRef.current) return
+    savingRef.current = true
+    setSaving(true)
     try {
-      await patchAppConfig({ controlSniff: values.controlSniff })
-      await patchControledMihomoConfig({
-        sniffer: {
-          enable: true,
-          'parse-pure-ip': values.parsePureIP,
-          'force-dns-mapping': values.forceDNSMapping,
-          'override-destination': values.overrideDestination,
-          sniff: values.sniff,
-          'skip-domain': values.skipDomain,
-          'force-domain': values.forceDomain,
-          'skip-dst-address': values.skipDstAddress,
-          'skip-src-address': values.skipSrcAddress
-        }
+      await applyConfigChange({
+        app: { controlSniff: values.controlSniff },
+        core: values.controlSniff
+          ? {
+              sniffer: {
+                enable: true,
+                'parse-pure-ip': values.parsePureIP,
+                'force-dns-mapping': values.forceDNSMapping,
+                'override-destination': values.overrideDestination,
+                sniff: values.sniff,
+                'skip-domain': values.skipDomain,
+                'force-domain': values.forceDomain,
+                'skip-dst-address': values.skipDstAddress,
+                'skip-src-address': values.skipSrcAddress
+              }
+            }
+          : {}
       })
-      restartCoreInBackground(t('sniffer.applyFailed'))
+      setBaseline(values)
     } catch (error) {
-      notifyError(error)
+      notifyError(error, { title: t('sniffer.applyFailed') })
+    } finally {
+      savingRef.current = false
+      setSaving(false)
     }
   }
 
@@ -164,7 +169,7 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
     protocol: keyof NonNullable<MihomoSnifferConfig['sniff']>,
     value: string
   ): void => {
-    setValuesState({
+    setValues({
       ...values,
       sniff: {
         ...values.sniff,
@@ -178,10 +183,11 @@ export function useSnifferSettingsEditor(): SnifferSettingsEditorState {
 
   return {
     values,
+    saving,
     changed,
-    saveDisabled,
+    saveDisabled: saving || saveDisabled,
     save,
-    setValues: setValuesState,
+    setValues,
     handleSniffPortChange
   }
 }
@@ -191,7 +197,7 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
 }) => {
   const { t } = useI18n()
   const { values, setValues, handleSniffPortChange } = editor
-  const snifferFieldsDisabled = !values.controlSniff
+  const snifferFieldsDisabled = !values.controlSniff || editor.saving
   const skipDomainHasError = values.skipDomain.some((item) => !isValidDomainWildcard(item).ok)
   const forceDomainHasError = values.forceDomain.some((item) => !isValidDomainWildcard(item).ok)
 
@@ -208,6 +214,7 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
             <AppSwitch
               size="sm"
               isSelected={values.controlSniff}
+              isDisabled={editor.saving}
               onValueChange={(value) => setValues({ ...values, controlSniff: value })}
             />
           </div>

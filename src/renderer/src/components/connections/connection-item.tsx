@@ -134,7 +134,6 @@ const ConnectionItemComponent: React.FC<Props> = ({
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
-      e.preventDefault()
       onContextMenu?.(info, e)
     },
     [onContextMenu, info]

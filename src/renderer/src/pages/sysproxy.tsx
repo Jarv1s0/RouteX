@@ -96,16 +96,20 @@ const Sysproxy: React.FC = () => {
     setChanged(true)
   }
   const onSave = async (): Promise<void> => {
-    // check valid TODO
-    await patchAppConfig({ sysProxy: values })
-    setChanged(false)
-    if (values.enable) {
-      try {
-        await triggerSysProxy(values.enable, onlyActiveDevice)
-      } catch (e) {
-        notifyError(e)
-        await patchAppConfig({ sysProxy: { enable: false } })
+    try {
+      // check valid TODO
+      await patchAppConfig({ sysProxy: values })
+      setChanged(false)
+      if (values.enable) {
+        try {
+          await triggerSysProxy(values.enable, onlyActiveDevice)
+        } catch (e) {
+          notifyError(e)
+          await patchAppConfig({ sysProxy: { enable: false } })
+        }
       }
+    } catch (error) {
+      notifyError(error)
     }
   }
 
@@ -215,7 +219,7 @@ const Sysproxy: React.FC = () => {
                   isSelected={onlyActiveDevice}
                   isDisabled={!values.settingMode || values.settingMode !== 'service'}
                   onValueChange={(v) => {
-                    patchAppConfig({ onlyActiveDevice: v })
+                    patchAppConfig({ onlyActiveDevice: v }).catch((error) => notifyError(error))
                   }}
                 />
               </SettingItem>

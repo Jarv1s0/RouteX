@@ -1,3 +1,4 @@
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import { Button, Input, Tab, Tabs } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
@@ -19,7 +20,7 @@ import { useI18n } from '@renderer/i18n'
 import AppSwitch from '@renderer/components/base/app-switch'
 const Tun: React.FC = () => {
   const { t } = useI18n()
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
   const { autoSetDNSMode = 'exec' } = appConfig || {}
   const { tun } = controledMihomoConfig || {}
@@ -55,9 +56,12 @@ const Tun: React.FC = () => {
   }
 
   const onSave = async (patch: Partial<MihomoConfig>): Promise<void> => {
-    await patchControledMihomoConfig(patch)
-    await restartCore()
-    setChanged(false)
+    try {
+      await applyConfigChange({ core: patch, restart: true })
+      setChanged(false)
+    } catch (error) {
+      notifyError(error)
+    }
   }
 
   return (
@@ -123,7 +127,11 @@ const Tun: React.FC = () => {
                   classNames={CARD_STYLES.GLASS_TABS}
                   selectedKey={autoSetDNSMode}
                   onSelectionChange={async (key: Key) => {
-                    await patchAppConfig({ autoSetDNSMode: key as 'none' | 'exec' | 'service' })
+                    try {
+                      await patchAppConfig({ autoSetDNSMode: key as 'none' | 'exec' | 'service' })
+                    } catch (error) {
+                      notifyError(error)
+                    }
                   }}
                 >
                   <Tab key="none" title={t('settings.autoDns.none')} />

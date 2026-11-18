@@ -1,10 +1,12 @@
+import { notifyError } from '@renderer/utils/notify'
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import EditableList from '../base/base-list-editor'
 
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { restartCore, triggerSysProxy } from '@renderer/utils/mihomo-ipc'
+import { triggerSysProxy } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import { Button, Input } from '@heroui/react'
@@ -74,7 +76,7 @@ const PortSetting: React.FC = () => {
   const { t } = useI18n()
   const { appConfig } = useAppConfig()
   const { sysProxy, onlyActiveDevice = false } = appConfig || {}
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
   const {
     authentication = [],
     'skip-auth-prefixes': skipAuthPrefixes = ['127.0.0.1/32'],
@@ -116,8 +118,11 @@ const PortSetting: React.FC = () => {
   }
 
   const onChangeNeedRestart = async (patch: Partial<MihomoConfig>): Promise<void> => {
-    await patchControledMihomoConfig(patch)
-    await restartCore()
+    try {
+      await applyConfigChange({ core: patch, restart: true })
+    } catch (error) {
+      notifyError(error)
+    }
   }
 
   return (
@@ -133,9 +138,11 @@ const PortSetting: React.FC = () => {
           hasConflict={hasPortConflict()}
           onChange={setMixedPortInput}
           onSave={async () => {
-            await onChangeNeedRestart({ 'mixed-port': mixedPortInput })
-            if (sysProxy?.enable) {
-              triggerSysProxy(true, onlyActiveDevice)
+            try {
+              await applyConfigChange({ core: { 'mixed-port': mixedPortInput }, restart: true })
+              if (sysProxy?.enable) await triggerSysProxy(true, onlyActiveDevice)
+            } catch (error) {
+              notifyError(error)
             }
           }}
         />

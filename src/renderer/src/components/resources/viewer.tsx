@@ -20,7 +20,7 @@ import {
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
 import { formatErrorMessage, notifyError } from '@renderer/utils/notify'
-import { CustomContextMenu } from '@renderer/components/ui/custom-context-menu'
+import { CustomContextMenu, ContextMenuItem } from '@renderer/components/ui/custom-context-menu'
 type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
 type ResourceYamlEntry = {
   payload?: unknown
@@ -42,12 +42,8 @@ const Viewer: React.FC<Props> = (props) => {
   const [currData, setCurrData] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
-  const [contextMenu, setContextMenu] = useState({
-    isOpen: false,
-    x: 0,
-    y: 0,
-    selectedText: ''
-  })
+  const [contextMenuOpen, setContextMenuOpen] = useState(false)
+  const [selectedText, setSelectedText] = useState('')
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   let language: Language = !format || format === 'YamlRule' ? 'yaml' : 'text'
 
@@ -149,21 +145,12 @@ const Viewer: React.FC<Props> = (props) => {
     [markCopied]
   )
 
-  const closeContextMenu = useCallback(() => {
-    setContextMenu((prev) => ({ ...prev, isOpen: false }))
-  }, [])
-
   const handleCopy = useCallback(async () => {
     await copyText(currData)
   }, [copyText, currData])
 
-  const handleEditorContextMenu = useCallback((event: MouseEvent) => {
-    setContextMenu({
-      isOpen: true,
-      x: event.clientX,
-      y: event.clientY,
-      selectedText: window.getSelection()?.toString() || ''
-    })
+  const handleEditorContextMenu = useCallback(() => {
+    setSelectedText(window.getSelection()?.toString() || '')
   }, [])
 
   return (
@@ -175,7 +162,8 @@ const Viewer: React.FC<Props> = (props) => {
       size="5xl"
       hideCloseButton
       isOpen={true}
-      isDismissable={!contextMenu.isOpen}
+      isDismissable={!contextMenuOpen}
+      isKeyboardDismissDisabled={contextMenuOpen}
       onOpenChange={onClose}
       scrollBehavior="inside"
     >
@@ -185,22 +173,35 @@ const Viewer: React.FC<Props> = (props) => {
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="min-h-0 flex-1 overflow-hidden !px-6 !pt-1 !pb-3">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-              <Spinner size="lg" />
-              <p className="text-default-500">{t('resources.loading')}</p>
+          <CustomContextMenu
+            onOpenChange={setContextMenuOpen}
+            items={
+              <ContextMenuItem
+                disabled={isLoading || !currData}
+                onSelect={() => void copyText(selectedText || currData)}
+              >
+                <IoCopy />
+                {t('common.copy')}
+              </ContextMenuItem>
+            }
+          >
+            <div className="h-full min-h-0" onContextMenuCapture={handleEditorContextMenu}>
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center h-full gap-4">
+                  <Spinner size="lg" />
+                  <p className="text-default-500">{t('resources.loading')}</p>
+                </div>
+              ) : (
+                <BaseEditor
+                  language={language}
+                  value={currData}
+                  readOnly={type != 'File'}
+                  compactPadding
+                  onChange={(value) => setCurrData(value)}
+                />
+              )}
             </div>
-          ) : (
-            <BaseEditor
-              language={language}
-              value={currData}
-              readOnly={type != 'File'}
-              compactPadding
-              suppressNativeContextMenu
-              onNativeContextMenu={handleEditorContextMenu}
-              onChange={(value) => setCurrData(value)}
-            />
-          )}
+          </CustomContextMenu>
         </ModalBody>
         <ModalFooter className="shrink-0 px-6 py-3">
           <Button
@@ -229,28 +230,6 @@ const Viewer: React.FC<Props> = (props) => {
             </Button>
           )}
         </ModalFooter>
-        {contextMenu.isOpen && (
-          <CustomContextMenu
-            isOpen={contextMenu.isOpen}
-            onClose={closeContextMenu}
-            position={{ x: contextMenu.x, y: contextMenu.y }}
-          >
-            <div className="flex flex-col">
-              <Button
-                size="sm"
-                variant="light"
-                className="h-9 min-w-[120px] justify-start px-3"
-                startContent={<IoCopy />}
-                onPress={() => {
-                  void copyText(contextMenu.selectedText || currData)
-                  closeContextMenu()
-                }}
-              >
-                {t('common.copy')}
-              </Button>
-            </div>
-          </CustomContextMenu>
-        )}
       </ModalContent>
     </Modal>
   )

@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import React, { useEffect, useState, useRef } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
@@ -114,21 +115,29 @@ const AppearanceConfig: React.FC = () => {
             size="sm"
             isSelected={localShowFloating}
             onValueChange={async (v) => {
-              if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current)
-                timeoutRef.current = null
-              }
-
-              setLocalShowFloating(v)
-              if (v) {
-                await showFloatingWindow()
-                timeoutRef.current = setTimeout(async () => {
-                  await patchAppConfig({ showFloatingWindow: true })
+              try {
+                if (timeoutRef.current) {
+                  clearTimeout(timeoutRef.current)
                   timeoutRef.current = null
-                }, 1000)
-              } else {
-                await patchAppConfig({ showFloatingWindow: false })
-                await closeFloatingWindow()
+                }
+
+                setLocalShowFloating(v)
+                if (v) {
+                  await showFloatingWindow()
+                  timeoutRef.current = setTimeout(async () => {
+                    try {
+                      await patchAppConfig({ showFloatingWindow: true })
+                      timeoutRef.current = null
+                    } catch (error) {
+                      notifyError(error)
+                    }
+                  }, 1000)
+                } else {
+                  await patchAppConfig({ showFloatingWindow: false })
+                  await closeFloatingWindow()
+                }
+              } catch (error) {
+                notifyError(error)
               }
             }}
           />
@@ -140,8 +149,12 @@ const AppearanceConfig: React.FC = () => {
                 size="sm"
                 isSelected={spinFloatingIcon}
                 onValueChange={async (v) => {
-                  await patchAppConfig({ spinFloatingIcon: v })
-                  sendIpc(SEND.updateFloatingWindow)
+                  try {
+                    await patchAppConfig({ spinFloatingIcon: v })
+                    sendIpc(SEND.updateFloatingWindow)
+                  } catch (error) {
+                    notifyError(error)
+                  }
                 }}
               />
             </SettingItem>
@@ -150,11 +163,15 @@ const AppearanceConfig: React.FC = () => {
                 size="sm"
                 isSelected={disableTray}
                 onValueChange={async (v) => {
-                  await patchAppConfig({ disableTray: v })
-                  if (v) {
-                    closeTrayIcon()
-                  } else {
-                    showTrayIcon()
+                  try {
+                    await patchAppConfig({ disableTray: v })
+                    if (v) {
+                      closeTrayIcon()
+                    } else {
+                      showTrayIcon()
+                    }
+                  } catch (error) {
+                    notifyError(error)
                   }
                 }}
               />
@@ -168,7 +185,11 @@ const AppearanceConfig: React.FC = () => {
                 size="sm"
                 isSelected={proxyInTray}
                 onValueChange={async (v) => {
-                  await patchAppConfig({ proxyInTray: v })
+                  try {
+                    await patchAppConfig({ proxyInTray: v })
+                  } catch (error) {
+                    notifyError(error)
+                  }
                 }}
               />
             </SettingItem>
@@ -180,8 +201,12 @@ const AppearanceConfig: React.FC = () => {
               size="sm"
               isSelected={useDockIcon}
               onValueChange={async (v) => {
-                await patchAppConfig({ useDockIcon: v })
-                setDockVisible(v)
+                try {
+                  await patchAppConfig({ useDockIcon: v })
+                  setDockVisible(v)
+                } catch (error) {
+                  notifyError(error)
+                }
               }}
             />
           </SettingItem>
@@ -192,7 +217,11 @@ const AppearanceConfig: React.FC = () => {
             size="sm"
             isSelected={collapseSidebar}
             onValueChange={async (v) => {
-              await patchAppConfig({ collapseSidebar: v })
+              try {
+                await patchAppConfig({ collapseSidebar: v })
+              } catch (error) {
+                notifyError(error)
+              }
             }}
           />
         </SettingItem>
@@ -206,7 +235,7 @@ const AppearanceConfig: React.FC = () => {
             selectedKey={appTheme}
             onSelectionChange={(key) => {
               setTheme(key.toString())
-              patchAppConfig({ appTheme: key as AppTheme })
+              patchAppConfig({ appTheme: key as AppTheme }).catch((error) => notifyError(error))
             }}
           >
             <Tab key="system" title={t('common.auto')} />

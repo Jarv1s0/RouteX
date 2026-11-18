@@ -41,5 +41,5 @@ pub(crate) fn write_runtime_text(
 ) -> Result<(), String> {
     let path = resolve_runtime_file_path(app, state, raw_path)?;
     ensure_parent(&path)?;
-    fs::write(path, content).map_err(|e| e.to_string())
+    atomic_write_file(&path, content.as_bytes())
 }

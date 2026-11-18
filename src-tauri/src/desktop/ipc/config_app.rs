@@ -1,5 +1,36 @@
 #[allow(clippy::redundant_closure_call)]
 pub(crate) fn register_app_config_handlers(map: &mut std::collections::HashMap<&'static str, crate::desktop::ipc::IpcHandler>) {
+    map.insert("applyConfig", |app, _window, state, args| {
+        (|| -> Result<Value, String> {
+            let request = args.first().ok_or("applyConfig requires patches")?;
+            let app_patch = request.get("app").cloned().unwrap_or(json!({}));
+            let core_patch = request.get("core").cloned().unwrap_or(json!({}));
+            if !app_patch.is_object() || !core_patch.is_object() {
+                return Err("配置补丁必须是对象".to_string());
+            }
+            patch_app_config_store(app, &app_patch)?;
+            patch_controlled_config_store(app, &core_patch)?;
+            let force_restart = request.get("restart").and_then(Value::as_bool).unwrap_or(false);
+            let hot_reload = read_app_config_store(app)?
+                .get("hotReloadCoreOnSave").and_then(Value::as_bool).unwrap_or(true);
+            let running = state.runtime.lock().map_err(|e| e.to_string())?.controller_url.is_some();
+            // The outer configuration transaction restores both files and the old runtime on error.
+            let result = if running && hot_reload && !force_restart {
+                reload_core_config_process(app, state, true)?
+            } else {
+                restart_core_process(app, state, None)?
+            };
+            if patch_requires_shell_surface_sync(&app_patch) {
+                sync_shell_surfaces(app)?;
+            }
+            emit_ipc_event(app, "appConfigUpdated", Value::Null);
+            emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
+            emit_ipc_event(app, "core-started", result.clone());
+            emit_ipc_event(app, "groupsUpdated", Value::Null);
+            emit_ipc_event(app, "rulesUpdated", Value::Null);
+            Ok(result)
+        })().map_err(crate::desktop::error::AppError::from)
+    });
     map.insert("getAppConfig", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;

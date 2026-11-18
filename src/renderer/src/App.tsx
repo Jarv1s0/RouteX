@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import { useTheme } from 'next-themes'
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useRoutes } from 'react-router-dom'
@@ -254,7 +255,9 @@ const App: React.FC = () => {
       const finalWidth = pendingWidthRef.current
       siderWidthValueRef.current = finalWidth
       setSiderWidthValue(finalWidth)
-      patchAppConfig({ siderWidth: finalWidth, collapseSidebar: finalWidth === narrowWidth })
+      patchAppConfig({ siderWidth: finalWidth, collapseSidebar: finalWidth === narrowWidth }).catch(
+        (error) => notifyError(error)
+      )
     }
   }, [narrowWidth, patchAppConfig])
 

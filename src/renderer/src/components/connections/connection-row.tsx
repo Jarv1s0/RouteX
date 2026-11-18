@@ -214,7 +214,6 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
-      e.preventDefault()
       onContextMenu?.(conn, e)
     },
     [onContextMenu, conn]

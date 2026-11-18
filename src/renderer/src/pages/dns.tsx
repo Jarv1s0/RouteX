@@ -20,6 +20,7 @@ const DNS: React.FC = () => {
             className={FLOATING_ACTION_BUTTON_CLASS}
             color="primary"
             isDisabled={editor.saveDisabled}
+            isLoading={editor.saving}
             onPress={() => void editor.save()}
           >
             {t('common.save')}

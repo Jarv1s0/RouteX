@@ -68,6 +68,7 @@ pub(crate) fn reload_core_config_process(
     state: &State<'_, CoreState>,
     close_connections: bool,
 ) -> Result<Value, String> {
+    let _restart_guard = state.restart_lock.lock().map_err(|e| e.to_string())?;
     let (binary_path, work_dir, config_path, controller_address) = {
         let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
         let binary_path = runtime
@@ -127,7 +128,7 @@ pub(crate) fn reload_core_config_process(
     check_result?;
 
     let previous_config = fs::read(&config_path).ok();
-    fs::write(&config_path, &config_yaml).map_err(|e| e.to_string())?;
+    atomic_write_file(&config_path, config_yaml.as_bytes())?;
 
     let query = [("force", "true".to_string())];
     let reload_result = core_request(
@@ -139,8 +140,15 @@ pub(crate) fn reload_core_config_process(
     );
 
     if let Err(error) = reload_result {
+        // A failed response can still mean the core accepted the new config.
+        // Mark runtime state unknown so the outer transaction restores it.
+        state
+            .runtime
+            .lock()
+            .map_err(|e| e.to_string())?
+            .cached_runtime_config = None;
         if let Some(previous_config) = previous_config {
-            let _ = fs::write(&config_path, previous_config);
+            let _ = atomic_write_file(&config_path, &previous_config);
         }
         return Err(format!("Mihomo 热重载失败: {error}"));
     }
@@ -258,7 +266,7 @@ pub(crate) fn restart_core_process(
     }
     let _ = recover_dns(app);
     stop_core_process(app, state)?;
-    fs::write(&config_path, &config_yaml).map_err(|e| e.to_string())?;
+    atomic_write_file(&config_path, config_yaml.as_bytes())?;
     let tun_enabled = runtime_tun_enabled(&runtime_config);
     prepare_runtime_log_file(app, &log_path);
     let log_start_offset = fs::metadata(&log_path).map(|m| m.len()).unwrap_or(0);

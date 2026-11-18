@@ -1,4 +1,15 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, Button, Input, Tab, Tabs, Tooltip } from '@heroui/react'
+import { notifyError } from '@renderer/utils/notify'
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  Button,
+  Input,
+  Tab,
+  Tabs,
+  Tooltip
+} from '@heroui/react'
 import React, { useState, useEffect, useRef } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -39,7 +50,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
   const userAgentFetched = useRef(false)
 
   const setUaDebounce = debounce((v: string) => {
-    patchAppConfig({ userAgent: v })
+    patchAppConfig({ userAgent: v }).catch((error) => notifyError(error))
   }, 500)
 
   useEffect(() => {
@@ -82,9 +93,13 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
               radius="lg"
               selectedKey={profileDisplayDate}
               onSelectionChange={async (v) => {
-                await patchAppConfig({
-                  profileDisplayDate: v as 'expire' | 'update'
-                })
+                try {
+                  await patchAppConfig({
+                    profileDisplayDate: v as 'expire' | 'update'
+                  })
+                } catch (error) {
+                  notifyError(error)
+                }
               }}
             >
               <Tab key="update" title={t('profiles.updateTime')} />
@@ -106,7 +121,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
               size="sm"
               isSelected={diffWorkDir}
               onValueChange={(v) => {
-                patchAppConfig({ diffWorkDir: v })
+                patchAppConfig({ diffWorkDir: v }).catch((error) => notifyError(error))
               }}
             />
           </SettingItem>
@@ -152,7 +167,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
               value={githubToken}
               placeholder="GitHub Token"
               onValueChange={(v) => {
-                patchAppConfig({ githubToken: v })
+                patchAppConfig({ githubToken: v }).catch((error) => notifyError(error))
               }}
             />
           </SettingItem>

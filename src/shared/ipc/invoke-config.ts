@@ -1,4 +1,5 @@
 export const CONFIG_IPC_INVOKE_CHANNELS = {
+  applyConfig: 'applyConfig',
   addChainItem: 'addChainItem',
   addOverrideItem: 'addOverrideItem',
   addProfileItem: 'addProfileItem',

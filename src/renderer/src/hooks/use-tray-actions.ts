@@ -1,3 +1,4 @@
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import { useState } from 'react'
 import { useAppConfig } from './use-app-config'
 import { useControledMihomoConfig } from './use-controled-mihomo-config'
@@ -9,7 +10,6 @@ import {
   mihomoCloseAllConnections,
   mihomoGroupDelay,
   patchControledMihomoConfig,
-  restartCore,
   triggerSysProxy
 } from '@renderer/utils/mihomo-ipc'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
@@ -33,7 +33,7 @@ export function useTrayActions() {
     onlyActiveDevice = false,
     showFloatingWindow: showFloating = false
   } = appConfig || {}
-  const { tun, mode } = controledMihomoConfig || {}
+  const { mode } = controledMihomoConfig || {}
 
   const [testingGroup, setTestingGroup] = useState<string | null>(null)
   const [busyAction, setBusyAction] = useState<string | null>(null)
@@ -97,23 +97,10 @@ export function useTrayActions() {
         }
       }
 
-      const previousTun = tun ? { ...tun } : undefined
-      const previousDns = controledMihomoConfig?.dns ? { ...controledMihomoConfig.dns } : undefined
-
-      if (enable) {
-        await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
-      } else {
-        await patchControledMihomoConfig({ tun: { enable } })
-      }
-      try {
-        await restartCore()
-      } catch (error) {
-        await patchControledMihomoConfig({
-          tun: previousTun,
-          ...(enable ? { dns: previousDns } : {})
-        })
-        throw error
-      }
+      await applyConfigChange({
+        core: enable ? { tun: { enable }, dns: { enable: true } } : { tun: { enable } },
+        restart: true
+      })
     })
   }
 

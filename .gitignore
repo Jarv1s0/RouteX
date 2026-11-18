@@ -26,3 +26,5 @@ src-tauri/tauri.release.conf.json
 .mihomo/
 .codex-ui-snapshots/
 .codex-tmp/
+
+.pnpm-store/

@@ -23,6 +23,8 @@ const IMPLICIT_PACKAGE_DEPENDENCIES = new Set([
   'eslint',
   // HeroUI requires this peer at runtime; pin it explicitly to keep Motion packages compatible.
   'framer-motion',
+  // Vitest loads this environment through @vitest-environment directives.
+  'jsdom',
   'npm-run-all2',
   'prettier',
   'typescript',

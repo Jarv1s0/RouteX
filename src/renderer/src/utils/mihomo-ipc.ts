@@ -4,6 +4,7 @@ import { ON, onIpc } from './ipc-channels'
 import { createTauriRuntimeConfig, buildRuntimeGroupsFallback } from './mihomo-config-merge'
 import { mihomoConfigCache } from './mihomo-config-cache'
 import { MihomoSocketManager } from './mihomo-socket-manager'
+import { mergeDeepPlainObject } from './merge-deep-plain-object'
 
 function isTauriHost(): boolean {
   return __ROUTEX_HOST__ === 'tauri'
@@ -343,6 +344,21 @@ export async function restartCore(): Promise<void> {
   )
 }
 
+export function syncAppliedCoreConfig(result?: { controller?: string }): void {
+  mihomoConfigCache.invalidateRuntimeConfigCache()
+  mihomoConfigCache.clearInFlightRequests(
+    C.getRuntimeConfig,
+    C.mihomoGroups,
+    C.mihomoProxies,
+    C.mihomoRules,
+    C.mihomoRuleProviders
+  )
+  if (result?.controller) {
+    mihomoSocketManager.writeTauriControllerUrl(`http://${result.controller}`)
+    startTauriMihomoEventBridge()
+  }
+}
+
 export async function mihomoUpdateProxyProviders(name: string): Promise<void> {
   await invokeSafe(C.mihomoUpdateProxyProviders, name)
   mihomoConfigCache.clearInFlightRequests(C.mihomoProxies)
@@ -411,10 +427,9 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<M
 export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   if (isTauriHost()) {
     await invokeSafe(C.patchControledMihomoConfig, patch)
-    mihomoConfigCache.setControlledConfig({
-      ...readTauriControledMihomoConfig(),
-      ...patch
-    })
+    mihomoConfigCache.setControlledConfig(
+      mergeDeepPlainObject(readTauriControledMihomoConfig(), patch)
+    )
     mihomoConfigCache.invalidateRuntimeConfigCache()
     mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig, C.mihomoGroups)
     return

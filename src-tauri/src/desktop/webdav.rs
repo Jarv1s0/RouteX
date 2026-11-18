@@ -1,6 +1,8 @@
 use super::prelude::*;
 use super::*;
 
+const MAX_WEBDAV_BACKUP_BYTES: u64 = 512 * 1024 * 1024;
+
 pub(crate) fn webdav_request(
     client: &Client,
     method: reqwest::Method,
@@ -19,7 +21,10 @@ pub(crate) fn sanitize_webdav_backup_entry(
     relative: &Path,
     bytes: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
-    if relative != Path::new(APP_CONFIG_FILE) {
+    if !relative
+        .to_string_lossy()
+        .eq_ignore_ascii_case(APP_CONFIG_FILE)
+    {
         return Ok(bytes);
     }
 
@@ -68,9 +73,6 @@ pub(crate) fn ensure_webdav_directory(config: &WebdavConfig) -> Result<(), Strin
 
 pub(crate) fn build_webdav_backup_archive(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let root = app_storage_root(app)?;
-    if !root.exists() {
-        fs::create_dir_all(&root).map_err(|e| e.to_string())?;
-    }
 
     let temp_path = std::env::temp_dir().join(format!(
         "routex-webdav-backup-{}-{}.zip",
@@ -124,21 +126,73 @@ pub(crate) fn restore_webdav_backup_archive(
     bytes: &[u8],
 ) -> Result<(), String> {
     let root = app_storage_root(app)?;
-    if root.exists() {
-        fs::remove_dir_all(&root).map_err(|e| e.to_string())?;
+    restore_webdav_backup_to_root(&root, bytes)?;
+    invalidate_profile_runtime_config_cache();
+    Ok(())
+}
+
+pub(crate) fn restore_webdav_backup_to_root(root: &Path, bytes: &[u8]) -> Result<(), String> {
+    if bytes.len() as u64 > MAX_WEBDAV_BACKUP_BYTES {
+        return Err("备份压缩包大小超过 512 MiB".to_string());
     }
-    fs::create_dir_all(&root).map_err(|e| e.to_string())?;
-
-    let cursor = Cursor::new(bytes.to_vec());
+    let parent = root.parent().ok_or("配置目录缺少父目录")?;
+    fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    let staging = tempfile::Builder::new()
+        .prefix("routex-restore-")
+        .tempdir_in(parent)
+        .map_err(|e| e.to_string())?;
+    let cursor = Cursor::new(bytes);
     let mut archive = ZipArchive::new(cursor).map_err(|e| e.to_string())?;
-
+    if archive.len() > 10_000 {
+        return Err("备份文件数量超过上限".to_string());
+    }
+    let mut expanded_bytes = 0u64;
+    let mut entries = HashSet::new();
     for index in 0..archive.len() {
-        let mut file = archive.by_index(index).map_err(|e| e.to_string())?;
-        let Some(relative_path) = file.enclosed_name() else {
-            continue;
-        };
-
-        let output_path = root.join(&relative_path);
+        let file = archive.by_index(index).map_err(|e| e.to_string())?;
+        let relative_path = file.enclosed_name().ok_or("备份包含无效路径")?;
+        if file
+            .name()
+            .map_err(|e| e.to_string())?
+            .contains([':', '\\'])
+            || relative_path.as_os_str().is_empty()
+        {
+            return Err("备份包含无效路径".to_string());
+        }
+        for component in &relative_path {
+            let component = component.to_string_lossy();
+            let stem = component
+                .split('.')
+                .next()
+                .unwrap_or_default()
+                .to_ascii_uppercase();
+            if component.ends_with([' ', '.'])
+                || matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+                || (stem.len() == 4
+                    && (stem.starts_with("COM") || stem.starts_with("LPT"))
+                    && matches!(stem.as_bytes()[3], b'1'..=b'9'))
+            {
+                return Err("备份包含不兼容的文件名".to_string());
+            }
+        }
+        let name = relative_path
+            .to_string_lossy()
+            .trim_end_matches('/')
+            .to_lowercase();
+        if !entries.insert(name) {
+            return Err("备份包含重复路径".to_string());
+        }
+        if file
+            .unix_mode()
+            .is_some_and(|mode| mode & 0o170000 == 0o120000)
+        {
+            return Err("备份不能包含符号链接".to_string());
+        }
+        expanded_bytes = expanded_bytes.checked_add(file.size()).ok_or("备份过大")?;
+        if expanded_bytes > MAX_WEBDAV_BACKUP_BYTES {
+            return Err("备份解压大小超过 512 MiB".to_string());
+        }
+        let output_path = staging.path().join(&relative_path);
         if file.is_dir() {
             fs::create_dir_all(&output_path).map_err(|e| e.to_string())?;
             continue;
@@ -146,11 +200,115 @@ pub(crate) fn restore_webdav_backup_archive(
 
         ensure_parent(&output_path)?;
         let mut bytes = Vec::new();
-        file.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+        let expected_size = file.size();
+        file.take(expected_size + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|e| e.to_string())?;
+        if bytes.len() as u64 != expected_size {
+            return Err("备份文件大小不匹配".to_string());
+        }
         let bytes = sanitize_webdav_backup_entry(relative_path.as_path(), bytes)?;
-        fs::write(&output_path, bytes).map_err(|e| e.to_string())?;
+        if relative_path
+            .extension()
+            .is_some_and(|extension| extension == "json")
+        {
+            let value = serde_json::from_slice::<Value>(&bytes)
+                .map_err(|e| format!("备份 JSON 无效: {e}"))?;
+            if [
+                APP_CONFIG_FILE,
+                CONTROLLED_CONFIG_FILE,
+                PROFILE_CONFIG_FILE,
+                OVERRIDE_CONFIG_FILE,
+            ]
+            .iter()
+            .any(|name| relative_path == Path::new(name))
+                && !value.is_object()
+            {
+                return Err("备份配置必须是对象".to_string());
+            }
+        }
+        if (relative_path.starts_with(PROFILE_DIR_NAME)
+            || relative_path.starts_with(OVERRIDE_DIR_NAME))
+            && relative_path
+                .extension()
+                .is_some_and(|ext| ext == "yaml" || ext == "yml")
+        {
+            let text = std::str::from_utf8(&bytes).map_err(|e| e.to_string())?;
+            parse_profile_yaml_value(text)?;
+        }
+        atomic_write_file(&output_path, &bytes)?;
     }
+    let app_config = read_json_file::<Value>(&staging.path().join(APP_CONFIG_FILE))?
+        .ok_or("备份缺少应用配置")?;
+    if !app_config.is_object() {
+        return Err("备份应用配置必须是对象".to_string());
+    }
+    validate_restored_metadata(staging.path())?;
+    let backup = parent.join(format!("routex-config-backup-{}", create_id()));
+    let swap_guard = CONFIG_DIRECTORY_SWAP_LOCK
+        .write()
+        .map_err(|e| e.to_string())?;
+    let had_original = root.exists();
+    if had_original {
+        fs::rename(root, &backup).map_err(|e| format!("无法保留原配置: {e}"))?;
+    }
+    if let Err(error) = fs::rename(staging.path(), root) {
+        if had_original {
+            fs::rename(&backup, root).map_err(|restore_error| {
+                format!(
+                    "恢复失败: {error}; 原配置保留在 {}，回滚失败: {restore_error}",
+                    backup.display()
+                )
+            })?;
+        }
+        return Err(format!("替换配置失败: {error}"));
+    }
+    drop(swap_guard);
+    if had_original {
+        if let Err(error) = fs::remove_dir_all(&backup) {
+            eprintln!(
+                "[desktop.restore] 原配置备份保留在 {}: {error}",
+                backup.display()
+            );
+        }
+    }
+    Ok(())
+}
 
+fn validate_restored_metadata(root: &Path) -> Result<(), String> {
+    let profiles: ProfileConfigData =
+        read_json_file(&root.join(PROFILE_CONFIG_FILE))?.unwrap_or_default();
+    let overrides: OverrideConfigData =
+        read_json_file(&root.join(OVERRIDE_CONFIG_FILE))?.unwrap_or_default();
+    for (relative, label) in profiles
+        .items
+        .iter()
+        .map(|item| {
+            (
+                PathBuf::from(PROFILE_DIR_NAME).join(format!("{}.yaml", item.id)),
+                "订阅",
+            )
+        })
+        .chain(overrides.items.iter().map(|item| {
+            (
+                PathBuf::from(OVERRIDE_DIR_NAME).join(format!("{}.{}", item.id, item.ext)),
+                "覆写",
+            )
+        }))
+    {
+        // IDs and extensions must remain individual names within the staged tree.
+        if relative.components().count() != 2
+            || !relative
+                .components()
+                .all(|part| matches!(part, std::path::Component::Normal(_)))
+            || !root.join(&relative).is_file()
+        {
+            return Err(format!(
+                "备份{label}文件缺失或路径无效: {}",
+                relative.display()
+            ));
+        }
+    }
     Ok(())
 }
 
@@ -247,7 +405,7 @@ pub(crate) fn webdav_restore(app: &tauri::AppHandle, filename: &str) -> Result<(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let mut response = webdav_request(
+    let response = webdav_request(
         &client,
         reqwest::Method::GET,
         &build_webdav_url(&config, Some(filename)),
@@ -262,6 +420,7 @@ pub(crate) fn webdav_restore(app: &tauri::AppHandle, filename: &str) -> Result<(
 
     let mut bytes = Vec::new();
     response
+        .take(MAX_WEBDAV_BACKUP_BYTES + 1)
         .read_to_end(&mut bytes)
         .map_err(|e| e.to_string())?;
     restore_webdav_backup_archive(app, &bytes)

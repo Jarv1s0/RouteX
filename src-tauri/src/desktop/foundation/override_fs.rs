@@ -46,14 +46,12 @@ pub(crate) fn write_override_text(
         let previous = fs::read_to_string(&path).map_err(|e| e.to_string())?;
         if previous != content {
             ensure_parent(&rollback_path)?;
-            fs::write(&rollback_path, previous).map_err(|e| e.to_string())?;
+            atomic_write_file(&rollback_path, previous.as_bytes())?;
         }
     }
 
     ensure_parent(&path)?;
-    invalidate_profile_runtime_config_cache_after(
-        fs::write(path, content).map_err(|e| e.to_string()),
-    )
+    invalidate_profile_runtime_config_cache_after(atomic_write_file(&path, content.as_bytes()))
 }
 
 pub(crate) fn rollback_override_text(
@@ -71,9 +69,10 @@ pub(crate) fn rollback_override_text(
     let rollback_content = fs::read_to_string(&rollback_path).map_err(|e| e.to_string())?;
     if target_path.exists() {
         let current = fs::read_to_string(&target_path).map_err(|e| e.to_string())?;
-        fs::write(&rollback_path, current).map_err(|e| e.to_string())?;
+        atomic_write_file(&rollback_path, current.as_bytes())?;
     }
-    invalidate_profile_runtime_config_cache_after(
-        fs::write(target_path, rollback_content).map_err(|e| e.to_string()),
-    )
+    invalidate_profile_runtime_config_cache_after(atomic_write_file(
+        &target_path,
+        rollback_content.as_bytes(),
+    ))
 }

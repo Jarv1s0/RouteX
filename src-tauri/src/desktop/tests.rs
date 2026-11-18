@@ -1,5 +1,172 @@
 use super::prelude::*;
 use super::*;
+
+#[test]
+fn atomic_config_write_replaces_complete_content_and_cleans_temporary_files() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("config.json");
+    atomic_write_file(&path, b"old").unwrap();
+    write_json_file(&path, &json!({"mode": "rule"})).unwrap();
+    assert_eq!(
+        read_json_file::<Value>(&path).unwrap(),
+        Some(json!({"mode": "rule"}))
+    );
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
+}
+
+#[cfg(windows)]
+#[test]
+fn locked_config_write_preserves_original_and_removes_temporary_file() {
+    use std::os::windows::fs::OpenOptionsExt;
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("config.json");
+    fs::write(&path, b"original").unwrap();
+    let locked = fs::OpenOptions::new()
+        .read(true)
+        .share_mode(0)
+        .open(&path)
+        .unwrap();
+    assert!(atomic_write_file(&path, b"replacement").is_err());
+    drop(locked);
+    assert_eq!(fs::read(&path).unwrap(), b"original");
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
+}
+
+#[test]
+fn configuration_snapshot_restores_both_stores_without_touching_profiles() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join(APP_CONFIG_FILE), b"old app").unwrap();
+    fs::create_dir(root.path().join(PROFILE_DIR_NAME)).unwrap();
+    let profile = root.path().join(PROFILE_DIR_NAME).join("A.yaml");
+    fs::write(&profile, b"old profile").unwrap();
+    let snapshot = ProfileStorageSnapshot::capture_scope(root.path(), false).unwrap();
+    fs::write(root.path().join(APP_CONFIG_FILE), b"new app").unwrap();
+    fs::write(root.path().join(CONTROLLED_CONFIG_FILE), b"new core").unwrap();
+    fs::write(&profile, b"new profile").unwrap();
+    snapshot.restore().unwrap();
+    assert_eq!(
+        fs::read(root.path().join(APP_CONFIG_FILE)).unwrap(),
+        b"old app"
+    );
+    assert!(!root.path().join(CONTROLLED_CONFIG_FILE).exists());
+    assert_eq!(fs::read(profile).unwrap(), b"new profile");
+}
+
+fn test_backup_archive(entries: &[(&str, &str)]) -> Vec<u8> {
+    let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+    for (name, content) in entries {
+        writer
+            .start_file(*name, SimpleFileOptions::default())
+            .unwrap();
+        writer.write_all(content.as_bytes()).unwrap();
+    }
+    writer.finish().unwrap().into_inner()
+}
+
+#[test]
+fn invalid_webdav_backups_leave_the_entire_original_directory_intact() {
+    let parent = tempfile::tempdir().unwrap();
+    let root = parent.path().join("config");
+    fs::create_dir(&root).unwrap();
+    fs::write(root.join(APP_CONFIG_FILE), b"original app").unwrap();
+    fs::write(root.join("keep.txt"), b"original extra").unwrap();
+    let backups = [
+        b"corrupt zip".to_vec(),
+        test_backup_archive(&[("only.txt", "missing app")]),
+        test_backup_archive(&[(APP_CONFIG_FILE, "[]")]),
+        test_backup_archive(&[
+            (APP_CONFIG_FILE, "{}"),
+            (PROFILE_CONFIG_FILE, r#"{"items":1}"#),
+        ]),
+        test_backup_archive(&[
+            (APP_CONFIG_FILE, "{}"),
+            (OVERRIDE_CONFIG_FILE, r#"{"items":1}"#),
+        ]),
+        test_backup_archive(&[
+            (APP_CONFIG_FILE, "{}"),
+            (
+                PROFILE_CONFIG_FILE,
+                r#"{"items":[{"id":"missing","type":"local","name":"Missing"}]}"#,
+            ),
+        ]),
+        test_backup_archive(&[(APP_CONFIG_FILE, "{}"), ("bad. /file", "invalid path")]),
+        test_backup_archive(&[
+            (APP_CONFIG_FILE, "{}"),
+            (CONTROLLED_CONFIG_FILE, "bad json"),
+        ]),
+        test_backup_archive(&[(APP_CONFIG_FILE, "{}"), ("profiles/bad.yaml", "proxies: [")]),
+        test_backup_archive(&[(APP_CONFIG_FILE, "{}"), ("../escaped.txt", "escape")]),
+        test_backup_archive(&[(APP_CONFIG_FILE, "{}"), ("config:stream", "invalid")]),
+    ];
+    for bytes in backups {
+        assert!(restore_webdav_backup_to_root(&root, &bytes).is_err());
+        assert_eq!(
+            fs::read(root.join(APP_CONFIG_FILE)).unwrap(),
+            b"original app"
+        );
+        assert_eq!(fs::read(root.join("keep.txt")).unwrap(), b"original extra");
+        assert_eq!(fs::read_dir(parent.path()).unwrap().count(), 1);
+    }
+}
+
+#[test]
+fn valid_webdav_backup_replaces_directory_after_validation_and_removes_secrets() {
+    let parent = tempfile::tempdir().unwrap();
+    let root = parent.path().join("config");
+    fs::create_dir(&root).unwrap();
+    fs::write(root.join("old.txt"), b"old").unwrap();
+    let bytes = test_backup_archive(&[
+        (
+            APP_CONFIG_FILE,
+            r#"{"language":"zh-CN","webdavPassword":"secret","serviceAuthKey":"secret","corePermissionMode":"service"}"#,
+        ),
+        (CONTROLLED_CONFIG_FILE, r#"{"ipv6":true}"#),
+        ("profiles/A.yaml", "mode: rule"),
+    ]);
+    restore_webdav_backup_to_root(&root, &bytes).unwrap();
+    assert!(!root.join("old.txt").exists());
+    assert_eq!(
+        read_json_file::<Value>(&root.join(APP_CONFIG_FILE)).unwrap(),
+        Some(json!({"language":"zh-CN"}))
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("profiles/A.yaml")).unwrap(),
+        "mode: rule"
+    );
+    assert_eq!(fs::read_dir(parent.path()).unwrap().count(), 1);
+}
+
+#[test]
+fn directory_swap_blocks_background_root_creation_until_replacement_is_ready() {
+    let parent = tempfile::tempdir().unwrap();
+    let root = parent.path().join("config");
+    let staging = parent.path().join("staging");
+    let backup = parent.path().join("backup");
+    fs::create_dir(&root).unwrap();
+    fs::create_dir(&staging).unwrap();
+    fs::write(staging.join(APP_CONFIG_FILE), b"{\"ready\":true}").unwrap();
+    let guard = CONFIG_DIRECTORY_SWAP_LOCK.write().unwrap();
+    fs::rename(&root, &backup).unwrap();
+    let (started_tx, started_rx) = std::sync::mpsc::channel();
+    let (finished_tx, finished_rx) = std::sync::mpsc::channel();
+    let reader_root = root.clone();
+    let reader = std::thread::spawn(move || {
+        started_tx.send(()).unwrap();
+        ensure_dir(reader_root).unwrap();
+        finished_tx.send(()).unwrap();
+    });
+    started_rx.recv().unwrap();
+    assert!(finished_rx.recv_timeout(Duration::from_millis(30)).is_err());
+    assert!(!root.exists());
+    fs::rename(staging, &root).unwrap();
+    drop(guard);
+    finished_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    reader.join().unwrap();
+    assert_eq!(
+        read_json_file::<Value>(&root.join(APP_CONFIG_FILE)).unwrap(),
+        Some(json!({"ready":true}))
+    );
+}
 use std::collections::HashSet;
 use std::path::Path;
 

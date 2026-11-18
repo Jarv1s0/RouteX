@@ -10,11 +10,25 @@ pub(crate) struct ProfileStorageSnapshot {
 
 impl ProfileStorageSnapshot {
     pub(crate) fn capture(root: &Path) -> Result<Self, String> {
-        let directories = vec![root.join(PROFILE_DIR_NAME), root.join(OVERRIDE_DIR_NAME)];
+        Self::capture_scope(root, true)
+    }
+
+    pub(crate) fn capture_scope(root: &Path, include_profiles: bool) -> Result<Self, String> {
+        let directories = if include_profiles {
+            vec![root.join(PROFILE_DIR_NAME), root.join(OVERRIDE_DIR_NAME)]
+        } else {
+            Vec::new()
+        };
         let mut paths = vec![
-            root.join(PROFILE_CONFIG_FILE),
-            root.join(OVERRIDE_CONFIG_FILE),
+            root.join(APP_CONFIG_FILE),
+            root.join(CONTROLLED_CONFIG_FILE),
         ];
+        if include_profiles {
+            paths.extend([
+                root.join(PROFILE_CONFIG_FILE),
+                root.join(OVERRIDE_CONFIG_FILE),
+            ]);
+        }
         for directory in &directories {
             paths.extend(Self::content_files(directory)?);
         }
@@ -63,8 +77,7 @@ impl ProfileStorageSnapshot {
                 if fs::read(&path).ok().as_ref() == Some(content) {
                     continue;
                 }
-                ensure_parent(&path)
-                    .and_then(|()| fs::write(&path, content).map_err(|e| e.to_string()))
+                atomic_write_file(&path, content)
             } else {
                 match fs::remove_file(&path) {
                     Ok(()) => Ok(()),
@@ -89,6 +102,9 @@ pub(crate) fn is_profile_mutation_channel(channel: &str) -> bool {
     matches!(
         channel,
         "setProfileConfig"
+            | "patchAppConfig"
+            | "patchControledMihomoConfig"
+            | "applyConfig"
             | "setProfileMergeTargets"
             | "changeCurrentProfile"
             | "setActiveProfiles"
@@ -110,11 +126,25 @@ pub(crate) fn with_profile_mutation<T>(
     state: &State<'_, CoreState>,
     action: impl FnOnce() -> Result<T, String>,
 ) -> Result<T, String> {
+    with_storage_mutation(app, state, true, action)
+}
+
+pub(crate) fn with_storage_mutation<T>(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    include_profiles: bool,
+    action: impl FnOnce() -> Result<T, String>,
+) -> Result<T, String> {
     let _guard = state
         .profile_mutation_lock
         .lock()
         .map_err(|e| e.to_string())?;
-    let snapshot = ProfileStorageSnapshot::capture(&app_storage_root(app)?)?;
+    let root = app_storage_root(app)?;
+    let snapshot = if include_profiles {
+        ProfileStorageSnapshot::capture(&root)?
+    } else {
+        ProfileStorageSnapshot::capture_scope(&root, false)?
+    };
     let (was_running, previous_runtime) = {
         let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
         (
@@ -129,7 +159,7 @@ pub(crate) fn with_profile_mutation<T>(
         Ok(value) => Ok(value),
         Err(mut error) => {
             if let Err(restore_error) = snapshot.restore() {
-                return Err(format!("{error}; 恢复订阅和覆写失败: {restore_error}"));
+                return Err(format!("{error}; 恢复配置失败: {restore_error}"));
             }
             let (is_running, current_runtime) = {
                 let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
@@ -151,6 +181,8 @@ pub(crate) fn with_profile_mutation<T>(
                 }
             }
             emit_ipc_event(app, "profileConfigUpdated", Value::Null);
+            emit_ipc_event(app, "appConfigUpdated", Value::Null);
+            emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Err(error)

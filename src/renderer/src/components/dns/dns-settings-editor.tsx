@@ -34,7 +34,7 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
     setFakeIPRange6Error,
     setAdvancedDnsError
   } = editor
-  const dnsFieldsDisabled = !values.controlDns
+  const dnsFieldsDisabled = !values.controlDns || editor.saving
   const fakeIPFilterHasError = values.fakeIPFilter.some((item) => !isValidDomainWildcard(item).ok)
   const defaultNameserverHasError = values.defaultNameserver.some(
     (item) => !isValidDnsServer(item, true).ok
@@ -66,6 +66,7 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
             <AppSwitch
               size="sm"
               isSelected={values.controlDns}
+              isDisabled={editor.saving}
               onValueChange={(value) => setValues({ ...values, controlDns: value })}
             />
           </div>
@@ -148,7 +149,7 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
           <Tabs
             classNames={CARD_STYLES.GLASS_TABS}
             selectedKey={values.enhancedMode}
-            disabledKeys={dnsFieldsDisabled ? ['fake-ip', 'redir-host', 'normal'] : []}
+            isDisabled={dnsFieldsDisabled}
             onSelectionChange={(key: Key) => setValues({ ...values, enhancedMode: key as DnsMode })}
           >
             <Tab key="fake-ip" title={t('dns.fakeIp')} />

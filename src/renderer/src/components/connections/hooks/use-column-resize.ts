@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { DEFAULT_COLUMN_WIDTHS } from '../columns'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -60,7 +61,9 @@ export function useColumnResize() {
         changedWidths[col] = connectionTableColumnWidths[col]
       }
     }
-    patchAppConfig({ connectionTableColumnWidths: changedWidths })
+    patchAppConfig({ connectionTableColumnWidths: changedWidths }).catch((error) =>
+      notifyError(error)
+    )
   }, [connectionTableColumnWidths, patchAppConfig])
 
   return {

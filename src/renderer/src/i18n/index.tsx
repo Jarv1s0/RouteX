@@ -87,8 +87,8 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       locale,
       language,
       setLanguage: async (nextLanguage) => {
-        setLocalLanguage(nextLanguage)
         await patchAppConfig({ language: nextLanguage })
+        setLocalLanguage(nextLanguage)
       },
       t: (key, values) => translate(key, values)
     }

@@ -1,9 +1,11 @@
+import { notifyError } from '@renderer/utils/notify'
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import React, { useEffect, useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Input, Select, SelectItem, Tooltip } from '@heroui/react'
 import { openExternalUrl } from '@renderer/api/app'
-import { mihomoUpgradeUI, restartCore } from '@renderer/utils/mihomo-ipc'
+import { mihomoUpgradeUI } from '@renderer/utils/mihomo-ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import EditableList from '../base/base-list-editor'
 import { IoMdCloudDownload, IoMdRefresh } from 'react-icons/io'
@@ -162,7 +164,7 @@ function resolveExternalUiOpenUrl(
 
 const ControllerSetting: React.FC = () => {
   const { t } = useI18n()
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
   const {
     'external-controller': externalController = '',
     'external-ui': externalUi = '',
@@ -229,12 +231,15 @@ const ControllerSetting: React.FC = () => {
     }
   }
   const onChangeNeedRestart = async (patch: Partial<MihomoConfig>): Promise<void> => {
-    await patchControledMihomoConfig(patch)
-    await restartCore()
-    if ('external-ui-url' in patch) {
-      setTimeout(async () => {
-        await upgradeUI()
-      }, 1000)
+    try {
+      await applyConfigChange({ core: patch, restart: true })
+      if ('external-ui-url' in patch) {
+        setTimeout(async () => {
+          await upgradeUI()
+        }, 1000)
+      }
+    } catch (error) {
+      notifyError(error)
     }
   }
   const generateRandomString = (length: number): string => {

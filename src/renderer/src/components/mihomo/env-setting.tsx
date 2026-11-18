@@ -3,7 +3,7 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import EditableList from '../base/base-list-editor'
 import { platform } from '@renderer/utils/init'
 import { secondaryInputClassNames } from '../settings/advanced-settings'
@@ -13,7 +13,7 @@ import { emitMihomoCoreChanged } from '@renderer/utils/mihomo-core-events'
 import AppSwitch from '@renderer/components/base/app-switch'
 const EnvSetting: React.FC = () => {
   const { t } = useI18n()
-  const { appConfig, patchAppConfig } = useAppConfig()
+  const { appConfig } = useAppConfig()
   const {
     disableLoopbackDetector,
     disableEmbedCA,
@@ -23,8 +23,7 @@ const EnvSetting: React.FC = () => {
   } = appConfig || {}
   const handleConfigChangeWithRestart = async (key: string, value: unknown): Promise<void> => {
     try {
-      await patchAppConfig({ [key]: value })
-      await restartCore()
+      await applyConfigChange({ app: { [key]: value }, restart: true })
     } catch (e) {
       alert(e)
     } finally {

@@ -136,7 +136,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
           variant="solid"
           radius="lg"
           selectedKey={fakeIpFilterMode}
-          disabledKeys={isDisabled ? ['blacklist', 'whitelist', 'rule'] : []}
+          isDisabled={isDisabled}
           onSelectionChange={(key) => onFakeIpFilterModeChange(key as FilterMode)}
         >
           <Tab key="blacklist" title={t('dns.blacklist')} />
@@ -341,7 +341,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
             variant="solid"
             radius="lg"
             selectedKey={cacheAlgorithm || 'default'}
-            disabledKeys={isDisabled ? ['default', 'arc', 'lru'] : []}
+            isDisabled={isDisabled}
             onSelectionChange={(key) => {
               onCacheAlgorithmChange(key === 'default' ? '' : String(key))
             }}

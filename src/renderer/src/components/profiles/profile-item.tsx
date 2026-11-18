@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import {
   Button,
   Card,
@@ -394,7 +395,11 @@ const ProfileItem: React.FC<Props> = (props) => {
                     variant="light"
                     className={CARD_STYLES.MANAGEMENT_META_BUTTON}
                     onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'update' })
+                      try {
+                        await patchAppConfig({ profileDisplayDate: 'update' })
+                      } catch (error) {
+                        notifyError(error)
+                      }
                     }}
                   >
                     {extra.expire
@@ -407,7 +412,11 @@ const ProfileItem: React.FC<Props> = (props) => {
                     variant="light"
                     className={CARD_STYLES.MANAGEMENT_META_BUTTON}
                     onPress={async () => {
-                      await patchAppConfig({ profileDisplayDate: 'expire' })
+                      try {
+                        await patchAppConfig({ profileDisplayDate: 'expire' })
+                      } catch (error) {
+                        notifyError(error)
+                      }
                     }}
                   >
                     {dayjs(info.updated).fromNow()}

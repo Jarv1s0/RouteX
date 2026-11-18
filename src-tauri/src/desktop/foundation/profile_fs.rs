@@ -22,7 +22,5 @@ pub(crate) fn write_profile_text(
     parse_profile_yaml_value(content)?;
     let path = profile_file_path(app, id)?;
     ensure_parent(&path)?;
-    invalidate_profile_runtime_config_cache_after(
-        fs::write(path, content).map_err(|e| e.to_string()),
-    )
+    invalidate_profile_runtime_config_cache_after(atomic_write_file(&path, content.as_bytes()))
 }

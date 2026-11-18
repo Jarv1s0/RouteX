@@ -4,7 +4,7 @@ import BorderSwitch from '@renderer/components/base/border-switch'
 import SidebarTrailingSwitch from './sidebar-trailing-switch'
 import { LuNetwork } from 'react-icons/lu'
 import { useLocation } from 'react-router-dom'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import React from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
@@ -44,8 +44,8 @@ const TunSwitcher: React.FC<Props> = (props) => {
   const match = location.pathname.includes('/tun') || false
   const { appConfig } = useAppConfig()
   const { tunCardStatus = '' } = appConfig || {}
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
-  const { tun, dns } = controledMihomoConfig || {}
+  const { controledMihomoConfig } = useControledMihomoConfig()
+  const { tun } = controledMihomoConfig || {}
   const { enable } = tun || {}
   const handlePreload = (): void => {
     preloadSidebarRoute('/tun')
@@ -61,24 +61,8 @@ const TunSwitcher: React.FC<Props> = (props) => {
         }
       }
 
-      const previousTun = tun ? { ...tun } : undefined
-      const previousDns = dns ? { ...dns } : undefined
-
       const patch = enable ? { tun: { enable }, dns: { enable: true } } : { tun: { enable } }
-      const patched = await patchControledMihomoConfig(patch)
-      if (!patched) {
-        return
-      }
-
-      try {
-        await restartCore()
-      } catch (error) {
-        await patchControledMihomoConfig({
-          tun: previousTun,
-          ...(enable ? { dns: previousDns } : {})
-        })
-        throw error
-      }
+      await applyConfigChange({ core: patch, restart: true })
       sendIpc(SEND.updateFloatingWindow)
       sendIpc(SEND.updateTrayMenu)
     } catch (error) {

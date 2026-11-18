@@ -41,7 +41,7 @@ pub(crate) fn write_theme_text(
 
     let path = theme_file_path(app, theme)?;
     ensure_parent(&path)?;
-    fs::write(path, css).map_err(|e| e.to_string())
+    atomic_write_file(&path, css.as_bytes())
 }
 
 pub(crate) fn theme_display_label(file_name: &str, content: &str) -> String {
@@ -96,10 +96,6 @@ pub(crate) fn import_theme_files(app: &tauri::AppHandle, files: &[String]) -> Re
 pub(crate) fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>, String> {
     let themes_dir = storage_dir(app, THEME_DIR_NAME)?;
     let mut entries = Vec::new();
-
-    if !themes_dir.exists() {
-        fs::create_dir_all(&themes_dir).map_err(|e| e.to_string())?;
-    }
 
     entries.push(json!({
         "key": DEFAULT_THEME_FILE_NAME,

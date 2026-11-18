@@ -1,3 +1,4 @@
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import { Button, Select, SelectItem, Tab, Tabs, Chip } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
@@ -49,7 +50,7 @@ const Mihomo: React.FC = () => {
   const isTauriHost = __ROUTEX_HOST__ === 'tauri'
   const { appConfig, patchAppConfig } = useAppConfig()
   const { core = 'mihomo', corePermissionMode = 'elevated' } = appConfig || {}
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
   const { ipv6 } = controledMihomoConfig || {}
 
   const { data: version } = useSWR('mihomoVersion', mihomoVersion, {
@@ -69,14 +70,16 @@ const Mihomo: React.FC = () => {
   const hasNewVersion = (): boolean => hasMihomoUpdate(version?.version, latestVersion, core)
 
   const onChangeNeedRestart = async (patch: Partial<MihomoConfig>): Promise<void> => {
-    await patchControledMihomoConfig(patch)
-    await restartCore()
+    try {
+      await applyConfigChange({ core: patch, restart: true })
+    } catch (error) {
+      notifyError(error)
+    }
   }
 
   const handleConfigChangeWithRestart = async (key: string, value: unknown): Promise<void> => {
     try {
-      await patchAppConfig({ [key]: value })
-      await restartCore()
+      await applyConfigChange({ app: { [key]: value }, restart: true })
       emitMihomoCoreChanged()
     } catch (e) {
       notifyError(e)
@@ -110,7 +113,6 @@ const Mihomo: React.FC = () => {
     try {
       await switchMihomoCore(core, newCore, {
         ensureAvailable: ensureMihomoCoreAvailable,
-        // Use the persistence API directly: the store wrapper consumes write errors.
         saveCore: (selectedCore) => persistAppConfig({ core: selectedCore }),
         restart: restartCore
       })
@@ -162,11 +164,10 @@ const Mihomo: React.FC = () => {
             await revokeCorePermission()
             notifySuccess(t('mihomo.permissionRevoked'))
           }
-          await patchAppConfig({
-            corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
+          await applyConfigChange({
+            app: { corePermissionMode: pendingPermissionMode as 'elevated' | 'service' },
+            restart: true
           })
-
-          await restartCore()
         } catch (e) {
           notifyError(e)
         }
@@ -203,10 +204,14 @@ const Mihomo: React.FC = () => {
           title={t('mihomo.confirmTaskTitle')}
           description={t('mihomo.confirmTaskDescription')}
           onConfirm={async () => {
-            await patchAppConfig({
-              corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
-            })
-            await notDialogQuit()
+            try {
+              await patchAppConfig({
+                corePermissionMode: pendingPermissionMode as 'elevated' | 'service'
+              })
+              await notDialogQuit()
+            } catch (error) {
+              notifyError(error)
+            }
           }}
         />
       )}

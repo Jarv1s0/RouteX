@@ -1,3 +1,5 @@
+import { applyConfigChange } from '@renderer/utils/core-restart'
+import { notifyError } from '@renderer/utils/notify'
 import BasePage from '@renderer/components/base/base-page'
 import LogItem from '@renderer/components/logs/log-item'
 import LogDetailModal from '@renderer/components/logs/log-detail-modal'
@@ -9,7 +11,6 @@ import { IoJournalOutline, IoPause, IoPlay } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import { HiOutlineDownload } from 'react-icons/hi'
 import { saveFile } from '@renderer/utils/file-ipc'
-import { restartCore } from '@renderer/utils/mihomo-ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
@@ -46,7 +47,7 @@ const Logs: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const { maxLogDays = 7 } = appConfig || {}
   const [logDaysInput, setLogDaysInput] = useState(maxLogDays.toString())
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
   const { 'log-level': logLevel = 'info' } = controledMihomoConfig || {}
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
@@ -124,8 +125,11 @@ const Logs: React.FC = () => {
               selectedKeys={new Set([logLevel])}
               disallowEmptySelection={true}
               onSelectionChange={async (v) => {
-                await patchControledMihomoConfig({ 'log-level': v.currentKey as LogLevel })
-                await restartCore()
+                try {
+                  await applyConfigChange({ core: { 'log-level': v.currentKey as LogLevel } })
+                } catch (error) {
+                  notifyError(error)
+                }
               }}
             >
               <SelectItem key="silent">{t('page.logs.silent')}</SelectItem>
@@ -153,7 +157,7 @@ const Logs: React.FC = () => {
                 onBlur={() => {
                   const val = normalizeLogDaysInput(logDaysInput)
                   setLogDaysInput(val.toString())
-                  patchAppConfig({ maxLogDays: val })
+                  patchAppConfig({ maxLogDays: val }).catch((error) => notifyError(error))
                 }}
               />
               <span className="text-[10px] text-default-400 pl-0.5">{t('page.logs.days')}</span>

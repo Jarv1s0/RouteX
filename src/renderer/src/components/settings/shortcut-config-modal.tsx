@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import React, { useState, useEffect, KeyboardEvent } from 'react'
 import {
   Modal,
@@ -99,9 +100,13 @@ const ShortcutInput: React.FC<{
   }
 
   const handleSave = async () => {
-    if (await registerShortcut(value, inputValue, action)) {
-      await patchAppConfig({ [action]: inputValue })
-      sendIpc(SEND.updateTrayMenu)
+    try {
+      if (await registerShortcut(value, inputValue, action)) {
+        await patchAppConfig({ [action]: inputValue })
+        sendIpc(SEND.updateTrayMenu)
+      }
+    } catch (error) {
+      notifyError(error)
     }
   }
 

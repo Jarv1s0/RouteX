@@ -105,6 +105,16 @@ pub(crate) fn desktop_invoke_sync(
     let started_at = Instant::now();
     let map = IPC_HANDLERS.get_or_init(init_ipc_handlers);
     let result = match map.get(channel.as_str()) {
+        Some(handler) if channel == "webdavRestore" => {
+            // Restore stages and validates the complete directory itself.
+            let _guard = state.profile_mutation_lock.lock().map_err(|e| crate::desktop::error::AppError::from(e.to_string()))?;
+            handler(app, window, &state, &args)
+        }
+        Some(handler) if matches!(channel.as_str(), "patchAppConfig" | "patchControledMihomoConfig" | "applyConfig") => {
+            with_storage_mutation(app, &state, false, || {
+                handler(app, window, &state, &args).map_err(|e| e.to_string())
+            }).map_err(crate::desktop::error::AppError::from)
+        }
         Some(handler) if is_profile_mutation_channel(&channel) => {
             with_profile_mutation(app, &state, || {
                 handler(app, window, &state, &args).map_err(|e| e.to_string())

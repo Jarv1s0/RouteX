@@ -1,4 +1,16 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, Button, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react'
+import { notifyError } from '@renderer/utils/notify'
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  Button,
+  Input,
+  Select,
+  SelectItem,
+  Tab,
+  Tabs
+} from '@heroui/react'
 import React, { useState, useEffect, useMemo } from 'react'
 import { MdLink, MdRefresh, MdSort } from 'react-icons/md'
 import SettingItem from '../base/base-setting-item'
@@ -73,7 +85,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
   const setUrlDebounce = useMemo(
     () =>
       debounce((v: string) => {
-        patchAppConfig({ delayTestUrl: v })
+        patchAppConfig({ delayTestUrl: v }).catch((error) => notifyError(error))
       }, 500),
     [patchAppConfig]
   )
@@ -125,9 +137,13 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 selectedKeys={new Set([proxyCols])}
                 disallowEmptySelection={true}
                 onSelectionChange={async (v) => {
-                  await patchAppConfig({
-                    proxyCols: v.currentKey as 'auto' | '1' | '2' | '3' | '4'
-                  })
+                  try {
+                    await patchAppConfig({
+                      proxyCols: v.currentKey as 'auto' | '1' | '2' | '3' | '4'
+                    })
+                  } catch (error) {
+                    notifyError(error)
+                  }
                 }}
               >
                 <SelectItem key="auto">{t('proxies.column.auto')}</SelectItem>
@@ -145,9 +161,13 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 radius="lg"
                 selectedKey={proxyDisplayOrder}
                 onSelectionChange={async (v) => {
-                  await patchAppConfig({
-                    proxyDisplayOrder: v as 'default' | 'delay' | 'name'
-                  })
+                  try {
+                    await patchAppConfig({
+                      proxyDisplayOrder: v as 'default' | 'delay' | 'name'
+                    })
+                  } catch (error) {
+                    notifyError(error)
+                  }
                 }}
               >
                 <Tab key="default" title={t('proxies.sort.default')} />
@@ -161,7 +181,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 size="sm"
                 isSelected={autoCloseConnection}
                 onValueChange={(v) => {
-                  patchAppConfig({ autoCloseConnection: v })
+                  patchAppConfig({ autoCloseConnection: v }).catch((error) => notifyError(error))
                 }}
               />
             </SettingItem>
@@ -170,7 +190,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                 size="sm"
                 isSelected={autoDelayTestOnShow}
                 onValueChange={(v) => {
-                  patchAppConfig({ autoDelayTestOnShow: v })
+                  patchAppConfig({ autoDelayTestOnShow: v }).catch((error) => notifyError(error))
                 }}
               />
             </SettingItem>
@@ -215,7 +235,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                     delayTestConcurrency: Number.isFinite(parsed)
                       ? Math.min(MAX_DELAY_TEST_CONCURRENCY, Math.max(1, parsed))
                       : DEFAULT_DELAY_TEST_CONCURRENCY
-                  })
+                  }).catch((error) => notifyError(error))
                 }}
               />
             </SettingItem>
@@ -243,7 +263,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                   const parsed = Number.parseInt(v, 10)
                   patchAppConfig({
                     delayTestTimeout: Number.isFinite(parsed) ? parsed : DEFAULT_DELAY_TEST_TIMEOUT
-                  })
+                  }).catch((error) => notifyError(error))
                 }}
               />
             </SettingItem>
@@ -263,7 +283,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                       const good = Math.max(1, parseInt(goodThreshold) || 200)
                       const fair = Math.max(good + 1, delayThresholds.fair)
                       setGoodThreshold(good.toString())
-                      patchAppConfig({ delayThresholds: { good, fair } })
+                      patchAppConfig({ delayThresholds: { good, fair } }).catch((error) =>
+                        notifyError(error)
+                      )
                     }}
                   />
                   <span className="text-xs text-foreground-400">ms</span>
@@ -284,7 +306,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                         parseInt(fairThreshold) || 500
                       )
                       setFairThreshold(fair.toString())
-                      patchAppConfig({ delayThresholds: { ...delayThresholds, fair } })
+                      patchAppConfig({ delayThresholds: { ...delayThresholds, fair } }).catch(
+                        (error) => notifyError(error)
+                      )
                     }}
                   />
                   <span className="text-xs text-foreground-400">ms</span>
@@ -309,7 +333,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                   isDisabled={groupOrder.length === 0}
                   startContent={<MdRefresh className="text-lg" />}
                   onPress={() => {
-                    patchAppConfig({ groupOrder: [] })
+                    patchAppConfig({ groupOrder: [] }).catch((error) => notifyError(error))
                   }}
                 >
                   {t('common.reset')}
@@ -372,12 +396,16 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
-    if (over && active.id !== over.id) {
-      const oldIndex = sortedGroupNames.indexOf(active.id as string)
-      const newIndex = sortedGroupNames.indexOf(over.id as string)
-      const newOrder = arrayMove(sortedGroupNames, oldIndex, newIndex)
-      await patchAppConfig({ groupOrder: newOrder })
+    try {
+      const { active, over } = event
+      if (over && active.id !== over.id) {
+        const oldIndex = sortedGroupNames.indexOf(active.id as string)
+        const newIndex = sortedGroupNames.indexOf(over.id as string)
+        const newOrder = arrayMove(sortedGroupNames, oldIndex, newIndex)
+        await patchAppConfig({ groupOrder: newOrder })
+      }
+    } catch (error) {
+      notifyError(error)
     }
   }
 

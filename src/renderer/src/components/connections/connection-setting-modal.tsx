@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import { Modal, ModalContent, ModalHeader, ModalBody, Input, Chip, Divider } from '@heroui/react'
 import React, { useState, useEffect, useMemo } from 'react'
 import SettingItem from '../base/base-setting-item'
@@ -143,11 +144,15 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
   const updateInterval = useMemo(
     () =>
       debounce(async (v: string) => {
-        let num = parseInt(v)
-        if (isNaN(num)) num = MIN_CONNECTION_INTERVAL
-        if (num < MIN_CONNECTION_INTERVAL) num = MIN_CONNECTION_INTERVAL
-        await patchAppConfig({ connectionInterval: num })
-        await restartMihomoConnections()
+        try {
+          let num = parseInt(v)
+          if (isNaN(num)) num = MIN_CONNECTION_INTERVAL
+          if (num < MIN_CONNECTION_INTERVAL) num = MIN_CONNECTION_INTERVAL
+          await patchAppConfig({ connectionInterval: num })
+          await restartMihomoConnections()
+        } catch (error) {
+          notifyError(error)
+        }
       }, 1000),
     [MIN_CONNECTION_INTERVAL, patchAppConfig]
   )
@@ -176,7 +181,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
     const newColumns = connectionTableColumns.includes(key)
       ? connectionTableColumns.filter((c) => c !== key)
       : [...connectionTableColumns, key]
-    patchAppConfig({ connectionTableColumns: newColumns })
+    patchAppConfig({ connectionTableColumns: newColumns }).catch((error) => notifyError(error))
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -189,7 +194,9 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
 
     // 只保存已选中的列，按新顺序
     const newSelectedColumns = newOrder.filter((key) => connectionTableColumns.includes(key))
-    patchAppConfig({ connectionTableColumns: newSelectedColumns })
+    patchAppConfig({ connectionTableColumns: newSelectedColumns }).catch((error) =>
+      notifyError(error)
+    )
   }
 
   return (
@@ -216,7 +223,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                 size="sm"
                 isSelected={displayIcon}
                 onValueChange={(v) => {
-                  patchAppConfig({ displayIcon: v })
+                  patchAppConfig({ displayIcon: v }).catch((error) => notifyError(error))
                 }}
               />
             </SettingItem>
@@ -225,7 +232,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                 size="sm"
                 isSelected={displayAppName}
                 onValueChange={(v) => {
-                  patchAppConfig({ displayAppName: v })
+                  patchAppConfig({ displayAppName: v }).catch((error) => notifyError(error))
                 }}
               />
             </SettingItem>

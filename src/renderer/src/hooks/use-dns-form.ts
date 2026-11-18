@@ -1,46 +1,34 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import type { z } from 'zod'
+import { dnsFormSchema } from '@renderer/utils/dns-form-schema'
 
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useI18n } from '@renderer/i18n'
-import { restartCoreInBackground } from '@renderer/utils/core-restart'
+import { applyConfigChange } from '@renderer/utils/core-restart'
 import { notifyError } from '@renderer/utils/notify'
-import {
-  isValidDnsServer,
-  isValidDomainWildcard,
-  isValidIPv4Cidr,
-  isValidIPv6Cidr,
-  isValidListenAddress
-} from '@renderer/utils/validate'
 
-export interface DnsEditorValues {
-  listen: string
-  ipv6: boolean
-  ipv6Timeout: string
-  preferH3: boolean
-  useHosts: boolean
-  enhancedMode: DnsMode
-  fakeIPRange: string
-  fakeIPRange6: string
-  fakeIPFilter: string[]
-  fakeIPFilterMode: FilterMode
-  useSystemHosts: boolean
-  respectRules: boolean
-  defaultNameserver: string[]
-  nameserver: string[]
-  fallback: string[]
-  fallbackFilter: Record<string, boolean | string | string[]>
-  proxyServerNameserver: string[]
-  directNameserver: string[]
-  directNameserverFollowPolicy: boolean
-  nameserverPolicy: Record<string, string | string[]>
-  cacheAlgorithm: string
-  hosts?: IHost[]
-  controlDns: boolean
+export type DnsEditorValues = z.infer<typeof dnsFormSchema>
+
+function replaceRecord<T>(
+  previous: Record<string, T> | undefined,
+  next: Record<string, T>
+): Record<string, T | null> {
+  return {
+    ...Object.fromEntries(
+      Object.keys(previous || {})
+        .filter((key) => !(key in next))
+        .map((key) => [key, null])
+    ),
+    ...next
+  }
 }
 
 export interface DnsSettingsEditorState {
   values: DnsEditorValues
+  saving: boolean
   changed: boolean
   saveDisabled: boolean
   save: () => Promise<void>
@@ -111,86 +99,64 @@ function buildInitialValues(
     directNameserverFollowPolicy,
     nameserverPolicy,
     cacheAlgorithm,
-    hosts: useHosts ? hosts : undefined,
+    hosts,
     controlDns
   }
 }
 
 export function useDnsSettingsEditor(): DnsSettingsEditorState {
   const { t } = useI18n()
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
-  const { appConfig, patchAppConfig } = useAppConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
+  const { appConfig } = useAppConfig()
 
   const initialValues = useMemo(
     () => buildInitialValues(appConfig, controledMihomoConfig),
     [appConfig, controledMihomoConfig]
   )
 
-  const [values, setValuesState] = useState<DnsEditorValues>(initialValues)
+  const {
+    watch,
+    setValue,
+    reset,
+    handleSubmit,
+    formState: { isDirty, isSubmitting }
+  } = useForm<DnsEditorValues>({
+    defaultValues: initialValues,
+    resolver: zodResolver(dnsFormSchema),
+    mode: 'onChange'
+  })
+  const values = watch()
+  const savingRef = useRef(false)
   const [fakeIPRangeError, setFakeIPRangeError] = useState<string | null>(null)
   const [fakeIPRange6Error, setFakeIPRange6Error] = useState<string | null>(null)
   const [advancedDnsError, setAdvancedDnsError] = useState(false)
 
   useEffect(() => {
-    setValuesState(initialValues)
-    const range4 = isValidIPv4Cidr(initialValues.fakeIPRange)
-    setFakeIPRangeError(range4.ok ? null : (range4.error ?? t('common.formatError')))
-    const range6 = isValidIPv6Cidr(initialValues.fakeIPRange6)
-    setFakeIPRange6Error(range6.ok ? null : (range6.error ?? t('common.formatError')))
-    setAdvancedDnsError(false)
-  }, [initialValues, t])
+    // Background refreshes must never replace an unsaved draft.
+    if (!isDirty && !savingRef.current) {
+      reset(initialValues)
+      setFakeIPRangeError(null)
+      setFakeIPRange6Error(null)
+      setAdvancedDnsError(false)
+    }
+  }, [initialValues, isDirty, reset])
 
-  const changed = useMemo(() => {
-    return JSON.stringify(values) !== JSON.stringify(initialValues)
-  }, [initialValues, values])
-
-  const fakeIPFilterHasError = useMemo(() => {
-    return values.fakeIPFilter.some((item) => !isValidDomainWildcard(item).ok)
-  }, [values.fakeIPFilter])
-
-  const defaultNameserverHasError = useMemo(() => {
-    return values.defaultNameserver.some((item) => !isValidDnsServer(item, true).ok)
-  }, [values.defaultNameserver])
-
-  const nameserverHasError = useMemo(() => {
-    return values.nameserver.some((item) => !isValidDnsServer(item).ok)
-  }, [values.nameserver])
-
-  const fallbackHasError = useMemo(() => {
-    return values.fallback.some((item) => !isValidDnsServer(item).ok)
-  }, [values.fallback])
-
-  const listenHasError = useMemo(() => {
-    return values.listen.trim() !== '' && !isValidListenAddress(values.listen).ok
-  }, [values.listen])
-
-  const ipv6TimeoutHasError = useMemo(() => {
-    return values.ipv6Timeout.trim() !== '' && !/^[1-9]\d*$/.test(values.ipv6Timeout.trim())
-  }, [values.ipv6Timeout])
-
-  const hasDnsErrors =
-    defaultNameserverHasError || nameserverHasError || fallbackHasError || advancedDnsError
-
-  const saveDisabled = !values.controlDns
-    ? false
-    : values.enhancedMode === 'fake-ip'
-      ? Boolean(fakeIPRangeError) ||
-        (values.ipv6 && Boolean(fakeIPRange6Error)) ||
-        fakeIPFilterHasError ||
-        listenHasError ||
-        ipv6TimeoutHasError ||
-        hasDnsErrors
-      : listenHasError || ipv6TimeoutHasError || hasDnsErrors
-
-  const save = async (): Promise<void> => {
-    if (!values.controlDns) {
-      try {
-        await patchAppConfig({ controlDns: false })
-        await patchControledMihomoConfig({})
-        restartCoreInBackground(t('dns.applyFailed'))
-      } catch (error) {
-        notifyError(error)
+  const setValues = (next: DnsEditorValues): void => {
+    if (savingRef.current) return
+    for (const key of Object.keys(next) as (keyof DnsEditorValues)[]) {
+      if (JSON.stringify(next[key]) !== JSON.stringify(values[key])) {
+        setValue(key, next[key], { shouldDirty: true, shouldValidate: true })
       }
+    }
+  }
+  const saveDisabled =
+    isSubmitting ||
+    !dnsFormSchema.safeParse(values).success ||
+    (values.controlDns && advancedDnsError)
+  const submit = async (values: DnsEditorValues): Promise<void> => {
+    if (!values.controlDns) {
+      await applyConfigChange({ app: { controlDns: false }, core: {} })
+      reset(values)
       return
     }
 
@@ -199,12 +165,9 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
         ? Object.fromEntries(values.hosts.map(({ domain, value }) => [domain, value]))
         : undefined
 
-    try {
-      await patchAppConfig({
-        hosts: values.hosts,
-        controlDns: values.controlDns
-      })
-      await patchControledMihomoConfig({
+    await applyConfigChange({
+      app: { hosts: values.hosts, controlDns: values.controlDns },
+      core: {
         dns: {
           enable: true,
           listen: values.listen.trim() || null,
@@ -223,28 +186,49 @@ export function useDnsSettingsEditor(): DnsSettingsEditorState {
           nameserver: values.nameserver,
           fallback: values.fallback,
           'fallback-filter':
-            Object.keys(values.fallbackFilter).length > 0 ? values.fallbackFilter : null,
+            Object.keys(values.fallbackFilter).length > 0
+              ? replaceRecord(
+                  controledMihomoConfig?.dns?.['fallback-filter'],
+                  values.fallbackFilter
+                )
+              : null,
           'proxy-server-nameserver': values.proxyServerNameserver,
           'direct-nameserver': values.directNameserver,
           'direct-nameserver-follow-policy': values.directNameserverFollowPolicy,
           'nameserver-policy':
-            Object.keys(values.nameserverPolicy).length > 0 ? values.nameserverPolicy : null,
+            Object.keys(values.nameserverPolicy).length > 0
+              ? replaceRecord(
+                  controledMihomoConfig?.dns?.['nameserver-policy'],
+                  values.nameserverPolicy
+                )
+              : null,
           'cache-algorithm': values.cacheAlgorithm || null
         },
-        hosts: hostsObject ?? null
-      } as unknown as Partial<MihomoConfig>)
-      restartCoreInBackground(t('dns.applyFailed'))
+        hosts: hostsObject ? replaceRecord(controledMihomoConfig?.hosts, hostsObject) : null
+      }
+    })
+    reset(values)
+  }
+
+  const save = async (): Promise<void> => {
+    if (savingRef.current || saveDisabled) return
+    savingRef.current = true
+    try {
+      await handleSubmit(submit)()
     } catch (error) {
-      notifyError(error)
+      notifyError(error, { title: t('dns.applyFailed') })
+    } finally {
+      savingRef.current = false
     }
   }
 
   return {
     values,
-    changed,
+    saving: isSubmitting,
+    changed: isDirty,
     saveDisabled,
     save,
-    setValues: setValuesState,
+    setValues,
     fakeIPRangeError,
     fakeIPRange6Error,
     setFakeIPRangeError,

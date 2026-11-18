@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useConnectionsStore } from '@renderer/store/use-connections-store'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -97,7 +98,6 @@ export function useConnectionViewState(): ConnectionViewState {
     return () => clearInterval(timer)
   }, [])
 
-
   const closeAllConnections = useCallback((): void => {
     if (tab === 'active') {
       void mihomoCloseAllConnections()
@@ -139,15 +139,23 @@ export function useConnectionViewState(): ConnectionViewState {
 
   const handleOrderByChange = useCallback(
     async (orderBy: ConnectionOrderBy) => {
-      await patchAppConfig({ connectionOrderBy: orderBy })
+      try {
+        await patchAppConfig({ connectionOrderBy: orderBy })
+      } catch (error) {
+        notifyError(error)
+      }
     },
     [patchAppConfig]
   )
 
   const handleDirectionToggle = useCallback(async () => {
-    await patchAppConfig({
-      connectionDirection: connectionDirection === 'asc' ? 'desc' : 'asc'
-    })
+    try {
+      await patchAppConfig({
+        connectionDirection: connectionDirection === 'asc' ? 'desc' : 'asc'
+      })
+    } catch (error) {
+      notifyError(error)
+    }
   }, [connectionDirection, patchAppConfig])
 
   const handleTableSort = useCallback(
@@ -158,11 +166,11 @@ export function useConnectionViewState(): ConnectionViewState {
       if (connectionOrderBy === nextOrderBy) {
         void patchAppConfig({
           connectionDirection: connectionDirection === 'asc' ? 'desc' : 'asc'
-        })
+        }).catch((error) => notifyError(error))
         return
       }
 
-      void patchAppConfig({ connectionOrderBy: nextOrderBy })
+      void patchAppConfig({ connectionOrderBy: nextOrderBy }).catch((error) => notifyError(error))
     },
     [connectionDirection, connectionOrderBy, patchAppConfig]
   )

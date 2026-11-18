@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import { Button, Input, Tab, Tabs } from '@heroui/react'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -57,7 +58,9 @@ const GeoData: React.FC = () => {
   }, [geoxUrl])
 
   const saveGeoUrl = (key: GeoDataKey): void => {
-    patchControledMihomoConfig({ 'geox-url': { ...geoxUrl, [key]: inputs[key] } })
+    patchControledMihomoConfig({ 'geox-url': { ...geoxUrl, [key]: inputs[key] } }).catch((error) =>
+      notifyError(error)
+    )
   }
 
   const downloadGeoFile = async (key: GeoDataKey, title: string): Promise<void> => {
@@ -157,7 +160,9 @@ const GeoData: React.FC = () => {
           radius="lg"
           selectedKey={geoMode ? 'dat' : 'db'}
           onSelectionChange={(key) => {
-            patchControledMihomoConfig({ 'geodata-mode': key === 'dat' })
+            patchControledMihomoConfig({ 'geodata-mode': key === 'dat' }).catch((error) =>
+              notifyError(error)
+            )
           }}
         >
           <Tab key="db" title="db" />
@@ -169,7 +174,9 @@ const GeoData: React.FC = () => {
           size="sm"
           isSelected={geoAutoUpdate}
           onValueChange={(v) => {
-            patchControledMihomoConfig({ 'geo-auto-update': v })
+            patchControledMihomoConfig({ 'geo-auto-update': v }).catch((error) =>
+              notifyError(error)
+            )
           }}
         />
       </SettingItem>
@@ -182,7 +189,9 @@ const GeoData: React.FC = () => {
             classNames={primaryNumberInputClassNames}
             value={geoUpdateInterval.toString()}
             onValueChange={(v) => {
-              patchControledMihomoConfig({ 'geo-update-interval': parseInt(v) })
+              patchControledMihomoConfig({ 'geo-update-interval': parseInt(v) }).catch((error) =>
+                notifyError(error)
+              )
             }}
           />
         </SettingItem>

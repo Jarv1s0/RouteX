@@ -1,65 +1,77 @@
-import React, { useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
-import { Card } from '@heroui/react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentPropsWithoutRef,
+  type ReactElement,
+  type ReactNode
+} from 'react'
+import * as ContextMenu from '@radix-ui/react-context-menu'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
-  isOpen: boolean
-  onClose: () => void
-  position: { x: number; y: number }
-  children: React.ReactNode
+  children: ReactElement
+  items: ReactNode
+  onOpenChange?: (open: boolean) => void
 }
 
-export const CustomContextMenu: React.FC<Props> = ({ isOpen, onClose, position, children }) => {
-  const menuRef = useRef<HTMLDivElement>(null)
+export function CustomContextMenu({ children, items, onOpenChange }: Props): ReactNode {
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLSpanElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
-  // 点击外部关闭
   useEffect(() => {
-    if (!isOpen) return
-
-    const handleMouseDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose()
-      }
+    if (!open) return
+    const close = (): void => {
+      setOpen(false)
+      onOpenChange?.(false)
     }
-
-    // 滚动时也关闭，防止错位
-    const handleScroll = () => {
-      onClose()
+    const closeOnScroll = (event: Event): void => {
+      if (event.target instanceof Node && contentRef.current?.contains(event.target)) return
+      close()
     }
-
-    window.addEventListener('mousedown', handleMouseDown, true)
-    window.addEventListener('scroll', handleScroll, true) // Capture phase to detect any scroll
-    window.addEventListener('resize', onClose)
-
+    window.addEventListener('scroll', closeOnScroll, true)
+    window.addEventListener('resize', close)
     return () => {
-      window.removeEventListener('mousedown', handleMouseDown, true)
-      window.removeEventListener('scroll', handleScroll, true)
-      window.removeEventListener('resize', onClose)
+      window.removeEventListener('scroll', closeOnScroll, true)
+      window.removeEventListener('resize', close)
     }
-  }, [isOpen, onClose])
+  }, [open, onOpenChange])
 
-  if (!isOpen) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] pointer-events-none">
-      {/* 使用 pointer-events-auto 恢复菜单的点击交互 */}
-      <div
-        ref={menuRef}
-        className="absolute pointer-events-auto"
-        style={{
-          left: position.x,
-          top: position.y
-        }}
-      >
-        <Card
-          shadow="none"
-          className={`min-w-[140px] p-1 animate-pop-in ${CARD_STYLES.GLASS_CARD}`}
+  return (
+    <ContextMenu.Root
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        onOpenChange?.(next)
+      }}
+      modal={false}
+    >
+      <ContextMenu.Trigger asChild ref={triggerRef} tabIndex={0}>
+        {children}
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal container={triggerRef.current?.closest<HTMLElement>('[role="dialog"]')}>
+        <ContextMenu.Content
+          ref={contentRef}
+          collisionPadding={8}
+          loop
+          className={`z-[9999] min-w-[140px] max-h-[var(--radix-context-menu-content-available-height)] overflow-y-auto p-1 animate-pop-in outline-none ${CARD_STYLES.GLASS_CARD}`}
         >
-          {children}
-        </Card>
-      </div>
-    </div>,
-    document.body
+          {items}
+        </ContextMenu.Content>
+      </ContextMenu.Portal>
+    </ContextMenu.Root>
+  )
+}
+
+export function ContextMenuItem({
+  className = '',
+  ...props
+}: ComponentPropsWithoutRef<typeof ContextMenu.Item>): ReactNode {
+  return (
+    <ContextMenu.Item
+      className={`flex h-9 min-w-[120px] cursor-default select-none items-center gap-2 rounded-lg px-3 text-sm font-medium text-default-700 outline-none data-[highlighted]:bg-default-100 data-[disabled]:opacity-50 ${className}`}
+      {...props}
+    />
   )
 }

@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import React, { useState, useEffect } from 'react'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
@@ -124,7 +125,7 @@ const GeneralConfig: React.FC = () => {
   }
 
   const handleAutoLightweightChange = (v: boolean): void => {
-    void patchAppConfig({ autoLightweight: v })
+    void patchAppConfig({ autoLightweight: v }).catch((error) => notifyError(error))
     setIsLightweightModalOpen(v)
   }
 
@@ -200,8 +201,12 @@ const GeneralConfig: React.FC = () => {
             setShowRestartConfirm(open)
           }}
           onConfirm={async () => {
-            await patchAppConfig({ disableGPU: pendingDisableGPU })
-            await relaunchApp()
+            try {
+              await patchAppConfig({ disableGPU: pendingDisableGPU })
+              await relaunchApp()
+            } catch (error) {
+              notifyError(error)
+            }
           }}
         />
       )}
@@ -234,11 +239,13 @@ const GeneralConfig: React.FC = () => {
                       radius="lg"
                       selectedKey={autoLightweightMode}
                       onSelectionChange={(v) => {
-                        void patchAppConfig({ autoLightweightMode: v as 'core' | 'tray' })
+                        void patchAppConfig({ autoLightweightMode: v as 'core' | 'tray' }).catch(
+                          (error) => notifyError(error)
+                        )
                         if (v === 'core') {
                           void patchAppConfig({
                             autoLightweightDelay: 1 /* delay check handled by hook */
-                          })
+                          }).catch((error) => notifyError(error))
                         }
                       }}
                     >
@@ -262,9 +269,13 @@ const GeneralConfig: React.FC = () => {
                       endContent={t('settings.clash.seconds')}
                       value={appConfig?.autoLightweightDelay?.toString()}
                       onValueChange={async (v: string) => {
-                        let num = parseInt(v)
-                        if (isNaN(num)) num = 0
-                        await patchAppConfig({ autoLightweightDelay: num })
+                        try {
+                          let num = parseInt(v)
+                          if (isNaN(num)) num = 0
+                          await patchAppConfig({ autoLightweightDelay: num })
+                        } catch (error) {
+                          notifyError(error)
+                        }
                       }}
                     />
                   </div>
@@ -310,7 +321,7 @@ const GeneralConfig: React.FC = () => {
             size="sm"
             isSelected={silentStart}
             onValueChange={(v) => {
-              patchAppConfig({ silentStart: v })
+              patchAppConfig({ silentStart: v }).catch((error) => notifyError(error))
             }}
           />
         </SettingItem>
@@ -371,7 +382,7 @@ const GeneralConfig: React.FC = () => {
             onSelectionChange={(selection) => {
               const nextLanguage = selection.currentKey as LanguagePreference | undefined
               if (nextLanguage) {
-                void setLanguage(nextLanguage)
+                void setLanguage(nextLanguage).catch((error) => notifyError(error))
               }
             }}
           >
@@ -483,7 +494,7 @@ const GeneralConfig: React.FC = () => {
             size="sm"
             isSelected={hotReloadCoreOnSave}
             onValueChange={(v) => {
-              patchAppConfig({ hotReloadCoreOnSave: v })
+              patchAppConfig({ hotReloadCoreOnSave: v }).catch((error) => notifyError(error))
             }}
           />
         </SettingItem>
@@ -494,7 +505,7 @@ const GeneralConfig: React.FC = () => {
                 size="sm"
                 variant="flat"
                 onPress={() => {
-                  patchAppConfig({ pauseSSID: pauseSSIDInput })
+                  patchAppConfig({ pauseSSID: pauseSSIDInput }).catch((error) => notifyError(error))
                 }}
               >
                 {t('common.confirm')}

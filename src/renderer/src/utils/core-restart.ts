@@ -3,6 +3,36 @@ import { isExpectedMihomoUnavailableError, reloadCoreConfig, restartCore } from 
 import { notifyError } from './notify'
 import { createQueuedAsyncRunner } from './queued-async-runner'
 import { translate } from '@renderer/i18n'
+import { mutate } from 'swr'
+import { C, invokeSafe } from './ipc-core'
+import { getControledMihomoConfig, syncAppliedCoreConfig } from './mihomo-ipc'
+import { useAppStore } from '@renderer/store/use-app-store'
+
+type ConfigPatch<T> = T extends readonly unknown[]
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: ConfigPatch<T[K]> | null }
+    : T
+
+export interface ConfigChange {
+  app?: Partial<AppConfig>
+  core?: ConfigPatch<MihomoConfig>
+  restart?: boolean
+}
+
+// Persist, validate and apply under one backend lock. Reconcile from disk even
+// after failure, since the backend may have restored an earlier configuration.
+export async function applyConfigChange(change: ConfigChange): Promise<void> {
+  try {
+    const result = await invokeSafe<{ controller?: string }>(C.applyConfig, change)
+    syncAppliedCoreConfig(result)
+  } finally {
+    await Promise.allSettled([
+      getAppConfig(true).then((config) => useAppStore.getState().setAppConfig(config)),
+      mutate('getControledMihomoConfig', getControledMihomoConfig(true), { revalidate: false })
+    ])
+  }
+}
 
 function shouldFallbackToRestart(error: unknown): boolean {
   const message = String(error ?? '')

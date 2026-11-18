@@ -24,7 +24,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return await fetchAppConfigPromise
     }
 
-    fetchAppConfigPromise = getAppConfig()
+    fetchAppConfigPromise = getAppConfig(true)
       .then((config): AppConfig => {
         set({ appConfig: config })
         return config
@@ -52,6 +52,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (e) {
       console.error('Failed to patch app config', e)
       void get().fetchAppConfig()
+      throw e
     }
   },
 

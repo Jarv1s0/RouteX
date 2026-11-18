@@ -1,3 +1,4 @@
+import { notifyError } from '@renderer/utils/notify'
 import { Button, Tooltip } from '@heroui/react'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useLocation } from 'react-router-dom'
@@ -196,7 +197,7 @@ const ProfileCard: React.FC<Props> = (props) => {
               e.stopPropagation()
               patchAppConfig({
                 profileDisplayDate: profileDisplayDate === 'expire' ? 'update' : 'expire'
-              })
+              }).catch((error) => notifyError(error))
             }}
           >
             {profileDisplayDate === 'expire'

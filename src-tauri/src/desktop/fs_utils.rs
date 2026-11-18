@@ -1,11 +1,18 @@
 use super::prelude::*;
 use super::*;
 
+// Ordinary file operations share access. A validated WebDAV restore holds the
+// exclusive guard only while exchanging directories, so no reader recreates root.
+pub(crate) static CONFIG_DIRECTORY_SWAP_LOCK: std::sync::RwLock<()> = std::sync::RwLock::new(());
+
 pub(crate) fn default_app_data_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app.path().app_data_dir().map_err(|e| e.to_string())
 }
 
 pub(crate) fn ensure_dir(path: PathBuf) -> Result<PathBuf, String> {
+    let _guard = CONFIG_DIRECTORY_SWAP_LOCK
+        .read()
+        .map_err(|e| e.to_string())?;
     fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     Ok(path)
 }
@@ -45,6 +52,9 @@ pub(crate) fn storage_dir(app: &tauri::AppHandle, dir_name: &str) -> Result<Path
 }
 
 pub(crate) fn ensure_parent(path: &Path) -> Result<(), String> {
+    let _guard = CONFIG_DIRECTORY_SWAP_LOCK
+        .read()
+        .map_err(|e| e.to_string())?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
@@ -52,6 +62,9 @@ pub(crate) fn ensure_parent(path: &Path) -> Result<(), String> {
 }
 
 pub(crate) fn read_json_file<T: DeserializeOwned>(path: &Path) -> Result<Option<T>, String> {
+    let _guard = CONFIG_DIRECTORY_SWAP_LOCK
+        .read()
+        .map_err(|e| e.to_string())?;
     if !path.exists() {
         return Ok(None);
     }
@@ -67,9 +80,21 @@ pub(crate) fn read_json_file<T: DeserializeOwned>(path: &Path) -> Result<Option<
 }
 
 pub(crate) fn write_json_file<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
-    ensure_parent(path)?;
     let text = serde_json::to_string_pretty(value).map_err(|e| e.to_string())?;
-    fs::write(path, text).map_err(|e| e.to_string())
+    atomic_write_file(path, text.as_bytes())
+}
+
+pub(crate) fn atomic_write_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let _guard = CONFIG_DIRECTORY_SWAP_LOCK
+        .read()
+        .map_err(|e| e.to_string())?;
+    let parent = path.parent().ok_or("文件缺少父目录")?;
+    fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    let mut temporary = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
+    temporary.write_all(bytes).map_err(|e| e.to_string())?;
+    temporary.as_file().sync_all().map_err(|e| e.to_string())?;
+    temporary.persist(path).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 pub(crate) fn read_floating_window_state(

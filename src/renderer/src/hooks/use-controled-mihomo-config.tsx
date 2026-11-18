@@ -5,12 +5,11 @@ import {
   patchControledMihomoConfig as patch
 } from '@renderer/utils/mihomo-ipc'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
-import { useI18n } from '@renderer/i18n'
 
 interface ControledMihomoConfigContextType {
   controledMihomoConfig: Partial<MihomoConfig> | undefined
   mutateControledMihomoConfig: () => void
-  patchControledMihomoConfig: (value: Partial<MihomoConfig>) => Promise<boolean>
+  patchControledMihomoConfig: (value: Partial<MihomoConfig>) => Promise<void>
 }
 
 const ControledMihomoConfigContext = createContext<ControledMihomoConfigContextType | undefined>(
@@ -18,26 +17,20 @@ const ControledMihomoConfigContext = createContext<ControledMihomoConfigContextT
 )
 
 export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { t } = useI18n()
   const { data: controledMihomoConfig, mutate: mutateControledMihomoConfig } = useSWR(
     'getControledMihomoConfig',
     () => getControledMihomoConfig()
   )
 
   const patchControledMihomoConfig = React.useCallback(
-    async (value: Partial<MihomoConfig>): Promise<boolean> => {
+    async (value: Partial<MihomoConfig>): Promise<void> => {
       try {
         await patch(value)
-        return true
-      } catch (e) {
-        const { notifyError } = await import('@renderer/utils/notify')
-        notifyError(e, { title: t('common.updateConfigFailed') })
-        return false
       } finally {
-        mutateControledMihomoConfig()
+        void mutateControledMihomoConfig().catch(console.error)
       }
     },
-    [mutateControledMihomoConfig, t]
+    [mutateControledMihomoConfig]
   )
 
   React.useEffect(() => {
