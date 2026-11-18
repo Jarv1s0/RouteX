@@ -300,6 +300,7 @@ const ProfileItem: React.FC<Props> = (props) => {
         as="div"
         fullWidth
         isPressable
+        disableRipple
         onPress={() => {
           if (disableSelect || switching) return
           setSelecting(true)
@@ -308,13 +309,13 @@ const ProfileItem: React.FC<Props> = (props) => {
           })
         }}
         className={`
-          ${CARD_STYLES.BASE}
+          ${CARD_STYLES.MANAGEMENT_CARD}
           ${
             isCurrent
-              ? CARD_STYLES.ACTIVE
+              ? CARD_STYLES.MANAGEMENT_PRIMARY
               : isEnabled
-                ? CARD_STYLES.ACTIVE_SECONDARY
-                : CARD_STYLES.INACTIVE
+                ? CARD_STYLES.MANAGEMENT_ENABLED
+                : CARD_STYLES.MANAGEMENT_NEUTRAL
           }
         `}
       >

@@ -1,6 +1,6 @@
 import { Button, Tab, Tabs } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { MdTune } from 'react-icons/md'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '@renderer/i18n'
@@ -10,12 +10,11 @@ import { OverrideConfigProvider } from '@renderer/hooks/use-override-config'
 
 import { ProfileTabContent } from '@renderer/components/profiles/profile-tab-content'
 import { OverrideTabContent } from '@renderer/components/profiles/override-tab-content'
-import { ProviderTabContent } from '@renderer/components/profiles/provider-tab-content'
 
-type ManagementTab = 'profiles' | 'overrides' | 'providers'
+type ManagementTab = 'profiles' | 'overrides'
 
 function normalizeManagementTab(tab: string | null): ManagementTab {
-  if (tab === 'overrides' || tab === 'providers') {
+  if (tab === 'overrides') {
     return tab
   }
   return 'profiles'
@@ -28,6 +27,14 @@ const ProfilesPage: React.FC = () => {
   const activeTab = normalizeManagementTab(searchParams.get('tab'))
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [toolbarContainer, setToolbarContainer] = useState<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (searchParams.get('tab') !== 'providers') return
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('tab')
+    nextParams.set('section', 'providers')
+    setSearchParams(nextParams, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const handleTabChange = useCallback(
     (key: string) => {
@@ -44,11 +51,7 @@ const ProfilesPage: React.FC = () => {
   )
 
   const pageTitle =
-    activeTab === 'overrides'
-      ? t('page.profiles.overridesTitle')
-      : activeTab === 'providers'
-        ? t('page.profiles.providersTitle')
-        : t('page.profiles.title')
+    activeTab === 'overrides' ? t('page.profiles.overridesTitle') : t('page.profiles.title')
 
   const titleContent = (
     <div className="flex items-center gap-2">
@@ -87,7 +90,6 @@ const ProfilesPage: React.FC = () => {
           >
             <Tab key="profiles" title={t('page.profiles.profilesTab')} />
             <Tab key="overrides" title={t('page.profiles.overridesTab')} />
-            <Tab key="providers" title={t('page.profiles.providersTab')} />
           </Tabs>
         </div>
       </div>
@@ -95,7 +97,6 @@ const ProfilesPage: React.FC = () => {
       <div className="flex-1 w-full relative">
         {activeTab === 'profiles' && <ProfileTabContent toolbarContainer={toolbarContainer} />}
         {activeTab === 'overrides' && <OverrideTabContent toolbarContainer={toolbarContainer} />}
-        {activeTab === 'providers' && <ProviderTabContent toolbarContainer={toolbarContainer} />}
       </div>
     </BasePage>
   )

@@ -10,6 +10,7 @@ import {
 
 import ProfileItemCard from '@renderer/components/profiles/profile-item'
 import ProfileMergePanel from '@renderer/components/profiles/profile-merge-panel'
+import { ProviderTabContent } from '@renderer/components/profiles/provider-tab-content'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { getFilePath, readTextFile } from '@renderer/utils/file-ipc'
@@ -422,7 +423,6 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
         )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onProfileDragEnd}>
-        {activeProfileIds.length > 1 && <ProfileMergePanel />}
         <div
           className={`${fileOver ? 'blur-sm' : ''} mx-2 grid gap-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}
         >
@@ -447,6 +447,10 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
           </SortableContext>
         </div>
       </DndContext>
+      <div className="mx-2 mt-3 mb-3 space-y-2">
+        {activeProfileIds.length > 1 && <ProfileMergePanel />}
+        <ProviderTabContent />
+      </div>
     </div>
   )
 }

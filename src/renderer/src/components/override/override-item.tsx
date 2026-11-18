@@ -317,9 +317,10 @@ const OverrideItem: React.FC<Props> = (props) => {
         as="div"
         fullWidth
         isPressable
+        disableRipple
         className={`
-          ${CARD_STYLES.BASE}
-          ${info.global || isActive ? CARD_STYLES.ACTIVE : CARD_STYLES.INACTIVE}
+          ${CARD_STYLES.MANAGEMENT_CARD}
+          ${info.global || isActive ? CARD_STYLES.MANAGEMENT_PRIMARY : CARD_STYLES.MANAGEMENT_NEUTRAL}
         `}
         onPress={() => {
           if (disableOpen) return
