@@ -1,6 +1,20 @@
 use crate::desktop::prelude::*;
 use crate::desktop::*;
 
+pub(crate) fn runtime_profile_check_cache_key(
+    binary_path: &Path,
+    config_yaml: &str,
+) -> Result<String, String> {
+    let metadata = fs::metadata(binary_path).map_err(|e| e.to_string())?;
+    let modified = metadata.modified().map_err(|e| e.to_string())?;
+    let digest = ring::digest::digest(&ring::digest::SHA256, config_yaml.as_bytes());
+    Ok(format!(
+        "{}:{}:{modified:?}:{digest:?}",
+        binary_path.display(),
+        metadata.len()
+    ))
+}
+
 pub(crate) fn validate_runtime_candidate(
     work_dir: &Path,
     config_yaml: &str,
@@ -223,18 +237,13 @@ pub(crate) fn restart_core_process(
         normalize_runtime_config(Some(&merged_runtime_config), &runtime_controller_address);
     let config_path = work_dir.join("config.yaml");
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
-    let config_digest_bytes = ring::digest::digest(&ring::digest::SHA256, config_yaml.as_bytes());
-    let config_digest = config_digest_bytes
-        .as_ref()
-        .iter()
-        .map(|b| format!("{:02x}", b))
-        .collect::<String>();
+    let check_cache_key = runtime_profile_check_cache_key(&binary_path, &config_yaml)?;
     prepare_runtime_data_dir(app, &work_dir)?;
     prepare_runtime_check_dir(&work_dir, &test_dir)?;
     let should_check_profile = PROFILE_CHECK_CACHE
         .get_or_init(|| Mutex::new(None))
         .lock()
-        .map(|cache| cache.as_ref() != Some(&config_digest))
+        .map(|cache| cache.as_ref() != Some(&check_cache_key))
         .unwrap_or(true);
     if should_check_profile {
         // Validate a separate candidate while the previous core and config stay intact.
@@ -242,10 +251,10 @@ pub(crate) fn restart_core_process(
             check_runtime_profile(&binary_path, check_path, &test_dir, &safe_paths)
         })?;
         if let Ok(mut cache) = PROFILE_CHECK_CACHE.get_or_init(|| Mutex::new(None)).lock() {
-            *cache = Some(config_digest.clone());
+            *cache = Some(check_cache_key);
         }
     } else {
-        eprintln!("[desktop.core_ready] skip profile check: config unchanged");
+        eprintln!("[desktop.core_ready] skip profile check: core and config unchanged");
     }
     let _ = recover_dns(app);
     stop_core_process(app, state)?;

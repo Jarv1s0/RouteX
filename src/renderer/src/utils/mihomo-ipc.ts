@@ -174,8 +174,11 @@ function createTauriRuntimeConfigWrapper(input?: Partial<MihomoConfig>): MihomoC
   return createTauriRuntimeConfig(input, readTauriControledMihomoConfig(), __ROUTEX_PLATFORM__)
 }
 
-export async function ensureMihomoCoreAvailable(core: 'mihomo' | 'mihomo-alpha'): Promise<string> {
-  return invokeSafe(C.ensureMihomoCoreAvailable, core)
+export async function ensureMihomoCoreAvailable(
+  core: 'mihomo' | 'mihomo-alpha',
+  refresh = false
+): Promise<string> {
+  return invokeSafe(C.ensureMihomoCoreAvailable, core, refresh)
 }
 
 export async function mihomoVersion(): Promise<ControllerVersion> {

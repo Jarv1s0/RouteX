@@ -118,6 +118,6 @@ pub(crate) static MIHOMO_HTTP_CLIENT: OnceLock<Result<Client, String>> = OnceLoc
 pub(crate) static PROFILE_RUNTIME_CONFIG_CACHE: OnceLock<Mutex<Option<ProfileRuntimeConfigCache>>> =
     OnceLock::new();
 pub(crate) static PROFILE_RUNTIME_CONFIG_REVISION: AtomicU64 = AtomicU64::new(0);
-// 最后一次成功通过 `mihomo -t` 检查的 config yaml 内容哈希（SHA-256 hex）。
-// 若本次写入的 config_yaml 哈希与缓存相同，则跳过 check_runtime_profile，节省 ~0.5-2s。
+// 最后一次通过 `mihomo -t` 的内核路径、文件大小、修改时间及配置摘要。
+// 切换或更新内核后必须重新校验，不能复用其他内核的成功结果。
 pub(crate) static PROFILE_CHECK_CACHE: OnceLock<Mutex<Option<String>>> = OnceLock::new();

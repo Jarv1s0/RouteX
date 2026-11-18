@@ -1533,6 +1533,40 @@ fn migration_test_dir(name: &str) -> PathBuf {
 }
 
 #[test]
+fn runtime_profile_check_cache_tracks_core_and_config_changes() {
+    let root = migration_test_dir("core-check-cache");
+    fs::create_dir_all(&root).unwrap();
+    let stable = root.join("mihomo.exe");
+    let alpha = root.join("mihomo-alpha.exe");
+    fs::write(&stable, b"stable").unwrap();
+    fs::write(&alpha, b"alpha").unwrap();
+    let config = "tun:\n  stack: mips\n";
+    let stable_key = runtime_profile_check_cache_key(&stable, config).unwrap();
+    assert_eq!(
+        stable_key,
+        runtime_profile_check_cache_key(&stable, config).unwrap()
+    );
+    // Identical YAML must be checked again with a different core.
+    assert_ne!(
+        stable_key,
+        runtime_profile_check_cache_key(&alpha, config).unwrap()
+    );
+    assert_ne!(
+        stable_key,
+        runtime_profile_check_cache_key(&stable, "mode: direct").unwrap()
+    );
+    // Replacing the executable at the same path must invalidate its result too.
+    fs::write(&stable, b"updated stable").unwrap();
+    assert_ne!(
+        stable_key,
+        runtime_profile_check_cache_key(&stable, config).unwrap()
+    );
+    fs::remove_file(&alpha).unwrap();
+    assert!(runtime_profile_check_cache_key(&alpha, config).is_err());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn failed_runtime_candidate_preserves_config_and_removes_temporary_file() {
     let root = migration_test_dir("runtime-candidate");
     fs::create_dir_all(&root).unwrap();

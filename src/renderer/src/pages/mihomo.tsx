@@ -12,7 +12,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import { platform } from '@renderer/utils/init'
 import { IoMdCloudDownload } from 'react-icons/io'
-import { relaunchApp, notDialogQuit } from '@renderer/api/app'
+import { relaunchApp, notDialogQuit, patchAppConfig as persistAppConfig } from '@renderer/api/app'
 import {
   ensureMihomoCoreAvailable,
   mihomoUpgrade,
@@ -31,7 +31,7 @@ import {
   initService,
   restartService
 } from '@renderer/utils/service-ipc'
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
@@ -41,6 +41,7 @@ import { useI18n } from '@renderer/i18n'
 import { hasMihomoUpdate } from '@renderer/utils/mihomo-version'
 import { emitMihomoCoreChanged } from '@renderer/utils/mihomo-core-events'
 import { useMihomoLatestVersion } from '@renderer/hooks/use-mihomo-latest-version'
+import { switchMihomoCore } from '@renderer/utils/mihomo-core-switch'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const Mihomo: React.FC = () => {
@@ -57,6 +58,8 @@ const Mihomo: React.FC = () => {
   })
   const latestVersion = useMihomoLatestVersion(core)
   const [upgrading, setUpgrading] = useState(false)
+  const [switchingCore, setSwitchingCore] = useState(false)
+  const coreOperationInProgress = useRef(false)
   const [showGrantConfirm, setShowGrantConfirm] = useState(false)
   const [showUnGrantConfirm, setShowUnGrantConfirm] = useState(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
@@ -81,6 +84,8 @@ const Mihomo: React.FC = () => {
   }
 
   const handleCoreUpgrade = async (): Promise<void> => {
+    if (coreOperationInProgress.current) return
+    coreOperationInProgress.current = true
     try {
       setUpgrading(true)
       await mihomoUpgrade()
@@ -92,18 +97,30 @@ const Mihomo: React.FC = () => {
         notifyError(e)
       }
     } finally {
+      coreOperationInProgress.current = false
       setUpgrading(false)
     }
   }
 
   const handleCoreChange = async (newCore: 'mihomo' | 'mihomo-alpha'): Promise<void> => {
+    if (!['mihomo', 'mihomo-alpha'].includes(newCore) || newCore === core) return
+    if (coreOperationInProgress.current) return
+    coreOperationInProgress.current = true
+    setSwitchingCore(true)
     try {
-      if (newCore === 'mihomo-alpha') {
-        await ensureMihomoCoreAvailable(newCore)
-      }
-      await handleConfigChangeWithRestart('core', newCore)
+      await switchMihomoCore(core, newCore, {
+        ensureAvailable: ensureMihomoCoreAvailable,
+        // Use the persistence API directly: the store wrapper consumes write errors.
+        saveCore: (selectedCore) => persistAppConfig({ core: selectedCore }),
+        restart: restartCore
+      })
+      emitMihomoCoreChanged()
     } catch (e) {
+      emitMihomoCoreChanged()
       notifyError(e)
+    } finally {
+      coreOperationInProgress.current = false
+      setSwitchingCore(false)
     }
   }
 
@@ -272,6 +289,7 @@ const Mihomo: React.FC = () => {
                   title={t('mihomo.upgradeCore')}
                   variant="light"
                   isLoading={upgrading}
+                  isDisabled={switchingCore}
                   onPress={handleCoreUpgrade}
                 >
                   <IoMdCloudDownload className="text-lg" />
@@ -288,6 +306,8 @@ const Mihomo: React.FC = () => {
               }}
               className="w-[150px]"
               size="sm"
+              isLoading={switchingCore}
+              isDisabled={switchingCore || upgrading}
               selectedKeys={new Set([core])}
               disallowEmptySelection={true}
               onSelectionChange={(v) => handleCoreChange(v.currentKey as 'mihomo' | 'mihomo-alpha')}

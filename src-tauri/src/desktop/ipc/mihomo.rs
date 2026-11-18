@@ -217,6 +217,11 @@ pub(crate) fn register_mihomo_handlers(
             let _args = args;
 
             let core = args.first().and_then(Value::as_str).unwrap_or("mihomo");
+            let refresh = args.get(1).and_then(Value::as_bool).unwrap_or(false);
+            if refresh && core == "mihomo-alpha" {
+                let target_path = mihomo_core_target_path(app, true)?;
+                download_mihomo_alpha_core(app, &target_path)?;
+            }
             let path = ensure_mihomo_core_available(app, core)?;
             Ok(json!(path.to_string_lossy().to_string()))
         })()
