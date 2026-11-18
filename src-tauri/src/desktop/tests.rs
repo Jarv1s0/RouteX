@@ -2151,3 +2151,94 @@ fn failed_sysproxy_change_invalidates_signature_so_compensation_runs() {
     })
     .unwrap();
 }
+
+#[test]
+fn realtime_traffic_remains_instantaneous_when_history_cannot_load() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("traffic.json");
+    fs::write(&path, b"{invalid history").unwrap();
+    let mut history = TrafficStatsBuffer::default();
+    let mut sampler = TrafficSampler::default();
+    let start = Instant::now();
+    let now = time::macros::datetime!(2026-11-18 16:00 UTC);
+    assert_eq!(sampler.sample(100, 200, start), (0, 0));
+    assert_eq!(
+        sampler.sample(1100, 2200, start + Duration::from_millis(500)),
+        (2000, 4000)
+    );
+    let (upload, download) = sampler.pending_delta();
+    assert!(history.record(&path, upload, download, now).is_err());
+    // Idle traffic must immediately become zero even while historical loading keeps failing.
+    assert_eq!(
+        sampler.sample(1100, 2200, start + Duration::from_secs(1)),
+        (0, 0)
+    );
+    let (upload, download) = sampler.pending_delta();
+    assert!(history.record(&path, upload, download, now).is_err());
+    write_json_file(&path, &TrafficStatsStore::default()).unwrap();
+    assert_eq!(
+        history.record(&path, upload, download, now).unwrap(),
+        (1000, 2000)
+    );
+    sampler.commit_recording();
+    assert_eq!(
+        sampler.sample(1600, 3200, start + Duration::from_millis(1500)),
+        (1000, 2000)
+    );
+    let (upload, download) = sampler.pending_delta();
+    assert_eq!(
+        history.record(&path, upload, download, now).unwrap(),
+        (1500, 3000)
+    );
+}
+
+#[test]
+fn trailing_brace_in_traffic_history_is_recovered_with_an_exact_backup() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("traffic-stats.json");
+    let stats = TrafficStatsStore {
+        session_upload: 1234,
+        session_download: 5678,
+        ..Default::default()
+    };
+    let mut bytes = serde_json::to_vec(&stats).unwrap();
+    bytes.extend_from_slice(b"}\n");
+    fs::write(&path, &bytes).unwrap();
+    let restored = read_traffic_stats_file(&path).unwrap().unwrap();
+    assert_eq!(
+        (restored.session_upload, restored.session_download),
+        (1234, 5678)
+    );
+    assert!(read_json_file::<TrafficStatsStore>(&path)
+        .unwrap()
+        .is_some());
+    let backups = fs::read_dir(root.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .filter(|file| file.extension().is_some_and(|ext| ext == "bak"))
+        .collect::<Vec<_>>();
+    assert_eq!(backups.len(), 1);
+    assert_eq!(fs::read(&backups[0]).unwrap(), bytes);
+    read_traffic_stats_file(&path).unwrap();
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 2);
+}
+
+#[test]
+fn unrelated_traffic_history_corruption_is_left_untouched() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("traffic-stats.json");
+    for bytes in [
+        b"{invalid".to_vec(),
+        b"{}garbage".to_vec(),
+        format!(
+            "{}null",
+            serde_json::to_string(&TrafficStatsStore::default()).unwrap()
+        )
+        .into_bytes(),
+    ] {
+        fs::write(&path, &bytes).unwrap();
+        assert!(read_traffic_stats_file(&path).is_err());
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+        assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
+    }
+}

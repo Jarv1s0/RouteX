@@ -38,7 +38,7 @@ pub(crate) struct TrafficStatsBuffer {
 impl TrafficStatsBuffer {
     pub(crate) fn load(&mut self, path: &Path) -> Result<&mut TrafficStatsStore, String> {
         if self.stats.is_none() {
-            self.stats = Some(read_json_file(path)?.unwrap_or_default());
+            self.stats = Some(read_traffic_stats_file(path)?.unwrap_or_default());
         }
         Ok(self.stats.as_mut().expect("traffic stats loaded"))
     }
@@ -84,6 +84,46 @@ impl TrafficStatsBuffer {
             self.last_write = Some(Instant::now());
         }
         Ok(())
+    }
+}
+
+pub(crate) fn read_traffic_stats_file(path: &Path) -> Result<Option<TrafficStatsStore>, String> {
+    match read_json_file(path) {
+        Ok(stats) => Ok(stats),
+        Err(original_error) => {
+            // Recover only the observed legacy corruption: one complete document plus one '}'.
+            let bytes = {
+                let _guard = CONFIG_DIRECTORY_SWAP_LOCK
+                    .read()
+                    .map_err(|e| e.to_string())?;
+                fs::read(path).map_err(|e| e.to_string())?
+            };
+            let mut documents =
+                serde_json::Deserializer::from_slice(&bytes).into_iter::<TrafficStatsStore>();
+            let Some(Ok(stats)) = documents.next() else {
+                return Err(original_error);
+            };
+            let trailing = &bytes[documents.byte_offset()..];
+            if std::str::from_utf8(trailing).map(str::trim).ok() != Some("}") {
+                return Err(original_error);
+            }
+            let parent = path.parent().ok_or("统计文件缺少父目录")?;
+            let mut backup = tempfile::Builder::new()
+                .prefix("traffic-stats-corrupt-")
+                .suffix(".bak")
+                .tempfile_in(parent)
+                .map_err(|e| e.to_string())?;
+            backup.write_all(&bytes).map_err(|e| e.to_string())?;
+            backup.as_file().sync_all().map_err(|e| e.to_string())?;
+            let (file, backup_path) = backup.keep().map_err(|e| e.to_string())?;
+            drop(file);
+            write_json_file(path, &stats)?;
+            eprintln!(
+                "[desktop.traffic] 已恢复统计文件，原文件保留在 {}",
+                backup_path.display()
+            );
+            Ok(Some(stats))
+        }
     }
 }
 

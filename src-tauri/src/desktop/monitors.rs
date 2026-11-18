@@ -207,6 +207,38 @@ pub(crate) fn traffic_rate(delta: u64, elapsed: Duration) -> u64 {
     (u128::from(delta) * 1000 / elapsed.as_millis().max(1)).min(u128::from(u64::MAX)) as u64
 }
 
+#[derive(Default)]
+pub(crate) struct TrafficSampler {
+    last_sample: Option<(u64, u64, Instant)>,
+    pending: (u64, u64),
+}
+
+impl TrafficSampler {
+    pub(crate) fn sample(&mut self, upload: u64, download: u64, now: Instant) -> (u64, u64) {
+        let (previous_upload, previous_download, previous_at) =
+            *self.last_sample.get_or_insert((upload, download, now));
+        let upload_delta = traffic_delta(upload, previous_upload);
+        let download_delta = traffic_delta(download, previous_download);
+        // Realtime rates always use the last observed sample, independently of history I/O.
+        self.last_sample = Some((upload, download, now));
+        self.pending.0 = self.pending.0.saturating_add(upload_delta);
+        self.pending.1 = self.pending.1.saturating_add(download_delta);
+        let elapsed = now.duration_since(previous_at);
+        (
+            traffic_rate(upload_delta, elapsed),
+            traffic_rate(download_delta, elapsed),
+        )
+    }
+
+    pub(crate) fn pending_delta(&self) -> (u64, u64) {
+        self.pending
+    }
+
+    pub(crate) fn commit_recording(&mut self) {
+        self.pending = (0, 0);
+    }
+}
+
 fn stop_core_events_handle(handle: CoreEventsMonitorHandle) -> Result<(), String> {
     let _ = handle.shutdown.send(());
     handle
@@ -252,7 +284,7 @@ pub(crate) fn start_core_events_monitor(
             Err(_) => return,
         };
         let connections_url = format!("{controller_url}/connections");
-        let mut last_totals: Option<(u64, u64, Instant)> = None;
+        let mut sampler = TrafficSampler::default();
         let mut stopping = false;
 
         loop {
@@ -266,18 +298,8 @@ pub(crate) fn start_core_events_monitor(
                         let now = Instant::now();
                         let upload_total = json_u64(snapshot.get("uploadTotal"));
                         let download_total = json_u64(snapshot.get("downloadTotal"));
-                        // The first snapshot establishes the baseline, even if disk loading fails.
-                        last_totals.get_or_insert((upload_total, download_total, now));
-                        let (upload, download, elapsed) =
-                            if let Some((last_upload, last_download, last_at)) = last_totals {
-                                (
-                                    traffic_delta(upload_total, last_upload),
-                                    traffic_delta(download_total, last_download),
-                                    now.duration_since(last_at),
-                                )
-                            } else {
-                                (0, 0, Duration::from_secs(1))
-                            };
+                        let (up, down) = sampler.sample(upload_total, download_total, now);
+                        let (upload, download) = sampler.pending_delta();
 
                         let totals = (|| -> Result<(u64, u64), String> {
                             let path = storage_file(&app_handle, TRAFFIC_STATS_FILE)?;
@@ -290,13 +312,13 @@ pub(crate) fn start_core_events_monitor(
                             Ok(totals)
                         })();
                         let mut payload = json!({
-                            "up": traffic_rate(upload, elapsed),
-                            "down": traffic_rate(download, elapsed),
+                            "up": up,
+                            "down": down,
                             "timestamp": current_timestamp_ms(),
                         });
                         match totals {
                             Ok((session_upload, session_download)) => {
-                                last_totals = Some((upload_total, download_total, now));
+                                sampler.commit_recording();
                                 payload["sessionUpload"] = json!(session_upload);
                                 payload["sessionDownload"] = json!(session_download);
                             }
