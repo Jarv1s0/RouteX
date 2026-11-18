@@ -168,8 +168,10 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
         const connections = snapshot.connections || []
         const timeStr = getTimeKey()
         set((state) => {
-          const newStats = new Map(state.ruleStats)
-          const newDetails = new Map(state.ruleHitDetails)
+          let newStats: Map<string, { hits: number; upload: number; download: number }> | null =
+            null
+          let newDetails: TrafficState['ruleHitDetails'] | null = null
+          const copiedStats = new Set<string>()
           const nextRouteSamples = new Map<
             string,
             { upload: number; download: number; isDirect: boolean }
@@ -177,6 +179,21 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
           const routeDelta = { proxy: 0, direct: 0 }
           let hasChanges = false
           let hasDetailsChanges = false
+
+          const getMutableRuleStats = (ruleName: string) => {
+            newStats ??= new Map(state.ruleStats)
+            let stats = newStats.get(ruleName)
+            if (!stats) {
+              stats = { hits: 0, upload: 0, download: 0 }
+              newStats.set(ruleName, stats)
+              copiedStats.add(ruleName)
+            } else if (!copiedStats.has(ruleName)) {
+              stats = { ...stats }
+              newStats.set(ruleName, stats)
+              copiedStats.add(ruleName)
+            }
+            return stats
+          }
 
           connections.forEach((conn) => {
             const upload = Math.max(0, Math.trunc(conn.upload || 0))
@@ -206,21 +223,22 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
             const ruleName = conn.rulePayload ? `${conn.rule},${conn.rulePayload}` : conn.rule
 
-            let existing = newStats.get(ruleName)
+            let existing = (newStats ?? state.ruleStats).get(ruleName)
             if (!existing) {
-              existing = { hits: 0, upload: 0, download: 0 }
-              newStats.set(ruleName, existing)
+              existing = getMutableRuleStats(ruleName)
               hasChanges = true
             }
 
             if (!processedConnIds.has(conn.id)) {
+              existing = getMutableRuleStats(ruleName)
               existing.hits += 1
               processedConnIds.add(conn.id)
               hasChanges = true
               hasDetailsChanges = true
 
               // Update Details
-              const ruleDetails = newDetails.get(ruleName) || []
+              newDetails ??= new Map(state.ruleHitDetails)
+              const ruleDetails = [...(newDetails.get(ruleName) || [])]
 
               // Limit tracked rules count
               if (newDetails.size >= MAX_RULES_TRACKED && !newDetails.has(ruleName)) {
@@ -248,6 +266,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
             // Update upload/download max
             if (conn.upload > existing.upload || conn.download > existing.download) {
+              existing = getMutableRuleStats(ruleName)
               existing.upload = Math.max(existing.upload, conn.upload)
               existing.download = Math.max(existing.download, conn.download)
               hasChanges = true
@@ -258,7 +277,9 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
           routeTrafficConnectionSamples = nextRouteSamples
 
           // LRU 淘汰：当规则数超过上限时，按命中次数从低到高排序，淘汰最不活跃的 20%
-          if (newStats.size > MAX_RULES_TRACKED) {
+          if ((newStats ?? state.ruleStats).size > MAX_RULES_TRACKED) {
+            newStats ??= new Map(state.ruleStats)
+            newDetails ??= new Map(state.ruleHitDetails)
             const evictCount = Math.ceil(MAX_RULES_TRACKED * 0.2)
             const sorted = [...newStats.entries()].sort((a, b) => a[1].hits - b[1].hits)
             for (let i = 0; i < evictCount && i < sorted.length; i++) {
@@ -271,9 +292,8 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
           }
 
           // Garbage collect processedConnIds: remove IDs no longer in current connections
-          const currentIds = new Set(connections.map((c: ControllerConnectionDetail) => c.id))
           for (const id of processedConnIds) {
-            if (!currentIds.has(id)) {
+            if (!nextRouteSamples.has(id)) {
               processedConnIds.delete(id)
             }
           }
@@ -283,7 +303,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
           }
 
           const updates: Partial<TrafficState> = {
-            ruleStats: newStats,
+            ruleStats: newStats ?? state.ruleStats,
             routeStats: {
               proxy: state.routeStats.proxy + routeDelta.proxy,
               direct: state.routeStats.direct + routeDelta.direct
@@ -291,7 +311,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
           }
 
           if (hasDetailsChanges) {
-            updates.ruleHitDetails = newDetails
+            updates.ruleHitDetails = newDetails ?? state.ruleHitDetails
           }
 
           return updates

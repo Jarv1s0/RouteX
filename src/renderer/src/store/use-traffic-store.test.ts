@@ -3,6 +3,7 @@ import { useTrafficStore } from './use-traffic-store'
 
 const mocks = vi.hoisted(() => ({
   traffic: null as ((sample: ControllerTraffic) => void) | null,
+  connections: null as ((snapshot: ControllerConnections) => void) | null,
   stats: vi.fn()
 }))
 vi.mock('@renderer/utils/stats-ipc', () => ({ getTrafficStats: mocks.stats }))
@@ -12,7 +13,12 @@ vi.mock('@renderer/utils/mihomo-ipc', () => ({
     return vi.fn()
   }
 }))
-vi.mock('./use-connections-store', () => ({ subscribeConnectionSnapshot: () => vi.fn() }))
+vi.mock('./use-connections-store', () => ({
+  subscribeConnectionSnapshot: (handler: typeof mocks.connections) => {
+    mocks.connections = handler
+    return vi.fn()
+  }
+}))
 vi.mock('@renderer/utils/tauri-traffic-stats', () => ({
   getRecentTauriTrafficPoints: () => [],
   resetTauriTrafficRecorder: vi.fn()
@@ -100,4 +106,39 @@ it('ignores a historical response issued before stats were cleared', async () =>
   await fetching
   expect(useTrafficStore.getState().sessionStats).toEqual({ upload: 0, download: 0 })
   expect(useTrafficStore.getState().hourlyData).toEqual([])
+})
+
+it('does not mutate published rule details when a later snapshot adds a connection', async () => {
+  const firstConnection = {
+    id: 'first',
+    rule: 'MATCH',
+    rulePayload: 'example.com',
+    upload: 1,
+    download: 2,
+    start: '2026-11-18T00:00:00.000Z',
+    isActive: true,
+    chains: [],
+    metadata: {}
+  } as unknown as ControllerConnectionDetail
+
+  mocks.connections!({ connections: [firstConnection] } as ControllerConnections)
+  const previousState = useTrafficStore.getState()
+  const previousDetails = previousState.ruleHitDetails
+  const previousRuleDetails = previousDetails.get('MATCH,example.com')!
+  const previousRuleStats = previousState.ruleStats.get('MATCH,example.com')!
+  expect(previousRuleDetails.map(({ id }) => id)).toEqual(['first'])
+
+  await vi.advanceTimersByTimeAsync(1001)
+  const secondConnection = { ...firstConnection, id: 'second', upload: 10 }
+  mocks.connections!({ connections: [firstConnection, secondConnection] } as ControllerConnections)
+
+  const currentDetails = useTrafficStore.getState().ruleHitDetails
+  expect(previousDetails.get('MATCH,example.com')?.map(({ id }) => id)).toEqual(['first'])
+  expect(currentDetails.get('MATCH,example.com')?.map(({ id }) => id)).toEqual(['second', 'first'])
+  expect(previousRuleStats).toEqual({ hits: 1, upload: 1, download: 2 })
+  expect(useTrafficStore.getState().ruleStats.get('MATCH,example.com')).toEqual({
+    hits: 2,
+    upload: 10,
+    download: 2
+  })
 })
