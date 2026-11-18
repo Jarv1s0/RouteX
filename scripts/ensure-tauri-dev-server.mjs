@@ -1,5 +1,9 @@
 import net from 'node:net'
 import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
+import { dirname, resolve } from 'node:path'
+
+const require = createRequire(import.meta.url)
 
 const DEV_HOST = '127.0.0.1'
 const DEV_PORT = 1420
@@ -95,9 +99,23 @@ async function main() {
     process.exit(1)
   }
 
-  const child = spawn('corepack', ['pnpm', 'run', 'dev:tauri-web'], {
-    stdio: 'inherit',
-    shell: process.platform === 'win32'
+  const viteCli = resolve(dirname(require.resolve('vite/package.json')), 'bin/vite.js')
+  const child = spawn(
+    process.execPath,
+    [viteCli, '--configLoader', 'runner', '--config', 'vite.tauri.config.ts'],
+    { stdio: 'inherit' }
+  )
+
+  let childExited = false
+  const childResult = new Promise((resolve) => {
+    child.once('exit', (code, signal) => {
+      childExited = true
+      resolve({ code, signal })
+    })
+    child.once('error', (error) => {
+      childExited = true
+      resolve({ error })
+    })
   })
 
   let shutdownSignal = null
@@ -105,7 +123,7 @@ async function main() {
   const stopChild = (signal) => {
     shutdownSignal ??= signal
 
-    if (!child.killed) {
+    if (!childExited && !child.killed) {
       child.kill(signal)
     }
   }
@@ -113,39 +131,32 @@ async function main() {
   process.once('SIGINT', () => stopChild('SIGINT'))
   process.once('SIGTERM', () => stopChild('SIGTERM'))
 
-  const ready = await waitForRouteXViteServer(40, () => shutdownSignal !== null)
+  const ready = await waitForRouteXViteServer(40, () => shutdownSignal !== null || childExited)
   if (shutdownSignal) {
     return
   }
 
-  if (!ready) {
+  if (!ready && !childExited) {
     stopChild('SIGTERM')
     console.error(`[RouteX] failed to bring up the Vite dev server at ${DEV_URL}`)
     process.exit(1)
   }
 
-  await new Promise((resolve, reject) => {
-    child.once('exit', (code, signal) => {
-      if (shutdownSignal) {
-        resolve()
-        return
-      }
-
-      if (signal) {
-        reject(new Error(`dev:tauri-web exited with signal ${signal}`))
-        return
-      }
-
-      if (code === 0) {
-        resolve()
-        return
-      }
-
-      reject(new Error(`dev:tauri-web exited with code ${code ?? 'unknown'}`))
-    })
-
-    child.once('error', reject)
-  })
+  const { code, signal, error } = await childResult
+  if (shutdownSignal) {
+    return
+  }
+  if (error) {
+    throw error
+  }
+  if (signal) {
+    throw new Error(`dev:tauri-web exited with signal ${signal}`)
+  }
+  if (code !== 0 || !ready) {
+    throw new Error(
+      `dev:tauri-web exited with code ${code ?? 'unknown'}${!ready ? ' before becoming ready' : ''}`
+    )
+  }
 }
 
 await main()

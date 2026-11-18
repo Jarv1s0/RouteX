@@ -46,14 +46,13 @@ RouteX 是一个 Tauri 2 桌面客户端，用于管理 Mihomo 运行时、代�
 
 - Node.js
 - Rust stable toolchain
-- Corepack
 - `pnpm@10.15.0`
 - 当前平台所需的 Tauri 2 系统依赖
 
 ### 安装依赖
 
 ```powershell
-corepack enable
+npm install -g pnpm@10.15.0
 pnpm install
 ```
 
