@@ -130,7 +130,7 @@
       "source-map-js": "^1.2.2",
       "picomatch": "^4.0.4",
       "rollup": ">=4.59.0",
-      "minimatch": ">=10.2.4",
+      "minimatch": "^11.0.1",
       "path-to-regexp": ">=8.4.0",
       "@xmldom/xmldom": "0.8.12",
       "postcss": "8.5.23",

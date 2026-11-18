@@ -6,7 +6,6 @@ const retryDelayMs = Number.parseInt(process.env.ROUTEX_NODE_AUDIT_RETRY_DELAY_M
 const pnpmCli = process.env.npm_execpath
 const auditArgs = ['audit', '--json', '--audit-level', auditLevel]
 const pnpmCommand = pnpmCli ? process.execPath : process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
-const pnpmAuditArgs = pnpmCli ? [pnpmCli, ...auditArgs] : auditArgs
 
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
@@ -19,10 +18,10 @@ function isTransientFailure(result) {
 
 function parseAuditReport(stdout) {
   const trimmed = stdout.trim()
-  if (!trimmed) return null
-
   try {
-    return JSON.parse(trimmed)
+    const report = JSON.parse(trimmed)
+    if (!report || typeof report !== 'object') throw new Error('Invalid audit report')
+    return report
   } catch {
     const jsonStart = trimmed.indexOf('{')
     const jsonEnd = trimmed.lastIndexOf('}')
@@ -64,26 +63,32 @@ function severityCounts(report, advisories) {
   }, {})
 }
 
-let lastResult
-for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-  lastResult = spawnSync(pnpmCommand, pnpmAuditArgs, {
-    encoding: 'utf8',
-    shell: false
-  })
+function runAudit(extraArgs = []) {
+  const args = [...auditArgs, ...extraArgs]
+  const commandArgs = pnpmCli ? [pnpmCli, ...args] : args
+  let result
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    result = spawnSync(pnpmCommand, commandArgs, {
+      encoding: 'utf8',
+      shell: false
+    })
 
-  if (lastResult.error) {
-    console.error(`[node-audit] failed to run pnpm audit: ${lastResult.error.message}`)
-    process.exit(1)
+    if (result.error) {
+      console.error(`[node-audit] failed to run pnpm audit: ${result.error.message}`)
+      process.exit(1)
+    }
+
+    if (!isTransientFailure(result) || attempt === maxAttempts) {
+      return result
+    }
+
+    console.warn(`[node-audit] transient audit failure, retrying ${attempt}/${maxAttempts}`)
+    sleep(retryDelayMs)
   }
-
-  if (!isTransientFailure(lastResult) || attempt === maxAttempts) {
-    break
-  }
-
-  console.warn(`[node-audit] transient audit failure, retrying ${attempt}/${maxAttempts}`)
-  sleep(retryDelayMs)
+  throw new Error('pnpm audit requires at least one attempt')
 }
 
+const lastResult = runAudit()
 let report
 try {
   report = parseAuditReport(lastResult.stdout)
@@ -96,7 +101,9 @@ try {
 
 const advisories = collectAdvisories(report)
 const counts = severityCounts(report, advisories)
-const total = Number(counts.total ?? advisories.length ?? 0)
+const total = Number(
+  counts.total ?? Object.values(counts).reduce((sum, count) => sum + Number(count), 0)
+)
 
 console.log(`[node-audit] audit level: ${auditLevel}`)
 console.log(
@@ -121,4 +128,48 @@ if (lastResult.stderr.trim()) {
   console.warn(lastResult.stderr.trim())
 }
 
-process.exit(lastResult.status || 0)
+// Accepted on 2026-11-18: no published fix exists for this build-tool advisory.
+// A new version, advisory, or published fix must be reviewed again. pnpm's
+// findings.dev flag is unreliable here, so independently audit production deps.
+function isTrackedBuildTimeAdvisory(advisory) {
+  return (
+    advisory.github_advisory_id === 'GHSA-fc5q-39xc-vjpf' &&
+    advisory.module_name === 'picomatch' &&
+    advisory.patched_versions === '<0.0.0' &&
+    Array.isArray(advisory.findings) &&
+    advisory.findings.length > 0 &&
+    advisory.findings.every((finding) => finding.version === '4.0.7')
+  )
+}
+
+if (
+  lastResult.status === 1 &&
+  total === advisories.length &&
+  advisories.length > 0 &&
+  advisories.every(isTrackedBuildTimeAdvisory)
+) {
+  const productionResult = runAudit(['--prod'])
+  try {
+    const productionReport = parseAuditReport(productionResult.stdout)
+    const productionCounts = productionReport.metadata?.vulnerabilities
+    if (
+      productionResult.status === 0 &&
+      productionCounts &&
+      Object.keys(productionCounts).length > 0 &&
+      Object.values(productionCounts).every((count) => count === 0) &&
+      collectAdvisories(productionReport).length === 0
+    ) {
+      console.warn(
+        '[node-audit] temporary build-only exception: GHSA-fc5q-39xc-vjpf picomatch@4.0.7; no published fix; production audit is clean'
+      )
+      process.exit(0)
+    }
+    console.error('[node-audit] production audit is not clean; build-only exception denied')
+  } catch (error) {
+    console.error(`[node-audit] production audit failed: ${error.message}`)
+  }
+  if (productionResult.stderr.trim()) console.error(productionResult.stderr.trim())
+  process.exit(1)
+}
+
+process.exit(lastResult.status ?? 1)
