@@ -53,7 +53,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
       <Card
         shadow="sm"
         radius="lg"
-        className={`${CARD_STYLES.RULE_CARD} ${!enabled ? 'grayscale' : ''}`}
+        className={`${CARD_STYLES.MANAGEMENT_CARD} ${CARD_STYLES.MANAGEMENT_NEUTRAL} ${!enabled ? 'grayscale' : ''}`}
       >
         <CardBody className="w-full py-2.5 px-4">
           <div className="flex items-center gap-2">

@@ -25,7 +25,7 @@ const LocalRuleItem: React.FC<LocalRuleItemProps> = memo(
         <Card
           shadow="sm"
           radius="lg"
-          className={`${CARD_STYLES.RULE_CARD} ${!rule.enabled ? 'grayscale' : ''}`}
+          className={`${CARD_STYLES.MANAGEMENT_CARD} ${CARD_STYLES.MANAGEMENT_NEUTRAL} ${!rule.enabled ? 'grayscale' : ''}`}
         >
           <CardBody className="w-full py-2.5 px-4">
             <div className="flex items-center gap-2">

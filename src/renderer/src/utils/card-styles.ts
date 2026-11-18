@@ -71,9 +71,6 @@ export const CARD_STYLES = {
   // Style for proxy nodes inside the proxy group
   PROXY_ITEM_CARD: `bg-default-100/40 dark:bg-default-50/20 border-default-200/50 dark:border-white/5 hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 ${PRESSABLE_CARD_TRANSITION}`,
 
-  // Premium, highly translucent glass style specifically for rule cards
-  RULE_CARD: `bg-white/50 dark:bg-black/20 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 ${CARD_TRANSITION}`,
-
   // Sidebar row hover state: clearer than the default gray strip
   SIDEBAR_ITEM: `hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm ${PRESSABLE_CARD_TRANSITION}`,
 
