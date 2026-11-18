@@ -1,4 +1,4 @@
-import { C, invokeSafe } from './ipc-core'
+import { C, invokeSafe, invokeTyped } from './ipc-core'
 import { createDefaultControledMihomoConfig } from '../../../shared/defaults/runtime'
 import { ON, onIpc } from './ipc-channels'
 import { createTauriRuntimeConfig, buildRuntimeGroupsFallback } from './mihomo-config-merge'
@@ -207,7 +207,7 @@ export async function mihomoProxies(): Promise<ControllerProxies> {
 }
 
 export async function mihomoConnections(): Promise<ControllerConnections> {
-  return invokeSafe(C.mihomoConnections)
+  return invokeTyped(C.mihomoConnections)
 }
 
 export async function mihomoGroups(): Promise<ControllerMixedGroup[]> {
@@ -234,7 +234,7 @@ export function clearMihomoGroupsRequestCache(): void {
 }
 
 export async function mihomoCloseConnection(id: string): Promise<void> {
-  return invokeSafe(C.mihomoCloseConnection, id)
+  return invokeTyped(C.mihomoCloseConnection, id)
 }
 
 export async function mihomoRuleProviders(): Promise<ControllerRuleProviders> {
@@ -283,7 +283,7 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
     }
 
     const requestRevision = mihomoConfigCache.tauriRuntimeConfigRevision
-    const request = invokeSafe<Partial<MihomoConfig>>(C.getRuntimeConfig)
+    const request = invokeTyped(C.getRuntimeConfig)
       .then((config) => {
         mihomoConfigCache.patchControlledConfig(config)
         mihomoSocketManager.syncTauriControllerUrlFromRuntime(config)
@@ -416,7 +416,7 @@ export async function checkMihomoLatestVersion(isAlpha: boolean): Promise<string
 
 export async function getControledMihomoConfig(force = false): Promise<Partial<MihomoConfig>> {
   if (isTauriHost()) {
-    const config = await invokeSafe<Partial<MihomoConfig>>(C.getControledMihomoConfig, force)
+    const config = await invokeTyped(C.getControledMihomoConfig, force)
     mihomoConfigCache.setControlledConfig(config)
     return readTauriControledMihomoConfig()
   }
@@ -426,7 +426,7 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<M
 
 export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   if (isTauriHost()) {
-    await invokeSafe(C.patchControledMihomoConfig, patch)
+    await invokeTyped(C.patchControledMihomoConfig, patch)
     mihomoConfigCache.setControlledConfig(
       mergeDeepPlainObject(readTauriControledMihomoConfig(), patch)
     )
@@ -435,7 +435,7 @@ export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): 
     return
   }
 
-  await invokeSafe(C.patchControledMihomoConfig, patch)
+  await invokeTyped(C.patchControledMihomoConfig, patch)
   mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig, C.mihomoGroups)
 }
 
@@ -497,11 +497,11 @@ export async function getRuntimeConfigStr(): Promise<string> {
     return request
   }
 
-  return invokeSafe(C.getRuntimeConfigStr)
+  return invokeTyped(C.getRuntimeConfigStr)
 }
 
 export async function mihomoCloseAllConnections(name?: string): Promise<void> {
-  return invokeSafe(C.mihomoCloseAllConnections, name)
+  return invokeTyped(C.mihomoCloseAllConnections, name)
 }
 
 export async function triggerSysProxy(enable: boolean, onlyActiveDevice: boolean): Promise<void> {

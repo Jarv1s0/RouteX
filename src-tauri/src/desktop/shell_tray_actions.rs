@@ -2,61 +2,68 @@ use super::prelude::*;
 use super::*;
 
 pub(crate) fn handle_tray_toggle_floating(app: &tauri::AppHandle) -> Result<(), String> {
-    let current = read_app_config_store(app)?
-        .get("showFloatingWindow")
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    patch_app_config_store(app, &json!({ "showFloatingWindow": !current }))?;
-    sync_shell_surfaces(app)?;
-    emit_ipc_event(app, "appConfigUpdated", Value::Null);
-    Ok(())
+    let state = app.state::<CoreState>();
+    with_storage_mutation(app, &state, false, || {
+        let current = read_app_config_store(app)?
+            .get("showFloatingWindow")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        patch_app_config_store(app, &json!({ "showFloatingWindow": !current }))?;
+        sync_shell_surfaces(app)?;
+        emit_ipc_event(app, "appConfigUpdated", Value::Null);
+        Ok(())
+    })
 }
 
 pub(crate) fn handle_tray_toggle_sys_proxy(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<(), String> {
-    let config = read_app_config_store(app)?;
-    let current = config
-        .get("sysProxy")
-        .and_then(Value::as_object)
-        .and_then(|sysproxy| sysproxy.get("enable"))
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    let only_active_device = config
-        .get("onlyActiveDevice")
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    let next = !current;
-    trigger_sys_proxy(app, state, next, only_active_device)?;
-    patch_app_config_store(app, &json!({ "sysProxy": { "enable": next } }))?;
-    emit_ipc_event(app, "appConfigUpdated", Value::Null);
-    Ok(())
+    with_storage_mutation(app, state, false, || {
+        let config = read_app_config_store(app)?;
+        let current = config
+            .get("sysProxy")
+            .and_then(Value::as_object)
+            .and_then(|sysproxy| sysproxy.get("enable"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let only_active_device = config
+            .get("onlyActiveDevice")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let next = !current;
+        patch_app_config_store(app, &json!({ "sysProxy": { "enable": next } }))?;
+        if let Err(error) = trigger_sys_proxy(app, state, next, only_active_device) {
+            if let Err(restore_error) = trigger_sys_proxy(app, state, current, only_active_device) {
+                return Err(format!("{error}; 恢复系统代理失败: {restore_error}"));
+            }
+            return Err(error);
+        }
+        emit_ipc_event(app, "appConfigUpdated", Value::Null);
+        Ok(())
+    })
 }
 
 pub(crate) fn handle_tray_toggle_tun(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<(), String> {
-    let controlled = read_controlled_config_store(app)?;
-    let current = controlled
-        .get("tun")
-        .and_then(Value::as_object)
-        .and_then(|tun| tun.get("enable"))
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    let patch = if current {
-        json!({ "tun": { "enable": false } })
-    } else {
-        json!({ "tun": { "enable": true }, "dns": { "enable": true } })
-    };
-    let next_controlled = patch_controlled_config_store(app, &patch)?;
-    let value = restart_core_process(app, state, Some(&next_controlled))?;
-    emit_ipc_event(app, "core-started", value);
-    emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
-    emit_ipc_event(app, "groupsUpdated", Value::Null);
-    emit_ipc_event(app, "rulesUpdated", Value::Null);
-    Ok(())
+    with_storage_mutation(app, state, false, || {
+        let controlled = read_controlled_config_store(app)?;
+        let current = controlled
+            .get("tun")
+            .and_then(Value::as_object)
+            .and_then(|tun| tun.get("enable"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let patch = if current {
+            json!({ "tun": { "enable": false } })
+        } else {
+            json!({ "tun": { "enable": true }, "dns": { "enable": true } })
+        };
+        apply_configuration_change(app, state, &json!({}), &patch, true)?;
+        Ok(())
+    })
 }
 
 pub(crate) fn handle_tray_change_mode(
@@ -64,24 +71,7 @@ pub(crate) fn handle_tray_change_mode(
     state: &State<'_, CoreState>,
     next_mode: &str,
 ) -> Result<(), String> {
-    patch_controlled_config_store(app, &json!({ "mode": next_mode }))?;
-
-    if let Err(error) = core_request(
-        state,
-        reqwest::Method::PATCH,
-        "/configs",
-        None,
-        Some(json!({ "mode": next_mode })),
-    ) {
-        if error != "Mihomo controller is not available" {
-            return Err(error);
-        }
-    }
-
-    emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
-    emit_ipc_event(app, "groupsUpdated", Value::Null);
-    emit_ipc_event(app, "rulesUpdated", Value::Null);
-    Ok(())
+    with_storage_mutation(app, state, false, || set_core_mode(app, state, next_mode))
 }
 
 pub(crate) fn handle_tray_test_group_delay(

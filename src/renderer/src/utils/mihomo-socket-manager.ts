@@ -1,8 +1,8 @@
-import { C, invokeSafe } from './ipc-core'
+import { C, invokeSafe, invokeTyped } from './ipc-core'
 import { desktop, emitDesktopEvent } from '@renderer/api/desktop'
 import { IPC_ON_CHANNELS } from '../../../shared/ipc'
 
-type TauriSocketKey = 'traffic' | 'memory' | 'logs' | 'connections'
+type TauriSocketKey = 'memory' | 'logs' | 'connections'
 
 type MihomoSocketManagerOptions = {
   getRuntimeConfig: () => Promise<MihomoConfig>
@@ -23,6 +23,7 @@ export class MihomoSocketManager {
   private tauriBridgeStartVersion = 0
   private tauriBridgeActiveControllerUrl: string | null = null
   private tauriBridgeReconnectReason = ''
+  private connectionSocketRequest = 0
   private readonly MIN_TAURI_CONNECTION_INTERVAL = 500
 
   constructor(private options: MihomoSocketManagerOptions) {}
@@ -68,7 +69,7 @@ export class MihomoSocketManager {
 
   private async readTauriConnectionIntervalMs(): Promise<number> {
     try {
-      const appConfig = await invokeSafe<Partial<AppConfig>>(C.getAppConfig)
+      const appConfig = await invokeTyped(C.getAppConfig)
       const rawInterval = Number.parseInt(
         String(appConfig.connectionInterval ?? this.MIN_TAURI_CONNECTION_INTERVAL),
         10
@@ -130,7 +131,7 @@ export class MihomoSocketManager {
   }
 
   public stopTauriMihomoEventBridge(): void {
-    this.closeTauriSocket('traffic')
+    this.connectionSocketRequest += 1
     this.closeTauriSocket('memory')
     this.closeTauriSocket('logs')
     this.closeTauriSocket('connections')
@@ -264,7 +265,12 @@ export class MihomoSocketManager {
     })
 
     desktop.on(IPC_ON_CHANNELS.appConfigUpdated, () => {
-      this.startTauriMihomoEventBridge()
+      if (this.tauriBridgeActiveControllerUrl) {
+        this.startTauriConnectionsSocket(
+          this.tauriBridgeActiveControllerUrl,
+          this.tauriBridgeStartVersion
+        )
+      }
     })
 
     for (const channel of [
@@ -301,15 +307,12 @@ export class MihomoSocketManager {
     }
   }
 
-  private emitTauriTrafficEvent = (payload: string): void => {
-    this.emitParsedDesktopEvent<ControllerTraffic>(IPC_ON_CHANNELS.mihomoTraffic, payload)
-  }
-
   private toWebSocketUrl(controllerUrl: string, path: string): string {
     return controllerUrl.replace(/^http/i, 'ws') + path
   }
 
   private startTauriConnectionsSocket(controllerUrl: string, version: number): void {
+    const request = ++this.connectionSocketRequest
     if (this.tauriConnectionsBridgeRefCount <= 0) {
       this.closeTauriSocket('connections')
       return
@@ -318,6 +321,7 @@ export class MihomoSocketManager {
     void this.readTauriConnectionIntervalMs().then((connectionInterval) => {
       if (
         this.tauriConnectionsBridgeRefCount <= 0 ||
+        request !== this.connectionSocketRequest ||
         this.isStaleTauriBridgeStart(version) ||
         this.tauriBridgeActiveControllerUrl !== controllerUrl
       ) {
@@ -383,6 +387,10 @@ export class MihomoSocketManager {
     version: number,
     onMessage: (payload: string) => void
   ): void {
+    const existing = this.tauriSockets[key]
+    if (existing?.url === url && (existing.readyState === 0 || existing.readyState === 1)) {
+      return
+    }
     this.closeTauriSocket(key)
 
     try {
@@ -420,8 +428,16 @@ export class MihomoSocketManager {
       return
     }
 
-    const version = this.markNextTauriBridgeStart(reason)
     const controllerUrl = this.readTauriControllerUrl()
+    const restart =
+      this.tauriBridgeActiveControllerUrl !== controllerUrl || reason.startsWith('core-started')
+    if (restart) {
+      this.stopTauriMihomoEventBridge()
+    }
+    const version =
+      restart || !controllerUrl
+        ? this.markNextTauriBridgeStart(reason)
+        : this.tauriBridgeStartVersion
     if (!controllerUrl) {
       this.stopTauriMihomoEventBridge()
       void this.ensureTauriControllerUrl().then((resolvedControllerUrl) => {
@@ -439,21 +455,7 @@ export class MihomoSocketManager {
       return
     }
 
-    if (
-      this.tauriBridgeActiveControllerUrl &&
-      this.tauriBridgeActiveControllerUrl !== controllerUrl
-    ) {
-      this.stopTauriMihomoEventBridge()
-    }
-
     this.tauriBridgeActiveControllerUrl = controllerUrl
-
-    this.startTauriSocket(
-      'traffic',
-      this.toWebSocketUrl(controllerUrl, '/traffic'),
-      version,
-      this.emitTauriTrafficEvent
-    )
 
     this.startTauriMemorySocket(controllerUrl, version)
     this.startTauriLogsSocket(controllerUrl, version)

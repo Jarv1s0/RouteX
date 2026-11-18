@@ -4,27 +4,18 @@ import { notifyError } from './notify'
 import { createQueuedAsyncRunner } from './queued-async-runner'
 import { translate } from '@renderer/i18n'
 import { mutate } from 'swr'
-import { C, invokeSafe } from './ipc-core'
+import { C, invokeTyped } from './ipc-core'
 import { getControledMihomoConfig, syncAppliedCoreConfig } from './mihomo-ipc'
 import { useAppStore } from '@renderer/store/use-app-store'
 
-type ConfigPatch<T> = T extends readonly unknown[]
-  ? T
-  : T extends object
-    ? { [K in keyof T]?: ConfigPatch<T[K]> | null }
-    : T
-
-export interface ConfigChange {
-  app?: Partial<AppConfig>
-  core?: ConfigPatch<MihomoConfig>
-  restart?: boolean
-}
+import type { ConfigChange } from '../../../shared/ipc-contract'
+export type { ConfigChange } from '../../../shared/ipc-contract'
 
 // Persist, validate and apply under one backend lock. Reconcile from disk even
 // after failure, since the backend may have restored an earlier configuration.
 export async function applyConfigChange(change: ConfigChange): Promise<void> {
   try {
-    const result = await invokeSafe<{ controller?: string }>(C.applyConfig, change)
+    const result = await invokeTyped(C.applyConfig, change)
     syncAppliedCoreConfig(result)
   } finally {
     await Promise.allSettled([

@@ -14,17 +14,6 @@ interface TrafficDataPoint {
   download: number
 }
 
-interface TrafficSample {
-  up: number
-  down: number
-}
-
-interface ConnectionTotals {
-  upload: number
-  download: number
-  at: number
-}
-
 interface TrafficState {
   trafficHistory: TrafficDataPoint[]
   hourlyData: { hour: string; upload: number; download: number }[]
@@ -59,7 +48,6 @@ const processedConnIds = new Set<string>()
 const MAX_DATA_POINTS = 60
 const MAX_DETAILS_PER_RULE = 10
 const MAX_RULES_TRACKED = 500
-const TRAFFIC_EVENT_STALE_MS = 900
 const CONNECTION_SNAPSHOT_THROTTLE_MS = 1000
 const HISTORICAL_STATS_REFRESH_INTERVAL_MS = 30_000
 
@@ -72,51 +60,19 @@ let visibilityChangeHandler: (() => void) | null = null
 let currentTrafficUnsubscribe: (() => void) | null = null
 let currentConnectionsThrottle: { cancel: () => void } | null = null
 let currentConnectionsUnsubscribe: (() => void) | null = null
-let lastIpcTrafficEventAt = 0
-let lastIpcTrafficSample: { up: number; down: number; at: number } | null = null
-let lastConnectionTotals: ConnectionTotals | null = null
+let lastTrafficStatsUpdate = 0
+let statsGeneration = 0
 let routeTrafficConnectionSamples = new Map<
   string,
   { upload: number; download: number; isDirect: boolean }
 >()
 
-// RAF 节流：合并高频流量事件的 React 渲染，同时累积增量保证 sessionStats 不丢失
+// 展示保留最新速率，会话累计值直接采用后端的字节计数。
 let pendingTrafficRaf: number | null = null
-let pendingTrafficDisplay: { up: number; down: number } | null = null
-let pendingTrafficDelta = { up: 0, down: 0 }
+let pendingTrafficDisplay: ControllerTraffic | null = null
 
 function getTimeKey(): string {
   return new Date().toTimeString().split(' ')[0]
-}
-
-function normalizeTrafficSample(sample: TrafficSample): TrafficSample {
-  return {
-    up: Math.max(0, Math.trunc(sample.up || 0)),
-    down: Math.max(0, Math.trunc(sample.down || 0))
-  }
-}
-
-function getConnectionTrafficDelta(
-  current: ConnectionTotals,
-  previous: ConnectionTotals
-): TrafficSample {
-  return {
-    up: Math.max(0, current.upload - previous.upload),
-    down: Math.max(0, current.download - previous.download)
-  }
-}
-
-function hasTraffic(sample: TrafficSample): boolean {
-  return sample.up > 0 || sample.down > 0
-}
-
-function isStuckZeroIpcTrafficSample(now: number): boolean {
-  return (
-    lastIpcTrafficSample !== null &&
-    lastIpcTrafficSample.up === 0 &&
-    lastIpcTrafficSample.down === 0 &&
-    now - lastIpcTrafficSample.at <= TRAFFIC_EVENT_STALE_MS
-  )
 }
 
 function clearTrafficStatsPolling() {
@@ -126,6 +82,7 @@ function clearTrafficStatsPolling() {
 }
 
 function unregisterTrafficHandlers() {
+  statsGeneration += 1
   currentConnectionsThrottle?.cancel()
   currentConnectionsThrottle = null
   currentConnectionsUnsubscribe?.()
@@ -141,10 +98,6 @@ function unregisterTrafficHandlers() {
     pendingTrafficRaf = null
   }
   pendingTrafficDisplay = null
-  pendingTrafficDelta = { up: 0, down: 0 }
-  lastIpcTrafficEventAt = 0
-  lastIpcTrafficSample = null
-  lastConnectionTotals = null
   routeTrafficConnectionSamples.clear()
 }
 
@@ -173,33 +126,6 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
     unregisterTrafficHandlers()
     clearTrafficStatsPolling()
 
-    // Traffic Listener Definition
-    const applyTrafficSample = (
-      displayTraffic: TrafficSample,
-      trafficDelta = displayTraffic
-    ): void => {
-      const normalizedDisplay = normalizeTrafficSample(displayTraffic)
-      const normalizedDelta = normalizeTrafficSample(trafficDelta)
-      const timeStr = getTimeKey()
-
-      set((state) => {
-        const newPoint: TrafficDataPoint = {
-          time: timeStr,
-          upload: normalizedDisplay.up,
-          download: normalizedDisplay.down
-        }
-        const updated = [...state.trafficHistory, newPoint].slice(-MAX_DATA_POINTS)
-
-        return {
-          trafficHistory: updated,
-          sessionStats: {
-            upload: state.sessionStats.upload + normalizedDelta.up,
-            download: state.sessionStats.download + normalizedDelta.down
-          }
-        }
-      })
-    }
-
     const recentTrafficPoints = getRecentTauriTrafficPoints()
     if (recentTrafficPoints.length > 0 && get().trafficHistory.length === 0) {
       set({
@@ -207,24 +133,29 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       })
     }
 
-    const handleTraffic = (traffic: TrafficSample): void => {
-      lastIpcTrafficEventAt = Date.now()
-      const normalized = normalizeTrafficSample(traffic)
-      lastIpcTrafficSample = { ...normalized, at: lastIpcTrafficEventAt }
-
-      // 累积增量以保证 sessionStats 不丢失，展示值取最新
-      pendingTrafficDisplay = normalized
-      pendingTrafficDelta.up += normalized.up
-      pendingTrafficDelta.down += normalized.down
-
+    const handleTraffic = (traffic: ControllerTraffic): void => {
+      pendingTrafficDisplay = traffic
+      lastTrafficStatsUpdate = traffic.timestamp ?? Date.now()
       if (pendingTrafficRaf === null) {
         pendingTrafficRaf = requestAnimationFrame(() => {
           pendingTrafficRaf = null
-          if (pendingTrafficDisplay) {
-            applyTrafficSample(pendingTrafficDisplay, pendingTrafficDelta)
-            pendingTrafficDisplay = null
-            pendingTrafficDelta = { up: 0, down: 0 }
-          }
+          const sample = pendingTrafficDisplay
+          pendingTrafficDisplay = null
+          if (!sample) return
+          set((state) => ({
+            trafficHistory: [
+              ...state.trafficHistory,
+              {
+                time: getTimeKey(),
+                upload: Math.max(0, Math.trunc(sample.up || 0)),
+                download: Math.max(0, Math.trunc(sample.down || 0))
+              }
+            ].slice(-MAX_DATA_POINTS),
+            sessionStats: {
+              upload: sample.sessionUpload ?? state.sessionStats.upload,
+              download: sample.sessionDownload ?? state.sessionStats.download
+            }
+          }))
         })
       }
     }
@@ -236,31 +167,6 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
 
         const connections = snapshot.connections || []
         const timeStr = getTimeKey()
-        const now = Date.now()
-        const uploadTotal = Math.max(0, Math.trunc(snapshot.uploadTotal || 0))
-        const downloadTotal = Math.max(0, Math.trunc(snapshot.downloadTotal || 0))
-        const previousTotals = lastConnectionTotals
-        const currentTotals = { upload: uploadTotal, download: downloadTotal, at: now }
-        lastConnectionTotals = currentTotals
-
-        if (previousTotals) {
-          const trafficDelta = getConnectionTrafficDelta(currentTotals, previousTotals)
-          const shouldFallbackToConnectionTotals =
-            now - lastIpcTrafficEventAt > TRAFFIC_EVENT_STALE_MS ||
-            isStuckZeroIpcTrafficSample(now)
-
-          if (shouldFallbackToConnectionTotals && hasTraffic(trafficDelta)) {
-            const elapsedMs = Math.max(1, now - previousTotals.at)
-            applyTrafficSample(
-              {
-                up: Math.trunc((trafficDelta.up * 1000) / elapsedMs),
-                down: Math.trunc((trafficDelta.down * 1000) / elapsedMs)
-              },
-              trafficDelta
-            )
-          }
-        }
-
         set((state) => {
           const newStats = new Map(state.ruleStats)
           const newDetails = new Map(state.ruleHitDetails)
@@ -431,13 +337,19 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
   },
 
   fetchInitialStats: async () => {
+    const generation = statsGeneration
     try {
       const stats = await getTrafficStats()
+      if (generation !== statsGeneration) return
 
       set({
         hourlyData: (stats.hourly || []).slice(-24),
         dailyData: (stats.daily || []).slice(-30),
-        sessionStats: { upload: stats.sessionUpload, download: stats.sessionDownload }
+        ...(stats.lastUpdate >= lastTrafficStatsUpdate
+          ? {
+              sessionStats: { upload: stats.sessionUpload, download: stats.sessionDownload }
+            }
+          : {})
       })
     } catch (e) {
       console.error('Failed to fetch initial stats', e)
@@ -445,6 +357,7 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
   },
 
   clearStats: () => {
+    statsGeneration += 1
     set({
       trafficHistory: [],
       hourlyData: [],
@@ -453,6 +366,8 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
       routeStats: { proxy: 0, direct: 0 },
       ...createEmptyRuleStats()
     })
+    pendingTrafficDisplay = null
+    lastTrafficStatsUpdate = 0
     resetTauriTrafficRecorder()
     processedConnIds.clear()
     routeTrafficConnectionSamples.clear()

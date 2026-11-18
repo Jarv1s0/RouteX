@@ -50,7 +50,6 @@ export const SYSTEM_IPC_INVOKE_CHANNELS = {
   quitWithoutCore: 'quitWithoutCore',
   readTextFile: 'readTextFile',
   readTheme: 'readTheme',
-  recordTrafficSample: 'recordTrafficSample',
   registerShortcut: 'registerShortcut',
   relaunchApp: 'relaunchApp',
   resetAppConfig: 'resetAppConfig',

@@ -31,6 +31,7 @@ pub(crate) fn sanitize_webdav_backup_entry(
     let mut value = serde_json::from_slice::<Value>(&bytes).map_err(|e| e.to_string())?;
     if let Some(object) = value.as_object_mut() {
         object.remove("webdavPassword");
+        object.remove("githubToken");
         object.remove("serviceAuthKey");
         object.remove("corePermissionMode");
     }
@@ -72,6 +73,7 @@ pub(crate) fn ensure_webdav_directory(config: &WebdavConfig) -> Result<(), Strin
 }
 
 pub(crate) fn build_webdav_backup_archive(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    flush_traffic_stats(app)?;
     let root = app_storage_root(app)?;
 
     let temp_path = std::env::temp_dir().join(format!(
@@ -126,7 +128,10 @@ pub(crate) fn restore_webdav_backup_archive(
     bytes: &[u8],
 ) -> Result<(), String> {
     let root = app_storage_root(app)?;
+    let state = app.state::<CoreState>();
+    let mut traffic = state.traffic_stats.lock().map_err(|e| e.to_string())?;
     restore_webdav_backup_to_root(&root, bytes)?;
+    *traffic = TrafficStatsBuffer::default();
     invalidate_profile_runtime_config_cache();
     Ok(())
 }

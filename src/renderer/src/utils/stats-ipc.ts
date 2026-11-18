@@ -1,30 +1,14 @@
-import { C, invokeRaw } from './ipc-core'
+import { C, invokeRaw, invokeTyped } from './ipc-core'
+import type { TrafficStats } from '../../../shared/ipc-contract'
 
-let trafficStatsPromise: Promise<{
-  hourly: { hour: string; upload: number; download: number }[]
-  daily: { date: string; upload: number; download: number }[]
-  lastUpdate: number
-  sessionUpload: number
-  sessionDownload: number
-}> | null = null
+let trafficStatsPromise: Promise<TrafficStats> | null = null
 let lastTrafficStatsAt = 0
-let lastTrafficStatsResult: {
-  hourly: { hour: string; upload: number; download: number }[]
-  daily: { date: string; upload: number; download: number }[]
-  lastUpdate: number
-  sessionUpload: number
-  sessionDownload: number
-} | null = null
+let lastTrafficStatsResult: TrafficStats | null = null
+let trafficStatsGeneration = 0
 
 const TRAFFIC_STATS_CACHE_MS = 1000
 
-export async function getTrafficStats(): Promise<{
-  hourly: { hour: string; upload: number; download: number }[]
-  daily: { date: string; upload: number; download: number }[]
-  lastUpdate: number
-  sessionUpload: number
-  sessionDownload: number
-}> {
+export async function getTrafficStats(): Promise<TrafficStats> {
   const now = Date.now()
   if (lastTrafficStatsResult && now - lastTrafficStatsAt < TRAFFIC_STATS_CACHE_MS) {
     return lastTrafficStatsResult
@@ -34,29 +18,29 @@ export async function getTrafficStats(): Promise<{
     return trafficStatsPromise
   }
 
-  trafficStatsPromise = invokeRaw<{
-    hourly: { hour: string; upload: number; download: number }[]
-    daily: { date: string; upload: number; download: number }[]
-    lastUpdate: number
-    sessionUpload: number
-    sessionDownload: number
-  }>(C.getTrafficStats)
+  const generation = trafficStatsGeneration
+  const request = invokeTyped(C.getTrafficStats)
     .then((result) => {
-      lastTrafficStatsAt = Date.now()
-      lastTrafficStatsResult = result
+      if (generation === trafficStatsGeneration) {
+        lastTrafficStatsAt = Date.now()
+        lastTrafficStatsResult = result
+      }
       return result
     })
     .finally(() => {
-      trafficStatsPromise = null
+      if (trafficStatsPromise === request) trafficStatsPromise = null
     })
 
-  return trafficStatsPromise
+  trafficStatsPromise = request
+  return request
 }
 
 export async function clearTrafficStats(): Promise<void> {
+  await invokeTyped(C.clearTrafficStats)
+  trafficStatsGeneration += 1
+  trafficStatsPromise = null
   lastTrafficStatsAt = 0
   lastTrafficStatsResult = null
-  return invokeRaw(C.clearTrafficStats)
 }
 
 export async function startNetworkHealthMonitor(): Promise<void> {

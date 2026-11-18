@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   setApp: vi.fn(),
   mutate: vi.fn()
 }))
-vi.mock('./ipc-core', () => ({ C: { applyConfig: 'applyConfig' }, invokeSafe: mocks.invoke }))
+vi.mock('./ipc-core', () => ({ C: { applyConfig: 'applyConfig' }, invokeTyped: mocks.invoke }))
 vi.mock('@renderer/api/app', () => ({ getAppConfig: mocks.getApp }))
 vi.mock('./mihomo-ipc', () => ({
   getControledMihomoConfig: mocks.getCore,

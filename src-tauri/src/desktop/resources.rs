@@ -567,43 +567,39 @@ pub(crate) fn find_mihomo_zip_entry(
     Err("Mihomo 下载完成但压缩包内未找到可执行文件".to_string())
 }
 
+fn write_mihomo_executable(target_path: &Path, source: &mut impl Read) -> Result<(), String> {
+    ensure_parent(target_path)?;
+    let parent = target_path.parent().ok_or("内核文件缺少父目录")?;
+    let mut output = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
+    let bytes = std::io::copy(source, &mut output).map_err(|e| e.to_string())?;
+    if bytes == 0 {
+        return Err("内核文件为空".to_string());
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        output
+            .as_file()
+            .set_permissions(fs::Permissions::from_mode(0o755))
+            .map_err(|e| e.to_string())?;
+    }
+    output.as_file().sync_all().map_err(|e| e.to_string())?;
+    output.persist(target_path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub(crate) fn write_mihomo_zip_entry(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
     let reader = Cursor::new(bytes);
     let mut archive = ZipArchive::new(reader).map_err(|e| e.to_string())?;
     let entry_index = find_mihomo_zip_entry(&mut archive)?;
     let mut file = archive.by_index(entry_index).map_err(|e| e.to_string())?;
-    let temp_path = target_path.with_extension("download");
-    ensure_parent(&temp_path)?;
-    {
-        let mut output = fs::File::create(&temp_path).map_err(|e| e.to_string())?;
-        std::io::copy(&mut file, &mut output).map_err(|e| e.to_string())?;
-    }
-    if target_path.exists() {
-        fs::remove_file(target_path).map_err(|e| e.to_string())?;
-    }
-    fs::rename(&temp_path, target_path).map_err(|e| e.to_string())
+    write_mihomo_executable(target_path, &mut file)
 }
 
 #[cfg(not(target_os = "windows"))]
 pub(crate) fn write_mihomo_gzip_bytes(bytes: Vec<u8>, target_path: &Path) -> Result<(), String> {
-    let temp_path = target_path.with_extension("download");
-    ensure_parent(&temp_path)?;
-
-    let mut decoder = flate2::read::GzDecoder::new(std::io::Cursor::new(bytes));
-    let mut output_file = fs::File::create(&temp_path).map_err(|e| e.to_string())?;
-    std::io::copy(&mut decoder, &mut output_file)
-        .map_err(|e| format!("解压 Mihomo Alpha 失败: {e}"))?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(&temp_path, fs::Permissions::from_mode(0o755))
-            .map_err(|e| e.to_string())?;
-    }
-    if target_path.exists() {
-        fs::remove_file(target_path).map_err(|e| e.to_string())?;
-    }
-    fs::rename(&temp_path, target_path).map_err(|e| e.to_string())
+    let mut decoder = flate2::read::GzDecoder::new(Cursor::new(bytes));
+    write_mihomo_executable(target_path, &mut decoder)
 }
 
 pub(crate) fn fetch_mihomo_core_archive(

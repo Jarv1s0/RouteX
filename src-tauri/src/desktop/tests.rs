@@ -564,6 +564,7 @@ fn webdav_backup_sanitizes_local_machine_state_from_app_config() {
   "webdavPassword": "secret",
   "webdavDir": "routex",
   "serviceAuthKey": "old-machine-key",
+  "githubToken": "github-secret",
   "corePermissionMode": "service"
 }"#;
 
@@ -581,6 +582,7 @@ fn webdav_backup_sanitizes_local_machine_state_from_app_config() {
     );
     assert!(value.get("webdavPassword").is_none());
     assert!(value.get("serviceAuthKey").is_none());
+    assert!(value.get("githubToken").is_none());
     assert!(value.get("corePermissionMode").is_none());
 }
 
@@ -2015,4 +2017,137 @@ fn windows_app_data_root_migration_preserves_newer_conflicts() {
     assert!(!legacy_root.exists());
 
     fs::remove_dir_all(&base).expect("migration fixture should be removed");
+}
+
+#[test]
+fn traffic_byte_totals_do_not_depend_on_sampling_interval() {
+    let root = tempfile::tempdir().unwrap();
+    let now = OffsetDateTime::from_unix_timestamp(1_800_000_000).unwrap();
+    for (name, samples, interval_ms) in [("fast", 10, 500), ("slow", 5, 1000)] {
+        let path = root.path().join(name);
+        let mut buffer = TrafficStatsBuffer::default();
+        let delta = 2000 * interval_ms / 1000;
+        for _ in 0..samples {
+            assert_eq!(
+                traffic_rate(delta, Duration::from_millis(interval_ms)),
+                2000
+            );
+            buffer.record(&path, delta, delta * 2, now).unwrap();
+        }
+        buffer.flush(&path, true).unwrap();
+        let stats: TrafficStatsStore = read_json_file(&path).unwrap().unwrap();
+        assert_eq!(
+            (stats.session_upload, stats.session_download),
+            (10_000, 20_000)
+        );
+        assert_eq!(stats.hourly[0].upload, 10_000);
+        assert_eq!(stats.daily[0].download, 20_000);
+    }
+    assert_eq!(traffic_delta(120, 100), 20);
+    assert_eq!(traffic_delta(8, 100), 8);
+    assert_eq!(traffic_rate(u64::MAX, Duration::from_millis(1)), u64::MAX);
+}
+
+#[test]
+fn traffic_buffer_keeps_hour_boundaries_and_retries_failed_writes() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("stats.json");
+    let mut buffer = TrafficStatsBuffer::default();
+    let first = time::macros::datetime!(2026-11-18 23:59:59 UTC);
+    buffer.record(&path, 30, 60, first).unwrap();
+    buffer.flush(&path, false).unwrap();
+    buffer
+        .record(&path, 70, 140, first + time::Duration::seconds(2))
+        .unwrap();
+    buffer.flush(&path, false).unwrap();
+    let on_disk: TrafficStatsStore = read_json_file(&path).unwrap().unwrap();
+    assert_eq!(on_disk.session_upload, 30);
+    assert_eq!(buffer.load(&path).unwrap().session_upload, 100);
+    let blocked = root.path().join("blocked");
+    fs::create_dir(&blocked).unwrap();
+    assert!(buffer.flush(&blocked, true).is_err());
+    buffer.flush(&path, true).unwrap();
+    let saved: TrafficStatsStore = read_json_file(&path).unwrap().unwrap();
+    assert_eq!(saved.session_upload, 100);
+    assert_eq!(saved.daily.len(), 2);
+    assert_eq!(saved.hourly[0].hour, "2026-11-18-23");
+    assert_eq!(saved.hourly[1].hour, "2026-11-19-00");
+}
+
+#[test]
+fn only_changed_runtime_preferences_invalidate_profile_cache() {
+    assert!(!app_config_changes_runtime(
+        &json!({}),
+        &json!({"appTheme":"dark", "controlDns":true})
+    ));
+    assert!(!app_config_changes_runtime(
+        &json!({"controlDns":false}),
+        &json!({"controlDns":false, "siderWidth":300})
+    ));
+    assert!(app_config_changes_runtime(
+        &json!({}),
+        &json!({"controlDns":false})
+    ));
+    assert!(app_config_changes_runtime(
+        &json!({"controlSniff":false}),
+        &json!({"controlSniff":true})
+    ));
+}
+
+#[test]
+fn file_replacement_rolls_back_failed_install_or_start_and_keeps_success() {
+    let root = tempfile::tempdir().unwrap();
+    let target = root.path().join("core");
+    let candidate = root.path().join("new");
+    fs::write(&target, b"old core").unwrap();
+    assert!(replace_file_with_rollback(&candidate, &target, || Ok(())).is_err());
+    assert_eq!(fs::read(&target).unwrap(), b"old core");
+    fs::write(&candidate, b"new core").unwrap();
+    let failed: Result<(), String> = replace_file_with_rollback(&candidate, &target, || {
+        assert_eq!(fs::read(&target).unwrap(), b"new core");
+        Err("start failed".to_string())
+    });
+    assert_eq!(failed.unwrap_err(), "start failed");
+    assert_eq!(fs::read(&target).unwrap(), b"old core");
+    fs::write(&candidate, b"new core").unwrap();
+    replace_file_with_rollback(&candidate, &target, || Ok(())).unwrap();
+    assert_eq!(fs::read(&target).unwrap(), b"new core");
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
+}
+
+#[test]
+fn invalid_core_archives_preserve_existing_binary_and_cleanup_temporary_files() {
+    let root = tempfile::tempdir().unwrap();
+    let target = root.path().join("mihomo.exe");
+    fs::write(&target, b"old core").unwrap();
+    assert!(write_mihomo_zip_entry(b"invalid zip".to_vec(), &target).is_err());
+    let empty = test_backup_archive(&[("mihomo.exe", "")]);
+    assert!(write_mihomo_zip_entry(empty, &target).is_err());
+    assert_eq!(fs::read(&target).unwrap(), b"old core");
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
+    let valid = test_backup_archive(&[("mihomo.exe", "new core")]);
+    write_mihomo_zip_entry(valid, &target).unwrap();
+    assert_eq!(fs::read(&target).unwrap(), b"new core");
+}
+
+#[test]
+fn failed_sysproxy_change_invalidates_signature_so_compensation_runs() {
+    let cache = Mutex::new(Some("pac-enabled".to_string()));
+    let mut pac_running = true;
+    let failed = apply_sysproxy_signature(&cache, "disabled".to_string(), || {
+        pac_running = false;
+        Err("service command failed".to_string())
+    });
+    assert!(failed.is_err());
+    assert!(!pac_running);
+    apply_sysproxy_signature(&cache, "pac-enabled".to_string(), || {
+        pac_running = true;
+        Ok(())
+    })
+    .unwrap();
+    assert!(pac_running);
+    apply_sysproxy_signature(&cache, "pac-enabled".to_string(), || {
+        panic!("a successful unchanged state should still be deduplicated")
+    })
+    .unwrap();
 }

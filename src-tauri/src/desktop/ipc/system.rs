@@ -383,19 +383,6 @@ pub(crate) fn register_system_handlers(map: &mut std::collections::HashMap<&'sta
         let _args = args;
          Ok(json!(read_traffic_stats_store(app)?)) 
     })().map_err(crate::desktop::error::AppError::from) });
-    map.insert("recordTrafficSample", |app, window, state, args| { (|| -> Result<Value, String> {
-        let _app = app;
-        let _window = window;
-        let _state = state;
-        let _args = args;
-        
-            let sample = serde_json::from_value::<TrafficSampleInput>(
-                args.first().cloned().unwrap_or_else(|| json!({})),
-            )
-            .map_err(|e| e.to_string())?;
-            Ok(json!(record_traffic_sample(app, sample)?))
-        
-    })().map_err(crate::desktop::error::AppError::from) });
     map.insert("clearTrafficStats", |app, window, state, args| { (|| -> Result<Value, String> {
         let _app = app;
         let _window = window;

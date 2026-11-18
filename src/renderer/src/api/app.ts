@@ -1,4 +1,4 @@
-import { C, invokeSafe } from '@renderer/utils/ipc-core'
+import { C, invokeSafe, invokeTyped } from '@renderer/utils/ipc-core'
 import { emitDesktopEvent } from '@renderer/api/desktop'
 import { IPC_ON_CHANNELS } from '../../../shared/ipc'
 import { createDefaultAppConfig } from '../../../shared/defaults/app'
@@ -63,7 +63,7 @@ export async function getAppConfig(force = false): Promise<AppConfig> {
       return tauriAppConfigPromise
     }
 
-    const request = invokeSafe<Partial<AppConfig>>(C.getAppConfig, force)
+    const request = invokeTyped(C.getAppConfig, force)
       .then((config) => {
         const normalized = normalizeTauriAppConfig(config)
         tauriAppConfigCache = normalized
@@ -84,7 +84,7 @@ export async function getAppConfig(force = false): Promise<AppConfig> {
 
 export async function patchAppConfig(patch: Partial<AppConfig>): Promise<void> {
   if (isTauriHost()) {
-    await invokeSafe(C.patchAppConfig, patch)
+    await invokeTyped(C.patchAppConfig, patch)
     tauriAppConfigPromise = null
     tauriAppConfigCache = mergeAppConfig(tauriAppConfigCache || getDefaultTauriAppConfig(), patch)
     window.dispatchEvent(new CustomEvent('routex:app-config-updated'))

@@ -97,6 +97,48 @@ pub(crate) fn atomic_write_file(path: &Path, bytes: &[u8]) -> Result<(), String>
     Ok(())
 }
 
+pub(crate) fn replace_file_with_rollback<T>(
+    candidate: &Path,
+    target: &Path,
+    apply: impl FnOnce() -> Result<T, String>,
+) -> Result<T, String> {
+    let parent = target.parent().ok_or("文件缺少父目录")?;
+    let backup_dir = tempfile::Builder::new()
+        .prefix("routex-rollback-")
+        .tempdir_in(parent)
+        .map_err(|e| e.to_string())?;
+    let backup = backup_dir.path().join("original");
+    let had_original = target.exists();
+    if had_original {
+        fs::rename(target, &backup).map_err(|e| format!("保留旧文件失败: {e}"))?;
+    }
+    let result = fs::rename(candidate, target)
+        .map_err(|e| format!("替换文件失败: {e}"))
+        .and_then(|_| apply());
+    match result {
+        Ok(value) => Ok(value),
+        Err(error) => {
+            let restore = (|| -> Result<(), String> {
+                if target.exists() {
+                    fs::remove_file(target).map_err(|e| e.to_string())?;
+                }
+                if had_original {
+                    fs::rename(&backup, target).map_err(|e| e.to_string())?;
+                }
+                Ok(())
+            })();
+            if let Err(restore_error) = restore {
+                let retained = backup_dir.keep();
+                return Err(format!(
+                    "{error}; 回滚失败: {restore_error}; 旧文件保留在 {}",
+                    retained.display()
+                ));
+            }
+            Err(error)
+        }
+    }
+}
+
 pub(crate) fn read_floating_window_state(
     app: &tauri::AppHandle,
 ) -> Result<Option<FloatingWindowState>, String> {

@@ -1,7 +1,8 @@
 import { Button, Card, CardBody } from '@heroui/react'
 import { MdOutlineSpeed } from 'react-icons/md'
 import { getImageDataURL } from '@renderer/utils/resource-ipc'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useAppStore } from '@renderer/store/use-app-store'
+import { useShallow } from 'zustand/react/shallow'
 import { useEffect, memo, useMemo, useState } from 'react'
 import { addFlag, removeFlag } from '@renderer/utils/flags'
 import { useI18n } from '@renderer/i18n'
@@ -64,6 +65,8 @@ function getIconImageSrc(icon: string): string {
   return icon.startsWith('<svg') ? toSvgDataUrl(icon) : icon
 }
 
+const DEFAULT_DELAY_THRESHOLDS = { good: 200, fair: 500 }
+
 interface Props {
   group: ControllerMixedGroup
   isOpen: boolean
@@ -85,9 +88,10 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
   liveCount,
   onGroupDelay
 }) => {
-  const { appConfig } = useAppConfig()
   const { t } = useI18n()
-  const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
+  const delayThresholds = useAppStore(
+    useShallow((state) => state.appConfig?.delayThresholds ?? DEFAULT_DELAY_THRESHOLDS)
+  )
   const [iconSrc, setIconSrc] = useState('')
   const [iconLoadFailed, setIconLoadFailed] = useState(false)
   const currentProxyIcon = useMemo(() => getCurrentProxyIcon(group), [group.all, group.now])

@@ -110,7 +110,7 @@ pub(crate) fn desktop_invoke_sync(
             let _guard = state.profile_mutation_lock.lock().map_err(|e| crate::desktop::error::AppError::from(e.to_string()))?;
             handler(app, window, &state, &args)
         }
-        Some(handler) if matches!(channel.as_str(), "patchAppConfig" | "patchControledMihomoConfig" | "applyConfig") => {
+        Some(handler) if matches!(channel.as_str(), "patchAppConfig" | "patchControledMihomoConfig" | "applyConfig" | "closeFloatingWindow") => {
             with_storage_mutation(app, &state, false, || {
                 handler(app, window, &state, &args).map_err(|e| e.to_string())
             }).map_err(crate::desktop::error::AppError::from)

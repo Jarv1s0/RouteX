@@ -49,6 +49,8 @@ const connectionSnapshotListeners = new Set<ConnectionSnapshotListener>()
 let latestSeedActiveConnections: ExtendedConnection[] | null = null
 let warmConnectionSnapshotPromise: Promise<void> | null = null
 let unavailableRetryTimer: number | null = null
+let currentSessionCleanup: (() => void) | null = null
+let sessionGeneration = 0
 // 记录 bridge 已完成一次 connections WS 建立，连接页可借此判断是否需要补拉快照。
 // 当 bridge 重启时会递增，使旧的待发 setTimeout 回调能被识别为过期。
 let bridgeReadySeq = 0
@@ -76,8 +78,10 @@ export function warmConnectionSnapshot(): Promise<void> {
     return warmConnectionSnapshotPromise
   }
 
+  const generation = sessionGeneration
   warmConnectionSnapshotPromise = mihomoConnections()
     .then((snapshot) => {
+      if (generation !== sessionGeneration) return
       if (snapshot?.connections) {
         emitConnectionSnapshot(snapshot)
         useConnectionsStore.setState(retainSeedConnectionState(snapshot.connections))
@@ -159,13 +163,16 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   setPaused: (paused: boolean) => set({ isPaused: paused }),
 
   initializeListeners: (options = {}) => {
+    get().cleanupListeners({ clearSnapshot: false })
+    const generation = sessionGeneration
     const { summaryOnly = false } = options
+    let disposed = false
     let lastForegroundSnapshotAt = 0
     let isBaselineSnapshot = false
     let initialSnapshotFallbackTimer: number | null = null
 
     connectionsWorker.onmessage = (event) => {
-      if (summaryOnly) {
+      if (disposed || summaryOnly || event.data.generation !== generation) {
         return
       }
 
@@ -190,7 +197,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     }
 
     const handleConnections = (_e: unknown, info: ControllerConnections): void => {
-      if (!info || !info.connections) return
+      if (disposed || !info || !info.connections) return
 
       if (summaryOnly) {
         // 摘要模式只保留可直接渲染的 seed，进入连接页后再由实时数据校准。
@@ -216,6 +223,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
 
       connectionsWorker.postMessage({
         type: 'process',
+        generation,
         payload: {
           connections: info.connections,
           isPaused,
@@ -233,7 +241,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     }
 
     const scheduleConnectionsSnapshotRetry = (): void => {
-      if (unavailableRetryTimer !== null || document.hidden) {
+      if (disposed || unavailableRetryTimer !== null || document.hidden) {
         return
       }
 
@@ -244,8 +252,10 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     }
 
     const fetchConnectionsSnapshot = (preserveSpeedBaseline = false): void => {
+      if (disposed) return
       void mihomoConnections()
         .then((snapshot) => {
+          if (disposed) return
           clearUnavailableRetryTimer()
           bridgeReadySeq += 1
 
@@ -258,6 +268,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
           handleConnections(undefined, snapshot)
         })
         .catch((error) => {
+          if (disposed) return
           if (isExpectedMihomoUnavailableError(error)) {
             set({
               loading: !latestSeedActiveConnections || latestSeedActiveConnections.length === 0
@@ -338,23 +349,24 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     // 进入连接/统计相关页面时主动拉一次当前快照，避免只等待后续增量事件导致首屏空白。
     fetchConnectionsSnapshot(true)
 
-    const previousCleanup = get().cleanupListeners
-    set({
-      cleanupListeners: (cleanupOptions) => {
-        releaseConnectionsBridge()
-        releaseMemoryBridge()
-        cancelBridgeReady()
-        if (initialSnapshotFallbackTimer !== null) {
-          window.clearTimeout(initialSnapshotFallbackTimer)
-          initialSnapshotFallbackTimer = null
-        }
-        previousCleanup(cleanupOptions)
+    currentSessionCleanup = () => {
+      disposed = true
+      releaseConnectionsBridge()
+      releaseMemoryBridge()
+      cancelBridgeReady()
+      if (initialSnapshotFallbackTimer !== null) {
+        window.clearTimeout(initialSnapshotFallbackTimer)
+        initialSnapshotFallbackTimer = null
       }
-    })
+    }
   },
 
   cleanupListeners: (options = {}) => {
+    sessionGeneration += 1
     const { clearSnapshot = true } = options
+    currentSessionCleanup?.()
+    currentSessionCleanup = null
+    connectionsWorker.onmessage = null
     unregisterHandlers()
     connectionsWorker.postMessage({ type: 'release', payload: { clearClosed: true } })
     if (clearSnapshot) {
@@ -374,7 +386,11 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   },
 
   trashClosedConnection: (id: string) => {
-    connectionsWorker.postMessage({ type: 'trashClosedConnection', payload: { id } })
+    connectionsWorker.postMessage({
+      type: 'trashClosedConnection',
+      generation: sessionGeneration,
+      payload: { id }
+    })
   },
 
   closeAllConnections: () => {
@@ -382,7 +398,11 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   },
 
   trashAllClosedConnections: () => {
-    connectionsWorker.postMessage({ type: 'trashAllClosedConnections', payload: {} })
+    connectionsWorker.postMessage({
+      type: 'trashAllClosedConnections',
+      generation: sessionGeneration,
+      payload: {}
+    })
   }
 }))
 

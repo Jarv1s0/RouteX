@@ -23,23 +23,89 @@ pub(crate) fn read_traffic_stats_store(
     app: &tauri::AppHandle,
 ) -> Result<TrafficStatsStore, String> {
     let path = storage_file(app, TRAFFIC_STATS_FILE)?;
-    Ok(read_json_file(&path)?.unwrap_or_default())
+    let state = app.state::<CoreState>();
+    let mut buffer = state.traffic_stats.lock().map_err(|e| e.to_string())?;
+    Ok(buffer.load(&path)?.clone())
 }
 
-pub(crate) fn write_traffic_stats_store(
-    app: &tauri::AppHandle,
-    stats: &TrafficStatsStore,
-) -> Result<(), String> {
+#[derive(Default)]
+pub(crate) struct TrafficStatsBuffer {
+    stats: Option<TrafficStatsStore>,
+    dirty: bool,
+    last_write: Option<Instant>,
+}
+
+impl TrafficStatsBuffer {
+    pub(crate) fn load(&mut self, path: &Path) -> Result<&mut TrafficStatsStore, String> {
+        if self.stats.is_none() {
+            self.stats = Some(read_json_file(path)?.unwrap_or_default());
+        }
+        Ok(self.stats.as_mut().expect("traffic stats loaded"))
+    }
+
+    pub(crate) fn record(
+        &mut self,
+        path: &Path,
+        upload: u64,
+        download: u64,
+        now: OffsetDateTime,
+    ) -> Result<(u64, u64), String> {
+        let stats = self.load(path)?;
+        if upload > 0 || download > 0 {
+            let date = format!(
+                "{:04}-{:02}-{:02}",
+                now.year(),
+                u8::from(now.month()),
+                now.day()
+            );
+            let hour = format!("{date}-{:02}", now.hour());
+            accumulate_hourly_traffic_record(&mut stats.hourly, &hour, upload, download);
+            accumulate_daily_traffic_record(&mut stats.daily, &date, upload, download);
+            stats.session_upload += upload;
+            stats.session_download += download;
+            stats.last_update = (now.unix_timestamp_nanos() / 1_000_000).max(0) as u64;
+        }
+        let totals = (stats.session_upload, stats.session_download);
+        self.dirty |= upload > 0 || download > 0;
+        Ok(totals)
+    }
+
+    pub(crate) fn flush(&mut self, path: &Path, force: bool) -> Result<(), String> {
+        if self.dirty
+            && (force
+                || self
+                    .last_write
+                    .is_none_or(|at| at.elapsed() >= Duration::from_secs(5)))
+        {
+            if let Some(stats) = &self.stats {
+                write_json_file(path, stats)?;
+            }
+            self.dirty = false;
+            self.last_write = Some(Instant::now());
+        }
+        Ok(())
+    }
+}
+
+pub(crate) fn flush_traffic_stats(app: &tauri::AppHandle) -> Result<(), String> {
     let path = storage_file(app, TRAFFIC_STATS_FILE)?;
-    write_json_file(&path, stats)
+    app.state::<CoreState>()
+        .traffic_stats
+        .lock()
+        .map_err(|e| e.to_string())?
+        .flush(&path, true)
 }
 
 pub(crate) fn initialize_traffic_stats_store(app: &tauri::AppHandle) -> Result<(), String> {
-    let mut stats = read_traffic_stats_store(app)?;
+    let path = storage_file(app, TRAFFIC_STATS_FILE)?;
+    let state = app.state::<CoreState>();
+    let mut buffer = state.traffic_stats.lock().map_err(|e| e.to_string())?;
+    let stats = buffer.load(&path)?;
     stats.session_upload = 0;
     stats.session_download = 0;
     stats.last_update = current_timestamp_ms();
-    write_traffic_stats_store(app, &stats)
+    buffer.dirty = true;
+    buffer.flush(&path, true)
 }
 
 pub(crate) fn trim_recent_records<T>(records: &mut Vec<T>, max_len: usize) {
@@ -89,34 +155,16 @@ pub(crate) fn accumulate_daily_traffic_record(
     trim_recent_records(records, MAX_TRAFFIC_DAILY_RECORDS);
 }
 
-pub(crate) fn record_traffic_sample(
-    app: &tauri::AppHandle,
-    sample: TrafficSampleInput,
-) -> Result<TrafficStatsStore, String> {
-    let Some(hour_key) = sample.hour.filter(|value| !value.trim().is_empty()) else {
-        return read_traffic_stats_store(app);
-    };
-    let Some(date_key) = sample.date.filter(|value| !value.trim().is_empty()) else {
-        return read_traffic_stats_store(app);
-    };
-
-    let upload = sample.up.unwrap_or(0);
-    let download = sample.down.unwrap_or(0);
-    let mut stats = read_traffic_stats_store(app)?;
-
-    accumulate_hourly_traffic_record(&mut stats.hourly, &hour_key, upload, download);
-    accumulate_daily_traffic_record(&mut stats.daily, &date_key, upload, download);
-
-    stats.session_upload += upload;
-    stats.session_download += download;
-    stats.last_update = sample.timestamp.unwrap_or_else(current_timestamp_ms);
-
-    write_traffic_stats_store(app, &stats)?;
-    Ok(stats)
-}
-
 pub(crate) fn clear_traffic_stats_store(app: &tauri::AppHandle) -> Result<(), String> {
-    write_traffic_stats_store(app, &TrafficStatsStore::default())
+    let path = storage_file(app, TRAFFIC_STATS_FILE)?;
+    let state = app.state::<CoreState>();
+    let mut buffer = state.traffic_stats.lock().map_err(|e| e.to_string())?;
+    let stats = TrafficStatsStore::default();
+    write_json_file(&path, &stats)?;
+    buffer.stats = Some(stats);
+    buffer.dirty = false;
+    buffer.last_write = Some(Instant::now());
+    Ok(())
 }
 
 pub(crate) fn read_app_config_store(app: &tauri::AppHandle) -> Result<Value, String> {
@@ -127,11 +175,23 @@ pub(crate) fn patch_app_config_store(
     app: &tauri::AppHandle,
     patch: &Value,
 ) -> Result<Value, String> {
+    let state = app.state::<CoreState>();
+    let _guard = state.config_write_lock.lock().map_err(|e| e.to_string())?;
     let mut value = read_app_config_store(app)?;
+    let previous = value.clone();
     merge_json(&mut value, patch);
-    invalidate_profile_runtime_config_cache_after(
-        write_value_store(app, APP_CONFIG_FILE, &value).map(|_| value),
-    )
+    write_value_store(app, APP_CONFIG_FILE, &value)?;
+    if app_config_changes_runtime(&previous, &value) {
+        invalidate_profile_runtime_config_cache();
+    }
+    Ok(value)
+}
+
+pub(crate) fn app_config_changes_runtime(previous: &Value, next: &Value) -> bool {
+    ["controlDns", "controlSniff"].iter().any(|key| {
+        previous.get(*key).and_then(Value::as_bool).unwrap_or(true)
+            != next.get(*key).and_then(Value::as_bool).unwrap_or(true)
+    })
 }
 
 pub(crate) fn patch_requires_shell_surface_sync(patch: &Value) -> bool {
@@ -166,6 +226,8 @@ pub(crate) fn patch_controlled_config_store(
     app: &tauri::AppHandle,
     patch: &Value,
 ) -> Result<Value, String> {
+    let state = app.state::<CoreState>();
+    let _guard = state.config_write_lock.lock().map_err(|e| e.to_string())?;
     let mut value = read_controlled_config_store(app)?;
     let app_config = read_app_config_store(app)?;
     let control_dns = app_config
@@ -244,4 +306,66 @@ pub(crate) fn write_chains_config(
 ) -> Result<(), String> {
     let path = storage_file(app, CHAINS_CONFIG_FILE)?;
     invalidate_profile_runtime_config_cache_after(write_json_file(&path, config))
+}
+
+// Callers share with_storage_mutation so file changes and runtime application roll back together.
+pub(crate) fn apply_configuration_change(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    app_patch: &Value,
+    core_patch: &Value,
+    force_restart: bool,
+) -> Result<Value, String> {
+    if !app_patch.is_object() || !core_patch.is_object() {
+        return Err("配置补丁必须是对象".to_string());
+    }
+    patch_app_config_store(app, app_patch)?;
+    patch_controlled_config_store(app, core_patch)?;
+    let hot_reload = read_app_config_store(app)?
+        .get("hotReloadCoreOnSave")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let running = state
+        .runtime
+        .lock()
+        .map_err(|e| e.to_string())?
+        .controller_url
+        .is_some();
+    let result = if running && hot_reload && !force_restart {
+        reload_core_config_process(app, state, true)?
+    } else {
+        restart_core_process(app, state, None)?
+    };
+    if patch_requires_shell_surface_sync(app_patch) {
+        sync_shell_surfaces(app)?;
+    }
+    emit_ipc_event(app, "appConfigUpdated", Value::Null);
+    emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
+    emit_ipc_event(app, "core-started", result.clone());
+    emit_ipc_event(app, "groupsUpdated", Value::Null);
+    emit_ipc_event(app, "rulesUpdated", Value::Null);
+    Ok(result)
+}
+
+pub(crate) fn set_core_mode(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+    mode: &str,
+) -> Result<(), String> {
+    patch_controlled_config_store(app, &json!({ "mode": mode }))?;
+    if let Err(error) = core_request(
+        state,
+        reqwest::Method::PATCH,
+        "/configs",
+        None,
+        Some(json!({ "mode": mode })),
+    ) {
+        if error != "Mihomo controller is not available" {
+            return Err(error);
+        }
+    }
+    emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
+    emit_ipc_event(app, "groupsUpdated", Value::Null);
+    emit_ipc_event(app, "rulesUpdated", Value::Null);
+    Ok(())
 }

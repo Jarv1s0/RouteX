@@ -192,6 +192,9 @@ interface ControllerGroupDelay {
 interface ControllerTraffic {
   up: number
   down: number
+  sessionUpload?: number
+  sessionDownload?: number
+  timestamp?: number
 }
 
 // ${api}/rules

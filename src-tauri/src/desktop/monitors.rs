@@ -199,6 +199,22 @@ pub(crate) fn stop_network_health_monitor(state: &State<'_, CoreState>) -> Resul
     Ok(())
 }
 
+pub(crate) fn traffic_delta(current: u64, previous: u64) -> u64 {
+    current.checked_sub(previous).unwrap_or(current)
+}
+
+pub(crate) fn traffic_rate(delta: u64, elapsed: Duration) -> u64 {
+    (u128::from(delta) * 1000 / elapsed.as_millis().max(1)).min(u128::from(u64::MAX)) as u64
+}
+
+fn stop_core_events_handle(handle: CoreEventsMonitorHandle) -> Result<(), String> {
+    let _ = handle.shutdown.send(());
+    handle
+        .thread
+        .join()
+        .map_err(|_| "流量监控线程退出失败".to_string())
+}
+
 pub(crate) fn start_core_events_monitor(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
@@ -206,67 +222,121 @@ pub(crate) fn start_core_events_monitor(
     let controller_url = current_controller_url(state)?
         .ok_or_else(|| "Mihomo controller is not available".to_string())?;
     let connection_interval = Duration::from_millis(read_connection_interval_ms(app));
-
-    stop_core_events_monitor(state)?;
-
-    let (shutdown_tx, shutdown_rx) = mpsc::channel::<()>();
-    let app_handle = app.clone();
-    thread::spawn(move || {
-        let client = match Client::builder().timeout(Duration::from_secs(3)).build() {
-            Ok(client) => client,
-            Err(_) => return,
-        };
-        let connections_url = format!("{controller_url}/connections");
-        let mut last_totals: Option<(u64, u64, Instant)> = None;
-
-        loop {
-            if let Ok(response) = client.get(&connections_url).send() {
-                if response.status().is_success() {
-                    if let Ok(snapshot) = response.json::<Value>() {
-                        let now = Instant::now();
-                        let upload_total = json_u64(snapshot.get("uploadTotal"));
-                        let download_total = json_u64(snapshot.get("downloadTotal"));
-                        let (up, down) = if let Some((last_upload, last_download, last_at)) =
-                            last_totals
-                        {
-                            let elapsed_ms = now.duration_since(last_at).as_millis().max(1) as u64;
-                            (
-                                upload_total
-                                    .saturating_sub(last_upload)
-                                    .saturating_mul(1000)
-                                    / elapsed_ms,
-                                download_total
-                                    .saturating_sub(last_download)
-                                    .saturating_mul(1000)
-                                    / elapsed_ms,
-                            )
-                        } else {
-                            (0, 0)
-                        };
-
-                        last_totals = Some((upload_total, download_total, now));
-                        emit_ipc_event(
-                            &app_handle,
-                            "mihomoTraffic",
-                            json!({ "up": up, "down": down }),
-                        );
-                    }
-                }
-            }
-
-            match shutdown_rx.recv_timeout(connection_interval) {
-                Ok(_) | Err(mpsc::RecvTimeoutError::Disconnected) => break,
-                Err(mpsc::RecvTimeoutError::Timeout) => {}
-            }
-        }
-    });
+    let secret = state
+        .runtime
+        .lock()
+        .map_err(|e| e.to_string())?
+        .cached_runtime_config
+        .as_ref()
+        .and_then(|config| config.value.get("secret").and_then(Value::as_str))
+        .unwrap_or_default()
+        .to_string();
 
     let mut monitor_handle = state
         .core_events_monitor
         .lock()
         .map_err(|e| e.to_string())?;
+    if let Some(handle) = monitor_handle.take() {
+        stop_core_events_handle(handle)?;
+    }
+
+    let (shutdown_tx, shutdown_rx) = mpsc::channel::<()>();
+    let app_handle = app.clone();
+    let monitor_thread = thread::spawn(move || {
+        let client = match Client::builder()
+            .no_proxy()
+            .timeout(Duration::from_secs(3))
+            .build()
+        {
+            Ok(client) => client,
+            Err(_) => return,
+        };
+        let connections_url = format!("{controller_url}/connections");
+        let mut last_totals: Option<(u64, u64, Instant)> = None;
+        let mut stopping = false;
+
+        loop {
+            let mut request = client.get(&connections_url);
+            if !secret.is_empty() {
+                request = request.bearer_auth(&secret);
+            }
+            if let Ok(response) = request.send() {
+                if response.status().is_success() {
+                    if let Ok(snapshot) = response.json::<Value>() {
+                        let now = Instant::now();
+                        let upload_total = json_u64(snapshot.get("uploadTotal"));
+                        let download_total = json_u64(snapshot.get("downloadTotal"));
+                        // The first snapshot establishes the baseline, even if disk loading fails.
+                        last_totals.get_or_insert((upload_total, download_total, now));
+                        let (upload, download, elapsed) =
+                            if let Some((last_upload, last_download, last_at)) = last_totals {
+                                (
+                                    traffic_delta(upload_total, last_upload),
+                                    traffic_delta(download_total, last_download),
+                                    now.duration_since(last_at),
+                                )
+                            } else {
+                                (0, 0, Duration::from_secs(1))
+                            };
+
+                        let totals = (|| -> Result<(u64, u64), String> {
+                            let path = storage_file(&app_handle, TRAFFIC_STATS_FILE)?;
+                            let state = app_handle.state::<CoreState>();
+                            let mut buffer =
+                                state.traffic_stats.lock().map_err(|e| e.to_string())?;
+                            let local_now = OffsetDateTime::now_local()
+                                .unwrap_or_else(|_| OffsetDateTime::now_utc());
+                            let totals = buffer.record(&path, upload, download, local_now)?;
+                            Ok(totals)
+                        })();
+                        let mut payload = json!({
+                            "up": traffic_rate(upload, elapsed),
+                            "down": traffic_rate(download, elapsed),
+                            "timestamp": current_timestamp_ms(),
+                        });
+                        match totals {
+                            Ok((session_upload, session_download)) => {
+                                last_totals = Some((upload_total, download_total, now));
+                                payload["sessionUpload"] = json!(session_upload);
+                                payload["sessionDownload"] = json!(session_download);
+                            }
+                            Err(error) => eprintln!("[desktop.traffic] 统计失败: {error}"),
+                        }
+                        emit_ipc_event(&app_handle, "mihomoTraffic", payload);
+                    }
+                }
+            }
+
+            // Persistence retries continue even when the controller is unavailable.
+            let persist = (|| -> Result<(), String> {
+                let path = storage_file(&app_handle, TRAFFIC_STATS_FILE)?;
+                app_handle
+                    .state::<CoreState>()
+                    .traffic_stats
+                    .lock()
+                    .map_err(|e| e.to_string())?
+                    .flush(&path, stopping)
+            })();
+            if let Err(error) = persist {
+                eprintln!("[desktop.traffic] 保存统计失败，将重试: {error}");
+            }
+            if stopping {
+                break;
+            }
+
+            match shutdown_rx.recv_timeout(connection_interval) {
+                Ok(_) | Err(mpsc::RecvTimeoutError::Disconnected) => stopping = true,
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+            }
+        }
+        if let Err(error) = flush_traffic_stats(&app_handle) {
+            eprintln!("[desktop.traffic] 停止时保存统计失败: {error}");
+        }
+    });
+
     *monitor_handle = Some(CoreEventsMonitorHandle {
         shutdown: shutdown_tx,
+        thread: monitor_thread,
     });
     Ok(())
 }
@@ -277,7 +347,7 @@ pub(crate) fn stop_core_events_monitor(state: &State<'_, CoreState>) -> Result<(
         .lock()
         .map_err(|e| e.to_string())?;
     if let Some(handle) = monitor_handle.take() {
-        let _ = handle.shutdown.send(());
+        stop_core_events_handle(handle)?;
     }
     Ok(())
 }

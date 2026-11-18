@@ -20,12 +20,39 @@ fn upgrade_mihomo_core(
 
     let target_path = mihomo_core_target_path(app, is_alpha)?;
     let (asset, bytes) = fetch_mihomo_core_archive(app, &latest, is_alpha)?;
+    let parent = target_path.parent().ok_or("内核文件缺少父目录")?;
+    fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    let staging = tempfile::Builder::new().prefix("routex-core-")
+        .tempdir_in(parent).map_err(|e| e.to_string())?;
+    let candidate = staging.path().join(target_path.file_name().ok_or("内核文件名无效")?);
+    write_mihomo_core_archive(&asset, bytes, &candidate)?;
+    let mut command = Command::new(&candidate);
+    #[cfg(target_os = "windows")]
+    command.creation_flags(0x08000000);
+    let version = command.arg("-v").output().map_err(|e| format!("验证新内核失败: {e}"))?;
+    if !version.status.success() {
+        return Err("新内核无法运行，已保留旧内核".to_string());
+    }
+    let _guard = state.profile_mutation_lock.lock().map_err(|e| e.to_string())?;
     stop_core_process(app, state)?;
-    write_mihomo_core_archive(&asset, bytes, &target_path)?;
-    restart_core_process(app, state, None).inspect(|value| {
-        emit_ipc_event(app, "core-started", value.clone());
-        emit_mihomo_config_updated(app);
-    })
+    let result = replace_file_with_rollback(&candidate, &target_path, || {
+        restart_core_process(app, state, None).inspect_err(|_| {
+            let _ = stop_core_process(app, state);
+        })
+    });
+    match result {
+        Ok(value) => {
+            emit_ipc_event(app, "core-started", value.clone());
+            emit_mihomo_config_updated(app);
+            Ok(value)
+        }
+        Err(error) => {
+            if let Err(restart_error) = restart_core_and_emit(app, state) {
+                return Err(format!("{error}; 恢复旧内核运行失败: {restart_error}"));
+            }
+            Err(error)
+        }
+    }
 }
 
 fn geo_data_file_name(key: &str) -> Result<&'static str, String> {

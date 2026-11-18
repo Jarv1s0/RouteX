@@ -1,6 +1,7 @@
 import { IPC_INVOKE_CHANNELS, type IpcInvokeChannel } from '../../../shared/ipc'
 import { desktop } from '@renderer/api/desktop'
 import { translate } from '@renderer/i18n'
+import type { IpcInvokeContract } from '../../../shared/ipc-contract'
 
 function ipcErrorWrapper<T>(response: T | { invokeError: unknown }): T {
   if (response !== null && typeof response === 'object' && 'invokeError' in response) {
@@ -20,6 +21,13 @@ export async function invokeSafe<T>(channel: IpcInvokeChannel, ...args: unknown[
 
 export async function invokeRaw<T>(channel: IpcInvokeChannel, ...args: unknown[]): Promise<T> {
   return desktop.invoke<T>(channel, ...args)
+}
+
+export function invokeTyped<K extends keyof IpcInvokeContract & IpcInvokeChannel>(
+  channel: K,
+  ...args: IpcInvokeContract[K]['args']
+): Promise<IpcInvokeContract[K]['result']> {
+  return invokeSafe<IpcInvokeContract[K]['result']>(channel, ...args)
 }
 
 export function installGlobalAlert(): void {

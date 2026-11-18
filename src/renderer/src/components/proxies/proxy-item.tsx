@@ -3,10 +3,13 @@ import { mihomoUnfixedProxy } from '@renderer/utils/mihomo-ipc'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import React, { useMemo, useState, memo } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useShallow } from 'zustand/react/shallow'
+import { useAppStore } from '@renderer/store/use-app-store'
 import { getProxyDisplayDelay, getResolvedProxyTarget } from '@renderer/utils/proxy-delay'
 import { useI18n } from '@renderer/i18n'
 import { getDelayColorClass } from '@renderer/utils/delay-color'
+
+const DEFAULT_DELAY_THRESHOLDS = { good: 200, fair: 500 }
 
 interface Props {
   mutateProxies: () => void
@@ -54,8 +57,9 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
   } = props
 
   const { t } = useI18n()
-  const { appConfig } = useAppConfig()
-  const { delayThresholds = { good: 200, fair: 500 } } = appConfig || {}
+  const delayThresholds = useAppStore(
+    useShallow((state) => state.appConfig?.delayThresholds ?? DEFAULT_DELAY_THRESHOLDS)
+  )
 
   const displayDelay = useMemo(() => getProxyDisplayDelay(proxy), [proxy, delayVersion])
 

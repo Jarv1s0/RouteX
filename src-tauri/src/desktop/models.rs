@@ -34,6 +34,7 @@ pub(crate) struct NetworkHealthMonitorHandle {
 
 pub(crate) struct CoreEventsMonitorHandle {
     pub(crate) shutdown: mpsc::Sender<()>,
+    pub(crate) thread: thread::JoinHandle<()>,
 }
 
 pub(crate) struct LightweightModeHandle {
@@ -61,12 +62,14 @@ pub(crate) struct CoreState {
     pub(crate) runtime: Mutex<CoreRuntime>,
     pub(crate) restart_lock: Mutex<()>,
     pub(crate) profile_mutation_lock: Mutex<()>,
+    pub(crate) config_write_lock: Mutex<()>,
     pub(crate) last_sysproxy_signature: Mutex<Option<String>>,
     pub(crate) pac_server: Mutex<Option<PacServerHandle>>,
     pub(crate) lightweight_mode: Mutex<Option<LightweightModeHandle>>,
     pub(crate) network_detection: Mutex<Option<NetworkDetectionHandle>>,
     pub(crate) ssid_check: Mutex<Option<SsidCheckHandle>>,
     pub(crate) core_events_monitor: Mutex<Option<CoreEventsMonitorHandle>>,
+    pub(crate) traffic_stats: Mutex<TrafficStatsBuffer>,
     pub(crate) network_health_monitor: Mutex<Option<NetworkHealthMonitorHandle>>,
     pub(crate) profile_updater: Mutex<Option<ProfileUpdaterHandle>>,
     pub(crate) network_health_state: Mutex<NetworkHealthState>,
@@ -310,15 +313,6 @@ impl Default for TrafficStatsStore {
             session_download: 0,
         }
     }
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-pub(crate) struct TrafficSampleInput {
-    pub(crate) up: Option<u64>,
-    pub(crate) down: Option<u64>,
-    pub(crate) hour: Option<String>,
-    pub(crate) date: Option<String>,
-    pub(crate) timestamp: Option<u64>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

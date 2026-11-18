@@ -51,7 +51,7 @@ function updateSpeedSamples(
 }
 
 self.onmessage = (event: MessageEvent) => {
-  const { type, payload } = event.data
+  const { type, payload, generation } = event.data
 
   if (type === 'process') {
     const { connections, isPaused, isHidden, isBaseline, now } = payload as {
@@ -147,6 +147,7 @@ self.onmessage = (event: MessageEvent) => {
 
     self.postMessage({
       type: 'process_result',
+      generation,
       payload: {
         activeConnections: newActive,
         closedConnections: nextClosed,
@@ -156,10 +157,18 @@ self.onmessage = (event: MessageEvent) => {
   } else if (type === 'trashClosedConnection') {
     const { id } = payload
     prevClosed = prevClosed.filter((c) => c.id !== id)
-    self.postMessage({ type: 'closed_update', payload: { closedConnections: prevClosed } })
+    self.postMessage({
+      type: 'closed_update',
+      generation,
+      payload: { closedConnections: prevClosed }
+    })
   } else if (type === 'trashAllClosedConnections') {
     prevClosed = []
-    self.postMessage({ type: 'closed_update', payload: { closedConnections: prevClosed } })
+    self.postMessage({
+      type: 'closed_update',
+      generation,
+      payload: { closedConnections: prevClosed }
+    })
   } else if (type === 'release') {
     releaseWorkerState(payload?.clearClosed !== false)
   }

@@ -177,26 +177,27 @@ pub(crate) fn trigger_sys_proxy(
     only_active_device: bool,
 ) -> Result<(), String> {
     let signature = build_sysproxy_signature(app, enable, only_active_device)?;
-    {
-        let last_signature = state
-            .last_sysproxy_signature
-            .lock()
-            .map_err(|e| e.to_string())?;
-        if last_signature.as_deref() == Some(signature.as_str()) {
-            return Ok(());
+    apply_sysproxy_signature(&state.last_sysproxy_signature, signature, || {
+        if enable {
+            set_sys_proxy(app, state, only_active_device)
+        } else {
+            disable_sys_proxy(app, state, only_active_device)
         }
-    }
+    })
+}
 
-    if enable {
-        set_sys_proxy(app, state, only_active_device)?;
-    } else {
-        disable_sys_proxy(app, state, only_active_device)?;
+pub(crate) fn apply_sysproxy_signature(
+    cache: &Mutex<Option<String>>,
+    signature: String,
+    apply: impl FnOnce() -> Result<(), String>,
+) -> Result<(), String> {
+    let mut last_signature = cache.lock().map_err(|e| e.to_string())?;
+    if last_signature.as_deref() == Some(signature.as_str()) {
+        return Ok(());
     }
-
-    let mut last_signature = state
-        .last_sysproxy_signature
-        .lock()
-        .map_err(|e| e.to_string())?;
+    // A failed command may already have changed PAC or system state.
+    *last_signature = None;
+    apply()?;
     *last_signature = Some(signature);
     Ok(())
 }
@@ -410,47 +411,34 @@ pub(crate) fn apply_ssid_mode(
     state: &State<'_, CoreState>,
     ssid: Option<&str>,
 ) -> Result<(), String> {
-    let pause_ssids = read_pause_ssids(app)?;
-    if pause_ssids.is_empty() {
-        return Ok(());
-    }
-
-    let next_mode = if ssid
-        .map(|value| pause_ssids.iter().any(|item| item == value))
-        .unwrap_or(false)
-    {
-        "direct"
-    } else {
-        "rule"
-    };
-
-    let current_mode = read_controlled_config_store(app)?
-        .get("mode")
-        .and_then(Value::as_str)
-        .unwrap_or("rule")
-        .to_string();
-    if current_mode == next_mode {
-        return Ok(());
-    }
-
-    patch_controlled_config_store(app, &json!({ "mode": next_mode }))?;
-    if let Err(error) = core_request(
-        state,
-        reqwest::Method::PATCH,
-        "/configs",
-        None,
-        Some(json!({ "mode": next_mode })),
-    ) {
-        if error != "Mihomo controller is not available" {
-            return Err(error);
+    with_storage_mutation(app, state, false, || {
+        let pause_ssids = read_pause_ssids(app)?;
+        if pause_ssids.is_empty() {
+            return Ok(());
         }
-    }
 
-    emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
-    emit_ipc_event(app, "groupsUpdated", Value::Null);
-    emit_ipc_event(app, "rulesUpdated", Value::Null);
-    let _ = refresh_native_tray_menu(app);
-    Ok(())
+        let next_mode = if ssid
+            .map(|value| pause_ssids.iter().any(|item| item == value))
+            .unwrap_or(false)
+        {
+            "direct"
+        } else {
+            "rule"
+        };
+
+        let current_mode = read_controlled_config_store(app)?
+            .get("mode")
+            .and_then(Value::as_str)
+            .unwrap_or("rule")
+            .to_string();
+        if current_mode == next_mode {
+            return Ok(());
+        }
+
+        set_core_mode(app, state, next_mode)?;
+        let _ = refresh_native_tray_menu(app);
+        Ok(())
+    })
 }
 
 pub(crate) fn stop_ssid_check(app: &tauri::AppHandle) -> Result<(), String> {
@@ -642,6 +630,7 @@ pub(crate) fn shutdown_runtime_once(app: &tauri::AppHandle) {
     }
 
     if state.preserve_core_on_exit.load(AtomicOrdering::SeqCst) {
+        let _ = stop_core_events_monitor(&state);
         let _ = stop_profile_updater(&state);
         let _ = stop_lightweight_mode(app);
         return;
