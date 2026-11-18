@@ -33,6 +33,8 @@ import {
 import { useI18n, type TranslationKey } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
+import { useConnectionTable } from '@renderer/hooks/use-connection-table'
+const NO_CONNECTIONS: ControllerConnectionDetail[] = []
 // 所有可用的表格列
 const ALL_COLUMNS = [
   { key: 'close', labelKey: 'connections.column.close' },
@@ -52,21 +54,6 @@ const ALL_COLUMNS = [
   { key: 'sniffHost', labelKey: 'connections.column.sniffHost' },
   { key: 'inboundName', labelKey: 'connections.column.inboundName' },
   { key: 'inboundUser', labelKey: 'connections.column.inboundUser' }
-]
-
-// 默认显示的列
-export const DEFAULT_COLUMNS = [
-  'process',
-  'host',
-  'type',
-  'rule',
-  'chains',
-  'downloadSpeed',
-  'uploadSpeed',
-  'download',
-  'upload',
-  'time',
-  'close'
 ]
 
 interface Props {
@@ -130,10 +117,10 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
     siderWidth = 250,
     displayIcon = true,
     displayAppName = true,
-    connectionInterval: rawConnectionInterval = MIN_CONNECTION_INTERVAL,
-    connectionTableColumns = DEFAULT_COLUMNS
+    connectionInterval: rawConnectionInterval = MIN_CONNECTION_INTERVAL
   } = appConfig || {}
   const connectionInterval = normalizeConnectionInterval(rawConnectionInterval)
+  const table = useConnectionTable(NO_CONNECTIONS)
 
   const [interval, setInterval] = useState(connectionInterval?.toString() ?? '')
 
@@ -170,18 +157,15 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
 
   // 获取所有列的排序顺序（已选中的在前，未选中的在后）
   const sortedColumns = React.useMemo(() => {
-    const selected = connectionTableColumns.filter((key) => ALL_COLUMNS.find((c) => c.key === key))
-    const unselected = ALL_COLUMNS.filter((c) => !connectionTableColumns.includes(c.key)).map(
-      (c) => c.key
-    )
-    return [...selected, ...unselected]
-  }, [connectionTableColumns])
+    const selected = table.getVisibleLeafColumns().map((column) => column.id)
+    return [
+      ...selected,
+      ...ALL_COLUMNS.filter((column) => !selected.includes(column.key)).map((column) => column.key)
+    ]
+  }, [table, table.state.columnOrder, table.state.columnVisibility, table.state.columnPinning])
 
   const toggleColumn = (key: string) => {
-    const newColumns = connectionTableColumns.includes(key)
-      ? connectionTableColumns.filter((c) => c !== key)
-      : [...connectionTableColumns, key]
-    patchAppConfig({ connectionTableColumns: newColumns }).catch((error) => notifyError(error))
+    table.getColumn(key)?.toggleVisibility()
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -192,11 +176,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
     const newIndex = sortedColumns.indexOf(over.id as string)
     const newOrder = arrayMove(sortedColumns, oldIndex, newIndex)
 
-    // 只保存已选中的列，按新顺序
-    const newSelectedColumns = newOrder.filter((key) => connectionTableColumns.includes(key))
-    patchAppConfig({ connectionTableColumns: newSelectedColumns }).catch((error) =>
-      notifyError(error)
-    )
+    table.setColumnOrder(newOrder)
   }
 
   return (
@@ -288,7 +268,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                         key={col.key}
                         id={col.key}
                         label={t(col.labelKey as TranslationKey)}
-                        isSelected={connectionTableColumns.includes(col.key)}
+                        isSelected={table.getColumn(col.key)?.getIsVisible() ?? false}
                         onToggle={() => toggleColumn(col.key)}
                       />
                     )

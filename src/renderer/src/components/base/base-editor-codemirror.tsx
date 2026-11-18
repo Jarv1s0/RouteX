@@ -1,12 +1,5 @@
 import React, { type RefObject, useEffect, useMemo, useRef } from 'react'
-import {
-  autocompletion,
-  closeBrackets,
-  closeBracketsKeymap,
-  snippetCompletion,
-  type Completion,
-  type CompletionContext
-} from '@codemirror/autocomplete'
+import { autocompletion, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { css } from '@codemirror/lang-css'
 import { javascript } from '@codemirror/lang-javascript'
@@ -20,7 +13,7 @@ import {
   indentOnInput,
   syntaxHighlighting
 } from '@codemirror/language'
-import { type Diagnostic, lintGutter, linter } from '@codemirror/lint'
+import { forceLinting, lintGutter, linter } from '@codemirror/lint'
 import { MergeView, unifiedMergeView } from '@codemirror/merge'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
 import { EditorState, type Extension } from '@codemirror/state'
@@ -36,20 +29,17 @@ import {
   rectangularSelection
 } from '@codemirror/view'
 import { useTheme } from 'next-themes'
-import { load } from 'js-yaml'
-import { translate } from '@renderer/i18n'
+import { translate, useI18n } from '@renderer/i18n'
 import type { BaseEditorProps, Language } from './base-editor.shared'
-import { MIHOMO_V119_YAML_SNIPPETS } from '../../../../shared/defaults/mihomo-templates'
-
-type YamlParseError = {
-  message?: string
-  mark?: {
-    line?: number
-    column?: number
-  }
-}
+import { createMihomoYamlSupport } from '@renderer/utils/mihomo-yaml-language'
+import type { MihomoYamlOptions } from '@renderer/utils/mihomo-yaml-diagnostics'
+import useSWR from 'swr'
+import { mihomoVersion } from '@renderer/utils/mihomo-ipc'
+import { onMihomoCoreChanged } from '@renderer/utils/mihomo-core-events'
+import { ON, onIpc } from '@renderer/utils/ipc-channels'
 
 interface CodeMirrorViewProps extends BaseEditorProps {
+  validationRevision?: string
   extensions: Extension[]
   suppressChangeRef: RefObject<boolean>
 }
@@ -78,28 +68,6 @@ const getSelectionMatchBackground = (isLight: boolean): string =>
   isLight
     ? 'hsl(var(--heroui-primary) / 0.12) !important'
     : 'hsl(var(--heroui-primary) / 0.10) !important'
-const mihomoYamlSnippetCompletions: Completion[] = MIHOMO_V119_YAML_SNIPPETS.map((item) =>
-  snippetCompletion(item.snippet, {
-    label: item.label,
-    detail: item.detail,
-    info: item.info,
-    type: 'keyword'
-  })
-)
-
-function mihomoYamlCompletionSource(context: CompletionContext) {
-  const word = context.matchBefore(/[\w-]*/)
-  if (!word || (word.from === word.to && !context.explicit)) {
-    return null
-  }
-
-  return {
-    from: word.from,
-    options: mihomoYamlSnippetCompletions,
-    validFor: /^[\w-]*$/
-  }
-}
-
 const createFoldMarker = (open: boolean): HTMLElement => {
   const marker = document.createElement('span')
   marker.className = `cm-foldMarker ${open ? 'cm-foldMarker-open' : 'cm-foldMarker-closed'}`
@@ -116,31 +84,6 @@ const useEditorSettings = (): EditorSettings => {
   }
 }
 
-const yamlParseLinter = linter((view) => {
-  const text = view.state.doc.toString()
-  if (!text.trim()) return []
-
-  try {
-    load(text)
-    return []
-  } catch (error) {
-    const parseError = error as YamlParseError
-    const lineNumber = typeof parseError.mark?.line === 'number' ? parseError.mark.line + 1 : 1
-    const column = typeof parseError.mark?.column === 'number' ? parseError.mark.column : 0
-    const line = view.state.doc.line(Math.min(lineNumber, view.state.doc.lines))
-    const from = Math.min(line.from + column, line.to)
-
-    return [
-      {
-        from,
-        to: Math.min(from + 1, view.state.doc.length),
-        severity: 'error',
-        message: parseError.message || translate('sysproxy.yamlFormatError')
-      } satisfies Diagnostic
-    ]
-  }
-})
-
 const languageExtensions = (language: Language): Extension[] => {
   switch (language) {
     case 'css':
@@ -150,7 +93,7 @@ const languageExtensions = (language: Language): Extension[] => {
     case 'json':
       return [json(), linter(jsonParseLinter())]
     case 'yaml':
-      return [yaml(), yamlParseLinter]
+      return [yaml()]
     case 'text':
       return []
   }
@@ -286,7 +229,8 @@ const createExtensions = ({
   suppressNativeContextMenu,
   onNativeContextMenu,
   onChangeRef,
-  suppressChangeRef
+  suppressChangeRef,
+  yamlOptionsRef
 }: {
   language: Language
   readOnly: boolean
@@ -296,6 +240,7 @@ const createExtensions = ({
   onNativeContextMenu?: (event: MouseEvent) => void
   onChangeRef?: RefObject<((value: string) => void) | undefined>
   suppressChangeRef?: RefObject<boolean>
+  yamlOptionsRef?: RefObject<MihomoYamlOptions>
 }): Extension[] => [
   lineNumbers(),
   highlightActiveLineGutter(),
@@ -309,7 +254,9 @@ const createExtensions = ({
   indentOnInput(),
   bracketMatching(),
   closeBrackets(),
-  autocompletion(language === 'yaml' ? { override: [mihomoYamlCompletionSource] } : undefined),
+  language === 'yaml'
+    ? createMihomoYamlSupport(() => yamlOptionsRef?.current || {})
+    : autocompletion(),
   rectangularSelection(),
   crosshairCursor(),
   highlightActiveLine(),
@@ -371,7 +318,8 @@ const CodeMirrorEditorView: React.FC<CodeMirrorEditorViewProps> = ({
   value,
   extensions,
   suppressChangeRef,
-  unifiedOriginalValue
+  unifiedOriginalValue,
+  validationRevision
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | undefined>(undefined)
@@ -410,6 +358,9 @@ const CodeMirrorEditorView: React.FC<CodeMirrorEditorViewProps> = ({
       replaceDocument(view, value, suppressChangeRef)
     }
   }, [suppressChangeRef, value])
+  useEffect(() => {
+    if (viewRef.current) forceLinting(viewRef.current)
+  }, [validationRevision])
 
   return <div ref={containerRef} className={editorContainerClassName} />
 }
@@ -421,7 +372,8 @@ const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
   diffModifiedLabel = translate('configViewer.diffModified'),
   language,
   extensions,
-  suppressChangeRef
+  suppressChangeRef,
+  validationRevision
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const mergeViewRef = useRef<MergeView | undefined>(undefined)
@@ -466,6 +418,9 @@ const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
       replaceDocument(mergeView.b, value, suppressChangeRef)
     }
   }, [suppressChangeRef, value])
+  useEffect(() => {
+    if (mergeViewRef.current) forceLinting(mergeViewRef.current.b)
+  }, [validationRevision])
 
   return (
     <div className={mergeViewWrapperClassName}>
@@ -480,6 +435,33 @@ const CodeMirrorSideBySideDiffView: React.FC<CodeMirrorViewProps> = ({
 
 export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {
   const { isLight } = useEditorSettings()
+  const { locale } = useI18n()
+  const {
+    data: coreVersion,
+    error: coreVersionError,
+    mutate: refreshCoreVersion
+  } = useSWR(props.language === 'yaml' ? 'mihomoVersion' : null, mihomoVersion, {
+    shouldRetryOnError: false,
+    revalidateOnFocus: false
+  })
+  useEffect(() => {
+    if (props.language !== 'yaml') return
+    const refresh = (): void => {
+      void refreshCoreVersion().catch(() => undefined)
+    }
+    const offChanged = onMihomoCoreChanged(refresh)
+    const offStarted = onIpc(ON.coreStarted, refresh)
+    return () => {
+      offChanged()
+      offStarted()
+    }
+  }, [props.language, refreshCoreVersion])
+  const yamlOptionsRef = useRef<MihomoYamlOptions>({})
+  yamlOptionsRef.current = {
+    version: coreVersionError ? undefined : coreVersion?.version,
+    locale,
+    mode: props.yamlMode || 'auto'
+  }
   const {
     originalValue,
     diffRenderSideBySide = false,
@@ -507,13 +489,15 @@ export const BaseEditorCodeMirror: React.FC<BaseEditorProps> = (props) => {
         suppressNativeContextMenu,
         onNativeContextMenu,
         onChangeRef,
-        suppressChangeRef
+        suppressChangeRef,
+        yamlOptionsRef
       }),
     [compactPadding, isLight, language, onNativeContextMenu, readOnly, suppressNativeContextMenu]
   )
 
   const runtimeProps = {
     ...props,
+    validationRevision: `${coreVersionError ? '' : coreVersion?.version || ''}:${locale}:${props.yamlMode || 'auto'}`,
     extensions,
     suppressChangeRef
   }

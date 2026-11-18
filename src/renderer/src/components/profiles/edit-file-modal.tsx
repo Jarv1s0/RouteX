@@ -98,6 +98,7 @@ const EditFileModal: React.FC<Props> = (props) => {
         <ModalBody className="flex-1 min-h-0 overflow-hidden">
           <BaseEditor
             language="yaml"
+            yamlMode="config"
             value={currData}
             originalValue={isDiff ? originalData : undefined}
             onChange={(value) => setCurrData(value)}

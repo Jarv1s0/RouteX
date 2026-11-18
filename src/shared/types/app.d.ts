@@ -37,14 +37,7 @@ interface AppConfig {
   proxyCols: 'auto' | '1' | '2' | '3' | '4'
   connectionDirection: 'asc' | 'desc'
   connectionOrderBy:
-    | 'time'
-    | 'upload'
-    | 'download'
-    | 'uploadSpeed'
-    | 'downloadSpeed'
-    | 'process'
-    | 'type'
-    | 'rule'
+    'time' | 'upload' | 'download' | 'uploadSpeed' | 'downloadSpeed' | 'process' | 'type' | 'rule'
   connectionInterval?: number
   spinFloatingIcon?: boolean
   disableTray?: boolean
@@ -122,6 +115,8 @@ interface AppConfig {
   displayAppName?: boolean
   connectionTableColumns?: string[]
   connectionTableColumnWidths?: Record<string, number>
+  connectionTableSorting?: { id: string; desc: boolean }[]
+  connectionTablePinning?: { start: string[]; end: string[] }
   disableGPU: boolean
   enableSiderConfig?: boolean
   collapseSidebar?: boolean

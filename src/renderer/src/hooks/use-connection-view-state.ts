@@ -51,11 +51,8 @@ export interface ConnectionViewState {
   handleVisibleRangeChange: (range: VisibleRange) => void
   handleOrderByChange: (orderBy: ConnectionOrderBy) => Promise<void>
   handleDirectionToggle: () => Promise<void>
-  handleTableSort: (column: string) => void
   resetVisibleRange: () => void
 }
-
-import { CONNECTION_TABLE_SORT_COLUMNS } from '@renderer/components/connections/shared'
 
 export function useConnectionViewState(): ConnectionViewState {
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -140,44 +137,42 @@ export function useConnectionViewState(): ConnectionViewState {
   const handleOrderByChange = useCallback(
     async (orderBy: ConnectionOrderBy) => {
       try {
-        await patchAppConfig({ connectionOrderBy: orderBy })
+        await patchAppConfig({
+          connectionOrderBy: orderBy,
+          connectionTableSorting: [{ id: orderBy, desc: connectionDirection === 'desc' }]
+        })
       } catch (error) {
         notifyError(error)
       }
     },
-    [patchAppConfig]
+    [patchAppConfig, connectionDirection]
   )
 
   const handleDirectionToggle = useCallback(async () => {
     try {
       await patchAppConfig({
-        connectionDirection: connectionDirection === 'asc' ? 'desc' : 'asc'
+        connectionDirection: connectionDirection === 'asc' ? 'desc' : 'asc',
+        connectionTableSorting: [
+          { id: connectionOrderBy, desc: connectionDirection !== 'desc' },
+          ...(appConfig?.connectionTableSorting?.slice(1) || [])
+        ]
       })
     } catch (error) {
       notifyError(error)
     }
-  }, [connectionDirection, patchAppConfig])
-
-  const handleTableSort = useCallback(
-    (column: string) => {
-      const nextOrderBy = CONNECTION_TABLE_SORT_COLUMNS[column]
-      if (!nextOrderBy) return
-
-      if (connectionOrderBy === nextOrderBy) {
-        void patchAppConfig({
-          connectionDirection: connectionDirection === 'asc' ? 'desc' : 'asc'
-        }).catch((error) => notifyError(error))
-        return
-      }
-
-      void patchAppConfig({ connectionOrderBy: nextOrderBy }).catch((error) => notifyError(error))
-    },
-    [connectionDirection, connectionOrderBy, patchAppConfig]
-  )
+  }, [connectionDirection, connectionOrderBy, appConfig?.connectionTableSorting, patchAppConfig])
 
   useEffect(() => {
     resetVisibleRange()
-  }, [tab, viewMode, filter, connectionOrderBy, connectionDirection, resetVisibleRange])
+  }, [
+    tab,
+    viewMode,
+    filter,
+    connectionOrderBy,
+    connectionDirection,
+    appConfig?.connectionTableSorting,
+    resetVisibleRange
+  ])
 
   return {
     findProcessMode,
@@ -209,7 +204,6 @@ export function useConnectionViewState(): ConnectionViewState {
     handleVisibleRangeChange,
     handleOrderByChange,
     handleDirectionToggle,
-    handleTableSort,
     resetVisibleRange
   }
 }

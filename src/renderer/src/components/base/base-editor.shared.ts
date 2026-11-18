@@ -12,5 +12,6 @@ export interface BaseEditorProps {
   diffModifiedLabel?: string
   readOnly?: boolean
   language: Language
+  yamlMode?: 'auto' | 'config' | 'merge'
   onChange?: (value: string) => void
 }

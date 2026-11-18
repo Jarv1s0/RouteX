@@ -980,5 +980,11 @@ export const zhCN = {
   'tray.showFloatingWindow': '显示悬浮窗',
   'tray.closeFloatingWindow': '关闭悬浮窗',
   'tray.outboundMode': '出站模式',
-  'tray.enableTunFirst': '请先到内核设置里注册提权任务，再启用虚拟网卡'
+  'tray.enableTunFirst': '请先到内核设置里注册提权任务，再启用虚拟网卡',
+  'connections.table.pinStart': '固定在左侧',
+  'connections.table.noColumns': '尚未选择显示列，请在连接设置中选择。',
+  'connections.table.pinEnd': '固定在右侧',
+  'connections.table.unpin': '取消固定',
+  'connections.table.multiSort': '点击排序；按住 Shift 点击添加排序条件',
+  'connections.table.resize': '调整列宽；双击恢复默认宽度'
 } as const

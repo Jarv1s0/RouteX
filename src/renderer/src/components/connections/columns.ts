@@ -1,5 +1,19 @@
 import { TranslationKey } from '@renderer/i18n'
 
+export const DEFAULT_COLUMNS = [
+  'process',
+  'host',
+  'type',
+  'rule',
+  'chains',
+  'downloadSpeed',
+  'uploadSpeed',
+  'download',
+  'upload',
+  'time',
+  'close'
+]
+
 // 列配置 - 默认宽度
 export const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   close: 40,

@@ -1,7 +1,9 @@
 import { resolve } from 'path'
 import { defineConfig } from 'vitest/config'
+import { mihomoSchemaPlugin } from './scripts/mihomo-schema-plugin'
 
 export default defineConfig({
+  plugins: [mihomoSchemaPlugin()],
   define: {
     __ROUTEX_AUTO_BUILD__: JSON.stringify(false),
     __ROUTEX_BUILD_VARIANT__: JSON.stringify('test'),

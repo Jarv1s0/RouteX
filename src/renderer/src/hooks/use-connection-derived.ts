@@ -1,14 +1,8 @@
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  getConnectionHideRule,
-  type ConnectionOrderBy,
-  type ConnectionTab
-} from '@renderer/components/connections/shared'
+import { getConnectionHideRule, type ConnectionTab } from '@renderer/components/connections/shared'
 
 const connectionSearchCache = new WeakMap<ControllerConnectionDetail, string>()
-const connectionStartCache = new WeakMap<ControllerConnectionDetail, number>()
-const connectionTypeCache = new WeakMap<ControllerConnectionDetail, string>()
 const CONNECTION_DERIVED_THROTTLE_MS = 500
 
 function useThrottledValue<T>(value: T, intervalMs: number, resetKey: string): T {
@@ -87,58 +81,6 @@ function getConnectionSearchText(connection: ControllerConnectionDetail): string
   return searchableText
 }
 
-function getConnectionStart(connection: ControllerConnectionDetail): number {
-  const cached = connectionStartCache.get(connection)
-  if (cached !== undefined) return cached
-
-  const next = Date.parse(connection.start || '') || 0
-  connectionStartCache.set(connection, next)
-  return next
-}
-
-function getConnectionType(connection: ControllerConnectionDetail): string {
-  const cached = connectionTypeCache.get(connection)
-  if (cached) return cached
-
-  const next = `${connection.metadata.type || ''}|${connection.metadata.network || ''}`
-  connectionTypeCache.set(connection, next)
-  return next
-}
-
-function sortConnections(
-  connections: ControllerConnectionDetail[],
-  orderBy: ConnectionOrderBy,
-  direction: 'asc' | 'desc'
-): ControllerConnectionDetail[] {
-  const directionFactor = direction === 'asc' ? 1 : -1
-
-  return [...connections].sort((left, right) => {
-    switch (orderBy) {
-      case 'time':
-        return directionFactor * (getConnectionStart(right) - getConnectionStart(left))
-      case 'upload':
-        return directionFactor * (left.upload - right.upload)
-      case 'download':
-        return directionFactor * (left.download - right.download)
-      case 'uploadSpeed':
-        return directionFactor * ((left.uploadSpeed || 0) - (right.uploadSpeed || 0))
-      case 'downloadSpeed':
-        return directionFactor * ((left.downloadSpeed || 0) - (right.downloadSpeed || 0))
-      case 'process':
-        return (
-          directionFactor *
-          (left.metadata.process || '').localeCompare(right.metadata.process || '')
-        )
-      case 'type':
-        return directionFactor * getConnectionType(left).localeCompare(getConnectionType(right))
-      case 'rule':
-        return directionFactor * (left.rule || '').localeCompare(right.rule || '')
-      default:
-        return 0
-    }
-  })
-}
-
 interface DerivedConnectionsInput {
   activeConnections: ControllerConnectionDetail[]
   closedConnections: ControllerConnectionDetail[]
@@ -146,8 +88,6 @@ interface DerivedConnectionsInput {
   filter: string
   showHidden: boolean
   hiddenRules: Set<string>
-  connectionOrderBy: ConnectionOrderBy
-  connectionDirection: 'asc' | 'desc'
 }
 
 export interface DerivedConnectionsResult {
@@ -161,13 +101,9 @@ export function useDerivedConnections({
   tab,
   filter,
   showHidden,
-  hiddenRules,
-  connectionOrderBy,
-  connectionDirection
+  hiddenRules
 }: DerivedConnectionsInput): DerivedConnectionsResult {
   const deferredFilter = useDeferredValue(filter)
-  const deferredOrder = useDeferredValue(connectionOrderBy)
-  const deferredDirection = useDeferredValue(connectionDirection)
   const sourceConnections = tab === 'active' ? activeConnections : closedConnections
   const throttledSourceConnections = useThrottledValue(
     sourceConnections,
@@ -193,13 +129,6 @@ export function useDerivedConnections({
     })
   }, [deferredFilter, visibleConnections])
 
-  const filteredConnections = useMemo(() => {
-    if (!deferredOrder || deferredFilter !== '') {
-      return searchedConnections
-    }
-    return sortConnections(searchedConnections, deferredOrder, deferredDirection)
-  }, [deferredDirection, deferredFilter, deferredOrder, searchedConnections])
-
   const getConnectionById = useCallback(
     (id: string) => {
       return (
@@ -211,7 +140,7 @@ export function useDerivedConnections({
   )
 
   return {
-    filteredConnections,
+    filteredConnections: searchedConnections,
     getConnectionById
   }
 }

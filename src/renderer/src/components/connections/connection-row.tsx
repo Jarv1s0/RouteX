@@ -5,7 +5,6 @@ import { TranslationKey } from '@renderer/i18n'
 import MihomoIcon from '@renderer/components/base/mihomo-icon'
 import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
 import { calcTraffic } from '@renderer/utils/calc'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getConnectionHideRule } from './shared'
 import { DEFAULT_COLUMN_WIDTHS, RIGHT_ALIGN_COLUMNS } from './columns'
 import {
@@ -22,9 +21,10 @@ export interface RowProps {
   conn: ControllerConnectionDetail
   isSelected: boolean
   onRowClick: (conn: ControllerConnectionDetail) => void
-  onClose: (e: React.MouseEvent, id: string) => void
+  onClose: (id: string) => void
   visibleColumns: string[]
   columnWidths: Record<string, number>
+  columnStyles: Record<string, React.CSSProperties>
   iconMap: Record<string, string>
   appNameCache: Record<string, string>
   displayIcon: boolean
@@ -33,6 +33,7 @@ export interface RowProps {
   hiddenRules?: Set<string>
   t: (key: TranslationKey, values?: Record<string, string | number>) => string
   locale: string
+  timeRefreshTrigger?: number
 }
 
 const ConnectionRowComponent: React.FC<RowProps> = ({
@@ -42,6 +43,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
   onClose,
   visibleColumns,
   columnWidths,
+  columnStyles,
   iconMap,
   appNameCache,
   displayIcon,
@@ -112,7 +114,9 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
             size="sm"
             variant="light"
             className="w-6 h-6 min-w-6"
-            onPress={(e) => onClose(e as unknown as React.MouseEvent, conn.id)}
+            onClick={(event) => event.stopPropagation()}
+            onPress={() => onClose(conn.id)}
+            aria-label={t('connections.column.close')}
           >
             {conn.isActive ? (
               <CgClose className="text-warning" />
@@ -220,22 +224,20 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
   )
 
   return (
-    <div
-      className={CARD_STYLES.GLASS_TABLE_ROW}
-      data-selected={isSelected}
-      onClick={() => onRowClick(conn)}
-      onContextMenu={handleContextMenu}
-    >
+    <>
       {visibleColumns.map((col) => (
-        <div
+        <td
           key={col}
-          className="flex-shrink-0 px-3 py-2.5 text-sm"
-          style={{ width: columnWidths[col] || DEFAULT_COLUMN_WIDTHS[col] }}
+          className={`px-3 py-2.5 text-sm border-b border-default-100 cursor-pointer ${isSelected ? 'bg-primary/10' : 'hover:bg-content2'}`}
+          style={{ ...columnStyles[col], width: columnWidths[col] || DEFAULT_COLUMN_WIDTHS[col] }}
+          data-selected={isSelected}
+          onClick={() => onRowClick(conn)}
+          onContextMenu={handleContextMenu}
         >
           {renderCell(col)}
-        </div>
+        </td>
       ))}
-    </div>
+    </>
   )
 }
 
@@ -250,11 +252,14 @@ export const ConnectionRow = memo(ConnectionRowComponent, (prev, next) => {
     getConnectionRowRenderKey(prev.conn) === getConnectionRowRenderKey(next.conn) &&
     prev.isSelected === next.isSelected &&
     prev.columnWidths === next.columnWidths &&
+    prev.visibleColumns === next.visibleColumns &&
+    prev.columnStyles === next.columnStyles &&
     prev.iconMap === next.iconMap &&
     prev.appNameCache === next.appNameCache &&
     prev.displayIcon === next.displayIcon &&
     prev.displayAppName === next.displayAppName &&
     prev.hiddenRules === next.hiddenRules &&
-    prev.locale === next.locale
+    prev.locale === next.locale &&
+    prev.timeRefreshTrigger === next.timeRefreshTrigger
   )
 })

@@ -102,6 +102,7 @@ function collectSpecifiers(source) {
     /(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g,
     /import\(\s*['"]([^'"]+)['"]\s*\)/g,
     /require\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /new\s+URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url\s*\)/g,
     /@(import|plugin|source)\s+['"]([^'"]+)['"]/g
   ]
 

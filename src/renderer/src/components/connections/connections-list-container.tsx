@@ -16,6 +16,7 @@ import ConnectionsContent from '@renderer/components/connections/connections-con
 import ConnectionsToolbar from '@renderer/components/connections/connections-toolbar'
 import { CustomContextMenu, ContextMenuItem } from '@renderer/components/ui/custom-context-menu'
 import { useConnectionViewState } from '@renderer/hooks/use-connection-view-state'
+import { useConnectionTable } from '@renderer/hooks/use-connection-table'
 
 const ConnectionsListContainer = React.memo(function ConnectionsListContainer() {
   const { t } = useI18n()
@@ -39,7 +40,6 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
     handleVisibleRangeChange,
     handleOrderByChange,
     handleDirectionToggle,
-    handleTableSort,
     activeCount,
     closedCount,
     isPaused,
@@ -53,16 +53,17 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
   const activeConnections = useConnectionsStore((state) => state.activeConnections)
   const closedConnections = useConnectionsStore((state) => state.closedConnections)
 
-  const { filteredConnections, getConnectionById } = useDerivedConnections({
+  const { filteredConnections: searchedConnections, getConnectionById } = useDerivedConnections({
     activeConnections,
     closedConnections,
     tab,
     filter,
     showHidden,
-    hiddenRules,
-    connectionOrderBy,
-    connectionDirection
+    hiddenRules
   })
+  const table = useConnectionTable(searchedConnections)
+  const rows = table.getRowModel().rows
+  const filteredConnections = useMemo(() => rows.map((row) => row.original), [rows])
 
   const handleBulkAction = useCallback(() => {
     if (filter === '') {
@@ -264,6 +265,7 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
       >
         <div onContextMenuCapture={() => setContextConnection(undefined)}>
           <ConnectionsContent
+            table={table}
             tab={tab}
             viewMode={viewMode}
             filteredConnections={filteredConnections}
@@ -276,8 +278,6 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
             hiddenRules={hiddenRules}
             timeRefreshTrigger={timeRefreshTrigger}
             firstItemRefreshTrigger={firstItemRefreshTrigger}
-            connectionOrderBy={connectionOrderBy}
-            connectionDirection={connectionDirection}
             setSelected={setSelected}
             setIsDetailModalOpen={setIsDetailModalOpen}
             closeConnection={closeConnection}
@@ -285,7 +285,6 @@ const ConnectionsListContainer = React.memo(function ConnectionsListContainer() 
             unhideConnection={unhideConnection}
             handleContextMenu={handleContextMenu}
             handleVisibleRangeChange={handleVisibleRangeChange}
-            handleTableSort={handleTableSort}
           />
         </div>
       </CustomContextMenu>

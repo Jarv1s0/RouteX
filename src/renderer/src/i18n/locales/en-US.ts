@@ -1015,5 +1015,11 @@ export const enUS: Record<TranslationKey, string> = {
   'tray.showFloatingWindow': 'Show floating window',
   'tray.closeFloatingWindow': 'Close floating window',
   'tray.outboundMode': 'Outbound mode',
-  'tray.enableTunFirst': 'Register the elevated task in core settings before enabling TUN.'
+  'tray.enableTunFirst': 'Register the elevated task in core settings before enabling TUN.',
+  'connections.table.pinStart': 'Pin to left',
+  'connections.table.noColumns': 'No columns selected. Choose columns in connection settings.',
+  'connections.table.pinEnd': 'Pin to right',
+  'connections.table.unpin': 'Unpin column',
+  'connections.table.multiSort': 'Click to sort; Shift-click to add a sort column',
+  'connections.table.resize': 'Resize column; double-click to reset width'
 }

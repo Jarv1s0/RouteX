@@ -1,56 +1,39 @@
-import React, { memo, useCallback, useMemo } from 'react'
+import React, {
+  useCallback,
+  useMemo,
+  type CSSProperties,
+  type ComponentPropsWithoutRef
+} from 'react'
 import { HiSortAscending, HiSortDescending } from 'react-icons/hi'
-import { Virtuoso } from 'react-virtuoso'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
+import { IoPinOutline } from 'react-icons/io5'
+import { TableVirtuoso } from 'react-virtuoso'
 import { useI18n } from '@renderer/i18n'
-import { useLatest } from '@renderer/hooks/use-latest'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { DEFAULT_COLUMNS } from './connection-setting-modal'
-
-import { DEFAULT_COLUMN_WIDTHS, COLUMN_LABEL_KEYS, RIGHT_ALIGN_COLUMNS } from './columns'
-import { useColumnResize } from './hooks/use-column-resize'
+import type { ConnectionTableInstance } from '@renderer/hooks/use-connection-table'
+import { COLUMN_LABEL_KEYS, RIGHT_ALIGN_COLUMNS } from './columns'
 import { ConnectionRow } from './connection-row'
 
-// 列宽调整手柄
-const ResizeHandle: React.FC<{
-  onResize: (delta: number) => void
-  onResizeEnd: () => void
-}> = ({ onResize, onResizeEnd }) => {
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    let startX = e.clientX
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const delta = e.clientX - startX
-      startX = e.clientX
-      onResize(delta)
-    }
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-      onResizeEnd()
-    }
-
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }
-
+type TableContext = { totalWidth: number; selectedId?: string }
+function VirtualTable({
+  context,
+  style,
+  ...props
+}: ComponentPropsWithoutRef<'table'> & { context?: TableContext }) {
   return (
-    <div
-      className="absolute right-0 top-0 h-full w-2 cursor-col-resize"
-      onMouseDown={handleMouseDown}
+    <table
+      {...props}
+      style={{
+        ...style,
+        width: context?.totalWidth,
+        tableLayout: 'fixed',
+        borderCollapse: 'separate',
+        borderSpacing: 0
+      }}
     />
   )
 }
-
+const TABLE_COMPONENTS = { Table: VirtualTable }
 interface Props {
+  table: ConnectionTableInstance
   connections: ControllerConnectionDetail[]
   selected: ControllerConnectionDetail | undefined
   setSelected: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
@@ -60,15 +43,13 @@ interface Props {
   appNameCache: Record<string, string>
   displayIcon: boolean
   displayAppName: boolean
-  sortBy?: string
-  sortDirection?: 'asc' | 'desc'
-  onSort?: (column: string) => void
   onContextMenu?: (conn: ControllerConnectionDetail, event: React.MouseEvent) => void
   onVisibleRangeChange?: (range: { startIndex: number; endIndex: number }) => void
   hiddenRules?: Set<string>
+  timeRefreshTrigger?: number
 }
-
-const ConnectionTableComponent: React.FC<Props> = ({
+function ConnectionTableComponent({
+  table,
   connections,
   selected,
   setSelected,
@@ -78,131 +59,162 @@ const ConnectionTableComponent: React.FC<Props> = ({
   appNameCache,
   displayIcon,
   displayAppName,
-  sortBy,
-  sortDirection,
-  onSort,
   onContextMenu,
   onVisibleRangeChange,
-  hiddenRules
-}) => {
+  hiddenRules,
+  timeRefreshTrigger
+}: Props) {
   const { t, locale } = useI18n()
-  const { appConfig } = useAppConfig()
-  const { connectionTableColumns = DEFAULT_COLUMNS } = appConfig || {}
-
-  const { computedWidths, handleResize, saveColumnWidths } = useColumnResize()
-
-  // 过滤有效的列
-  const visibleColumns = useMemo(() => {
-    return connectionTableColumns.filter((col) => COLUMN_LABEL_KEYS[col])
-  }, [connectionTableColumns])
-
+  const columns = table.getVisibleLeafColumns()
+  const layout = useMemo(() => {
+    const widths: Record<string, number> = {}
+    const styles: Record<string, CSSProperties> = {}
+    for (const column of columns) {
+      const pinned = column.getIsPinned()
+      widths[column.id] = column.getSize()
+      styles[column.id] = {
+        width: column.getSize(),
+        minWidth: column.getSize(),
+        maxWidth: column.getSize(),
+        position: pinned ? 'sticky' : 'relative',
+        insetInlineStart: pinned === 'start' ? column.getStart('start') : undefined,
+        insetInlineEnd: pinned === 'end' ? column.getAfter('end') : undefined,
+        zIndex: pinned ? 2 : undefined,
+        backgroundColor: pinned ? 'hsl(var(--heroui-content1))' : undefined
+      }
+    }
+    return { ids: columns.map((column) => column.id), widths, styles }
+  }, [columns, table.state.columnSizing, table.state.columnPinning])
   const handleRowClick = useCallback(
-    (conn: ControllerConnectionDetail) => {
-      setSelected(conn)
+    (connection: ControllerConnectionDetail) => {
+      setSelected(connection)
       setIsDetailModalOpen(true)
     },
     [setSelected, setIsDetailModalOpen]
   )
-
-  const handleClose = useCallback(
-    (e: React.MouseEvent, id: string) => {
-      e.stopPropagation()
-      close(id)
-    },
-    [close]
-  )
-
-  // 使用 useLatest 包装不影响组件结构的上下文依赖
-  const latestContext = useLatest({
-    handleRowClick,
-    handleClose,
-    visibleColumns,
-    computedWidths,
-    iconMap,
-    appNameCache,
-    displayIcon,
-    displayAppName,
-    onContextMenu,
-    hiddenRules,
-    t,
-    locale
-  })
-
-  // 渲染单行的回调
-  const renderRow = useCallback(
-    (_index: number, conn: ControllerConnectionDetail, context: { selectedId?: string }) => {
-      const p = latestContext.current
-      return (
-        <ConnectionRow
-          key={conn.id}
-          conn={conn}
-          isSelected={context.selectedId === conn.id}
-          onRowClick={p.handleRowClick}
-          onClose={p.handleClose}
-          visibleColumns={p.visibleColumns}
-          columnWidths={p.computedWidths}
-          iconMap={p.iconMap}
-          appNameCache={p.appNameCache}
-          displayIcon={p.displayIcon}
-          displayAppName={p.displayAppName}
-          onContextMenu={p.onContextMenu}
-          hiddenRules={p.hiddenRules}
-          t={p.t}
-          locale={p.locale}
-        />
-      )
-    },
-    [latestContext]
-  )
-
+  const handleClose = useCallback((id: string) => close(id), [close])
+  if (!columns.length)
+    return <div className="p-4 text-sm text-default-500">{t('connections.table.noColumns')}</div>
   return (
-    <div className="w-full h-full flex flex-col">
-      {/* 表头 */}
-      <div className={CARD_STYLES.GLASS_TABLE_HEADER}>
-        <div className="flex w-full">
-          {visibleColumns.map((col, index) => (
-            <div
-              key={col}
-              className={`relative flex-shrink-0 px-3 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer select-none ${RIGHT_ALIGN_COLUMNS.includes(col) ? 'justify-end' : ''}`}
-              style={{ width: computedWidths[col] || DEFAULT_COLUMN_WIDTHS[col] }}
-              onClick={() => onSort?.(col)}
-            >
-              <div
-                className={`flex items-center gap-1 ${RIGHT_ALIGN_COLUMNS.includes(col) ? 'justify-end' : ''}`}
-              >
-                <span>{t(COLUMN_LABEL_KEYS[col])}</span>
-                {sortBy === col &&
-                  (sortDirection === 'asc' ? (
-                    <HiSortAscending className="text-primary" />
-                  ) : (
-                    <HiSortDescending className="text-primary" />
-                  ))}
-              </div>
-              {index < visibleColumns.length - 1 && (
-                <ResizeHandle
-                  onResize={(delta) => handleResize(col, delta)}
-                  onResizeEnd={saveColumnWidths}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 表体 - 使用虚拟滚动 */}
-      <div className="flex-1">
-        <Virtuoso
-          data={connections}
-          itemContent={renderRow}
-          context={{ selectedId: selected?.id }}
-          overscan={10}
-          rangeChanged={onVisibleRangeChange}
-        />
-      </div>
+    <div className="h-full w-full min-w-0">
+      <TableVirtuoso
+        data={connections}
+        context={{ totalWidth: table.getTotalSize(), selectedId: selected?.id }}
+        components={TABLE_COMPONENTS}
+        computeItemKey={(_index, connection) => connection.id}
+        overscan={10}
+        rangeChanged={onVisibleRangeChange}
+        fixedHeaderContent={() => (
+          <tr>
+            {table.getHeaderGroups()[0]?.headers.map((header) => {
+              const column = header.column
+              const direction = column.getIsSorted()
+              const pin = column.getIsPinned()
+              const pinTitle =
+                pin === false
+                  ? t('connections.table.pinStart')
+                  : pin === 'start'
+                    ? t('connections.table.pinEnd')
+                    : t('connections.table.unpin')
+              return (
+                <th
+                  key={header.id}
+                  scope="col"
+                  aria-sort={
+                    direction ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'
+                  }
+                  className="group relative px-3 py-2 text-start text-sm font-medium bg-content1 select-none"
+                  style={{ ...layout.styles[column.id], zIndex: pin ? 4 : 3 }}
+                >
+                  <div
+                    className={`flex items-center gap-1 ${RIGHT_ALIGN_COLUMNS.includes(column.id) ? 'justify-end' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      className="flex min-w-0 items-center gap-1 rounded focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-default"
+                      disabled={!column.getCanSort()}
+                      title={t('connections.table.multiSort')}
+                      onClick={column.getToggleSortingHandler()}
+                    >
+                      <span className="truncate">{t(COLUMN_LABEL_KEYS[column.id])}</span>
+                      {direction && (
+                        <>
+                          {direction === 'asc' ? (
+                            <HiSortAscending className="shrink-0 text-primary" />
+                          ) : (
+                            <HiSortDescending className="shrink-0 text-primary" />
+                          )}
+                          {table.state.sorting.length > 1 && (
+                            <span className="text-[10px] text-primary">
+                              {column.getSortIndex() + 1}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={pinTitle}
+                      title={pinTitle}
+                      className={`shrink-0 rounded p-0.5 focus-visible:ring-2 focus-visible:ring-primary ${pin ? 'text-primary' : 'text-default-400 opacity-0 group-hover:opacity-100 focus:opacity-100'}`}
+                      onClick={() =>
+                        column.pin(pin === false ? 'start' : pin === 'start' ? 'end' : false)
+                      }
+                    >
+                      <IoPinOutline size={12} />
+                    </button>
+                  </div>
+                  {column.getCanResize() && (
+                    <div
+                      role="separator"
+                      aria-orientation="vertical"
+                      aria-label={t('connections.table.resize')}
+                      tabIndex={0}
+                      className="absolute right-0 top-0 h-full w-1 cursor-col-resize touch-none focus-visible:bg-primary"
+                      onMouseDown={header.getResizeHandler()}
+                      onTouchStart={header.getResizeHandler()}
+                      onDoubleClick={() => column.resetSize()}
+                      onKeyDown={(event) => {
+                        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                          event.preventDefault()
+                          table.setColumnSizing((previous) => ({
+                            ...previous,
+                            [column.id]: Math.max(
+                              40,
+                              column.getSize() + (event.key === 'ArrowLeft' ? -10 : 10)
+                            )
+                          }))
+                        }
+                      }}
+                    />
+                  )}
+                </th>
+              )
+            })}
+          </tr>
+        )}
+        itemContent={(_index, connection, context) => (
+          <ConnectionRow
+            conn={connection}
+            isSelected={context.selectedId === connection.id}
+            onRowClick={handleRowClick}
+            onClose={handleClose}
+            timeRefreshTrigger={timeRefreshTrigger}
+            visibleColumns={layout.ids}
+            columnWidths={layout.widths}
+            columnStyles={layout.styles}
+            iconMap={iconMap}
+            appNameCache={appNameCache}
+            displayIcon={displayIcon}
+            displayAppName={displayAppName}
+            onContextMenu={onContextMenu}
+            hiddenRules={hiddenRules}
+            t={t}
+            locale={locale}
+          />
+        )}
+      />
     </div>
   )
 }
-
-const ConnectionTable = memo(ConnectionTableComponent)
-
-export default ConnectionTable
+export default ConnectionTableComponent

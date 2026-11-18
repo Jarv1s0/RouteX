@@ -6,14 +6,15 @@ import React, { useCallback } from 'react'
 import { IoLink } from 'react-icons/io5'
 import {
   getConnectionHideRule,
-  type ConnectionOrderBy,
   type ConnectionTab,
   type ConnectionViewMode,
   type VisibleRange
 } from '@renderer/components/connections/shared'
 import { useI18n } from '@renderer/i18n'
+import type { ConnectionTableInstance } from '@renderer/hooks/use-connection-table'
 
 interface ConnectionsContentProps {
+  table: ConnectionTableInstance
   tab: ConnectionTab
   viewMode: ConnectionViewMode
   filteredConnections: ControllerConnectionDetail[]
@@ -26,8 +27,6 @@ interface ConnectionsContentProps {
   hiddenRules: Set<string>
   timeRefreshTrigger: number
   firstItemRefreshTrigger: number
-  connectionOrderBy: ConnectionOrderBy
-  connectionDirection: 'asc' | 'desc'
   setSelected: React.Dispatch<React.SetStateAction<ControllerConnectionDetail | undefined>>
   setIsDetailModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   closeConnection: (id: string) => void
@@ -35,10 +34,10 @@ interface ConnectionsContentProps {
   unhideConnection: (id: string) => void
   handleContextMenu: (conn: ControllerConnectionDetail, e: React.MouseEvent) => void
   handleVisibleRangeChange: (range: VisibleRange) => void
-  handleTableSort: (column: string) => void
 }
 
 export default function ConnectionsContent({
+  table,
   tab,
   viewMode,
   filteredConnections,
@@ -51,16 +50,13 @@ export default function ConnectionsContent({
   hiddenRules,
   timeRefreshTrigger,
   firstItemRefreshTrigger,
-  connectionOrderBy,
-  connectionDirection,
   setSelected,
   setIsDetailModalOpen,
   closeConnection,
   hideConnection,
   unhideConnection,
   handleContextMenu,
-  handleVisibleRangeChange,
-  handleTableSort
+  handleVisibleRangeChange
 }: ConnectionsContentProps): React.ReactNode {
   const { t } = useI18n()
   const renderConnectionItem = useCallback(
@@ -128,6 +124,8 @@ export default function ConnectionsContent({
     <div className="h-[calc(100vh-100px)] overflow-y-auto">
       {viewMode === 'table' ? (
         <ConnectionTable
+          table={table}
+          timeRefreshTrigger={timeRefreshTrigger}
           connections={filteredConnections}
           selected={selected}
           setSelected={setSelected}
@@ -137,9 +135,6 @@ export default function ConnectionsContent({
           appNameCache={appNameCache}
           displayIcon={displayIcon && findProcessMode !== 'off'}
           displayAppName={displayAppName}
-          sortBy={connectionOrderBy}
-          sortDirection={connectionDirection}
-          onSort={handleTableSort}
           onContextMenu={handleContextMenu}
           onVisibleRangeChange={handleVisibleRangeChange}
           hiddenRules={hiddenRules}

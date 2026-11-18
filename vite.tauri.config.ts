@@ -2,6 +2,7 @@ import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { mihomoSchemaPlugin } from './scripts/mihomo-schema-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { DEV_RENDERER_META_CSP, PROD_RENDERER_META_CSP } from './src/shared/csp'
@@ -71,9 +72,11 @@ function createManualChunks(id: string): string | undefined {
 }
 
 export default defineConfig({
+  worker: { plugins: () => [mihomoSchemaPlugin()] },
   root: resolve(__dirname, 'src/tauri-web'),
   define: routexBuildDefines,
   plugins: [
+    mihomoSchemaPlugin(),
     react(),
     tailwindcss(),
     {
