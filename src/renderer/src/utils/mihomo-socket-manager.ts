@@ -224,6 +224,12 @@ export class MihomoSocketManager {
     })
   }
 
+  public refreshTauriLogsSocket(): void {
+    if (this.tauriBridgeActiveControllerUrl) {
+      this.startTauriLogsSocket(this.tauriBridgeActiveControllerUrl, this.tauriBridgeStartVersion)
+    }
+  }
+
   private emitTauriBridgeConnectionsReady(): void {
     this.tauriBridgeReadyListeners.forEach((listener) => {
       try {

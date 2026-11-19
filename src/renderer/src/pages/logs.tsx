@@ -34,6 +34,14 @@ function normalizeLogDaysInput(value: string): number {
   return Math.min(parsed, 3650)
 }
 
+const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warning: 2,
+  error: 3,
+  silent: 4
+}
+
 const Logs: React.FC = () => {
   const { t } = useI18n()
   const logs = useLogsStore((state) => state.logs)
@@ -56,14 +64,16 @@ const Logs: React.FC = () => {
   const deferredFilter = useDeferredValue(filter)
 
   const filteredLogs = useMemo(() => {
-    if (deferredFilter === '') return logs
+    if (logLevel === 'silent') return []
     return logs.filter((log) => {
+      if (LOG_LEVEL_PRIORITY[log.type] < LOG_LEVEL_PRIORITY[logLevel]) return false
       return (
+        deferredFilter === '' ||
         includesIgnoreCase(log.payload, deferredFilter) ||
         includesIgnoreCase(log.type, deferredFilter)
       )
     })
-  }, [logs, deferredFilter])
+  }, [logs, logLevel, deferredFilter])
 
   useEffect(() => {
     retainLogsListeners()

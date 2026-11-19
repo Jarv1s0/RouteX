@@ -37,6 +37,7 @@ class Socket {
 }
 
 let manager: MihomoSocketManager
+let controlledConfig: Partial<MihomoConfig>
 beforeEach(() => {
   vi.useFakeTimers()
   vi.stubGlobal('window', { setTimeout, clearTimeout })
@@ -46,9 +47,10 @@ beforeEach(() => {
   mocks.invoke.mockResolvedValue({ connectionInterval: 500 })
   mocks.emit.mockClear()
   Socket.instances = []
+  controlledConfig = { 'log-level': 'info' }
   manager = new MihomoSocketManager({
     getRuntimeConfig: async () => ({}) as MihomoConfig,
-    readTauriControledMihomoConfig: () => ({}),
+    readTauriControledMihomoConfig: () => controlledConfig,
     invalidateRuntimeConfigCache: vi.fn()
   })
   vi.spyOn(manager as unknown as { isTauriHost: () => boolean }, 'isTauriHost').mockReturnValue(
@@ -116,4 +118,33 @@ it('discards a pending connections request after its last consumer releases', as
   resolve({ connectionInterval: 500 })
   await vi.advanceTimersByTimeAsync(0)
   expect(Socket.instances).toHaveLength(0)
+})
+
+it('resubscribes logs after the config cache catches up with the update event', () => {
+  manager.retainTauriMemoryBridge()
+  const release = manager.retainTauriLogsBridge()
+  const memory = Socket.instances.find((socket) => socket.url.endsWith('/memory'))!
+  const oldLogs = Socket.instances.find((socket) => socket.url.includes('/logs'))!
+  const oldOnMessage = oldLogs.onmessage!
+
+  // The backend event can arrive before the asynchronous config read completes.
+  mocks.listeners.get('controledMihomoConfigUpdated')!()
+  expect(oldLogs.close).not.toHaveBeenCalled()
+  controlledConfig = { 'log-level': 'error' }
+  manager.refreshTauriLogsSocket()
+
+  expect(oldLogs.close).toHaveBeenCalledOnce()
+  const logs = Socket.instances.at(-1)!
+  expect(logs.url).toBe('ws://127.0.0.1:9090/logs?level=error')
+  expect(memory.close).not.toHaveBeenCalled()
+  oldOnMessage({ data: '{"type":"info","payload":"stale"}' })
+  expect(mocks.emit).not.toHaveBeenCalled()
+  logs.onmessage!({ data: '{"type":"error","payload":"failure"}' })
+  expect(mocks.emit).toHaveBeenCalledWith('mihomoLogs', { type: 'error', payload: 'failure' })
+
+  manager.refreshTauriLogsSocket()
+  expect(Socket.instances).toHaveLength(3)
+  release()
+  manager.refreshTauriLogsSocket()
+  expect(Socket.instances).toHaveLength(3)
 })

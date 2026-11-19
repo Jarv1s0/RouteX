@@ -418,6 +418,7 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<M
   if (isTauriHost()) {
     const config = await invokeTyped(C.getControledMihomoConfig, force)
     mihomoConfigCache.setControlledConfig(config)
+    mihomoSocketManager.refreshTauriLogsSocket()
     return readTauriControledMihomoConfig()
   }
 
@@ -430,6 +431,7 @@ export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): 
     mihomoConfigCache.setControlledConfig(
       mergeDeepPlainObject(readTauriControledMihomoConfig(), patch)
     )
+    mihomoSocketManager.refreshTauriLogsSocket()
     mihomoConfigCache.invalidateRuntimeConfigCache()
     mihomoConfigCache.clearInFlightRequests(C.getRuntimeConfig, C.mihomoGroups)
     return
