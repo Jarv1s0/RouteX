@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { Card, Avatar } from '@heroui/react'
+import { useI18n } from '@renderer/i18n'
 
 const TOPOLOGY_NODE_SURFACE =
   'bg-default-100/70 dark:bg-default-50/30 backdrop-blur-md hover:bg-default-200/70 dark:hover:bg-default-100/45'
@@ -16,6 +17,7 @@ interface ThemeClasses {
 
 interface SourceNodeData extends Record<string, unknown> {
   name: string
+  detail?: string
   displayIcon?: boolean
   iconUrl?: string
   uploadSpeed?: number
@@ -25,12 +27,13 @@ interface SourceNodeData extends Record<string, unknown> {
 
 interface NamedNodeData extends Record<string, unknown> {
   name: string
+  detail?: string
 }
 
 interface ExitNodeData extends NamedNodeData {
   uploadSpeed?: number
   downloadSpeed?: number
-  policyGroups?: Set<string>
+  policyGroups?: string[]
 }
 
 const createThemeClasses = (
@@ -206,18 +209,21 @@ const getThemeClasses = (name: string, defaultColor: string): ThemeClasses => {
 }
 
 export const SourceNode = memo(function SourceNode({ data }: NodeProps) {
+  const { t } = useI18n()
   const {
-    name,
-    displayIcon,
+    name: processName,
+    detail,
+    displayIcon = true,
     iconUrl,
     uploadSpeed = 0,
     downloadSpeed = 0,
     count = 0
   } = data as SourceNodeData
+  const name = processName || t('common.unknown')
 
   return (
     <Card
-      className={`w-[240px] h-[80px] ${TOPOLOGY_NODE_SURFACE} border-1.5 border-sky-400/50 shadow-[0_4px_20px_rgba(14,165,233,0.15)] relative overflow-visible p-2 transition-all`}
+      className={`w-[240px] h-[80px] ${TOPOLOGY_NODE_SURFACE} border-1.5 border-sky-400/50 shadow-[0_4px_20px_rgba(14,165,233,0.15)] relative overflow-visible p-2 transition-[background-color,border-color,box-shadow] motion-reduce:transition-none`}
       radius="md"
     >
       {count > 0 && (
@@ -245,7 +251,7 @@ export const SourceNode = memo(function SourceNode({ data }: NodeProps) {
         <div className="flex-1 w-full flex flex-col justify-center items-center text-center px-4">
           <div
             className="font-semibold tracking-wide text-[16px] truncate text-default-900 dark:text-default-100 w-full max-w-[200px]"
-            title={name}
+            title={detail || name}
           >
             {name}
           </div>
@@ -270,13 +276,13 @@ export const SourceNode = memo(function SourceNode({ data }: NodeProps) {
 })
 
 export const RuleNode = memo(function RuleNode({ data }: NodeProps) {
-  const { name } = data as NamedNodeData
+  const { name, detail } = data as NamedNodeData
   const theme = getThemeClasses(name, '#8b5cf6')
   const color = theme.hex
 
   return (
     <Card
-      className={`w-[180px] h-[56px] ${TOPOLOGY_NODE_SURFACE} ${theme.shadow} relative px-3 py-2 outline-none border-1.5 ${theme.ring} transition-all`}
+      className={`w-[180px] h-[56px] ${TOPOLOGY_NODE_SURFACE} ${theme.shadow} relative px-3 py-2 outline-none border-1.5 ${theme.ring} transition-[background-color,border-color,box-shadow] motion-reduce:transition-none`}
       radius="md"
     >
       <Handle
@@ -295,7 +301,7 @@ export const RuleNode = memo(function RuleNode({ data }: NodeProps) {
       <div className="flex items-center justify-center h-full">
         <div
           className={`font-semibold tracking-wide text-[16px] ${theme.text} truncate max-w-full`}
-          title={name}
+          title={[detail, name].filter(Boolean).join(': ')}
         >
           {name}
         </div>
@@ -311,7 +317,7 @@ export const GroupNode = memo(function GroupNode({ data }: NodeProps) {
 
   return (
     <Card
-      className={`w-[180px] h-[56px] ${TOPOLOGY_NODE_SURFACE} ${theme.shadow} relative px-3 py-2 outline-none border-1.5 ${theme.ring} transition-all`}
+      className={`w-[180px] h-[56px] ${TOPOLOGY_NODE_SURFACE} ${theme.shadow} relative px-3 py-2 outline-none border-1.5 ${theme.ring} transition-[background-color,border-color,box-shadow] motion-reduce:transition-none`}
       radius="md"
     >
       <Handle
@@ -344,8 +350,8 @@ export const ExitNode = memo(function ExitNode({ data }: NodeProps) {
   const { name, uploadSpeed = 0, downloadSpeed = 0, policyGroups } = data as ExitNodeData
   const color = '#10b981' // Emerald-500
 
-  let groupText = 'PROXY'
-  if (policyGroups && policyGroups.size > 0) {
+  let groupText = name === 'DIRECT' || name.startsWith('REJECT') ? name : 'PROXY'
+  if (policyGroups && policyGroups.length > 0) {
     groupText = Array.from(policyGroups).join(' + ')
   }
 
@@ -366,12 +372,12 @@ export const ExitNode = memo(function ExitNode({ data }: NodeProps) {
       </div>
 
       <Card
-        className={`w-[230px] h-[76px] ${TOPOLOGY_NODE_SURFACE} shadow-[0_0_24px_rgba(16,185,129,0.25)] border-2 border-emerald-500/80 relative overflow-visible rounded-full p-2 transition-all`}
+        className={`w-[230px] h-[76px] ${TOPOLOGY_NODE_SURFACE} shadow-[0_0_24px_rgba(16,185,129,0.25)] border-2 border-emerald-500/80 relative overflow-visible rounded-full p-2 transition-[background-color,border-color,box-shadow] motion-reduce:transition-none`}
         radius="lg"
       >
         <div className="py-2 px-4 flex flex-col gap-1.5 items-center justify-center h-full">
           <div className="font-bold tracking-wide text-[17px] flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-            <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse border border-white/50"></div>
+            <div className="w-3 h-3 rounded-full bg-emerald-500 motion-safe:animate-pulse border border-white/50"></div>
             <span className="truncate max-w-[170px]" title={name}>
               {name}
             </span>

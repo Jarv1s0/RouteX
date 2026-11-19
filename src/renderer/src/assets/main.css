@@ -495,33 +495,61 @@ textarea:focus-visible {
   margin-right: 1px !important;
 }
 
-/* React Flow 拓扑图：高亮缓慢脉冲动画 */
-@keyframes lightning-bolt {
+/* 拓扑图：仅有流量的路径显示方向，空闲路径保持静态。 */
+.react-flow__edge-path.topology-edge {
+  stroke: #8b5cf650;
+  stroke-width: 2;
+}
+
+.topology-edge-traffic {
+  --topology-bolt-color: #a855f7;
+  fill: none;
+  pointer-events: none;
+  stroke: var(--topology-bolt-color);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 30 2000;
+  filter: drop-shadow(0 0 5px var(--topology-bolt-color));
+  animation: topology-flow 6.5s linear infinite;
+}
+
+.dark .react-flow__edge-path.topology-edge {
+  stroke: #8b5cf640;
+}
+
+.dark .topology-edge-traffic {
+  --topology-bolt-color: #d8b4fe;
+}
+
+@keyframes topology-flow {
   0% {
     stroke-dashoffset: 4000;
     opacity: 0;
   }
-
-  10% {
-    opacity: 1;
-  }
-
+  10%,
   85% {
-    stroke-dashoffset: -2000;
     opacity: 1;
   }
-
-  95% {
-    opacity: 0;
+  85%,
+  100% {
+    stroke-dashoffset: -2000;
   }
-
+  95%,
   100% {
     opacity: 0;
-    stroke-dashoffset: -2000;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topology-edge-traffic {
+    animation: none;
+    stroke-dasharray: none;
   }
 }
 
 .topology-controls.react-flow__controls {
+  overflow: hidden;
+  border-radius: 10px;
   border: 1px solid hsl(var(--heroui-default-200) / 0.6) !important;
   background: hsl(var(--heroui-default-100) / 0.78) !important;
   backdrop-filter: blur(14px) saturate(1.2);
@@ -562,14 +590,14 @@ textarea:focus-visible {
 .topology-controls.react-flow__controls
   .react-flow__controls-button
   + .react-flow__controls-button {
-  border-top: 1px solid hsl(var(--heroui-default-200) / 0.5) !important;
+  border-left: 1px solid hsl(var(--heroui-default-200) / 0.5) !important;
 }
 
 .dark
   .topology-controls.react-flow__controls
   .react-flow__controls-button
   + .react-flow__controls-button {
-  border-top-color: hsl(0 0% 100% / 0.06) !important;
+  border-left-color: hsl(0 0% 100% / 0.06) !important;
 }
 
 .topology-controls.react-flow__controls .react-flow__controls-button svg {
