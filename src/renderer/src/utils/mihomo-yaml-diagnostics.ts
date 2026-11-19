@@ -143,24 +143,8 @@ export function diagnoseMihomoYaml(
   for (const entry of entries) {
     if (diagnostics.length >= 100) break
     const field = schemaAtPath(entry.path, data)
-    const last = String(entry.path.at(-1))
-    const parent = schemaAtPath(entry.path.slice(0, -1), data)
-    if (
-      !field &&
-      parent?.properties &&
-      Object.keys(parent.properties).length &&
-      !/^(x-|[+-])/.test(last) &&
-      last !== '<<'
-    ) {
-      diagnostics.push({
-        from: entry.keyFrom,
-        to: entry.keyTo,
-        severity: 'info',
-        message: zh
-          ? `未收录字段 ${last}，仍可保存；请以当前内核校验为准。`
-          : `Unknown field ${last}; saving remains available. The current core is authoritative.`
-      })
-    }
+    // Mihomo ignores unknown fields, including custom YAML anchor definitions.
+    // Schema coverage alone is not evidence of an invalid core configuration.
     if (field?.deprecationMessage)
       diagnostics.push({
         from: entry.keyFrom,

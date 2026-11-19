@@ -84,8 +84,7 @@ describe('Mihomo YAML language support', () => {
   it('does not treat rule-provider payloads as full Mihomo configs or block unknown keys', () => {
     expect(diagnoseMihomoYaml('payload:\n  - DOMAIN,example.com\n')).toEqual([])
     const unknown = diagnoseMihomoYaml('future-feature: true\n', { mode: 'config' })
-    expect(unknown.some((item) => item.severity === 'info')).toBe(true)
-    expect(unknown.some((item) => item.severity === 'error')).toBe(false)
+    expect(unknown).toEqual([])
     expect(
       diagnoseMihomoYaml('dns:\n  enable: true\n', { mode: 'merge' }).some((item) =>
         item.message.includes('缺少')
@@ -103,5 +102,47 @@ describe('Mihomo YAML language support', () => {
         (item) => item.severity === 'error'
       )
     ).toBe(false)
+  })
+  it('accepts custom root anchor definitions while validating their uses', () => {
+    const source = [
+      "chinaDNS: &chinaDNS ['223.5.5.5#DIRECT', '119.29.29.29#DIRECT']",
+      '"defaultDNS": &defaultDNS [114.114.114.114]',
+      'proxyServerDNS: &proxyServerDNS',
+      '  - tls://223.5.5.5',
+      'dnsDefaults: &dnsDefaults { enable: true }',
+      'dnsEnabled: &dnsEnabled true',
+      'dns:',
+      '  <<: *dnsDefaults',
+      '  enable: *dnsEnabled',
+      '  nameserver: *chinaDNS',
+      '  default-nameserver: *defaultDNS',
+      '  proxy-server-nameserver: *proxyServerDNS'
+    ].join('\n')
+    for (const mode of ['auto', 'config', 'merge'] as const) {
+      expect(diagnoseMihomoYaml(source, { mode })).toEqual([])
+    }
+    const invalid = diagnoseMihomoYaml(
+      'dnsEnabled: &dnsEnabled wrong\ndns:\n  enable: *dnsEnabled\n'
+    )
+    expect(invalid.some((item) => item.message.includes('dns.enable'))).toBe(true)
+  })
+  it('accepts unknown fields like Mihomo while keeping invalid types and YAML diagnostics', () => {
+    const source = 'chinaDNS: [223.5.5.5]\ndns:\n  enbale: &enabled true\n  enable: *enabled\n'
+    for (const mode of ['auto', 'config', 'merge'] as const) {
+      for (const locale of ['zh-CN', 'en-US']) {
+        expect(diagnoseMihomoYaml(source, { mode, locale })).toEqual([])
+      }
+    }
+    expect(
+      diagnoseMihomoYaml('dns: &dns { enable: wrong }').some((item) =>
+        item.message.includes('dns.enable')
+      )
+    ).toBe(true)
+    expect(diagnoseMihomoYaml('dns:\n  nameserver: *missing\n')).toContainEqual(
+      expect.objectContaining({ severity: 'warning', message: expect.stringContaining('引用') })
+    )
+    expect(diagnoseMihomoYaml('chinaDNS: &chinaDNS [')).toContainEqual(
+      expect.objectContaining({ severity: 'error' })
+    )
   })
 })
