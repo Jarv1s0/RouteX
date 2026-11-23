@@ -27,7 +27,7 @@ interface ProxyRowChunkProps {
   chunkSize: number
   delayVersion: string
   mutate: () => void
-  onProxyDelay: (proxy: string, url?: string) => Promise<ControllerProxiesDelay>
+  onProxyDelay: (proxy: string, url?: string) => Promise<void>
   onChangeProxy: (group: string, proxy: string) => Promise<void>
   proxyDisplayLayout: 'hidden' | 'single' | 'double'
 }
@@ -145,7 +145,6 @@ const Proxies: React.FC = () => {
 
   const {
     delaying,
-    setGroupsDelaying,
     runDelayTargets,
     onChangeProxy,
     onProxyDelay,
@@ -167,8 +166,7 @@ const Proxies: React.FC = () => {
     autoDelayGroupSignature,
     autoDelayTestOnShow,
     delayTestConcurrencyRef,
-    runDelayTargets,
-    setGroupsDelaying
+    runDelayTargets
   })
 
   const toggleOpen = useCallback(

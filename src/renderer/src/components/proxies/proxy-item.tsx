@@ -13,7 +13,7 @@ const DEFAULT_DELAY_THRESHOLDS = { good: 200, fair: 500 }
 
 interface Props {
   mutateProxies: () => void
-  onProxyDelay: (proxy: string, url?: string) => Promise<ControllerProxiesDelay>
+  onProxyDelay: (proxy: string, url?: string) => Promise<void>
   proxyDisplayLayout: 'hidden' | 'single' | 'double'
   proxy: ControllerProxiesDetail | ControllerGroupDetail
   group: ControllerMixedGroup
@@ -85,8 +85,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
     setLoading(true)
     const target = getResolvedProxyTarget(proxy)
     const testUrl = isSubGroup(proxy) ? (proxy.testUrl ?? group.testUrl) : group.testUrl
-    onProxyDelay(target?.name ?? proxy.name, testUrl).finally(() => {
-      mutateProxies()
+    void onProxyDelay(target?.name ?? proxy.name, testUrl).finally(() => {
       setLoading(false)
     })
   }
