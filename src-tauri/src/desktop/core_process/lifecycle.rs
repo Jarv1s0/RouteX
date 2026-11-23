@@ -58,6 +58,7 @@ pub(crate) fn stop_core_process(
     runtime.child = None;
     runtime.service_managed = false;
     runtime.controller_url = None;
+    runtime.controller_secret.clear();
     runtime.config_path = None;
     runtime.cached_runtime_config = None;
     Ok(())
@@ -69,7 +70,7 @@ pub(crate) fn reload_core_config_process(
     close_connections: bool,
 ) -> Result<Value, String> {
     let _restart_guard = state.restart_lock.lock().map_err(|e| e.to_string())?;
-    let (binary_path, work_dir, config_path, controller_address) = {
+    let (binary_path, work_dir, config_path, controller_address, controller_secret) = {
         let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
         let binary_path = runtime
             .binary_path
@@ -96,7 +97,13 @@ pub(crate) fn reload_core_config_process(
             .filter(|value| !value.trim().is_empty())
             .ok_or_else(|| "Mihomo controller is not available".to_string())?;
 
-        (binary_path, work_dir, config_path, controller_address)
+        (
+            binary_path,
+            work_dir,
+            config_path,
+            controller_address,
+            runtime.controller_secret.clone(),
+        )
     };
 
     if let Some(configured_controller) =
@@ -111,6 +118,15 @@ pub(crate) fn reload_core_config_process(
         Some(&current_profile_runtime_config(app)?),
         &controller_address,
     );
+    // Mihomo keeps its startup controller credentials during a hot reload.
+    if runtime_config
+        .get("secret")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        != controller_secret
+    {
+        return Err("外部控制器密钥变更需要重启内核".to_string());
+    }
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
     let check_dir = work_dir
         .parent()
@@ -202,6 +218,11 @@ pub(crate) fn update_runtime_state(
     runtime.work_dir = Some(work_dir);
     runtime.log_path = Some(log_path);
     runtime.controller_url = Some(format!("http://{controller_client_address}"));
+    runtime.controller_secret = runtime_config
+        .get("secret")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
     runtime.cached_runtime_config = Some(CachedRuntimeConfig {
         path: config_path.clone(),
         modified_at_ms: runtime_config_modified_at_ms(&config_path),

@@ -16,6 +16,7 @@ pub(crate) struct CoreRuntime {
     pub(crate) work_dir: Option<PathBuf>,
     pub(crate) log_path: Option<PathBuf>,
     pub(crate) controller_url: Option<String>,
+    pub(crate) controller_secret: String,
     pub(crate) config_path: Option<PathBuf>,
     pub(crate) cached_runtime_config: Option<CachedRuntimeConfig>,
 }

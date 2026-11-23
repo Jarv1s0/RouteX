@@ -251,18 +251,15 @@ pub(crate) fn start_core_events_monitor(
     app: &tauri::AppHandle,
     state: &State<'_, CoreState>,
 ) -> Result<(), String> {
-    let controller_url = current_controller_url(state)?
-        .ok_or_else(|| "Mihomo controller is not available".to_string())?;
+    let (controller_url, secret) = {
+        let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+        let url = runtime
+            .controller_url
+            .clone()
+            .ok_or_else(|| "Mihomo controller is not available".to_string())?;
+        (url, runtime.controller_secret.clone())
+    };
     let connection_interval = Duration::from_millis(read_connection_interval_ms(app));
-    let secret = state
-        .runtime
-        .lock()
-        .map_err(|e| e.to_string())?
-        .cached_runtime_config
-        .as_ref()
-        .and_then(|config| config.value.get("secret").and_then(Value::as_str))
-        .unwrap_or_default()
-        .to_string();
 
     let mut monitor_handle = state
         .core_events_monitor
