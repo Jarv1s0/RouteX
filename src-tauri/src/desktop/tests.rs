@@ -2375,3 +2375,54 @@ fn profile_snapshot_restores_quick_rules_and_chains_configs() {
     assert!(is_profile_mutation_channel("setQuickRulesConfig"));
     assert!(is_profile_mutation_channel("addChainItem"));
 }
+
+#[test]
+fn proxy_env_command_quotes_special_bypass_characters() {
+    let bash = format_proxy_env_command("bash", "http://127.0.0.1:7890", "localhost,<local>,a'b")
+        .unwrap();
+    assert_eq!(
+        bash,
+        "export https_proxy='http://127.0.0.1:7890' http_proxy='http://127.0.0.1:7890' all_proxy='http://127.0.0.1:7890' no_proxy='localhost,<local>,a'\"'\"'b'"
+    );
+
+    let ps = format_proxy_env_command("powershell", "http://127.0.0.1:7890", "localhost,$x\"y")
+        .unwrap();
+    assert!(ps.contains("$env:no_proxy=\"localhost,`$x`\"y\""));
+
+    let nu = format_proxy_env_command("nushell", "http://127.0.0.1:7890", "localhost,\"x\"")
+        .unwrap();
+    assert!(nu.contains("no_proxy:\"localhost,\\\"x\\\"\""));
+
+    let cmd = format_proxy_env_command("cmd", "http://127.0.0.1:7890", "localhost,<local>").unwrap();
+    assert!(cmd.contains("set \"no_proxy=localhost,<local>\""));
+    let cmd_ampersand =
+        format_proxy_env_command("cmd", "http://127.0.0.1:7890", "localhost&remote").unwrap();
+    assert!(cmd_ampersand.contains("set \"no_proxy=localhost&remote\""));
+    for unsupported in [
+        "localhost\" & whoami & rem \"",
+        "%PATH%",
+        "!COMSPEC!",
+        "caret^value",
+        "line\r\nwhoami",
+    ] {
+        assert!(
+            format_proxy_env_command("cmd", "http://127.0.0.1:7890", unsupported).is_err(),
+            "CMD must reject unsafe value {unsupported:?}"
+        );
+    }
+    assert!(format_proxy_env_command(
+        "cmd",
+        r#"http://proxy" & whoami & rem ""#,
+        "localhost"
+    )
+    .is_err());
+
+    assert!(format_proxy_env_command("fish", "http://127.0.0.1:7890", "localhost").is_err());
+}
+
+#[test]
+fn process_memory_snapshot_collects_current_pid_without_panicking() {
+    let snapshot = collect_process_memory_snapshot();
+    assert_eq!(snapshot["pid"].as_u64(), Some(u64::from(std::process::id())));
+    assert!(snapshot["residentSetKb"].as_u64().is_some());
+}

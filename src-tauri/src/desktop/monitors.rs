@@ -393,8 +393,14 @@ pub(crate) fn collect_process_memory_snapshot() -> Value {
             .map(|path| path.to_string_lossy().to_string()),
     });
 
-    let sys = sysinfo::System::new_all();
-    if let Some(process) = sys.process(sysinfo::Pid::from_u32(pid)) {
+    let mut sys = sysinfo::System::new();
+    let sys_pid = sysinfo::Pid::from_u32(pid);
+    sys.refresh_processes_specifics(
+        sysinfo::ProcessesToUpdate::Some(&[sys_pid]),
+        true,
+        sysinfo::ProcessRefreshKind::nothing().with_memory(),
+    );
+    if let Some(process) = sys.process(sys_pid) {
         if let Some(object) = snapshot.as_object_mut() {
             object.insert("residentSetKb".to_string(), json!(process.memory() / 1024));
             object.insert(

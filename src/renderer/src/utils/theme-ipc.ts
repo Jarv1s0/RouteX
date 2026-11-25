@@ -21,13 +21,26 @@ export async function fetchThemes(): Promise<void> {
   return invokeSafe(C.fetchThemes)
 }
 
+export function extractImportedThemeName(file: string): string {
+  const baseName = file.split(/[\\/]/).pop() || 'Imported.css'
+  if (!isTauriVirtualFile(file)) {
+    return baseName
+  }
+
+  try {
+    return decodeURIComponent(baseName)
+  } catch {
+    return baseName
+  }
+}
+
 export async function importThemes(files: string[]): Promise<void> {
   if (isTauriHost()) {
     for (const file of files) {
       const css = isTauriVirtualFile(file)
         ? await readTauriVirtualFile(file)
         : await invokeSafe<string>(C.readTextFile, file)
-      const name = decodeURIComponent(file.split(/[\\/]/).pop() || 'Imported.css')
+      const name = extractImportedThemeName(file)
       await writeTheme(name, css || '')
     }
     return

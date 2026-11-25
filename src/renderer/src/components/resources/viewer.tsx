@@ -41,11 +41,14 @@ const Viewer: React.FC<Props> = (props) => {
   const modalContentStyle = useMainPaneModalContentStyle(undefined, 100)
   const [currData, setCurrData] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [contextMenuOpen, setContextMenuOpen] = useState(false)
   const [selectedText, setSelectedText] = useState('')
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  let language: Language = !format || format === 'YamlRule' ? 'yaml' : 'text'
+  const [language, setLanguage] = useState<Language>(
+    !format || format === 'YamlRule' ? 'yaml' : 'text'
+  )
 
   const getContent = async (): Promise<void> => {
     setIsLoading(true)
@@ -54,12 +57,13 @@ const Viewer: React.FC<Props> = (props) => {
       // 处理 MRS 格式
       if (format === 'MrsRule' || format === 'mrs') {
         fileContent = await convertMrsRuleset(path, behavior || 'domain')
-        language = 'text'
+        setLanguage('text')
       } else if (type === 'Inline') {
         fileContent = await getFileStr('config.yaml')
-        language = 'yaml'
+        setLanguage('yaml')
       } else {
         fileContent = await getFileStr(path)
+        setLanguage(!format || format === 'YamlRule' ? 'yaml' : 'text')
       }
 
       let parsedYaml: unknown
@@ -221,9 +225,17 @@ const Viewer: React.FC<Props> = (props) => {
             <Button
               size="sm"
               color="primary"
+              isLoading={isSaving}
               onPress={async () => {
-                await setFileStr(path, currData)
-                onClose()
+                setIsSaving(true)
+                try {
+                  await setFileStr(path, currData)
+                  onClose()
+                } catch (error) {
+                  notifyError(error)
+                } finally {
+                  setIsSaving(false)
+                }
               }}
             >
               {t('common.save')}

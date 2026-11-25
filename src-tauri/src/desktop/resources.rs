@@ -113,6 +113,72 @@ pub(crate) fn find_system_mihomo_paths() -> Vec<String> {
     found_paths
 }
 
+fn quote_posix_single(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
+}
+
+fn quote_powershell_double(value: &str) -> String {
+    let escaped = value
+        .replace('`', "``")
+        .replace('"', "`\"")
+        .replace('$', "`$");
+    format!("\"{escaped}\"")
+}
+
+fn quote_nushell_double(value: &str) -> String {
+    let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
+    format!("\"{escaped}\"")
+}
+
+fn validate_cmd_set_value(value: &str) -> Result<(), String> {
+    if value
+        .chars()
+        .any(|character| character.is_control() || matches!(character, '"' | '%' | '!' | '^'))
+    {
+        return Err("CMD 环境变量值包含不支持的特殊字符".to_string());
+    }
+
+    Ok(())
+}
+
+pub(crate) fn format_proxy_env_command(
+    shell_type: &str,
+    proxy_url: &str,
+    bypass: &str,
+) -> Result<String, String> {
+    match shell_type {
+        "bash" => {
+            let quoted_proxy = quote_posix_single(proxy_url);
+            let quoted_bypass = quote_posix_single(bypass);
+            Ok(format!(
+                "export https_proxy={quoted_proxy} http_proxy={quoted_proxy} all_proxy={quoted_proxy} no_proxy={quoted_bypass}"
+            ))
+        }
+        "cmd" => {
+            validate_cmd_set_value(proxy_url)?;
+            validate_cmd_set_value(bypass)?;
+            Ok(format!(
+                "set \"http_proxy={proxy_url}\"\r\nset \"https_proxy={proxy_url}\"\r\nset \"no_proxy={bypass}\""
+            ))
+        }
+        "powershell" => {
+            let quoted_proxy = quote_powershell_double(proxy_url);
+            let quoted_bypass = quote_powershell_double(bypass);
+            Ok(format!(
+                "$env:HTTP_PROXY={quoted_proxy}; $env:HTTPS_PROXY={quoted_proxy}; $env:no_proxy={quoted_bypass}"
+            ))
+        }
+        "nushell" => {
+            let quoted_proxy = quote_nushell_double(proxy_url);
+            let quoted_bypass = quote_nushell_double(bypass);
+            Ok(format!(
+                "load-env {{http_proxy:{quoted_proxy}, https_proxy:{quoted_proxy}, no_proxy:{quoted_bypass}}}"
+            ))
+        }
+        other => Err(format!("不支持的终端类型: {other}")),
+    }
+}
+
 pub(crate) fn build_proxy_env_command(
     app: &tauri::AppHandle,
     shell_type: &str,
@@ -132,21 +198,7 @@ pub(crate) fn build_proxy_env_command(
         .unwrap_or(7890);
     let proxy_url = format!("http://{host}:{mixed_port}");
 
-    match shell_type {
-        "bash" => Ok(format!(
-            "export https_proxy={proxy_url} http_proxy={proxy_url} all_proxy={proxy_url} no_proxy={bypass}"
-        )),
-        "cmd" => Ok(format!(
-            "set http_proxy={proxy_url}\r\nset https_proxy={proxy_url}\r\nset no_proxy={bypass}"
-        )),
-        "powershell" => Ok(format!(
-            "$env:HTTP_PROXY=\"{proxy_url}\"; $env:HTTPS_PROXY=\"{proxy_url}\"; $env:no_proxy=\"{bypass}\""
-        )),
-        "nushell" => Ok(format!(
-            "load-env {{http_proxy:\"{proxy_url}\", https_proxy:\"{proxy_url}\", no_proxy:\"{bypass}\"}}"
-        )),
-        other => Err(format!("不支持的终端类型: {other}")),
-    }
+    format_proxy_env_command(shell_type, &proxy_url, &bypass)
 }
 
 pub(crate) fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
