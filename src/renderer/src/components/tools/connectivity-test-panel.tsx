@@ -219,8 +219,8 @@ export const ConnectivityTestPanel: React.FC = () => {
                 {target.status === 'testing' ? (
                   <div className="text-primary text-xs animate-pulse">{t('tools.testing')}</div>
                 ) : target.status === 'success' || target.status === 'unlocked' ? (
-                  <div className="inline-flex items-center justify-center gap-1 text-success text-xs whitespace-nowrap animate-in fade-in duration-200">
-                    <IoCheckmarkCircle className="shrink-0 text-base animate-in zoom-in duration-200" />
+                  <div className="inline-flex items-center justify-center gap-1 text-success text-xs whitespace-nowrap animate-fade-in">
+                    <IoCheckmarkCircle className="shrink-0 text-base animate-zoom-in" />
                     <span>
                       {target.type === 'connectivity'
                         ? `${target.latency}ms`
@@ -228,16 +228,16 @@ export const ConnectivityTestPanel: React.FC = () => {
                     </span>
                   </div>
                 ) : target.status === 'locked' ? (
-                  <div className="inline-flex items-center justify-center gap-1 text-danger text-xs whitespace-nowrap animate-in fade-in duration-200">
-                    <IoCloseCircle className="shrink-0 text-base animate-in zoom-in duration-200" />
+                  <div className="inline-flex items-center justify-center gap-1 text-danger text-xs whitespace-nowrap animate-fade-in">
+                    <IoCloseCircle className="shrink-0 text-base animate-zoom-in" />
                     <span>{t('tools.locked')}</span>
                   </div>
                 ) : target.status === 'error' ? (
                   <div
-                    className="inline-flex items-center justify-center gap-1 text-warning text-xs whitespace-nowrap animate-in fade-in duration-200"
+                    className="inline-flex items-center justify-center gap-1 text-warning text-xs whitespace-nowrap animate-fade-in"
                     title={target.error}
                   >
-                    <IoCloseCircle className="shrink-0 text-base animate-in zoom-in duration-200" />
+                    <IoCloseCircle className="shrink-0 text-base animate-zoom-in" />
                     <span>{t('tools.testFailed')}</span>
                   </div>
                 ) : (

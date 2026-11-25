@@ -90,7 +90,7 @@ export const DnsQueryPanel: React.FC = () => {
         {dnsError && <div className="text-danger text-sm">{dnsError}</div>}
 
         {dnsResult.length > 0 && (
-          <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="space-y-2 animate-fade-in-up">
             {dnsResult.map((item, i) => (
               <div
                 key={i}

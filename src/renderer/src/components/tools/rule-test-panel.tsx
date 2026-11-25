@@ -64,7 +64,7 @@ export const RuleTestPanel: React.FC = () => {
         {ruleError && <div className="text-danger text-sm">{ruleError}</div>}
 
         {ruleResult && (
-          <div className="p-3 rounded-xl bg-content2/50 border border-default-200/50 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="p-3 rounded-xl bg-content2/50 border border-default-200/50 space-y-2 animate-fade-in-up">
             <div className="flex flex-col gap-1">
               <span className="text-foreground-400 text-xs">{t('tools.matchedRule')}</span>
               <div className="font-mono text-sm bg-background/50 p-1.5 rounded-lg border border-default-100">

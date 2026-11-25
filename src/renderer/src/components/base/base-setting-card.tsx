@@ -55,7 +55,7 @@ const SettingCard: React.FC<Props> = (props) => {
                   <div
                     className={`w-1 h-4 rounded-full ${isDisabled ? 'bg-default-300' : 'bg-primary'}`}
                   />
-                  <span>{props.title}</span>
+                  <span className="font-bold">{props.title}</span>
                 </div>
                 {props.description && (
                   <span className="text-xs font-normal text-default-500">{props.description}</span>

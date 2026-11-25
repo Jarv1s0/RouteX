@@ -9,7 +9,7 @@ interface Props {
 const EmptyState: React.FC<Props> = ({ icon, title, description }) => {
   return (
     <div className="h-full w-full flex justify-center items-center">
-      <div className="flex flex-col items-center gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
+      <div className="flex flex-col items-center gap-3 animate-fade-in-up">
         {/* 圆形发光背景，与应用玻璃拟态风格统一 */}
         <div className="relative flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-default-100/80 to-default-200/40 dark:from-default-100/20 dark:to-default-200/10 border border-default-200/50 dark:border-white/10 shadow-inner backdrop-blur-sm">
           {/* 外圈柔和光晕 */}

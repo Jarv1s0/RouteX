@@ -97,61 +97,6 @@ pre,
     'lnum' 1;
 }
 
-.driver-popover {
-  background-color: hsl(var(--heroui-content2)) !important;
-  border-radius: 8px !important;
-  color: hsl(var(--heroui-foreground)) !important;
-}
-
-.driver-popover a {
-  color: hsl(var(--heroui-primary)) !important;
-  text-decoration: underline !important;
-}
-
-.driver-popover-close-btn {
-  color: hsl(var(--heroui-foreground)) !important;
-}
-
-.driver-popover-progress-text {
-  color: hsl(var(--heroui-default-500)) !important;
-}
-
-.driver-popover-prev-btn {
-  color: white !important;
-  text-shadow: none !important;
-  border: none !important;
-  padding: 8px !important;
-  border-radius: 5px !important;
-  font-size: 12px !important;
-  background-color: hsl(var(--heroui-primary)) !important;
-}
-
-.driver-popover-next-btn {
-  color: white !important;
-  text-shadow: none !important;
-  border: none !important;
-  padding: 8px !important;
-  border-radius: 5px !important;
-  font-size: 12px !important;
-  background-color: hsl(var(--heroui-primary)) !important;
-}
-
-.driver-popover-arrow-side-bottom {
-  border-bottom-color: hsl(var(--heroui-content2)) !important;
-}
-
-.driver-popover-arrow-side-top {
-  border-top-color: hsl(var(--heroui-content2)) !important;
-}
-
-.driver-popover-arrow-side-left {
-  border-left-color: hsl(var(--heroui-content2)) !important;
-}
-
-.driver-popover-arrow-side-right {
-  border-right-color: hsl(var(--heroui-content2)) !important;
-}
-
 .app-nodrag {
   -webkit-app-region: none;
 }
@@ -233,11 +178,6 @@ pre,
 .dark [data-slot='content'][role='tooltip'] {
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-/* 设置分组标题加粗 */
-[data-slot='base'] > [data-slot='body'] > div:first-child span {
-  font-weight: 700 !important;
 }
 
 /* 输入框聚焦效果 */
@@ -669,7 +609,41 @@ textarea:focus-visible {
   }
 }
 
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes zoom-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Utility classes for animations */
+.animate-fade-in {
+  opacity: 0;
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+.animate-zoom-in {
+  opacity: 0;
+  animation: zoom-in 0.2s ease-out forwards;
+}
+
+.animate-loop-translate-x {
+  animation: loop-translate-x 2s linear infinite;
+}
+
 .animate-fade-in-up {
   animation: fade-in-up 0.4s ease-out forwards;
   opacity: 0; /* Initially hidden */
@@ -693,6 +667,24 @@ textarea:focus-visible {
 .animate-pop-in-staggered {
   opacity: 0;
   animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sweep,
+  [class~='hover:animate-sweep']:hover,
+  .animate-loop-translate-x,
+  .animate-pulse,
+  .animate-fade-in,
+  .animate-zoom-in,
+  .animate-fade-in-up,
+  .animate-pop-in,
+  .animate-scale-x-up,
+  .animate-page-enter,
+  .animate-pop-in-staggered {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* GLOBAL INPUT OVERRIDE FOR PREMIUM GLASS STYLE */

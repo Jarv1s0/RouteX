@@ -173,11 +173,11 @@ const ConnectionLine = React.memo(function ConnectionLine({
       className="animate-scale-x-up relative w-16 md:w-24 h-[3px] mx-2 bg-default-200 dark:bg-white/10 overflow-hidden rounded-full shrink-0"
     >
       <div
-        className="absolute top-0 bottom-0 w-1/2 rounded-full"
+        className="animate-loop-translate-x absolute top-0 bottom-0 w-1/2 rounded-full"
         style={{
           background:
             'linear-gradient(90deg, transparent, rgba(161, 161, 170, 0.4), rgba(161, 161, 170, 0.9), transparent)',
-          animation: `loop-translate-x 2s linear infinite ${delay}s`
+          animationDelay: `${delay}s`
         }}
       />
     </div>

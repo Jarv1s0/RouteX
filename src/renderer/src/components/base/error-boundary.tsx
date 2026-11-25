@@ -40,8 +40,8 @@ class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-6 bg-background/80 backdrop-blur-xl animate-in fade-in duration-300">
-          <div className="max-w-md w-full bg-content1/80 border border-white/10 shadow-2xl rounded-3xl p-8 flex flex-col items-center text-center space-y-6 animate-in slide-in-from-bottom-5 zoom-in-95 duration-300 backdrop-blur-2xl ring-1 ring-white/5">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-6 bg-background/80 backdrop-blur-xl animate-fade-in">
+          <div className="max-w-md w-full bg-content1/80 border border-white/10 shadow-2xl rounded-3xl p-8 flex flex-col items-center text-center space-y-6 animate-pop-in backdrop-blur-2xl ring-1 ring-white/5">
             <div className="relative">
               <div className="absolute inset-0 bg-danger/20 blur-xl rounded-full animate-pulse" />
               <div className="relative p-5 rounded-2xl bg-gradient-to-br from-danger/20 to-danger/5 text-danger border border-danger/10 shadow-inner">
