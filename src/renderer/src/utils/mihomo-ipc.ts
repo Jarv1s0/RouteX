@@ -285,11 +285,11 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
     const requestRevision = mihomoConfigCache.tauriRuntimeConfigRevision
     const request = invokeTyped(C.getRuntimeConfig)
       .then((config) => {
-        mihomoConfigCache.patchControlledConfig(config)
-        mihomoSocketManager.syncTauriControllerUrlFromRuntime(config)
         const normalized = createTauriRuntimeConfigWrapper(config)
 
         if (requestRevision === mihomoConfigCache.tauriRuntimeConfigRevision) {
+          mihomoConfigCache.patchControlledConfig(config)
+          mihomoSocketManager.syncTauriControllerUrlFromRuntime(config)
           mihomoConfigCache.setRuntimeConfig(normalized)
         }
 
@@ -319,7 +319,9 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
 
 export async function restartCore(): Promise<void> {
   if (isTauriHost()) {
-    const result = (await invokeSafe(C.restartCore)) as { controller?: string } | undefined
+    const result = (await invokeSafe(C.restartCore)) as
+      | { controller?: string; secret?: string }
+      | undefined
     mihomoConfigCache.clearInFlightRequests(
       C.getRuntimeConfig,
       C.mihomoGroups,
@@ -327,6 +329,9 @@ export async function restartCore(): Promise<void> {
       C.mihomoRules,
       C.mihomoRuleProviders
     )
+    if (typeof result?.secret === 'string') {
+      mihomoSocketManager.writeTauriControllerSecret(result.secret)
+    }
     if (result?.controller) {
       mihomoSocketManager.writeTauriControllerUrl(`http://${result.controller}`)
       startTauriMihomoEventBridge()
@@ -344,7 +349,7 @@ export async function restartCore(): Promise<void> {
   )
 }
 
-export function syncAppliedCoreConfig(result?: { controller?: string }): void {
+export function syncAppliedCoreConfig(result?: { controller?: string; secret?: string }): void {
   mihomoConfigCache.invalidateRuntimeConfigCache()
   mihomoConfigCache.clearInFlightRequests(
     C.getRuntimeConfig,
@@ -353,6 +358,9 @@ export function syncAppliedCoreConfig(result?: { controller?: string }): void {
     C.mihomoRules,
     C.mihomoRuleProviders
   )
+  if (typeof result?.secret === 'string') {
+    mihomoSocketManager.writeTauriControllerSecret(result.secret)
+  }
   if (result?.controller) {
     mihomoSocketManager.writeTauriControllerUrl(`http://${result.controller}`)
     startTauriMihomoEventBridge()

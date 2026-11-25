@@ -148,3 +148,105 @@ it('resubscribes logs after the config cache catches up with the update event', 
   manager.refreshTauriLogsSocket()
   expect(Socket.instances).toHaveLength(3)
 })
+
+it('attaches controller secret token to WebSocket URLs and updates on coreStarted', async () => {
+  controlledConfig = { 'log-level': 'info', secret: 'my-secret' }
+  mocks.listeners.get('controledMihomoConfigUpdated')!()
+  const releaseMemory = manager.retainTauriMemoryBridge()
+  const releaseLogs = manager.retainTauriLogsBridge()
+  const releaseConnections = manager.retainTauriConnectionsBridge()
+  await vi.waitFor(() => expect(Socket.instances).toHaveLength(3))
+
+  expect(Socket.instances.map((socket) => socket.url)).toEqual([
+    'ws://127.0.0.1:9090/memory?token=my-secret',
+    'ws://127.0.0.1:9090/logs?level=info&token=my-secret',
+    'ws://127.0.0.1:9090/connections?interval=500&token=my-secret'
+  ])
+
+  mocks.listeners.get('core-started')!(undefined, {
+    controller: '127.0.0.1:9091',
+    secret: 'rotated secret+1'
+  })
+  await vi.waitFor(() => expect(Socket.instances).toHaveLength(6))
+  expect(Socket.instances.slice(3).map((socket) => socket.url)).toEqual([
+    'ws://127.0.0.1:9091/memory?token=rotated+secret%2B1',
+    'ws://127.0.0.1:9091/logs?level=info&token=rotated+secret%2B1',
+    'ws://127.0.0.1:9091/connections?interval=500&token=rotated+secret%2B1'
+  ])
+
+  mocks.listeners.get('core-started')!(undefined, {
+    controller: '127.0.0.1:9091',
+    secret: ''
+  })
+  await vi.waitFor(() => expect(Socket.instances).toHaveLength(9))
+  expect(Socket.instances.slice(6).map((socket) => socket.url)).toEqual([
+    'ws://127.0.0.1:9091/memory',
+    'ws://127.0.0.1:9091/logs?level=info',
+    'ws://127.0.0.1:9091/connections?interval=500'
+  ])
+
+  releaseMemory()
+  releaseLogs()
+  releaseConnections()
+})
+
+it('resolves profile-level controller secret from getRuntimeConfig when controlled config has none', async () => {
+  const secretManager = new MihomoSocketManager({
+    getRuntimeConfig: async () =>
+      ({
+        'external-controller': '127.0.0.1:9092',
+        secret: 'profile-secret'
+      }) as MihomoConfig,
+    readTauriControledMihomoConfig: () => ({ 'log-level': 'info' }),
+    invalidateRuntimeConfigCache: vi.fn()
+  })
+  vi.spyOn(
+    secretManager as unknown as { isTauriHost: () => boolean },
+    'isTauriHost'
+  ).mockReturnValue(true)
+  secretManager.writeTauriControllerUrl('http://127.0.0.1:9092')
+  secretManager.startTauriMihomoEventBridge()
+  const release = secretManager.retainTauriMemoryBridge()
+
+  await vi.waitFor(() =>
+    expect(Socket.instances.at(-1)?.url).toBe('ws://127.0.0.1:9092/memory?token=profile-secret')
+  )
+  release()
+  secretManager.stopTauriMihomoEventBridge()
+})
+
+it('does not replace a coreStarted secret with a stale runtime config response', async () => {
+  let resolveRuntimeConfig!: (config: MihomoConfig) => void
+  const staleManager = new MihomoSocketManager({
+    getRuntimeConfig: () =>
+      new Promise((resolve) => {
+        resolveRuntimeConfig = resolve
+      }),
+    readTauriControledMihomoConfig: () => ({ 'log-level': 'info' }),
+    invalidateRuntimeConfigCache: vi.fn()
+  })
+  vi.spyOn(
+    staleManager as unknown as { isTauriHost: () => boolean },
+    'isTauriHost'
+  ).mockReturnValue(true)
+  staleManager.writeTauriControllerUrl('http://127.0.0.1:9093')
+  staleManager.installTauriBridgeLifecycle()
+  const release = staleManager.retainTauriMemoryBridge()
+
+  mocks.listeners.get('core-started')!(undefined, {
+    controller: '127.0.0.1:9093',
+    secret: 'current-secret'
+  })
+  resolveRuntimeConfig({ secret: 'stale-secret' } as MihomoConfig)
+  await vi.advanceTimersByTimeAsync(0)
+  release()
+  const releaseReconnected = staleManager.retainTauriMemoryBridge()
+
+  await vi.waitFor(() =>
+    expect(Socket.instances.at(-1)?.url).toBe(
+      'ws://127.0.0.1:9093/memory?token=current-secret'
+    )
+  )
+  releaseReconnected()
+  staleManager.stopTauriMihomoEventBridge()
+})

@@ -1,11 +1,20 @@
 use crate::desktop::prelude::*;
 use crate::desktop::*;
 
+pub(crate) fn validate_override_extension(ext: &str) -> Result<&str, String> {
+    match ext {
+        "yaml" | "yml" | "js" | "log" => Ok(ext),
+        _ => Err(format!("不支持的覆写文件扩展名: {ext}")),
+    }
+}
+
 pub(crate) fn override_file_path(
     app: &tauri::AppHandle,
     id: &str,
     ext: &str,
 ) -> Result<PathBuf, String> {
+    let id = validate_single_path_segment(id, "覆写 ID")?;
+    let ext = validate_override_extension(ext)?;
     Ok(storage_dir(app, OVERRIDE_DIR_NAME)?.join(format!("{id}.{ext}")))
 }
 
@@ -14,6 +23,8 @@ pub(crate) fn override_rollback_path(
     id: &str,
     ext: &str,
 ) -> Result<PathBuf, String> {
+    let id = validate_single_path_segment(id, "覆写 ID")?;
+    let ext = validate_override_extension(ext)?;
     Ok(storage_dir(app, OVERRIDE_DIR_NAME)?.join(format!("{id}.{ext}.rollback")))
 }
 

@@ -5,16 +5,27 @@ function isTauriHost(): boolean {
   return __ROUTEX_HOST__ === 'tauri'
 }
 
-export async function getFilePath(ext: string[]): Promise<string[] | undefined> {
-  if (isTauriHost()) {
-    try {
-      return invokeSafe(C.getFilePath, ext)
-    } catch {
-      return pickTauriFiles(ext)
-    }
+export async function invokeWithTauriFallback<T>(
+  primary: () => Promise<T>,
+  fallback: () => T | Promise<T>,
+  useTauriFallback = isTauriHost()
+): Promise<T> {
+  if (!useTauriFallback) {
+    return primary()
   }
 
-  return invokeSafe(C.getFilePath, ext)
+  try {
+    return await primary()
+  } catch {
+    return fallback()
+  }
+}
+
+export async function getFilePath(ext: string[]): Promise<string[] | undefined> {
+  return invokeWithTauriFallback(
+    () => invokeSafe(C.getFilePath, ext),
+    () => pickTauriFiles(ext)
+  )
 }
 
 export async function saveFile(
@@ -22,10 +33,9 @@ export async function saveFile(
   defaultName: string,
   ext: string
 ): Promise<boolean> {
-  if (isTauriHost()) {
-    try {
-      return invokeSafe(C.saveFile, content, defaultName, ext)
-    } catch {
+  return invokeWithTauriFallback(
+    () => invokeSafe(C.saveFile, content, defaultName, ext),
+    () => {
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
@@ -35,9 +45,7 @@ export async function saveFile(
       URL.revokeObjectURL(url)
       return true
     }
-  }
-
-  return invokeSafe(C.saveFile, content, defaultName, ext)
+  )
 }
 
 export async function readTextFile(filePath: string): Promise<string> {

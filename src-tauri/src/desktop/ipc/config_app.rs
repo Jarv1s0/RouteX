@@ -103,7 +103,7 @@ pub(crate) fn register_app_config_handlers(map: &mut std::collections::HashMap<&
                 .first()
                 .and_then(Value::as_str)
                 .ok_or_else(|| "readTextFile requires path".to_string())?;
-            Ok(json!(read_runtime_text(app, state, path)?))
+            Ok(json!(read_authorized_text(app, state, path)?))
         
     })().map_err(crate::desktop::error::AppError::from) });
     map.insert("convertMrsRuleset", |app, window, state, args| { (|| -> Result<Value, String> {

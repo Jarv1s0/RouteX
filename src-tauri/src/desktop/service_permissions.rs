@@ -79,28 +79,46 @@ pub(crate) fn check_core_permission_value(app: &tauri::AppHandle) -> Result<Valu
     }
 }
 
+pub(crate) fn validate_core_permission_targets(
+    cores: Option<Vec<String>>,
+) -> Result<Vec<String>, String> {
+    let targets = cores.unwrap_or_else(|| vec!["mihomo".to_string(), "mihomo-alpha".to_string()]);
+    for core_name in &targets {
+        if !matches!(core_name.as_str(), "mihomo" | "mihomo-alpha") {
+            return Err(format!("不支持的内核名称: {core_name}"));
+        }
+    }
+    Ok(targets)
+}
+
 pub(crate) fn manual_grant_core_permission(
     app: &tauri::AppHandle,
     cores: Option<Vec<String>>,
 ) -> Result<(), String> {
+    let target_cores = validate_core_permission_targets(cores)?;
     #[cfg(target_os = "windows")]
     {
-        let _ = cores;
+        let _ = target_cores;
         return create_elevate_task(app);
     }
 
     #[cfg(target_os = "macos")]
     {
-        let target_cores =
-            cores.unwrap_or_else(|| vec!["mihomo".to_string(), "mihomo-alpha".to_string()]);
         for core_name in target_cores {
             let core_path = resolve_core_binary(app, &core_name)?;
-            let escaped_path = core_path.to_string_lossy().replace('"', "\\\"");
-            let shell =
-                format!(r#"chown root:admin \"{escaped_path}\" && chmod +sx \"{escaped_path}\""#);
-            let command = format!(r#"do shell script "{shell}" with administrator privileges"#);
+            let core_path_str = core_path
+                .to_str()
+                .ok_or_else(|| "内核路径包含无效编码".to_string())?;
             let output = Command::new("osascript")
-                .args(["-e", &command])
+                .args([
+                    "-e",
+                    "on run argv",
+                    "-e",
+                    r#"do shell script "chown root:admin " & quoted form of item 1 of argv & " && chmod +sx " & quoted form of item 1 of argv with administrator privileges"#,
+                    "-e",
+                    "end run",
+                    core_path_str,
+                ])
                 .output()
                 .map_err(|e| e.to_string())?;
             collect_command_error(output)?;
@@ -110,17 +128,19 @@ pub(crate) fn manual_grant_core_permission(
 
     #[cfg(target_os = "linux")]
     {
-        let target_cores =
-            cores.unwrap_or_else(|| vec!["mihomo".to_string(), "mihomo-alpha".to_string()]);
         for core_name in target_cores {
             let core_path = resolve_core_binary(app, &core_name)?;
-            let script = format!(
-                r#"chown root:root "{}" && chmod +sx "{}""#,
-                core_path.display(),
-                core_path.display()
-            );
+            let core_path_str = core_path
+                .to_str()
+                .ok_or_else(|| "内核路径包含无效编码".to_string())?;
             let output = Command::new("pkexec")
-                .args(["bash", "-c", &script])
+                .args([
+                    "bash",
+                    "-c",
+                    r#"chown root:root "$1" && chmod +sx "$1""#,
+                    "_",
+                    core_path_str,
+                ])
                 .output()
                 .map_err(|e| e.to_string())?;
             collect_command_error(output)?;
@@ -136,24 +156,31 @@ pub(crate) fn revoke_core_permission(
     app: &tauri::AppHandle,
     cores: Option<Vec<String>>,
 ) -> Result<(), String> {
+    let target_cores = validate_core_permission_targets(cores)?;
     #[cfg(target_os = "windows")]
     {
         let _ = app;
-        let _ = cores;
+        let _ = target_cores;
         return delete_elevate_task();
     }
 
     #[cfg(target_os = "macos")]
     {
-        let target_cores =
-            cores.unwrap_or_else(|| vec!["mihomo".to_string(), "mihomo-alpha".to_string()]);
         for core_name in target_cores {
             let core_path = resolve_core_binary(app, &core_name)?;
-            let escaped_path = core_path.to_string_lossy().replace('"', "\\\"");
-            let shell = format!(r#"chmod a-s \"{escaped_path}\""#);
-            let command = format!(r#"do shell script "{shell}" with administrator privileges"#);
+            let core_path_str = core_path
+                .to_str()
+                .ok_or_else(|| "内核路径包含无效编码".to_string())?;
             let output = Command::new("osascript")
-                .args(["-e", &command])
+                .args([
+                    "-e",
+                    "on run argv",
+                    "-e",
+                    r#"do shell script "chmod a-s " & quoted form of item 1 of argv with administrator privileges"#,
+                    "-e",
+                    "end run",
+                    core_path_str,
+                ])
                 .output()
                 .map_err(|e| e.to_string())?;
             collect_command_error(output)?;
@@ -163,13 +190,13 @@ pub(crate) fn revoke_core_permission(
 
     #[cfg(target_os = "linux")]
     {
-        let target_cores =
-            cores.unwrap_or_else(|| vec!["mihomo".to_string(), "mihomo-alpha".to_string()]);
         for core_name in target_cores {
             let core_path = resolve_core_binary(app, &core_name)?;
-            let script = format!(r#"chmod a-s "{}""#, core_path.display());
+            let core_path_str = core_path
+                .to_str()
+                .ok_or_else(|| "内核路径包含无效编码".to_string())?;
             let output = Command::new("pkexec")
-                .args(["bash", "-c", &script])
+                .args(["bash", "-c", r#"chmod a-s "$1""#, "_", core_path_str])
                 .output()
                 .map_err(|e| e.to_string())?;
             collect_command_error(output)?;

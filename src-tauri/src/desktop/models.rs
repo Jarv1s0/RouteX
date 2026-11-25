@@ -78,6 +78,7 @@ pub(crate) struct CoreState {
     pub(crate) update_download_cancel: Mutex<Option<Arc<AtomicBool>>>,
     pub(crate) quit_confirm_sender: Mutex<Option<mpsc::Sender<bool>>>,
     pub(crate) allow_main_window_close: Mutex<bool>,
+    pub(crate) authorized_read_paths: Mutex<HashSet<PathBuf>>,
     pub(crate) shutdown_started: AtomicBool,
     pub(crate) preserve_core_on_exit: AtomicBool,
 }

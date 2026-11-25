@@ -2242,3 +2242,98 @@ fn unrelated_traffic_history_corruption_is_left_untouched() {
         assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
     }
 }
+
+#[test]
+fn runtime_check_dir_matches_work_dir_child() {
+    let work_dir = PathBuf::from("runtime/profiles/p1");
+    assert_eq!(
+        runtime_check_dir_for_work_dir(&work_dir),
+        work_dir.join(RUNTIME_CHECK_DIR_NAME)
+    );
+}
+
+#[test]
+fn single_path_segment_rejects_traversal_and_reserved_names() {
+    assert_eq!(validate_single_path_segment("abc-123", "订阅 ID").unwrap(), "abc-123");
+    assert_eq!(
+        validate_single_path_segment("ocean.css", "主题文件名").unwrap(),
+        "ocean.css"
+    );
+
+    for invalid in ["", "   ", ".", "..", "../app", "a/b", r"a\b", "C:a", "CON", "nul.css", "a."] {
+        assert!(
+            validate_single_path_segment(invalid, "测试名").is_err(),
+            "expected {invalid:?} to be rejected"
+        );
+    }
+
+    assert!(validate_override_extension("yaml").is_ok());
+    assert!(validate_override_extension("js").is_ok());
+    assert!(validate_override_extension("log").is_ok());
+    assert!(validate_override_extension("exe").is_err());
+    assert!(validate_override_extension("../yaml").is_err());
+}
+
+#[test]
+fn path_root_guard_allows_children_and_blocks_traversal() {
+    let root = tempfile::tempdir().unwrap();
+    let work_dir = root.path().join("runtime");
+    let safe_dir = root.path().join("safe");
+    fs::create_dir_all(&work_dir).unwrap();
+    fs::create_dir_all(&safe_dir).unwrap();
+
+    let nested = work_dir.join("ruleset/new.yaml");
+    assert!(resolve_path_within_roots(&nested, std::slice::from_ref(&work_dir)).is_ok());
+
+    let escaped = work_dir.join("../safe/secret.yaml");
+    assert!(resolve_path_within_roots(&escaped, std::slice::from_ref(&work_dir)).is_err());
+    assert!(resolve_path_within_roots(&escaped, &[work_dir, safe_dir]).is_ok());
+}
+
+#[test]
+fn authorized_read_path_requires_picker_grant_or_internal_root() {
+    let root = tempfile::tempdir().unwrap();
+    let internal = root.path().join("internal");
+    let external = root.path().join("external");
+    fs::create_dir_all(&internal).unwrap();
+    fs::create_dir_all(&external).unwrap();
+
+    let internal_file = internal.join("config.yaml");
+    let external_file = external.join("secret.yaml");
+    fs::write(&internal_file, "mode: rule").unwrap();
+    fs::write(&external_file, "secret").unwrap();
+
+    let empty = HashSet::new();
+    assert!(is_authorized_read_path(
+        &internal_file.to_string_lossy(),
+        &empty,
+        std::slice::from_ref(&internal)
+    )
+    .is_ok());
+    assert!(is_authorized_read_path(
+        &external_file.to_string_lossy(),
+        &empty,
+        std::slice::from_ref(&internal)
+    )
+    .is_err());
+
+    let mut granted = HashSet::new();
+    granted.insert(canonicalize_path_with_tail(&external_file).unwrap());
+    assert!(
+        is_authorized_read_path(&external_file.to_string_lossy(), &granted, &[internal]).is_ok()
+    );
+}
+
+#[test]
+fn core_permission_targets_allow_only_known_cores() {
+    assert_eq!(
+        validate_core_permission_targets(None).unwrap(),
+        vec!["mihomo".to_string(), "mihomo-alpha".to_string()]
+    );
+    assert_eq!(
+        validate_core_permission_targets(Some(vec!["mihomo".to_string()])).unwrap(),
+        vec!["mihomo".to_string()]
+    );
+    assert!(validate_core_permission_targets(Some(vec!["bash".to_string()])).is_err());
+    assert!(validate_core_permission_targets(Some(vec!["../mihomo".to_string()])).is_err());
+}

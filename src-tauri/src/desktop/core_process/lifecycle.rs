@@ -128,10 +128,7 @@ pub(crate) fn reload_core_config_process(
         return Err("外部控制器密钥变更需要重启内核".to_string());
     }
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
-    let check_dir = work_dir
-        .parent()
-        .ok_or_else(|| "Mihomo check dir is not available".to_string())?
-        .join(RUNTIME_CHECK_DIR_NAME);
+    let check_dir = runtime_check_dir_for_work_dir(&work_dir);
 
     prepare_runtime_data_dir(app, &work_dir)?;
     prepare_runtime_check_dir(&work_dir, &check_dir)?;
@@ -198,6 +195,7 @@ pub(crate) fn reload_core_config_process(
         "workDir": work_dir.to_string_lossy(),
         "configPath": config_path.to_string_lossy(),
         "controller": controller_address,
+        "secret": controller_secret,
     }))
 }
 
@@ -264,6 +262,11 @@ pub(crate) fn restart_core_process(
     let controller_client_address = controller_connect_address(&runtime_controller_address);
     let runtime_config =
         normalize_runtime_config(Some(&merged_runtime_config), &runtime_controller_address);
+    let controller_secret = runtime_config
+        .get("secret")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
     let config_path = work_dir.join("config.yaml");
     let config_yaml = serde_yaml::to_string(&runtime_config).map_err(|e| e.to_string())?;
     let check_cache_key = runtime_profile_check_cache_key(&binary_path, &config_yaml)?;
@@ -345,6 +348,7 @@ pub(crate) fn restart_core_process(
             "workDir": work_dir.to_string_lossy(),
             "logPath": log_path.to_string_lossy(),
             "controller": controller_client_address,
+            "secret": controller_secret,
         }));
     }
 
@@ -413,5 +417,6 @@ pub(crate) fn restart_core_process(
         "workDir": work_dir.to_string_lossy(),
         "logPath": log_path.to_string_lossy(),
         "controller": controller_client_address,
+        "secret": controller_secret,
     }))
 }

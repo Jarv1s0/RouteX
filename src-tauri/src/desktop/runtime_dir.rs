@@ -102,6 +102,10 @@ pub(crate) fn prepare_runtime_check_dir(
     Ok(())
 }
 
+pub(crate) fn runtime_check_dir_for_work_dir(work_dir: &Path) -> PathBuf {
+    work_dir.join(RUNTIME_CHECK_DIR_NAME)
+}
+
 pub(crate) fn ensure_runtime_dirs(
     app: &tauri::AppHandle,
     current_profile_id: Option<&str>,
@@ -131,7 +135,7 @@ pub(crate) fn ensure_runtime_dirs(
     migrate_legacy_runtime_work_dir(&profile_base)?;
 
     let logs_dir = profile_logs_base;
-    let check_dir = profile_base.join(RUNTIME_CHECK_DIR_NAME);
+    let check_dir = runtime_check_dir_for_work_dir(&profile_base);
     let work_dir = profile_base;
     let log_path = logs_dir.join("mihomo.log");
 

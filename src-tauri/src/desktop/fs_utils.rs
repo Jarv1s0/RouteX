@@ -153,3 +153,123 @@ pub(crate) fn write_floating_window_state(
     let path = storage_file(app, FLOATING_WINDOW_STATE_FILE)?;
     write_json_file(&path, state)
 }
+
+pub(crate) fn validate_single_path_segment<'a>(
+    value: &'a str,
+    label: &str,
+) -> Result<&'a str, String> {
+    if value.trim().is_empty()
+        || value == "."
+        || value == ".."
+        || value.contains(['/', '\\', ':', '\0'])
+    {
+        return Err(format!("{label}包含无效路径字符"));
+    }
+
+    let mut components = Path::new(value).components();
+    match (components.next(), components.next()) {
+        (Some(std::path::Component::Normal(_)), None) => {}
+        _ => return Err(format!("{label}必须是单一文件名")),
+    }
+
+    let stem = value
+        .split('.')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_uppercase();
+    if value.ends_with([' ', '.'])
+        || matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || (stem.len() == 4
+            && (stem.starts_with("COM") || stem.starts_with("LPT"))
+            && matches!(stem.as_bytes()[3], b'1'..=b'9'))
+    {
+        return Err(format!("{label}包含系统保留文件名"));
+    }
+
+    Ok(value)
+}
+
+pub(crate) fn lexical_normalize_path(path: &Path) -> PathBuf {
+    use std::path::Component;
+
+    let mut result = PathBuf::new();
+    let mut has_root = false;
+
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => result.push(prefix.as_os_str()),
+            Component::RootDir => {
+                has_root = true;
+                result.push(component.as_os_str());
+            }
+            Component::CurDir => {}
+            Component::ParentDir => {
+                let can_pop = matches!(result.components().next_back(), Some(Component::Normal(_)));
+                if can_pop {
+                    result.pop();
+                } else if !has_root {
+                    result.push(component.as_os_str());
+                }
+            }
+            Component::Normal(part) => result.push(part),
+        }
+    }
+
+    result
+}
+
+pub(crate) fn canonicalize_path_with_tail(path: &Path) -> Result<PathBuf, String> {
+    let normalized = lexical_normalize_path(path);
+    let mut cursor = normalized.as_path();
+    let mut tail = Vec::new();
+
+    loop {
+        if let Ok(canonical) = fs::canonicalize(cursor) {
+            let mut resolved = canonical;
+            for part in tail.into_iter().rev() {
+                resolved.push(part);
+            }
+            return Ok(resolved);
+        }
+
+        let Some(file_name) = cursor.file_name() else {
+            return Err(format!("无法解析路径边界: {}", path.display()));
+        };
+        tail.push(file_name.to_os_string());
+        let Some(parent) = cursor.parent() else {
+            return Err(format!("无法解析路径边界: {}", path.display()));
+        };
+        cursor = parent;
+    }
+}
+
+pub(crate) fn resolve_path_within_roots(
+    candidate: &Path,
+    roots: &[PathBuf],
+) -> Result<PathBuf, String> {
+    let normalized_candidate = lexical_normalize_path(candidate);
+    let lexical_ok = roots
+        .iter()
+        .map(|root| lexical_normalize_path(root))
+        .any(|root| normalized_candidate.starts_with(&root));
+    if !lexical_ok {
+        return Err(format!(
+            "拒绝访问受限目录之外的路径: {}",
+            candidate.display()
+        ));
+    }
+
+    let canonical_candidate = canonicalize_path_with_tail(&normalized_candidate)?;
+    let canonical_ok = roots.iter().any(|root| {
+        canonicalize_path_with_tail(root)
+            .is_ok_and(|canonical_root| canonical_candidate.starts_with(&canonical_root))
+    });
+    if !canonical_ok {
+        return Err(format!(
+            "拒绝访问受限目录之外的路径: {}",
+            candidate.display()
+        ));
+    }
+
+    Ok(normalized_candidate)
+}

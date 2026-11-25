@@ -24,7 +24,7 @@ export interface IpcInvokeContract {
   patchAppConfig: { args: [patch: Partial<AppConfig>]; result: void }
   getControledMihomoConfig: { args: [force?: boolean]; result: Partial<MihomoConfig> }
   patchControledMihomoConfig: { args: [patch: Partial<MihomoConfig>]; result: void }
-  applyConfig: { args: [change: ConfigChange]; result: { controller?: string } }
+  applyConfig: { args: [change: ConfigChange]; result: { controller?: string; secret?: string } }
   getRuntimeConfig: { args: []; result: Partial<MihomoConfig> }
   getRuntimeConfigStr: { args: []; result: string }
   mihomoConnections: { args: []; result: ControllerConnections }

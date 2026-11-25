@@ -18,7 +18,10 @@ export class MihomoSocketManager {
   private tauriMemoryBridgeRefCount = 0
   private tauriLogsBridgeRefCount = 0
   private tauriControllerUrl: string | null = null
+  private tauriControllerSecret: string | null = null
+  private tauriControllerSecretRevision = 0
   private tauriControllerUrlPromise: Promise<string | null> | null = null
+  private tauriRuntimeSecretPromise: Promise<void> | null = null
   private tauriBridgeLifecycleInstalled = false
   private tauriBridgeStartVersion = 0
   private tauriBridgeActiveControllerUrl: string | null = null
@@ -40,6 +43,20 @@ export class MihomoSocketManager {
     this.tauriControllerUrl = url
   }
 
+  public writeTauriControllerSecret(secret?: string | null): void {
+    this.tauriControllerSecret = typeof secret === 'string' ? secret : null
+    this.tauriControllerSecretRevision += 1
+  }
+
+  private readEffectiveTauriControllerSecret(): string {
+    if (this.tauriControllerSecret !== null) {
+      return this.tauriControllerSecret
+    }
+
+    const fallback = this.options.readTauriControledMihomoConfig().secret
+    return typeof fallback === 'string' ? fallback : ''
+  }
+
   private markNextTauriBridgeStart(reason: string): number {
     this.tauriBridgeReconnectReason = reason
     this.tauriBridgeStartVersion += 1
@@ -55,6 +72,10 @@ export class MihomoSocketManager {
   }
 
   public syncTauriControllerUrlFromRuntime(config?: Partial<MihomoConfig> | null): string | null {
+    if (config) {
+      this.writeTauriControllerSecret(typeof config.secret === 'string' ? config.secret : '')
+    }
+
     const controller = config?.['external-controller']
     const rawController = typeof controller === 'string' ? controller.trim() : ''
 
@@ -250,13 +271,15 @@ export class MihomoSocketManager {
 
     desktop.on<[unknown]>(IPC_ON_CHANNELS.coreStarted, (_event, payload) => {
       this.options.invalidateRuntimeConfigCache()
-      if (
-        payload &&
-        typeof payload === 'object' &&
-        'controller' in (payload as Record<string, unknown>) &&
-        typeof (payload as Record<string, unknown>).controller === 'string'
-      ) {
-        this.writeTauriControllerUrl(`http://${(payload as { controller: string }).controller}`)
+      const record =
+        payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null
+      if (record && 'secret' in record && typeof record.secret === 'string') {
+        this.writeTauriControllerSecret(record.secret)
+      } else {
+        this.writeTauriControllerSecret(null)
+      }
+      if (record && 'controller' in record && typeof record.controller === 'string') {
+        this.writeTauriControllerUrl(`http://${record.controller}`)
         this.startTauriMihomoEventBridge('core-started-with-controller')
       } else {
         this.tauriControllerUrl = null
@@ -267,6 +290,7 @@ export class MihomoSocketManager {
 
     desktop.on(IPC_ON_CHANNELS.controledMihomoConfigUpdated, () => {
       this.options.invalidateRuntimeConfigCache()
+      this.writeTauriControllerSecret(null)
       this.startTauriMihomoEventBridge()
     })
 
@@ -314,7 +338,15 @@ export class MihomoSocketManager {
   }
 
   private toWebSocketUrl(controllerUrl: string, path: string): string {
-    return controllerUrl.replace(/^http/i, 'ws') + path
+    const url = new URL(controllerUrl.replace(/^http/i, 'ws'))
+    const [pathname, rawQuery = ''] = path.split('?')
+    url.pathname = pathname
+    url.search = rawQuery ? `?${rawQuery}` : ''
+    const secret = this.readEffectiveTauriControllerSecret()
+    if (secret) {
+      url.searchParams.set('token', secret)
+    }
+    return url.toString()
   }
 
   private startTauriConnectionsSocket(controllerUrl: string, version: number): void {
@@ -462,6 +494,36 @@ export class MihomoSocketManager {
     }
 
     this.tauriBridgeActiveControllerUrl = controllerUrl
+
+    if (this.tauriControllerSecret === null && !this.tauriRuntimeSecretPromise) {
+      const previousSecret = this.readEffectiveTauriControllerSecret()
+      const secretRevision = this.tauriControllerSecretRevision
+      this.tauriRuntimeSecretPromise = this.options
+        .getRuntimeConfig()
+        .then((config) => {
+          const controlledSecret = this.options.readTauriControledMihomoConfig().secret
+          const resolvedSecret =
+            typeof config?.secret === 'string'
+              ? config.secret
+              : typeof controlledSecret === 'string'
+                ? controlledSecret
+                : ''
+          if (secretRevision === this.tauriControllerSecretRevision) {
+            this.writeTauriControllerSecret(resolvedSecret)
+          }
+          if (
+            this.readEffectiveTauriControllerSecret() !== previousSecret &&
+            this.tauriBridgeActiveControllerUrl === controllerUrl &&
+            !this.isStaleTauriBridgeStart(version)
+          ) {
+            this.startTauriMihomoEventBridge('runtime-secret-resolved')
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          this.tauriRuntimeSecretPromise = null
+        })
+    }
 
     this.startTauriMemorySocket(controllerUrl, version)
     this.startTauriLogsSocket(controllerUrl, version)

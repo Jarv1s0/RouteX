@@ -2,6 +2,7 @@ use crate::desktop::prelude::*;
 use crate::desktop::*;
 
 pub(crate) fn profile_file_path(app: &tauri::AppHandle, id: &str) -> Result<PathBuf, String> {
+    let id = validate_single_path_segment(id, "订阅 ID")?;
     Ok(storage_dir(app, PROFILE_DIR_NAME)?.join(format!("{id}.yaml")))
 }
 

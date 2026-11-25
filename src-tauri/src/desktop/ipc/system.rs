@@ -148,7 +148,11 @@ pub(crate) fn register_system_handlers(map: &mut std::collections::HashMap<&'sta
             )
             .map_err(|e| e.to_string())?;
             let extensions = normalize_dialog_extensions(&extensions);
-            Ok(json!(pick_open_file_paths_native(&extensions)?))
+            let picked = pick_open_file_paths_native(&extensions)?;
+            if let Some(paths) = picked.as_ref() {
+                authorize_read_paths(state, paths)?;
+            }
+            Ok(json!(picked))
         
     })().map_err(crate::desktop::error::AppError::from) });
     map.insert("saveFile", |app, window, state, args| { (|| -> Result<Value, String> {

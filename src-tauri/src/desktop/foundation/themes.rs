@@ -2,6 +2,10 @@ use crate::desktop::prelude::*;
 use crate::desktop::*;
 
 pub(crate) fn theme_file_path(app: &tauri::AppHandle, theme: &str) -> Result<PathBuf, String> {
+    let theme = validate_single_path_segment(theme, "主题文件名")?;
+    if !theme.to_ascii_lowercase().ends_with(".css") {
+        return Err("主题文件名必须以 .css 结尾".to_string());
+    }
     Ok(storage_dir(app, THEME_DIR_NAME)?.join(theme))
 }
 
