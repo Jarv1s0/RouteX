@@ -1,23 +1,5 @@
-import { Card, CardBody } from '@heroui/react'
+import { Card, CardBody, Skeleton } from '@heroui/react'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
-
-interface SkeletonProps {
-  className?: string
-  rounded?: 'sm' | 'md' | 'lg' | 'full'
-}
-
-export const Skeleton: React.FC<SkeletonProps> = ({ className, rounded = 'lg' }) => {
-  const roundedClass =
-    rounded === 'sm'
-      ? 'rounded-sm'
-      : rounded === 'md'
-        ? 'rounded-md'
-        : rounded === 'full'
-          ? 'rounded-full'
-          : 'rounded-lg'
-
-  return <div className={`animate-pulse bg-default-200/50 ${roundedClass} ${className}`} />
-}
 
 export const ProxyCardSkeleton: React.FC = () => {
   return (
@@ -41,5 +23,3 @@ export const ProxyCardSkeleton: React.FC = () => {
     </Card>
   )
 }
-
-export default Skeleton
