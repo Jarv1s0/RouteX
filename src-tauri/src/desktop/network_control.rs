@@ -285,17 +285,37 @@ pub(crate) fn cleanup_stale_tun_artifacts(
     Ok(())
 }
 
-pub(crate) fn is_core_running(state: &State<'_, CoreState>) -> Result<bool, String> {
-    let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
-    let is_running = if let Some(child) = runtime.child.as_mut() {
-        child.try_wait().map_err(|e| e.to_string())?.is_none()
-    } else {
-        false
+pub(crate) fn is_core_running(
+    app: &tauri::AppHandle,
+    state: &State<'_, CoreState>,
+) -> Result<bool, String> {
+    let _restart_guard = state.restart_lock.lock().map_err(|e| e.to_string())?;
+    let service_managed = {
+        let mut runtime = state.runtime.lock().map_err(|e| e.to_string())?;
+        if let Some(child) = runtime.child.as_mut() {
+            let is_running = child.try_wait().map_err(|e| e.to_string())?.is_none();
+            if !is_running {
+                runtime.child = None;
+            }
+            return Ok(is_running);
+        }
+        runtime.service_managed
     };
-    if !is_running {
-        runtime.child = None;
+
+    if !service_managed {
+        return Ok(false);
     }
-    Ok(is_running)
+
+    match service_core_status_info(app) {
+        Ok(Some(_)) => Ok(true),
+        Ok(None) => {
+            if let Ok(mut runtime) = state.runtime.lock() {
+                runtime.service_managed = false;
+            }
+            Ok(false)
+        }
+        Err(error) => Err(error),
+    }
 }
 
 pub(crate) fn has_network_connectivity() -> bool {
@@ -352,10 +372,9 @@ pub(crate) fn read_pause_ssids(app: &tauri::AppHandle) -> Result<Vec<String>, St
 pub(crate) fn current_ssid() -> Option<String> {
     #[cfg(target_os = "windows")]
     {
-        let output = Command::new("netsh")
-            .args(["wlan", "show", "interfaces"])
-            .output()
-            .ok()?;
+        let mut command = Command::new("netsh");
+        apply_background_command(&mut command);
+        let output = command.args(["wlan", "show", "interfaces"]).output().ok()?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         for line in stdout.lines().map(str::trim) {
             if line.starts_with("SSID") && !line.starts_with("BSSID") {
@@ -573,21 +592,32 @@ pub(crate) fn start_network_detection(
             Err(_) => break,
         };
 
-        let core_running = is_core_running(&state).unwrap_or_default();
-
         if is_online {
-            if *network_down_handled && !core_running {
-                let runtime_config = current_runtime_value(&app_handle, &state).ok();
-                if let Ok(value) =
-                    restart_core_process(&app_handle, &state, runtime_config.as_ref())
-                {
-                    emit_ipc_event(&app_handle, "core-started", value);
-                    emit_ipc_event(&app_handle, "groupsUpdated", Value::Null);
-                    emit_ipc_event(&app_handle, "rulesUpdated", Value::Null);
-                    if sysproxy_enabled {
-                        let _ = trigger_sys_proxy(&app_handle, &state, true, only_active_device);
+            if *network_down_handled {
+                match is_core_running(&app_handle, &state) {
+                    Ok(false) => {
+                        let runtime_config = current_runtime_value(&app_handle, &state).ok();
+                        if let Ok(value) =
+                            restart_core_process(&app_handle, &state, runtime_config.as_ref())
+                        {
+                            emit_ipc_event(&app_handle, "core-started", value);
+                            emit_ipc_event(&app_handle, "groupsUpdated", Value::Null);
+                            emit_ipc_event(&app_handle, "rulesUpdated", Value::Null);
+                            if sysproxy_enabled {
+                                let _ = trigger_sys_proxy(
+                                    &app_handle,
+                                    &state,
+                                    true,
+                                    only_active_device,
+                                );
+                            }
+                            *network_down_handled = false;
+                        }
                     }
-                    *network_down_handled = false;
+                    Ok(true) => {}
+                    Err(error) => {
+                        eprintln!("[desktop.network] 无法确认内核运行状态，将重试: {error}");
+                    }
                 }
             }
             continue;

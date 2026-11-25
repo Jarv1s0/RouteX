@@ -2337,3 +2337,41 @@ fn core_permission_targets_allow_only_known_cores() {
     assert!(validate_core_permission_targets(Some(vec!["bash".to_string()])).is_err());
     assert!(validate_core_permission_targets(Some(vec!["../mihomo".to_string()])).is_err());
 }
+
+#[test]
+fn profile_snapshot_restores_quick_rules_and_chains_configs() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join(APP_CONFIG_FILE), b"{}").unwrap();
+    fs::write(
+        root.path().join(QUICK_RULES_CONFIG_FILE),
+        b"{\"version\":1,\"profiles\":{\"__global__\":{\"enabled\":true,\"rules\":[]}}}",
+    )
+    .unwrap();
+    fs::write(root.path().join(CHAINS_CONFIG_FILE), b"{\"items\":[]}").unwrap();
+
+    let snapshot = ProfileStorageSnapshot::capture(root.path()).unwrap();
+    fs::write(
+        root.path().join(QUICK_RULES_CONFIG_FILE),
+        b"{\"broken\":true}",
+    )
+    .unwrap();
+    fs::write(
+        root.path().join(CHAINS_CONFIG_FILE),
+        b"{\"items\":[{\"id\":\"c1\"}]}",
+    )
+    .unwrap();
+
+    snapshot.restore().unwrap();
+    assert_eq!(
+        fs::read_to_string(root.path().join(QUICK_RULES_CONFIG_FILE)).unwrap(),
+        "{\"version\":1,\"profiles\":{\"__global__\":{\"enabled\":true,\"rules\":[]}}}"
+    );
+    assert_eq!(
+        fs::read_to_string(root.path().join(CHAINS_CONFIG_FILE)).unwrap(),
+        "{\"items\":[]}"
+    );
+
+    assert!(is_profile_mutation_channel("addQuickRule"));
+    assert!(is_profile_mutation_channel("setQuickRulesConfig"));
+    assert!(is_profile_mutation_channel("addChainItem"));
+}

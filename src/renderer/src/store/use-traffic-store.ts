@@ -264,11 +264,11 @@ export const useTrafficStore = create<TrafficState>((set, get) => ({
               }
             }
 
-            // Update upload/download max
-            if (conn.upload > existing.upload || conn.download > existing.download) {
+            // Accumulate per-connection byte deltas so multi-connection rules reflect total traffic
+            if (uploadDelta > 0 || downloadDelta > 0) {
               existing = getMutableRuleStats(ruleName)
-              existing.upload = Math.max(existing.upload, conn.upload)
-              existing.download = Math.max(existing.download, conn.download)
+              existing.upload += uploadDelta
+              existing.download += downloadDelta
               hasChanges = true
             }
           })

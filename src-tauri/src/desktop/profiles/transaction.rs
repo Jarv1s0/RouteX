@@ -27,6 +27,8 @@ impl ProfileStorageSnapshot {
             paths.extend([
                 root.join(PROFILE_CONFIG_FILE),
                 root.join(OVERRIDE_CONFIG_FILE),
+                root.join(QUICK_RULES_CONFIG_FILE),
+                root.join(CHAINS_CONFIG_FILE),
             ]);
         }
         for directory in &directories {
@@ -118,6 +120,16 @@ pub(crate) fn is_profile_mutation_channel(channel: &str) -> bool {
             | "removeOverrideItem"
             | "rollbackOverride"
             | "setOverride"
+            | "setQuickRulesConfig"
+            | "addQuickRule"
+            | "updateQuickRule"
+            | "removeQuickRule"
+            | "setQuickRulesEnabled"
+            | "reorderQuickRules"
+            | "clearQuickRules"
+            | "addChainItem"
+            | "updateChainItem"
+            | "removeChainItem"
     )
 }
 
@@ -184,6 +196,7 @@ pub(crate) fn with_storage_mutation<T>(
             emit_ipc_event(app, "appConfigUpdated", Value::Null);
             emit_ipc_event(app, "controledMihomoConfigUpdated", Value::Null);
             emit_ipc_event(app, "overrideConfigUpdated", Value::Null);
+            emit_ipc_event(app, "quickRulesConfigUpdated", Value::Null);
             emit_ipc_event(app, "rulesUpdated", Value::Null);
             Err(error)
         }

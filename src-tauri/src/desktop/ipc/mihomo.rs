@@ -208,6 +208,13 @@ fn upgrade_geo_data_file(
         return Err("Geo 数据库下载地址只支持 http 或 https".to_string());
     }
 
+    let bytes = download_with_update_client(app, parsed_url.as_str(), 120)?;
+    validate_geo_data_bytes(key, &bytes)?;
+
+    let _guard = state
+        .profile_mutation_lock
+        .lock()
+        .map_err(|e| e.to_string())?;
     let work_dir = {
         let runtime = state.runtime.lock().map_err(|e| e.to_string())?;
         runtime
@@ -215,16 +222,18 @@ fn upgrade_geo_data_file(
             .clone()
             .ok_or_else(|| "Mihomo work dir is not available".to_string())?
     };
-
     let target_path = work_dir.join(file_name);
     let temp_path = target_path.with_file_name(format!("{file_name}.download"));
     let backup_path = target_path.with_file_name(format!("{file_name}.backup"));
-    let bytes = download_with_update_client(app, parsed_url.as_str(), 120)?;
-    validate_geo_data_bytes(key, &bytes)?;
-
     ensure_parent(&temp_path)?;
-    fs::write(&temp_path, bytes).map_err(|e| e.to_string())?;
-    replace_geo_data_file(&temp_path, &target_path, &backup_path)?;
+    if let Err(error) = fs::write(&temp_path, bytes) {
+        let _ = fs::remove_file(&temp_path);
+        return Err(error.to_string());
+    }
+    if let Err(error) = replace_geo_data_file(&temp_path, &target_path, &backup_path) {
+        let _ = fs::remove_file(&temp_path);
+        return Err(error);
+    }
     restart_core_process(app, state, None).inspect(|value| {
         emit_ipc_event(app, "core-started", value.clone());
         emit_mihomo_config_updated(app);

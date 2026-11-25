@@ -282,7 +282,6 @@ pub(crate) fn start_core_events_monitor(
         };
         let connections_url = format!("{controller_url}/connections");
         let mut sampler = TrafficSampler::default();
-        let mut stopping = false;
 
         loop {
             let mut request = client.get(&connections_url);
@@ -334,17 +333,14 @@ pub(crate) fn start_core_events_monitor(
                     .traffic_stats
                     .lock()
                     .map_err(|e| e.to_string())?
-                    .flush(&path, stopping)
+                    .flush(&path, false)
             })();
             if let Err(error) = persist {
                 eprintln!("[desktop.traffic] 保存统计失败，将重试: {error}");
             }
-            if stopping {
-                break;
-            }
 
             match shutdown_rx.recv_timeout(connection_interval) {
-                Ok(_) | Err(mpsc::RecvTimeoutError::Disconnected) => stopping = true,
+                Ok(_) | Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 Err(mpsc::RecvTimeoutError::Timeout) => {}
             }
         }
@@ -472,7 +468,9 @@ pub(crate) fn convert_mrs_ruleset(
     let binary = resolve_core_binary(app, "mihomo")?;
     let output = std::env::temp_dir().join(format!("routex-mrs-{}.txt", create_id()));
 
-    let output_result = Command::new(binary)
+    let mut command = Command::new(binary);
+    apply_background_command(&mut command);
+    let output_result = command
         .arg("convert-ruleset")
         .arg(behavior)
         .arg("mrs")

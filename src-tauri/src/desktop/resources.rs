@@ -7,8 +7,9 @@ pub(crate) fn command_exists(command: &str) -> bool {
     } else {
         "which"
     };
-    Command::new(locator)
-        .arg(command)
+    let mut cmd = Command::new(locator);
+    apply_background_command(&mut cmd);
+    cmd.arg(command)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
@@ -35,7 +36,9 @@ pub(crate) fn find_system_mihomo_paths() -> Vec<String> {
         } else {
             "which"
         };
-        if let Ok(output) = Command::new(locator).arg(name).output() {
+        let mut command = Command::new(locator);
+        apply_background_command(&mut command);
+        if let Ok(output) = command.arg(name).output() {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 for line in stdout
@@ -89,7 +92,9 @@ pub(crate) fn find_system_mihomo_paths() -> Vec<String> {
     #[cfg(target_os = "windows")]
     if command_exists("scoop") {
         for name in search_names {
-            if let Ok(output) = Command::new("scoop").args(["which", name]).output() {
+            let mut command = Command::new("scoop");
+            apply_background_command(&mut command);
+            if let Ok(output) = command.args(["which", name]).output() {
                 if output.status.success() {
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     for line in stdout

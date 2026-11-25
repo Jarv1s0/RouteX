@@ -295,32 +295,37 @@ pub(crate) fn register_shell_handlers(map: &mut std::collections::HashMap<&'stat
         
             #[cfg(target_os = "windows")]
             {
-                let remove_command = r#"
+                let mihomo_exe = resolve_core_binary(app, "mihomo")?;
+                let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
+                let script = r#"
                 $rules = @("mihomo", "mihomo-alpha", "RouteX")
                 foreach ($rule in $rules) {
                   if (Get-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue) {
-                    Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
+                    Remove-NetFirewallRule -DisplayName $rule -ErrorAction Stop
                   }
                 }
+                New-NetFirewallRule -DisplayName "mihomo" -Direction Inbound -Action Allow -Program $env:ROUTEX_MIHOMO_EXE -Enabled True -Profile Any -ErrorAction Stop | Out-Null
+                New-NetFirewallRule -DisplayName "RouteX" -Direction Inbound -Action Allow -Program $env:ROUTEX_APP_EXE -Enabled True -Profile Any -ErrorAction Stop | Out-Null
                 "#;
-                let create_command = format!(
-                    r#"
-                    New-NetFirewallRule -DisplayName "mihomo" -Direction Inbound -Action Allow -Program "{}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
-                    New-NetFirewallRule -DisplayName "RouteX" -Direction Inbound -Action Allow -Program "{}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
-                    "#,
-                    resolve_core_binary(app, "mihomo")?.to_string_lossy(),
-                    std::env::current_exe()
-                        .map_err(|e| e.to_string())?
-                        .to_string_lossy()
-                );
-                let _ = powershell_command()
-                    .args(["-Command", remove_command])
-                    .status()
+                let mut command = powershell_command();
+                let output = command
+                    .env("ROUTEX_MIHOMO_EXE", &mihomo_exe)
+                    .env("ROUTEX_APP_EXE", &current_exe)
+                    .args(["-NoProfile", "-NonInteractive", "-Command", script])
+                    .output()
                     .map_err(|e| e.to_string())?;
-                let _ = powershell_command()
-                    .args(["-Command", &create_command])
-                    .status()
-                    .map_err(|e| e.to_string())?;
+                if !output.status.success() {
+                    let stderr = decode_windows_process_output(&output.stderr);
+                    let stdout = decode_windows_process_output(&output.stdout);
+                    let detail = if !stderr.is_empty() {
+                        stderr
+                    } else if !stdout.is_empty() {
+                        stdout
+                    } else {
+                        format!("powershell exited with status {}", output.status)
+                    };
+                    return Err(detail);
+                }
             }
             Ok(Value::Null)
         

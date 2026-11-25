@@ -138,7 +138,21 @@ it('does not mutate published rule details when a later snapshot adds a connecti
   expect(previousRuleStats).toEqual({ hits: 1, upload: 1, download: 2 })
   expect(useTrafficStore.getState().ruleStats.get('MATCH,example.com')).toEqual({
     hits: 2,
-    upload: 10,
-    download: 2
+    upload: 11,
+    download: 4
+  })
+
+  await vi.advanceTimersByTimeAsync(1001)
+  mocks.connections!({
+    connections: [
+      { ...firstConnection, upload: 6, download: 7 },
+      { ...secondConnection, upload: 15, download: 5 }
+    ]
+  } as ControllerConnections)
+
+  expect(useTrafficStore.getState().ruleStats.get('MATCH,example.com')).toEqual({
+    hits: 2,
+    upload: 21,
+    download: 12
   })
 })
