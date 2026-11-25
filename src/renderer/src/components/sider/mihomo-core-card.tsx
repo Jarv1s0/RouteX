@@ -50,6 +50,11 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
   const latestVersion = useMihomoLatestVersion(core)
   const retryTimerRef = useRef<number | null>(null)
   const versionMountedRef = useRef(true)
+  const versionRef = useRef<ControllerVersion | null>(version)
+
+  useEffect(() => {
+    versionRef.current = version
+  }, [version])
 
   const clearRetryTimer = useCallback((): void => {
     if (retryTimerRef.current === null) {
@@ -65,6 +70,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
     try {
       const nextVersion = await mihomoVersion()
       if (versionMountedRef.current) {
+        versionRef.current = nextVersion
         setVersion(nextVersion)
       }
     } catch (error) {
@@ -101,7 +107,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
       void refreshVersion()
     }
     const handleVisibilityChange = (): void => {
-      if (!document.hidden && !version) {
+      if (!document.hidden && !versionRef.current) {
         void refreshVersion()
       }
     }
@@ -117,7 +123,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
       releaseMemoryBridge()
       offCoreStarted()
     }
-  }, [iconOnly, refreshVersion, version])
+  }, [iconOnly, refreshVersion])
 
   if (iconOnly) {
     return (

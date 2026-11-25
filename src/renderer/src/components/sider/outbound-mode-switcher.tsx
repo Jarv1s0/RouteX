@@ -1,6 +1,6 @@
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { useGroups } from '@renderer/hooks/use-groups'
+import { useGroupsStore } from '@renderer/store/use-groups-store'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { MdOutlineAltRoute } from 'react-icons/md'
@@ -20,7 +20,6 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
   const { iconOnly, isMinimal } = props
   const { t } = useI18n()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
-  const { mutate: mutateGroups } = useGroups()
   const { appConfig } = useAppConfig()
   const { autoCloseConnection = true } = appConfig || {}
   const { mode } = controledMihomoConfig || {}
@@ -41,7 +40,7 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
         }
       })
       if (!success) return
-      mutateGroups()
+      void useGroupsStore.getState().fetchGroups()
       sendIpc(SEND.updateTrayMenu)
     } catch (error) {
       notifyError(error, { title: t('common.updateConfigFailed') })

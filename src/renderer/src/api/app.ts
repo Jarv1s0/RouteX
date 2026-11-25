@@ -11,6 +11,11 @@ let checkUpdatePromise: Promise<AppVersion | undefined> | null = null
 let lastCheckUpdateAt = 0
 let lastCheckUpdateResult: AppVersion | undefined
 let updateCheckGeneration = 0
+let lastAppliedNativeTheme: 'system' | 'light' | 'dark' | null = null
+let pendingNativeTheme: {
+  theme: 'system' | 'light' | 'dark'
+  promise: Promise<void>
+} | null = null
 
 const CHECK_UPDATE_CACHE_MS = 60 * 1000
 export const UPDATE_CHECK_RESULT_EVENT = 'routex:update-check-result'
@@ -204,7 +209,30 @@ export async function createHeapSnapshot(): Promise<void> {
 }
 
 export async function setNativeTheme(theme: 'system' | 'light' | 'dark'): Promise<void> {
-  return invokeSafe(C.setNativeTheme, theme)
+  if (lastAppliedNativeTheme === theme) {
+    return
+  }
+
+  if (pendingNativeTheme?.theme === theme) {
+    return pendingNativeTheme.promise
+  }
+
+  lastAppliedNativeTheme = null
+
+  const request = invokeSafe<void>(C.setNativeTheme, theme)
+    .then(() => {
+      if (pendingNativeTheme?.promise === request) {
+        lastAppliedNativeTheme = theme
+      }
+    })
+    .finally(() => {
+      if (pendingNativeTheme?.promise === request) {
+        pendingNativeTheme = null
+      }
+    })
+
+  pendingNativeTheme = { theme, promise: request }
+  return request
 }
 
 export async function openUWPTool(): Promise<void> {

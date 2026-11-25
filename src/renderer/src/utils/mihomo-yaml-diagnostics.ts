@@ -62,8 +62,18 @@ export function diagnoseMihomoYaml(
     (!data || typeof data !== 'object' || Array.isArray(data) || 'payload' in data)
   )
     return []
+  let entryIndex: Map<string, (typeof entries)[number]> | null = null
   const locate = (path: YamlPath) => {
-    const entry = entries.find((item) => JSON.stringify(item.path) === JSON.stringify(path))
+    if (!entryIndex) {
+      entryIndex = new Map()
+      for (const item of entries) {
+        const key = JSON.stringify(item.path)
+        if (!entryIndex.has(key)) {
+          entryIndex.set(key, item)
+        }
+      }
+    }
+    const entry = entryIndex.get(JSON.stringify(path))
     return entry
       ? { from: entry.from, to: Math.min(entry.to, entry.from + 100) }
       : { from: 0, to: 0 }

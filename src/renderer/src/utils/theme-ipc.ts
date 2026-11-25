@@ -69,11 +69,15 @@ let applyThemeRunning = false
 const waitList: string[] = []
 const TAURI_THEME_STYLE_ID = 'routex-tauri-theme-style'
 
-function upsertTauriThemeStyle(css: string): void {
+export function upsertTauriThemeStyle(css: string): void {
   const existing = document.getElementById(TAURI_THEME_STYLE_ID)
 
   if (!css.trim()) {
     existing?.remove()
+    return
+  }
+
+  if (existing && existing.textContent === css) {
     return
   }
 
@@ -88,7 +92,9 @@ function upsertTauriThemeStyle(css: string): void {
 
 export async function applyTheme(theme: string): Promise<void> {
   if (isTauriHost()) {
-    document.documentElement.dataset['routexTheme'] = theme
+    if (document.documentElement.dataset['routexTheme'] !== theme) {
+      document.documentElement.dataset['routexTheme'] = theme
+    }
     const css = await readTheme(theme)
     upsertTauriThemeStyle(css)
     return

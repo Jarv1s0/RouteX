@@ -53,7 +53,7 @@ const App: React.FC = () => {
   const resizeFrameRef = useRef<number | null>(null)
   const pendingWidthRef = useRef(initialSiderWidth)
 
-  const { setTheme, systemTheme } = useTheme()
+  const { setTheme } = useTheme()
   const routerNavigate = useNavigate()
   const location = useLocation()
   const page = useRoutes(routes)
@@ -166,7 +166,7 @@ const App: React.FC = () => {
     }
     void setNativeTheme(appTheme)
     setTheme(appTheme)
-  }, [appConfig, appTheme, setTheme, systemTheme])
+  }, [appConfig, appTheme, setTheme])
 
   useEffect(() => {
     if (!appConfig) {

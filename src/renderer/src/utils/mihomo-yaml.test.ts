@@ -145,4 +145,41 @@ describe('Mihomo YAML language support', () => {
       expect.objectContaining({ severity: 'error' })
     )
   })
+  it('locates special-character paths accurately and handles large configs with many schema errors', () => {
+    const specialSource = [
+      'proxy-providers:',
+      '  "a.b/c":',
+      '    type: file',
+      '    path: 123'
+    ].join('\n')
+    const invalidValueStart = specialSource.indexOf('123')
+    const specialDiags = diagnoseMihomoYaml(specialSource)
+    expect(specialDiags).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          severity: 'warning',
+          from: invalidValueStart,
+          to: invalidValueStart + '123'.length
+        })
+      ])
+    )
+
+    const lines = ['proxies:']
+    for (let i = 0; i < 300; i++) {
+      lines.push(
+        `  - name: node-${i}`,
+        '    type: ss',
+        '    server: 127.0.0.1',
+        '    port: 443',
+        '    password: secret',
+        i % 5 === 0 ? '    cipher: INVALID' : '    cipher: aes-128-gcm'
+      )
+    }
+    const largeSource = lines.join('\n')
+    const largeDiags = diagnoseMihomoYaml(largeSource)
+    expect(largeDiags.length).toBeGreaterThanOrEqual(50)
+    expect(largeDiags.every((item) => item.from > 0 && item.to > item.from)).toBe(true)
+    const firstDiag = largeDiags[0]
+    expect(largeSource.slice(firstDiag.from, firstDiag.to)).toBe('INVALID')
+  })
 })
