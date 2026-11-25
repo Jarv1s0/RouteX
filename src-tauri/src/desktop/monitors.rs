@@ -15,6 +15,38 @@ pub(crate) fn json_u64(value: Option<&Value>) -> u64 {
         .unwrap_or(0)
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TrafficTotalsSnapshot {
+    #[serde(default)]
+    upload_total: Option<Value>,
+    #[serde(default)]
+    download_total: Option<Value>,
+}
+
+#[cfg(test)]
+mod traffic_totals_tests {
+    use super::{json_u64, TrafficTotalsSnapshot};
+
+    #[test]
+    fn compact_snapshot_preserves_traffic_total_defaults() {
+        for (json, expected_upload, expected_download) in [
+            (r#"{}"#, 0, 0),
+            (r#"{"uploadTotal":null,"downloadTotal":null}"#, 0, 0),
+            (r#"{"uploadTotal":-1,"downloadTotal":-9}"#, 0, 0),
+            (r#"{"uploadTotal":1.5,"downloadTotal":"4"}"#, 0, 0),
+            (r#"{"uploadTotal":12,"downloadTotal":34}"#, 12, 34),
+        ] {
+            let snapshot: TrafficTotalsSnapshot = serde_json::from_str(json).unwrap();
+            assert_eq!(json_u64(snapshot.upload_total.as_ref()), expected_upload);
+            assert_eq!(
+                json_u64(snapshot.download_total.as_ref()),
+                expected_download
+            );
+        }
+    }
+}
+
 pub(crate) fn close_connections_by_group(
     state: &State<'_, CoreState>,
     name: &str,
@@ -50,12 +82,16 @@ pub(crate) fn close_connections_by_group(
 }
 
 pub(crate) fn test_network_latency() -> i64 {
-    let client = match Client::builder().timeout(NETWORK_HEALTH_TIMEOUT).build() {
+    let client = match external_http_client() {
         Ok(client) => client,
         Err(_) => return 0,
     };
     let started_at = Instant::now();
-    match client.head(NETWORK_CONNECTIVITY_CHECK_URL).send() {
+    match client
+        .head(NETWORK_CONNECTIVITY_CHECK_URL)
+        .timeout(NETWORK_HEALTH_TIMEOUT)
+        .send()
+    {
         Ok(response) if response.status().is_success() => started_at.elapsed().as_millis() as i64,
         Ok(_) | Err(_) => 0,
     }
@@ -284,27 +320,28 @@ pub(crate) fn start_core_events_monitor(
         let mut sampler = TrafficSampler::default();
 
         loop {
+            let traffic_path = storage_file(&app_handle, TRAFFIC_STATS_FILE);
             let mut request = client.get(&connections_url);
             if !secret.is_empty() {
                 request = request.bearer_auth(&secret);
             }
             if let Ok(response) = request.send() {
                 if response.status().is_success() {
-                    if let Ok(snapshot) = response.json::<Value>() {
+                    if let Ok(snapshot) = response.json::<TrafficTotalsSnapshot>() {
                         let now = Instant::now();
-                        let upload_total = json_u64(snapshot.get("uploadTotal"));
-                        let download_total = json_u64(snapshot.get("downloadTotal"));
+                        let upload_total = json_u64(snapshot.upload_total.as_ref());
+                        let download_total = json_u64(snapshot.download_total.as_ref());
                         let (up, down) = sampler.sample(upload_total, download_total, now);
                         let (upload, download) = sampler.pending_delta();
 
                         let totals = (|| -> Result<(u64, u64), String> {
-                            let path = storage_file(&app_handle, TRAFFIC_STATS_FILE)?;
+                            let path = traffic_path.as_ref().map_err(Clone::clone)?;
                             let state = app_handle.state::<CoreState>();
                             let mut buffer =
                                 state.traffic_stats.lock().map_err(|e| e.to_string())?;
                             let local_now = OffsetDateTime::now_local()
                                 .unwrap_or_else(|_| OffsetDateTime::now_utc());
-                            let totals = buffer.record(&path, upload, download, local_now)?;
+                            let totals = buffer.record(path, upload, download, local_now)?;
                             Ok(totals)
                         })();
                         let mut payload = json!({
@@ -327,13 +364,13 @@ pub(crate) fn start_core_events_monitor(
 
             // Persistence retries continue even when the controller is unavailable.
             let persist = (|| -> Result<(), String> {
-                let path = storage_file(&app_handle, TRAFFIC_STATS_FILE)?;
+                let path = traffic_path.as_ref().map_err(Clone::clone)?;
                 app_handle
                     .state::<CoreState>()
                     .traffic_stats
                     .lock()
                     .map_err(|e| e.to_string())?
-                    .flush(&path, false)
+                    .flush(path, false)
             })();
             if let Err(error) = persist {
                 eprintln!("[desktop.traffic] 保存统计失败，将重试: {error}");

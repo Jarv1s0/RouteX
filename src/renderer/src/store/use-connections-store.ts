@@ -47,6 +47,7 @@ interface ConnectionsState {
 type ConnectionSnapshotListener = (snapshot: ControllerConnections) => void
 const connectionSnapshotListeners = new Set<ConnectionSnapshotListener>()
 let latestSeedActiveConnections: ExtendedConnection[] | null = null
+let latestSeedConnections: ControllerConnectionDetail[] | null = null
 let warmConnectionSnapshotPromise: Promise<void> | null = null
 let unavailableRetryTimer: number | null = null
 let currentSessionCleanup: (() => void) | null = null
@@ -84,7 +85,12 @@ export function warmConnectionSnapshot(): Promise<void> {
       if (generation !== sessionGeneration) return
       if (snapshot?.connections) {
         emitConnectionSnapshot(snapshot)
-        useConnectionsStore.setState(retainSeedConnectionState(snapshot.connections))
+        latestSeedConnections = snapshot.connections
+        useConnectionsStore.setState({
+          connectionCount: snapshot.connections.length,
+          trackedConnectionCount: snapshot.connections.length,
+          loading: false
+        })
       }
     })
     .catch(() => undefined)
@@ -147,14 +153,6 @@ function createSeedConnectionStateFromActive(
   }
 }
 
-function retainSeedConnectionState(
-  connections: ControllerConnectionDetail[] = []
-): ConnectionListState {
-  const state = createSeedConnectionStateFromActive(createSeedActiveConnections(connections))
-  latestSeedActiveConnections = state.activeConnections
-  return state
-}
-
 export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
   ...createEmptyConnectionState(),
   memory: 0,
@@ -200,13 +198,20 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       if (disposed || !info || !info.connections) return
 
       if (summaryOnly) {
-        // 摘要模式只保留可直接渲染的 seed，进入连接页后再由实时数据校准。
         emitConnectionSnapshot(info)
+        latestSeedConnections = info.connections
+        latestSeedActiveConnections = null
         if (isBaselineSnapshot) {
           isBaselineSnapshot = false
         }
 
-        set(retainSeedConnectionState(info.connections))
+        set({
+          activeConnections: [],
+          closedConnections: [],
+          connectionCount: info.connections.length,
+          trackedConnectionCount: info.connections.length,
+          loading: false
+        })
         return
       }
 
@@ -215,10 +220,26 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
 
       const now = Date.now()
       const { isPaused } = get()
-
+      const isHidden = document.hidden
       const isBaseline = isBaselineSnapshot
       if (isBaseline) {
         isBaselineSnapshot = false
+      }
+
+      if (isPaused || isHidden) {
+        connectionsWorker.postMessage({
+          type: 'sample',
+          generation,
+          payload: {
+            connections: info.connections.map(({ id, upload, download }) => ({
+              id,
+              upload,
+              download
+            })),
+            now
+          }
+        })
+        return
       }
 
       connectionsWorker.postMessage({
@@ -227,7 +248,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
         payload: {
           connections: info.connections,
           isPaused,
-          isHidden: document.hidden,
+          isHidden,
           isBaseline,
           now
         }
@@ -271,7 +292,9 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
           if (disposed) return
           if (isExpectedMihomoUnavailableError(error)) {
             set({
-              loading: !latestSeedActiveConnections || latestSeedActiveConnections.length === 0
+              loading:
+                (!latestSeedActiveConnections || latestSeedActiveConnections.length === 0) &&
+                (!latestSeedConnections || latestSeedConnections.length === 0)
             })
 
             scheduleConnectionsSnapshotRetry()
@@ -324,7 +347,13 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
       })
     }
 
-    if (!summaryOnly && latestSeedActiveConnections) {
+    if (!summaryOnly && latestSeedConnections) {
+      const seedConnections = createSeedActiveConnections(latestSeedConnections)
+      latestSeedActiveConnections = seedConnections
+      set(createSeedConnectionStateFromActive(seedConnections))
+      latestSeedConnections = null
+      isBaselineSnapshot = true
+    } else if (!summaryOnly && latestSeedActiveConnections) {
       set(createSeedConnectionStateFromActive(latestSeedActiveConnections))
       isBaselineSnapshot = true
     }
@@ -371,6 +400,7 @@ export const useConnectionsStore = create<ConnectionsState>((set, get) => ({
     connectionsWorker.postMessage({ type: 'release', payload: { clearClosed: true } })
     if (clearSnapshot) {
       latestSeedActiveConnections = null
+      latestSeedConnections = null
       set(createEmptyConnectionState())
       return
     }

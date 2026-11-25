@@ -25,12 +25,9 @@ pub(crate) fn fetch_image_data_url(url: &str) -> Result<String, String> {
         return Ok(format!("data:image/svg+xml;utf8,{url}"));
     }
 
-    let client = Client::builder()
-        .timeout(Duration::from_secs(20))
-        .build()
-        .map_err(|e| e.to_string())?;
-    let response = client
+    let response = external_http_client()?
         .get(url)
+        .timeout(Duration::from_secs(20))
         .header(reqwest::header::USER_AGENT, "RouteX-Tauri/1.0")
         .send()
         .map_err(|e| e.to_string())?;

@@ -92,3 +92,11 @@ pub(crate) fn mihomo_http_client() -> Result<&'static Client, String> {
         Err(error) => Err(error.clone()),
     }
 }
+
+pub(crate) fn external_http_client() -> Result<&'static Client, String> {
+    match EXTERNAL_HTTP_CLIENT.get_or_init(|| Client::builder().build().map_err(|e| e.to_string()))
+    {
+        Ok(client) => Ok(client),
+        Err(error) => Err(error.clone()),
+    }
+}

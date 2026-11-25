@@ -18,6 +18,8 @@ type ConnectionSpeedSample = {
   at: number
 }
 
+type ConnectionTrafficSample = Pick<ControllerConnectionDetail, 'id' | 'upload' | 'download'>
+
 let speedSamples = new Map<string, ConnectionSpeedSample>()
 let prevActiveMap = new Map<string, ExtendedConnection>()
 let prevClosed: ExtendedConnection[] = []
@@ -31,7 +33,7 @@ function releaseWorkerState(clearClosed: boolean): void {
 }
 
 function updateSpeedSamples(
-  connections: ControllerConnectionDetail[],
+  connections: ConnectionTrafficSample[],
   activeIds: Set<string>,
   now: number
 ) {
@@ -53,7 +55,16 @@ function updateSpeedSamples(
 self.onmessage = (event: MessageEvent) => {
   const { type, payload, generation } = event.data
 
-  if (type === 'process') {
+  if (type === 'sample') {
+    const { connections, now } = payload as {
+      connections: ConnectionTrafficSample[]
+      now: number
+    }
+    if (!connections) return
+
+    const activeIds = new Set(connections.map((connection) => connection.id))
+    updateSpeedSamples(connections, activeIds, now)
+  } else if (type === 'process') {
     const { connections, isPaused, isHidden, isBaseline, now } = payload as {
       connections: ControllerConnectionDetail[]
       isPaused: boolean

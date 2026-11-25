@@ -1,19 +1,13 @@
+use crate::desktop::foundation::external_http_client;
 use crate::desktop::*;
-
-pub(crate) fn http_client_with_timeout(timeout_ms: u64) -> Result<Client, String> {
-    Client::builder()
-        .timeout(Duration::from_millis(timeout_ms))
-        .build()
-        .map_err(|e| e.to_string())
-}
 
 pub(crate) fn http_get_response(
     url: &str,
     timeout_ms: u64,
 ) -> Result<(reqwest::StatusCode, String, Value), String> {
-    let client = http_client_with_timeout(timeout_ms)?;
-    let response = client
+    let response = external_http_client()?
         .get(url)
+        .timeout(Duration::from_millis(timeout_ms))
         .header(reqwest::header::USER_AGENT, "Mozilla/5.0 RouteX-Tauri/1.0")
         .header(reqwest::header::ACCEPT, "*/*")
         .send()
@@ -47,9 +41,9 @@ pub(crate) fn http_get_json(url: &str, timeout_ms: u64) -> Result<Value, String>
 }
 
 pub(crate) fn http_post_json(url: &str, body: &Value, timeout_ms: u64) -> Result<Value, String> {
-    let client = http_client_with_timeout(timeout_ms)?;
-    let response = client
+    let response = external_http_client()?
         .post(url)
+        .timeout(Duration::from_millis(timeout_ms))
         .header(reqwest::header::USER_AGENT, "Mozilla/5.0 RouteX-Tauri/1.0")
         .json(body)
         .send()

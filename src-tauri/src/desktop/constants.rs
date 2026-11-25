@@ -115,6 +115,7 @@ pub(crate) static APP_STARTED_AT: OnceLock<Instant> = OnceLock::new();
 pub(crate) static ICON_DATA_URL_CACHE: OnceLock<Mutex<lru::LruCache<String, String>>> =
     OnceLock::new();
 pub(crate) static MIHOMO_HTTP_CLIENT: OnceLock<Result<Client, String>> = OnceLock::new();
+pub(crate) static EXTERNAL_HTTP_CLIENT: OnceLock<Result<Client, String>> = OnceLock::new();
 pub(crate) static PROFILE_RUNTIME_CONFIG_CACHE: OnceLock<Mutex<Option<ProfileRuntimeConfigCache>>> =
     OnceLock::new();
 pub(crate) static PROFILE_RUNTIME_CONFIG_REVISION: AtomicU64 = AtomicU64::new(0);

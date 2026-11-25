@@ -97,3 +97,41 @@ it('ignores worker results from a previous session and accepts the current resul
   mocks.worker.onmessage!(result(current.generation, 1))
   expect(useConnectionsStore.getState().connectionCount).toBe(1)
 })
+
+it('sends only traffic samples to the worker while paused', async () => {
+  mocks.snapshot.mockResolvedValueOnce({
+    connections: [
+      { id: 'conn-1', upload: 12, download: 34, metadata: { host: 'example.com' }, chains: ['A'] }
+    ]
+  })
+  useConnectionsStore.getState().setPaused(true)
+  useConnectionsStore.getState().initializeListeners()
+  await Promise.resolve()
+  await Promise.resolve()
+
+  const message = mocks.worker.postMessage.mock.calls.find(([item]) => item.type === 'sample')?.[0]
+  expect(message?.payload.connections).toEqual([{ id: 'conn-1', upload: 12, download: 34 }])
+  expect(mocks.worker.postMessage.mock.calls.some(([item]) => item.type === 'process')).toBe(false)
+  useConnectionsStore.getState().setPaused(false)
+})
+
+it('keeps summary snapshots as counts without building connection rows', async () => {
+  mocks.snapshot.mockResolvedValueOnce({
+    connections: [
+      { id: 'conn-1', upload: 12, download: 34, metadata: { host: 'example.com' }, chains: ['A'] }
+    ]
+  })
+  useConnectionsStore.getState().initializeListeners({ summaryOnly: true })
+  await Promise.resolve()
+  await Promise.resolve()
+
+  expect(useConnectionsStore.getState().connectionCount).toBe(1)
+  expect(useConnectionsStore.getState().trackedConnectionCount).toBe(1)
+  expect(useConnectionsStore.getState().activeConnections).toEqual([])
+  expect(mocks.worker.postMessage.mock.calls.some(([item]) => item.type === 'process')).toBe(false)
+
+  useConnectionsStore.getState().initializeListeners()
+  expect(useConnectionsStore.getState().activeConnections).toEqual([
+    expect.objectContaining({ id: 'conn-1', isActive: true, downloadSpeed: 0, uploadSpeed: 0 })
+  ])
+})
