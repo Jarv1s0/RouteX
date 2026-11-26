@@ -16,6 +16,7 @@ import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import useSWR from 'swr'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 export const ProviderTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | null }> = ({
   toolbarContainer
@@ -118,7 +119,7 @@ export const ProviderTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
             size="sm"
             variant="flat"
             color="primary"
-            className="ml-auto"
+            className={`ml-auto ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
             isLoading={providerUpdating.some(Boolean)}
             startContent={!providerUpdating.some(Boolean) && <IoMdRefresh className="text-base" />}
             onPress={updateAllProviders}

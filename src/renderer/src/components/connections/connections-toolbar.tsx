@@ -99,7 +99,7 @@ export default function ConnectionsToolbar({
   return (
     <div className="overflow-x-auto sticky top-0 z-40 w-full pb-2 px-2 pt-2 pointer-events-none">
       <div
-        className={`flex items-center w-full px-2 py-1.5 gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
+        className={`flex items-center w-full px-2 py-1.5 gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR}`}
       >
         <Tabs
           size="md"
@@ -174,7 +174,8 @@ export default function ConnectionsToolbar({
         <Button
           size="sm"
           isIconOnly
-          className="bg-content2"
+          variant="light"
+          className={`text-default-600 dark:text-default-300 hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
           onPress={() => void onDirectionToggle()}
         >
           {connectionDirection === 'asc' ? (
@@ -186,7 +187,12 @@ export default function ConnectionsToolbar({
 
         <Dropdown classNames={CARD_STYLES.GLASS_DROPDOWN}>
           <DropdownTrigger>
-            <Button size="sm" isIconOnly className="bg-content2">
+            <Button
+              size="sm"
+              isIconOnly
+              variant="light"
+              className={`text-default-600 dark:text-default-300 hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
+            >
               {VIEW_MODE_ICONS[viewMode]}
             </Button>
           </DropdownTrigger>
@@ -215,6 +221,7 @@ export default function ConnectionsToolbar({
           isIconOnly
           variant="flat"
           color={isPaused ? 'success' : 'warning'}
+          className={CARD_STYLES.GLASS_TOOLBAR_BUTTON}
           title={isPaused ? t('connections.resume') : t('connections.pause')}
           onPress={() => setPaused(!isPaused)}
         >
@@ -226,6 +233,7 @@ export default function ConnectionsToolbar({
           isIconOnly
           variant="flat"
           color="danger"
+          className={CARD_STYLES.GLASS_TOOLBAR_BUTTON}
           title={tab === 'active' ? t('connections.closeAll') : t('connections.clearRecords')}
           onPress={onBulkAction}
         >
@@ -237,8 +245,13 @@ export default function ConnectionsToolbar({
             <Button
               size="sm"
               isIconOnly
-              variant="flat"
+              variant={showHidden ? 'flat' : 'light'}
               color={showHidden ? 'primary' : 'default'}
+              className={
+                showHidden
+                  ? CARD_STYLES.GLASS_TOOLBAR_BUTTON
+                  : `text-default-500 hover:text-primary hover:bg-primary/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`
+              }
               title={
                 showHidden
                   ? t('connections.hideFiltered', { count: hiddenRulesCount })
@@ -251,8 +264,8 @@ export default function ConnectionsToolbar({
             <Button
               size="sm"
               isIconOnly
-              variant="flat"
-              color="warning"
+              variant="light"
+              className={`text-default-500 hover:text-warning hover:bg-warning/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
               title={t('connections.clearHidden')}
               onPress={onClearAllHidden}
             >

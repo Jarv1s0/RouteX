@@ -114,7 +114,7 @@ const Logs: React.FC = () => {
       {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
       <div className="sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
         <div
-          className={`w-full px-2 py-1.5 flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
+          className={`w-full px-2 py-1.5 flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR}`}
         >
           {/* Left: Config Group */}
           <div className="flex items-center gap-2 pl-1">
@@ -195,7 +195,7 @@ const Logs: React.FC = () => {
               size="sm"
               isIconOnly
               title={paused ? t('page.logs.resume') : t('page.logs.pause')}
-              className={`min-w-8 w-8 h-8 rounded-full transition-transform active:scale-95 ${paused ? 'text-warning bg-warning/10' : 'text-primary bg-primary/10'}`}
+              className={`min-w-8 w-8 h-8 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON} transition-transform active:scale-95 ${paused ? 'text-warning bg-warning/10' : 'text-primary bg-primary/10'}`}
               variant="light"
               onPress={() => {
                 setPaused(!paused)
@@ -208,7 +208,7 @@ const Logs: React.FC = () => {
               size="sm"
               isIconOnly
               title={t('page.logs.clear')}
-              className="min-w-8 w-8 h-8 rounded-full text-default-400 hover:text-danger hover:bg-danger/10 transition-colors"
+              className={`min-w-8 w-8 h-8 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON} text-default-400 hover:text-danger hover:bg-danger/10 transition-colors`}
               variant="light"
               onPress={() => {
                 clearLogs()
@@ -221,7 +221,7 @@ const Logs: React.FC = () => {
               size="sm"
               isIconOnly
               title={t('page.logs.export')}
-              className="min-w-8 w-8 h-8 rounded-full text-default-400 hover:text-primary hover:bg-primary/10 transition-colors"
+              className={`min-w-8 w-8 h-8 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON} text-default-400 hover:text-primary hover:bg-primary/10 transition-colors`}
               variant="light"
               isDisabled={filteredLogs.length === 0}
               onPress={handleExportLogs}

@@ -458,7 +458,7 @@ const RulesPage: React.FC = () => {
     <BasePage title={t('page.rules.title')}>
       <div className="sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
         <div
-          className={`w-full px-2 py-1.5 flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
+          className={`w-full px-2 py-1.5 flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR}`}
         >
           <Tabs
             size="md"
@@ -511,12 +511,22 @@ const RulesPage: React.FC = () => {
             />
           )}
           {activeTab === 'local' && (
-            <Button size="sm" color="primary" className="ml-auto" onPress={openCreateQuickRule}>
+            <Button
+              size="sm"
+              color="primary"
+              className={`ml-auto ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
+              onPress={openCreateQuickRule}
+            >
               {t('page.rules.create')}
             </Button>
           )}
           {activeTab === 'remote' && (
-            <Button size="sm" color="primary" onPress={updateAll}>
+            <Button
+              size="sm"
+              color="primary"
+              className={CARD_STYLES.GLASS_TOOLBAR_BUTTON}
+              onPress={updateAll}
+            >
               {t('common.updateAll')}
             </Button>
           )}

@@ -448,7 +448,7 @@ const Proxies: React.FC = () => {
         <div className="h-[calc(100vh-49px)] flex flex-col overflow-hidden">
           <div className="shrink-0 px-2 pt-2 pb-1">
             <div
-              className={`w-full flex flex-wrap items-center justify-between gap-2 px-3 py-2 ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
+              className={`w-full flex flex-wrap items-center justify-between gap-2 px-3 py-2 ${CARD_STYLES.GLASS_TOOLBAR}`}
             >
               <GroupDetailSummary
                 group={singleGroup}
@@ -476,7 +476,7 @@ const Proxies: React.FC = () => {
                   radius="lg"
                   aria-label={t('proxies.testGroup')}
                   title={t('proxies.testGroup')}
-                  className="h-8 w-8 min-w-8 rounded-2xl bg-primary/10 hover:bg-primary/20 text-primary shadow-sm"
+                  className={`h-8 w-8 min-w-8 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON} bg-primary/10 hover:bg-primary/20 text-primary shadow-sm`}
                   onPress={() => void onGroupDelay(singleGroup)}
                   isDisabled={!!delaying[singleGroup.name]}
                 >

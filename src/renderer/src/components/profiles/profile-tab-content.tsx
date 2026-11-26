@@ -369,6 +369,7 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
               size="sm"
               color="primary"
               variant={isUrlEmpty ? 'flat' : 'solid'}
+              className={CARD_STYLES.GLASS_TOOLBAR_BUTTON}
               isDisabled={isUrlEmpty}
               isLoading={importing}
               onPress={() => handleImport(url)}
@@ -379,9 +380,9 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
             <Button
               size="sm"
               isIconOnly
-              variant="flat"
+              variant="light"
               color="default"
-              className="bg-default-100/80 dark:bg-white/[0.08] text-default-600 dark:text-default-300"
+              className={`text-default-600 dark:text-default-300 hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
               isLoading={updating}
               title={t('page.profiles.updateAllProfiles')}
               onPress={async () => {
@@ -407,7 +408,7 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
                   size="sm"
                   isIconOnly
                   color="primary"
-                  className="new-profile"
+                  className={`new-profile ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
                   title={t('page.profiles.openLocal')}
                 >
                   <FaPlus />

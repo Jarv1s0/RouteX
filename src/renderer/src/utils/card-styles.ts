@@ -40,21 +40,22 @@ export const CARD_STYLES = {
   // Shared glass control surface for inputs, selects, tabs, and capsules
   GLASS_CONTROL: GLASS_CONTROL_BASE,
 
-  // Toolbar style: Same as INACTIVE but without scale and tuned for toolbar
+  // Toolbar style: Floating pill glass island elevated above content cards
   GLASS_TOOLBAR:
-    'flex items-center transition-[background-color,border-color,box-shadow,opacity] duration-150 bg-gradient-to-b from-white/8 to-transparent dark:from-white/2 dark:to-transparent hover:from-white/16 hover:to-white/5 dark:hover:from-white/8 dark:hover:to-white/2 border border-white/14 dark:border-white/6 hover:border-white/40 dark:hover:border-white/20 backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22),0_2px_10px_0_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.5),0_8px_20px_0_rgba(0,0,0,0.1)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_4px_16px_0_rgba(0,0,0,0.3)] overflow-visible',
+    'flex items-center rounded-full transition-[background-color,border-color,box-shadow,opacity] duration-200 bg-gradient-to-b from-white/80 to-white/55 dark:from-white/[0.09] dark:to-white/[0.04] hover:from-white/90 hover:to-white/68 dark:hover:from-white/[0.12] dark:hover:to-white/[0.06] border border-white/80 dark:border-white/15 hover:border-white dark:hover:border-white/25 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_6px_20px_-4px_rgba(0,0,0,0.08),0_2px_6px_-1px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_8px_24px_-4px_rgba(0,0,0,0.45)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_10px_28px_-4px_rgba(0,0,0,0.12),0_4px_10px_-2px_rgba(0,0,0,0.05)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_10px_28px_-4px_rgba(0,0,0,0.55)] overflow-visible',
+  GLASS_TOOLBAR_BUTTON: 'rounded-full',
 
   // Input style: Matches the glass toolbar aesthetic
   GLASS_INPUT: {
-    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-2xl !h-8 !min-h-8 transition-colors duration-300`,
+    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-full !h-8 !min-h-8 transition-colors duration-300`,
     input: 'text-sm',
     innerWrapper: 'bg-transparent'
   },
 
   // Tabs style: Matches GLASS_CONTROL_BASE so switching capsules share the same surface as inputs
   GLASS_TABS: {
-    tabList: `${GLASS_CONTROL_BASE} p-0 overflow-visible rounded-2xl`,
-    cursor: 'w-full bg-background dark:bg-default-100 shadow-md rounded-2xl',
+    tabList: `${GLASS_CONTROL_BASE} p-0 overflow-visible rounded-full`,
+    cursor: 'w-full bg-background dark:bg-default-100 shadow-md rounded-full',
     tabContent:
       'font-medium text-default-500 group-data-[selected=true]:text-primary transition-colors',
     tab: 'h-8 px-3'
@@ -109,7 +110,7 @@ export const CARD_STYLES = {
   MANAGEMENT_FOOTER_ROW: 'flex items-center justify-between text-sm text-foreground',
 
   GLASS_SELECT: {
-    trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} rounded-2xl h-8 min-h-8 transition-colors duration-300`,
+    trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} rounded-full h-8 min-h-8 transition-colors duration-300`,
     value: 'text-sm',
     popoverContent: GLASS_POPOVER_CONTENT
   },

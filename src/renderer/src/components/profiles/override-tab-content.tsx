@@ -315,7 +315,7 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
             <Button
               size="sm"
               color="primary"
-              className="ml-2"
+              className={`ml-2 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
               isDisabled={isOverrideUrlEmpty}
               isLoading={overrideImporting}
               onPress={() => handleOverrideImport()}
@@ -325,7 +325,8 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
             <Button
               size="sm"
               isIconOnly
-              color="primary"
+              variant="light"
+              className={`text-default-600 dark:text-default-300 hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
               isLoading={overrideUpdating}
               title={t('page.profiles.updateAllOverrides')}
               onPress={() => void handleUpdateAllOverrides()}
@@ -338,6 +339,7 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
                   size="sm"
                   isIconOnly
                   color="primary"
+                  className={CARD_STYLES.GLASS_TOOLBAR_BUTTON}
                   title={t('profiles.openLocalOverride')}
                 >
                   <FaPlus />
