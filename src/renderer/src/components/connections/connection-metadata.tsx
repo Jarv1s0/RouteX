@@ -23,7 +23,7 @@ interface InfoCardProps {
 }
 
 const NEUTRAL_CARD =
-  'bg-white/70 dark:bg-white/[0.04] border-default-200/60 dark:border-white/10 hover:border-default-300/80 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.2)]'
+  'bg-default-100/55 dark:bg-white/[0.04] border-default-200/70 dark:border-white/10 hover:bg-default-100/80 dark:hover:bg-white/[0.06] hover:border-default-300/80 dark:hover:border-white/20 shadow-xs dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.2)]'
 
 const THEME_MAP = {
   green: {
@@ -94,7 +94,7 @@ const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value, subValue, theme
 
   return (
     <div
-      className={`h-full p-3.5 rounded-xl backdrop-blur-md border transition-colors group relative ${NEUTRAL_CARD}`}
+      className={`h-full p-3.5 rounded-xl border transition-colors group relative ${NEUTRAL_CARD}`}
     >
       <div className="flex items-center gap-2 mb-2">
         <div className={clsx('p-1.5 rounded-lg text-xs', t.icon)}>{icon}</div>
@@ -141,7 +141,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
 
   return (
     <ScrollShadow className="flex-1 p-4 flex flex-col gap-2.5">
-      <div className={`overflow-x-auto rounded-xl backdrop-blur-md border px-3.5 py-2.5 ${NEUTRAL_CARD}`}>
+      <div className={`overflow-x-auto rounded-xl border px-3.5 py-2.5 ${NEUTRAL_CARD}`}>
         <div className="flex min-w-max items-center justify-between gap-5 whitespace-nowrap">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
@@ -181,7 +181,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
       <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
         {/* 目标地址卡片 */}
         <div
-          className={`h-full p-3.5 rounded-xl backdrop-blur-md border transition-colors group relative ${NEUTRAL_CARD}`}
+          className={`h-full p-3.5 rounded-xl border transition-colors group relative ${NEUTRAL_CARD}`}
         >
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-lg bg-blue-500/12 text-blue-600 dark:text-blue-400">
@@ -192,7 +192,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
             </span>
           </div>
           <span
-            className="text-[13.5px] font-semibold text-foreground font-mono [overflow-wrap:anywhere] leading-snug block pr-6"
+            className="text-[13px] font-semibold text-foreground font-mono [overflow-wrap:anywhere] leading-snug block pr-5"
             title={destination}
           >
             {destination}
@@ -257,8 +257,8 @@ export const ConnectionMetadata: React.FC<Props> = ({
       </div>
 
       {/* 入站详情 — divider 横条布局 */}
-      <div className={`rounded-xl backdrop-blur-md border overflow-hidden ${NEUTRAL_CARD}`}>
-        <div className="flex items-center gap-2 px-3.5 py-2 bg-default-100/40 dark:bg-white/[0.03] border-b border-default-200/50 dark:border-white/10">
+      <div className={`rounded-xl border overflow-hidden ${NEUTRAL_CARD}`}>
+        <div className="flex items-center gap-2 px-3.5 py-2 bg-default-200/35 dark:bg-white/[0.03] border-b border-default-200/60 dark:border-white/10">
           <div className="p-1 rounded-md bg-default-200/60 dark:bg-white/10 text-foreground-500">
             <IoServer className="text-xs" />
           </div>

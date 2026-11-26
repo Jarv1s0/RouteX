@@ -54,7 +54,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
       classNames={createSecondaryModalClassNames({
         backdrop: 'bg-black/40 backdrop-blur-sm',
         wrapper: 'z-[9999]',
-        base: 'bg-background/60 dark:bg-default-100/50 max-h-[90vh]'
+        base: 'bg-background/80 dark:bg-default-100/65 max-h-[90vh]'
       })}
       size="5xl"
       hideCloseButton
@@ -98,7 +98,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
           />
         </div>
 
-        <ModalBody className="p-0 flex flex-row h-[500px] bg-content1/25 gap-0">
+        <ModalBody className="p-0 flex flex-row h-[500px] gap-0">
           {/* 左侧：详细信息 */}
           <ConnectionMetadata
             connection={connection}

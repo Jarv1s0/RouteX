@@ -72,7 +72,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
         className={clsx(
           'relative rounded-xl border transition-all',
           isGroup
-            ? 'p-2.5 bg-white/70 dark:bg-white/[0.04] border-default-200/60 dark:border-white/10 hover:border-primary/35 shadow-xs'
+            ? 'p-2.5 bg-default-100/55 dark:bg-white/[0.04] border-default-200/70 dark:border-white/10 hover:border-primary/35 shadow-xs'
             : 'bg-transparent border-transparent p-0'
         )}
       >
