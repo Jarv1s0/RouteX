@@ -1,6 +1,8 @@
 use crate::desktop::prelude::*;
 use crate::desktop::*;
 
+pub(crate) const DEFAULT_THEME_CSS: &str = include_str!("default.css");
+
 pub(crate) fn theme_file_path(app: &tauri::AppHandle, theme: &str) -> Result<PathBuf, String> {
     let theme = validate_single_path_segment(theme, "主题文件名")?;
     if !theme.to_ascii_lowercase().ends_with(".css") {
@@ -23,7 +25,7 @@ pub(crate) fn theme_sort_rank(theme: &str) -> u8 {
 
 pub(crate) fn read_theme_text(app: &tauri::AppHandle, theme: &str) -> Result<String, String> {
     if is_default_theme(theme) {
-        return Ok(String::new());
+        return Ok(DEFAULT_THEME_CSS.to_string());
     }
 
     let path = theme_file_path(app, theme)?;
@@ -103,8 +105,8 @@ pub(crate) fn resolve_theme_entries(app: &tauri::AppHandle) -> Result<Vec<Value>
 
     entries.push(json!({
         "key": DEFAULT_THEME_FILE_NAME,
-        "label": theme_display_label(DEFAULT_THEME_FILE_NAME, ""),
-        "content": "",
+        "label": theme_display_label(DEFAULT_THEME_FILE_NAME, DEFAULT_THEME_CSS),
+        "content": DEFAULT_THEME_CSS,
     }));
 
     for entry in fs::read_dir(&themes_dir).map_err(|e| e.to_string())? {

@@ -36,7 +36,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
   return (
     <div ref={contentRef} className={`w-full h-full ${props.className || ''}`}>
       <div
-        className={`sticky top-0 z-40 h-[49px] w-full border-b border-default-200/50 ${props.headerClassName || 'bg-background/70 backdrop-blur-md'}`}
+        className={`sticky top-0 z-40 h-[49px] w-full border-b border-black/[0.05] dark:border-white/[0.06] ${props.headerClassName || 'bg-background/75 backdrop-blur-md'}`}
       >
         <div className="app-drag p-2 flex justify-between h-[48px]">
           <div className="title h-full flex items-center select-none">

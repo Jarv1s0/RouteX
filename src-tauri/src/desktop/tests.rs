@@ -1577,6 +1577,18 @@ fn default_theme_sorts_before_downloaded_themes() {
 }
 
 #[test]
+fn embedded_default_theme_provides_main_window_styles() {
+    assert!(!DEFAULT_THEME_CSS.trim().is_empty());
+    assert_eq!(
+        theme_display_label(DEFAULT_THEME_FILE_NAME, DEFAULT_THEME_CSS),
+        DEFAULT_THEME_FILE_NAME
+    );
+    assert!(DEFAULT_THEME_CSS.contains(".light"));
+    assert!(DEFAULT_THEME_CSS.contains("--heroui-background:"));
+    assert!(DEFAULT_THEME_CSS.contains("body:has(.main)"));
+}
+
+#[test]
 fn default_remote_profile_name_ignores_generic_subscribe_path() {
     assert_eq!(
         default_remote_profile_name(Some("https://example.com/api/Subscribe?token=abc")),

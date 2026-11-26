@@ -1,0 +1,47 @@
+/* default.css */
+:root,
+.light,
+html:not(.dark) {
+  /* 默认主题浅色画布：纯净中性浅银灰 (#F4F4F6)，让亮白玻璃卡片自然浮出且不发灰发蓝 */
+  --heroui-background: 240 10% 96%;
+  --heroui-foreground: 240 10% 12%;
+  --heroui-content1: 0 0% 100%;
+  --heroui-content2: 240 6% 96%;
+  --heroui-default-50: 0 0% 98%;
+  --heroui-default-100: 240 5% 94%;
+  --heroui-default-200: 240 5% 88%;
+  --heroui-divider: 240 5% 88%;
+}
+
+.dark,
+html.dark {
+  /* 默认主题深色画布：纯净深空冷灰，保持克制通透的深色对比 */
+  --heroui-background: 230 15% 8%;
+  --heroui-foreground: 210 20% 98%;
+  --heroui-content1: 230 12% 14%;
+  --heroui-content2: 230 10% 18%;
+  --heroui-default-50: 230 12% 11%;
+  --heroui-default-100: 230 10% 16%;
+  --heroui-default-200: 230 8% 22%;
+  --heroui-divider: 230 8% 22%;
+}
+
+/* 仅作用域于包含 .main 的主窗口，避免影响悬浮窗与托盘菜单的透明底 */
+body:has(.main) {
+  background-color: hsl(var(--heroui-background));
+  background-image: none;
+}
+
+body:has(.main) .side {
+  background-color: hsl(240 8% 95% / 0.85);
+  border-right-color: rgb(0 0 0 / 0.05);
+}
+
+.dark body:has(.main) .side {
+  background-color: hsl(230 15% 10% / 0.6);
+  border-right-color: rgb(255 255 255 / 0.06);
+}
+
+body:has(.main) .main {
+  background: transparent;
+}
