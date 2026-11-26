@@ -73,7 +73,11 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
       <div
         onMouseEnter={handlePreload}
         onClick={() => navigateSidebarRoute('/sysproxy')}
-        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl cursor-pointer transition-colors hover:bg-default-200/50 dark:hover:bg-white/5 select-none`}
+        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl cursor-pointer transition-[background-color,box-shadow] duration-150 select-none ${
+          isSelected
+            ? 'bg-background dark:bg-default-100 shadow-md'
+            : 'hover:bg-white/50 dark:hover:bg-white/[0.08]'
+        }`}
       >
         <LuGlobe className={`text-[14px] ${isSelected ? 'text-primary' : 'text-default-500'}`} />
         <span className={`text-[12px] leading-none ${isSelected ? 'font-bold text-foreground' : 'font-medium text-default-500'}`}>

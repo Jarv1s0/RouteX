@@ -543,9 +543,9 @@ const Proxies: React.FC = () => {
               aria-label={drawerGroup.name}
               className={
                 canPushDrawer
-                  ? `shrink-0 my-2 flex flex-col overflow-hidden rounded-2xl border bg-white/68 dark:bg-default-100/65 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_8px_28px_rgba(0,0,0,0.05)] dark:shadow-[0_10px_32px_rgba(0,0,0,0.35)] transition-[width,opacity,transform,margin] duration-200 ease-out motion-reduce:transition-none ${
+                  ? `shrink-0 my-2 flex flex-col overflow-hidden rounded-2xl border bg-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_10px_32px_rgba(0,0,0,0.3)] transition-[width,opacity,transform,margin] duration-200 ease-out motion-reduce:transition-none ${
                       drawerEntered
-                        ? 'w-[calc(50%-12px)] ml-1 mr-2 border-white/65 dark:border-white/10 translate-x-0 opacity-100'
+                        ? 'w-[calc(50%-12px)] ml-1 mr-2 border-default-200/60 dark:border-white/10 translate-x-0 opacity-100'
                         : 'w-0 ml-0 mr-0 border-transparent translate-x-4 opacity-0 pointer-events-none'
                     }`
                   : `absolute top-2 right-2 bottom-2 z-30 w-[min(460px,calc(100%-16px))] flex flex-col overflow-hidden rounded-2xl border border-white/75 dark:border-white/15 bg-white/88 dark:bg-default-100/90 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.45)] transition-all duration-200 ease-out motion-reduce:transition-none ${

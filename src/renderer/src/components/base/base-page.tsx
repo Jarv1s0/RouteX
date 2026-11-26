@@ -47,10 +47,9 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
             {props.header}
             <div className="flex items-center gap-1.5 mr-2 ml-1.5 h-full app-nodrag">
               <div
-                className={`flex items-center p-1 rounded-2xl mr-1 ${CARD_STYLES.BASE} ${CARD_STYLES.HEADER_SWITCHER}`}
+                className={`relative flex items-center gap-1 p-1 rounded-2xl mr-1 antialiased ${CARD_STYLES.HEADER_SWITCHER}`}
               >
                 <SysproxySwitcher headerMode />
-                <div className="w-[1px] h-3.5 bg-default-300/50 dark:bg-white/10 mx-0.5" />
                 <TunSwitcher headerMode />
               </div>
 
