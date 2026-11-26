@@ -9,7 +9,7 @@ import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-moda
 
 import StatusGrid from '@renderer/components/stats/status-grid'
 import TrafficChart from '@renderer/components/stats/traffic-chart'
-import TrafficRanking from '@renderer/components/stats/traffic-ranking'
+import { TrafficRankingCard, TrafficSummaryCard } from '@renderer/components/stats/traffic-ranking'
 import RuleDetailList from '@renderer/components/stats/rule-detail-list'
 import RealtimeMetricsPanel from '@renderer/components/stats/realtime-metrics-panel'
 import { useTrafficStore } from '@renderer/store/use-traffic-store'
@@ -30,16 +30,10 @@ const EMPTY_RULE_HIT_DETAILS: RuleHitDetail[] = []
 
 
 
-const TrafficRankingSection = React.memo(function TrafficRankingSection({
-  onSelectRule
-}: {
-  onSelectRule: (rule: string) => void
-}) {
+const TrafficSummarySection = React.memo(function TrafficSummarySection() {
   const sessionStats = useTrafficStore((state) => state.sessionStats)
   const routeStats = useTrafficStore((state) => state.routeStats)
   const dailyData = useTrafficStore((state) => state.dailyData)
-  const ruleStats = useTrafficStore((state) => state.ruleStats)
-  const ruleHitDetails = useTrafficStore((state) => state.ruleHitDetails)
 
   const todayStats = React.useMemo(() => {
     const now = new Date()
@@ -81,12 +75,26 @@ const TrafficRankingSection = React.memo(function TrafficRankingSection({
   }, [dailyData])
 
   return (
-    <TrafficRanking
+    <TrafficSummaryCard
       session={sessionStats}
       today={todayStats}
       week={weekStats}
       month={monthStats}
       route={routeStats}
+    />
+  )
+})
+
+const TrafficRankingOnlySection = React.memo(function TrafficRankingOnlySection({
+  onSelectRule
+}: {
+  onSelectRule: (rule: string) => void
+}) {
+  const ruleStats = useTrafficStore((state) => state.ruleStats)
+  const ruleHitDetails = useTrafficStore((state) => state.ruleHitDetails)
+
+  return (
+    <TrafficRankingCard
       ruleStats={ruleStats}
       ruleHitDetails={ruleHitDetails}
       onSelectRule={onSelectRule}
@@ -214,14 +222,24 @@ const Stats: React.FC = () => {
         {/* Row 1: Status Grid */}
         <StatusGrid />
 
-        {/* Row 2: Realtime traffic and live runtime curves */}
-        <div className="flex flex-col gap-2">
-          <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+        {/* Row 2: Realtime traffic + Traffic summary on first screen */}
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-12">
+          <div className="lg:col-span-7">
             <TrafficChart />
+          </div>
+          <div className="lg:col-span-5">
+            <TrafficSummarySection />
+          </div>
+        </div>
+
+        {/* Row 3: Ranking list + Compact runtime curves */}
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <TrafficRankingOnlySection onSelectRule={setSelectedRule} />
+          </div>
+          <div className="lg:col-span-5">
             <RealtimeMetricsPanel />
           </div>
-
-          <TrafficRankingSection onSelectRule={setSelectedRule} />
         </div>
 
         {/* 规则命中详情弹窗 */}

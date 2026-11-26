@@ -74,36 +74,6 @@ const RealtimeSpeedBadges = React.memo(function RealtimeSpeedBadges() {
   )
 })
 
-function ChartLegend(): React.JSX.Element {
-  const { t } = useI18n()
-  const { theme, systemTheme } = useTheme()
-  const isDark = (theme === 'system' ? systemTheme : theme) === 'dark'
-  const { uploadColor, downloadColor } = getChartColors(isDark)
-  const items = [
-    { label: t('stats.uploadSpeed'), color: uploadColor },
-    { label: t('stats.downloadSpeed'), color: downloadColor }
-  ]
-
-  return (
-    <div className="pointer-events-none absolute left-1/2 hidden min-w-0 -translate-x-1/2 items-center justify-center gap-5 md:flex">
-      {items.map((item) => (
-        <div key={item.label} className="flex min-w-0 items-center gap-1.5 text-xs text-slate-500/80">
-          <span
-            className="relative inline-flex h-[2px] w-6 shrink-0 items-center rounded-full bg-current"
-            style={{ color: item.color }}
-          >
-            <span
-              className="absolute left-1/2 h-2 w-2 -translate-x-1/2 rounded-full shadow-sm"
-              style={{ backgroundColor: item.color }}
-            />
-          </span>
-          <span className="truncate font-medium">{item.label}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // ─── 图表共享工具函数 ───
 
 function formatHourLabel(hour: string): string {
@@ -126,21 +96,19 @@ function createBaseChartOption(axisLabelColor: string, splitLineColor: string) {
   return {
     animation: false,
     grid: {
-      top: 12,
+      top: 10,
       right: 12,
-      bottom: 24,
-      left: 48,
+      bottom: 18,
+      left: 52,
       containLabel: false
     },
     tooltip: {
       trigger: 'axis' as const,
       transitionDuration: 0,
       hideDelay: 120,
-      backgroundColor: 'rgba(255,255,255,0.88)',
-      borderColor: 'rgba(148,163,184,0.18)',
-      textStyle: {
-        color: '#0f172a'
-      }
+      backgroundColor: 'transparent',
+      borderColor: 'transparent',
+      padding: 0
     },
     xAxis: {
       type: 'category' as const,
@@ -204,9 +172,36 @@ function createTooltipFormatter(speed: boolean): (params: unknown) => string {
       .join('')
 
     const label = tooltipParams[0]?.axisValueLabel ?? ''
+    const uid = Math.random().toString(36).substring(7)
     return `
-        <div style="padding:2px 0;min-width:148px;">
-          <div style="font-size:12px;font-weight:700;line-height:1.1;color:#475569;margin-bottom:${rows ? '8px' : '0'};">${label}</div>
+        <style>
+          .traffic-glass-tooltip-${uid} {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(12px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            padding: 10px 12px;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            min-width: 156px;
+          }
+          .dark .traffic-glass-tooltip-${uid} {
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
+          }
+          .traffic-glass-tooltip-${uid} .tooltip-title {
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: #475569;
+            margin-bottom: ${rows ? '8px' : '0'};
+          }
+          .dark .traffic-glass-tooltip-${uid} .tooltip-title {
+            color: #cbd5e1;
+          }
+        </style>
+        <div class="traffic-glass-tooltip-${uid}">
+          <div class="tooltip-title">${label}</div>
           ${rows}
         </div>
       `
@@ -324,7 +319,7 @@ const RealtimeChartRenderer = React.memo(function RealtimeChartRenderer() {
           interval: Math.max(Math.floor(realtimeData.labels.length / 4), 12),
           formatter: (value: string | number) => {
             const label = String(value)
-            return label.length >= 5 ? label.substring(0, 5) : label
+            return label.length >= 8 ? label.substring(0, 8) : label
           }
         }
       },
@@ -415,9 +410,9 @@ const TrafficChart: React.FC = () => {
     <Card
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
     >
-      <CardBody className="p-4">
-        <div className="relative mb-4 flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-4">
+      <CardBody className="flex h-full flex-col p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex min-w-0 items-center gap-3">
             <Tabs
               size="sm"
               classNames={CARD_STYLES.GLASS_TABS}
@@ -428,13 +423,12 @@ const TrafficChart: React.FC = () => {
               <Tab key="hourly" title={t('stats.hourly')} />
             </Tabs>
           </div>
-          <ChartLegend />
-          <div className="min-w-0 justify-self-end">
+          <div className="min-w-0 shrink-0">
             {historyTab === 'realtime' && <RealtimeSpeedBadges />}
           </div>
         </div>
 
-        <div className="h-[200px] w-full">
+        <div className="min-h-[200px] w-full flex-1">
           <Suspense fallback={<div className="h-full w-full" />}>
             {historyTab === 'realtime' ? <RealtimeChartRenderer /> : <HourlyChartRenderer />}
           </Suspense>

@@ -16,28 +16,18 @@ interface TrafficOverviewProps {
   monthDownload: number
 }
 
-const PROXY_GRADIENT = 'linear-gradient(90deg, #2563eb 0%, #38bdf8 100%)'
-const DIRECT_GRADIENT = 'linear-gradient(90deg, #16a34a 0%, #4ade80 100%)'
-const SECTION_LABEL_CLASS =
-  'text-[9px] font-medium uppercase leading-none tracking-[0.12em] text-default-500'
+const PROXY_GRADIENT = 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)'
+const DIRECT_GRADIENT = 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
 
 interface FormattedTraffic {
   val: number
   unit: string
 }
 
-interface DetailMetricProps {
-  label: string
-  value: FormattedTraffic
-  marker: React.ReactNode
-}
-
 interface PeriodSummaryProps {
   label: string
   upload: number
   download: number
-  uploadGradient: string
-  downloadGradient: string
 }
 
 interface SplitRatios {
@@ -57,66 +47,18 @@ function calculateSplitRatios(primary: number, total: number, minVisible = 1): S
   return { primary: safePrimary, secondary: 100 - safePrimary }
 }
 
-const DetailMetric: React.FC<DetailMetricProps> = ({ label, value, marker }) => {
-  return (
-    <div className="flex items-center gap-1.5 w-auto min-w-[110px] shrink-0">
-      <div className="flex items-center gap-1 text-[11px] leading-none font-medium text-default-500 uppercase tracking-wide shrink-0">
-        {marker}
-        <span>{label}</span>
-      </div>
-      <div className="flex items-baseline gap-0.5 leading-none tabular-nums">
-        <span className="text-sm leading-none font-semibold text-foreground/90 whitespace-nowrap">
-          <AnimatedNumber
-            end={value.val}
-            decimals={value.val % 1 !== 0 ? 1 : 0}
-            duration={1}
-            preserveValue
-          />
-        </span>
-        <span className="text-[10px] leading-none font-bold text-default-400 shrink-0 whitespace-nowrap">
-          {value.unit}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-const PeriodSummary: React.FC<PeriodSummaryProps> = ({
-  label,
-  upload,
-  download,
-  uploadGradient,
-  downloadGradient
-}) => {
+const PeriodSummary: React.FC<PeriodSummaryProps> = ({ label, upload, download }) => {
   const total = upload + download
-  const formattedTotal = calcTraffic(total)
-  const ratios = calculateSplitRatios(upload, total, 2)
 
   return (
-    <div className="min-w-0 px-3 first:pl-0 last:pr-0">
-      <div className={`mb-1.5 truncate ${SECTION_LABEL_CLASS}`}>{label}</div>
-      <div className="mb-2 text-[13px] font-semibold leading-none text-foreground/85 tabular-nums">
-        {formattedTotal}
+    <div className="min-w-0 rounded-xl border border-default-200/45 bg-default-100/45 px-3 py-2.5 dark:border-white/[0.06] dark:bg-white/[0.04]">
+      <div className="truncate text-[11px] font-medium text-default-500">{label}</div>
+      <div className="mt-1 truncate text-sm font-bold leading-tight text-foreground tabular-nums">
+        {calcTraffic(total)}
       </div>
-      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-default-100/60">
-        {total > 0 ? (
-          <>
-            {upload > 0 && (
-              <div
-                className="h-full"
-                style={{ width: `${ratios.primary}%`, background: uploadGradient }}
-              />
-            )}
-            {download > 0 && (
-              <div
-                className="h-full"
-                style={{ width: `${ratios.secondary}%`, background: downloadGradient }}
-              />
-            )}
-          </>
-        ) : (
-          <div className="h-full w-full bg-default-200/50" />
-        )}
+      <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] leading-tight text-default-400 tabular-nums">
+        <span className="truncate">↑ {calcTraffic(upload)}</span>
+        <span className="truncate">↓ {calcTraffic(download)}</span>
       </div>
     </div>
   )
@@ -144,7 +86,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   const sessionTotal = sessionUpload + sessionDownload
   const sessionRouteTotal = sessionProxy + sessionDirect
 
-  const formatTraffic = (value: number) => {
+  const formatTraffic = (value: number): FormattedTraffic => {
     const formatted = calcTraffic(value)
     const parts = formatted.split(' ')
     const val = parseFloat(parts[0]) || 0
@@ -153,28 +95,24 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   }
 
   const sessionTotalFormatted = formatTraffic(sessionTotal)
-  const sessionUploadFormatted = formatTraffic(sessionUpload)
-  const sessionDownloadFormatted = formatTraffic(sessionDownload)
-  const sessionProxyFormatted = formatTraffic(sessionProxy)
-  const sessionDirectFormatted = formatTraffic(sessionDirect)
 
   const sessionRouteRatios = calculateSplitRatios(sessionProxy, sessionRouteTotal)
   const sessionTransferRatios = calculateSplitRatios(sessionUpload, sessionTotal)
 
-  const UPLOAD_GRADIENT = 'linear-gradient(90deg, #0ea5e9 0%, #38bdf8 100%)'
-  const DOWNLOAD_GRADIENT = 'linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%)'
+  const UPLOAD_GRADIENT = 'linear-gradient(90deg, #06b6d4 0%, #22d3ee 100%)'
+  const DOWNLOAD_GRADIENT = 'linear-gradient(90deg, #8b5cf6 0%, #a855f7 100%)'
 
   return (
-    <div className="w-full flex flex-col px-1 pt-0 pb-1 gap-6">
-      {/* Transfer Block */}
-      <div className="flex flex-col gap-3 animate-fade-in-up">
-        <div className="flex justify-between items-end">
+    <div className="flex h-full w-full flex-col justify-between gap-3">
+      {/* Hero: Session Total + Upload / Download */}
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <div className="flex flex-col">
-            <div className={`mb-1 ${SECTION_LABEL_CLASS}`}>
+            <span className="text-xs font-medium text-default-500">
               {t('stats.sessionTotal')}
-            </div>
-            <div className="flex min-w-0 items-baseline gap-2">
-              <span className="font-data-numeric text-[34px] font-bold leading-none tracking-normal text-foreground tabular-nums">
+            </span>
+            <div className="mt-1 flex items-baseline gap-1.5">
+              <span className="font-data-numeric text-[32px] font-bold leading-none tracking-tight text-foreground tabular-nums">
                 <AnimatedNumber
                   end={sessionTotalFormatted.val}
                   decimals={sessionTotalFormatted.val % 1 !== 0 ? 1 : 0}
@@ -182,114 +120,95 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
                   preserveValue
                 />
               </span>
-              <span className="text-xs font-semibold uppercase tracking-wide text-default-400">
+              <span className="text-xs font-semibold text-default-400">
                 {sessionTotalFormatted.unit}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-4 pb-2 shrink-0">
-            <DetailMetric
-              label={t('stats.upload')}
-              value={sessionUploadFormatted}
-              marker={<span className="font-sans text-sky-500 font-bold">↑</span>}
-            />
-            <DetailMetric
-              label={t('stats.download')}
-              value={sessionDownloadFormatted}
-              marker={<span className="font-sans text-purple-500 font-bold">↓</span>}
-            />
+          <div className="flex items-center gap-2 pb-0.5">
+            <div
+              className="flex items-center gap-1 rounded-lg bg-cyan-500/10 px-2 py-1 text-xs font-semibold text-cyan-600 tabular-nums dark:text-cyan-400"
+              title={t('stats.upload')}
+            >
+              <span>↑</span>
+              <span>{calcTraffic(sessionUpload)}</span>
+            </div>
+            <div
+              className="flex items-center gap-1 rounded-lg bg-purple-500/10 px-2 py-1 text-xs font-semibold text-purple-600 tabular-nums dark:text-purple-400"
+              title={t('stats.download')}
+            >
+              <span>↓</span>
+              <span>{calcTraffic(sessionDownload)}</span>
+            </div>
           </div>
         </div>
 
-        <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-default-100/60">
+        <div className="flex h-1 w-full overflow-hidden rounded-full bg-default-200/50 dark:bg-white/10">
           {sessionTotal > 0 ? (
             <>
               <div
-                className="h-full transition-[width] duration-1000 ease-out"
-                style={{ width: mounted ? `${sessionTransferRatios.primary}%` : 0, background: UPLOAD_GRADIENT }}
+                className="h-full transition-[width] duration-700 ease-out"
+                style={{
+                  width: mounted ? `${sessionTransferRatios.primary}%` : 0,
+                  background: UPLOAD_GRADIENT
+                }}
               />
               <div
-                className="h-full transition-[width] duration-1000 ease-out"
-                style={{ width: mounted ? `${sessionTransferRatios.secondary}%` : 0, background: DOWNLOAD_GRADIENT }}
+                className="h-full transition-[width] duration-700 ease-out"
+                style={{
+                  width: mounted ? `${sessionTransferRatios.secondary}%` : 0,
+                  background: DOWNLOAD_GRADIENT
+                }}
               />
             </>
           ) : (
-            <div className="h-full w-full bg-default-200/50" />
+            <div className="h-full w-full bg-default-200/50 dark:bg-white/10" />
           )}
         </div>
       </div>
 
-      {/* Route Distribution Block */}
-      <div
-        className="flex flex-col gap-3 animate-fade-in-up"
-        style={{ animationDelay: '100ms' }}
-      >
-        <div className="flex justify-between items-end">
-          <div className={`pb-2 ${SECTION_LABEL_CLASS}`}>
-            {t('stats.routeDistribution')}
-          </div>
-          <div className="flex items-center justify-end gap-4 pb-2 shrink-0">
-            <DetailMetric
-              label={t('page.profiles.useProxy')}
-              value={sessionProxyFormatted}
-              marker={
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.35)]" />
-              }
-            />
-            <DetailMetric
-              label={t('stats.directRoute')}
-              value={sessionDirectFormatted}
-              marker={
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.35)]" />
-              }
-            />
-          </div>
+      {/* Route Distribution: Compact Single-Row Bar */}
+      <div className="flex items-center gap-2.5 rounded-xl border border-default-200/45 bg-default-100/45 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.04]">
+        <div className="flex items-center gap-1.5 text-xs shrink-0 tabular-nums">
+          <span className="h-2 w-2 rounded-full bg-blue-500" />
+          <span className="text-default-500">{t('page.profiles.useProxy')}</span>
+          <span className="font-semibold text-foreground">{calcTraffic(sessionProxy)}</span>
         </div>
 
-        <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-default-100/60">
-          {sessionRouteTotal > 0 ? (
+        <div className="flex h-1.5 min-w-[36px] flex-1 overflow-hidden rounded-full bg-default-200/60 dark:bg-white/10">
+          {sessionRouteTotal > 0 && (
             <>
               <div
-                className="h-full transition-[width] duration-1000 ease-out"
-                style={{ width: mounted ? `${sessionRouteRatios.primary}%` : 0, background: PROXY_GRADIENT }}
+                className="h-full transition-[width] duration-700 ease-out"
+                style={{
+                  width: mounted ? `${sessionRouteRatios.primary}%` : 0,
+                  background: PROXY_GRADIENT
+                }}
               />
               <div
-                className="h-full transition-[width] duration-1000 ease-out"
-                style={{ width: mounted ? `${sessionRouteRatios.secondary}%` : 0, background: DIRECT_GRADIENT }}
+                className="h-full transition-[width] duration-700 ease-out"
+                style={{
+                  width: mounted ? `${sessionRouteRatios.secondary}%` : 0,
+                  background: DIRECT_GRADIENT
+                }}
               />
             </>
-          ) : (
-            <div className="h-full w-full bg-default-200/50" />
           )}
+        </div>
+
+        <div className="flex items-center gap-1.5 text-xs shrink-0 tabular-nums">
+          <span className="font-semibold text-foreground">{calcTraffic(sessionDirect)}</span>
+          <span className="text-default-500">{t('stats.directRoute')}</span>
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
         </div>
       </div>
 
-      <div
-        className="grid grid-cols-3 divide-x divide-default-100/60 pt-1 animate-fade-in-up"
-        style={{ animationDelay: '180ms' }}
-      >
-        <PeriodSummary
-          label={t('stats.today')}
-          upload={todayUpload}
-          download={todayDownload}
-          uploadGradient={UPLOAD_GRADIENT}
-          downloadGradient={DOWNLOAD_GRADIENT}
-        />
-        <PeriodSummary
-          label={t('stats.thisWeek')}
-          upload={weekUpload}
-          download={weekDownload}
-          uploadGradient={UPLOAD_GRADIENT}
-          downloadGradient={DOWNLOAD_GRADIENT}
-        />
-        <PeriodSummary
-          label={t('stats.thisMonth')}
-          upload={monthUpload}
-          download={monthDownload}
-          uploadGradient={UPLOAD_GRADIENT}
-          downloadGradient={DOWNLOAD_GRADIENT}
-        />
+      {/* Period Summary: 3 Bento Tiles */}
+      <div className="grid grid-cols-3 gap-2">
+        <PeriodSummary label={t('stats.today')} upload={todayUpload} download={todayDownload} />
+        <PeriodSummary label={t('stats.thisWeek')} upload={weekUpload} download={weekDownload} />
+        <PeriodSummary label={t('stats.thisMonth')} upload={monthUpload} download={monthDownload} />
       </div>
     </div>
   )

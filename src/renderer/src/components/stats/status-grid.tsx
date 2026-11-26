@@ -133,21 +133,21 @@ const StatusGrid: React.FC = () => {
       value: uptime || '00:00:00',
       icon: IoTime,
       iconClass: 'bg-cyan-500/10 text-cyan-500',
-      valueClass: 'text-cyan-500 font-mono tracking-tight'
+      valueClass: 'text-foreground font-mono tracking-tight'
     },
     {
       label: t('stats.connections'),
       value: connectionCount ?? 0,
       icon: IoSwapHorizontal,
       iconClass: 'stats-download-icon-soft',
-      valueClass: 'stats-download-accent font-mono tracking-tight'
+      valueClass: 'text-foreground font-mono tracking-tight'
     },
     {
       label: t('stats.memory'),
       value: memoryUsage || '0 B',
       icon: IoServer,
       iconClass: 'bg-emerald-500/10 text-emerald-500',
-      valueClass: 'text-emerald-500 font-mono tracking-tight'
+      valueClass: 'text-foreground font-mono tracking-tight'
     },
     {
       label: t('stats.networkLatency'),
@@ -169,20 +169,20 @@ const StatusGrid: React.FC = () => {
     <Card
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default w-full`}
     >
-      <CardBody className="p-4">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:divide-x divide-default-100/50">
+      <CardBody className="px-4 py-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:divide-x divide-default-100/50">
           {stats.map((stat, index) => (
             <div
               key={stat.label}
-              className={`flex flex-col items-center justify-center gap-2 ${index > 0 ? 'md:pl-4' : ''}`}
+              className={`flex flex-col items-center justify-center gap-1 ${index > 0 ? 'md:pl-3' : ''}`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <div className={`p-1.5 rounded-lg ${stat.iconClass}`}>
-                  <stat.icon className="text-sm" />
+              <div className="flex items-center gap-1.5">
+                <div className={`p-1 rounded-md ${stat.iconClass}`}>
+                  <stat.icon className="text-xs" />
                 </div>
                 <span className="text-xs font-medium text-foreground-500">{stat.label}</span>
               </div>
-              <span className={`text-xl font-bold ${stat.valueClass} truncate max-w-full`}>
+              <span className={`text-lg font-bold leading-tight ${stat.valueClass} truncate max-w-full`}>
                 {stat.value}
               </span>
             </div>

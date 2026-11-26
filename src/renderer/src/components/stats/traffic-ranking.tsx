@@ -94,12 +94,62 @@ const RANKING_PALETTE = [
   }
 ] as const
 
-const TrafficRanking: React.FC<TrafficRankingProps> = ({
+export interface TrafficSummaryCardProps {
+  session: { upload: number; download: number }
+  today: { upload: number; download: number }
+  week: { upload: number; download: number }
+  month: { upload: number; download: number }
+  route: { proxy: number; direct: number }
+}
+
+export const TrafficSummaryCard: React.FC<TrafficSummaryCardProps> = ({
   session,
   today,
   week,
   month,
-  route,
+  route
+}) => {
+  const { t } = useI18n()
+
+  return (
+    <Card
+      className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
+    >
+      <CardBody className="p-4 flex flex-col gap-4 h-full">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+              <div className="w-1.5 h-3.5 bg-primary/80 rounded-full" />
+            </div>
+            <span className="text-base font-bold text-foreground">{t('stats.summary')}</span>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col items-stretch justify-start">
+          <TrafficOverview
+            sessionUpload={session.upload}
+            sessionDownload={session.download}
+            todayUpload={today.upload}
+            todayDownload={today.download}
+            sessionProxy={route.proxy}
+            sessionDirect={route.direct}
+            weekUpload={week.upload}
+            weekDownload={week.download}
+            monthUpload={month.upload}
+            monthDownload={month.download}
+          />
+        </div>
+      </CardBody>
+    </Card>
+  )
+}
+
+export type TrafficRankingCardProps = Pick<
+  TrafficRankingProps,
+  'ruleStats' | 'ruleHitDetails' | 'onSelectRule'
+>
+
+export const TrafficRankingCard: React.FC<TrafficRankingCardProps> = ({
   ruleStats,
   ruleHitDetails,
   onSelectRule
@@ -196,42 +246,9 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
   }, [rankingTab, ruleRanking, processRanking, hostRanking])
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-full">
-      {/* Left Card: Traffic Summary */}
-      <Card
-        className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
-      >
-        <CardBody className="p-4 flex flex-col gap-4 h-full">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                <div className="w-1.5 h-3.5 bg-primary/80 rounded-full" />
-              </div>
-              <span className="text-base font-bold text-foreground">{t('stats.summary')}</span>
-            </div>
-          </div>
-
-          <div className="flex-1 flex flex-col items-stretch justify-start">
-            <TrafficOverview
-              sessionUpload={session.upload}
-              sessionDownload={session.download}
-              todayUpload={today.upload}
-              todayDownload={today.download}
-              sessionProxy={route.proxy}
-              sessionDirect={route.direct}
-              weekUpload={week.upload}
-              weekDownload={week.download}
-              monthUpload={month.upload}
-              monthDownload={month.download}
-            />
-          </div>
-        </CardBody>
-      </Card>
-
-      {/* Right Card: Ranking List */}
-      <Card
-        className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
-      >
+    <Card
+      className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
+    >
         <CardBody className="p-4 flex flex-col gap-4 h-full overflow-hidden">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -252,7 +269,7 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
             </Tabs>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 space-y-1 min-h-[180px]">
+          <div className="flex-1 overflow-y-auto pr-2 space-y-1 min-h-0">
             {currentRanking.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-foreground-400 gap-2">
                 <div className="text-4xl opacity-30">📋</div>
@@ -339,6 +356,33 @@ const TrafficRanking: React.FC<TrafficRankingProps> = ({
           </div>
         </CardBody>
       </Card>
+  )
+}
+
+const TrafficRanking: React.FC<TrafficRankingProps> = ({
+  session,
+  today,
+  week,
+  month,
+  route,
+  ruleStats,
+  ruleHitDetails,
+  onSelectRule
+}) => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 h-full">
+      <TrafficSummaryCard
+        session={session}
+        today={today}
+        week={week}
+        month={month}
+        route={route}
+      />
+      <TrafficRankingCard
+        ruleStats={ruleStats}
+        ruleHitDetails={ruleHitDetails}
+        onSelectRule={onSelectRule}
+      />
     </div>
   )
 }

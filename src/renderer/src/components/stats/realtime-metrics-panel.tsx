@@ -22,6 +22,7 @@ interface MetricSeries {
   name: string
   values: number[]
   color: string
+  dashed?: boolean
 }
 
 interface MiniMetricChartProps {
@@ -80,7 +81,7 @@ const formatMemoryValue = (byte: number): string => {
 
 const formatMemoryAxisValue = (byte: number): string => {
   const { value, unit } = scaleMemoryValue(byte)
-  return unit === 'B' ? `${Math.round(value)}` : Number(value.toFixed(1)).toString()
+  return unit === 'B' ? `${Math.round(value)} B` : `${Number(value.toFixed(1))} ${unit}`
 }
 
 function MiniMetricChart({
@@ -103,9 +104,9 @@ function MiniMetricChart({
     return {
       animation: false,
       grid: {
-        top: 12,
-        right: 10,
-        bottom: 24,
+        top: 8,
+        right: 8,
+        bottom: 4,
         left: yAxisLeft,
         containLabel: false
       },
@@ -197,24 +198,27 @@ function MiniMetricChart({
         data: item.values,
         lineStyle: {
           color: item.color,
-          width: 2.25,
-          opacity: 1,
+          width: item.dashed ? 1.5 : 2.25,
+          type: item.dashed ? 'dashed' : 'solid',
+          opacity: item.dashed ? 0.75 : 1,
           cap: 'round',
           join: 'round'
         },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
-            colorStops: [
-              { offset: 0, color: `${item.color}66` },
-              { offset: 1, color: `${item.color}0D` }
-            ]
-          }
-        },
+        areaStyle: item.dashed
+          ? undefined
+          : {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: `${item.color}66` },
+                  { offset: 1, color: `${item.color}0D` }
+                ]
+              }
+            },
         emphasis: {
           disabled: true
         }
@@ -226,28 +230,27 @@ function MiniMetricChart({
     <Card
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
     >
-      <CardBody className="flex h-full min-h-[260px] flex-col p-4">
-        <div className="flex items-start justify-between gap-3">
+      <CardBody className="flex h-full min-h-[152px] flex-col p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <Icon className="text-lg text-foreground-500" />
-            <span className="truncate text-base font-bold text-foreground">{title}</span>
+            <Icon className="text-base text-foreground-500" />
+            <span className="truncate text-sm font-bold text-foreground">{title}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {metrics.map((metric) => (
+              <div key={metric.label} className="flex min-w-0 items-baseline gap-1">
+                <span className={`text-xs font-bold tabular-nums ${metric.className}`}>
+                  {metric.value}
+                </span>
+                <span className="truncate text-[11px] font-medium text-foreground-400">
+                  {metric.label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          {metrics.map((metric) => (
-            <div key={metric.label} className="flex min-w-0 items-baseline gap-1.5">
-              <span className={`text-sm font-bold tabular-nums ${metric.className}`}>
-                {metric.value}
-              </span>
-              <span className="truncate text-[11px] font-medium text-foreground-400">
-                {metric.label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-3 min-h-[142px] flex-1">
+        <div className="mt-2 min-h-[96px] flex-1">
           <Suspense fallback={<div className="h-full w-full" />}>
             <TrafficEChart option={chartOption} />
           </Suspense>
@@ -292,7 +295,7 @@ const RealtimeMetricsPanel: React.FC = () => {
   const memoryPeak = useMemo(() => Math.max(...points.map((point) => point.memory)), [points])
 
   return (
-    <div className="grid h-full grid-cols-1 gap-2 md:grid-cols-2">
+    <div className="grid h-full grid-cols-1 gap-2">
       <MiniMetricChart
         title={t('stats.connections')}
         icon={IoLink}
@@ -317,7 +320,8 @@ const RealtimeMetricsPanel: React.FC = () => {
           {
             name: t('stats.tracked'),
             values: points.map((point) => point.tracked),
-            color: '#f59e0b'
+            color: '#f59e0b',
+            dashed: true
           }
         ]}
       />
@@ -345,7 +349,7 @@ const RealtimeMetricsPanel: React.FC = () => {
         ]}
         valueFormatter={formatMemoryValue}
         axisValueFormatter={formatMemoryAxisValue}
-        yAxisLeft={42}
+        yAxisLeft={50}
       />
     </div>
   )
