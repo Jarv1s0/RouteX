@@ -14,6 +14,8 @@ import DnsCard from '@renderer/components/sider/dns-card'
 import SnifferCard from '@renderer/components/sider/sniffer-card'
 import ToolsCard from '@renderer/components/sider/tools-card'
 import MapCard from '@renderer/components/sider/map-card'
+import SettingsCard from '@renderer/components/sider/settings-card'
+import SidebarNameplate from '@renderer/components/sider/sidebar-nameplate'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import MihomoIcon from '@renderer/components/base/mihomo-icon'
 
@@ -104,39 +106,14 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
         style={{ width: 'var(--sider-width)' }}
         className="side relative z-[80] h-full shrink-0 overflow-y-auto no-scrollbar pointer-events-auto bg-default-100/50 backdrop-blur-xl border-r border-default-200/50 dark:border-white/5 shadow-[inset_1px_1px_0_rgba(255,255,255,0.15)] dark:shadow-[inset_1px_1px_0_rgba(255,255,255,0.05)] transition-[width] duration-300 flex flex-col"
       >
+        {/* 保留顶部拖拽条与 macOS 无边框红绿灯安全区，去除重复的品牌/设置顶栏 */}
         <div
-          className="app-drag sticky top-0 z-40 bg-transparent backdrop-blur h-[49px] shrink-0"
-          style={{ width: '100%' }}
-        >
-          <div
-            className={`flex items-center justify-between p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
-          >
-            <div className="flex min-w-0 items-center gap-2 pl-1 justify-self-start">
-              <h3 className="text-lg font-bold bg-[length:200%_auto] bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 bg-clip-text text-transparent hover:animate-sweep transition-all duration-300">
-                RouteX
-              </h3>
-            </div>
-            <div className="flex items-center gap-1">
-              {latest && latest.version && <UpdaterButton latest={latest} />}
-              <Button
-                size="sm"
-                className="app-nodrag group"
-                isIconOnly
-                variant="light"
-                onFocus={handleSettingsPreload}
-                onMouseEnter={handleSettingsPreload}
-                onPress={handleSettingsNavigate}
-                title={t('sidebar.settings')}
-              >
-                <IoSettings
-                  className={`text-[20px] transition-all duration-300 group-hover:rotate-90 group-hover:text-primary group-hover:drop-shadow-[0_0_4px_rgba(0,112,243,0.4)] ${location.pathname.includes('/settings') ? 'text-primary' : 'text-slate-500'}`}
-                />
-              </Button>
-            </div>
-          </div>
-        </div>
+          className={`app-drag shrink-0 ${
+            !useWindowFrame && platform === 'darwin' ? 'h-[38px]' : 'h-2'
+          }`}
+        />
 
-        <div className="app-nodrag flex flex-col gap-2 p-2 flex-1">
+        <div className="app-nodrag flex flex-col gap-2 px-2 pb-2 flex-1">
           {/* Main Control Center */}
           <OutboundModeSwitcher />
 
@@ -165,7 +142,10 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
             <SnifferCard className={fillCardClassName} />
             <LogCard className={fillCardClassName} />
             <ToolsCard className={fillCardClassName} />
+            <SettingsCard className={fillCardClassName} />
           </div>
+
+          <SidebarNameplate latest={latest} />
         </div>
       </div>
     )
