@@ -168,13 +168,14 @@ const SidebarNameplate: React.FC<Props> = ({ latest }) => {
       aria-label="RouteX Nameplate"
       className="mt-auto flex shrink-0 items-center gap-2.5 px-1.5 py-1"
     >
-      {/* 左侧软件图标徽章 */}
-      <div
+      {/* 左侧软件图标 */}
+      <img
+        src={appIcon}
+        alt=""
         aria-hidden="true"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/70 bg-white/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_2px_6px_rgba(0,112,243,0.08)] dark:border-white/12 dark:bg-white/[0.08] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_8px_rgba(0,0,0,0.28)]"
-      >
-        <img src={appIcon} alt="" draggable={false} className="h-[22px] w-[22px] object-contain" />
-      </div>
+        draggable={false}
+        className="h-8 w-8 shrink-0 object-contain"
+      />
 
       {/* 中间双行落款信息 */}
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">

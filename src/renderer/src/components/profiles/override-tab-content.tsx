@@ -308,6 +308,7 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
               size="sm"
               className="flex-1"
               classNames={CARD_STYLES.GLASS_INPUT}
+              placeholder={t('profiles.importRemoteOverride')}
               value={overrideUrl}
               onValueChange={setOverrideUrl}
               onKeyUp={handleOverrideInputKeyUp}

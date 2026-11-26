@@ -13,6 +13,7 @@ import { HiExternalLink } from 'react-icons/hi'
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai'
 import { isValidListenAddress } from '@renderer/utils/validate'
 import { useI18n } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const inputClassNames = {
@@ -411,7 +412,7 @@ const ControllerSetting: React.FC = () => {
               </Button>
             )}
             <Select
-              classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+              classNames={CARD_STYLES.GLASS_SELECT}
               className="w-[150px]"
               size="sm"
               selectedKeys={new Set([externalUiUrlInput])}

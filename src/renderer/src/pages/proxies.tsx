@@ -446,9 +446,9 @@ const Proxies: React.FC = () => {
         />
       ) : isSingleGroupMode && singleGroup ? (
         <div className="h-[calc(100vh-49px)] flex flex-col overflow-hidden">
-          <div className="shrink-0 px-2 pt-2 pb-1">
+          <div className="shrink-0 px-2 pt-2">
             <div
-              className={`w-full flex flex-wrap items-center justify-between gap-2 px-3 py-2 ${CARD_STYLES.GLASS_TOOLBAR}`}
+              className={`w-full flex flex-wrap items-center justify-between gap-2 ${CARD_STYLES.GLASS_TOOLBAR}`}
             >
               <GroupDetailSummary
                 group={singleGroup}

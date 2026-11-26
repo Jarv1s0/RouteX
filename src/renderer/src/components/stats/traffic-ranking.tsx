@@ -27,6 +27,8 @@ interface TrafficRankingProps {
   onSelectRule: (rule: string) => void
 }
 
+const RANKING_LIMIT = 6
+
 const RANKING_PALETTE = [
   {
     badge: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
@@ -115,7 +117,7 @@ export const TrafficSummaryCard: React.FC<TrafficSummaryCardProps> = ({
     <Card
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
     >
-      <CardBody className="p-4 flex flex-col gap-4 h-full">
+      <CardBody className="p-2 flex flex-col gap-2 h-full">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -182,7 +184,7 @@ export const TrafficRankingCard: React.FC<TrafficRankingCardProps> = ({
         }
       })
       .sort((a, b) => b.hits - a.hits) // Default sort by hits for rules? Or traffic? Let's use traffic for consistency with screenshot visual
-      .slice(0, 5)
+      .slice(0, RANKING_LIMIT)
   }, [ruleStats, ruleHitDetails])
 
   // 进程排行
@@ -205,7 +207,7 @@ export const TrafficRankingCard: React.FC<TrafficRankingCardProps> = ({
         traffic: stat.upload + stat.download
       }))
       .sort((a, b) => b.traffic - a.traffic)
-      .slice(0, 5)
+      .slice(0, RANKING_LIMIT)
   }, [ruleHitDetails])
 
   // 主机排行
@@ -229,7 +231,7 @@ export const TrafficRankingCard: React.FC<TrafficRankingCardProps> = ({
         traffic: stat.upload + stat.download
       }))
       .sort((a, b) => b.traffic - a.traffic)
-      .slice(0, 5)
+      .slice(0, RANKING_LIMIT)
   }, [ruleHitDetails])
 
   const currentRanking = useMemo(() => {
@@ -241,7 +243,7 @@ export const TrafficRankingCard: React.FC<TrafficRankingCardProps> = ({
       case 'rule':
       default:
         // 按命中次数排序
-        return ruleRanking.sort((a, b) => b.hits - a.hits).slice(0, 5)
+        return ruleRanking.sort((a, b) => b.hits - a.hits).slice(0, RANKING_LIMIT)
     }
   }, [rankingTab, ruleRanking, processRanking, hostRanking])
 
@@ -249,7 +251,7 @@ export const TrafficRankingCard: React.FC<TrafficRankingCardProps> = ({
     <Card
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
     >
-        <CardBody className="p-4 flex flex-col gap-4 h-full overflow-hidden">
+        <CardBody className="p-2 flex flex-col gap-2 h-full overflow-hidden">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="stats-download-icon-soft p-1.5 rounded-lg">

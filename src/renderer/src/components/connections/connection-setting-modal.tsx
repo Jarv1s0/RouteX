@@ -114,7 +114,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
 
   const {
     collapseSidebar = false,
-    siderWidth = 250,
+    siderWidth = 220,
     displayIcon = true,
     displayAppName = true,
     connectionInterval: rawConnectionInterval = MIN_CONNECTION_INTERVAL

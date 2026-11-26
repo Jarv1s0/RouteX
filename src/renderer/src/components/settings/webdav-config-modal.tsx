@@ -5,10 +5,10 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   Button,
   Input
 } from '@heroui/react'
+import SecondaryModalFooter from '@renderer/components/base/secondary-modal-footer'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { webdavBackup, listWebdavBackups } from '@renderer/utils/webdav-ipc'
 import { toast } from 'sonner'
@@ -18,8 +18,9 @@ import {
   createSecondaryModalClassNames,
   getMainPaneModalContentStyle
 } from '@renderer/utils/modal-styles'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { useI18n } from '@renderer/i18n'
-import { IoEye, IoEyeOff } from 'react-icons/io5'
+import { IoCloudUploadOutline, IoCloudDownloadOutline, IoEye, IoEyeOff } from 'react-icons/io5'
 
 interface Props {
   isOpen: boolean
@@ -29,7 +30,7 @@ interface Props {
 type WebdavField = 'webdavUrl' | 'webdavUsername' | 'webdavPassword' | 'webdavDir'
 type WebdavState = Record<WebdavField, string>
 
-const ConfigInputCard: React.FC<{
+const WebdavFieldInput: React.FC<{
   title: string
   field: WebdavField
   value: string
@@ -38,21 +39,14 @@ const ConfigInputCard: React.FC<{
   endContent?: React.ReactNode
   onValueChange: (field: WebdavField, value: string) => void
 }> = ({ title, field, value, type = 'text', placeholder, endContent, onValueChange }) => (
-  <div className="group flex items-center justify-between gap-3 p-2 rounded-xl bg-content1/50 hover:bg-content1 border border-default-100 hover:border-default-200 transition-all duration-300 shadow-sm hover:shadow-md">
-    <span className="w-[76px] font-medium text-sm text-foreground-600 group-hover:text-foreground-900 transition-colors whitespace-nowrap shrink-0">
-      {title}
-    </span>
+  <div className="flex flex-col gap-1.5">
+    <label className="text-xs font-semibold text-foreground-700">{title}</label>
     <Input
       size="sm"
-      className="flex-1 min-w-0"
       type={type}
-      variant="bordered"
       placeholder={placeholder}
-      classNames={{
-        input: 'bg-transparent text-xs',
-        inputWrapper:
-          'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 h-8 min-h-8'
-      }}
+      aria-label={title}
+      classNames={CARD_STYLES.FORM_INPUT}
       endContent={endContent}
       value={value}
       onValueChange={(nextValue) => onValueChange(field, nextValue)}
@@ -65,7 +59,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     collapseSidebar = false,
-    siderWidth = 250,
+    siderWidth = 220,
     webdavUrl = '',
     webdavUsername = '',
     webdavPassword = '',
@@ -134,43 +128,45 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
         size="2xl"
         backdrop="blur"
         scrollBehavior="inside"
-        classNames={createSecondaryModalClassNames({ closeButton: 'top-2 right-2' })}
+        classNames={createSecondaryModalClassNames()}
       >
         <ModalContent
-          style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 560 })}
+          style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 540 })}
         >
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col py-2 px-4">
-                <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+              <ModalHeader className="px-6 py-3">
+                <span className="text-base font-bold text-foreground">
                   {t('settings.webdav.title')}
                 </span>
               </ModalHeader>
-              <ModalBody className="py-2 px-4">
-                <div className="flex flex-col gap-1.5">
-                  <ConfigInputCard
+              <ModalBody className="px-6 pt-3 pb-2">
+                <div className="flex flex-col">
+                  <WebdavFieldInput
                     title={t('settings.webdav.url')}
                     field="webdavUrl"
                     value={webdav.webdavUrl}
                     placeholder="https://example.com/webdav"
                     onValueChange={handleValueChange}
                   />
-                  <ConfigInputCard
-                    title={t('settings.webdav.dir')}
-                    field="webdavDir"
-                    value={webdav.webdavDir}
-                    placeholder="routex"
-                    onValueChange={handleValueChange}
-                  />
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <ConfigInputCard
+                  <div className="mt-2">
+                    <WebdavFieldInput
+                      title={t('settings.webdav.dir')}
+                      field="webdavDir"
+                      value={webdav.webdavDir}
+                      placeholder="routex"
+                      onValueChange={handleValueChange}
+                    />
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <WebdavFieldInput
                       title={t('settings.webdav.username')}
                       field="webdavUsername"
                       value={webdav.webdavUsername}
                       placeholder="Username"
                       onValueChange={handleValueChange}
                     />
-                    <ConfigInputCard
+                    <WebdavFieldInput
                       title={t('settings.webdav.password')}
                       field="webdavPassword"
                       value={webdav.webdavPassword}
@@ -196,37 +192,34 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+                  <div className="mt-2 grid grid-cols-2 gap-2">
                     <Button
+                      size="sm"
                       color="primary"
-                      variant="shadow"
+                      variant="flat"
+                      radius="lg"
                       isLoading={backuping}
+                      startContent={!backuping ? <IoCloudUploadOutline className="text-base" /> : undefined}
                       onPress={handleBackup}
-                      className="font-medium"
+                      className="h-9 font-medium"
                     >
                       {t('settings.webdav.backupNow')}
                     </Button>
                     <Button
+                      size="sm"
                       color="secondary"
-                      variant="shadow"
+                      variant="flat"
+                      radius="lg"
+                      startContent={<IoCloudDownloadOutline className="text-base" />}
                       onPress={handleOpenRestore}
-                      className="font-medium"
+                      className="h-9 font-medium"
                     >
                       {t('settings.webdav.restore')}
                     </Button>
                   </div>
                 </div>
               </ModalBody>
-              <ModalFooter className="py-2 px-4">
-                <Button
-                  color="primary"
-                  variant="shadow"
-                  onPress={onClose}
-                  className="font-medium px-8"
-                >
-                  {t('common.done')}
-                </Button>
-              </ModalFooter>
+              <SecondaryModalFooter confirmText={t('common.done')} onConfirm={onClose} />
             </>
           )}
         </ModalContent>

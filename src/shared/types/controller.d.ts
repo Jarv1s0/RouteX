@@ -111,9 +111,11 @@ interface ControllerConnectionDetail {
 
 // ${api}/logs
 interface ControllerLog {
+  id?: number
   type: LogLevel
   payload: string
   time?: string
+  shortTime?: string
 }
 
 // ${api}/memory

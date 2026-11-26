@@ -251,8 +251,15 @@ const ServiceModal: React.FC<Props> = (props) => {
             </div>
           </div>
         </ModalBody>
-        <ModalFooter className="space-x-2">
-          <Button size="sm" variant="light" onPress={() => onChange(false)} isDisabled={loading}>
+        <ModalFooter className="px-6 pt-2 pb-3 gap-2">
+          <Button
+            size="sm"
+            variant="flat"
+            radius="lg"
+            onPress={() => onChange(false)}
+            isDisabled={loading}
+            className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+          >
             {t('common.close')}
           </Button>
 
@@ -260,9 +267,11 @@ const ServiceModal: React.FC<Props> = (props) => {
             <Button
               size="sm"
               color="primary"
-              variant="shadow"
+              variant="solid"
+              radius="lg"
               onPress={() => handleAction(onInstall)}
               isLoading={loading}
+              className="h-8 px-4 font-medium shadow-sm"
             >
               {t('mihomo.service.install')}
             </Button>
@@ -272,6 +281,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                 size="sm"
                 color="primary"
                 variant="flat"
+                radius="lg"
                 onPress={() => handleAction(onInit)}
                 isLoading={loading}
               >
@@ -281,6 +291,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                 size="sm"
                 color="primary"
                 variant="flat"
+                radius="lg"
                 onPress={() => handleAction(onRestart)}
                 isLoading={loading}
               >
@@ -291,6 +302,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                   size="sm"
                   color="warning"
                   variant="flat"
+                  radius="lg"
                   onPress={() => handleAction(onStop)}
                   isLoading={loading}
                 >
@@ -300,9 +312,11 @@ const ServiceModal: React.FC<Props> = (props) => {
                 <Button
                   size="sm"
                   color="success"
-                  variant="shadow"
+                  variant="solid"
+                  radius="lg"
                   onPress={() => handleAction(onStart, true)}
                   isLoading={loading}
+                  className="h-8 px-4 font-medium shadow-sm"
                 >
                   {t('mihomo.service.start')}
                 </Button>
@@ -311,6 +325,7 @@ const ServiceModal: React.FC<Props> = (props) => {
                 size="sm"
                 color="danger"
                 variant="flat"
+                radius="lg"
                 onPress={() => handleAction(onUninstall)}
                 isLoading={loading}
               >

@@ -8,7 +8,7 @@ import Viewer from '@renderer/components/resources/viewer'
 import { Virtuoso } from 'react-virtuoso'
 import { useEffect, useMemo, useState, useDeferredValue, useCallback, useRef } from 'react'
 import { Button, Chip, Input, Tab, Tabs } from '@heroui/react'
-import { IoListOutline, IoCubeOutline, IoGlobeOutline } from 'react-icons/io5'
+import { IoListOutline, IoCubeOutline, IoGlobeOutline, IoSearchOutline } from 'react-icons/io5'
 
 import { useRules } from '@renderer/hooks/use-rules'
 import { useGroups } from '@renderer/hooks/use-groups'
@@ -458,7 +458,7 @@ const RulesPage: React.FC = () => {
     <BasePage title={t('page.rules.title')}>
       <div className="sticky top-0 z-40 bg-transparent w-full pb-2 px-2 pt-2 pointer-events-none">
         <div
-          className={`w-full px-2 py-1.5 flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR}`}
+          className={`w-full flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR}`}
         >
           <Tabs
             size="md"
@@ -504,6 +504,7 @@ const RulesPage: React.FC = () => {
               size="sm"
               value={filter}
               placeholder={t('common.filter')}
+              startContent={<IoSearchOutline className="text-default-400 text-base flex-shrink-0" />}
               isClearable
               onValueChange={setFilter}
               className="flex-1"
@@ -671,8 +672,10 @@ const RulesPage: React.FC = () => {
         </div>
       )}
       {activeTab === 'geodata' && (
-        <div className="px-2">
-          <GeoData />
+        <div className="h-[calc(100vh-100px)] overflow-y-auto">
+          <div className="w-full px-2 pb-6">
+            <GeoData />
+          </div>
         </div>
       )}
     </BasePage>

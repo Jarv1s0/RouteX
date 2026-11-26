@@ -9,6 +9,7 @@ export interface IpInfoResult {
   status: string
   message?: string
   query?: string
+  resolvedIp?: string
   country?: string
   countryCode?: string
   region?: string
@@ -29,13 +30,13 @@ let lastFetchIpInfoResult: IpInfoResult | null = null
 
 const FETCH_IP_INFO_CACHE_MS = 15 * 1000
 
-export async function fetchIpInfo(): Promise<IpInfoResult> {
+export async function fetchIpInfo(force = false): Promise<IpInfoResult> {
   const now = Date.now()
-  if (lastFetchIpInfoResult && now - lastFetchIpInfoAt < FETCH_IP_INFO_CACHE_MS) {
+  if (!force && lastFetchIpInfoResult && now - lastFetchIpInfoAt < FETCH_IP_INFO_CACHE_MS) {
     return lastFetchIpInfoResult
   }
 
-  if (fetchIpInfoPromise) {
+  if (!force && fetchIpInfoPromise) {
     return fetchIpInfoPromise
   }
 

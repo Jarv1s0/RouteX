@@ -328,7 +328,7 @@ const Mihomo: React.FC = () => {
       )}
       <div className="sticky top-0 z-40 w-full bg-transparent px-2 pb-2 pt-2 pointer-events-none">
         <div
-          className={`w-full flex items-center gap-2 px-2 py-1.5 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR}`}
+          className={`w-full flex items-center gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR}`}
         >
           <Tabs
             size="md"
@@ -379,10 +379,7 @@ const Mihomo: React.FC = () => {
           >
             <Select
               aria-label={t('mihomo.selectCore')}
-              classNames={{
-                trigger:
-                  'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50'
-              }}
+              classNames={CARD_STYLES.GLASS_SELECT}
               className="w-[150px]"
               size="sm"
               isLoading={switchingCore}

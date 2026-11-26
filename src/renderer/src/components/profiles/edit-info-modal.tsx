@@ -3,7 +3,6 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   Button,
   Input,
   Dropdown,
@@ -23,6 +22,7 @@ import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
+import SecondaryModalFooter from '@renderer/components/base/secondary-modal-footer'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 const overrideDropdownClassNames = {
@@ -279,14 +279,13 @@ const EditInfoModal: React.FC<Props> = (props) => {
             </div>
           </div>
         </ModalBody>
-        <ModalFooter>
-          <Button size="sm" variant="light" onPress={onClose}>
-            {t('common.cancel')}
-          </Button>
-          <Button size="sm" color="primary" isLoading={saving} onPress={onSave}>
-            {item.id ? t('common.save') : t('common.import')}
-          </Button>
-        </ModalFooter>
+        <SecondaryModalFooter
+          cancelText={t('common.cancel')}
+          onCancel={onClose}
+          confirmText={item.id ? t('common.save') : t('common.import')}
+          onConfirm={onSave}
+          confirmLoading={saving}
+        />
       </ModalContent>
     </Modal>
   )

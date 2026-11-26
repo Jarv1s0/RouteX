@@ -3,18 +3,18 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
-  Button,
   Input,
   Select,
   SelectItem
 } from '@heroui/react'
+import SecondaryModalFooter from '@renderer/components/base/secondary-modal-footer'
 import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { notifyError } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
 import AppSwitch from '@renderer/components/base/app-switch'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 interface Props {
   item: OverrideItem
   updateOverrideItem: (item: OverrideItem) => Promise<boolean | void>
@@ -96,6 +96,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
             <Select
               size="sm"
               className={inputClassName}
+              classNames={CARD_STYLES.GLASS_SELECT}
               selectedKeys={[values.ext]}
               onSelectionChange={(keys) => {
                 const key = Array.from(keys)[0] as 'js' | 'yaml'
@@ -116,14 +117,13 @@ const EditInfoModal: React.FC<Props> = (props) => {
             />
           </SettingItem>
         </ModalBody>
-        <ModalFooter className="px-6 pb-5 pt-2">
-          <Button size="sm" variant="light" onPress={onClose}>
-            {t('common.cancel')}
-          </Button>
-          <Button size="sm" color="primary" isLoading={saving} onPress={onSave}>
-            {item.id ? t('common.save') : t('common.import')}
-          </Button>
-        </ModalFooter>
+        <SecondaryModalFooter
+          cancelText={t('common.cancel')}
+          onCancel={onClose}
+          confirmText={item.id ? t('common.save') : t('common.import')}
+          onConfirm={onSave}
+          confirmLoading={saving}
+        />
       </ModalContent>
     </Modal>
   )

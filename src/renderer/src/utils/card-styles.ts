@@ -1,11 +1,11 @@
 const GLASS_POPOVER_CONTENT =
-  'backdrop-blur-[12px] bg-background/80 dark:bg-default-100/60 rounded-2xl border border-default-200/50 dark:border-white/10 shadow-xl animate-pop-in max-h-[300px] overflow-y-auto'
+  'backdrop-blur-2xl backdrop-saturate-150 bg-white/88 dark:bg-zinc-900/82 rounded-2xl border border-default-200/70 dark:border-white/12 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.12),0_2px_6px_rgba(0,0,0,0.05)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.5)] animate-pop-in max-h-[300px] overflow-y-auto'
 const GLASS_CONTROL_BASE =
   'bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/60 dark:border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_1px_2px_rgba(0,0,0,0.2)]'
 const GLASS_INPUT_STATE =
   'group-data-[hover=true]:bg-white/60 dark:group-data-[hover=true]:bg-white/10 group-data-[focus=true]:bg-white dark:group-data-[focus=true]:bg-default-100/60 group-data-[focus=true]:border-primary/50 group-data-[focus=true]:shadow-[0_0_0_1px_hsl(var(--heroui-primary)),0_4px_12px_rgba(0,0,0,0.05)]'
 const GLASS_SELECT_STATE =
-  'data-[hover=true]:bg-white/60 dark:data-[hover=true]:bg-white/10 data-[open=true]:bg-white dark:data-[open=true]:bg-default-100/60 data-[focus=true]:border-primary/50 data-[open=true]:shadow-[0_0_0_1px_hsl(var(--heroui-primary)),0_4px_12px_rgba(0,0,0,0.05)]'
+  'data-[hover=true]:bg-white/75 dark:data-[hover=true]:bg-white/[0.1] data-[hover=true]:border-default-300/80 dark:data-[hover=true]:border-white/20 data-[open=true]:bg-white dark:data-[open=true]:bg-default-100/80 data-[open=true]:border-primary/70 data-[open=true]:ring-2 data-[open=true]:ring-primary/15 data-[focus=true]:border-primary/60'
 const CARD_TRANSITION = 'transition-[background-color,border-color,box-shadow,opacity] duration-300'
 const PRESSABLE_CARD_TRANSITION =
   'transition-[background-color,border-color,box-shadow,transform,opacity] duration-300 active:scale-[0.98]'
@@ -34,15 +34,11 @@ export const CARD_STYLES = {
   // Inactive state: iOS Liquid Glass with edge highlight and color/shadow feedback
   INACTIVE: `bg-white/30 dark:bg-black/20 hover:bg-white/50 dark:hover:bg-white/5 backdrop-blur-md border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-lg dark:hover:shadow-black/60 ${CARD_TRANSITION}`,
 
-  // Header switcher: GLASS_CONTROL_BASE surface with floating pill elevation
-  HEADER_SWITCHER: `${GLASS_CONTROL_BASE} shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_2px_8px_rgba(0,0,0,0.24)] hover:bg-white/60 dark:hover:bg-white/10 hover:border-white/75 dark:hover:border-white/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_6px_16px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_6px_16px_rgba(0,0,0,0.32)] ${CARD_TRANSITION}`,
-
   // Shared glass control surface for inputs, selects, tabs, and capsules
   GLASS_CONTROL: GLASS_CONTROL_BASE,
 
-  // Toolbar style: Floating pill glass island elevated above content cards
-  GLASS_TOOLBAR:
-    'glass-toolbar flex items-center rounded-full transition-[background-color,border-color,box-shadow,opacity] duration-200 bg-gradient-to-b from-white/80 to-white/55 dark:from-white/[0.09] dark:to-white/[0.04] hover:from-white/90 hover:to-white/68 dark:hover:from-white/[0.12] dark:hover:to-white/[0.06] border border-white/80 dark:border-white/15 hover:border-white dark:hover:border-white/25 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_6px_20px_-4px_rgba(0,0,0,0.06),0_2px_6px_-1px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_8px_24px_-4px_rgba(0,0,0,0.35)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_10px_28px_-4px_rgba(0,0,0,0.09),0_4px_10px_-2px_rgba(0,0,0,0.04)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_10px_28px_-4px_rgba(0,0,0,0.42)] overflow-visible',
+  // Scope pill-shaped inputs to shared toolbars.
+  GLASS_TOOLBAR: 'glass-toolbar',
   GLASS_TOOLBAR_BUTTON: 'rounded-full',
 
   // Input style: Matches the glass toolbar aesthetic
@@ -50,6 +46,21 @@ export const CARD_STYLES = {
     inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-2xl !h-8 !min-h-8 transition-colors duration-300`,
     input: 'text-sm',
     innerWrapper: 'bg-transparent'
+  },
+
+  // Form input & select styles: Unified rounded-full controls for modal/settings forms
+  FORM_INPUT: {
+    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} !bg-white/60 dark:!bg-white/5 !rounded-full !h-9 !min-h-9 transition-colors duration-300`,
+    input: 'text-sm',
+    innerWrapper: 'bg-transparent'
+  },
+
+  FORM_SELECT: {
+    trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} !bg-white/65 dark:!bg-white/[0.06] !rounded-full !h-9 !min-h-9 transition-all duration-200`,
+    value: 'text-sm font-medium',
+    selectorIcon: 'text-default-400',
+    listbox: 'p-1',
+    popoverContent: GLASS_POPOVER_CONTENT
   },
 
   // Tabs style: Matches GLASS_CONTROL_BASE so switching capsules share the same surface as inputs
@@ -110,8 +121,10 @@ export const CARD_STYLES = {
   MANAGEMENT_FOOTER_ROW: 'flex items-center justify-between text-sm text-foreground',
 
   GLASS_SELECT: {
-    trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} rounded-full h-8 min-h-8 transition-colors duration-300`,
-    value: 'text-sm',
+    trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} bg-white/60 dark:bg-white/[0.06] rounded-full h-8 min-h-8 transition-all duration-200`,
+    value: 'text-sm font-medium',
+    selectorIcon: 'text-default-400',
+    listbox: 'p-1',
     popoverContent: GLASS_POPOVER_CONTENT
   },
 

@@ -6,36 +6,34 @@ type ModalClassNames = Partial<
   Record<'base' | 'backdrop' | 'wrapper' | 'header' | 'body' | 'footer' | 'closeButton', string>
 >
 
-const MODAL_BORDER = 'border-default-200/60 dark:border-white/10'
-
 function mergeClassNames(...classes: Array<string | undefined>): string | undefined {
   const merged = classes.filter(Boolean).join(' ')
   return merged || undefined
 }
 
 export const SECONDARY_MODAL_CLOSE_BUTTON_CLASSNAME =
-  'top-3 right-3 h-8 w-8 min-w-8 rounded-full bg-default-100/70 text-default-500 shadow-sm transition-all duration-150 hover:bg-danger/12 hover:text-danger active:scale-95 active:bg-danger/18'
+  'top-3 right-3 h-7 w-7 min-w-7 rounded-full bg-transparent text-default-400 transition-all duration-150 hover:bg-danger/12 hover:text-danger active:scale-95 active:bg-danger/18 dark:text-default-500'
 
 export const SECONDARY_MODAL_ICON_CLOSE_BUTTON_CLASSNAME =
-  'app-nodrag h-8 w-8 min-w-8 rounded-full bg-default-100/70 text-default-500 shadow-sm transition-all duration-150 hover:bg-danger/12 hover:text-danger active:scale-95 active:bg-danger/18'
+  'app-nodrag h-7 w-7 min-w-7 rounded-full bg-transparent text-default-400 transition-all duration-150 hover:bg-danger/12 hover:text-danger active:scale-95 active:bg-danger/18 dark:text-default-500'
 
 export const SECONDARY_MODAL_HEADER_CLASSNAME =
-  'flex items-center justify-between gap-3 app-drag pl-6 pr-4 py-3'
+  'flex items-center justify-between gap-3 app-drag pl-6 pr-4 pt-4 pb-2'
 
 export const MAIN_PANE_MODAL_CLASSNAMES: ModalClassNames = {
   base: `max-w-none w-full ${CARD_STYLES.GLASS_CARD} shadow-2xl`,
-  backdrop: 'bg-black/40 backdrop-blur-[2px]',
+  backdrop: '!left-[var(--sider-width,0px)] bg-black/40 backdrop-blur-[2px]',
   closeButton: SECONDARY_MODAL_CLOSE_BUTTON_CLASSNAME
 }
 
 export function createSecondaryModalClassNames(overrides: ModalClassNames = {}): ModalClassNames {
   return {
     base: mergeClassNames(`${CARD_STYLES.GLASS_CARD} shadow-2xl`, overrides.base),
-    backdrop: overrides.backdrop,
+    backdrop: mergeClassNames('!left-[var(--sider-width,0px)]', overrides.backdrop),
     wrapper: overrides.wrapper,
-    header: mergeClassNames(`border-b ${MODAL_BORDER}`, overrides.header),
+    header: overrides.header,
     body: overrides.body,
-    footer: mergeClassNames(`border-t ${MODAL_BORDER}`, overrides.footer),
+    footer: overrides.footer,
     closeButton: mergeClassNames(SECONDARY_MODAL_CLOSE_BUTTON_CLASSNAME, overrides.closeButton)
   }
 }
@@ -50,7 +48,7 @@ interface MainPaneModalContentStyleOptions {
 export function getMainPaneModalContentStyle(
   options: MainPaneModalContentStyleOptions = {}
 ): CSSProperties {
-  const { collapseSidebar = false, siderWidth = 250, maxWidthPx, viewportPaddingPx = 32 } = options
+  const { collapseSidebar = false, siderWidth = 220, maxWidthPx, viewportPaddingPx = 32 } = options
   const narrowWidth = platform === 'darwin' ? 70 : 60
   const activeSidebarWidth = collapseSidebar ? narrowWidth : siderWidth
   const widthExpression = `calc(100vw - ${activeSidebarWidth}px - ${viewportPaddingPx * 2}px)`

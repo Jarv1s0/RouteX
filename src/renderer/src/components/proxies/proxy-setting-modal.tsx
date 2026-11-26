@@ -19,6 +19,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useGroups } from '@renderer/hooks/use-groups'
 import debounce from '@renderer/utils/debounce'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import { secondaryInputClassNames, numberInputClassNames } from '../settings/advanced-settings'
 import {
@@ -60,7 +61,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
 
   const {
     collapseSidebar = false,
-    siderWidth = 250,
+    siderWidth = 220,
     proxyCols = 'auto',
     proxyDisplayOrder = 'default',
 
@@ -131,7 +132,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
             </SettingItem>
             <SettingItem title={t('proxies.columns')} divider>
               <Select
-                classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+                classNames={CARD_STYLES.GLASS_SELECT}
                 className="w-[150px]"
                 size="sm"
                 selectedKeys={new Set([proxyCols])}

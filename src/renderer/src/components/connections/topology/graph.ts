@@ -39,8 +39,24 @@ export const EMPTY_GRAPH: TopologyGraph = {
   downloadSpeed: 0
 }
 
-const COLUMN_SPACING = 450
+const COLUMN_GAP = 72
 const NODE_GAP = 20
+
+/** 按拓扑层序与每列最大节点宽度计算各列起始 X 坐标，保持列间连线间隙均匀紧凑。 */
+function computeColumnX(nodes: TopologyNode[]): Map<number, number> {
+  const maxWidthByLayer = new Map<number, number>()
+  for (const node of nodes) {
+    const layer = node.data.layerIndex
+    maxWidthByLayer.set(layer, Math.max(maxWidthByLayer.get(layer) ?? 0, node.width ?? 180))
+  }
+  const columnX = new Map<number, number>()
+  let x = 0
+  for (const layer of [...maxWidthByLayer.keys()].sort((a, b) => a - b)) {
+    columnX.set(layer, x)
+    x += maxWidthByLayer.get(layer)! + COLUMN_GAP
+  }
+  return columnX
+}
 
 function normalizeChain(chain: string[]): string[] {
   const result = [...(chain || [])]
@@ -197,13 +213,16 @@ export function buildTopologyGraph(connections: ControllerConnectionDetail[]): T
 
 export function layoutTopologyGraph(graph: TopologyGraph, previous = EMPTY_GRAPH): TopologyGraph {
   if (!graph.nodes.length) return graph
+  const columnX = computeColumnX(graph.nodes)
   const previousNodes = new Map(previous.nodes.map((node) => [node.id, node]))
   const retained = graph.nodes.filter((node) => previousNodes.has(node.id))
   const bottomByLayer = new Map<number, number>()
+  const retainedXByLayer = new Map<number, number>()
   const positions = new Map<string, { x: number; y: number }>()
   for (const node of retained) {
     const position = previousNodes.get(node.id)!.position
     positions.set(node.id, position)
+    retainedXByLayer.set(node.data.layerIndex, position.x)
     bottomByLayer.set(
       node.data.layerIndex,
       Math.max(bottomByLayer.get(node.data.layerIndex) || 0, position.y + node.height! + NODE_GAP)
@@ -220,7 +239,7 @@ export function layoutTopologyGraph(graph: TopologyGraph, previous = EMPTY_GRAPH
     dagre.layout(layout)
     for (const node of graph.nodes) {
       positions.set(node.id, {
-        x: (node.data.layerIndex - 1) * COLUMN_SPACING,
+        x: columnX.get(node.data.layerIndex) ?? 0,
         y: Math.round(layout.node(node.id).y - node.height! / 2)
       })
     }
@@ -253,7 +272,8 @@ export function layoutTopologyGraph(graph: TopologyGraph, previous = EMPTY_GRAPH
         }
       const y = bottomByLayer.get(node.data.layerIndex) || 0
       bottomByLayer.set(node.data.layerIndex, y + node.height! + NODE_GAP)
-      return { ...node, position: { x: (node.data.layerIndex - 1) * COLUMN_SPACING, y } }
+      const x = retainedXByLayer.get(node.data.layerIndex) ?? columnX.get(node.data.layerIndex) ?? 0
+      return { ...node, position: { x, y } }
     })
   }
 }

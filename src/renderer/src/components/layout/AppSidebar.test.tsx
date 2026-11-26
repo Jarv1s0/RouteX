@@ -51,9 +51,6 @@ vi.mock('@renderer/i18n', () => ({
   })
 }))
 
-vi.mock('@renderer/components/sider/outbound-mode-switcher', () => ({
-  default: () => <div data-testid="outbound-mode-switcher" />
-}))
 vi.mock('@renderer/components/sider/proxy-card', () => ({
   default: () => <div data-testid="proxy-card" />
 }))

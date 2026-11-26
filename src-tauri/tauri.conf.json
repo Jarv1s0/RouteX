@@ -14,10 +14,10 @@
       {
         "label": "main",
         "title": "RouteX",
-        "width": 1080,
-        "height": 720,
-        "minWidth": 1080,
-        "minHeight": 720,
+        "width": 1040,
+        "height": 740,
+        "minWidth": 860,
+        "minHeight": 580,
         "resizable": true,
         "decorations": false,
         "visible": false

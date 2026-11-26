@@ -5,9 +5,10 @@ import { closeMainWindow, windowMax, windowMin } from '@renderer/utils/window-ip
 import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import { VscChromeClose, VscChromeMaximize, VscChromeMinimize } from 'react-icons/vsc'
 import { useI18n } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
+import OutboundModeSwitcher from '@renderer/components/sider/outbound-mode-switcher'
 import SysproxySwitcher from '@renderer/components/sider/sysproxy-switcher'
 import TunSwitcher from '@renderer/components/sider/tun-switcher'
-import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   title?: React.ReactNode
@@ -47,10 +48,11 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
             {props.header}
             <div className="flex items-center gap-1.5 mr-2 ml-1.5 h-full app-nodrag">
               <div
-                className={`relative flex items-center gap-1 p-1 rounded-2xl mr-1 antialiased ${CARD_STYLES.HEADER_SWITCHER}`}
+                className={`relative flex items-center p-0 overflow-visible rounded-full mr-1 antialiased ${CARD_STYLES.GLASS_CONTROL}`}
               >
                 <SysproxySwitcher headerMode />
                 <TunSwitcher headerMode />
+                <OutboundModeSwitcher headerMode />
               </div>
 
               {!useWindowFrame && platform !== 'darwin' && (

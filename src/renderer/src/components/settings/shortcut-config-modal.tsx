@@ -5,10 +5,10 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   Button,
   Input
 } from '@heroui/react'
+import SecondaryModalFooter from '@renderer/components/base/secondary-modal-footer'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { platform } from '@renderer/utils/init'
@@ -166,7 +166,7 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     collapseSidebar = false,
-    siderWidth = 250,
+    siderWidth = 220,
     showWindowShortcut = '',
     showFloatingWindowShortcut = '',
     triggerSysProxyShortcut = '',
@@ -264,16 +264,7 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                 ))}
               </div>
             </ModalBody>
-            <ModalFooter className="py-2 px-4">
-              <Button
-                color="primary"
-                variant="shadow"
-                onPress={onClose}
-                className="font-medium px-8"
-              >
-                {t('common.done')}
-              </Button>
-            </ModalFooter>
+            <SecondaryModalFooter confirmText={t('common.done')} onConfirm={onClose} />
           </>
         )}
       </ModalContent>

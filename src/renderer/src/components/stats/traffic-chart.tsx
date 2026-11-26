@@ -104,10 +104,12 @@ function createBaseChartOption(axisLabelColor: string, splitLineColor: string) {
     },
     tooltip: {
       trigger: 'axis' as const,
+      confine: true,
       transitionDuration: 0,
       hideDelay: 120,
       backgroundColor: 'transparent',
-      borderColor: 'transparent',
+      borderWidth: 0,
+      shadowColor: 'transparent',
       padding: 0
     },
     xAxis: {
@@ -414,8 +416,8 @@ const TrafficChart: React.FC = () => {
     <Card
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
     >
-      <CardBody className="flex h-full flex-col p-4">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      <CardBody className="flex h-full flex-col p-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex min-w-0 items-center gap-3">
             <Tabs
               size="sm"

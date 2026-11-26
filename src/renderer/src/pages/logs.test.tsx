@@ -4,6 +4,7 @@ import { HeroUIProvider } from '@heroui/react'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Logs from './logs'
+import { formatDisplayLogTime, parseLogPayload } from '@renderer/utils/log-styles'
 
 const mocks = vi.hoisted(() => ({
   config: { 'log-level': 'info' } as Partial<MihomoConfig>,
@@ -103,4 +104,48 @@ it('combines severity with search and exports only the visible logs', () => {
     expect.any(String),
     'txt'
   )
+})
+
+it('filters logs by module chip, exclusion syntax, and regex toggle', () => {
+  mocks.config = { 'log-level': 'debug' }
+  mocks.logs = [
+    { type: 'debug', payload: '[DNS] cp.cloudflare.com --> [1.1.1.1]', time: '2026/11/19 11:26:04' },
+    { type: 'info', payload: '[TCP] 198.18.0.1:8424(Weixin.exe) --> 61.151.230.226:80 using DIRECT', time: '2026/11/19 11:26:05' },
+    { type: 'debug', payload: '[Sniffer] All sniffing sniff failed', time: '2026/11/19 11:26:06' }
+  ]
+  render(page())
+
+  fireEvent.click(screen.getByRole('button', { name: 'DNS' }))
+  expect(screen.queryAllByTestId('log').map((row) => row.textContent)).toEqual([
+    '[DNS] cp.cloudflare.com --> [1.1.1.1]'
+  ])
+
+  fireEvent.click(screen.getByRole('button', { name: 'page.logs.allModules' }))
+  const searchInput = screen.getByPlaceholderText('common.search')
+  fireEvent.change(searchInput, { target: { value: '-Sniffer' } })
+  expect(screen.queryAllByTestId('log').map((row) => row.textContent)).toEqual([
+    '[DNS] cp.cloudflare.com --> [1.1.1.1]',
+    '[TCP] 198.18.0.1:8424(Weixin.exe) --> 61.151.230.226:80 using DIRECT'
+  ])
+
+  fireEvent.click(screen.getByRole('button', { name: 'page.logs.regexSearch' }))
+  fireEvent.change(searchInput, { target: { value: 'Weixin\\.exe.*DIRECT' } })
+  expect(screen.queryAllByTestId('log').map((row) => row.textContent)).toEqual([
+    '[TCP] 198.18.0.1:8424(Weixin.exe) --> 61.151.230.226:80 using DIRECT'
+  ])
+})
+
+it('parses log module tags, process tokens, and short display timestamps', () => {
+  expect(parseLogPayload('[TCP] 198.18.0.1:8424(Weixin.exe) --> 61.151.230.226:80')).toEqual({
+    tag: 'TCP',
+    rest: '198.18.0.1:8424(Weixin.exe) --> 61.151.230.226:80',
+    quickFilterToken: 'Weixin.exe'
+  })
+  expect(parseLogPayload('[DNS] hijack udp:198.18.0.2:53')).toEqual({
+    tag: 'DNS',
+    rest: 'hijack udp:198.18.0.2:53',
+    quickFilterToken: 'DNS'
+  })
+  expect(formatDisplayLogTime('2026/11/19 11:26:04')).toBe('11:26:04')
+  expect(formatDisplayLogTime('2026/11/19 11:26:04', '11:26:04.123')).toBe('11:26:04.123')
 })

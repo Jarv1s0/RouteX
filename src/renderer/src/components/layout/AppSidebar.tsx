@@ -2,7 +2,6 @@ import React from 'react'
 import { useLocation } from 'react-router-dom'
 import { Button } from '@heroui/react'
 import { IoSettings } from 'react-icons/io5'
-import OutboundModeSwitcher from '@renderer/components/sider/outbound-mode-switcher'
 import ProfileCard from '@renderer/components/sider/profile-card'
 import ProxyCard from '@renderer/components/sider/proxy-card'
 import RuleCard from '@renderer/components/sider/rule-card'
@@ -77,7 +76,6 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           </div>
           <div className="app-nodrag p-2 flex flex-col items-center gap-2 shrink-0 border-t border-divider">
             {latest && latest.version && <UpdaterButton latest={latest} />}
-            <OutboundModeSwitcher iconOnly />
             <Button
               size="sm"
               className="app-nodrag"
@@ -110,9 +108,6 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
         />
 
         <div className="app-nodrag flex flex-col gap-2 px-2 pb-2 flex-1">
-          {/* Main Control Center */}
-          <OutboundModeSwitcher />
-
           {/* Core State Area */}
           <div className="flex flex-col gap-2">
             <ProxyCard />

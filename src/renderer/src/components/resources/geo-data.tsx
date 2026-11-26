@@ -1,5 +1,5 @@
 import { notifyError } from '@renderer/utils/notify'
-import { Button, Input, Tab, Tabs } from '@heroui/react'
+import { Button, Card, CardBody, Input, Tab, Tabs } from '@heroui/react'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -11,6 +11,7 @@ import {
   primaryNumberInputClassNames
 } from '@renderer/components/settings/advanced-settings'
 import { LuCheck, LuCloudDownload, LuX } from 'react-icons/lu'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 
@@ -77,126 +78,147 @@ const GeoData: React.FC = () => {
   }
 
   return (
-    <SettingCard>
+    <div className="flex flex-col">
       {geoDataKeys.map(({ key, titleKey }) => {
         const titleStr = t(titleKey)
-        const title = <span className="inline-block w-[110px]">{titleStr}</span>
-        return (
-          <SettingItem key={key} title={title} divider>
-            <div className="flex flex-1 min-w-0 items-center gap-2">
-              <Input
-                size="sm"
-                className="min-w-0 flex-1"
-                classNames={primaryInputClassNames}
-                value={inputs[key]}
-                onValueChange={(value) => setInputs((prev) => ({ ...prev, [key]: value }))}
-              />
-              <div
-                className={`relative flex shrink-0 items-center h-8 transition-[width] duration-150 ease-out ${
-                  inputs[key] === geoxUrl[key] ? 'w-8' : 'w-[68px]'
-                }`}
-              >
-                <div
-                  className={`absolute right-0 flex items-center transition-all duration-150 ease-out ${
-                    inputs[key] === geoxUrl[key]
-                      ? 'opacity-100 scale-100'
-                      : 'opacity-0 scale-75 pointer-events-none'
-                  }`}
-                >
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="light"
-                    className="w-8 h-8 min-w-8 text-default-600 dark:text-default-400 hover:text-primary"
-                    isLoading={downloading[key]}
-                    aria-label={t('resources.downloadGeoDataItem', { name: titleStr })}
-                    title={t('resources.downloadGeoDataItem', { name: titleStr })}
-                    onPress={() => void downloadGeoFile(key, titleStr)}
-                  >
-                    <LuCloudDownload className="text-lg" />
-                  </Button>
-                </div>
+        const isDirty = inputs[key] !== geoxUrl[key]
+        const isBusy = Boolean(downloading[key])
 
-                <div
-                  className={`absolute right-0 flex items-center gap-1 transition-all duration-150 ease-out ${
-                    inputs[key] !== geoxUrl[key]
-                      ? 'opacity-100 translate-x-0'
-                      : 'opacity-0 translate-x-2 pointer-events-none'
-                  }`}
-                >
-                  <Button
-                    isIconOnly
+        return (
+          <div key={key} className="w-full pb-2">
+            <Card
+              shadow="sm"
+              radius="lg"
+              className={`group ${CARD_STYLES.MANAGEMENT_CARD} ${CARD_STYLES.MANAGEMENT_NEUTRAL}`}
+            >
+              <CardBody className="w-full py-2.5 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-[96px] flex-shrink-0">
+                    <span className="inline-flex max-w-full items-center truncate rounded-full border border-default-200/80 bg-default-100/70 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-default-600 dark:border-white/10 dark:bg-white/[0.06] dark:text-default-400">
+                      {titleStr}
+                    </span>
+                  </div>
+
+                  <Input
                     size="sm"
-                    variant="light"
-                    className="w-8 h-8 min-w-8 text-success-600 dark:text-success-400 hover:bg-success/10"
-                    aria-label={t('common.confirm')}
-                    title={t('common.confirm')}
-                    onPress={() => saveGeoUrl(key)}
+                    className="min-w-0 flex-1"
+                    classNames={primaryInputClassNames}
+                    value={inputs[key]}
+                    onValueChange={(value) => setInputs((prev) => ({ ...prev, [key]: value }))}
+                  />
+
+                  <div
+                    className={`relative flex shrink-0 items-center h-8 transition-[width] duration-150 ease-out ${
+                      isDirty ? 'w-[68px]' : 'w-8'
+                    }`}
                   >
-                    <LuCheck className="text-lg" />
-                  </Button>
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="light"
-                    className="w-8 h-8 min-w-8 text-danger-600 dark:text-danger-400 hover:bg-danger/10"
-                    aria-label={t('common.cancel')}
-                    title={t('common.cancel')}
-                    onPress={() => setInputs((prev) => ({ ...prev, [key]: geoxUrl[key] }))}
-                  >
-                    <LuX className="text-lg" />
-                  </Button>
+                    <div
+                      className={`absolute right-0 flex items-center transition-all duration-150 ease-out ${
+                        !isDirty
+                          ? isBusy
+                            ? 'opacity-100 scale-100'
+                            : 'opacity-45 scale-100 group-hover:opacity-100 focus-within:opacity-100'
+                          : 'opacity-0 scale-75 pointer-events-none'
+                      }`}
+                    >
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        className="w-8 h-8 min-w-8 text-default-400 hover:text-primary"
+                        isLoading={isBusy}
+                        aria-label={t('resources.downloadGeoDataItem', { name: titleStr })}
+                        title={t('resources.downloadGeoDataItem', { name: titleStr })}
+                        onPress={() => void downloadGeoFile(key, titleStr)}
+                      >
+                        <LuCloudDownload className="text-base" />
+                      </Button>
+                    </div>
+
+                    <div
+                      className={`absolute right-0 flex items-center gap-1 transition-all duration-150 ease-out ${
+                        isDirty
+                          ? 'opacity-100 translate-x-0'
+                          : 'opacity-0 translate-x-2 pointer-events-none'
+                      }`}
+                    >
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        className="w-8 h-8 min-w-8 text-success-600 dark:text-success-400 hover:bg-success/10"
+                        aria-label={t('common.confirm')}
+                        title={t('common.confirm')}
+                        onPress={() => saveGeoUrl(key)}
+                      >
+                        <LuCheck className="text-base" />
+                      </Button>
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        className="w-8 h-8 min-w-8 text-danger-600 dark:text-danger-400 hover:bg-danger/10"
+                        aria-label={t('common.cancel')}
+                        title={t('common.cancel')}
+                        onPress={() => setInputs((prev) => ({ ...prev, [key]: geoxUrl[key] }))}
+                      >
+                        <LuX className="text-base" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </SettingItem>
+              </CardBody>
+            </Card>
+          </div>
         )
       })}
-      <SettingItem title={t('resources.geoMode')} divider>
-        <Tabs
-          size="sm"
-          color="primary"
-          variant="solid"
-          radius="lg"
-          selectedKey={geoMode ? 'dat' : 'db'}
-          onSelectionChange={(key) => {
-            patchControledMihomoConfig({ 'geodata-mode': key === 'dat' }).catch((error) =>
-              notifyError(error)
-            )
-          }}
-        >
-          <Tab key="db" title="db" />
-          <Tab key="dat" title="dat" />
-        </Tabs>
-      </SettingItem>
-      <SettingItem title={t('resources.autoUpdate')} divider={geoAutoUpdate}>
-        <AppSwitch
-          size="sm"
-          isSelected={geoAutoUpdate}
-          onValueChange={(v) => {
-            patchControledMihomoConfig({ 'geo-auto-update': v }).catch((error) =>
-              notifyError(error)
-            )
-          }}
-        />
-      </SettingItem>
-      {geoAutoUpdate && (
-        <SettingItem title={t('resources.updateIntervalHours')}>
-          <Input
+      <SettingCard>
+        <SettingItem title={t('resources.geoMode')} divider>
+          <Tabs
             size="sm"
-            type="number"
-            className="w-[100px]"
-            classNames={primaryNumberInputClassNames}
-            value={geoUpdateInterval.toString()}
+            color="primary"
+            variant="solid"
+            radius="lg"
+            selectedKey={geoMode ? 'dat' : 'db'}
+            onSelectionChange={(key) => {
+              patchControledMihomoConfig({ 'geodata-mode': key === 'dat' }).catch((error) =>
+                notifyError(error)
+              )
+            }}
+          >
+            <Tab key="db" title="db" />
+            <Tab key="dat" title="dat" />
+          </Tabs>
+        </SettingItem>
+        <SettingItem title={t('resources.autoUpdate')} divider={geoAutoUpdate}>
+          <AppSwitch
+            size="sm"
+            isSelected={geoAutoUpdate}
             onValueChange={(v) => {
-              patchControledMihomoConfig({ 'geo-update-interval': parseInt(v) }).catch((error) =>
+              patchControledMihomoConfig({ 'geo-auto-update': v }).catch((error) =>
                 notifyError(error)
               )
             }}
           />
         </SettingItem>
-      )}
-    </SettingCard>
+        {geoAutoUpdate && (
+          <SettingItem title={t('resources.updateIntervalHours')}>
+            <Input
+              size="sm"
+              type="number"
+              className="w-[100px]"
+              classNames={primaryNumberInputClassNames}
+              value={geoUpdateInterval.toString()}
+              onValueChange={(v) => {
+                patchControledMihomoConfig({ 'geo-update-interval': parseInt(v) }).catch((error) =>
+                  notifyError(error)
+                )
+              }}
+            />
+          </SettingItem>
+        )}
+      </SettingCard>
+    </div>
   )
 }
 

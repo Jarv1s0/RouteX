@@ -38,7 +38,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
 
   const {
     collapseSidebar = false,
-    siderWidth = 250,
+    siderWidth = 220,
     profileDisplayDate = 'update',
     userAgent,
     diffWorkDir = false,

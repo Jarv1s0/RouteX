@@ -303,7 +303,7 @@ const AppearanceConfig: React.FC = () => {
           {customThemes && (
             <Select
               classNames={CARD_STYLES.GLASS_SELECT}
-              className="w-[60%]"
+              className="w-[150px]"
               size="sm"
               selectedKeys={new Set([customTheme])}
               disallowEmptySelection={true}

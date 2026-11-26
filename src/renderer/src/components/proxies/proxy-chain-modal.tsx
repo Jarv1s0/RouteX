@@ -16,20 +16,13 @@ import { createSecondaryModalClassNames } from '@renderer/utils/modal-styles'
 import { restartCoreInBackground } from '@renderer/utils/core-restart'
 import { useI18n } from '@renderer/i18n'
 import { CHAIN_BASE_TARGETS } from '@renderer/utils/rule-targets'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const polishedInputClassNames = {
   input: 'bg-transparent text-default-900 text-xs',
   inputWrapper:
     'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 min-h-12'
-}
-
-const polishedSelectClassNames = {
-  trigger:
-    'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl data-[hover=true]:bg-default-200/50 min-h-12 h-12',
-  value: 'text-xs',
-  popoverContent:
-    'backdrop-blur-xl bg-background/90 dark:bg-default-100/80 rounded-2xl border border-default-200/60 dark:border-white/10 shadow-xl'
 }
 
 interface Props {
@@ -228,7 +221,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                     size="sm"
                     placeholder={t('proxyChains.dialerPlaceholder')}
                     selectedKeys={dialerProxy ? new Set([dialerProxy]) : new Set()}
-                    classNames={polishedSelectClassNames}
+                    classNames={CARD_STYLES.GLASS_SELECT}
                     onSelectionChange={(keys) => setDialerProxy(Array.from(keys)[0] as string)}
                   >
                     {allProxies.map((p) => (
@@ -245,7 +238,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                     size="sm"
                     placeholder={t('proxyChains.targetPlaceholder')}
                     selectedKeys={targetProxy ? new Set([targetProxy]) : new Set()}
-                    classNames={polishedSelectClassNames}
+                    classNames={CARD_STYLES.GLASS_SELECT}
                     onSelectionChange={(keys) => setTargetProxy(Array.from(keys)[0] as string)}
                   >
                     {allProxies.map((p) => (
@@ -264,7 +257,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                   placeholder={t('proxyChains.targetGroupsPlaceholder')}
                   selectionMode="multiple"
                   selectedKeys={targetGroups}
-                  classNames={polishedSelectClassNames}
+                  classNames={CARD_STYLES.GLASS_SELECT}
                   onSelectionChange={(keys) => setTargetGroups(keys as Set<string>)}
                   color="primary"
                   listboxProps={{

@@ -97,9 +97,9 @@ export default function ConnectionsToolbar({
   const { t } = useI18n()
 
   return (
-    <div className="overflow-x-auto sticky top-0 z-40 w-full pb-2 px-2 pt-2 pointer-events-none">
+    <div className="overflow-x-auto sticky top-0 z-40 w-full px-2.5 py-1.5 pointer-events-none">
       <div
-        className={`flex items-center w-full px-2 py-1.5 gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR}`}
+        className={`flex items-center w-full gap-2 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR}`}
       >
         <Tabs
           size="md"

@@ -1,18 +1,17 @@
 import {
   Autocomplete,
   AutocompleteItem,
-  Button,
   Input,
   Modal,
   ModalBody,
   ModalContent,
-  ModalFooter,
   ModalHeader,
   Select,
   SelectItem
 } from '@heroui/react'
 import React, { useCallback, useMemo, useState } from 'react'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
+import SecondaryModalFooter from '@renderer/components/base/secondary-modal-footer'
 import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { addQuickRule, updateQuickRule } from '@renderer/utils/quick-rules-ipc'
@@ -173,15 +172,17 @@ const QuickRuleEditorModal: React.FC<Props> = ({
             <SecondaryModalCloseButton onPress={onClose} />
           </ModalHeader>
 
-          <ModalBody className="px-6 py-4">
-            <div className="flex flex-col gap-3">
+          <ModalBody className="px-6 pt-3 pb-2">
+            <div className="flex flex-col">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground-800">
-                  {t('rules.ruleType')} -{' '}
-                  {t(
-                    (RULE_TYPES.find((item) => item.key === ruleType)?.descKey ||
-                      'rules.desc.domain') as TranslationKey
-                  )}
+                <label className="text-xs font-semibold text-foreground-700">
+                  {t('rules.ruleType')} ·{' '}
+                  <span className="font-normal text-foreground-500">
+                    {t(
+                      (RULE_TYPES.find((item) => item.key === ruleType)?.descKey ||
+                        'rules.desc.domain') as TranslationKey
+                    )}
+                  </span>
                 </label>
                 <Select
                   selectedKeys={new Set([ruleType])}
@@ -194,7 +195,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({
                   disallowEmptySelection
                   size="md"
                   aria-label={t('rules.ruleType')}
-                  classNames={CARD_STYLES.GLASS_SELECT}
+                  classNames={CARD_STYLES.FORM_SELECT}
                 >
                   {RULE_TYPES.map((item) => (
                     <SelectItem key={item.key} textValue={item.label}>
@@ -204,8 +205,8 @@ const QuickRuleEditorModal: React.FC<Props> = ({
                 </Select>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground-800">
+              <div className="mt-2 flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-foreground-700">
                   {t('rules.ruleValue')}
                 </label>
                 <Input
@@ -214,12 +215,12 @@ const QuickRuleEditorModal: React.FC<Props> = ({
                   size="md"
                   aria-label={t('rules.ruleValue')}
                   placeholder={t('rules.ruleValuePlaceholder')}
-                  classNames={CARD_STYLES.GLASS_INPUT}
+                  classNames={CARD_STYLES.FORM_INPUT}
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground-800">
+              <div className="mt-2 flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-foreground-700">
                   {t('rules.targetProxy')}
                 </label>
                 <Autocomplete
@@ -237,12 +238,12 @@ const QuickRuleEditorModal: React.FC<Props> = ({
                   aria-label={t('rules.targetProxy')}
                   placeholder={t('rules.targetProxyPlaceholder')}
                   inputProps={{
-                    classNames: CARD_STYLES.GLASS_INPUT
+                    classNames: CARD_STYLES.FORM_INPUT
                   }}
                   classNames={{
                     selectorButton: 'text-default-500',
                     listboxWrapper: 'max-h-64',
-                    popoverContent: CARD_STYLES.GLASS_SELECT.popoverContent
+                    popoverContent: CARD_STYLES.FORM_SELECT.popoverContent
                   }}
                 >
                   {proxyOptions.map((option) => (
@@ -252,7 +253,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({
               </div>
 
               {supportsNoResolve && (
-                <div className="flex min-h-10 items-center justify-between gap-4 rounded-2xl border border-default-200/50 bg-content1/40 px-4 py-1.5 shadow-sm">
+                <div className="mt-2 flex min-h-10 items-center justify-between gap-4 rounded-xl border border-default-200/60 bg-default-100/50 px-3.5 py-2 dark:border-white/10 dark:bg-white/[0.04]">
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="shrink-0 text-sm font-medium text-foreground-700">
                       no-resolve
@@ -271,11 +272,11 @@ const QuickRuleEditorModal: React.FC<Props> = ({
               )}
 
               {ruleString && (
-                <div className="flex min-h-10 items-center gap-3 rounded-2xl border border-default-200/50 bg-content1/40 px-4 py-1.5 shadow-sm">
+                <div className="mt-2 flex min-h-10 items-center gap-2.5 rounded-xl border border-dashed border-default-300/70 bg-default-100/50 px-3.5 py-2 dark:border-white/10 dark:bg-white/[0.03]">
                   <div className="shrink-0 text-xs font-medium text-foreground-500">
                     {t('rules.preview')}
                   </div>
-                  <code className="min-w-0 truncate font-mono text-sm text-primary">
+                  <code className="min-w-0 truncate font-mono text-xs text-primary">
                     {ruleString}
                   </code>
                 </div>
@@ -283,26 +284,15 @@ const QuickRuleEditorModal: React.FC<Props> = ({
             </div>
           </ModalBody>
 
-          <ModalFooter className="py-2 px-4">
-            <Button
-              variant="shadow"
-              onPress={onClose}
-              isDisabled={isSubmitting}
-              className="font-medium px-8"
-            >
-              {t('rules.exit')}
-            </Button>
-            <Button
-              color="primary"
-              variant="shadow"
-              onPress={handleSubmit}
-              isDisabled={!ruleValue.trim() || !proxyTarget.trim()}
-              isLoading={isSubmitting}
-              className="font-medium px-8"
-            >
-              {isEditing ? t('rules.saveChanges') : t('rules.createRule')}
-            </Button>
-          </ModalFooter>
+          <SecondaryModalFooter
+            cancelText={t('rules.exit')}
+            onCancel={onClose}
+            cancelDisabled={isSubmitting}
+            confirmText={isEditing ? t('rules.saveChanges') : t('rules.createRule')}
+            onConfirm={handleSubmit}
+            confirmDisabled={!ruleValue.trim() || !proxyTarget.trim()}
+            confirmLoading={isSubmitting}
+          />
         </>
       </ModalContent>
     </Modal>

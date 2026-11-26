@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Select, SelectItem } from '@heroui/react'
 import { getInterfaces } from '@renderer/utils/mihomo-ipc'
 import { useI18n } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 const InterfaceSelect: React.FC<{
   value: string
   exclude?: string[]
@@ -21,6 +22,7 @@ const InterfaceSelect: React.FC<{
     <Select
       size="sm"
       className="w-[300px]"
+      classNames={CARD_STYLES.GLASS_SELECT}
       selectedKeys={new Set([value])}
       disallowEmptySelection={true}
       onSelectionChange={(v) => onChange(v.currentKey as string)}

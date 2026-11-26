@@ -27,7 +27,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
     appConfig: {
       delayThresholds = { good: 200, fair: 500 },
       collapseSidebar = false,
-      siderWidth = 250
+      siderWidth = 220
     } = {}
   } = useAppConfig()
   const { groups = [] } = useGroups()

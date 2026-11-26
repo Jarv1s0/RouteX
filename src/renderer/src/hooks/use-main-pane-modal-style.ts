@@ -6,7 +6,7 @@ export function useMainPaneModalContentStyle(
   maxWidthPx?: number,
   viewportPaddingPx?: number
 ): CSSProperties {
-  const { appConfig: { collapseSidebar = false, siderWidth = 250 } = {} } = useAppConfig()
+  const { appConfig: { collapseSidebar = false, siderWidth = 220 } = {} } = useAppConfig()
 
   return getMainPaneModalContentStyle({
     collapseSidebar,

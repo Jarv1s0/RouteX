@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import BasePage from '@renderer/components/base/base-page'
 import { DnsQueryPanel } from '@renderer/components/tools/dns-query-panel'
 import { RuleTestPanel } from '@renderer/components/tools/rule-test-panel'
@@ -8,23 +8,43 @@ import { useI18n } from '@renderer/i18n'
 
 const Tools: React.FC = () => {
   const { t } = useI18n()
-  const [showIp, setShowIp] = useState(false)
+  const [ruleQueryRequest, setRuleQueryRequest] = useState<{
+    domain: string
+    trigger: number
+  } | null>(null)
+  const [ipQueryRequest, setIpQueryRequest] = useState<{
+    query: string
+    trigger: number
+  } | null>(null)
+
+  const handleTestRule = useCallback((domain: string) => {
+    setRuleQueryRequest((prev) => ({
+      domain,
+      trigger: (prev?.trigger ?? 0) + 1
+    }))
+  }, [])
+
+  const handleInspectIp = useCallback((ip: string) => {
+    setIpQueryRequest((prev) => ({
+      query: ip,
+      trigger: (prev?.trigger ?? 0) + 1
+    }))
+  }, [])
 
   return (
     <BasePage title={t('page.tools.title')}>
       <div className="p-2 space-y-2">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-          {/* DNS 查询 */}
-          <DnsQueryPanel />
-          {/* 规则测试 */}
-          <RuleTestPanel />
-        </div>
+        {/* IP 信息与主动查询 */}
+        <IpInfoPanel externalQuery={ipQueryRequest} />
 
-        {/* 网络与服务检测 */}
+        {/* 网络与流媒体检测 */}
         <ConnectivityTestPanel />
 
-        {/* IP 信息 */}
-        <IpInfoPanel showIp={showIp} setShowIp={setShowIp} />
+        {/* DNS 查询与规则测试联动 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+          <DnsQueryPanel onTestRule={handleTestRule} onInspectIp={handleInspectIp} />
+          <RuleTestPanel externalQuery={ruleQueryRequest} />
+        </div>
       </div>
     </BasePage>
   )

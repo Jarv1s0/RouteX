@@ -51,7 +51,7 @@ export function createDefaultAppConfig(platform: NodeJS.Platform, osRelease?: st
       'stats',
       'tools'
     ],
-    siderWidth: 250,
+    siderWidth: 220,
     sysProxy: { enable: false, mode: 'manual' },
     disableLoopbackDetector: false,
     disableEmbedCA: false,

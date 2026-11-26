@@ -43,6 +43,7 @@ const ConfirmModal: React.FC<Props> = (props) => {
         <Button
           key={button.key}
           size="sm"
+          radius="lg"
           color={button.color || 'primary'}
           variant={button.variant || 'solid'}
           onPress={async () => {
@@ -57,12 +58,20 @@ const ConfirmModal: React.FC<Props> = (props) => {
 
     return (
       <>
-        <Button size="sm" variant="light" onPress={() => onChange(false)}>
+        <Button
+          size="sm"
+          variant="flat"
+          radius="lg"
+          onPress={() => onChange(false)}
+          className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+        >
           {cancelText}
         </Button>
         <Button
           size="sm"
           color="danger"
+          radius="lg"
+          className="h-8 px-5 font-medium shadow-sm"
           onPress={async () => {
             if (onConfirm) {
               await onConfirm()
@@ -96,7 +105,7 @@ const ConfirmModal: React.FC<Props> = (props) => {
             <ModalBody>
               <div className="leading-relaxed">{description}</div>
             </ModalBody>
-            <ModalFooter className="space-x-2">{renderButtons()}</ModalFooter>
+            <ModalFooter className="px-6 pt-2 pb-3 gap-2">{renderButtons()}</ModalFooter>
           </div>
         )}
       </ModalContent>

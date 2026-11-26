@@ -29,7 +29,6 @@ interface MiniMetricChartProps {
   title: string
   icon: React.ElementType
   series: MetricSeries[]
-  valueFormatter?: (value: number) => string
   axisValueFormatter?: (value: number) => string
   yAxisLeft?: number
   metrics: Array<{
@@ -37,12 +36,6 @@ interface MiniMetricChartProps {
     value: string
     className: string
   }>
-}
-
-interface TooltipSeriesParam {
-  color: string
-  seriesName: string
-  value: number | string | [string | number, number]
 }
 
 function createInitialPoints(): MetricPoint[] {
@@ -88,8 +81,7 @@ function MiniMetricChart({
   title,
   icon: Icon,
   series,
-  valueFormatter = formatIntegerValue,
-  axisValueFormatter = valueFormatter,
+  axisValueFormatter = formatIntegerValue,
   yAxisLeft = 36,
   metrics
 }: MiniMetricChartProps) {
@@ -109,50 +101,6 @@ function MiniMetricChart({
         bottom: 4,
         left: yAxisLeft,
         containLabel: false
-      },
-      tooltip: {
-        trigger: 'axis',
-        transitionDuration: 0,
-        hideDelay: 120,
-        backgroundColor: 'transparent',
-        borderColor: 'transparent',
-        padding: 0,
-        formatter: (params: unknown) => {
-          const tooltipParams = (Array.isArray(params) ? params : [params]) as TooltipSeriesParam[]
-          const uid = Math.random().toString(36).substring(7)
-          return `
-            <style>
-              .echart-glass-tooltip-${uid} {
-                background: rgba(255, 255, 255, 0.4);
-                backdrop-filter: blur(12px) saturate(150%);
-                border: 1px solid rgba(255, 255, 255, 0.5);
-                padding: 8px 12px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-              }
-              .dark .echart-glass-tooltip-${uid} {
-                background: rgba(0, 0, 0, 0.2);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-              }
-            </style>
-            <div class="echart-glass-tooltip-${uid}">
-              ${tooltipParams
-                .map((entry) => {
-                  const rawValue = Array.isArray(entry.value) ? entry.value[1] : entry.value
-                  return `
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:128px;margin-bottom:4px;">
-                      <div style="display:flex;align-items:center;gap:8px;min-width:0;">
-                        <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;flex:none;box-shadow: 0 0 6px ${entry.color}"></span>
-                        <span style="color:var(--heroui-foreground, #334155);font-size:12px;white-space:nowrap;opacity:0.8;">${entry.seriesName}</span>
-                      </div>
-                      <span style="color:var(--heroui-foreground, #0f172a);font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;">${valueFormatter(Number(rawValue))}</span>
-                    </div>
-                  `
-                })
-                .join('')}
-            </div>
-          `
-        }
       },
       xAxis: {
         type: 'category',
@@ -224,13 +172,13 @@ function MiniMetricChart({
         }
       }))
     } as EChartsCoreOption
-  }, [axisValueFormatter, series, valueFormatter, yAxisLeft])
+  }, [axisValueFormatter, series, yAxisLeft])
 
   return (
     <Card
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default h-full`}
     >
-      <CardBody className="flex h-full min-h-[152px] flex-col p-4">
+      <CardBody className="flex h-full min-h-[152px] flex-col p-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <Icon className="text-base text-foreground-500" />
@@ -347,7 +295,6 @@ const RealtimeMetricsPanel: React.FC = () => {
             color: '#0ea5e9'
           }
         ]}
-        valueFormatter={formatMemoryValue}
         axisValueFormatter={formatMemoryAxisValue}
         yAxisLeft={50}
       />

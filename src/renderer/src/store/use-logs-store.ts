@@ -23,6 +23,15 @@ interface LogsState {
 
 const logBuffer: ControllerLog[] = []
 const LOG_BUFFER_LIMIT = 500
+let nextLogId = 1
+
+function formatShortLogTime(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  const ms = String(date.getMilliseconds()).padStart(3, '0')
+  return `${hours}:${minutes}:${seconds}.${ms}`
+}
 
 const updateStore = throttle(
   (logs: ControllerLog[]) => {
@@ -33,7 +42,10 @@ const updateStore = throttle(
 )
 
 const handleLog = (_e: unknown, log: ControllerLog) => {
-  log.time = new Date().toLocaleString()
+  const now = new Date()
+  log.id = nextLogId++
+  log.time = now.toLocaleString()
+  log.shortTime = formatShortLogTime(now)
   logBuffer.push(log)
   if (logBuffer.length > LOG_BUFFER_LIMIT) {
     logBuffer.shift()

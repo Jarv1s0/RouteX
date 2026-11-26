@@ -13,9 +13,9 @@ import {
   Modal,
   ModalContent,
   ModalHeader,
-  ModalBody,
-  ModalFooter
+  ModalBody
 } from '@heroui/react'
+import SecondaryModalFooter from '@renderer/components/base/secondary-modal-footer'
 import useSWR from 'swr'
 import {
   checkAutoRun,
@@ -281,17 +281,7 @@ const GeneralConfig: React.FC = () => {
                   </div>
                 </div>
               </ModalBody>
-              <ModalFooter className="py-2 px-4">
-                <Button
-                  size="sm"
-                  color="primary"
-                  variant="shadow"
-                  onPress={onClose}
-                  className="font-medium px-8"
-                >
-                  {t('common.done')}
-                </Button>
-              </ModalFooter>
+              <SecondaryModalFooter confirmText={t('common.done')} onConfirm={onClose} />
             </>
           )}
         </ModalContent>
@@ -374,7 +364,7 @@ const GeneralConfig: React.FC = () => {
         <SettingItem title={t('settings.system.language')} divider>
           <Select
             classNames={CARD_STYLES.GLASS_SELECT}
-            className="w-[190px]"
+            className="w-[116px]"
             size="sm"
             selectedKeys={new Set([language])}
             disallowEmptySelection={true}
@@ -407,7 +397,7 @@ const GeneralConfig: React.FC = () => {
           }
           divider={!isTauriHost}
         >
-          <div className="flex w-[230px] items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Tooltip content={t('settings.system.checkNow')}>
               <Button
                 isIconOnly
@@ -423,7 +413,7 @@ const GeneralConfig: React.FC = () => {
             </Tooltip>
             <Select
               classNames={CARD_STYLES.GLASS_SELECT}
-              className="w-[190px]"
+              className="w-[116px]"
               size="sm"
               selectedKeys={new Set([updateChannel])}
               disallowEmptySelection={true}

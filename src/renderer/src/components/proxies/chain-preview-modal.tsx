@@ -19,6 +19,7 @@ import {
   SECONDARY_MODAL_ICON_CLOSE_BUTTON_CLASSNAME
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   chains: ChainItem[]
@@ -361,10 +362,7 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
                     const id = Array.from(keys)[0] as string
                     setSelectedChainId(id)
                   }}
-                  classNames={{
-                    trigger:
-                      'bg-default-100 dark:bg-default-50/50 shadow-none border border-default-200 dark:border-white/5'
-                  }}
+                  classNames={CARD_STYLES.GLASS_SELECT}
                 >
                   {chains.map((chain) => (
                     <SelectItem key={chain.id} textValue={chain.name}>

@@ -49,7 +49,7 @@ pub(crate) fn fetch_ip_info_query(query: &str) -> Result<Value, String> {
         10_000,
     )?;
     if let Some(map) = result.as_object_mut() {
-        map.insert("query".to_string(), Value::String(query.to_string()));
+        map.insert("resolvedIp".to_string(), Value::String(ip));
     }
     Ok(result)
 }

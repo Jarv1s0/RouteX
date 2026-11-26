@@ -80,4 +80,27 @@ describe('OutboundModeSwitcher', () => {
     expect(mocks.fetchGroups).toHaveBeenCalledTimes(1)
     expect(mocks.sendIpc).toHaveBeenCalledWith('updateTrayMenu')
   })
+
+  it('renders compact dropdown in headerMode and switches outbound mode on selection', async () => {
+    render(<OutboundModeSwitcher headerMode />)
+
+    const trigger = screen.getByRole('button', { name: /outbound\.rule/i })
+    await act(async () => {
+      fireEvent.click(trigger)
+    })
+
+    const globalOption = await screen.findByText('outbound.global')
+    await act(async () => {
+      fireEvent.click(globalOption)
+    })
+
+    expect(mocks.applyOutboundModeChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentMode: 'rule',
+        nextMode: 'global'
+      })
+    )
+    expect(mocks.fetchGroups).toHaveBeenCalledTimes(1)
+    expect(mocks.sendIpc).toHaveBeenCalledWith('updateTrayMenu')
+  })
 })

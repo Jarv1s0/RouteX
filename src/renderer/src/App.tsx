@@ -31,7 +31,7 @@ const App: React.FC = () => {
   const {
     appTheme = 'system',
     customTheme,
-    siderWidth = 250,
+    siderWidth = 220,
     updateChannel = 'stable',
     sysProxy,
     collapseSidebar = false
@@ -158,6 +158,7 @@ const App: React.FC = () => {
   useEffect(() => {
     pendingWidthRef.current = siderWidthValue
     layoutRef.current?.style.setProperty(SIDER_WIDTH_CSS_VAR, `${siderWidthValue}px`)
+    document.documentElement.style.setProperty(SIDER_WIDTH_CSS_VAR, `${siderWidthValue}px`)
   }, [siderWidthValue])
 
   useEffect(() => {
@@ -303,8 +304,8 @@ const App: React.FC = () => {
 
           if (newWidth <= 150) {
             newWidth = narrowWidth
-          } else if (newWidth <= 250) {
-            newWidth = 250
+          } else if (newWidth <= 220) {
+            newWidth = 220
           } else if (newWidth >= 400) {
             newWidth = 400
           }

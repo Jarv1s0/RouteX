@@ -115,7 +115,9 @@ const UpdaterModal: React.FC<Props> = (props) => {
             </Suspense>
           </div>
         </ModalBody>
-        <ModalFooter className={updateStatus?.downloading ? 'flex-col items-stretch gap-3' : ''}>
+        <ModalFooter
+          className={`px-6 pt-2 pb-3 ${updateStatus?.downloading ? 'flex-col items-stretch gap-3' : 'gap-2'}`}
+        >
           {updateStatus?.downloading ? (
             <div className="w-full space-y-2 px-1">
               <div className="flex items-center justify-between text-sm">
@@ -132,22 +134,37 @@ const UpdaterModal: React.FC<Props> = (props) => {
                 <div className="text-danger text-sm mt-1">{updateStatus.error}</div>
               )}
               <div className="flex justify-end pt-2">
-                <Button size="sm" variant="light" onPress={handleCancel}>
+                <Button
+                  size="sm"
+                  variant="flat"
+                  radius="lg"
+                  onPress={handleCancel}
+                  className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+                >
                   {t('common.cancel')}
                 </Button>
               </div>
             </div>
           ) : (
             <>
-              <Button size="sm" variant="light" onPress={handleCancel} startContent={<FiX />}>
+              <Button
+                size="sm"
+                variant="flat"
+                radius="lg"
+                onPress={handleCancel}
+                startContent={<FiX />}
+                className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+              >
                 {t('common.cancel')}
               </Button>
               <Button
                 size="sm"
                 color="primary"
+                radius="lg"
                 isLoading={downloading}
                 startContent={<FiDownload />}
                 onPress={onUpdate}
+                className="h-8 px-5 font-medium shadow-sm"
               >
                 {t('updater.updateNow')}
               </Button>

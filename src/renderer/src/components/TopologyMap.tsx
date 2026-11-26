@@ -47,6 +47,7 @@ import {
 } from './connections/topology/graph'
 
 const REFRESH_INTERVAL = 250
+const FIT_VIEW_PADDING = 0.05
 // Refit on canvas resize or explicit requests, preserving the view during traffic updates.
 function ViewportHelper({ fitKey, options }: { fitKey: string; options: FitViewOptions }) {
   const { fitView, viewportInitialized } = useReactFlow()
@@ -116,13 +117,13 @@ function TopologyMapInner() {
       canvasSize.height,
       0,
       1,
-      0.15
+      FIT_VIEW_PADDING
     )
   }, [canvasSize, graph.nodes])
   const minimumZoom = Math.min(0.05, initialViewport?.zoom ?? 0.05)
   const fitOptions = useMemo<FitViewOptions>(
     () => ({
-      padding: 0.15,
+      padding: FIT_VIEW_PADDING,
       minZoom: minimumZoom,
       maxZoom: 1,
       duration: 0
@@ -183,68 +184,79 @@ function TopologyMapInner() {
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b border-default-200/50 px-3 py-2">
-        <Input
-          aria-label={t('topology.search')}
-          placeholder={t('topology.search')}
-          value={query}
-          onValueChange={setQuery}
-          isClearable
-          onClear={() => setQuery('')}
-          size="sm"
-          startContent={<LuSearch className="shrink-0 text-default-400" aria-hidden />}
-          className="min-w-[180px] flex-1 max-w-sm"
-          classNames={CARD_STYLES.GLASS_INPUT}
-        />
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Button
+      <div className="px-2.5 pt-2.5 pb-1.5">
+        <div
+          className={`flex flex-wrap items-center gap-x-2.5 gap-y-1.5 ${CARD_STYLES.GLASS_TOOLBAR}`}
+        >
+          <div className="flex shrink-0 items-center gap-x-3 px-1 text-xs text-default-500">
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${paused ? 'bg-warning' : waiting ? 'bg-default-400' : 'bg-success'}`}
+              />
+              {t(paused ? 'topology.paused' : waiting ? 'topology.loading' : 'topology.live')}
+            </span>
+            <span className="tabular-nums">
+              {t('topology.connections', { count: graph.connectionCount })}
+            </span>
+            <span className="tabular-nums">{t('topology.processes', { count: processCount })}</span>
+          </div>
+          <div className="hidden md:block w-[1px] h-4 bg-default-200/50 dark:bg-white/10" />
+          <Input
+            aria-label={t('topology.search')}
+            placeholder={t('topology.search')}
+            value={query}
+            onValueChange={setQuery}
+            isClearable
+            onClear={() => setQuery('')}
+            variant="flat"
             size="sm"
-            variant={paused ? 'flat' : 'light'}
-            color={paused ? 'warning' : 'default'}
-            startContent={paused ? <LuPlay aria-hidden /> : <LuPause aria-hidden />}
-            onPress={() => setPausedSnapshot(paused ? null : connections)}
-            aria-pressed={paused}
-          >
-            {t(paused ? 'connections.resume' : 'connections.pause')}
-          </Button>
-          <Button
-            size="sm"
-            variant="light"
-            isDisabled={!hasGraph}
-            startContent={<LuLayoutDashboard aria-hidden />}
-            onPress={rearrange}
-          >
-            {t('topology.rearrange')}
-          </Button>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-default-200/40 px-3 py-2 text-xs text-default-500">
-        <span className="inline-flex items-center gap-1.5">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${paused ? 'bg-warning' : waiting ? 'bg-default-400' : 'bg-success'}`}
+            startContent={<LuSearch className="shrink-0 text-default-400" aria-hidden />}
+            className="min-w-[160px] flex-1"
+            classNames={CARD_STYLES.GLASS_INPUT}
           />
-          {t(paused ? 'topology.paused' : waiting ? 'topology.loading' : 'topology.live')}
-        </span>
-        <span className="tabular-nums">
-          {t('topology.connections', { count: graph.connectionCount })}
-        </span>
-        <span className="tabular-nums">{t('topology.processes', { count: processCount })}</span>
-        <span className="ml-auto inline-flex items-center gap-3 tabular-nums">
-          <span
-            className="inline-flex items-center gap-1"
-            title={t('connections.column.downloadSpeed')}
-          >
-            <LuArrowDown className="text-success" aria-hidden />
-            {calcTraffic(graph.downloadSpeed)}/s
-          </span>
-          <span
-            className="inline-flex items-center gap-1"
-            title={t('connections.column.uploadSpeed')}
-          >
-            <LuArrowUp className="text-primary" aria-hidden />
-            {calcTraffic(graph.uploadSpeed)}/s
-          </span>
-        </span>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <span className="inline-flex items-center gap-2.5 px-1 text-xs text-default-500 tabular-nums">
+              <span
+                className="inline-flex items-center gap-1"
+                title={t('connections.column.downloadSpeed')}
+              >
+                <LuArrowDown className="text-success" aria-hidden />
+                {calcTraffic(graph.downloadSpeed)}/s
+              </span>
+              <span
+                className="inline-flex items-center gap-1"
+                title={t('connections.column.uploadSpeed')}
+              >
+                <LuArrowUp className="text-primary" aria-hidden />
+                {calcTraffic(graph.uploadSpeed)}/s
+              </span>
+            </span>
+            <div className="w-[1px] h-4 bg-default-200/50 dark:bg-white/10" />
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant={paused ? 'flat' : 'light'}
+                color={paused ? 'warning' : 'default'}
+                className={CARD_STYLES.GLASS_TOOLBAR_BUTTON}
+                startContent={paused ? <LuPlay aria-hidden /> : <LuPause aria-hidden />}
+                onPress={() => setPausedSnapshot(paused ? null : connections)}
+                aria-pressed={paused}
+              >
+                {t(paused ? 'connections.resume' : 'connections.pause')}
+              </Button>
+              <Button
+                size="sm"
+                variant="light"
+                isDisabled={!hasGraph}
+                className={CARD_STYLES.GLASS_TOOLBAR_BUTTON}
+                startContent={<LuLayoutDashboard aria-hidden />}
+                onPress={rearrange}
+              >
+                {t('topology.rearrange')}
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
       <div ref={canvasRef} className="relative min-h-0 flex-1" aria-label={t('page.map.title')}>
         {waiting ? (

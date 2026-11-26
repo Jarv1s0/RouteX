@@ -169,7 +169,7 @@ const StatusGrid: React.FC = () => {
     <Card
       className={`${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE} hover:!scale-100 !cursor-default w-full`}
     >
-      <CardBody className="px-4 py-3">
+      <CardBody className="p-2">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:divide-x divide-default-100/50">
           {stats.map((stat, index) => (
             <div
