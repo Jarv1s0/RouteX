@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { getGroupCurrentDelay, getProxyDisplayDelay } from '@renderer/utils/proxy-delay'
+import { includesIgnoreCase } from '@renderer/utils/includes'
 
 function getHistoryVersion(history?: ControllerProxiesHistory[]): string {
   if (!history?.length) return ''
@@ -49,13 +50,7 @@ export function getAutoDelayGroupSignature(groups: ControllerMixedGroup[]): stri
     .join('\u0001')
 }
 
-export type FlatItem =
-  | { type: 'header'; groupIndex: number }
-  | {
-      type: 'proxies'
-      groupIndex: number
-      proxies: (ControllerProxiesDetail | ControllerGroupDetail)[]
-    }
+export type ProxyNodeItem = ControllerProxiesDetail | ControllerGroupDetail
 
 interface UseProxyListModelProps {
   mode: string
@@ -63,7 +58,8 @@ interface UseProxyListModelProps {
   groupOrder: string[]
   proxyDisplayOrder: string
   proxyCols: string
-  isOpen: Record<string, boolean>
+  activeGroupName: string | null
+  searchQuery?: string
 }
 
 export function useProxyListModel({
@@ -72,7 +68,8 @@ export function useProxyListModel({
   groupOrder,
   proxyDisplayOrder,
   proxyCols,
-  isOpen
+  activeGroupName,
+  searchQuery = ''
 }: UseProxyListModelProps) {
   // 1. Filter by mode
   const filteredGroups = useMemo(() => {
@@ -107,59 +104,71 @@ export function useProxyListModel({
     return metrics
   }, [delayVersion, renderGroups])
 
-  const autoDelayGroupSignature = useMemo(() => getAutoDelayGroupSignature(renderGroups), [renderGroups])
+  const autoDelayGroupSignature = useMemo(
+    () => getAutoDelayGroupSignature(renderGroups),
+    [renderGroups]
+  )
 
-  // 4. Calculate chunks
+  // 4. Resolve drawer group and single-group target
+  const activeGroup = useMemo(() => {
+    if (!activeGroupName) return null
+    return renderGroups.find((group) => group.name === activeGroupName) ?? null
+  }, [renderGroups, activeGroupName])
+
+  const detailGroup = useMemo(() => {
+    if (renderGroups.length === 1) return renderGroups[0]
+    return activeGroup
+  }, [renderGroups, activeGroup])
+
+  // 5. Calculate chunks for the detail group
   const chunkSize = useMemo(() => {
     if (proxyCols === 'auto') return 24
     return parseInt(proxyCols) || 3
   }, [proxyCols])
 
-  // 5. Flatten structure for Virtuoso
-  const flatItems = useMemo(() => {
-    const items: FlatItem[] = []
+  const proxyChunks = useMemo(() => {
+    if (!detailGroup) return [] as ProxyNodeItem[][]
 
-    renderGroups.forEach((group, index) => {
-      items.push({ type: 'header', groupIndex: index })
+    const normalizedQuery = searchQuery.trim()
+    let groupProxies = (detailGroup.all || []).filter((proxy): proxy is ProxyNodeItem =>
+      Boolean(proxy)
+    )
 
-      if (isOpen[group.name]) {
-        let groupProxies = (group.all || []).filter(
-          (proxy): proxy is ControllerProxiesDetail | ControllerGroupDetail => Boolean(proxy)
-        )
+    if (normalizedQuery) {
+      groupProxies = groupProxies.filter((proxy) => includesIgnoreCase(proxy.name, normalizedQuery))
+    } else {
+      groupProxies = [...groupProxies]
+    }
 
-        if (proxyDisplayOrder === 'delay') {
-          groupProxies = groupProxies.sort((a, b) => {
-            const aDelay = getProxyDisplayDelay(a)
-            const bDelay = getProxyDisplayDelay(b)
-            if (aDelay === -1) return -1
-            if (bDelay === -1) return 1
-            if (aDelay === 0) return 1
-            if (bDelay === 0) return -1
-            return aDelay - bDelay
-          })
-        }
-        if (proxyDisplayOrder === 'name') {
-          groupProxies = groupProxies.sort((a, b) => a.name.localeCompare(b.name))
-        }
+    if (proxyDisplayOrder === 'delay') {
+      groupProxies.sort((a, b) => {
+        const aDelay = getProxyDisplayDelay(a)
+        const bDelay = getProxyDisplayDelay(b)
+        if (aDelay === -1) return -1
+        if (bDelay === -1) return 1
+        if (aDelay === 0) return 1
+        if (bDelay === 0) return -1
+        return aDelay - bDelay
+      })
+    } else if (proxyDisplayOrder === 'name') {
+      groupProxies.sort((a, b) => a.name.localeCompare(b.name))
+    }
 
-        for (let i = 0; i < groupProxies.length; i += chunkSize) {
-          items.push({
-            type: 'proxies',
-            groupIndex: index,
-            proxies: groupProxies.slice(i, i + chunkSize)
-          })
-        }
-      }
-    })
-    return items
-  }, [renderGroups, isOpen, proxyDisplayOrder, chunkSize])
+    const chunks: ProxyNodeItem[][] = []
+    for (let i = 0; i < groupProxies.length; i += chunkSize) {
+      chunks.push(groupProxies.slice(i, i + chunkSize))
+    }
+    return chunks
+  }, [detailGroup, searchQuery, proxyDisplayOrder, chunkSize])
 
   return {
     renderGroups,
+    activeGroup,
+    detailGroup,
     delayVersion,
     proxyGroupMetrics,
     autoDelayGroupSignature,
     chunkSize,
-    flatItems
+    proxyChunks
   }
 }

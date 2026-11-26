@@ -140,20 +140,20 @@ const ProxyCard: React.FC<Props> = (props) => {
         isPressable
         onMouseEnter={handlePreload}
         onPress={handleCardClick}
-        className={`
-          ${CARD_STYLES.BASE}
-          ${match ? CARD_STYLES.ACTIVE : CARD_STYLES.INACTIVE}
-          cursor-pointer
-        `}
+        className={`group ${
+          match ? CARD_STYLES.SIDEBAR_HERO_ACTIVE : CARD_STYLES.SIDEBAR_HERO_CARD
+        } cursor-pointer`}
       >
         <CardBody className="py-3 px-4 h-[80px] flex flex-col justify-between">
           <div className="flex items-center gap-1.5">
             <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
               <LuRocket
-                className={`text-[16px] transition-colors text-foreground/80 dark:text-foreground/70`}
+                className={`text-[16px] transition-all duration-150 group-hover:scale-110 group-hover:text-primary ${
+                  match ? 'text-primary' : 'text-foreground/80 dark:text-foreground/70'
+                }`}
               />
             </span>
-            <h3 className={`text-sm font-semibold text-foreground dark:text-foreground/90`}>
+            <h3 className="text-sm font-semibold text-foreground dark:text-foreground/90">
               {t('sidebar.proxyGroups')}
             </h3>
           </div>
@@ -185,9 +185,7 @@ const ProxyCard: React.FC<Props> = (props) => {
               </span>
               {hasFinalNode && (
                 <>
-                  <LuChevronRight
-                    className={`text-[12px] shrink-0 text-default-500 dark:text-default-300`}
-                  />
+                  <LuChevronRight className="text-[12px] shrink-0 text-default-500 dark:text-default-300 transition-transform duration-150 group-hover:translate-x-0.5" />
                   <span
                     className={`text-[13px] truncate font-medium tracking-wide min-w-0 flex-1 text-foreground/80 dark:text-foreground/86 flag-emoji`}
                   >

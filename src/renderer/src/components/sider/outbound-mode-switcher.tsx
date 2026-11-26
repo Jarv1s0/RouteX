@@ -71,19 +71,17 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
             onClick={() => onChangeMode(m.key as OutboundMode)}
             disabled={switching}
             className={clsx(
-              'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm transition-colors duration-200 rounded-xl z-10 box-border',
+              'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm border transition-[background-color,border-color,box-shadow,color,transform] duration-150 rounded-xl z-10 box-border',
               isActive
-                ? 'text-foreground dark:text-foreground bg-primary/30 dark:bg-primary/30 backdrop-blur-md border-transparent shadow-sm font-semibold'
-                : 'text-default-700 dark:text-default-300 hover:text-foreground dark:hover:text-foreground hover:bg-primary/10 dark:hover:bg-primary/20 font-medium'
+                ? 'text-foreground bg-primary/14 dark:bg-primary/20 border-transparent backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_8px_rgba(0,112,243,0.1)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_8px_rgba(0,112,243,0.18)] font-semibold'
+                : 'border-transparent text-default-700 dark:text-default-300 hover:text-foreground hover:bg-white/60 dark:hover:bg-white/[0.08] hover:border-white/65 dark:hover:border-white/15 font-medium'
             )}
           >
             <span className="flex items-center gap-1.5">
               <m.icon
                 className={clsx(
                   'text-base',
-                  isActive
-                    ? 'text-foreground/70 dark:text-foreground/60'
-                    : 'text-default-600 dark:text-default-300'
+                  isActive ? 'text-primary' : 'text-default-500 dark:text-default-400'
                 )}
               />
               {t(m.labelKey as TranslationKey)}
@@ -99,7 +97,9 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
   }
 
   return (
-    <div className={`p-1 rounded-2xl ${CARD_STYLES.BASE} ${CARD_STYLES.INACTIVE}`}>{content}</div>
+    <div className={`relative overflow-hidden antialiased p-1 ${CARD_STYLES.ROUNDED} ${CARD_STYLES.INACTIVE}`}>
+      {content}
+    </div>
   )
 }
 

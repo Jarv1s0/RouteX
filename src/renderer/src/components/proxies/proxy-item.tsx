@@ -99,17 +99,15 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
       isPressable
       fullWidth
       shadow="none"
-      className={`
+      className={`group relative overflow-hidden border antialiased
         ${
           fixed
-            ? 'bg-secondary/10 border border-secondary/40 shadow-sm'
+            ? 'bg-secondary/10 border border-secondary/40 shadow-sm transition-all duration-150 ease-out data-[pressed=true]:scale-[0.98]'
             : selected
-              ? 'bg-primary/10 dark:bg-primary/15 border-primary/30 dark:border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_12px_rgba(var(--heroui-primary)/0.15)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_12px_rgba(var(--heroui-primary)/0.2)] backdrop-blur-md z-10'
+              ? CARD_STYLES.PROXY_ITEM_SELECTED
               : CARD_STYLES.PROXY_ITEM_CARD
-        } 
-        border transition-all duration-300 ease-out
+        }
         ${displayDelay === 0 ? 'opacity-70 grayscale-[30%] hover:grayscale-0' : ''}
-        ${CARD_STYLES.BASE} data-[pressed=true]:scale-[0.98]
       `}
       radius="lg"
     >
@@ -123,7 +121,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1.5">
                   {proxy.icon && (
                     <img
-                      className={`w-4 h-4 shrink-0 object-contain drop-shadow-sm ${displayDelay === 0 ? 'opacity-50' : ''}`}
+                      className={`w-4 h-4 shrink-0 object-contain drop-shadow-sm transition-transform duration-150 ease-out group-hover:scale-[1.06] motion-reduce:transition-none ${displayDelay === 0 ? 'opacity-50' : ''}`}
                       src={proxy.icon}
                       alt=""
                       onError={(e) => {
@@ -204,7 +202,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
               <div className="flex-1 min-w-0 overflow-hidden whitespace-nowrap text-sm flex items-center gap-1.5">
                 {proxy.icon && (
                   <img
-                    className={`w-4 h-4 shrink-0 object-contain drop-shadow-sm ${displayDelay === 0 ? 'opacity-50' : ''}`}
+                    className={`w-4 h-4 shrink-0 object-contain drop-shadow-sm transition-transform duration-150 ease-out group-hover:scale-[1.06] motion-reduce:transition-none ${displayDelay === 0 ? 'opacity-50' : ''}`}
                     src={proxy.icon}
                     alt=""
                     onError={(e) => {

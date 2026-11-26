@@ -64,7 +64,7 @@ const SidebarNavCard: React.FC<Props> = ({
 
   return (
     <div
-      className={`app-nodrag flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-colors group ${className} ${
+      className={`app-nodrag flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer group ${className} ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
       onFocus={handlePreload}
@@ -76,9 +76,21 @@ const SidebarNavCard: React.FC<Props> = ({
       tabIndex={0}
     >
       <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-        <Icon className="text-[16px] transition-colors text-default-500 dark:text-default-400 group-hover:text-primary" />
+        <Icon
+          className={`text-[16px] transition-all duration-150 ${
+            match
+              ? 'text-primary'
+              : 'text-default-500 dark:text-default-400 group-hover:text-primary group-hover:scale-110'
+          }`}
+        />
       </span>
-      <span className="text-sm font-medium transition-colors text-foreground/90 dark:text-foreground/80 group-hover:text-foreground">
+      <span
+        className={`text-sm font-medium transition-all duration-150 motion-reduce:transition-none ${
+          match
+            ? 'text-foreground'
+            : 'text-foreground/90 dark:text-foreground/80 group-hover:text-foreground group-hover:translate-x-0.5'
+        }`}
+      >
         {label}
       </span>
     </div>

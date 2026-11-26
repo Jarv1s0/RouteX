@@ -114,7 +114,7 @@ const ProfileCard: React.FC<Props> = (props) => {
 
   return (
     <div
-      className={`profile-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer transition-colors group ${
+      className={`profile-card flex min-h-0 flex-col ${compact ? 'justify-between gap-1.5 px-3 py-2' : 'gap-1.5 p-2 px-3'} ${className} rounded-xl cursor-pointer group ${
         match ? CARD_STYLES.SIDEBAR_ACTIVE : CARD_STYLES.SIDEBAR_ITEM
       }`}
       onMouseEnter={handlePreload}
@@ -127,10 +127,12 @@ const ProfileCard: React.FC<Props> = (props) => {
       )}
 
       <div className="flex items-center justify-between h-7">
-        <div className="flex items-center gap-1.5 overflow-hidden flex-1">
+        <div className="flex items-center gap-1.5 overflow-hidden flex-1 transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none">
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <LuCloud
-              className={`text-[16px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`}
+              className={`text-[16px] transition-all duration-150 group-hover:scale-110 ${
+                match ? 'text-primary' : 'text-default-700 dark:text-default-300 group-hover:text-primary'
+              }`}
             />
           </span>
           <h3

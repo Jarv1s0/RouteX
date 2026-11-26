@@ -12,8 +12,6 @@ const routeLoaders = {
   '/tun': () => import('@renderer/pages/tun'),
   '/proxies': () => import('@renderer/pages/proxies'),
   '/rules': () => import('@renderer/pages/rules'),
-  '/dns': () => import('@renderer/pages/dns'),
-  '/sniffer': () => import('@renderer/pages/sniffer'),
   '/logs': () => import('@renderer/pages/logs'),
   '/connections': () => import('@renderer/pages/connections'),
   '/profiles': () => import('@renderer/pages/profiles'),
@@ -176,11 +174,11 @@ const routes = [
 
   {
     path: '/dns',
-    element: lazyElement('/dns')
+    element: <Navigate to="/mihomo?tab=dns" replace />
   },
   {
     path: '/sniffer',
-    element: lazyElement('/sniffer')
+    element: <Navigate to="/mihomo?tab=sniffer" replace />
   },
   {
     path: '/logs',

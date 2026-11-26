@@ -1,6 +1,6 @@
 import { applyConfigChange } from '@renderer/utils/core-restart'
 import { Button, Select, SelectItem, Tab, Tabs, Chip } from '@heroui/react'
-import BasePage from '@renderer/components/base/base-page'
+import BasePage, { FLOATING_ACTION_BUTTON_CLASS } from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import ConfirmModal, { ConfirmButton } from '@renderer/components/base/base-confirm'
@@ -32,10 +32,17 @@ import {
   initService,
   restartService
 } from '@renderer/utils/service-ipc'
-import React, { useRef, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import ControllerSetting from '@renderer/components/mihomo/controller-setting'
 import EnvSetting from '@renderer/components/mihomo/env-setting'
 import AdvancedSetting from '@renderer/components/mihomo/advanced-settings'
+import { DnsSettingsFormFields } from '@renderer/components/dns/dns-settings-editor'
+import {
+  SnifferSettingsFormFields,
+  useSnifferSettingsEditor
+} from '@renderer/components/sniffer/sniffer-settings-editor'
+import { useDnsSettingsEditor } from '@renderer/hooks/use-dns-form'
 import useSWR from 'swr'
 import { notifyError, notifyInfo, notifySuccess } from '@renderer/utils/notify'
 import { useI18n } from '@renderer/i18n'
@@ -45,9 +52,40 @@ import { useMihomoLatestVersion } from '@renderer/hooks/use-mihomo-latest-versio
 import { switchMihomoCore } from '@renderer/utils/mihomo-core-switch'
 
 import AppSwitch from '@renderer/components/base/app-switch'
+
+type MihomoTab = 'basic' | 'dns' | 'sniffer'
+
+function normalizeMihomoTab(tab: string | null): MihomoTab {
+  if (tab === 'dns' || tab === 'sniffer') {
+    return tab
+  }
+  return 'basic'
+}
+
 const Mihomo: React.FC = () => {
   const { t } = useI18n()
   const isTauriHost = __ROUTEX_HOST__ === 'tauri'
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = normalizeMihomoTab(searchParams.get('tab'))
+  const dnsEditor = useDnsSettingsEditor()
+  const snifferEditor = useSnifferSettingsEditor()
+
+  const handleTabChange = useCallback(
+    (key: string) => {
+      const nextTab = normalizeMihomoTab(key)
+      const nextParams = new URLSearchParams(searchParams)
+      if (nextTab === 'basic') {
+        nextParams.delete('tab')
+      } else {
+        nextParams.set('tab', nextTab)
+      }
+      setSearchParams(nextParams, { replace: true })
+    },
+    [searchParams, setSearchParams]
+  )
+
+  const activeSaveEditor =
+    activeTab === 'dns' ? dnsEditor : activeTab === 'sniffer' ? snifferEditor : null
   const { appConfig, patchAppConfig } = useAppConfig()
   const { core = 'mihomo', corePermissionMode = 'elevated' } = appConfig || {}
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -197,7 +235,23 @@ const Mihomo: React.FC = () => {
   ]
 
   return (
-    <BasePage title={t('page.mihomo.title')}>
+    <BasePage
+      title={t('page.mihomo.title')}
+      footer={
+        activeSaveEditor?.changed && (
+          <Button
+            size="sm"
+            className={FLOATING_ACTION_BUTTON_CLASS}
+            color="primary"
+            isDisabled={activeSaveEditor.saveDisabled}
+            isLoading={activeSaveEditor.saving}
+            onPress={() => void activeSaveEditor.save()}
+          >
+            {t('common.save')}
+          </Button>
+        )
+      }
+    >
       {showGrantConfirm && (
         <ConfirmModal
           onChange={setShowGrantConfirm}
@@ -272,7 +326,27 @@ const Mihomo: React.FC = () => {
           }}
         />
       )}
-      <div className="p-2 flex flex-col gap-2">
+      <div className="sticky top-0 z-40 w-full bg-transparent px-2 pb-2 pt-2 pointer-events-none">
+        <div
+          className={`w-full flex items-center gap-2 px-2 py-1.5 pointer-events-auto ${CARD_STYLES.GLASS_TOOLBAR} ${CARD_STYLES.ROUNDED}`}
+        >
+          <Tabs
+            size="md"
+            variant="solid"
+            radius="lg"
+            selectedKey={activeTab}
+            onSelectionChange={(key) => handleTabChange(String(key))}
+            classNames={CARD_STYLES.GLASS_TABS}
+          >
+            <Tab key="basic" title={t('page.mihomo.basicTab')} />
+            <Tab key="dns" title={t('page.mihomo.dnsTab')} />
+            <Tab key="sniffer" title={t('page.mihomo.snifferTab')} />
+          </Tabs>
+        </div>
+      </div>
+
+      {activeTab === 'basic' && (
+        <div className="px-2 pb-2 flex flex-col gap-2">
         <SettingCard>
           <SettingItem
             title={
@@ -372,11 +446,24 @@ const Mihomo: React.FC = () => {
             />
           </SettingItem>
         </SettingCard>
-        <PortSetting />
-        <ControllerSetting />
-        <EnvSetting />
-        <AdvancedSetting />
-      </div>
+          <PortSetting />
+          <ControllerSetting />
+          <EnvSetting />
+          <AdvancedSetting />
+        </div>
+      )}
+
+      {activeTab === 'dns' && (
+        <div className="px-2 pb-2">
+          <DnsSettingsFormFields editor={dnsEditor} />
+        </div>
+      )}
+
+      {activeTab === 'sniffer' && (
+        <div className="px-2 pb-2">
+          <SnifferSettingsFormFields editor={snifferEditor} />
+        </div>
+      )}
     </BasePage>
   )
 }

@@ -10,8 +10,6 @@ import ConnCard from '@renderer/components/sider/conn-card'
 import LogCard from '@renderer/components/sider/log-card'
 import MihomoCoreCard from '@renderer/components/sider/mihomo-core-card'
 import StatsCard from '@renderer/components/sider/stats-card'
-import DnsCard from '@renderer/components/sider/dns-card'
-import SnifferCard from '@renderer/components/sider/sniffer-card'
 import ToolsCard from '@renderer/components/sider/tools-card'
 import MapCard from '@renderer/components/sider/map-card'
 import SettingsCard from '@renderer/components/sider/settings-card'
@@ -73,8 +71,6 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
               <MihomoCoreCard iconOnly />
               <StatsCard iconOnly />
               <MapCard iconOnly />
-              <DnsCard iconOnly />
-              <SnifferCard iconOnly />
               <LogCard iconOnly />
               <ToolsCard iconOnly />
             </div>
@@ -138,8 +134,6 @@ const AppSidebar = React.forwardRef<HTMLDivElement, AppSidebarProps>(
           >
             <StatsCard className={fillCardClassName} />
             <MapCard className={fillCardClassName} />
-            <DnsCard className={fillCardClassName} />
-            <SnifferCard className={fillCardClassName} />
             <LogCard className={fillCardClassName} />
             <ToolsCard className={fillCardClassName} />
             <SettingsCard className={fillCardClassName} />

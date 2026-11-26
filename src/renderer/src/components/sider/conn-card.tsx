@@ -180,11 +180,9 @@ const ConnCard: React.FC<Props> = (props) => {
         isPressable
         onMouseEnter={handlePreload}
         onPress={handleNavigate}
-        className={`
-          ${CARD_STYLES.BASE}
-          ${match ? CARD_STYLES.ACTIVE : CARD_STYLES.INACTIVE}
-          cursor-pointer
-        `}
+        className={`group ${
+          match ? CARD_STYLES.SIDEBAR_HERO_ACTIVE : CARD_STYLES.SIDEBAR_HERO_CARD
+        } cursor-pointer`}
       >
         <CardBody className="py-3 px-4 h-[80px] flex flex-col justify-between relative overflow-hidden z-10 w-full">
           {/* Traffic Chart Layer (Pushed to bottom) */}
@@ -196,10 +194,12 @@ const ConnCard: React.FC<Props> = (props) => {
             <div className="flex items-center gap-1.5">
               <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
                 <LuPlug
-                  className={`text-[16px] transition-colors text-foreground/70 dark:text-foreground/60`}
+                  className={`text-[16px] transition-all duration-150 group-hover:scale-110 group-hover:text-primary ${
+                    match ? 'text-primary' : 'text-foreground/70 dark:text-foreground/60'
+                  }`}
                 />
               </span>
-              <h3 className={`text-sm font-semibold text-foreground dark:text-foreground/90`}>
+              <h3 className="text-sm font-semibold text-foreground dark:text-foreground/90">
                 {t('sidebar.connections')}
               </h3>
             </div>

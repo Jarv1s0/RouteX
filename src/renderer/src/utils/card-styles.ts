@@ -68,14 +68,27 @@ export const CARD_STYLES = {
   // Lighter style for large proxy group container cards
   PROXY_GROUP_CARD: `bg-default-50/50 dark:bg-default-50/20 border-white/20 dark:border-white/5 shadow-sm hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 ${CARD_TRANSITION}`,
 
-  // Style for proxy nodes inside the proxy group
-  PROXY_ITEM_CARD: `bg-default-100/40 dark:bg-default-50/20 border-default-200/50 dark:border-white/5 hover:bg-default-200/60 dark:hover:bg-white/10 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-md dark:hover:shadow-black/40 ${PRESSABLE_CARD_TRANSITION}`,
+  // Style for proxy nodes and proxy group cards (unified hover & selected feedback)
+  PROXY_ITEM_CARD:
+    'bg-default-100/45 dark:bg-default-50/20 border-default-200/55 dark:border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_1px_2px_rgba(0,0,0,0.2)] hover:-translate-y-px data-[hover=true]:-translate-y-px hover:bg-primary/[0.04] data-[hover=true]:bg-primary/[0.04] dark:hover:bg-primary/[0.08] dark:data-[hover=true]:bg-primary/[0.08] hover:border-primary/25 data-[hover=true]:border-primary/25 dark:hover:border-primary/35 dark:data-[hover=true]:border-primary/35 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_6px_16px_rgba(0,111,238,0.08)] data-[hover=true]:shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_6px_16px_rgba(0,111,238,0.08)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_6px_18px_rgba(0,0,0,0.45)] dark:data-[hover=true]:shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_6px_18px_rgba(0,0,0,0.45)] transition-[background-color,border-color,box-shadow,transform,opacity] duration-150 ease-out active:scale-[0.98] data-[pressed=true]:scale-[0.98] motion-reduce:transition-none motion-reduce:transform-none',
 
-  // Sidebar row hover state: clearer than the default gray strip
-  SIDEBAR_ITEM: `hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm ${PRESSABLE_CARD_TRANSITION}`,
+  PROXY_ITEM_SELECTED:
+    'bg-primary/10 dark:bg-primary/15 border-primary/30 dark:border-primary/40 hover:bg-primary/[0.13] data-[hover=true]:bg-primary/[0.13] hover:border-primary/40 data-[hover=true]:border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_12px_rgba(0,111,238,0.14)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_12px_rgba(0,111,238,0.22)] backdrop-blur-md z-10 transition-[background-color,border-color,box-shadow,transform,opacity] duration-150 ease-out active:scale-[0.98] data-[pressed=true]:scale-[0.98] motion-reduce:transition-none',
+
+  // Sidebar hero cards (ProxyCard, ConnCard) with pure Liquid Glass hover
+  SIDEBAR_HERO_CARD:
+    'relative overflow-hidden border antialiased bg-white/35 dark:bg-black/20 backdrop-blur-md border-white/40 dark:border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_3px_rgba(0,0,0,0.2)] hover:-translate-y-px data-[hover=true]:-translate-y-px hover:bg-white/62 data-[hover=true]:bg-white/62 dark:hover:bg-white/[0.08] dark:data-[hover=true]:bg-white/[0.08] hover:border-white/80 data-[hover=true]:border-white/80 dark:hover:border-white/25 dark:data-[hover=true]:border-white/25 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_6px_18px_rgba(0,0,0,0.07)] data-[hover=true]:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_6px_18px_rgba(0,0,0,0.07)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_6px_20px_rgba(0,0,0,0.42)] dark:data-[hover=true]:shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_6px_20px_rgba(0,0,0,0.42)] transition-[background-color,border-color,box-shadow,transform,opacity] duration-150 ease-out active:scale-[0.98] data-[pressed=true]:scale-[0.98] motion-reduce:transition-none motion-reduce:transform-none',
+
+  SIDEBAR_HERO_ACTIVE:
+    'relative overflow-hidden border antialiased bg-primary/10 dark:bg-primary/15 border-primary/25 dark:border-primary/35 hover:bg-primary/[0.14] data-[hover=true]:bg-primary/[0.14] hover:border-primary/35 data-[hover=true]:border-primary/35 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_16px_rgba(0,112,243,0.12)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_16px_rgba(0,112,243,0.2)] transition-[background-color,border-color,box-shadow,transform,opacity] duration-150 ease-out active:scale-[0.98] data-[pressed=true]:scale-[0.98] motion-reduce:transition-none',
+
+  // Sidebar row hover state: neutral frosted glass highlight without colored border framing
+  SIDEBAR_ITEM:
+    'border border-transparent hover:bg-white/55 dark:hover:bg-white/[0.08] hover:border-white/60 dark:hover:border-white/15 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-[background-color,border-color,box-shadow,transform,opacity] duration-150 ease-out active:scale-[0.98] motion-reduce:transition-none',
 
   // Sidebar active state: Match mode switcher active pill
-  SIDEBAR_ACTIVE: `bg-primary/20 dark:bg-primary/20 backdrop-blur-md border-transparent shadow-sm shadow-primary/10 ${PRESSABLE_CARD_TRANSITION}`,
+  SIDEBAR_ACTIVE:
+    'border border-primary/20 dark:border-primary/30 bg-primary/15 dark:bg-primary/20 hover:bg-primary/[0.18] dark:hover:bg-primary/[0.24] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-[background-color,border-color,transform,opacity] duration-150 ease-out active:scale-[0.98] motion-reduce:transition-none',
 
   // Glass card style (used for tooltips etc)
   GLASS_CARD:
