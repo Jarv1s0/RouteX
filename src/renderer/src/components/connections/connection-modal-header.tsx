@@ -25,26 +25,26 @@ export const ConnectionModalHeader: React.FC<Props> = ({
   const processPath = connection.metadata.processPath
 
   return (
-    <div className="flex justify-between items-start px-2 pt-2 pb-2 z-10">
-      <div className="flex items-start gap-6 min-w-0 flex-1 pr-14">
+    <div className="flex justify-between items-center px-5 py-4 z-10">
+      <div className="flex items-center gap-4 min-w-0 flex-1 pr-12">
         {/* 进程图标 */}
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-default-100 to-default-50 border border-white/20 shadow-lg flex items-center justify-center shrink-0">
+        <div className="w-13 h-13 rounded-2xl bg-white/80 dark:bg-white/[0.08] border border-default-200/60 dark:border-white/10 shadow-sm flex items-center justify-center shrink-0">
           {useMihomoIcon ? (
-            <MihomoIcon className="w-10 h-10 text-foreground-600 dark:text-foreground-300 drop-shadow-md" />
+            <MihomoIcon className="w-8 h-8 text-foreground-600 dark:text-foreground-300" />
           ) : processIconUrl ? (
-            <img src={processIconUrl} className="w-10 h-10 object-contain drop-shadow-md" alt="" />
+            <img src={processIconUrl} className="w-8 h-8 object-contain" alt="" />
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-              <FaGlobeAmericas className="text-2xl text-primary" />
+            <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center">
+              <FaGlobeAmericas className="text-lg text-primary" />
             </div>
           )}
         </div>
 
         {/* 标题信息 */}
-        <div className="flex flex-col pt-1 min-w-0 flex-1">
+        <div className="flex flex-col min-w-0 flex-1 gap-1.5">
           <Tooltip
             content={processPath || 'Unknown Path'}
-            placement="bottom"
+            placement="bottom-start"
             showArrow={true}
             classNames={{
               base: 'before:bg-default-200 after:bg-default-200',
@@ -52,7 +52,7 @@ export const ConnectionModalHeader: React.FC<Props> = ({
                 'bg-content1 text-default-500 font-mono text-xs px-2 py-1 shadow-sm border border-default-200'
             }}
           >
-            <h2 className="text-2xl font-bold text-foreground tracking-tight mb-2 cursor-help decoration-dashed decoration-default-300 underline-offset-4 w-fit">
+            <h2 className="text-xl font-bold text-foreground tracking-tight cursor-help w-fit leading-tight">
               {processName}
             </h2>
           </Tooltip>
@@ -61,41 +61,20 @@ export const ConnectionModalHeader: React.FC<Props> = ({
               size="sm"
               variant="flat"
               color="primary"
-              className="h-6 px-1 bg-primary/10 text-primary font-medium border border-primary/20"
+              className="h-5.5 px-1.5 bg-primary/10 text-primary text-[11px] font-medium"
             >
-              {connection.metadata.network.toUpperCase()}
+              {connection.metadata.network.toUpperCase()} · {connection.metadata.type}
             </Chip>
-            <Chip
-              size="sm"
-              variant="flat"
-              className="h-6 px-1 bg-default-100 text-default-600 font-medium border border-default-200"
-            >
-              {connection.metadata.type}
-            </Chip>
-            <Chip
-              size="sm"
-              variant="flat"
-              className="h-6 px-1 bg-content2 text-foreground font-mono font-bold border border-default-200 min-w-[60px] justify-center"
-            >
+            <span className="inline-flex items-center h-5.5 px-2 rounded-full bg-default-100/80 dark:bg-white/[0.06] text-foreground-600 dark:text-foreground-400 font-mono text-[11px] font-medium tabular-nums">
               {duration}
-            </Chip>
-            {connection.rule && (
-              <Chip
-                size="sm"
-                variant="flat"
-                color="secondary"
-                className="h-6 px-1 bg-secondary/10 text-secondary font-medium border border-secondary/20 max-w-[180px] opacity-85"
-              >
-                <span className="truncate">{connection.rule}</span>
-              </Chip>
-            )}
+            </span>
             {onDisconnect && (
               <Button
                 size="sm"
                 variant="flat"
                 color="danger"
-                className="h-6 min-w-0 rounded-md px-2 text-xs font-medium"
-                startContent={<IoUnlink className="text-sm" />}
+                className="h-5.5 min-w-0 rounded-full px-2.5 text-[11px] font-medium"
+                startContent={<IoUnlink className="text-xs" />}
                 onPress={() => onDisconnect(connection.id)}
               >
                 {t('connections.detail.disconnect')}

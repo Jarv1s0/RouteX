@@ -81,9 +81,9 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
         className="overflow-hidden"
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
       >
-        <div className="flex flex-col gap-0 p-0 relative overflow-hidden bg-gradient-to-b from-default-100/50 to-transparent">
+        <div className="flex flex-col gap-0 p-0 relative overflow-hidden bg-gradient-to-b from-white/40 to-transparent dark:from-white/[0.03] border-b border-default-200/50 dark:border-white/10">
           {/* 顶部背景装饰 */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/8 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
           {/* Close Button - Absolute Positioned */}
           <SecondaryModalCloseButton onPress={onClose} className="absolute right-4 top-4 z-50" />
@@ -98,7 +98,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
           />
         </div>
 
-        <ModalBody className="p-0 flex flex-row h-[520px] bg-content1/30 gap-2">
+        <ModalBody className="p-0 flex flex-row h-[500px] bg-content1/25 gap-0">
           {/* 左侧：详细信息 */}
           <ConnectionMetadata
             connection={connection}

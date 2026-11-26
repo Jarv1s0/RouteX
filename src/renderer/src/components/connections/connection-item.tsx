@@ -11,16 +11,23 @@ import MihomoIcon from '@renderer/components/base/mihomo-icon'
 import { isMihomoProcessPath } from '@renderer/utils/mihomo-process'
 
 const SELECTED_CARD_CLASS =
-  'bg-primary/[0.08] dark:bg-primary/[0.12] border border-primary/24 shadow-[0_4px_14px_rgba(16,185,129,0.08)]'
+  'bg-primary/[0.08] dark:bg-primary/[0.14] border border-primary/30 dark:border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_4px_14px_rgba(0,111,238,0.1)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_14px_rgba(0,111,238,0.18)]'
 
-const DEFAULT_CARD_CLASS = CARD_STYLES.LIST_CARD
+const DEFAULT_CARD_CLASS =
+  'bg-white/65 dark:bg-default-50/35 border border-default-200/70 dark:border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_1px_2px_rgba(0,0,0,0.2)] hover:bg-white/85 dark:hover:bg-default-100/45 hover:border-default-300/80 dark:hover:border-white/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_4px_12px_rgba(0,0,0,0.05)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_14px_rgba(0,0,0,0.35)] transition-[background-color,border-color,box-shadow] duration-200'
 
-const META_PILL_CLASS =
-  'bg-default-100/50 dark:bg-default-50/30 rounded-full border border-default-200/50 dark:border-white/10'
+const NODE_BADGE_BASE_CLASS = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border'
 
-const META_BADGE_CLASS = 'bg-default-100/50 dark:bg-default-50/30'
-const NODE_BADGE_CLASS =
-  'flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-primary/15 bg-primary/[0.055] text-primary/85 dark:text-primary-300/90'
+function getNodeBadgeClass(chainName?: string): string {
+  const normalized = (chainName || '').trim().toUpperCase()
+  if (normalized === 'DIRECT') {
+    return `${NODE_BADGE_BASE_CLASS} border-default-200/80 dark:border-white/10 bg-default-100/70 dark:bg-white/[0.05] text-foreground-500 dark:text-foreground-400`
+  }
+  if (normalized === 'REJECT' || normalized === 'REJECT-DROP') {
+    return `${NODE_BADGE_BASE_CLASS} border-danger/20 bg-danger/[0.07] text-danger`
+  }
+  return `${NODE_BADGE_BASE_CLASS} border-primary/20 bg-primary/[0.07] text-primary dark:text-primary-400`
+}
 const connectionItemStartTimeCache = new WeakMap<ControllerConnectionDetail, number>()
 
 function getConnectionItemStartTime(info: ControllerConnectionDetail): number {
@@ -106,7 +113,10 @@ const ConnectionItemComponent: React.FC<Props> = ({
 
   const uploadSpeed = useMemo(() => calcTraffic(info.uploadSpeed || 0), [info.uploadSpeed])
   const downloadSpeed = useMemo(() => calcTraffic(info.downloadSpeed || 0), [info.downloadSpeed])
+  const uploadTotal = useMemo(() => calcTraffic(info.upload || 0), [info.upload])
+  const downloadTotal = useMemo(() => calcTraffic(info.download || 0), [info.download])
   const hasSpeed = (info.uploadSpeed || 0) > 0 || (info.downloadSpeed || 0) > 0
+  const hasTraffic = (info.upload || 0) > 0 || (info.download || 0) > 0
 
   const handleCardPress = useCallback(() => {
     setSelected?.(info)
@@ -140,7 +150,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
   )
 
   return (
-    <div className="px-2 pb-2" onContextMenu={handleContextMenu}>
+    <div className="px-2.5 pb-1.5" onContextMenu={handleContextMenu}>
       <Card
         as="div"
         isPressable
@@ -152,139 +162,141 @@ const ConnectionItemComponent: React.FC<Props> = ({
         radius="lg"
         onPress={handleCardPress}
       >
-        <div className="w-full flex items-center py-2 px-3 gap-4">
-          {displayIcon &&
-            (useMihomoIcon ? (
-              <MihomoIcon className="w-6 h-6 flex-shrink-0 text-default-500" />
-            ) : (
-              <img src={iconUrl} className="w-6 h-6 flex-shrink-0 object-contain" alt="" />
-            ))}
+        <div className="w-full flex items-center py-2.5 px-3.5 gap-3">
+          {displayIcon && (
+            <div className="w-8 h-8 rounded-full bg-default-200/45 dark:bg-white/[0.07] flex items-center justify-center shrink-0">
+              {useMihomoIcon ? (
+                <MihomoIcon className="w-4.5 h-4.5 text-default-500" />
+              ) : iconUrl ? (
+                <img src={iconUrl} className="w-4.5 h-4.5 object-contain" alt="" />
+              ) : (
+                <span className="w-2 h-2 rounded-full bg-default-300/80" />
+              )}
+            </div>
+          )}
 
-          <div className="flex-1 min-w-0 flex flex-col gap-1">
+          {/* Left: Process/Destination & Protocol/Node */}
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
             {/* Header Row */}
-            <div className="flex items-center justify-between w-full relative">
-              <div className="flex-1 min-w-0 flex items-center gap-2 text-sm truncate mr-4">
-                <span className="font-medium text-foreground-700 flex items-center gap-1.5">
-                  {processName}
-                  {isHidden && (
-                    <IoEyeOff
-                      className="text-[12px] text-default-400"
-                      title={t('connections.hiddenTitle')}
-                    />
-                  )}
-                </span>
-                <span className="text-foreground-300 text-[10px]">→</span>
-                <span className="text-foreground-600 truncate">{destination}</span>
-              </div>
-
-              <div className="flex items-center justify-end shrink-0 relative h-6 w-[60px] group/actions">
-                <span
-                  className={`font-mono text-[10px] text-foreground-400 font-medium ${META_BADGE_CLASS} px-2 py-0.5 rounded-md transition-opacity ${isHidden ? 'opacity-0' : 'group-hover:opacity-0'}`}
-                >
-                  {timeAgo}
-                </span>
-
-                <div
-                  className={`absolute right-0 top-0 flex items-center justify-end gap-1 transition-all duration-200 ${isHidden ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`}
-                >
-                  {(hide || unhide) && (
-                    <Button
-                      color={isHidden ? 'primary' : 'default'}
-                      variant={isHidden ? 'solid' : 'flat'}
-                      isIconOnly
-                      size="sm"
-                      className={`h-6 w-6 min-w-[24px] transition-all ${isHidden ? 'shadow-lg shadow-primary/40' : 'bg-default-100 hover:bg-default-200 text-default-500'}`}
-                      onPress={handleHide}
-                      title={
-                        isHidden
-                          ? t('connections.unhideConnection')
-                          : t('connections.hideConnection')
-                      }
-                    >
-                      {isHidden ? (
-                        <IoEye className="text-[13px]" />
-                      ) : (
-                        <IoEyeOff className="text-[13px]" />
-                      )}
-                    </Button>
-                  )}
-                  <Button
-                    color={info.isActive ? 'warning' : 'danger'}
-                    variant="flat"
-                    isIconOnly
-                    size="sm"
-                    className={`h-6 w-6 min-w-[24px] ${info.isActive ? 'bg-warning/10 text-warning hover:bg-warning/20' : 'bg-danger/10 text-danger hover:bg-danger/20'} ${isHidden ? 'hidden group-hover/actions:flex' : ''}`}
-                    onPress={handleClose}
-                  >
-                    {info.isActive ? (
-                      <CgClose className="text-[13px]" />
-                    ) : (
-                      <CgTrash className="text-[13px]" />
-                    )}
-                  </Button>
-                </div>
-              </div>
+            <div className="flex items-center gap-1.5 text-[13px] min-w-0">
+              <span className="font-semibold text-foreground-800 dark:text-foreground-900 flex items-center gap-1.5 shrink-0 max-w-[40%] truncate">
+                <span className="truncate">{processName}</span>
+                {isHidden && (
+                  <IoEyeOff
+                    className="text-[12px] text-default-400 shrink-0"
+                    title={t('connections.hiddenTitle')}
+                  />
+                )}
+              </span>
+              <span className="text-foreground-400 text-[11px] shrink-0">→</span>
+              <span className="text-foreground-500 dark:text-foreground-400 truncate font-mono text-[12.5px]">
+                {destination}
+              </span>
             </div>
 
-            {/* Meta Row - Contains Status, Node, and Speed */}
-            <div className="flex items-center gap-2 flex-wrap relative">
-              {/* Status Indicator */}
-              <div className={`flex items-center gap-1.5 px-2 py-0.5 ${META_PILL_CLASS}`}>
+            {/* Meta Row - Clean inline protocol + semantic node badge */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-foreground-500 shrink-0">
                 <span
-                  className={`w-1.5 h-1.5 rounded-full shadow-sm ${
+                  className={`w-1.5 h-1.5 rounded-full ${
                     !info.isActive
-                      ? 'bg-danger shadow-danger/50'
+                      ? 'bg-danger shadow-sm shadow-danger/50'
                       : info.metadata.type === 'Inner'
-                        ? 'bg-warning shadow-warning/50'
+                        ? 'bg-warning shadow-sm shadow-warning/50'
                         : info.metadata.type === 'Tun'
-                          ? 'bg-primary shadow-primary/50'
+                          ? 'bg-primary shadow-sm shadow-primary/50'
                           : 'bg-default-400'
                   }`}
                 />
-                <span className="text-[10px] font-semibold tracking-wide text-foreground-600">
+                <span>
                   {info.metadata.type}·{info.metadata.network.toUpperCase()}
                 </span>
-              </div>
+              </span>
 
-              {/* Node Badge */}
-              <div className={NODE_BADGE_CLASS}>
+              <span className="text-foreground-300 text-[10px] shrink-0">•</span>
+
+              <div className={`${getNodeBadgeClass(info.chains[0])} min-w-0 max-w-full`}>
                 {getFlag(info.chains[0]) && (
-                  <span className="flag-emoji text-[12px] leading-none">
+                  <span className="flag-emoji text-[12px] leading-none shrink-0">
                     {getFlag(info.chains[0])}
                   </span>
                 )}
-                <span className="text-[10px] leading-4 font-normal">
+                <span className="text-[11px] leading-4 font-medium truncate">
                   {cleanNodeName(info.chains[0])}
                 </span>
               </div>
-
-              {/* Speed Indicators */}
-              {hasSpeed && (
-                <div
-                  className={`flex items-center gap-2 px-2 py-0.5 ml-1 shrink-0 ${META_PILL_CLASS}`}
-                >
-                  <div
-                    className="flex items-center gap-1 group/speed"
-                    style={{ color: 'rgb(14, 165, 233)' }}
-                  >
-                    <IoArrowUp className="text-[10px] opacity-70 group-hover/speed:opacity-100 group-hover/speed:-translate-y-px transition-all" />
-                    <span className="text-[10px] font-data-numeric font-medium">
-                      {uploadSpeed || '0 B'}/s
-                    </span>
-                  </div>
-                  <div className="w-[1px] h-2 bg-default-200/50 dark:bg-default-200/20" />
-                  <div
-                    className="flex items-center gap-1 group/speed"
-                    style={{ color: 'rgb(168, 85, 247)' }}
-                  >
-                    <IoArrowDown className="text-[10px] opacity-70 group-hover/speed:opacity-100 group-hover/speed:translate-y-px transition-all" />
-                    <span className="text-[10px] font-data-numeric font-medium">
-                      {downloadSpeed || '0 B'}/s
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
+          </div>
+
+          {/* Right: Duration / Actions & Live Speed / Traffic */}
+          <div className="flex flex-col items-end justify-between self-stretch shrink-0 min-w-[100px] gap-1.5">
+            <div className="flex items-center justify-end relative h-6 w-full group/actions">
+              <span
+                className={`font-mono text-[11px] text-foreground-400 tabular-nums transition-opacity duration-150 ${isHidden ? 'opacity-0' : 'group-hover:opacity-0'}`}
+              >
+                {timeAgo}
+              </span>
+
+              <div
+                className={`absolute right-0 top-0 flex items-center justify-end gap-1 transition-all duration-200 ${isHidden ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-1.5 group-hover:opacity-100 group-hover:translate-x-0'}`}
+              >
+                {(hide || unhide) && (
+                  <Button
+                    color={isHidden ? 'primary' : 'default'}
+                    variant={isHidden ? 'solid' : 'flat'}
+                    isIconOnly
+                    size="sm"
+                    className={`h-6 w-6 min-w-[24px] transition-all ${isHidden ? 'shadow-lg shadow-primary/40' : 'bg-default-100 hover:bg-default-200 text-default-500'}`}
+                    onPress={handleHide}
+                    title={
+                      isHidden ? t('connections.unhideConnection') : t('connections.hideConnection')
+                    }
+                  >
+                    {isHidden ? (
+                      <IoEye className="text-[13px]" />
+                    ) : (
+                      <IoEyeOff className="text-[13px]" />
+                    )}
+                  </Button>
+                )}
+                <Button
+                  color={info.isActive ? 'warning' : 'danger'}
+                  variant="flat"
+                  isIconOnly
+                  size="sm"
+                  className={`h-6 w-6 min-w-[24px] ${info.isActive ? 'bg-warning/10 text-warning hover:bg-warning/20' : 'bg-danger/10 text-danger hover:bg-danger/20'} ${isHidden ? 'hidden group-hover/actions:flex' : ''}`}
+                  onPress={handleClose}
+                >
+                  {info.isActive ? (
+                    <CgClose className="text-[13px]" />
+                  ) : (
+                    <CgTrash className="text-[13px]" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Speed or Total Traffic */}
+            {(hasSpeed || hasTraffic) && (
+              <div className="flex items-center gap-2 text-[11px] font-data-numeric tabular-nums">
+                <span
+                  className={`inline-flex items-center gap-0.5 ${
+                    hasSpeed ? 'text-sky-500 font-medium' : 'text-foreground-400'
+                  }`}
+                >
+                  <IoArrowUp className="text-[10px] opacity-80" />
+                  <span>{hasSpeed ? `${uploadSpeed || '0 B'}/s` : uploadTotal || '0 B'}</span>
+                </span>
+                <span
+                  className={`inline-flex items-center gap-0.5 ${
+                    hasSpeed ? 'text-purple-500 font-medium' : 'text-foreground-400'
+                  }`}
+                >
+                  <IoArrowDown className="text-[10px] opacity-80" />
+                  <span>{hasSpeed ? `${downloadSpeed || '0 B'}/s` : downloadTotal || '0 B'}</span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </Card>
@@ -298,6 +310,8 @@ const ConnectionItem = memo(ConnectionItemComponent, (prevProps, nextProps) => {
 
   return (
     prevProps.info.id === nextProps.info.id &&
+    prevProps.info.upload === nextProps.info.upload &&
+    prevProps.info.download === nextProps.info.download &&
     prevProps.info.uploadSpeed === nextProps.info.uploadSpeed &&
     prevProps.info.downloadSpeed === nextProps.info.downloadSpeed &&
     prevProps.info.isActive === nextProps.info.isActive &&

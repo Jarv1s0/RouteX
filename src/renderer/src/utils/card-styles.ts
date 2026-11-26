@@ -34,8 +34,11 @@ export const CARD_STYLES = {
   // Inactive state: iOS Liquid Glass with edge highlight and color/shadow feedback
   INACTIVE: `bg-white/30 dark:bg-black/20 hover:bg-white/50 dark:hover:bg-white/5 backdrop-blur-md border-white/30 dark:border-white/10 hover:border-white/50 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-lg dark:hover:shadow-black/60 ${CARD_TRANSITION}`,
 
-  // Header switcher: subtle floating pill, safe color/shadow hover effect (no spatial translation)
-  HEADER_SWITCHER: `bg-white/40 dark:bg-black/30 hover:bg-white/60 dark:hover:bg-white/5 backdrop-blur-md border-white/40 dark:border-white/10 hover:border-white/60 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_8px_rgba(0,0,0,0.2)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_6px_16px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_6px_16px_rgba(0,0,0,0.3)] ${CARD_TRANSITION}`,
+  // Header switcher: GLASS_CONTROL_BASE surface with floating pill elevation
+  HEADER_SWITCHER: `${GLASS_CONTROL_BASE} shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_2px_8px_rgba(0,0,0,0.24)] hover:bg-white/60 dark:hover:bg-white/10 hover:border-white/75 dark:hover:border-white/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_6px_16px_rgba(0,0,0,0.08)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_6px_16px_rgba(0,0,0,0.32)] ${CARD_TRANSITION}`,
+
+  // Shared glass control surface for inputs, selects, tabs, and capsules
+  GLASS_CONTROL: GLASS_CONTROL_BASE,
 
   // Toolbar style: Same as INACTIVE but without scale and tuned for toolbar
   GLASS_TOOLBAR:
@@ -48,10 +51,9 @@ export const CARD_STYLES = {
     innerWrapper: 'bg-transparent'
   },
 
-  // Tabs style: Clean aesthetic without background container, highlighting the cursor
+  // Tabs style: Matches GLASS_CONTROL_BASE so switching capsules share the same surface as inputs
   GLASS_TABS: {
-    tabList:
-      'bg-default-100/50 dark:bg-default-100/20 border border-default-200/50 dark:border-default-100/10 shadow-none p-0 overflow-visible rounded-2xl',
+    tabList: `${GLASS_CONTROL_BASE} p-0 overflow-visible rounded-2xl`,
     cursor: 'w-full bg-background dark:bg-default-100 shadow-md rounded-2xl',
     tabContent:
       'font-medium text-default-500 group-data-[selected=true]:text-primary transition-colors',

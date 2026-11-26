@@ -5,6 +5,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface Props {
   title?: React.ReactNode
+  icon?: React.ReactNode
   children?: React.ReactNode
   className?: string
   collapsible?: boolean
@@ -52,9 +53,21 @@ const SettingCard: React.FC<Props> = (props) => {
             >
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                 <div className="flex shrink-0 items-center gap-2">
-                  <div
-                    className={`w-1 h-4 rounded-full ${isDisabled ? 'bg-default-300' : 'bg-primary'}`}
-                  />
+                  {props.icon ? (
+                    <div
+                      className={`p-1.5 rounded-lg flex items-center justify-center ${
+                        isDisabled
+                          ? 'bg-default-100 text-default-300'
+                          : 'bg-primary/10 text-primary'
+                      }`}
+                    >
+                      {props.icon}
+                    </div>
+                  ) : (
+                    <div
+                      className={`w-1 h-4 rounded-full ${isDisabled ? 'bg-default-300' : 'bg-primary'}`}
+                    />
+                  )}
                   <span className="font-bold">{props.title}</span>
                 </div>
                 {props.description && (

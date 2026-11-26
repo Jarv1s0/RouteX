@@ -1,10 +1,14 @@
 import { Button, Select, SelectItem, Spinner, Tooltip } from '@heroui/react'
-import { IoChevronForwardOutline, IoHelpCircleOutline } from 'react-icons/io5'
+import {
+  IoChevronForwardOutline,
+  IoGitMergeOutline,
+  IoHelpCircleOutline,
+  IoWarningOutline
+} from 'react-icons/io5'
 import { useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import SettingItem from '@renderer/components/base/base-setting-item'
-import SettingCard from '@renderer/components/base/base-setting-card'
 import { useI18n } from '@renderer/i18n'
 import { ON, onIpc } from '@renderer/utils/ipc-channels'
 import { getProfileMergeReport, setProfileMergeTargets } from '@renderer/utils/profile-ipc'
@@ -91,24 +95,38 @@ export default function ProfileMergePanel(): React.JSX.Element {
     }
   }
 
+  const totalNodes = ready
+    ? report.members.reduce((count, member) => count + member.nodes.length, 0)
+    : 0
+  const descriptionText = ready
+    ? t('profiles.merge.summary', {
+        members: report.members.length,
+        nodes: totalNodes
+      }) +
+      (providerCount > 0
+        ? ' · ' + t('profiles.merge.providerCount', { count: providerCount })
+        : '')
+    : error
+      ? t('profiles.merge.loadFailed')
+      : t('profiles.merge.loading')
+
   return (
-    <SettingCard
-      collapsible
-      title={t('profiles.merge.title')}
-      description={
-        ready
-          ? t('profiles.merge.summary', {
-              members: report.members.length,
-              nodes: report.members.reduce((count, member) => count + member.nodes.length, 0)
-            }) +
-            (providerCount > 0
-              ? ' · ' + t('profiles.merge.providerCount', { count: providerCount })
-              : '')
-          : error
-            ? t('profiles.merge.loadFailed')
-            : t('profiles.merge.loading')
-      }
-    >
+    <div className="mx-2 mb-4">
+      <div className="rounded-2xl border border-default-200/60 dark:border-white/10 bg-white/65 dark:bg-white/[0.04] p-4 backdrop-blur-md space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-default-200/50 dark:border-white/10">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-1.5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <IoGitMergeOutline className="text-base" />
+            </div>
+            <span className="text-sm font-semibold text-foreground">{descriptionText}</span>
+          </div>
+          {ready && warningCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning shrink-0">
+              <IoWarningOutline className="text-xs" />
+              <span>{warningCount}</span>
+            </span>
+          )}
+        </div>
       {(error || !ready || warningCount > 0) && (
         <div className="pt-2 text-sm">
           {error ? (
@@ -139,7 +157,7 @@ export default function ProfileMergePanel(): React.JSX.Element {
         </div>
       )}
       {ready && (
-        <div className="flex min-w-0 flex-col gap-5 pt-2 text-sm">
+        <div className="flex min-w-0 flex-col gap-4 text-sm">
           <p className="text-xs leading-relaxed text-default-500">{t('profiles.merge.help')}</p>
           {report.targets.length > 0 && (
             <div className="space-y-2">
@@ -172,8 +190,9 @@ export default function ProfileMergePanel(): React.JSX.Element {
             </p>
           )}
           <div>
-            <h4 className="pb-2 text-sm font-medium text-foreground">
-              {t('profiles.merge.sources')}
+            <h4 className="pb-2.5 text-[15px] font-bold text-foreground flex items-center gap-2">
+              <span className="w-1 h-3.5 rounded-full bg-primary shrink-0" />
+              <span>{t('profiles.merge.sources')}</span>
             </h4>
             <div className="space-y-2">
               {report.members.map((member) => (
@@ -240,8 +259,11 @@ export default function ProfileMergePanel(): React.JSX.Element {
               ))}
             </div>
           </div>
-          <section className="space-y-2">
-            <h4 className="text-sm font-medium">{t('profiles.merge.settings')}</h4>
+          <section className="space-y-2.5">
+            <h4 className="text-[15px] font-bold text-foreground flex items-center gap-2">
+              <span className="w-1 h-3.5 rounded-full bg-primary shrink-0" />
+              <span>{t('profiles.merge.settings')}</span>
+            </h4>
             <div className="rounded-2xl border border-default-200/50 bg-default-100/50 px-4 py-2">
               <SettingItem
                 title={t('profiles.merge.targets')}
@@ -308,6 +330,7 @@ export default function ProfileMergePanel(): React.JSX.Element {
           </p>
         </div>
       )}
-    </SettingCard>
+      </div>
+    </div>
   )
 }

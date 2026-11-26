@@ -37,24 +37,23 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
   tagClassName
 }) => {
   const { t } = useI18n()
-  const nonGroupInsetClass = isGroup ? '' : 'px-3'
 
   return (
-    <div className="relative pl-9 pb-4 last:pb-0 group">
+    <div className="relative pl-8 pb-4 last:pb-0 group">
       {/* 连接线 */}
       {!isLast && (
-        <div className="absolute left-[15px] top-7 bottom-0 w-0.5 bg-default-200/50 group-hover:bg-primary/20 transition-colors" />
+        <div className="absolute left-[13px] top-6 bottom-0 w-px bg-default-200/80 dark:bg-white/10 group-hover:bg-primary/30 transition-colors" />
       )}
 
       {/* 节点图标/圆点 */}
       <div
         className={clsx(
-          'absolute left-[6px] top-1 w-5 h-5 rounded-full border-[3px] z-10 flex items-center justify-center transition-all bg-content1',
+          'absolute z-10 rounded-full border-[2.5px] flex items-center justify-center transition-all bg-background',
           type === 'source'
-            ? 'border-emerald-500/50 w-5 h-5 shadow-[0_0_0_2px_rgba(16,185,129,0.1)]'
+            ? 'left-[5px] top-1 w-4.5 h-4.5 border-emerald-500/60 shadow-[0_0_0_2px_rgba(16,185,129,0.1)]'
             : type === 'destination'
-              ? 'border-secondary w-5 h-5 shadow-[0_0_0_2px_rgba(151,80,221,0.2)]'
-              : 'border-default-300 group-hover:border-primary group-hover:w-5 group-hover:h-5 w-4 h-4 left-[8px] top-1.5'
+              ? 'left-[5px] top-1 w-4.5 h-4.5 border-secondary shadow-[0_0_0_2px_rgba(151,80,221,0.15)]'
+              : 'left-[7px] top-1.5 w-3.5 h-3.5 border-default-300 dark:border-white/25 group-hover:border-primary'
         )}
       >
         {/* 中心点，仅 Source/Dest 显示 */}
@@ -62,7 +61,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           <div
             className={clsx(
               'w-1.5 h-1.5 rounded-full',
-              type === 'source' ? 'bg-emerald-500/75' : 'bg-secondary'
+              type === 'source' ? 'bg-emerald-500' : 'bg-secondary'
             )}
           />
         )}
@@ -71,47 +70,42 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
       {/* 内容主体 */}
       <div
         className={clsx(
-          'relative rounded-xl border p-3 transition-all',
+          'relative rounded-xl border transition-all',
           isGroup
-            ? 'bg-content1/80 dark:bg-default-100/80 border-default-300/60 dark:border-white/10 hover:border-primary/40 shadow-sm hover:shadow-md backdrop-blur-sm'
-            : 'bg-transparent border-transparent px-0 py-0'
+            ? 'p-2.5 bg-white/70 dark:bg-white/[0.04] border-default-200/60 dark:border-white/10 hover:border-primary/35 shadow-xs'
+            : 'bg-transparent border-transparent p-0'
         )}
       >
         {/* 顶部标签行 */}
-        <div
-          className={clsx(
-            'grid grid-cols-[minmax(0,1fr)_88px] items-center gap-2 mb-1',
-            nonGroupInsetClass
-          )}
-        >
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 mb-0.5">
           <div className="flex min-w-0 items-center gap-1.5">
             {type === 'source' && (
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-500/10 px-1.5 rounded">
+              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                 {t('connections.detail.start')}
               </span>
             )}
             {type === 'destination' && (
-              <span className="text-[10px] font-bold text-purple-500 uppercase bg-purple-500/10 px-1.5 rounded">
+              <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
                 {t('connections.detail.end')}
               </span>
             )}
             {tagLabel && !isGroup && type !== 'source' && type !== 'destination' && (
               <span
                 className={clsx(
-                  'text-[10px] font-bold uppercase px-1.5 rounded',
-                  tagClassName || 'text-default-400 bg-default-100'
+                  'text-[10px] font-semibold px-1.5 py-0.5 rounded',
+                  tagClassName || 'text-default-500 bg-default-100'
                 )}
               >
                 {tagLabel}
               </span>
             )}
             {isGroup && (
-              <span className="text-[10px] font-bold text-primary uppercase bg-primary/10 px-1.5 rounded">
+              <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                 {groupType || t('connections.detail.policyGroup')}
               </span>
             )}
-            {!isGroup && type === 'proxy' && (
-              <span className="text-[10px] font-bold text-default-400 uppercase bg-default-100 px-1.5 rounded">
+            {!isGroup && !tagLabel && type === 'proxy' && (
+              <span className="text-[10px] font-semibold text-default-500 bg-default-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">
                 {t('connections.detail.node')}
               </span>
             )}
@@ -119,7 +113,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
 
           {/* 延迟显示 */}
           {delay !== undefined && (
-            <div className="flex w-[88px] items-center justify-end gap-[2px] font-mono tabular-nums">
+            <div className="flex items-center justify-end gap-1 font-mono tabular-nums">
               <div
                 className={clsx(
                   'w-1.5 h-1.5 shrink-0 rounded-full',
@@ -128,7 +122,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               />
               <span
                 className={clsx(
-                  'inline-block w-[48px] text-right text-xs font-mono font-bold tabular-nums',
+                  'text-right text-[11px] font-mono font-semibold tabular-nums',
                   delayColorClass
                 )}
               >
@@ -137,19 +131,19 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             </div>
           )}
           {time && (
-            <span className="w-[88px] justify-self-end text-right text-[10px] font-mono tabular-nums text-default-400">
+            <span className="justify-self-end text-right text-[11px] font-mono tabular-nums text-default-400">
               {time}
             </span>
           )}
         </div>
 
         {/* 标题 */}
-        <div className={clsx('flex items-center gap-2 min-w-0', nonGroupInsetClass)}>
+        <div className="flex items-center gap-2 min-w-0">
           {icon && <img src={icon} className="w-3.5 h-3.5 object-contain opacity-80" alt="" />}
           <span
             className={clsx(
-              'text-sm font-medium truncate pr-2',
-              isGroup ? 'text-foreground' : 'text-default-700'
+              'text-[13px] font-medium truncate',
+              isGroup ? 'text-foreground font-semibold' : 'text-foreground-700'
             )}
             title={title}
           >
@@ -157,16 +151,11 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           </span>
         </div>
 
-        {/* 只有 Group 节点显示具体的节点选择 */}
+        {/* 次级信息（命中值 / 当前节点 / 端口） */}
         {subtitle && (
-          <div
-            className={clsx(
-              'mt-1.5 flex items-center gap-1.5 text-xs text-default-500 bg-content2/50 p-1.5 rounded-md border border-default-200/50',
-              nonGroupInsetClass
-            )}
-          >
-            <IoArrowForward className="text-[10px] shrink-0 text-primary" />
-            <span className="font-mono truncate font-bold text-primary" title={subtitle}>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-default-500 min-w-0">
+            <IoArrowForward className="text-[10px] shrink-0 text-primary/70" />
+            <span className="font-mono truncate text-primary/90 font-medium" title={subtitle}>
               {subtitle}
             </span>
           </div>
@@ -217,20 +206,17 @@ export const ConnectionChainPath: React.FC<Props> = ({
   }, [connection.chains, groups])
 
   return (
-    <div className="w-[320px] bg-default-50/30 dark:bg-black/5 p-2 flex flex-col relative overflow-hidden backdrop-brightness-95 dark:backdrop-brightness-100 -ml-2">
-      {/* 背景装饰线 */}
-      <div className="absolute left-[23px] top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-default-300 to-transparent dashed opacity-30" />
-
-      <div className="flex items-center gap-2 mb-2 relative z-10">
+    <div className="w-[320px] border-l border-default-200/50 dark:border-white/10 bg-default-50/35 dark:bg-black/10 p-4 flex flex-col relative overflow-hidden">
+      <div className="flex items-center gap-2 mb-3.5 relative z-10">
         <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-          <MdTimeline className="text-lg" />
+          <MdTimeline className="text-base" />
         </div>
-        <span className="font-bold text-foreground tracking-wide">
+        <span className="text-sm font-semibold text-foreground tracking-wide">
           {t('connections.detail.chain')}
         </span>
       </div>
 
-      <ScrollShadow className="flex-1 -mr-4 pr-4 relative z-10 pb-4">
+      <ScrollShadow className="flex-1 -mr-2 pr-2 relative z-10 pb-2">
         <div className="flex flex-col gap-0">
           {/* 源节点 */}
           <TimelineNode

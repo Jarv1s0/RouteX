@@ -23,37 +23,37 @@ interface InfoCardProps {
 }
 
 const NEUTRAL_CARD =
-  'bg-default-50/60 dark:bg-content1/10 border-default-200/50 dark:border-white/5 hover:border-default-300/60'
+  'bg-white/70 dark:bg-white/[0.04] border-default-200/60 dark:border-white/10 hover:border-default-300/80 dark:hover:border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.2)]'
 
 const THEME_MAP = {
   green: {
     icon: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400',
-    label: 'text-emerald-700/70 dark:text-emerald-300/75',
+    label: 'text-foreground-500',
     value: 'text-foreground'
   },
   purple: {
-    icon: 'bg-purple-500/15 text-purple-500',
-    label: 'text-purple-500/80',
-    value: 'text-purple-500'
+    icon: 'bg-purple-500/12 text-purple-600 dark:text-purple-400',
+    label: 'text-foreground-500',
+    value: 'text-foreground'
   },
   orange: {
-    icon: 'bg-warning/15 text-warning',
-    label: 'text-warning/80',
+    icon: 'bg-warning/12 text-warning',
+    label: 'text-foreground-500',
     value: 'text-foreground'
   },
   blue: {
-    icon: 'bg-blue-500/15 text-blue-500',
-    label: 'text-blue-500/80',
+    icon: 'bg-blue-500/12 text-blue-600 dark:text-blue-400',
+    label: 'text-foreground-500',
     value: 'text-foreground'
   },
   cyan: {
-    icon: 'bg-cyan-500/15 text-cyan-500',
-    label: 'text-cyan-500/80',
+    icon: 'bg-cyan-500/12 text-cyan-600 dark:text-cyan-400',
+    label: 'text-foreground-500',
     value: 'text-foreground'
   },
   default: {
     icon: 'bg-default-100 text-default-500',
-    label: 'text-default-500',
+    label: 'text-foreground-500',
     value: 'text-foreground'
   }
 } as const
@@ -70,16 +70,16 @@ const InlineSummary: React.FC<{
   tone: 'primary' | 'success' | 'warning'
 }> = ({ label, value, tone }) => {
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-default-200/60 bg-default-100/60 px-2.5 py-1.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.35)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+    <div className="flex items-center gap-1.5">
       <span
         className={clsx(
-          'rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em]',
+          'rounded-md px-1.5 py-0.5 text-[10px] font-semibold',
           INLINE_SUMMARY_TONE[tone]
         )}
       >
         {label}
       </span>
-      <span className="max-w-[72px] truncate text-xs font-semibold text-foreground" title={value}>
+      <span className="max-w-[84px] truncate text-xs font-medium text-foreground-600" title={value}>
         {value}
       </span>
     </div>
@@ -94,20 +94,20 @@ const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value, subValue, theme
 
   return (
     <div
-      className={`h-full p-4 rounded-xl backdrop-blur-md border shadow-sm transition-colors group relative ${NEUTRAL_CARD}`}
+      className={`h-full p-3.5 rounded-xl backdrop-blur-md border transition-colors group relative ${NEUTRAL_CARD}`}
     >
-      <div className="flex items-center gap-2.5 mb-2 opacity-80 group-hover:opacity-100 transition-opacity">
-        <div className={clsx('p-1.5 rounded-lg text-sm', t.icon)}>{icon}</div>
-        <span className={`text-xs font-bold uppercase tracking-wide ${t.label}`}>{label}</span>
+      <div className="flex items-center gap-2 mb-2">
+        <div className={clsx('p-1.5 rounded-lg text-xs', t.icon)}>{icon}</div>
+        <span className={`text-[11px] font-semibold tracking-wide ${t.label}`}>{label}</span>
       </div>
       <span
-        className={clsx('text-sm font-bold font-mono truncate block pr-6', t.value)}
+        className={clsx('text-[13.5px] font-semibold font-mono truncate block pr-6', t.value)}
         title={value}
       >
         {value || 'N/A'}
       </span>
       {subValue && (
-        <span className="text-xs text-default-400 truncate mt-0.5 block" title={subValue}>
+        <span className="text-[11px] text-default-400 truncate mt-1 block" title={subValue}>
           {subValue}
         </span>
       )}
@@ -140,32 +140,32 @@ export const ConnectionMetadata: React.FC<Props> = ({
   const { t } = useI18n()
 
   return (
-    <ScrollShadow className="flex-1 p-2 pr-2 flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-xl bg-default-50/60 dark:bg-content1/10 backdrop-blur-md border border-default-200/50 dark:border-white/5 shadow-sm px-4 py-2">
-        <div className="flex min-w-max items-center justify-between gap-6 whitespace-nowrap">
+    <ScrollShadow className="flex-1 p-4 flex flex-col gap-2.5">
+      <div className={`overflow-x-auto rounded-xl backdrop-blur-md border px-3.5 py-2.5 ${NEUTRAL_CARD}`}>
+        <div className="flex min-w-max items-center justify-between gap-5 whitespace-nowrap">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <IoArrowDown className="text-lg text-[#c084fc]" />
-              <div className="flex items-center leading-none gap-2">
-                <span className="font-mono font-bold text-sm text-foreground">
+            <div className="flex items-center gap-1.5">
+              <IoArrowDown className="text-sm text-purple-500" />
+              <div className="flex items-baseline leading-none gap-1.5 font-mono tabular-nums">
+                <span className="font-semibold text-[13px] text-foreground">
                   {calcTraffic(connection.download)}
                 </span>
-                <span className="text-[10px] text-default-400 font-mono">
+                <span className="text-[11px] text-default-400">
                   {calcTraffic(connection.downloadSpeed || 0)}/s
                 </span>
               </div>
             </div>
-            <div className="h-4 w-px bg-default-300/30" />
-            <div className="flex items-center gap-2">
-              <div className="flex items-center leading-none gap-2">
-                <span className="font-mono font-bold text-sm text-foreground">
+            <div className="h-3.5 w-px bg-default-200/70 dark:bg-white/10" />
+            <div className="flex items-center gap-1.5">
+              <IoArrowUp className="text-sm text-sky-500" />
+              <div className="flex items-baseline leading-none gap-1.5 font-mono tabular-nums">
+                <span className="font-semibold text-[13px] text-foreground">
                   {calcTraffic(connection.upload)}
                 </span>
-                <span className="text-[10px] text-default-400 font-mono">
+                <span className="text-[11px] text-default-400">
                   {calcTraffic(connection.uploadSpeed || 0)}/s
                 </span>
               </div>
-              <IoArrowUp className="text-lg text-[#22d3ee]" />
             </div>
           </div>
           <div className="ml-auto">
@@ -178,32 +178,39 @@ export const ConnectionMetadata: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
         {/* 目标地址卡片 */}
-        <div className="h-full p-4 rounded-xl bg-default-50/60 dark:bg-content1/10 backdrop-blur-md border border-default-200/50 dark:border-white/5 shadow-sm hover:border-default-300/60 transition-colors group relative">
-          <div className="flex items-center gap-2.5 mb-3 opacity-80 group-hover:opacity-100 transition-opacity">
-            <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-500">
-              <FaNetworkWired className="text-sm" />
+        <div
+          className={`h-full p-3.5 rounded-xl backdrop-blur-md border transition-colors group relative ${NEUTRAL_CARD}`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 rounded-lg bg-blue-500/12 text-blue-600 dark:text-blue-400">
+              <FaNetworkWired className="text-xs" />
             </div>
-            <span className="text-xs font-bold text-blue-500/80 uppercase tracking-wide">
+            <span className="text-[11px] font-semibold text-foreground-500 tracking-wide">
               {t('connections.detail.destination')}
             </span>
           </div>
-          <span className="text-base font-bold text-foreground font-mono break-all leading-tight block pr-6">
+          <span
+            className="text-[13.5px] font-semibold text-foreground font-mono [overflow-wrap:anywhere] leading-snug block pr-6"
+            title={destination}
+          >
             {destination}
           </span>
-          <div className="flex items-center gap-2 mt-1.5">
-            {connection.metadata.destinationGeoIP && (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-default-100 text-default-600 border border-default-200/50">
-                {connection.metadata.destinationGeoIP}
-              </span>
-            )}
-            {connection.metadata.destinationIPASN && (
-              <span className="text-[10px] text-default-400">
-                {connection.metadata.destinationIPASN}
-              </span>
-            )}
-          </div>
+          {(connection.metadata.destinationGeoIP?.length || connection.metadata.destinationIPASN) && (
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              {connection.metadata.destinationGeoIP?.length ? (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-default-100 text-default-600">
+                  {connection.metadata.destinationGeoIP.join(' ')}
+                </span>
+              ) : null}
+              {connection.metadata.destinationIPASN && (
+                <span className="text-[11px] text-default-400">
+                  {connection.metadata.destinationIPASN}
+                </span>
+              )}
+            </div>
+          )}
           <div
             onClick={() => navigator.clipboard.writeText(destination)}
             className="absolute top-3 right-3 p-1.5 rounded-md text-default-400 hover:text-primary hover:bg-default-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-20"
@@ -213,7 +220,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* 源地址 — 绿色主题 */}
+        {/* 源地址 */}
         <InfoCard
           icon={<IoPerson />}
           label={t('connections.detail.source')}
@@ -224,7 +231,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
       </div>
 
       {/* 辅助信息网格 */}
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
         <InfoCard
           icon={<IoShieldCheckmark />}
           label={t('connections.detail.rule')}
@@ -250,12 +257,12 @@ export const ConnectionMetadata: React.FC<Props> = ({
       </div>
 
       {/* 入站详情 — divider 横条布局 */}
-      <div className="rounded-xl bg-default-50/60 dark:bg-content1/10 backdrop-blur-md border border-default-200/50 dark:border-white/5 shadow-sm overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-secondary/5 border-b border-default-200/50 dark:border-white/5">
-          <div className="p-1 rounded-md bg-secondary/15 text-secondary">
-            <IoServer className="text-sm" />
+      <div className={`rounded-xl backdrop-blur-md border overflow-hidden ${NEUTRAL_CARD}`}>
+        <div className="flex items-center gap-2 px-3.5 py-2 bg-default-100/40 dark:bg-white/[0.03] border-b border-default-200/50 dark:border-white/10">
+          <div className="p-1 rounded-md bg-default-200/60 dark:bg-white/10 text-foreground-500">
+            <IoServer className="text-xs" />
           </div>
-          <span className="text-xs font-bold text-secondary/80 uppercase tracking-wide">
+          <span className="text-[11px] font-semibold text-foreground-500 tracking-wide">
             {t('connections.detail.inbound')}
           </span>
         </div>
@@ -283,9 +290,11 @@ export const ConnectionMetadata: React.FC<Props> = ({
             .map(({ label, value }) => (
               <div
                 key={label}
-                className="flex items-center justify-between px-4 py-2 hover:bg-default-100/50 transition-colors"
+                className="flex items-center justify-between px-3.5 py-1.5 hover:bg-default-100/40 dark:hover:bg-white/[0.02] transition-colors"
               >
-                <span className="text-xs text-default-400 font-medium w-24 shrink-0">{label}</span>
+                <span className="text-[11px] text-default-400 font-medium w-24 shrink-0">
+                  {label}
+                </span>
                 <span
                   className="text-xs font-mono text-foreground text-right truncate select-all"
                   title={value}

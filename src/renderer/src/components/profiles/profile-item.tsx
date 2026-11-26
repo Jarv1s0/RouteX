@@ -100,9 +100,9 @@ const ProfileItem: React.FC<Props> = (props) => {
       ? t('profiles.status.enabled')
       : t('profiles.status.disabled')
   const statusClassName = isCurrent
-    ? 'bg-yellow-400 text-black font-bold shadow-sm'
+    ? 'bg-primary text-white font-semibold shadow-xs'
     : isEnabled
-      ? 'bg-primary/20 text-primary font-medium shadow-none hover:bg-primary/30'
+      ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 font-medium shadow-none hover:bg-emerald-500/20'
       : CARD_STYLES.MANAGEMENT_STATUS_INACTIVE
 
   const menuItems: MenuItem[] = useMemo(() => {
@@ -309,13 +309,12 @@ const ProfileItem: React.FC<Props> = (props) => {
           })
         }}
         className={`
+          group
           ${CARD_STYLES.MANAGEMENT_CARD}
           ${
             isCurrent
-              ? CARD_STYLES.MANAGEMENT_PRIMARY
-              : isEnabled
-                ? CARD_STYLES.MANAGEMENT_ENABLED
-                : CARD_STYLES.MANAGEMENT_NEUTRAL
+              ? 'bg-primary/[0.06] hover:bg-primary/[0.09] border-default-200/70 hover:border-default-300/80 dark:bg-primary/[0.12] dark:hover:bg-primary/[0.16] dark:border-white/12 dark:hover:border-white/20'
+              : 'bg-white/65 hover:bg-white/85 border-default-200/70 hover:border-default-300/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.07] dark:border-white/10 dark:hover:border-white/20'
           }
         `}
       >
@@ -333,7 +332,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                 </h3>
               </div>
               <div
-                className="flex shrink-0 items-center gap-1.5"
+                className="flex shrink-0 items-center gap-1"
                 onClick={(e) => e.stopPropagation()}
               >
                 {info.type === 'remote' && (
@@ -342,7 +341,9 @@ const ProfileItem: React.FC<Props> = (props) => {
                     size="sm"
                     variant="light"
                     color="default"
-                    className={CARD_STYLES.MANAGEMENT_ACTION_BUTTON}
+                    className={`${CARD_STYLES.MANAGEMENT_ACTION_BUTTON} transition-opacity ${
+                      updating ? 'opacity-100' : 'opacity-45 group-hover:opacity-100'
+                    }`}
                     disabled={updating}
                     onPress={async () => {
                       setUpdating(true)
@@ -354,8 +355,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                     }}
                   >
                     <IoMdRefresh
-                      color="default"
-                      className={`${CARD_STYLES.MANAGEMENT_ACTION_ICON} ${updating ? 'animate-spin' : ''}`}
+                      className={`text-[17px] text-default-500 ${updating ? 'animate-spin' : ''}`}
                     />
                   </Button>
                 )}
@@ -369,7 +369,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                       color="default"
                       className={CARD_STYLES.MANAGEMENT_ACTION_BUTTON}
                     >
-                      <IoMdMore color="default" className={CARD_STYLES.MANAGEMENT_ACTION_ICON} />
+                      <IoMdMore className="text-[17px] text-default-500" />
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu onAction={onMenuAction}>
@@ -433,7 +433,9 @@ const ProfileItem: React.FC<Props> = (props) => {
                 onClick={(e) => e.stopPropagation()}
               >
                 {statusControl}
-                {info.type === 'remote' && !extra && <small>{dayjs(info.updated).fromNow()}</small>}
+                {info.type === 'remote' && !extra && (
+                  <small className="text-xs text-default-400">{dayjs(info.updated).fromNow()}</small>
+                )}
               </div>
               {extra && (
                 <TrafficProgress

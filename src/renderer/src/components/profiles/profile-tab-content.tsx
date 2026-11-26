@@ -9,8 +9,6 @@ import {
 } from '@heroui/react'
 
 import ProfileItemCard from '@renderer/components/profiles/profile-item'
-import ProfileMergePanel from '@renderer/components/profiles/profile-merge-panel'
-import { ProviderTabContent } from '@renderer/components/profiles/provider-tab-content'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { getFilePath, readTextFile } from '@renderer/utils/file-ipc'
@@ -349,6 +347,7 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
               size="sm"
               className="flex-1"
               classNames={CARD_STYLES.GLASS_INPUT}
+              placeholder={t('page.profiles.importRemote')}
               value={url}
               onValueChange={setUrl}
               onKeyUp={handleProfileInputKeyUp}
@@ -361,7 +360,7 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
                   isSelected={useProxy}
                   onValueChange={setUseProxy}
                 >
-                  <span className="text-sm text-default-600">{t('page.profiles.useProxy')}</span>
+                  <span className="text-xs text-default-500">{t('page.profiles.useProxy')}</span>
                 </Checkbox>
               }
             />
@@ -369,7 +368,7 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
             <Button
               size="sm"
               color="primary"
-              className="ml-2"
+              variant={isUrlEmpty ? 'flat' : 'solid'}
               isDisabled={isUrlEmpty}
               isLoading={importing}
               onPress={() => handleImport(url)}
@@ -380,7 +379,9 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
             <Button
               size="sm"
               isIconOnly
-              color="primary"
+              variant="flat"
+              color="default"
+              className="bg-default-100/80 dark:bg-white/[0.08] text-default-600 dark:text-default-300"
               isLoading={updating}
               title={t('page.profiles.updateAllProfiles')}
               onPress={async () => {
@@ -397,7 +398,7 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
                 setUpdating(false)
               }}
             >
-              <IoMdRefresh className="text-lg" />
+              <IoMdRefresh className="text-base" />
             </Button>
 
             <Dropdown classNames={CARD_STYLES.GLASS_DROPDOWN}>
@@ -447,10 +448,6 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
           </SortableContext>
         </div>
       </DndContext>
-      <div className="mx-2 mt-3 mb-3 space-y-2">
-        {activeProfileIds.length > 1 && <ProfileMergePanel />}
-        <ProviderTabContent />
-      </div>
     </div>
   )
 }

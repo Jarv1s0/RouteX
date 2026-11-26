@@ -145,11 +145,16 @@ export default function ConnectionsToolbar({
         <Select
           classNames={{
             ...CARD_STYLES.GLASS_SELECT,
-            popoverContent: `${CARD_STYLES.GLASS_SELECT.popoverContent} min-w-[160px]`,
-            listbox: 'min-w-[160px]'
+            popoverContent: `${CARD_STYLES.GLASS_SELECT.popoverContent} min-w-[112px] w-fit`
+          }}
+          listboxProps={{
+            itemClasses: {
+              base: 'gap-2 px-2 rounded-lg data-[hover=true]:bg-default-100/50',
+              selectedIcon: 'w-3.5 h-3.5'
+            }
           }}
           size="sm"
-          className="w-[140px] min-w-[140px]"
+          className="w-[110px] min-w-[110px]"
           selectedKeys={new Set([connectionOrderBy])}
           disallowEmptySelection={true}
           onSelectionChange={(keys) => {
