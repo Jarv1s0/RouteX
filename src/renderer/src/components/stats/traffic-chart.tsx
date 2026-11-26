@@ -404,6 +404,10 @@ const HourlyChartRenderer = React.memo(function HourlyChartRenderer() {
 
 const TrafficChart: React.FC = () => {
   const { t } = useI18n()
+  const { theme, systemTheme } = useTheme()
+  const { uploadColor, downloadColor } = getChartColors(
+    (theme === 'system' ? systemTheme : theme) === 'dark'
+  )
   const [historyTab, setHistoryTab] = useState<HistoryTab>('realtime')
 
   return (
@@ -424,7 +428,20 @@ const TrafficChart: React.FC = () => {
             </Tabs>
           </div>
           <div className="min-w-0 shrink-0">
-            {historyTab === 'realtime' && <RealtimeSpeedBadges />}
+            {historyTab === 'realtime' ? (
+              <RealtimeSpeedBadges />
+            ) : (
+              <div className="flex items-center gap-3 text-xs font-medium text-default-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full" style={{ backgroundColor: uploadColor }} />
+                  {t('stats.upload')}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full" style={{ backgroundColor: downloadColor }} />
+                  {t('stats.download')}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

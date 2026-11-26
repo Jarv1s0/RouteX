@@ -103,7 +103,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
   const DOWNLOAD_GRADIENT = 'linear-gradient(90deg, #8b5cf6 0%, #a855f7 100%)'
 
   return (
-    <div className="flex h-full w-full flex-col justify-between gap-3">
+    <div className="@container flex h-full w-full flex-col justify-between gap-3">
       {/* Hero: Session Total + Upload / Download */}
       <div className="flex flex-col gap-2.5">
         <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
@@ -168,15 +168,15 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
         </div>
       </div>
 
-      {/* Route Distribution: Compact Single-Row Bar */}
-      <div className="flex items-center gap-2.5 rounded-xl border border-default-200/45 bg-default-100/45 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.04]">
+      {/* Route Distribution */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 rounded-xl border border-default-200/45 bg-default-100/45 px-3 py-2 @min-[300px]:flex-nowrap dark:border-white/[0.06] dark:bg-white/[0.04]">
         <div className="flex items-center gap-1.5 text-xs shrink-0 tabular-nums">
           <span className="h-2 w-2 rounded-full bg-blue-500" />
           <span className="text-default-500">{t('page.profiles.useProxy')}</span>
           <span className="font-semibold text-foreground">{calcTraffic(sessionProxy)}</span>
         </div>
 
-        <div className="flex h-1.5 min-w-[36px] flex-1 overflow-hidden rounded-full bg-default-200/60 dark:bg-white/10">
+        <div className="order-last flex h-1.5 w-full overflow-hidden rounded-full bg-default-200/60 @min-[300px]:order-none @min-[300px]:w-auto @min-[300px]:min-w-[36px] @min-[300px]:flex-1 dark:bg-white/10">
           {sessionRouteTotal > 0 && (
             <>
               <div
@@ -197,7 +197,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs shrink-0 tabular-nums">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 text-xs tabular-nums">
           <span className="font-semibold text-foreground">{calcTraffic(sessionDirect)}</span>
           <span className="text-default-500">{t('stats.directRoute')}</span>
           <span className="h-2 w-2 rounded-full bg-emerald-500" />

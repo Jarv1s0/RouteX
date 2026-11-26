@@ -42,12 +42,12 @@ export const CARD_STYLES = {
 
   // Toolbar style: Floating pill glass island elevated above content cards
   GLASS_TOOLBAR:
-    'flex items-center rounded-full transition-[background-color,border-color,box-shadow,opacity] duration-200 bg-gradient-to-b from-white/80 to-white/55 dark:from-white/[0.09] dark:to-white/[0.04] hover:from-white/90 hover:to-white/68 dark:hover:from-white/[0.12] dark:hover:to-white/[0.06] border border-white/80 dark:border-white/15 hover:border-white dark:hover:border-white/25 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_6px_20px_-4px_rgba(0,0,0,0.08),0_2px_6px_-1px_rgba(0,0,0,0.04)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_8px_24px_-4px_rgba(0,0,0,0.45)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_10px_28px_-4px_rgba(0,0,0,0.12),0_4px_10px_-2px_rgba(0,0,0,0.05)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_10px_28px_-4px_rgba(0,0,0,0.55)] overflow-visible',
+    'glass-toolbar flex items-center rounded-full transition-[background-color,border-color,box-shadow,opacity] duration-200 bg-gradient-to-b from-white/80 to-white/55 dark:from-white/[0.09] dark:to-white/[0.04] hover:from-white/90 hover:to-white/68 dark:hover:from-white/[0.12] dark:hover:to-white/[0.06] border border-white/80 dark:border-white/15 hover:border-white dark:hover:border-white/25 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9),0_6px_20px_-4px_rgba(0,0,0,0.06),0_2px_6px_-1px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_8px_24px_-4px_rgba(0,0,0,0.35)] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_10px_28px_-4px_rgba(0,0,0,0.09),0_4px_10px_-2px_rgba(0,0,0,0.04)] dark:hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_10px_28px_-4px_rgba(0,0,0,0.42)] overflow-visible',
   GLASS_TOOLBAR_BUTTON: 'rounded-full',
 
   // Input style: Matches the glass toolbar aesthetic
   GLASS_INPUT: {
-    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-full !h-8 !min-h-8 transition-colors duration-300`,
+    inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-2xl !h-8 !min-h-8 transition-colors duration-300`,
     input: 'text-sm',
     innerWrapper: 'bg-transparent'
   },
