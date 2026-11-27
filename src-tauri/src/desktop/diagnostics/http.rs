@@ -5,30 +5,49 @@ pub(crate) fn http_get_response(
     url: &str,
     timeout_ms: u64,
 ) -> Result<(reqwest::StatusCode, String, Value), String> {
-    let response = external_http_client()?
-        .get(url)
-        .timeout(Duration::from_millis(timeout_ms))
-        .header(reqwest::header::USER_AGENT, "Mozilla/5.0 RouteX-Tauri/1.0")
-        .header(reqwest::header::ACCEPT, "*/*")
-        .send()
-        .map_err(|e| e.to_string())?;
+    let client = external_http_client()?;
+    let mut last_error = String::new();
 
-    let status = response.status();
-    let mut headers = serde_json::Map::new();
-    for (key, value) in response.headers() {
-        headers.insert(
-            key.as_str().to_string(),
-            Value::String(value.to_str().unwrap_or_default().to_string()),
-        );
+    // 对传输层发送失败（如连接池陈旧连接重置或网络瞬断）进行一次短暂退避重试
+    for attempt in 0..2 {
+        if attempt > 0 {
+            std::thread::sleep(Duration::from_millis(150));
+        }
+
+        let response = match client
+            .get(url)
+            .timeout(Duration::from_millis(timeout_ms))
+            .header(reqwest::header::USER_AGENT, "Mozilla/5.0 RouteX-Tauri/1.0")
+            .header(reqwest::header::ACCEPT, "*/*")
+            .send()
+        {
+            Ok(resp) => resp,
+            Err(error) => {
+                last_error = error.to_string();
+                continue;
+            }
+        };
+
+        let status = response.status();
+        let mut headers = serde_json::Map::new();
+        for (key, value) in response.headers() {
+            headers.insert(
+                key.as_str().to_string(),
+                Value::String(value.to_str().unwrap_or_default().to_string()),
+            );
+        }
+
+        let mut limited = response.take(150_000);
+        let mut data = String::new();
+        match limited.read_to_string(&mut data) {
+            Ok(_) => return Ok((status, data, Value::Object(headers))),
+            Err(error) => {
+                last_error = error.to_string();
+            }
+        }
     }
 
-    let mut limited = response.take(150_000);
-    let mut data = String::new();
-    limited
-        .read_to_string(&mut data)
-        .map_err(|e| e.to_string())?;
-
-    Ok((status, data, Value::Object(headers)))
+    Err(last_error)
 }
 
 pub(crate) fn http_get_json(url: &str, timeout_ms: u64) -> Result<Value, String> {

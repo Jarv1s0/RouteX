@@ -94,8 +94,13 @@ pub(crate) fn mihomo_http_client() -> Result<&'static Client, String> {
 }
 
 pub(crate) fn external_http_client() -> Result<&'static Client, String> {
-    match EXTERNAL_HTTP_CLIENT.get_or_init(|| Client::builder().build().map_err(|e| e.to_string()))
-    {
+    match EXTERNAL_HTTP_CLIENT.get_or_init(|| {
+        Client::builder()
+            .connect_timeout(Duration::from_secs(5))
+            .pool_idle_timeout(Duration::from_secs(15))
+            .build()
+            .map_err(|e| e.to_string())
+    }) {
         Ok(client) => Ok(client),
         Err(error) => Err(error.clone()),
     }

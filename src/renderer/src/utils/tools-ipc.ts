@@ -42,8 +42,10 @@ export async function fetchIpInfo(force = false): Promise<IpInfoResult> {
 
   fetchIpInfoPromise = invokeSafe<IpInfoResult>(C.fetchIpInfo)
     .then((result) => {
-      lastFetchIpInfoAt = Date.now()
-      lastFetchIpInfoResult = result
+      if (result.status === 'success') {
+        lastFetchIpInfoAt = Date.now()
+        lastFetchIpInfoResult = result
+      }
       return result
     })
     .finally(() => {
