@@ -54,7 +54,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
       classNames={createSecondaryModalClassNames({
         backdrop: 'bg-black/40 backdrop-blur-sm',
         wrapper: 'z-[9999]',
-        base: 'bg-background/80 dark:bg-default-100/65 max-h-[90vh]'
+        base: 'rounded-[18px] max-h-[90vh]'
       })}
       size="5xl"
       hideCloseButton
@@ -81,12 +81,15 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
         className="overflow-hidden"
         style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 1400 })}
       >
-        <div className="flex flex-col gap-0 p-0 relative overflow-hidden bg-gradient-to-b from-white/40 to-transparent dark:from-white/[0.03] border-b border-default-200/50 dark:border-white/10">
+        <div className="flex flex-col gap-0 p-0 relative overflow-hidden bg-default-50/70 dark:bg-white/[0.03] border-b border-default-200/80 dark:border-white/10">
           {/* 顶部背景装饰 */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/8 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
           {/* Close Button - Absolute Positioned */}
-          <SecondaryModalCloseButton onPress={onClose} className="absolute right-4 top-4 z-50" />
+          <SecondaryModalCloseButton
+            onPress={onClose}
+            className="absolute right-2.5 top-2.5 z-50"
+          />
 
           {/* 提取的 Header */}
           <ConnectionModalHeader
@@ -98,7 +101,7 @@ const ConnectionDetailModal: React.FC<Props> = (props) => {
           />
         </div>
 
-        <ModalBody className="p-0 flex flex-row h-[500px] gap-0">
+        <ModalBody className="p-0 flex flex-row items-stretch min-h-0 max-h-[calc(90vh-76px)] gap-0 bg-default-100/45 dark:bg-black/15">
           {/* 左侧：详细信息 */}
           <ConnectionMetadata
             connection={connection}

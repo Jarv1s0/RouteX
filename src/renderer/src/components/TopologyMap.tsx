@@ -217,17 +217,17 @@ function TopologyMapInner() {
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <span className="inline-flex items-center gap-2.5 px-1 text-xs text-default-500 tabular-nums">
               <span
-                className="inline-flex items-center gap-1"
+                className="inline-flex w-[92px] shrink-0 items-center gap-1 whitespace-nowrap"
                 title={t('connections.column.downloadSpeed')}
               >
-                <LuArrowDown className="text-success" aria-hidden />
+                <LuArrowDown className="shrink-0 text-success" aria-hidden />
                 {calcTraffic(graph.downloadSpeed)}/s
               </span>
               <span
-                className="inline-flex items-center gap-1"
+                className="inline-flex w-[92px] shrink-0 items-center gap-1 whitespace-nowrap"
                 title={t('connections.column.uploadSpeed')}
               >
-                <LuArrowUp className="text-primary" aria-hidden />
+                <LuArrowUp className="shrink-0 text-primary" aria-hidden />
                 {calcTraffic(graph.uploadSpeed)}/s
               </span>
             </span>

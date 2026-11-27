@@ -23,7 +23,7 @@ interface InfoCardProps {
 }
 
 const NEUTRAL_CARD =
-  'bg-default-100/55 dark:bg-white/[0.04] border-default-200/70 dark:border-white/10 hover:bg-default-100/80 dark:hover:bg-white/[0.06] hover:border-default-300/80 dark:hover:border-white/20 shadow-xs dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_1px_2px_rgba(0,0,0,0.2)]'
+  'bg-white/95 dark:bg-zinc-900/60 border-default-200/85 dark:border-white/12 hover:bg-white dark:hover:bg-zinc-900/75 hover:border-default-300 dark:hover:border-white/20 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_2px_6px_rgba(0,0,0,0.22)]'
 
 const THEME_MAP = {
   green: {
@@ -70,7 +70,7 @@ const InlineSummary: React.FC<{
   tone: 'primary' | 'success' | 'warning'
 }> = ({ label, value, tone }) => {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
       <span
         className={clsx(
           'rounded-md px-1.5 py-0.5 text-[10px] font-semibold',
@@ -79,7 +79,10 @@ const InlineSummary: React.FC<{
       >
         {label}
       </span>
-      <span className="max-w-[84px] truncate text-xs font-medium text-foreground-600" title={value}>
+      <span
+        className="max-w-[110px] truncate text-xs font-medium text-foreground-600"
+        title={value}
+      >
         {value}
       </span>
     </div>
@@ -94,7 +97,7 @@ const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value, subValue, theme
 
   return (
     <div
-      className={`h-full p-3.5 rounded-xl border transition-colors group relative ${NEUTRAL_CARD}`}
+      className={`h-full p-3 rounded-[12px] border transition-colors group relative ${NEUTRAL_CARD}`}
     >
       <div className="flex items-center gap-2 mb-2">
         <div className={clsx('p-1.5 rounded-lg text-xs', t.icon)}>{icon}</div>
@@ -140,13 +143,13 @@ export const ConnectionMetadata: React.FC<Props> = ({
   const { t } = useI18n()
 
   return (
-    <ScrollShadow className="flex-1 p-4 flex flex-col gap-2.5">
-      <div className={`overflow-x-auto rounded-xl border px-3.5 py-2.5 ${NEUTRAL_CARD}`}>
-        <div className="flex min-w-max items-center justify-between gap-5 whitespace-nowrap">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <IoArrowDown className="text-sm text-purple-500" />
-              <div className="flex items-baseline leading-none gap-1.5 font-mono tabular-nums">
+    <ScrollShadow className="flex-1 min-h-0 p-1.5 flex flex-col gap-1.5">
+      <div className={`rounded-[12px] border px-3 py-2 ${NEUTRAL_CARD}`}>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <IoArrowDown className="text-sm shrink-0 text-purple-500" />
+              <div className="flex items-baseline leading-none gap-1 font-mono tabular-nums">
                 <span className="font-semibold text-[13px] text-foreground">
                   {calcTraffic(connection.download)}
                 </span>
@@ -155,10 +158,10 @@ export const ConnectionMetadata: React.FC<Props> = ({
                 </span>
               </div>
             </div>
-            <div className="h-3.5 w-px bg-default-200/70 dark:bg-white/10" />
-            <div className="flex items-center gap-1.5">
-              <IoArrowUp className="text-sm text-sky-500" />
-              <div className="flex items-baseline leading-none gap-1.5 font-mono tabular-nums">
+            <div className="h-3.5 w-px shrink-0 bg-default-200/70 dark:bg-white/10" />
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <IoArrowUp className="text-sm shrink-0 text-sky-500" />
+              <div className="flex items-baseline leading-none gap-1 font-mono tabular-nums">
                 <span className="font-semibold text-[13px] text-foreground">
                   {calcTraffic(connection.upload)}
                 </span>
@@ -168,7 +171,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
               </div>
             </div>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto shrink-0">
             <InlineSummary
               label={t('connections.detail.sniff')}
               value={sniffSummary}
@@ -178,10 +181,10 @@ export const ConnectionMetadata: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2">
         {/* 目标地址卡片 */}
         <div
-          className={`h-full p-3.5 rounded-xl border transition-colors group relative ${NEUTRAL_CARD}`}
+          className={`h-full p-3 rounded-[12px] border transition-colors group relative ${NEUTRAL_CARD}`}
         >
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-lg bg-blue-500/12 text-blue-600 dark:text-blue-400">
@@ -197,10 +200,11 @@ export const ConnectionMetadata: React.FC<Props> = ({
           >
             {destination}
           </span>
-          {(connection.metadata.destinationGeoIP?.length || connection.metadata.destinationIPASN) && (
+          {(connection.metadata.destinationGeoIP?.length ||
+            connection.metadata.destinationIPASN) && (
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {connection.metadata.destinationGeoIP?.length ? (
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-default-100 text-default-600">
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-default-200/70 bg-default-100/90 text-default-700 dark:border-white/10 dark:bg-white/[0.08] dark:text-default-300">
                   {connection.metadata.destinationGeoIP.join(' ')}
                 </span>
               ) : null}
@@ -231,7 +235,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
       </div>
 
       {/* 辅助信息网格 */}
-      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2">
         <InfoCard
           icon={<IoShieldCheckmark />}
           label={t('connections.detail.rule')}
@@ -257,16 +261,16 @@ export const ConnectionMetadata: React.FC<Props> = ({
       </div>
 
       {/* 入站详情 — divider 横条布局 */}
-      <div className={`rounded-xl border overflow-hidden ${NEUTRAL_CARD}`}>
-        <div className="flex items-center gap-2 px-3.5 py-2 bg-default-200/35 dark:bg-white/[0.03] border-b border-default-200/60 dark:border-white/10">
-          <div className="p-1 rounded-md bg-default-200/60 dark:bg-white/10 text-foreground-500">
+      <div className={`rounded-[12px] border overflow-hidden ${NEUTRAL_CARD}`}>
+        <div className="flex items-center gap-2 px-3.5 py-2 bg-default-100/70 dark:bg-white/[0.04] border-b border-default-200/75 dark:border-white/10">
+          <div className="p-1 rounded-md bg-default-200/70 dark:bg-white/10 text-foreground-500">
             <IoServer className="text-xs" />
           </div>
           <span className="text-[11px] font-semibold text-foreground-500 tracking-wide">
             {t('connections.detail.inbound')}
           </span>
         </div>
-        <div className="divide-y divide-default-200/40 dark:divide-white/5">
+        <div className="divide-y divide-default-200/65 dark:divide-white/8">
           {[
             {
               label: t('connections.detail.inboundName'),
@@ -290,9 +294,9 @@ export const ConnectionMetadata: React.FC<Props> = ({
             .map(({ label, value }) => (
               <div
                 key={label}
-                className="flex items-center justify-between px-3.5 py-1.5 hover:bg-default-100/40 dark:hover:bg-white/[0.02] transition-colors"
+                className="flex items-center justify-between px-3.5 py-1.5 hover:bg-default-100/60 dark:hover:bg-white/[0.03] transition-colors"
               >
-                <span className="text-[11px] text-default-400 font-medium w-24 shrink-0">
+                <span className="text-[11px] text-foreground-500 font-medium w-24 shrink-0">
                   {label}
                 </span>
                 <span

@@ -70,10 +70,10 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
       {/* 内容主体 */}
       <div
         className={clsx(
-          'relative rounded-xl border transition-all',
+          'relative rounded-[12px] border transition-all',
           isGroup
-            ? 'p-2.5 bg-default-100/55 dark:bg-white/[0.04] border-default-200/70 dark:border-white/10 hover:border-primary/35 shadow-xs'
-            : 'bg-transparent border-transparent p-0'
+            ? 'p-2.5 bg-white/95 dark:bg-zinc-900/65 border-default-200/85 dark:border-white/12 hover:border-primary/40 shadow-[0_1px_2px_rgba(15,23,42,0.04)]'
+            : 'bg-transparent border-transparent py-0 pl-0 pr-2.5'
         )}
       >
         {/* 顶部标签行 */}
@@ -105,7 +105,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               </span>
             )}
             {!isGroup && !tagLabel && type === 'proxy' && (
-              <span className="text-[10px] font-semibold text-default-500 bg-default-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-semibold text-default-600 bg-default-200/70 dark:text-default-300 dark:bg-white/[0.08] px-1.5 py-0.5 rounded">
                 {t('connections.detail.node')}
               </span>
             )}
@@ -113,7 +113,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
 
           {/* 延迟显示 */}
           {delay !== undefined && (
-            <div className="flex items-center justify-end gap-1 font-mono tabular-nums">
+            <div className="flex w-[64px] shrink-0 items-center justify-start gap-1 font-mono tabular-nums">
               <div
                 className={clsx(
                   'w-1.5 h-1.5 shrink-0 rounded-full',
@@ -122,7 +122,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               />
               <span
                 className={clsx(
-                  'text-right text-[11px] font-mono font-semibold tabular-nums',
+                  'text-left text-[11px] font-mono font-semibold tabular-nums whitespace-nowrap',
                   delayColorClass
                 )}
               >
@@ -131,7 +131,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             </div>
           )}
           {time && (
-            <span className="justify-self-end text-right text-[11px] font-mono tabular-nums text-default-400">
+            <span className="w-[64px] shrink-0 justify-self-end text-left text-[11px] font-mono tabular-nums text-default-400 whitespace-nowrap">
               {time}
             </span>
           )}
@@ -206,8 +206,8 @@ export const ConnectionChainPath: React.FC<Props> = ({
   }, [connection.chains, groups])
 
   return (
-    <div className="w-[320px] border-l border-default-200/50 dark:border-white/10 bg-default-50/35 dark:bg-black/10 p-4 flex flex-col relative overflow-hidden">
-      <div className="flex items-center gap-2 mb-3.5 relative z-10">
+    <div className="w-[320px] border-l border-default-200/75 dark:border-white/10 bg-white/55 dark:bg-black/20 p-2.5 flex flex-col min-h-0 relative overflow-hidden">
+      <div className="flex items-center gap-2 mb-2.5 px-1 pt-0.5 relative z-10">
         <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
           <MdTimeline className="text-base" />
         </div>

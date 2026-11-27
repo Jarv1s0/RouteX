@@ -10,23 +10,30 @@ import {
   Tabs,
   Tooltip
 } from '@heroui/react'
-import React, { useState, useEffect, useRef } from 'react'
-import SettingItem from '../base/base-setting-item'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getUserAgent } from '@renderer/api/app'
 import { getGistUrl } from '@renderer/utils/profile-ipc'
-import debounce from '@renderer/utils/debounce'
-import { IoIosHelpCircle } from 'react-icons/io'
-import { BiCopy } from 'react-icons/bi'
+import { IoCheckmark, IoCopyOutline, IoEye, IoEyeOff, IoHelpCircleOutline } from 'react-icons/io5'
+import { MdClose } from 'react-icons/md'
+import { toast } from 'sonner'
 import SecondaryModalCloseButton from '@renderer/components/base/secondary-modal-close'
 import {
   createSecondaryModalClassNames,
-  getMainPaneModalContentStyle,
-  SECONDARY_MODAL_HEADER_CLASSNAME
+  getMainPaneModalContentStyle
 } from '@renderer/utils/modal-styles'
 import { useI18n } from '@renderer/i18n'
-
 import AppSwitch from '@renderer/components/base/app-switch'
+import {
+  MODAL_SECTION_INPUT_CLASSNAMES,
+  MODAL_SECTION_TABS_CLASSNAMES,
+  MODAL_SETTING_BODY_CLASSNAME,
+  MODAL_SETTING_HEADER_CLASSNAME,
+  MODAL_SETTING_MODAL_OVERRIDES,
+  ModalSettingRow,
+  ModalSettingSection
+} from '@renderer/components/base/modal-setting-section'
+
 interface Props {
   onClose: () => void
 }
@@ -40,25 +47,101 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
     collapseSidebar = false,
     siderWidth = 220,
     profileDisplayDate = 'update',
-    userAgent,
+    userAgent = '',
     diffWorkDir = false,
     githubToken = ''
   } = appConfig || {}
 
   const [ua, setUa] = useState(userAgent ?? '')
+  const [token, setToken] = useState(githubToken ?? '')
+  const [showToken, setShowToken] = useState(false)
+  const [gistCopied, setGistCopied] = useState(false)
   const [defaultUserAgent, setDefaultUserAgent] = useState<string>('')
   const userAgentFetched = useRef(false)
 
-  const setUaDebounce = debounce((v: string) => {
-    patchAppConfig({ userAgent: v }).catch((error) => notifyError(error))
-  }, 500)
+  const uaRef = useRef(ua)
+  uaRef.current = ua
+  const savedUaRef = useRef(userAgent ?? '')
+  savedUaRef.current = userAgent ?? ''
+  const uaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const tokenRef = useRef(token)
+  tokenRef.current = token
+  const savedTokenRef = useRef(githubToken ?? '')
+  savedTokenRef.current = githubToken ?? ''
+  const tokenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const commitUa = useCallback(
+    (nextRaw = uaRef.current) => {
+      if (uaTimerRef.current !== null) {
+        clearTimeout(uaTimerRef.current)
+        uaTimerRef.current = null
+      }
+      const next = nextRaw.trim()
+      if (next === savedUaRef.current.trim()) return
+      savedUaRef.current = next
+      patchAppConfig({ userAgent: next }).catch((error) => notifyError(error))
+    },
+    [patchAppConfig]
+  )
+
+  const scheduleUaSave = useCallback(
+    (nextRaw: string) => {
+      if (uaTimerRef.current !== null) {
+        clearTimeout(uaTimerRef.current)
+      }
+      uaTimerRef.current = setTimeout(() => {
+        uaTimerRef.current = null
+        const next = nextRaw.trim()
+        if (next === savedUaRef.current.trim()) return
+        savedUaRef.current = next
+        patchAppConfig({ userAgent: next }).catch((error) => notifyError(error))
+      }, 500)
+    },
+    [patchAppConfig]
+  )
+
+  const commitToken = useCallback(
+    (nextRaw = tokenRef.current) => {
+      if (tokenTimerRef.current !== null) {
+        clearTimeout(tokenTimerRef.current)
+        tokenTimerRef.current = null
+      }
+      const next = nextRaw.trim()
+      if (next === savedTokenRef.current.trim()) return
+      savedTokenRef.current = next
+      patchAppConfig({ githubToken: next }).catch((error) => notifyError(error))
+    },
+    [patchAppConfig]
+  )
+
+  const scheduleTokenSave = useCallback(
+    (nextRaw: string) => {
+      if (tokenTimerRef.current !== null) {
+        clearTimeout(tokenTimerRef.current)
+      }
+      tokenTimerRef.current = setTimeout(() => {
+        tokenTimerRef.current = null
+        const next = nextRaw.trim()
+        if (next === savedTokenRef.current.trim()) return
+        savedTokenRef.current = next
+        patchAppConfig({ githubToken: next }).catch((error) => notifyError(error))
+      }, 500)
+    },
+    [patchAppConfig]
+  )
 
   useEffect(() => {
     if (!userAgentFetched.current) {
       userAgentFetched.current = true
-      getUserAgent().then((ua) => {
-        setDefaultUserAgent(ua)
-      })
+      getUserAgent()
+        .then((resolved) => {
+          setDefaultUserAgent(resolved)
+        })
+        .catch(() => {
+          // ignore user-agent lookup failures
+        })
     }
   }, [])
 
@@ -66,10 +149,55 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
     setUa(userAgent ?? '')
   }, [userAgent])
 
+  useEffect(() => {
+    setToken(githubToken ?? '')
+  }, [githubToken])
+
+  useEffect(() => {
+    return () => {
+      if (uaTimerRef.current !== null) {
+        commitUa(uaRef.current)
+      }
+      if (tokenTimerRef.current !== null) {
+        commitToken(tokenRef.current)
+      }
+      if (copyTimerRef.current !== null) {
+        clearTimeout(copyTimerRef.current)
+      }
+    }
+  }, [commitToken, commitUa])
+
+  const handleCopyGistUrl = async (): Promise<void> => {
+    try {
+      const url = await getGistUrl()
+      if (!url) {
+        toast.info(t('profiles.gistUrlUnavailable'))
+        return
+      }
+      await navigator.clipboard.writeText(`${url}/raw/routex.yaml`)
+      setGistCopied(true)
+      toast.success(t('common.copied'))
+      if (copyTimerRef.current !== null) {
+        clearTimeout(copyTimerRef.current)
+      }
+      copyTimerRef.current = setTimeout(() => {
+        copyTimerRef.current = null
+        setGistCopied(false)
+      }, 1500)
+    } catch (error) {
+      notifyError(error)
+    }
+  }
+
+  const uaPlaceholder = defaultUserAgent
+    ? t('connections.defaultInterval', { value: defaultUserAgent })
+    : undefined
+  const tokenToggleLabel = t(showToken ? 'profiles.hideToken' : 'profiles.showToken')
+
   return (
     <Modal
       backdrop="blur"
-      classNames={createSecondaryModalClassNames()}
+      classNames={createSecondaryModalClassNames(MODAL_SETTING_MODAL_OVERRIDES)}
       size="md"
       hideCloseButton
       isOpen={true}
@@ -78,99 +206,160 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
     >
       <ModalContent
         className="flag-emoji"
-        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 560 })}
+        style={getMainPaneModalContentStyle({ collapseSidebar, siderWidth, maxWidthPx: 580 })}
       >
-        <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
+        <ModalHeader className={MODAL_SETTING_HEADER_CLASSNAME}>
           <span>{t('page.profiles.settings')}</span>
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
-        <ModalBody className="px-6 py-2 gap-1 pb-4 pt-0">
-          <SettingItem title={t('profiles.displayDate')} divider>
-            <Tabs
-              size="sm"
-              color="primary"
-              variant="solid"
-              radius="lg"
-              selectedKey={profileDisplayDate}
-              onSelectionChange={async (v) => {
-                try {
-                  await patchAppConfig({
-                    profileDisplayDate: v as 'expire' | 'update'
-                  })
-                } catch (error) {
-                  notifyError(error)
-                }
-              }}
-            >
-              <Tab key="update" title={t('profiles.updateTime')} />
-              <Tab key="expire" title={t('profiles.expireTime')} />
-            </Tabs>
-          </SettingItem>
-          <SettingItem
-            title={t('profiles.diffWorkDir')}
-            actions={
-              <Tooltip content={t('profiles.diffWorkDirHelp')}>
-                <Button isIconOnly size="sm" variant="light">
-                  <IoIosHelpCircle className="text-lg" />
-                </Button>
-              </Tooltip>
-            }
-            divider
-          >
-            <AppSwitch
-              size="sm"
-              isSelected={diffWorkDir}
-              onValueChange={(v) => {
-                patchAppConfig({ diffWorkDir: v }).catch((error) => notifyError(error))
-              }}
-            />
-          </SettingItem>
-          <SettingItem title={t('profiles.userAgent')} divider>
-            <Input
-              size="sm"
-              className="w-[60%]"
-              value={ua}
-              placeholder={t('connections.defaultInterval', { value: defaultUserAgent })}
-              onValueChange={(v) => {
-                setUa(v)
-                setUaDebounce(v)
-              }}
-            />
-          </SettingItem>
-          <SettingItem
-            title={t('profiles.syncGist')}
-            actions={
-              <Button
-                title={t('profiles.copyGistUrl')}
-                isIconOnly
+        <ModalBody className={MODAL_SETTING_BODY_CLASSNAME}>
+          <ModalSettingSection>
+            <ModalSettingRow title={t('profiles.displayDate')}>
+              <Tabs
+                aria-label={t('profiles.displayDate')}
                 size="sm"
-                variant="light"
-                onPress={async () => {
+                classNames={MODAL_SECTION_TABS_CLASSNAMES}
+                selectedKey={profileDisplayDate}
+                onSelectionChange={async (v) => {
                   try {
-                    const url = await getGistUrl()
-                    if (url !== '') {
-                      await navigator.clipboard.writeText(`${url}/raw/routex.yaml`)
-                    }
-                  } catch (e) {
-                    alert(e)
+                    await patchAppConfig({
+                      profileDisplayDate: v as 'expire' | 'update'
+                    })
+                  } catch (error) {
+                    notifyError(error)
                   }
                 }}
               >
-                <BiCopy className="text-lg" />
-              </Button>
-            }
-          >
-            <Input
-              type="password"
-              size="sm"
-              className="w-[60%]"
-              value={githubToken}
-              placeholder="GitHub Token"
-              onValueChange={(v) => {
-                patchAppConfig({ githubToken: v }).catch((error) => notifyError(error))
-              }}
-            />
-          </SettingItem>
+                <Tab key="update" title={t('profiles.updateTime')} />
+                <Tab key="expire" title={t('profiles.expireTime')} />
+              </Tabs>
+            </ModalSettingRow>
+
+            <ModalSettingRow
+              title={t('profiles.diffWorkDir')}
+              titleActions={
+                <Tooltip content={t('profiles.diffWorkDirHelp')} className="max-w-[260px]">
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    radius="full"
+                    aria-label={t('profiles.diffWorkDirHelp')}
+                    className="h-6 w-6 min-w-6 text-default-400 hover:text-primary"
+                  >
+                    <IoHelpCircleOutline className="text-base" />
+                  </Button>
+                </Tooltip>
+              }
+            >
+              <AppSwitch
+                size="sm"
+                aria-label={t('profiles.diffWorkDir')}
+                isSelected={diffWorkDir}
+                onValueChange={(v) => {
+                  patchAppConfig({ diffWorkDir: v }).catch((error) => notifyError(error))
+                }}
+              />
+            </ModalSettingRow>
+
+            <ModalSettingRow title={t('profiles.userAgent')}>
+              <Input
+                size="sm"
+                aria-label={t('profiles.userAgent')}
+                className="w-full sm:w-[260px]"
+                classNames={MODAL_SECTION_INPUT_CLASSNAMES}
+                value={ua}
+                placeholder={uaPlaceholder}
+                onValueChange={(v) => {
+                  setUa(v)
+                  scheduleUaSave(v)
+                }}
+                onBlur={() => commitUa(ua)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    commitUa(ua)
+                  }
+                }}
+                endContent={
+                  ua.trim().length > 0 ? (
+                    <Tooltip content={t('proxies.resetToDefault')}>
+                      <button
+                        type="button"
+                        aria-label={t('proxies.resetToDefault')}
+                        className="rounded-full p-0.5 text-default-400 transition-colors hover:bg-default-200/70 hover:text-foreground"
+                        onClick={() => {
+                          setUa('')
+                          commitUa('')
+                        }}
+                      >
+                        <MdClose className="text-sm" />
+                      </button>
+                    </Tooltip>
+                  ) : null
+                }
+              />
+            </ModalSettingRow>
+
+            <ModalSettingRow
+              title={t('profiles.syncGist')}
+              titleActions={
+                <Tooltip content={t('profiles.copyGistUrl')}>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    radius="full"
+                    aria-label={t('profiles.copyGistUrl')}
+                    className="h-6 w-6 min-w-6 text-default-400 hover:text-primary"
+                    onPress={() => {
+                      void handleCopyGistUrl()
+                    }}
+                  >
+                    {gistCopied ? (
+                      <IoCheckmark className="text-base text-success" />
+                    ) : (
+                      <IoCopyOutline className="text-sm" />
+                    )}
+                  </Button>
+                </Tooltip>
+              }
+            >
+              <Input
+                type={showToken ? 'text' : 'password'}
+                size="sm"
+                aria-label={t('profiles.syncGist')}
+                className="w-full sm:w-[260px]"
+                classNames={MODAL_SECTION_INPUT_CLASSNAMES}
+                value={token}
+                placeholder="GitHub Token"
+                onValueChange={(v) => {
+                  setToken(v)
+                  scheduleTokenSave(v)
+                }}
+                onBlur={() => commitToken(token)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    commitToken(token)
+                  }
+                }}
+                endContent={
+                  <button
+                    type="button"
+                    aria-label={tokenToggleLabel}
+                    title={tokenToggleLabel}
+                    className="rounded-full p-0.5 text-default-400 transition-colors hover:bg-default-200/70 hover:text-foreground"
+                    onClick={() => setShowToken((prev) => !prev)}
+                  >
+                    {showToken ? (
+                      <IoEyeOff className="text-base" />
+                    ) : (
+                      <IoEye className="text-base" />
+                    )}
+                  </button>
+                }
+              />
+            </ModalSettingRow>
+          </ModalSettingSection>
         </ModalBody>
       </ModalContent>
     </Modal>
