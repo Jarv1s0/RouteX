@@ -1,3 +1,5 @@
+import { NEUTRAL_CHIP_CLASSNAME } from './proxy-colors'
+
 export interface DelayThresholds {
   good: number
   fair: number
@@ -36,4 +38,14 @@ export function getBoundedDelayColor(
   if (delay <= goodLimit) return 'success'
   if (delay <= fairLimit) return 'warning'
   return 'danger'
+}
+
+export function getBoundedDelayChipClassName(
+  delay: number | undefined,
+  goodLimit: number,
+  fairLimit: number
+): string {
+  return getBoundedDelayColor(delay, goodLimit, fairLimit) === 'default'
+    ? NEUTRAL_CHIP_CLASSNAME
+    : ''
 }

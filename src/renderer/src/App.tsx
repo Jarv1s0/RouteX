@@ -11,7 +11,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import { SEND, sendIpc } from '@renderer/utils/ipc-channels'
 import { C, invokeSafe } from '@renderer/utils/ipc-core'
 import { checkUpdate, setNativeTheme, UPDATE_CHECK_RESULT_EVENT } from '@renderer/api/app'
-import { applyTheme } from '@renderer/utils/theme-ipc'
+import { applyReduceTransparencyClass, applyTheme } from '@renderer/utils/theme-ipc'
 import { DEFAULT_CUSTOM_THEME } from '../../shared/defaults/app'
 import { startTauriMihomoEventBridge } from '@renderer/utils/mihomo-ipc'
 import { ensureTauriTrafficRecorder } from '@renderer/utils/tauri-traffic-stats'
@@ -31,6 +31,7 @@ const App: React.FC = () => {
   const {
     appTheme = 'system',
     customTheme,
+    reduceTransparency = false,
     siderWidth = 220,
     updateChannel = 'stable',
     sysProxy,
@@ -175,6 +176,13 @@ const App: React.FC = () => {
     }
     void applyTheme(customTheme || DEFAULT_CUSTOM_THEME)
   }, [appConfig, customTheme])
+
+  useEffect(() => {
+    if (!appConfig) {
+      return
+    }
+    applyReduceTransparencyClass(reduceTransparency)
+  }, [appConfig, reduceTransparency])
 
   useEffect(() => {
     if (__ROUTEX_HOST__ !== 'tauri' || !appConfig || mainWindowReadySentRef.current) {

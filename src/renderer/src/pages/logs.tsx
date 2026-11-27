@@ -309,7 +309,9 @@ const Logs: React.FC = () => {
               className="flex-1 min-w-0"
               classNames={{
                 ...CARD_STYLES.GLASS_INPUT,
-                inputWrapper: `${CARD_STYLES.GLASS_INPUT.inputWrapper} pr-1`
+                inputWrapper: `${CARD_STYLES.GLASS_INPUT.inputWrapper} pr-1 ${
+                  isInvalidRegex ? '!border-danger ring-1 ring-danger/40' : ''
+                }`
               }}
             />
 

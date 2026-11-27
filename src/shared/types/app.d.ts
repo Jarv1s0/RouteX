@@ -72,6 +72,7 @@ interface AppConfig {
   appTheme: AppTheme
   language?: AppLanguage
   customTheme?: string
+  reduceTransparency?: boolean
   autoCheckUpdate: boolean
   silentStart: boolean
   autoCloseConnection: boolean

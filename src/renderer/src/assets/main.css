@@ -255,8 +255,8 @@ textarea:focus-visible {
   border: none !important;
 }
 
-[data-slot='input-wrapper']:focus-within {
-  border-color: hsl(var(--heroui-primary)) !important;
+[data-slot='base']:not([data-invalid='true']) [data-slot='input-wrapper']:focus-within {
+  border-color: hsl(var(--heroui-primary));
   box-shadow: 0 0 0 2px hsl(var(--heroui-primary) / 0.2);
 }
 
@@ -690,52 +690,184 @@ textarea:focus-visible {
   }
 }
 
-/* GLOBAL INPUT OVERRIDE FOR PREMIUM GLASS STYLE */
+/* GLOBAL INPUT BASE OVERRIDE FOR PREMIUM GLASS STYLE */
 div[data-slot='input-wrapper'] {
-  background-color: rgba(255, 255, 255, 0.72) !important;
-  backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  background-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 1px 3px rgba(0, 0, 0, 0.04) !important;
-  border-radius: 1rem !important; /* rounded-2xl */
-  height: 2rem !important; /* h-8 */
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 1rem; /* rounded-2xl */
+  height: 2rem; /* h-8 */
   transition:
     background-color 200ms ease,
     border-color 200ms ease,
-    box-shadow 200ms ease !important;
+    box-shadow 200ms ease;
+}
+
+[data-slot='base'][data-invalid='true'] div[data-slot='input-wrapper'] {
+  border-color: hsl(var(--heroui-danger));
+}
+
+[data-slot='base'][data-invalid='true'] div[data-slot='input-wrapper']:focus-within,
+[data-slot='base'][data-invalid='true'] div[data-slot='input-wrapper'][data-focus='true'] {
+  box-shadow: 0 0 0 2px hsl(var(--heroui-danger) / 0.2);
 }
 
 .glass-toolbar div[data-slot='input-wrapper'] {
-  border-radius: 9999px !important;
+  border-radius: 9999px;
 }
 
 .dark div[data-slot='input-wrapper'] {
-  background-color: rgba(255, 255, 255, 0.07) !important;
-  border-color: rgba(255, 255, 255, 0.14) !important;
+  background-color: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-div[data-slot='input-wrapper'][data-hover='true'] {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-color: rgba(255, 255, 255, 0.95) !important;
+[data-slot='base']:not([data-invalid='true']) div[data-slot='input-wrapper'][data-hover='true'] {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.95);
 }
 
-.dark div[data-slot='input-wrapper'][data-hover='true'] {
-  background-color: rgba(255, 255, 255, 0.11) !important;
-  border-color: rgba(255, 255, 255, 0.22) !important;
+.dark
+  [data-slot='base']:not([data-invalid='true'])
+  div[data-slot='input-wrapper'][data-hover='true'] {
+  background-color: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
-div[data-slot='input-wrapper'][data-focus='true'] {
-  background-color: rgba(255, 255, 255, 0.98) !important;
-  border-color: hsl(var(--heroui-primary) / 0.5) !important;
+[data-slot='base']:not([data-invalid='true']) div[data-slot='input-wrapper'][data-focus='true'] {
+  background-color: rgba(255, 255, 255, 0.98);
+  border-color: hsl(var(--heroui-primary) / 0.5);
   box-shadow:
     0 0 0 1px hsl(var(--heroui-primary) / 0.75),
-    0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.dark div[data-slot='input-wrapper'][data-focus='true'] {
-  background-color: hsl(var(--heroui-default-100) / 0.65) !important;
+.dark
+  [data-slot='base']:not([data-invalid='true'])
+  div[data-slot='input-wrapper'][data-focus='true'] {
+  background-color: hsl(var(--heroui-default-100) / 0.65);
+}
+
+/* 减弱透明（高对比度底色）模式 */
+html.reduce-transparency body:has(.main) .side,
+html.reduce-transparency .side {
+  background-color: hsl(240 8% 96% / 0.98);
+  border-right-color: rgba(15, 23, 42, 0.12);
+  backdrop-filter: none;
+}
+
+html.reduce-transparency.dark body:has(.main) .side,
+html.reduce-transparency.dark .side {
+  background-color: hsl(230 15% 11% / 0.98);
+  border-right-color: rgba(255, 255, 255, 0.14);
+  backdrop-filter: none;
+}
+
+html.reduce-transparency .rt-glass-surface,
+html.reduce-transparency .rt-glass-list {
+  background-color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.12);
+  backdrop-filter: none;
+}
+
+html.reduce-transparency .rt-glass-surface:hover,
+html.reduce-transparency .rt-glass-list:hover {
+  background-color: rgba(255, 255, 255, 0.98);
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+html.reduce-transparency.dark .rt-glass-surface,
+html.reduce-transparency.dark .rt-glass-list {
+  background-color: hsl(230 13% 15% / 0.95);
+  border-color: rgba(255, 255, 255, 0.16);
+  backdrop-filter: none;
+}
+
+html.reduce-transparency.dark .rt-glass-surface:hover,
+html.reduce-transparency.dark .rt-glass-list:hover {
+  background-color: hsl(230 13% 19% / 0.98);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+html.reduce-transparency .rt-glass-selected,
+html.reduce-transparency .rt-glass-selected-secondary {
+  background-color: color-mix(in srgb, hsl(var(--heroui-primary)) 12%, hsl(var(--heroui-content1)));
+  border-color: hsl(var(--heroui-primary) / 0.5);
+  backdrop-filter: none;
+}
+
+html.reduce-transparency .rt-glass-selected:hover {
+  background-color: color-mix(in srgb, hsl(var(--heroui-primary)) 18%, hsl(var(--heroui-content1)));
+  border-color: hsl(var(--heroui-primary) / 0.65);
+}
+
+html.reduce-transparency .rt-glass-selected-secondary {
+  background-color: color-mix(
+    in srgb,
+    hsl(var(--heroui-secondary)) 12%,
+    hsl(var(--heroui-content1))
+  );
+  border-color: hsl(var(--heroui-secondary) / 0.5);
+}
+
+html.reduce-transparency .rt-glass-selected-secondary:hover {
+  background-color: color-mix(
+    in srgb,
+    hsl(var(--heroui-secondary)) 18%,
+    hsl(var(--heroui-content1))
+  );
+  border-color: hsl(var(--heroui-secondary) / 0.65);
+}
+
+html.reduce-transparency .rt-glass-control:not([data-slot='input-wrapper']) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  backdrop-filter: none !important;
+}
+
+html.reduce-transparency.dark .rt-glass-control:not([data-slot='input-wrapper']) {
+  background-color: hsl(230 12% 17% / 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: none !important;
+}
+
+html.reduce-transparency .rt-glass-popover,
+html.reduce-transparency [data-slot='content'][role='tooltip'] {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  backdrop-filter: none !important;
+}
+
+html.reduce-transparency.dark .rt-glass-popover,
+html.reduce-transparency.dark [data-slot='content'][role='tooltip'] {
+  background-color: hsl(230 14% 14% / 0.98) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: none !important;
+}
+
+html.reduce-transparency div[data-slot='input-wrapper'] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: none !important;
+}
+
+html.reduce-transparency
+  [data-slot='base']:not([data-invalid='true'])
+  div[data-slot='input-wrapper'] {
+  border-color: rgba(15, 23, 42, 0.16) !important;
+}
+
+html.reduce-transparency.dark div[data-slot='input-wrapper'] {
+  background-color: hsl(230 12% 18% / 0.96) !important;
+  backdrop-filter: none !important;
+}
+
+html.reduce-transparency.dark
+  [data-slot='base']:not([data-invalid='true'])
+  div[data-slot='input-wrapper'] {
+  border-color: rgba(255, 255, 255, 0.2) !important;
 }

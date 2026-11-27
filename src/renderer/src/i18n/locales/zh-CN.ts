@@ -533,6 +533,7 @@ export const zhCN = {
   'settings.appearance.proxyInTray': '托盘菜单显示节点信息',
   'settings.appearance.showDock': '显示 Dock 图标',
   'settings.appearance.collapseSidebar': '折叠侧边栏',
+  'settings.appearance.reduceTransparency': '减弱透明（高对比度底色）',
   'settings.appearance.background': '背景色',
   'settings.appearance.dark': '深色',
   'settings.appearance.light': '浅色',

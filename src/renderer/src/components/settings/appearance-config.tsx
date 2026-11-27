@@ -62,6 +62,7 @@ const AppearanceConfig: React.FC = () => {
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = false,
     collapseSidebar = false,
+    reduceTransparency = false,
 
     customTheme = DEFAULT_CUSTOM_THEME,
     appTheme = 'system'
@@ -219,6 +220,19 @@ const AppearanceConfig: React.FC = () => {
             onValueChange={async (v) => {
               try {
                 await patchAppConfig({ collapseSidebar: v })
+              } catch (error) {
+                notifyError(error)
+              }
+            }}
+          />
+        </SettingItem>
+        <SettingItem title={t('settings.appearance.reduceTransparency')} divider>
+          <AppSwitch
+            size="sm"
+            isSelected={reduceTransparency}
+            onValueChange={async (v) => {
+              try {
+                await patchAppConfig({ reduceTransparency: v })
               } catch (error) {
                 notifyError(error)
               }

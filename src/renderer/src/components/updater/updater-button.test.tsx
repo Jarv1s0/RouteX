@@ -54,11 +54,12 @@ describe('UpdaterButton', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders frosted update button and opens modal on press', async () => {
+  it('renders compact danger update button and opens modal on press', async () => {
     render(<UpdaterButton latest={{ version: '4.7.0', releaseNotes: 'notes' }} compact />)
 
     const button = screen.getByRole('button', { name: 'sidebar.newVersion:4.7.0' })
-    expect(button.className).toContain('rounded-xl')
+    expect(button.className).toContain('rounded-lg')
+    expect(button.className).toContain('text-red-500')
 
     fireEvent.click(button)
     expect(await screen.findByTestId('updater-modal')).toBeTruthy()

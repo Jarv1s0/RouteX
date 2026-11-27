@@ -7,7 +7,10 @@ import { useGroups } from './hooks/use-groups'
 import { subscribeDesktopTraffic } from './utils/mihomo-ipc'
 import { calcTraffic } from './utils/calc'
 import { useI18n } from './i18n'
-import { getBoundedDelayColor } from './utils/delay-color'
+import {
+  getBoundedDelayChipClassName,
+  getBoundedDelayColor
+} from './utils/delay-color'
 import { useTrayActions } from './hooks/use-tray-actions'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -254,7 +257,7 @@ const TrayMenuApp: React.FC = () => {
                           size="sm"
                           color={getBoundedDelayColor(getCurrentDelay(group), 150, 300)}
                           variant="flat"
-                          className="h-5 min-w-[56px] rounded-full text-[10px]"
+                          className={`h-5 min-w-[56px] rounded-full text-[10px] ${getBoundedDelayChipClassName(getCurrentDelay(group), 150, 300)}`}
                         >
                           {formatDelay(getCurrentDelay(group))}
                         </Chip>
@@ -290,7 +293,7 @@ const TrayMenuApp: React.FC = () => {
                             size="sm"
                             color={getBoundedDelayColor(delay, 150, 300)}
                             variant="flat"
-                            className="h-5 min-w-[52px] shrink-0 rounded-full text-[10px]"
+                            className={`h-5 min-w-[52px] shrink-0 rounded-full text-[10px] ${getBoundedDelayChipClassName(delay, 150, 300)}`}
                           >
                             {formatDelay(delay)}
                           </Chip>

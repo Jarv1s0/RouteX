@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from 'vitest'
-import { extractImportedThemeName, upsertTauriThemeStyle } from './theme-ipc'
+import {
+  applyReduceTransparencyClass,
+  extractImportedThemeName,
+  upsertTauriThemeStyle
+} from './theme-ipc'
 
 afterEach(() => {
   document.head.innerHTML = ''
   delete document.documentElement.dataset['routexTheme']
+  document.documentElement.classList.remove('reduce-transparency')
 })
 
 it('decodes virtual file theme names and preserves local filenames containing %', () => {
@@ -44,4 +49,17 @@ it('skips redundant style textContent writes for identical CSS and applies edite
 
   upsertTauriThemeStyle('   ')
   expect(document.getElementById('routex-tauri-theme-style')).toBeNull()
+})
+
+it('toggles reduce-transparency root class reliably across windows', () => {
+  expect(document.documentElement.classList.contains('reduce-transparency')).toBe(false)
+
+  applyReduceTransparencyClass(true)
+  expect(document.documentElement.classList.contains('reduce-transparency')).toBe(true)
+
+  applyReduceTransparencyClass(false)
+  expect(document.documentElement.classList.contains('reduce-transparency')).toBe(false)
+
+  applyReduceTransparencyClass(undefined)
+  expect(document.documentElement.classList.contains('reduce-transparency')).toBe(false)
 })

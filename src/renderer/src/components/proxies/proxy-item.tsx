@@ -102,7 +102,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
       className={`group relative overflow-hidden border antialiased
         ${
           fixed
-            ? 'bg-secondary/10 border border-secondary/40 shadow-sm transition-all duration-150 ease-out data-[pressed=true]:scale-[0.98]'
+            ? 'rt-glass-selected-secondary bg-secondary/10 border border-secondary/40 shadow-sm transition-all duration-150 ease-out data-[pressed=true]:scale-[0.98]'
             : selected
               ? CARD_STYLES.PROXY_ITEM_SELECTED
               : CARD_STYLES.PROXY_ITEM_CARD

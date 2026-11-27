@@ -68,6 +68,11 @@ export async function writeTheme(theme: string, css: string): Promise<void> {
 let applyThemeRunning = false
 const waitList: string[] = []
 const TAURI_THEME_STYLE_ID = 'routex-tauri-theme-style'
+const REDUCE_TRANSPARENCY_CLASS = 'reduce-transparency'
+
+export function applyReduceTransparencyClass(enabled?: boolean): void {
+  document.documentElement.classList.toggle(REDUCE_TRANSPARENCY_CLASS, Boolean(enabled))
+}
 
 export function upsertTauriThemeStyle(css: string): void {
   const existing = document.getElementById(TAURI_THEME_STYLE_ID)

@@ -5,6 +5,9 @@ html:not(.dark) {
   /* 默认主题浅色画布：纯净中性浅银灰 (#F4F4F6)，让亮白玻璃卡片自然浮出且不发灰发蓝 */
   --heroui-background: 240 10% 96%;
   --heroui-foreground: 240 10% 12%;
+  --heroui-foreground-400: 240 5% 44%;
+  --heroui-foreground-500: 240 5% 34%;
+  --heroui-foreground-600: 240 6% 24%;
   --heroui-content1: 0 0% 100%;
   --heroui-content2: 240 6% 96%;
   --heroui-default-50: 0 0% 98%;
@@ -18,6 +21,9 @@ html.dark {
   /* 默认主题深色画布：纯净深空冷灰，保持克制通透的深色对比 */
   --heroui-background: 230 15% 8%;
   --heroui-foreground: 210 20% 98%;
+  --heroui-foreground-400: 220 8% 66%;
+  --heroui-foreground-500: 220 10% 76%;
+  --heroui-foreground-600: 215 12% 85%;
   --heroui-content1: 230 12% 14%;
   --heroui-content2: 230 10% 18%;
   --heroui-default-50: 230 12% 11%;

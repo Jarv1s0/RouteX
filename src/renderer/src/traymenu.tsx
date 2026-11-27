@@ -10,7 +10,7 @@ import { ControledMihomoConfigProvider } from './hooks/use-controled-mihomo-conf
 import { GroupsProvider } from './hooks/use-groups'
 import { useTheme } from 'next-themes'
 import { useAppConfig } from './hooks/use-app-config'
-import { applyTheme } from './utils/theme-ipc'
+import { applyReduceTransparencyClass, applyTheme } from './utils/theme-ipc'
 import { I18nProvider } from './i18n'
 import { DEFAULT_CUSTOM_THEME } from '../../shared/defaults/app'
 
@@ -24,6 +24,7 @@ const TrayMenuThemeBridge: React.FC = () => {
     }
 
     setTheme(appConfig.appTheme || 'system')
+    applyReduceTransparencyClass(appConfig.reduceTransparency)
   }, [appConfig, setTheme])
 
   useEffect(() => {

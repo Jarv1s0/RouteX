@@ -34,6 +34,14 @@ body,
   background: hsl(var(--heroui-content1, 0 0% 100%));
 }
 
+html.reduce-transparency .floating-bg {
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+html.reduce-transparency.dark .floating-bg {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
 .floating-icon-wrap {
   display: flex;
   align-items: center;

@@ -8,7 +8,7 @@ import React from 'react'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { useI18n } from '@renderer/i18n'
 import { resolveFinalProxyNode } from '@renderer/utils/proxy-groups'
-import { getProxyColor } from '@renderer/utils/proxy-colors'
+import { getProxyChipClassName, getProxyColor } from '@renderer/utils/proxy-colors'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -114,7 +114,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                     variant="flat"
                     color={getProxyColor(rule.proxy)}
                     classNames={{ content: 'text-xs' }}
-                    className="max-w-[7rem]"
+                    className={`max-w-[7rem] ${getProxyChipClassName(rule.proxy)}`}
                   >
                     <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
                       {rule.proxy}

@@ -3,7 +3,7 @@ import { Button, Card, CardBody, Chip, Tooltip } from '@heroui/react'
 import { LuFilePenLine, LuTrash2 } from 'react-icons/lu'
 import { useI18n } from '@renderer/i18n'
 import AppSwitch from '@renderer/components/base/app-switch'
-import { getProxyColor } from '@renderer/utils/proxy-colors'
+import { getProxyChipClassName, getProxyColor } from '@renderer/utils/proxy-colors'
 import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 interface LocalRuleItemProps {
@@ -87,7 +87,7 @@ const LocalRuleItem: React.FC<LocalRuleItemProps> = memo(
                       variant={targetMissing ? 'bordered' : 'flat'}
                       color={targetMissing ? 'warning' : getProxyColor(rule.target)}
                       classNames={{ content: 'text-xs' }}
-                      className="max-w-[7rem]"
+                      className={`max-w-[7rem] ${targetMissing ? '' : getProxyChipClassName(rule.target)}`}
                     >
                       <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
                         {rule.target}

@@ -557,6 +557,7 @@ export const enUS: Record<TranslationKey, string> = {
   'settings.appearance.proxyInTray': 'Show node info in tray menu',
   'settings.appearance.showDock': 'Show Dock icon',
   'settings.appearance.collapseSidebar': 'Collapse sidebar',
+  'settings.appearance.reduceTransparency': 'Reduce transparency (higher contrast)',
   'settings.appearance.background': 'Background',
   'settings.appearance.dark': 'Dark',
   'settings.appearance.light': 'Light',
