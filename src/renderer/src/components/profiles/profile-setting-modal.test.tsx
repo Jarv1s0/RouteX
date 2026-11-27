@@ -89,7 +89,7 @@ describe('ProfileSettingModal', () => {
     expect(mocks.patchAppConfig).toHaveBeenCalledWith({ userAgent: 'New-UA/2.0' })
 
     fireEvent.click(screen.getByRole('button', { name: 'proxies.resetToDefault' }))
-    expect(mocks.patchAppConfig).toHaveBeenCalledWith({ userAgent: '' })
+    await waitFor(() => expect(mocks.patchAppConfig).toHaveBeenCalledWith({ userAgent: '' }))
 
     const tokenInput = screen.getByLabelText('profiles.syncGist') as HTMLInputElement
     expect(tokenInput.type).toBe('password')
@@ -99,6 +99,30 @@ describe('ProfileSettingModal', () => {
     fireEvent.change(tokenInput, { target: { value: 'ghp_updated' } })
     fireEvent.blur(tokenInput)
     expect(mocks.patchAppConfig).toHaveBeenCalledWith({ githubToken: 'ghp_updated' })
+  })
+
+  it('saves the original UA when the user changes it back before the first write finishes', async () => {
+    let finishSave!: () => void
+    mocks.patchAppConfig.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishSave = resolve
+      })
+    )
+    renderModal()
+
+    const input = screen.getByLabelText('profiles.userAgent')
+    fireEvent.change(input, { target: { value: 'New-UA/2.0' } })
+    fireEvent.blur(input)
+    expect(mocks.patchAppConfig).toHaveBeenCalledWith({ userAgent: 'New-UA/2.0' })
+
+    fireEvent.change(input, { target: { value: 'Custom-UA/1.0' } })
+    fireEvent.blur(input)
+    expect(mocks.patchAppConfig).toHaveBeenCalledTimes(1)
+
+    finishSave()
+    await waitFor(() => {
+      expect(mocks.patchAppConfig).toHaveBeenNthCalledWith(2, { userAgent: 'Custom-UA/1.0' })
+    })
   })
 
   it('copies gist raw URL or shows info toast when gist URL is unavailable', async () => {

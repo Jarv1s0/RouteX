@@ -84,6 +84,31 @@ describe('ConnectionSettingModal', () => {
     })
   })
 
+  it('saves a return to the original interval after an in-flight change', async () => {
+    let finishSave!: () => void
+    mocks.patchAppConfig.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishSave = resolve
+      })
+    )
+    renderModal()
+
+    const input = screen.getByLabelText('connections.refreshInterval')
+    fireEvent.change(input, { target: { value: '1200' } })
+    fireEvent.blur(input)
+    expect(mocks.patchAppConfig).toHaveBeenCalledWith({ connectionInterval: 1200 })
+
+    fireEvent.change(input, { target: { value: '500' } })
+    fireEvent.blur(input)
+    expect(mocks.patchAppConfig).toHaveBeenCalledTimes(1)
+
+    finishSave()
+    await waitFor(() => {
+      expect(mocks.patchAppConfig).toHaveBeenNthCalledWith(2, { connectionInterval: 500 })
+      expect(mocks.restartMihomoConnections).toHaveBeenCalledTimes(2)
+    })
+  })
+
   it('toggles column visibility and resets custom table columns to defaults', () => {
     renderModal()
 

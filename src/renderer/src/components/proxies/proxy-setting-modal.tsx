@@ -13,6 +13,7 @@ import {
   Tooltip
 } from '@heroui/react'
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useQueuedSettingSave } from '@renderer/hooks/use-queued-setting-save'
 import {
   MdAdd,
   MdClose,
@@ -69,6 +70,13 @@ const MIN_DELAY_TEST_TIMEOUT = 1000
 const MAX_DELAY_TEST_TIMEOUT = 15000
 
 const DEFAULT_DELAY_THRESHOLDS = { good: 200, fair: 500 }
+
+function equalDelayThresholds(
+  a: typeof DEFAULT_DELAY_THRESHOLDS,
+  b: typeof DEFAULT_DELAY_THRESHOLDS
+): boolean {
+  return a.good === b.good && a.fair === b.fair
+}
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)))
@@ -146,8 +154,13 @@ const ProxySettingModal: React.FC<Props> = (props) => {
 
   const urlRef = useRef(url)
   urlRef.current = url
-  const savedUrlRef = useRef(delayTestUrl ?? '')
-  savedUrlRef.current = delayTestUrl ?? ''
+  const [saveUrl, isSavingUrl] = useQueuedSettingSave(delayTestUrl?.trim() ?? '')
+  const [saveConcurrency, isSavingConcurrency] = useQueuedSettingSave(savedConcurrency)
+  const [saveTimeout, isSavingTimeout] = useQueuedSettingSave(savedTimeout)
+  const [saveThresholds, isSavingThresholds] = useQueuedSettingSave(
+    delayThresholds,
+    equalDelayThresholds
+  )
   const urlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const commitUrl = useCallback(
@@ -156,12 +169,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
         clearTimeout(urlTimerRef.current)
         urlTimerRef.current = null
       }
-      const nextUrl = nextRawUrl.trim()
-      if (nextUrl === savedUrlRef.current.trim()) return
-      savedUrlRef.current = nextUrl
-      patchAppConfig({ delayTestUrl: nextUrl }).catch((error) => notifyError(error))
+      saveUrl(nextRawUrl.trim(), (delayTestUrl) => patchAppConfig({ delayTestUrl }))
     },
-    [patchAppConfig]
+    [patchAppConfig, saveUrl]
   )
 
   const scheduleUrlSave = useCallback(
@@ -169,20 +179,14 @@ const ProxySettingModal: React.FC<Props> = (props) => {
       if (urlTimerRef.current !== null) {
         clearTimeout(urlTimerRef.current)
       }
-      urlTimerRef.current = setTimeout(() => {
-        urlTimerRef.current = null
-        const nextUrl = nextRawUrl.trim()
-        if (nextUrl === savedUrlRef.current.trim()) return
-        savedUrlRef.current = nextUrl
-        patchAppConfig({ delayTestUrl: nextUrl }).catch((error) => notifyError(error))
-      }, 500)
+      urlTimerRef.current = setTimeout(() => commitUrl(nextRawUrl), 500)
     },
-    [patchAppConfig]
+    [commitUrl]
   )
 
   useEffect(() => {
-    setUrl(delayTestUrl ?? '')
-  }, [delayTestUrl])
+    if (urlTimerRef.current === null && !isSavingUrl()) setUrl(delayTestUrl ?? '')
+  }, [delayTestUrl, isSavingUrl])
 
   // 组件卸载或关闭弹窗前刷新挂起的测速地址保存，防止修改后立即关闭丢失
   useEffect(() => {
@@ -194,17 +198,18 @@ const ProxySettingModal: React.FC<Props> = (props) => {
   }, [commitUrl])
 
   useEffect(() => {
-    setConcurrencyInput(savedConcurrency.toString())
-  }, [savedConcurrency])
+    if (!isSavingConcurrency()) setConcurrencyInput(savedConcurrency.toString())
+  }, [savedConcurrency, isSavingConcurrency])
 
   useEffect(() => {
-    setTimeoutInput(savedTimeout.toString())
-  }, [savedTimeout])
+    if (!isSavingTimeout()) setTimeoutInput(savedTimeout.toString())
+  }, [savedTimeout, isSavingTimeout])
 
   useEffect(() => {
+    if (isSavingThresholds()) return
     setGoodThreshold(delayThresholds.good.toString())
     setFairThreshold(delayThresholds.fair.toString())
-  }, [delayThresholds.good, delayThresholds.fair])
+  }, [delayThresholds.good, delayThresholds.fair, isSavingThresholds])
 
   const commitConcurrency = useCallback(
     (raw = concurrencyInput) => {
@@ -213,11 +218,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
         ? clampInt(parsed, MIN_DELAY_TEST_CONCURRENCY, MAX_DELAY_TEST_CONCURRENCY)
         : savedConcurrency
       setConcurrencyInput(next.toString())
-      if (next !== savedConcurrency) {
-        patchAppConfig({ delayTestConcurrency: next }).catch((error) => notifyError(error))
-      }
+      saveConcurrency(next, (delayTestConcurrency) => patchAppConfig({ delayTestConcurrency }))
     },
-    [concurrencyInput, patchAppConfig, savedConcurrency]
+    [concurrencyInput, patchAppConfig, savedConcurrency, saveConcurrency]
   )
 
   const stepConcurrency = useCallback(
@@ -225,12 +228,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
       const parsed = Number.parseInt(concurrencyInput, 10)
       const base = Number.isFinite(parsed) ? parsed : savedConcurrency
       const next = clampInt(base + delta, MIN_DELAY_TEST_CONCURRENCY, MAX_DELAY_TEST_CONCURRENCY)
-      setConcurrencyInput(next.toString())
-      if (next !== savedConcurrency) {
-        patchAppConfig({ delayTestConcurrency: next }).catch((error) => notifyError(error))
-      }
+      commitConcurrency(next.toString())
     },
-    [concurrencyInput, patchAppConfig, savedConcurrency]
+    [commitConcurrency, concurrencyInput, savedConcurrency]
   )
 
   const commitTimeout = useCallback(
@@ -240,11 +240,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
         ? clampInt(parsed, MIN_DELAY_TEST_TIMEOUT, MAX_DELAY_TEST_TIMEOUT)
         : DEFAULT_DELAY_TEST_TIMEOUT
       setTimeoutInput(next.toString())
-      if (next !== savedTimeout) {
-        patchAppConfig({ delayTestTimeout: next }).catch((error) => notifyError(error))
-      }
+      saveTimeout(next, (delayTestTimeout) => patchAppConfig({ delayTestTimeout }))
     },
-    [patchAppConfig, savedTimeout, timeoutInput]
+    [patchAppConfig, saveTimeout, timeoutInput]
   )
 
   const commitThresholds = useCallback(
@@ -257,11 +255,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
       )
       setGoodThreshold(good.toString())
       setFairThreshold(fair.toString())
-      if (good !== delayThresholds.good || fair !== delayThresholds.fair) {
-        patchAppConfig({ delayThresholds: { good, fair } }).catch((error) => notifyError(error))
-      }
+      saveThresholds({ good, fair }, (delayThresholds) => patchAppConfig({ delayThresholds }))
     },
-    [delayThresholds, fairThreshold, goodThreshold, patchAppConfig]
+    [delayThresholds, fairThreshold, goodThreshold, patchAppConfig, saveThresholds]
   )
 
   const parsedConcurrency = Number.parseInt(concurrencyInput, 10)

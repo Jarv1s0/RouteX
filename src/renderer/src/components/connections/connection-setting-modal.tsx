@@ -1,6 +1,7 @@
 import { notifyError } from '@renderer/utils/notify'
 import { Modal, ModalContent, ModalHeader, ModalBody, Input, Button, Chip } from '@heroui/react'
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { useQueuedSettingSave } from '@renderer/hooks/use-queued-setting-save'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { restartMihomoConnections } from '@renderer/utils/mihomo-ipc'
 import {
@@ -134,27 +135,25 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
   const table = useConnectionTable(NO_CONNECTIONS)
 
   const [intervalInput, setIntervalInput] = useState(connectionInterval.toString())
+  const [saveInterval, isSavingInterval] = useQueuedSettingSave(connectionInterval)
 
   useEffect(() => {
-    setIntervalInput(connectionInterval.toString())
-  }, [connectionInterval])
+    if (!isSavingInterval()) setIntervalInput(connectionInterval.toString())
+  }, [connectionInterval, isSavingInterval])
 
   const commitInterval = useCallback(
-    async (raw = intervalInput) => {
+    (raw = intervalInput) => {
       const parsed = Number.parseInt(raw, 10)
       const next = Number.isFinite(parsed)
         ? Math.max(MIN_CONNECTION_INTERVAL, parsed)
         : MIN_CONNECTION_INTERVAL
       setIntervalInput(next.toString())
-      if (next === connectionInterval) return
-      try {
-        await patchAppConfig({ connectionInterval: next })
+      saveInterval(next, async (value) => {
+        await patchAppConfig({ connectionInterval: value })
         await restartMihomoConnections()
-      } catch (error) {
-        notifyError(error)
-      }
+      })
     },
-    [connectionInterval, intervalInput, patchAppConfig]
+    [intervalInput, patchAppConfig, saveInterval]
   )
 
   const sensors = useSensors(

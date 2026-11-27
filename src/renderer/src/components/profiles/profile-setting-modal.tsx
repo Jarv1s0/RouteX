@@ -11,6 +11,7 @@ import {
   Tooltip
 } from '@heroui/react'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useQueuedSettingSave } from '@renderer/hooks/use-queued-setting-save'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { getUserAgent } from '@renderer/api/app'
 import { getGistUrl } from '@renderer/utils/profile-ipc'
@@ -61,14 +62,12 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
 
   const uaRef = useRef(ua)
   uaRef.current = ua
-  const savedUaRef = useRef(userAgent ?? '')
-  savedUaRef.current = userAgent ?? ''
+  const [saveUa, isSavingUa] = useQueuedSettingSave(userAgent?.trim() ?? '')
   const uaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const tokenRef = useRef(token)
   tokenRef.current = token
-  const savedTokenRef = useRef(githubToken ?? '')
-  savedTokenRef.current = githubToken ?? ''
+  const [saveToken, isSavingToken] = useQueuedSettingSave(githubToken?.trim() ?? '')
   const tokenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -78,12 +77,9 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
         clearTimeout(uaTimerRef.current)
         uaTimerRef.current = null
       }
-      const next = nextRaw.trim()
-      if (next === savedUaRef.current.trim()) return
-      savedUaRef.current = next
-      patchAppConfig({ userAgent: next }).catch((error) => notifyError(error))
+      saveUa(nextRaw.trim(), (userAgent) => patchAppConfig({ userAgent }))
     },
-    [patchAppConfig]
+    [patchAppConfig, saveUa]
   )
 
   const scheduleUaSave = useCallback(
@@ -91,15 +87,9 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
       if (uaTimerRef.current !== null) {
         clearTimeout(uaTimerRef.current)
       }
-      uaTimerRef.current = setTimeout(() => {
-        uaTimerRef.current = null
-        const next = nextRaw.trim()
-        if (next === savedUaRef.current.trim()) return
-        savedUaRef.current = next
-        patchAppConfig({ userAgent: next }).catch((error) => notifyError(error))
-      }, 500)
+      uaTimerRef.current = setTimeout(() => commitUa(nextRaw), 500)
     },
-    [patchAppConfig]
+    [commitUa]
   )
 
   const commitToken = useCallback(
@@ -108,12 +98,9 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
         clearTimeout(tokenTimerRef.current)
         tokenTimerRef.current = null
       }
-      const next = nextRaw.trim()
-      if (next === savedTokenRef.current.trim()) return
-      savedTokenRef.current = next
-      patchAppConfig({ githubToken: next }).catch((error) => notifyError(error))
+      saveToken(nextRaw.trim(), (githubToken) => patchAppConfig({ githubToken }))
     },
-    [patchAppConfig]
+    [patchAppConfig, saveToken]
   )
 
   const scheduleTokenSave = useCallback(
@@ -121,15 +108,9 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
       if (tokenTimerRef.current !== null) {
         clearTimeout(tokenTimerRef.current)
       }
-      tokenTimerRef.current = setTimeout(() => {
-        tokenTimerRef.current = null
-        const next = nextRaw.trim()
-        if (next === savedTokenRef.current.trim()) return
-        savedTokenRef.current = next
-        patchAppConfig({ githubToken: next }).catch((error) => notifyError(error))
-      }, 500)
+      tokenTimerRef.current = setTimeout(() => commitToken(nextRaw), 500)
     },
-    [patchAppConfig]
+    [commitToken]
   )
 
   useEffect(() => {
@@ -146,12 +127,12 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
   }, [])
 
   useEffect(() => {
-    setUa(userAgent ?? '')
-  }, [userAgent])
+    if (uaTimerRef.current === null && !isSavingUa()) setUa(userAgent ?? '')
+  }, [userAgent, isSavingUa])
 
   useEffect(() => {
-    setToken(githubToken ?? '')
-  }, [githubToken])
+    if (tokenTimerRef.current === null && !isSavingToken()) setToken(githubToken ?? '')
+  }, [githubToken, isSavingToken])
 
   useEffect(() => {
     return () => {
