@@ -5,18 +5,28 @@ pub(crate) fn http_get_response(
     url: &str,
     timeout_ms: u64,
 ) -> Result<(reqwest::StatusCode, String, Value), String> {
+    let started = Instant::now();
     let client = external_http_client()?;
-    let mut last_error = String::new();
+    let timeout = Duration::from_millis(timeout_ms);
+    let retry_delay = Duration::from_millis(150);
+    let mut last_error = "HTTP 请求超时".to_string();
 
     // 对传输层发送失败（如连接池陈旧连接重置或网络瞬断）进行一次短暂退避重试
     for attempt in 0..2 {
         if attempt > 0 {
-            std::thread::sleep(Duration::from_millis(150));
+            if timeout.saturating_sub(started.elapsed()) <= retry_delay {
+                break;
+            }
+            std::thread::sleep(retry_delay);
         }
 
+        let remaining = timeout.saturating_sub(started.elapsed());
+        if remaining.is_zero() {
+            break;
+        }
         let response = match client
             .get(url)
-            .timeout(Duration::from_millis(timeout_ms))
+            .timeout(remaining)
             .header(reqwest::header::USER_AGENT, "Mozilla/5.0 RouteX-Tauri/1.0")
             .header(reqwest::header::ACCEPT, "*/*")
             .send()
@@ -97,5 +107,23 @@ pub(crate) fn test_connectivity_value(url: &str, timeout_ms: u64) -> Value {
             "latency": start.elapsed().as_millis() as i64,
             "error": error,
         }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::TcpListener;
+
+    #[test]
+    fn skips_retry_when_backoff_would_exceed_the_timeout() {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind local HTTP test server");
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        // Keep the listening socket open without sending a response.
+        let result = http_get_response(&url, 100);
+        listener.set_nonblocking(true).unwrap();
+        let attempts = std::iter::from_fn(|| listener.accept().ok()).count();
+        assert!(result.is_err());
+        assert_eq!(attempts, 1);
     }
 }
