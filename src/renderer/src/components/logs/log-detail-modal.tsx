@@ -8,7 +8,6 @@ import { useI18n } from '@renderer/i18n'
 import {
   getLogTagBadgeClass,
   getLogTypeBadgeClass,
-  getLogTypeMarkerClass,
   parseLogPayload
 } from '@renderer/utils/log-styles'
 import { renderLogContent } from '@renderer/components/logs/log-highlight'
@@ -51,7 +50,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
     <Modal
       backdrop="blur"
       classNames={createSecondaryModalClassNames({
-        base: 'overflow-hidden'
+        base: 'rounded-[18px] overflow-hidden'
       })}
       size="lg"
       hideCloseButton
@@ -60,10 +59,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
       scrollBehavior="inside"
     >
       <ModalContent style={modalContentStyle}>
-        <ModalHeader className="flex items-center justify-between gap-2 app-drag pl-3 pr-2 py-2 relative">
-          <div
-            className={`absolute left-0 top-2 bottom-2 w-1 rounded-r-full ${getLogTypeMarkerClass(log.type)}`}
-          />
+        <ModalHeader className="flex items-center justify-between gap-2 app-drag px-3 pt-2.5 pb-1.5">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="text-sm font-bold tracking-tight">{t('page.logs.detail')}</span>
             <span
@@ -93,7 +89,7 @@ const LogDetailModal: React.FC<Props> = (props) => {
               className={`app-nodrag min-w-0 px-3 h-7 text-xs transition-colors ${
                 copied
                   ? 'bg-success/15 text-success'
-                  : 'bg-default-100/70 hover:bg-default-200/70 text-foreground/80'
+                  : 'bg-default-200/65 hover:bg-default-200 text-foreground/80 dark:bg-white/[0.08] dark:hover:bg-white/[0.14]'
               }`}
               onPress={handleCopy}
             >
@@ -103,9 +99,9 @@ const LogDetailModal: React.FC<Props> = (props) => {
           </div>
         </ModalHeader>
 
-        <ModalBody className="p-2">
-          <div className="rounded-xl border border-default-200/70 dark:border-white/10 bg-default-100/50 dark:bg-black/25 overflow-hidden">
-            <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-default-200/50 dark:border-white/5 bg-default-100/40 dark:bg-white/[0.03] text-[11px] text-default-500">
+        <ModalBody className="px-2 pt-0.5 pb-2">
+          <div className="rounded-[12px] border border-default-200/85 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/12 dark:bg-zinc-900/60 overflow-hidden">
+            <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-default-200/70 dark:border-white/10 bg-default-100/70 dark:bg-white/[0.04] text-[11px] text-default-500">
               <div className="flex items-center gap-1.5 font-mono tabular-nums select-text">
                 <IoTimeOutline className="text-xs text-default-400" />
                 <span>{log.time || '-'}</span>
