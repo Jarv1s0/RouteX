@@ -72,7 +72,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
 
             {/* 序号 Index */}
             <span
-              className={`w-6 flex-shrink-0 text-right text-xs tabular-nums text-foreground-400 ${!enabled ? 'line-through' : ''}`}
+              className={`w-6 flex-shrink-0 text-right text-xs tabular-nums text-foreground/65 ${!enabled ? 'line-through' : ''}`}
             >
               {index + 1}.
             </span>
@@ -83,7 +83,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
             >
               {/* 类型列 */}
               <div className="w-[84px] flex-shrink-0">
-                <span className="inline-flex max-w-full items-center truncate rounded-full border border-default-200/80 bg-default-100/70 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-default-600 dark:border-white/10 dark:bg-white/[0.06] dark:text-default-400">
+                <span className="inline-flex max-w-full items-center truncate rounded-full border border-default-200/80 bg-default-100/70 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-foreground/80 dark:border-white/10 dark:bg-white/[0.06]">
                   {format === 'PROCESS-NAME-WILDCARD'
                     ? 'PROC-NAME-WILD'
                     : format === 'PROCESS-PATH-WILDCARD'
@@ -100,7 +100,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                   {name}
                 </span>
                 {provider && (
-                  <span className="text-xs text-foreground-400 font-normal flex-shrink-0 tabular-nums">
+                  <span className="text-xs text-foreground/65 font-normal flex-shrink-0 tabular-nums">
                     {provider.ruleCount}
                   </span>
                 )}
@@ -122,7 +122,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                   </Chip>
                   {currentNode && currentNode !== rule.proxy && (
                     <>
-                      <span className="text-xs text-foreground-300 flex-shrink-0">→</span>
+                      <span className="text-xs text-foreground/50 flex-shrink-0">→</span>
                       <Chip
                         size="sm"
                         variant="flat"
@@ -144,7 +144,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
               {provider && (
                 <div className="flex items-center gap-2 pr-1">
                   {/* 更新时间，定宽居中对齐，平衡两侧间距 */}
-                  <span className="text-foreground-400 text-xs w-[48px] text-center hidden sm:inline-block tracking-tighter whitespace-nowrap overflow-hidden text-ellipsis">
+                  <span className="text-foreground/65 text-xs w-[48px] text-center hidden sm:inline-block tracking-tighter whitespace-nowrap overflow-hidden text-ellipsis">
                     {dayjs(provider.updatedAt).fromNow()}
                   </span>
 
@@ -153,7 +153,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                     className={`flex items-center gap-1 transition-opacity ${
                       updating
                         ? 'opacity-100'
-                        : 'opacity-45 group-hover:opacity-100 focus-within:opacity-100'
+                        : 'opacity-55 group-hover:opacity-100 focus-within:opacity-100'
                     }`}
                   >
                     {provider.vehicleType !== 'Inline' && (
@@ -165,7 +165,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                         }
                         size="sm"
                         onPress={onView}
-                        className="min-w-8 w-8 h-8 text-default-400 hover:text-foreground"
+                        className="min-w-8 w-8 h-8 text-foreground/65 hover:text-foreground"
                       >
                         {provider.vehicleType === 'File' ? (
                           <LuFilePenLine className="text-base" />
@@ -180,7 +180,7 @@ const RemoteRuleItem: React.FC<RemoteRuleItemProps> = ({
                       title={t('common.update')}
                       size="sm"
                       onPress={onUpdate}
-                      className="min-w-8 w-8 h-8 text-default-400 hover:text-primary"
+                      className="min-w-8 w-8 h-8 text-foreground/65 hover:text-primary"
                     >
                       <IoMdRefresh className={`text-base ${updating ? 'animate-spin text-primary' : ''}`} />
                     </Button>

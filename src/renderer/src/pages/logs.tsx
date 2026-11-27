@@ -236,7 +236,7 @@ const Logs: React.FC = () => {
                 className="flex items-center gap-1 group relative"
                 title={t('page.logs.retentionHint')}
               >
-                <span className="text-[10px] text-default-400 select-none">
+                <span className="text-[10px] text-foreground/65 select-none">
                   {t('page.logs.keep')}
                 </span>
                 <Input
@@ -257,7 +257,7 @@ const Logs: React.FC = () => {
                     patchAppConfig({ maxLogDays: val }).catch((error) => notifyError(error))
                   }}
                 />
-                <span className="text-[10px] text-default-400 select-none">
+                <span className="text-[10px] text-foreground/65 select-none">
                   {t('page.logs.days')}
                 </span>
               </div>
@@ -273,7 +273,7 @@ const Logs: React.FC = () => {
               placeholder={t('common.search')}
               title={t('page.logs.searchHint')}
               isInvalid={isInvalidRegex}
-              startContent={<IoJournalOutline className="text-default-400 text-sm shrink-0" />}
+              startContent={<IoJournalOutline className="text-foreground/60 text-sm shrink-0" />}
               endContent={
                 <div className="flex items-center gap-0.5 shrink-0">
                   {filter && (
@@ -282,7 +282,7 @@ const Logs: React.FC = () => {
                       isIconOnly
                       variant="light"
                       aria-label="clear input"
-                      className="min-w-6 w-6 h-6 rounded-full text-default-400 hover:text-foreground"
+                      className="min-w-6 w-6 h-6 rounded-full text-foreground/60 hover:text-foreground"
                       onPress={() => setFilter('')}
                     >
                       <IoCloseCircle className="text-base" />
@@ -297,7 +297,7 @@ const Logs: React.FC = () => {
                     className={`min-w-7 h-6 px-2 rounded-full text-xs font-mono font-semibold transition-all ${
                       isRegex
                         ? 'bg-primary text-primary-foreground border border-primary shadow-sm'
-                        : 'bg-default-200/75 dark:bg-default-100/45 text-default-700 dark:text-default-300 border border-default-300/60 dark:border-white/15 hover:bg-default-300/80 hover:text-foreground'
+                        : 'bg-default-200/75 dark:bg-default-100/45 text-foreground/80 border border-default-300/60 dark:border-white/15 hover:bg-default-300/80 hover:text-foreground'
                     }`}
                     onPress={() => setIsRegex((prev) => !prev)}
                   >
@@ -322,7 +322,9 @@ const Logs: React.FC = () => {
                 aria-label={t('page.logs.compactMode')}
                 aria-pressed={compact}
                 className={`min-w-8 w-8 h-8 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON} transition-colors ${
-                  compact ? 'text-primary bg-primary/10' : 'text-default-400 hover:text-foreground'
+                  compact
+                    ? 'text-primary bg-primary/10'
+                    : 'text-foreground/70 hover:text-foreground'
                 }`}
                 variant="light"
                 onPress={() => setCompact((prev) => !prev)}
@@ -347,7 +349,7 @@ const Logs: React.FC = () => {
                 size="sm"
                 isIconOnly
                 title={t('page.logs.clear')}
-                className={`min-w-8 w-8 h-8 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON} text-default-400 hover:text-danger hover:bg-danger/10 transition-colors`}
+                className={`min-w-8 w-8 h-8 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON} text-foreground/70 hover:text-danger hover:bg-danger/10 transition-colors`}
                 variant="light"
                 onPress={() => {
                   clearLogs()
@@ -361,7 +363,7 @@ const Logs: React.FC = () => {
                 size="sm"
                 isIconOnly
                 title={t('page.logs.export')}
-                className={`min-w-8 w-8 h-8 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON} text-default-400 hover:text-primary hover:bg-primary/10 transition-colors`}
+                className={`min-w-8 w-8 h-8 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON} text-foreground/70 hover:text-primary hover:bg-primary/10 transition-colors`}
                 variant="light"
                 isDisabled={filteredLogs.length === 0}
                 onPress={handleExportLogs}
@@ -385,7 +387,7 @@ const Logs: React.FC = () => {
                     className={`px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors cursor-pointer border ${
                       active
                         ? 'bg-primary/15 text-primary border-primary/30'
-                        : 'bg-default-100/60 dark:bg-default-100/20 text-default-500 border-transparent hover:text-foreground hover:bg-default-200/60'
+                        : 'bg-default-100/60 dark:bg-default-100/20 text-foreground/75 border-transparent hover:text-foreground hover:bg-default-200/60'
                     }`}
                   >
                     {mod === 'ALL' ? t('page.logs.allModules') : mod}
@@ -393,7 +395,7 @@ const Logs: React.FC = () => {
                 )
               })}
             </div>
-            <div className="flex items-center gap-2 shrink-0 text-[11px] font-mono text-default-400 tabular-nums">
+            <div className="flex items-center gap-2 shrink-0 text-[11px] font-mono text-foreground/65 tabular-nums">
               {paused && (
                 <span className="px-1.5 py-0.5 rounded bg-warning/15 text-warning font-sans text-[10px] font-medium">
                   {t('page.logs.pausedBadge')}

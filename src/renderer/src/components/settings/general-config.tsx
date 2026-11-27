@@ -229,7 +229,7 @@ const GeneralConfig: React.FC = () => {
               <ModalBody className="py-2 px-4">
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-col gap-2 rounded-xl border border-default-100 bg-content1/50 p-2 shadow-sm transition-all duration-300 hover:border-default-200 hover:bg-content1 hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-sm font-medium text-foreground-600">
+                    <span className="text-sm font-medium text-foreground/90">
                       {t('settings.clash.lightweightBehavior')}
                     </span>
                     <Tabs
@@ -254,7 +254,7 @@ const GeneralConfig: React.FC = () => {
                     </Tabs>
                   </div>
                   <div className="flex flex-col gap-2 rounded-xl border border-default-100 bg-content1/50 p-2 shadow-sm transition-all duration-300 hover:border-default-200 hover:bg-content1 hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-sm font-medium text-foreground-600">
+                    <span className="text-sm font-medium text-foreground/90">
                       {t('settings.clash.lightweightDelay')}
                     </span>
                     <Input

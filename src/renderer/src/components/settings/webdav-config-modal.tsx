@@ -40,7 +40,7 @@ const WebdavFieldInput: React.FC<{
   onValueChange: (field: WebdavField, value: string) => void
 }> = ({ title, field, value, type = 'text', placeholder, endContent, onValueChange }) => (
   <div className="flex flex-col gap-1.5">
-    <label className="text-xs font-semibold text-foreground-700">{title}</label>
+    <label className="text-xs font-semibold text-foreground/85">{title}</label>
     <Input
       size="sm"
       type={type}
@@ -177,7 +177,7 @@ const WebdavConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                           type="button"
                           aria-label={passwordToggleLabel}
                           title={passwordToggleLabel}
-                          className="text-default-400 hover:text-default-600 focus:outline-none"
+                          className="text-foreground/60 hover:text-foreground focus:outline-none"
                           onMouseDown={(event) => event.preventDefault()}
                           onClick={() => setShowPassword((prev) => !prev)}
                         >

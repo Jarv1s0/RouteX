@@ -90,7 +90,7 @@ const TrayMenuApp: React.FC = () => {
           <div className="flex items-center gap-2">
             <div className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_16px_rgba(14,165,233,0.65)]" />
             <div className="flex flex-col leading-none">
-              <span className="text-[13px] font-semibold tracking-[0.14em] text-default-500 uppercase">
+              <span className="text-[13px] font-semibold tracking-[0.14em] text-foreground/75 uppercase">
                 RouteX
               </span>
               <span className="mt-1 text-[15px] font-semibold text-foreground">
@@ -104,7 +104,7 @@ const TrayMenuApp: React.FC = () => {
               variant="light"
               isIconOnly
               onPress={handleRefresh}
-              className="h-8 min-w-8 w-8 rounded-full bg-white/65 text-default-600 shadow-sm hover:bg-white dark:bg-white/6 dark:text-default-300 dark:hover:bg-white/12"
+              className="h-8 min-w-8 w-8 rounded-full bg-white/65 text-foreground/85 shadow-sm hover:bg-white dark:bg-white/6 dark:hover:bg-white/12"
             >
               <IoRefresh className="text-base" />
             </Button>
@@ -113,7 +113,7 @@ const TrayMenuApp: React.FC = () => {
               variant="light"
               isIconOnly
               onPress={handleClose}
-              className="h-8 min-w-8 w-8 rounded-full bg-white/65 text-default-600 shadow-sm hover:bg-danger/10 hover:text-danger dark:bg-white/6 dark:text-default-300 dark:hover:bg-danger/12"
+              className="h-8 min-w-8 w-8 rounded-full bg-white/65 text-foreground/85 shadow-sm hover:bg-danger/10 hover:text-danger dark:bg-white/6 dark:hover:bg-danger/12"
             >
               <IoClose className="text-base" />
             </Button>
@@ -161,13 +161,13 @@ const TrayMenuApp: React.FC = () => {
 
         <div className="border-b border-default-200/70 bg-default-50/45 px-4 py-3 dark:border-white/8 dark:bg-white/[0.025]">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-[0.14em] text-default-500">
+            <span className="text-xs font-medium uppercase tracking-[0.14em] text-foreground/75">
               {t('tray.outboundMode')}
             </span>
             <Button
               size="sm"
               variant="light"
-              className="h-7 min-w-0 rounded-full bg-white/65 px-3 text-xs font-medium text-default-600 hover:bg-danger/10 hover:text-danger dark:bg-white/6 dark:text-default-300 dark:hover:bg-danger/12"
+              className="h-7 min-w-0 rounded-full bg-white/65 px-3 text-xs font-medium text-foreground/85 hover:bg-danger/10 hover:text-danger dark:bg-white/6 dark:hover:bg-danger/12"
               onPress={handleQuitApp}
               isLoading={busyAction === 'quit-app'}
             >
@@ -208,7 +208,7 @@ const TrayMenuApp: React.FC = () => {
 
         <ScrollShadow className="traymenu-scroll flex-1 overflow-y-auto px-2 pb-2 pt-1">
           {!groups || groups.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-sm text-default-400">
+            <div className="flex h-full items-center justify-center text-sm text-foreground/65">
               {t('common.noData')}
             </div>
           ) : (

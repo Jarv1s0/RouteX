@@ -100,7 +100,7 @@ const SortableChip: React.FC<{
         className={`cursor-grab active:cursor-grabbing select-none border transition-colors ${
           isSelected
             ? 'border-primary/30 bg-primary/14 text-primary hover:bg-primary/20 dark:border-primary/40 dark:bg-primary/20'
-            : 'border-default-200/85 bg-default-100/85 text-default-600 hover:bg-default-200/75 dark:border-white/12 dark:bg-white/[0.06] dark:text-default-400 dark:hover:bg-white/[0.12]'
+            : 'border-default-200/85 bg-default-100/85 text-foreground/75 hover:bg-default-200/75 hover:text-foreground dark:border-white/12 dark:bg-white/[0.06] dark:hover:bg-white/[0.12]'
         }`}
         classNames={{
           content: 'flex items-center gap-1 px-0.5 text-xs font-medium'
@@ -250,7 +250,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
                 min={MIN_CONNECTION_INTERVAL}
                 value={intervalInput}
                 placeholder={t('connections.defaultInterval', { value: MIN_CONNECTION_INTERVAL })}
-                endContent={<span className="select-none text-xs text-default-400">ms</span>}
+                endContent={<span className="select-none text-xs text-foreground/60">ms</span>}
                 onValueChange={setIntervalInput}
                 onBlur={() => {
                   void commitInterval()
@@ -267,7 +267,7 @@ const ConnectionSettingModal: React.FC<Props> = (props) => {
           <ModalSettingSection title={t('connections.customColumns')}>
             <div className="px-3.5 py-3">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs text-foreground-400">
+                <span className="text-xs text-foreground/70">
                   {t('connections.customColumnsHelp')}
                 </span>
                 <Button

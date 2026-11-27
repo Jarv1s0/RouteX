@@ -355,7 +355,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                     }}
                   >
                     <IoMdRefresh
-                      className={`text-[17px] text-default-500 ${updating ? 'animate-spin' : ''}`}
+                      className={`text-[17px] text-foreground/75 ${updating ? 'animate-spin' : ''}`}
                     />
                   </Button>
                 )}
@@ -369,7 +369,7 @@ const ProfileItem: React.FC<Props> = (props) => {
                       color="default"
                       className={CARD_STYLES.MANAGEMENT_ACTION_BUTTON}
                     >
-                      <IoMdMore className="text-[17px] text-default-500" />
+                      <IoMdMore className="text-[17px] text-foreground/75" />
                     </Button>
                   </DropdownTrigger>
                   <DropdownMenu onAction={onMenuAction}>
@@ -434,7 +434,7 @@ const ProfileItem: React.FC<Props> = (props) => {
               >
                 {statusControl}
                 {info.type === 'remote' && !extra && (
-                  <small className="text-xs text-default-400">{dayjs(info.updated).fromNow()}</small>
+                  <small className="text-xs text-foreground/70">{dayjs(info.updated).fromNow()}</small>
                 )}
               </div>
               {extra && (

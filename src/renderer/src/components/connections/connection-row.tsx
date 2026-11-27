@@ -133,14 +133,14 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
         <div className="flex items-center gap-3 truncate">
           {displayIcon &&
             (useMihomoIcon ? (
-              <MihomoIcon className="w-6 h-6 flex-shrink-0 text-default-500" />
+              <MihomoIcon className="w-6 h-6 flex-shrink-0 text-foreground/75" />
             ) : (
               <img src={iconUrl} className="w-6 h-6 flex-shrink-0 object-contain" alt="" />
             ))}
           <span className="truncate flex items-center gap-1.5" title={processName}>
             {processName}
             {isHidden && (
-              <span className="text-default-400 opacity-50" title={t('connections.hiddenTitle')}>
+              <span className="text-foreground/55" title={t('connections.hiddenTitle')}>
                 <svg
                   stroke="currentColor"
                   fill="currentColor"
@@ -174,7 +174,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
       const downloadSpeed = getColumnValue('downloadSpeed')
       return (
         <div
-          className={`flex items-center justify-end font-data-numeric ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground-500'}`}
+          className={`flex items-center justify-end font-data-numeric ${conn.downloadSpeed ? 'text-purple-500' : 'text-foreground/70'}`}
         >
           {downloadSpeed}
         </div>
@@ -185,7 +185,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
       const uploadSpeed = getColumnValue('uploadSpeed')
       return (
         <div
-          className={`flex items-center justify-end font-data-numeric ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground-500'}`}
+          className={`flex items-center justify-end font-data-numeric ${conn.uploadSpeed ? 'text-cyan-500' : 'text-foreground/70'}`}
         >
           {uploadSpeed}
         </div>
@@ -193,7 +193,7 @@ const ConnectionRowComponent: React.FC<RowProps> = ({
     }
 
     const isRightAlign = RIGHT_ALIGN_COLUMNS.includes(col)
-    const color = ['time'].includes(col) ? 'text-foreground-500' : ''
+    const color = ['time'].includes(col) ? 'text-foreground/75' : ''
     const isMono = [
       'sourceIP',
       'sourcePort',

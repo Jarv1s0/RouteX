@@ -111,7 +111,7 @@ const NodeCard = React.memo(function NodeCard({
       </div>
 
       <div className="flex flex-col items-center w-full grow">
-        <span className="text-xs font-semibold text-default-400 tracking-wide mb-1 uppercase">
+        <span className="text-xs font-semibold text-foreground/70 tracking-wide mb-1 uppercase">
           {title}
         </span>
         <span
@@ -122,7 +122,7 @@ const NodeCard = React.memo(function NodeCard({
         </span>
 
         {getTypeLabel() && (
-          <span className="text-[10px] font-semibold text-default-500 mt-2 bg-default-200/50 dark:bg-white/5 backdrop-blur-md px-2 py-0.5 rounded-md border border-default-200/50 dark:border-white/5">
+          <span className="text-[10px] font-semibold text-foreground/75 mt-2 bg-default-200/50 dark:bg-white/5 backdrop-blur-md px-2 py-0.5 rounded-md border border-default-200/50 dark:border-white/5">
             {getTypeLabel()}
           </span>
         )}
@@ -325,7 +325,7 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
           <div className="flex items-center gap-2">
             <MdLink className="text-xl text-primary" />
             <span className="font-bold">{t('proxyChains.preview')}</span>
-            <span className="text-xs font-medium text-default-400 opacity-80 bg-default-100 px-2 py-0.5 rounded-md ml-2">
+            <span className="text-xs font-medium text-foreground/70 bg-default-100 px-2 py-0.5 rounded-md ml-2">
               {t('proxyChains.totalNodes', { count: chains.length })}
             </span>
           </div>
@@ -342,16 +342,16 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
         </ModalHeader>
         <ModalBody className="py-6 min-h-[450px] flex flex-col pt-4">
           {chains.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-default-400">
+            <div className="flex-1 flex flex-col items-center justify-center text-foreground/65">
               <div className="p-4 rounded-full bg-default-100 dark:bg-white/5 mb-4">
-                <TbPlugConnected className="text-5xl opacity-50" />
+                <TbPlugConnected className="text-5xl opacity-60" />
               </div>
-              <p className="font-medium text-default-500">{t('proxyChains.emptyTitle')}</p>
+              <p className="font-medium text-foreground/80">{t('proxyChains.emptyTitle')}</p>
             </div>
           ) : (
             <>
               <div className="flex items-center gap-3 mb-4 select-none px-1">
-                <span className="text-sm font-semibold text-default-600 whitespace-nowrap">
+                <span className="text-sm font-semibold text-foreground/85 whitespace-nowrap">
                   {t('proxyChains.selectChain')}
                 </span>
                 <Select
@@ -430,7 +430,7 @@ const ChainPreviewModal: React.FC<Props> = ({ chains, onClose }) => {
                       {legendItems.map((item, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
-                          <span className="text-xs font-semibold text-default-600">
+                          <span className="text-xs font-semibold text-foreground/85">
                             {item.label}
                           </span>
                         </div>

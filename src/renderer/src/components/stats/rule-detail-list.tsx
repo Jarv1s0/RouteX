@@ -25,7 +25,7 @@ const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
 
   if (!details || details.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[300px] text-foreground-400 gap-2">
+      <div className="flex flex-col items-center justify-center h-[300px] text-foreground/65 gap-2">
         <div className="text-4xl opacity-20">📭</div>
         <span className="text-sm">{t('stats.noDetailRecords')}</span>
       </div>
@@ -63,14 +63,14 @@ const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
                         <span className="max-w-[100px] truncate">{hit.proxy}</span>
                       </span>
                       {/* 进程 */}
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-default/30 text-default-500 bg-default/10 flex items-center gap-1">
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-default/30 text-foreground/75 bg-default/10 flex items-center gap-1">
                         <RiAppsLine size={10} />
                         <span className="max-w-[80px] truncate">
                           {hit.process ? hit.process.split('/').pop() : 'System'}
                         </span>
                       </span>
                       {/* 时间 */}
-                      <span className="text-default-400 text-[10px] font-mono tracking-tight">
+                      <span className="text-foreground/70 text-[10px] font-mono tracking-tight">
                         {formattedTime}
                       </span>
                     </div>
@@ -88,8 +88,8 @@ const RuleDetailList: React.FC<RuleDetailListProps> = ({ details }) => {
                     </div>
                   </div>
                   {/* 第二行：主机地址 */}
-                  <div className="flex items-center gap-1.5 select-text text-sm font-mono text-default-700 dark:text-default-300 break-all line-clamp-1 leading-relaxed">
-                    <IoGlobeOutline size={14} className="text-default-400 shrink-0" />
+                  <div className="flex items-center gap-1.5 select-text text-sm font-mono text-foreground/90 break-all line-clamp-1 leading-relaxed">
+                    <IoGlobeOutline size={14} className="text-foreground/65 shrink-0" />
                     <span title={hit.host}>{hit.host || 'Unknown Host'}</span>
                   </div>
                 </CardBody>

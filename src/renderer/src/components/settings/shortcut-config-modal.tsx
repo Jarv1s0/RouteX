@@ -138,7 +138,7 @@ const ShortcutInput: React.FC<{
                 isIconOnly
                 size="sm"
                 variant="light"
-                className="h-6 w-6 min-w-6 text-default-400 hover:text-danger"
+                className="h-6 w-6 min-w-6 text-foreground/60 hover:text-danger"
                 onPress={() => setInputValue('')}
               >
                 <MdRestore size={14} />
@@ -153,7 +153,7 @@ const ShortcutInput: React.FC<{
         }}
         startContent={
           <MdKeyboard
-            className={`text-xl transition-colors ${isFocused ? 'text-primary' : 'text-default-300'}`}
+            className={`text-xl transition-colors ${isFocused ? 'text-primary' : 'text-foreground/50'}`}
           />
         }
       />
@@ -239,7 +239,7 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
               <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
                 {t('settings.shortcut.title')}
               </span>
-              <span className="text-small text-default-400 font-normal">
+              <span className="text-small text-foreground/70 font-normal">
                 {t('settings.shortcut.description')}
               </span>
             </ModalHeader>
@@ -250,7 +250,7 @@ const ShortcutConfigModal: React.FC<Props> = ({ isOpen, onOpenChange }) => {
                     key={item.action}
                     className="group flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-content1/50 hover:bg-content1 border border-default-100 hover:border-default-200 transition-all duration-300 shadow-sm hover:shadow-md"
                   >
-                    <span className="whitespace-nowrap shrink-0 text-sm font-medium text-foreground-600 group-hover:text-foreground-900 transition-colors">
+                    <span className="whitespace-nowrap shrink-0 text-sm font-medium text-foreground/90 group-hover:text-foreground transition-colors">
                       {item.title}
                     </span>
                     <div className="w-52">

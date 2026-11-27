@@ -145,7 +145,7 @@ export default function ProfileMergePanel(): React.JSX.Element {
               </Button>
             </div>
           ) : !ready ? (
-            <div role="status" className="flex items-center gap-2 text-default-500">
+            <div role="status" className="flex items-center gap-2 text-foreground/75">
               <Spinner size="sm" />
               {t('profiles.merge.loading')}
             </div>
@@ -158,7 +158,7 @@ export default function ProfileMergePanel(): React.JSX.Element {
       )}
       {ready && (
         <div className="flex min-w-0 flex-col gap-4 text-sm">
-          <p className="text-xs leading-relaxed text-default-500">{t('profiles.merge.help')}</p>
+          <p className="text-xs leading-relaxed text-foreground/75">{t('profiles.merge.help')}</p>
           {report.targets.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-foreground">{t('profiles.merge.targets')}</h4>
@@ -169,7 +169,7 @@ export default function ProfileMergePanel(): React.JSX.Element {
                 >
                   <p className="flex flex-wrap justify-between gap-x-4 gap-y-1">
                     <span className="font-medium">{target.name}</span>
-                    <span className="text-default-500">
+                    <span className="text-foreground/75">
                       {formatCounts(target.addedNodes, target.addedProviders)}
                     </span>
                   </p>
@@ -203,7 +203,7 @@ export default function ProfileMergePanel(): React.JSX.Element {
                   <summary className="flex cursor-pointer list-none items-center gap-2 rounded-xl px-3 py-2 text-foreground transition-colors hover:bg-default-200/40 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
                     <IoChevronForwardOutline
                       aria-hidden="true"
-                      className="shrink-0 text-sm text-default-400 transition-transform group-open:rotate-90"
+                      className="shrink-0 text-sm text-foreground/60 transition-transform group-open:rotate-90"
                     />
                     <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-1">
                       <span className="min-w-0 flex-1 break-all font-medium">
@@ -214,12 +214,12 @@ export default function ProfileMergePanel(): React.JSX.Element {
                           </span>
                         )}
                       </span>
-                      <span className="text-xs text-default-500">
+                      <span className="text-xs text-foreground/75">
                         {formatCounts(member.nodes.length, member.providers.length)}
                       </span>
                     </span>
                   </summary>
-                  <div className="space-y-2 border-t border-default-200/50 px-3 py-3 text-xs leading-relaxed text-default-500 [overflow-wrap:anywhere]">
+                  <div className="space-y-2 border-t border-default-200/50 px-3 py-3 text-xs leading-relaxed text-foreground/80 [overflow-wrap:anywhere]">
                     {member.renamed.length > 0 && (
                       <p>{t('profiles.merge.renamedCount', { count: member.renamed.length })}</p>
                     )}
@@ -281,7 +281,7 @@ export default function ProfileMergePanel(): React.JSX.Element {
                       isIconOnly
                       size="sm"
                       variant="light"
-                      className="h-6 w-6 min-w-6 text-default-400"
+                      className="h-6 w-6 min-w-6 text-foreground/65 hover:text-foreground"
                       aria-label={t('profiles.merge.targetsHelpLabel')}
                     >
                       <IoHelpCircleOutline className="text-base" />
@@ -325,7 +325,7 @@ export default function ProfileMergePanel(): React.JSX.Element {
               </SettingItem>
             </div>
           </section>
-          <p className="text-xs leading-relaxed text-default-500">
+          <p className="text-xs leading-relaxed text-foreground/75">
             {t('profiles.merge.reportHelp')}
           </p>
         </div>

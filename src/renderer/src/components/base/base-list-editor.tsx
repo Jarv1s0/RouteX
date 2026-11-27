@@ -124,7 +124,7 @@ const EditableList: React.FC<EditableListProps> = ({
         className={`flex flex-col space-y-2 ${!title ? 'mt-2' : ''} px-2 ${isDisabled ? 'opacity-60' : ''}`}
       >
         {title && (
-          <h4 className={`text-sm font-medium ${isDisabled ? 'text-default-300' : ''}`}>{title}</h4>
+          <h4 className={`text-sm font-medium ${isDisabled ? 'text-foreground/40' : 'text-foreground'}`}>{title}</h4>
         )}
         {displayed.map((entry, idx) => {
           const disabled = disableFirst && idx === 0

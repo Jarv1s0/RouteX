@@ -185,7 +185,7 @@ const SidebarNameplate: React.FC<Props> = ({ latest }) => {
             RouteX
           </span>
           {version ? (
-            <span className="shrink-0 text-[11px] font-data-numeric text-default-400">
+            <span className="shrink-0 text-[11px] font-data-numeric text-foreground/65">
               v{version}
             </span>
           ) : null}
@@ -205,7 +205,7 @@ const SidebarNameplate: React.FC<Props> = ({ latest }) => {
                 onBlur={handleInputBlur}
                 placeholder={t('sidebar.nameplate.signaturePlaceholder')}
                 aria-label={t('sidebar.nameplate.signaturePlaceholder')}
-                className="select-text h-5 min-w-0 flex-1 rounded-md border border-primary/40 bg-white/80 px-1.5 text-[12px] leading-5 text-foreground outline-none placeholder:text-default-400 focus:border-primary dark:bg-black/35"
+                className="select-text h-5 min-w-0 flex-1 rounded-md border border-primary/40 bg-white/80 px-1.5 text-[12px] leading-5 text-foreground outline-none placeholder:text-foreground/55 focus:border-primary dark:bg-black/35"
               />
               {signature ? (
                 <button
@@ -214,7 +214,7 @@ const SidebarNameplate: React.FC<Props> = ({ latest }) => {
                   onClick={resetSignature}
                   title={t('sidebar.nameplate.resetSignature')}
                   aria-label={t('sidebar.nameplate.resetSignature')}
-                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-default-400 transition-colors hover:bg-default-200/60 hover:text-foreground dark:hover:bg-white/10"
+                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-foreground/65 transition-colors hover:bg-default-200/60 hover:text-foreground dark:hover:bg-white/10"
                 >
                   <LuRotateCcw className="text-[12px]" />
                 </button>
@@ -232,7 +232,7 @@ const SidebarNameplate: React.FC<Props> = ({ latest }) => {
                 }
               }}
               title={`${displaySignature} · ${t('sidebar.nameplate.signatureHint')}`}
-              className="flex h-5 w-full min-w-0 items-center text-left text-[12px] leading-5 text-foreground/75 transition-colors hover:text-foreground cursor-default"
+              className="flex h-5 w-full min-w-0 items-center text-left text-[12px] leading-5 text-foreground/80 transition-colors hover:text-foreground cursor-default"
             >
               <span className="truncate font-medium">{displaySignature}</span>
             </div>

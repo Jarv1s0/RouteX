@@ -42,7 +42,7 @@ function renderHighlightedSegment(text: string, keyPrefix: string): React.ReactN
     }
     if (part === '-->') {
       return (
-        <span key={`${keyPrefix}-${idx}`} className="text-default-400 mx-0.5">
+        <span key={`${keyPrefix}-${idx}`} className="text-foreground/55 mx-0.5">
           {part}
         </span>
       )

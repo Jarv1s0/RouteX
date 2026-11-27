@@ -360,7 +360,7 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
                   isSelected={useProxy}
                   onValueChange={setUseProxy}
                 >
-                  <span className="text-xs text-default-500">{t('page.profiles.useProxy')}</span>
+                  <span className="text-xs text-foreground/75">{t('page.profiles.useProxy')}</span>
                 </Checkbox>
               }
             />
@@ -382,7 +382,7 @@ export const ProfileTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | n
               isIconOnly
               variant="light"
               color="default"
-              className={`text-default-600 dark:text-default-300 hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
+              className={`text-foreground/80 hover:text-foreground hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
               isLoading={updating}
               title={t('page.profiles.updateAllProfiles')}
               onPress={async () => {

@@ -38,7 +38,7 @@ const SettingCard: React.FC<Props> = (props) => {
           <div className="flex items-center">
             <div
               className={`px-4 py-3 text-sm font-bold flex justify-between items-center ${
-                isDisabled ? 'text-default-300' : 'text-foreground'
+                isDisabled ? 'text-foreground/40' : 'text-foreground'
               } ${collapsible ? 'cursor-pointer' : ''} min-w-0 flex-1 gap-3`}
               role={collapsible ? 'button' : undefined}
               tabIndex={collapsible ? 0 : undefined}
@@ -57,7 +57,7 @@ const SettingCard: React.FC<Props> = (props) => {
                     <div
                       className={`p-1.5 rounded-lg flex items-center justify-center ${
                         isDisabled
-                          ? 'bg-default-100 text-default-300'
+                          ? 'bg-default-100 text-foreground/40'
                           : 'bg-primary/10 text-primary'
                       }`}
                     >
@@ -71,13 +71,15 @@ const SettingCard: React.FC<Props> = (props) => {
                   <span className="font-bold">{props.title}</span>
                 </div>
                 {props.description && (
-                  <span className="text-xs font-normal text-default-500">{props.description}</span>
+                  <span className="text-xs font-normal text-foreground/70">
+                    {props.description}
+                  </span>
                 )}
               </div>
               {collapsible && (
                 <IoChevronForward
                   className={`transition-transform duration-300 ease-out ${
-                    isDisabled ? 'text-default-300' : ''
+                    isDisabled ? 'text-foreground/40' : 'text-foreground/75'
                   } ${isCollapsed ? '' : 'rotate-90'}`}
                 />
               )}

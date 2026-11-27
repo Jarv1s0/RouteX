@@ -58,7 +58,7 @@ export const CARD_STYLES = {
   FORM_SELECT: {
     trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} !bg-white/65 dark:!bg-white/[0.06] !rounded-full !h-9 !min-h-9 transition-all duration-200`,
     value: 'text-sm font-medium',
-    selectorIcon: 'text-default-400',
+    selectorIcon: 'text-foreground/60',
     listbox: 'p-1',
     popoverContent: GLASS_POPOVER_CONTENT
   },
@@ -68,7 +68,7 @@ export const CARD_STYLES = {
     tabList: `${GLASS_CONTROL_BASE} p-0 overflow-visible rounded-full`,
     cursor: 'w-full bg-background dark:bg-default-100 shadow-md rounded-full',
     tabContent:
-      'font-medium text-default-500 group-data-[selected=true]:text-primary transition-colors',
+      'font-medium text-foreground/75 group-data-[selected=true]:text-primary transition-colors',
     tab: 'h-8 px-3'
   },
 
@@ -115,7 +115,7 @@ export const CARD_STYLES = {
   MANAGEMENT_ACTION_ICON: 'text-[21px] text-foreground',
   MANAGEMENT_STATUS_BUTTON: 'h-6 min-w-0 px-3 text-[12px]',
   MANAGEMENT_STATUS_INACTIVE:
-    'border-default-200 bg-default-100/70 text-default-500 shadow-none hover:border-default-300 hover:bg-default-200/70 dark:border-white/10 dark:bg-white/[0.06] dark:text-default-400 dark:hover:bg-white/[0.09]',
+    'border-default-200 bg-default-100/70 text-foreground/75 shadow-none hover:border-default-300 hover:bg-default-200/70 hover:text-foreground dark:border-white/10 dark:bg-white/[0.06] dark:hover:bg-white/[0.09]',
   MANAGEMENT_META_TEXT: 'text-sm text-foreground',
   MANAGEMENT_META_BUTTON: 'h-[20px] p-1 m-0 text-xs text-foreground',
   MANAGEMENT_FOOTER_ROW: 'flex items-center justify-between text-sm text-foreground',
@@ -123,7 +123,7 @@ export const CARD_STYLES = {
   GLASS_SELECT: {
     trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} bg-white/60 dark:bg-white/[0.06] rounded-full h-8 min-h-8 transition-all duration-200`,
     value: 'text-sm font-medium',
-    selectorIcon: 'text-default-400',
+    selectorIcon: 'text-foreground/60',
     listbox: 'p-1',
     popoverContent: GLASS_POPOVER_CONTENT
   },
@@ -135,7 +135,7 @@ export const CARD_STYLES = {
 
   // Data Grid Style
   GLASS_TABLE_HEADER:
-    'sticky top-0 z-10 bg-default-100/78 dark:bg-default-50/78 backdrop-blur-[12px] border-b border-default-200/50 dark:border-white/10 text-xs font-semibold text-default-500 flex items-center w-full shadow-sm',
+    'sticky top-0 z-10 bg-default-100/78 dark:bg-default-50/78 backdrop-blur-[12px] border-b border-default-200/50 dark:border-white/10 text-xs font-semibold text-foreground/75 flex items-center w-full shadow-sm',
   GLASS_TABLE_ROW:
     'group relative flex items-center border-b border-default-200/50 dark:border-white/5 hover:bg-default-100/50 dark:hover:bg-white/5 transition-[background-color,border-color,box-shadow,opacity] duration-300 ease-out cursor-pointer data-[selected=true]:bg-gradient-to-r data-[selected=true]:from-primary/15 data-[selected=true]:to-transparent data-[selected=true]:border-primary/20 data-[selected=true]:shadow-[inset_3px_0_0_0_hsl(var(--heroui-primary))]',
   GLASS_TABLE_CELL: 'px-3 py-2.5 text-sm truncate flex items-center'

@@ -165,9 +165,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({
           <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
             <div className="flex flex-col gap-0.5">
               <span>{isEditing ? t('rules.localEditTitle') : t('rules.localCreateTitle')}</span>
-              <span className="text-xs font-normal text-foreground-500">
-                {t('rules.localHelp')}
-              </span>
+              <span className="text-xs font-normal text-foreground/70">{t('rules.localHelp')}</span>
             </div>
             <SecondaryModalCloseButton onPress={onClose} />
           </ModalHeader>
@@ -175,9 +173,9 @@ const QuickRuleEditorModal: React.FC<Props> = ({
           <ModalBody className="px-6 pt-3 pb-2">
             <div className="flex flex-col">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground-700">
+                <label className="text-xs font-semibold text-foreground/85">
                   {t('rules.ruleType')} ·{' '}
-                  <span className="font-normal text-foreground-500">
+                  <span className="font-normal text-foreground/70">
                     {t(
                       (RULE_TYPES.find((item) => item.key === ruleType)?.descKey ||
                         'rules.desc.domain') as TranslationKey
@@ -206,7 +204,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({
               </div>
 
               <div className="mt-2 flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground-700">
+                <label className="text-xs font-semibold text-foreground/85">
                   {t('rules.ruleValue')}
                 </label>
                 <Input
@@ -220,7 +218,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({
               </div>
 
               <div className="mt-2 flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-foreground-700">
+                <label className="text-xs font-semibold text-foreground/85">
                   {t('rules.targetProxy')}
                 </label>
                 <Autocomplete
@@ -241,7 +239,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({
                     classNames: CARD_STYLES.FORM_INPUT
                   }}
                   classNames={{
-                    selectorButton: 'text-default-500',
+                    selectorButton: 'text-foreground/65',
                     listboxWrapper: 'max-h-64',
                     popoverContent: CARD_STYLES.FORM_SELECT.popoverContent
                   }}
@@ -255,10 +253,10 @@ const QuickRuleEditorModal: React.FC<Props> = ({
               {supportsNoResolve && (
                 <div className="mt-2 flex min-h-10 items-center justify-between gap-4 rounded-xl border border-default-200/60 bg-default-100/50 px-3.5 py-2 dark:border-white/10 dark:bg-white/[0.04]">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="shrink-0 text-sm font-medium text-foreground-700">
+                    <span className="shrink-0 text-sm font-medium text-foreground/90">
                       no-resolve
                     </span>
-                    <span className="truncate text-xs text-foreground-500">
+                    <span className="truncate text-xs text-foreground/70">
                       {t('rules.noResolveHelp')}
                     </span>
                   </div>
@@ -273,7 +271,7 @@ const QuickRuleEditorModal: React.FC<Props> = ({
 
               {ruleString && (
                 <div className="mt-2 flex min-h-10 items-center gap-2.5 rounded-xl border border-dashed border-default-300/70 bg-default-100/50 px-3.5 py-2 dark:border-white/10 dark:bg-white/[0.03]">
-                  <div className="shrink-0 text-xs font-medium text-foreground-500">
+                  <div className="shrink-0 text-xs font-medium text-foreground/75">
                     {t('rules.preview')}
                   </div>
                   <code className="min-w-0 truncate font-mono text-xs text-primary">

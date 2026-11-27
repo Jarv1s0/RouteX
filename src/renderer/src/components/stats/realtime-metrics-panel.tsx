@@ -181,7 +181,7 @@ function MiniMetricChart({
       <CardBody className="flex h-full min-h-[152px] flex-col p-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <Icon className="text-base text-foreground-500" />
+            <Icon className="text-base text-foreground/75" />
             <span className="truncate text-sm font-bold text-foreground">{title}</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -190,7 +190,7 @@ function MiniMetricChart({
                 <span className={`text-xs font-bold tabular-nums ${metric.className}`}>
                   {metric.value}
                 </span>
-                <span className="truncate text-[11px] font-medium text-foreground-400">
+                <span className="truncate text-[11px] font-medium text-foreground/70">
                   {metric.label}
                 </span>
               </div>

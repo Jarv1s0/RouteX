@@ -131,12 +131,12 @@ const ProfileCard: React.FC<Props> = (props) => {
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <LuCloud
               className={`text-[16px] transition-all duration-150 group-hover:scale-110 ${
-                match ? 'text-primary' : 'text-default-700 dark:text-default-300 group-hover:text-primary'
+                match ? 'text-primary' : 'text-foreground/85 group-hover:text-primary'
               }`}
             />
           </span>
           <h3
-            className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold truncate transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}
+            className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold truncate transition-colors text-foreground group-hover:text-foreground`}
             title={activeCount > 1 ? `${info.name} +${activeCount - 1}` : info.name}
           >
             {activeCount > 1 ? `${info.name} +${activeCount - 1}` : info.name}
@@ -188,7 +188,7 @@ const ProfileCard: React.FC<Props> = (props) => {
 
       {info.type === 'remote' && extra && (
         <div
-          className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 dark:text-foreground/70 px-0.5`}
+          className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 px-0.5`}
         >
           <span>
             {calcTraffic(usage)} / {calcTraffic(total)}
@@ -213,7 +213,7 @@ const ProfileCard: React.FC<Props> = (props) => {
 
       {info.type === 'remote' && !extra && (
         <div
-          className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}
+          className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 px-0.5`}
         >
           <span>{t('sidebar.remoteProfile')}</span>
           <span>{formatRelativeTime(info.updated, relativeTimeFormatter, t)}</span>
@@ -221,7 +221,7 @@ const ProfileCard: React.FC<Props> = (props) => {
       )}
       {info.type === 'local' && (
         <div
-          className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}
+          className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 px-0.5`}
         >
           <span>{t('sidebar.localProfile')}</span>
         </div>

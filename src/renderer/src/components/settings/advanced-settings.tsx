@@ -141,7 +141,7 @@ const AdvancedSettings: React.FC = () => {
         >
           {isAutobuild ? (
             <Tooltip content={buildDetails} placement="top">
-              <div className="flex items-center gap-2 text-default-600">
+              <div className="flex items-center gap-2 text-foreground/85">
                 <span>v{displayVersion}</span>
                 <Chip size="sm" color="warning" variant="flat" className="h-5 px-0 text-[10px]">
                   AUTOBUILD
@@ -152,7 +152,7 @@ const AdvancedSettings: React.FC = () => {
               </div>
             </Tooltip>
           ) : (
-            <div className="text-default-600">v{version}</div>
+            <div className="text-foreground/85">v{version}</div>
           )}
         </SettingItem>
       </SettingCard>

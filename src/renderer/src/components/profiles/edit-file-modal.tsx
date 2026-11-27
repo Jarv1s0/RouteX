@@ -77,7 +77,7 @@ const EditFileModal: React.FC<Props> = (props) => {
           <div className="flex justify-start">
             <div className="flex items-center">{t('profiles.editProfile')}</div>
             {isRemote && (
-              <small className="ml-2 text-foreground-500">
+              <small className="ml-2 text-foreground/75">
                 {t('profiles.remoteEditWarningPrefix')}
                 <Button
                   size="sm"

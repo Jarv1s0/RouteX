@@ -189,7 +189,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
     : addFlag(group.now)
 
   const totalCount = (group.all || []).length
-  const delayColor = getDelayColorClass(currentDelay, delayThresholds, 'text-default-400')
+  const delayColor = getDelayColorClass(currentDelay, delayThresholds, 'text-foreground/65')
   const statusDotClass = getGroupStatusDotClass(liveCount, totalCount)
   const autoGroup = isAutoGroupType(group.type)
 
@@ -237,7 +237,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                 radius="lg"
                 aria-label={t('proxies.testGroup')}
                 title={t('proxies.testGroup')}
-                className={`h-6 w-6 min-w-6 rounded-lg text-default-400 hover:text-primary hover:bg-primary/10 transition-opacity duration-150 ${
+                className={`h-6 w-6 min-w-6 rounded-lg text-foreground/65 hover:text-primary hover:bg-primary/10 transition-opacity duration-150 ${
                   delaying || active
                     ? 'opacity-100'
                     : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
@@ -262,7 +262,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
                   ? t('proxies.timeout')
                   : currentDelay}
               {currentDelay !== -1 && currentDelay !== 0 && (
-                <span className="text-[10px] font-medium text-default-400 ml-0.5">ms</span>
+                <span className="text-[10px] font-medium text-foreground/65 ml-0.5">ms</span>
               )}
             </span>
           </div>
@@ -271,7 +271,7 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
         <div className="flex min-w-0 items-center justify-between gap-3">
           <div className="flex items-center gap-1.5 shrink-0">
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotClass}`} />
-            <span className="text-xs font-mono tabular-nums text-default-400">
+            <span className="text-xs font-mono tabular-nums text-foreground/70">
               {liveCount}
               <span className="opacity-45 mx-0.5">/</span>
               {totalCount}
@@ -292,8 +292,8 @@ const ProxyGroupCardComponent: React.FC<Props> = ({
             <span
               className={`flag-emoji min-w-0 truncate text-xs font-medium leading-4 transition-colors duration-150 ${
                 currentDelay === 0
-                  ? 'text-default-400'
-                  : 'text-default-600 dark:text-default-400 group-hover:text-foreground'
+                  ? 'text-foreground/60'
+                  : 'text-foreground/80 group-hover:text-foreground'
               }`}
               title={group.now}
             >

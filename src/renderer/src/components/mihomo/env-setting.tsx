@@ -85,7 +85,7 @@ const EnvSetting: React.FC = () => {
         />
       </SettingItem>
       {safePathsInput.length > 0 && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-1 mt-2 mb-4">
+        <div className="text-sm text-foreground/85 bg-content2 rounded-lg p-1 mt-2 mb-4">
           <div className="ml-2 text-sm">
             <SettingItem title={t('mihomo.safePathList')}>
               {safePathsInput.join('') != safePaths.join('') && (
@@ -100,7 +100,7 @@ const EnvSetting: React.FC = () => {
                 </Button>
               )}
             </SettingItem>
-            <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1">
+            <div className="text-xs text-foreground/75 bg-content3 rounded-lg p-2 mt-1">
               <div className="ml-6">
                 <EditableList
                   items={safePathsInput}

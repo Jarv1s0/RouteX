@@ -40,7 +40,7 @@ const LocalRuleItem: React.FC<LocalRuleItemProps> = memo(
                 }}
               />
               <span
-                className={`w-6 flex-shrink-0 text-right text-xs tabular-nums text-foreground-400 ${!rule.enabled ? 'line-through' : ''}`}
+                className={`w-6 flex-shrink-0 text-right text-xs tabular-nums text-foreground/65 ${!rule.enabled ? 'line-through' : ''}`}
               >
                 {index + 1}.
               </span>
@@ -50,7 +50,7 @@ const LocalRuleItem: React.FC<LocalRuleItemProps> = memo(
               >
                 {/* 定宽类型列 + 左对齐内容 */}
                 <div className="w-[116px] flex-shrink-0">
-                  <span className="inline-flex max-w-full items-center truncate rounded-full border border-default-200/80 bg-default-100/70 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-default-600 dark:border-white/10 dark:bg-white/[0.06] dark:text-default-400">
+                  <span className="inline-flex max-w-full items-center truncate rounded-full border border-default-200/80 bg-default-100/70 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-foreground/80 dark:border-white/10 dark:bg-white/[0.06]">
                     {rule.type}
                   </span>
                 </div>
@@ -107,7 +107,7 @@ const LocalRuleItem: React.FC<LocalRuleItemProps> = memo(
                   )}
                   {finalNode && finalNode !== rule.target && (
                     <>
-                      <span className="text-xs text-foreground-300 flex-shrink-0">→</span>
+                      <span className="text-xs text-foreground/50 flex-shrink-0">→</span>
                       <Chip
                         size="sm"
                         variant="flat"
@@ -124,7 +124,7 @@ const LocalRuleItem: React.FC<LocalRuleItemProps> = memo(
               </div>
 
               {/* 操作按钮组：默认浅灰，悬停行时显现，删除悬停变红 */}
-              <div className="ml-2 flex items-center flex-shrink-0 gap-1 pr-1 opacity-45 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+              <div className="ml-2 flex items-center flex-shrink-0 gap-1 pr-1 opacity-55 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                 <Tooltip content={t('common.edit')} delay={500}>
                   <Button
                     isIconOnly
@@ -132,7 +132,7 @@ const LocalRuleItem: React.FC<LocalRuleItemProps> = memo(
                     variant="light"
                     title={t('page.rules.edit')}
                     aria-label={t('page.rules.edit')}
-                    className="min-w-8 w-8 h-8 text-default-400 hover:text-foreground"
+                    className="min-w-8 w-8 h-8 text-foreground/65 hover:text-foreground"
                     onPress={() => onEdit(rule)}
                   >
                     <LuFilePenLine className="text-base" />
@@ -146,7 +146,7 @@ const LocalRuleItem: React.FC<LocalRuleItemProps> = memo(
                     variant="light"
                     title={t('page.rules.delete')}
                     aria-label={t('page.rules.delete')}
-                    className="min-w-8 w-8 h-8 text-default-400 hover:bg-danger/10 hover:text-danger"
+                    className="min-w-8 w-8 h-8 text-foreground/65 hover:bg-danger/10 hover:text-danger"
                     onPress={() => onDelete(rule)}
                   >
                     <LuTrash2 className="text-base" />

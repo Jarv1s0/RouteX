@@ -139,7 +139,7 @@ const RuleDetailsModalSection = React.memo(function RuleDetailsModalSection({
             <ModalHeader className="flex flex-col gap-1">
               <div className="flex items-center gap-2 pr-8">
                 <span>{t('stats.ruleDetail', { rule: selectedRule || '' })}</span>
-                <span className="text-[10px] font-normal text-foreground-400 bg-default-100 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-normal text-foreground/70 bg-default-100 px-1.5 py-0.5 rounded">
                   {t('stats.top50ByTime')}
                 </span>
               </div>
@@ -198,7 +198,7 @@ const Stats: React.FC = () => {
             variant="light"
             color="default"
             isIconOnly
-            className="h-6 w-6 min-w-0 app-nodrag text-default-500"
+            className="h-6 w-6 min-w-0 app-nodrag text-foreground/75 hover:text-foreground"
             title={t('page.stats.clear')}
             isLoading={clearingStats}
             onPress={() => setShowClearConfirm(true)}

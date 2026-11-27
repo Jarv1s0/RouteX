@@ -76,7 +76,7 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
         className={`flex h-8 items-center gap-1 px-2.5 rounded-full cursor-pointer transition-[background-color,color] duration-150 select-none ${
           isSelected
             ? 'bg-background dark:bg-default-100 text-primary font-medium'
-            : 'text-default-500 hover:text-foreground font-normal'
+            : 'text-foreground/75 hover:text-foreground font-normal'
         }`}
       >
         <LuGlobe className="text-[14px] text-current" strokeWidth={isSelected ? 2 : 1.75} />
@@ -107,11 +107,11 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
         <div className="flex items-center gap-1.5">
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <LuGlobe
-              className={`text-[15px] transition-colors text-default-700 dark:text-default-300 group-hover:text-foreground`}
+              className={`text-[15px] transition-colors text-foreground/85 group-hover:text-foreground`}
             />
           </span>
           <span
-            className={`text-sm font-semibold whitespace-nowrap leading-none transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}
+            className={`text-sm font-semibold whitespace-nowrap leading-none transition-colors text-foreground group-hover:text-foreground`}
           >
             {t('sidebar.sysProxy')}
           </span>
@@ -136,11 +136,11 @@ const SysproxySwitcher: React.FC<Props> = (props) => {
       <div className="flex items-center gap-1.5">
         <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
           <LuGlobe
-            className={`text-[16px] transition-colors ${match ? 'text-primary' : 'text-default-500 group-hover:text-primary'}`}
+            className={`text-[16px] transition-colors ${match ? 'text-primary' : 'text-foreground/75 group-hover:text-primary'}`}
           />
         </span>
         <h3
-          className={`text-sm font-semibold transition-colors ${match ? 'text-primary' : 'text-foreground/90 group-hover:text-primary'}`}
+          className={`text-sm font-semibold transition-colors ${match ? 'text-primary' : 'text-foreground group-hover:text-primary'}`}
         >
           {t('sidebar.sysProxy')}
         </h3>

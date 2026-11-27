@@ -188,7 +188,7 @@ function TopologyMapInner() {
         <div
           className={`flex flex-wrap items-center gap-x-2.5 gap-y-1.5 ${CARD_STYLES.GLASS_TOOLBAR}`}
         >
-          <div className="flex shrink-0 items-center gap-x-3 px-1 text-xs text-default-500">
+          <div className="flex shrink-0 items-center gap-x-3 px-1 text-xs text-foreground/75">
             <span className="inline-flex items-center gap-1.5">
               <span
                 className={`h-1.5 w-1.5 rounded-full ${paused ? 'bg-warning' : waiting ? 'bg-default-400' : 'bg-success'}`}
@@ -210,12 +210,12 @@ function TopologyMapInner() {
             onClear={() => setQuery('')}
             variant="flat"
             size="sm"
-            startContent={<LuSearch className="shrink-0 text-default-400" aria-hidden />}
+            startContent={<LuSearch className="shrink-0 text-foreground/60" aria-hidden />}
             className="min-w-[160px] flex-1"
             classNames={CARD_STYLES.GLASS_INPUT}
           />
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <span className="inline-flex items-center gap-2.5 px-1 text-xs text-default-500 tabular-nums">
+            <span className="inline-flex items-center gap-2.5 px-1 text-xs text-foreground/75 tabular-nums">
               <span
                 className="inline-flex w-[92px] shrink-0 items-center gap-1 whitespace-nowrap"
                 title={t('connections.column.downloadSpeed')}
@@ -261,7 +261,7 @@ function TopologyMapInner() {
       <div ref={canvasRef} className="relative min-h-0 flex-1" aria-label={t('page.map.title')}>
         {waiting ? (
           <div
-            className="flex h-full items-center justify-center gap-2 text-sm text-default-500"
+            className="flex h-full items-center justify-center gap-2 text-sm text-foreground/75"
             role="status"
           >
             <Spinner size="sm" />
@@ -269,11 +269,11 @@ function TopologyMapInner() {
           </div>
         ) : !hasGraph || !initialViewport ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-            <LuNetwork className="mb-1 h-8 w-8 text-default-300" aria-hidden />
-            <span className="text-sm font-medium text-default-600">
+            <LuNetwork className="mb-1 h-8 w-8 text-foreground/50" aria-hidden />
+            <span className="text-sm font-medium text-foreground/85">
               {t(deferredQuery.trim() ? 'topology.noResults' : 'connections.emptyActive')}
             </span>
-            <span className="text-xs text-default-400">
+            <span className="text-xs text-foreground/65">
               {t(deferredQuery.trim() ? 'topology.noResultsHint' : 'topology.emptyHint')}
             </span>
           </div>

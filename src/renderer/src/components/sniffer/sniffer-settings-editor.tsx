@@ -207,7 +207,7 @@ export const SnifferSettingsFormFields: React.FC<{ editor: SnifferSettingsEditor
         <SettingItem title={t('page.sniffer.title')} divider>
           <div className="flex items-center gap-2">
             <span
-              className={`text-xs ${values.controlSniff ? 'text-primary' : 'text-foreground-500'}`}
+              className={`text-xs ${values.controlSniff ? 'text-primary' : 'text-foreground/70'}`}
             >
               {values.controlSniff ? t('common.enabled') : t('common.disabled')}
             </span>

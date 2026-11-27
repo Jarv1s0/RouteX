@@ -21,7 +21,7 @@ const NODE_BADGE_BASE_CLASS = 'inline-flex items-center gap-1.5 px-2 py-0.5 roun
 function getNodeBadgeClass(chainName?: string): string {
   const normalized = (chainName || '').trim().toUpperCase()
   if (normalized === 'DIRECT') {
-    return `${NODE_BADGE_BASE_CLASS} border-default-200/80 dark:border-white/10 bg-default-100/70 dark:bg-white/[0.05] text-foreground-500 dark:text-foreground-400`
+    return `${NODE_BADGE_BASE_CLASS} border-default-200/80 dark:border-white/10 bg-default-100/70 dark:bg-white/[0.05] text-foreground/80`
   }
   if (normalized === 'REJECT' || normalized === 'REJECT-DROP') {
     return `${NODE_BADGE_BASE_CLASS} border-danger/20 bg-danger/[0.07] text-danger`
@@ -166,7 +166,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
           {displayIcon && (
             <div className="w-8 h-8 rounded-full bg-default-200/45 dark:bg-white/[0.07] flex items-center justify-center shrink-0">
               {useMihomoIcon ? (
-                <MihomoIcon className="w-4.5 h-4.5 text-default-500" />
+                <MihomoIcon className="w-4.5 h-4.5 text-foreground/75" />
               ) : iconUrl ? (
                 <img src={iconUrl} className="w-4.5 h-4.5 object-contain" alt="" />
               ) : (
@@ -179,24 +179,24 @@ const ConnectionItemComponent: React.FC<Props> = ({
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
             {/* Header Row */}
             <div className="flex items-center gap-1.5 text-[13px] min-w-0">
-              <span className="font-semibold text-foreground-800 dark:text-foreground-900 flex items-center gap-1.5 shrink-0 max-w-[40%] truncate">
+              <span className="font-semibold text-foreground flex items-center gap-1.5 shrink-0 max-w-[40%] truncate">
                 <span className="truncate">{processName}</span>
                 {isHidden && (
                   <IoEyeOff
-                    className="text-[12px] text-default-400 shrink-0"
+                    className="text-[12px] text-foreground/60 shrink-0"
                     title={t('connections.hiddenTitle')}
                   />
                 )}
               </span>
-              <span className="text-foreground-400 text-[11px] shrink-0">→</span>
-              <span className="text-foreground-500 dark:text-foreground-400 truncate font-mono text-[12.5px]">
+              <span className="text-foreground/55 text-[11px] shrink-0">→</span>
+              <span className="text-foreground/85 truncate font-mono text-[12.5px]">
                 {destination}
               </span>
             </div>
 
             {/* Meta Row - Clean inline protocol + semantic node badge */}
             <div className="flex items-center gap-2 min-w-0">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-foreground-500 shrink-0">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-foreground/75 shrink-0">
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
                     !info.isActive
@@ -213,7 +213,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
                 </span>
               </span>
 
-              <span className="text-foreground-300 text-[10px] shrink-0">•</span>
+              <span className="text-foreground/45 text-[10px] shrink-0">•</span>
 
               <div className={`${getNodeBadgeClass(info.chains[0])} min-w-0 max-w-full`}>
                 {getFlag(info.chains[0]) && (
@@ -232,7 +232,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
           <div className="flex flex-col items-end justify-between self-stretch shrink-0 min-w-[100px] gap-1.5">
             <div className="flex items-center justify-end relative h-6 w-full group/actions">
               <span
-                className={`font-mono text-[11px] text-foreground-400 tabular-nums transition-opacity duration-150 ${isHidden ? 'opacity-0' : 'group-hover:opacity-0'}`}
+                className={`font-mono text-[11px] text-foreground/70 tabular-nums transition-opacity duration-150 ${isHidden ? 'opacity-0' : 'group-hover:opacity-0'}`}
               >
                 {timeAgo}
               </span>
@@ -246,7 +246,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
                     variant={isHidden ? 'solid' : 'flat'}
                     isIconOnly
                     size="sm"
-                    className={`h-6 w-6 min-w-[24px] transition-all ${isHidden ? 'shadow-lg shadow-primary/40' : 'bg-default-100 hover:bg-default-200 text-default-500'}`}
+                    className={`h-6 w-6 min-w-[24px] transition-all ${isHidden ? 'shadow-lg shadow-primary/40' : 'bg-default-100 hover:bg-default-200 text-foreground/75 hover:text-foreground'}`}
                     onPress={handleHide}
                     title={
                       isHidden ? t('connections.unhideConnection') : t('connections.hideConnection')
@@ -281,7 +281,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
               <div className="flex items-center gap-2 text-[11px] font-data-numeric tabular-nums">
                 <span
                   className={`inline-flex items-center gap-0.5 ${
-                    hasSpeed ? 'text-sky-500 font-medium' : 'text-foreground-400'
+                    hasSpeed ? 'text-sky-500 font-medium' : 'text-foreground/75'
                   }`}
                 >
                   <IoArrowUp className="text-[10px] opacity-80" />
@@ -289,7 +289,7 @@ const ConnectionItemComponent: React.FC<Props> = ({
                 </span>
                 <span
                   className={`inline-flex items-center gap-0.5 ${
-                    hasSpeed ? 'text-purple-500 font-medium' : 'text-foreground-400'
+                    hasSpeed ? 'text-purple-500 font-medium' : 'text-foreground/75'
                   }`}
                 >
                   <IoArrowDown className="text-[10px] opacity-80" />

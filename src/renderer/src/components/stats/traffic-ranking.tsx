@@ -273,7 +273,7 @@ export const TrafficRankingCard: React.FC<TrafficRankingCardProps> = ({
 
           <div className="flex-1 overflow-y-auto pr-2 space-y-1 min-h-0">
             {currentRanking.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-foreground-400 gap-2">
+              <div className="h-full flex flex-col items-center justify-center text-foreground/70 gap-2">
                 <div className="text-4xl opacity-30">📋</div>
                 <div className="text-sm">{t('common.noData')}</div>
               </div>
@@ -311,7 +311,7 @@ export const TrafficRankingCard: React.FC<TrafficRankingCardProps> = ({
                       <div className="flex justify-between items-end gap-2">
                         {/* Name */}
                         <div
-                          className="text-sm font-medium text-foreground/90 truncate"
+                          className="text-sm font-medium text-foreground truncate"
                           title={item.name}
                         >
                           {item.name}
@@ -319,7 +319,7 @@ export const TrafficRankingCard: React.FC<TrafficRankingCardProps> = ({
                         {/* Data */}
                         <div className="text-sm tabular-nums whitespace-nowrap flex-shrink-0 flex items-center gap-1.5">
                           {rankingTab === 'rule' && (
-                            <span className="text-xs text-foreground-400 font-normal">
+                            <span className="text-xs text-foreground/70 font-normal">
                               {(item as { hits?: number }).hits}
                               <span className="text-[10px] ml-[2px] opacity-80">
                                 {t('stats.hitsSuffix')}

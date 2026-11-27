@@ -70,7 +70,7 @@ export function ContextMenuItem({
 }: ComponentPropsWithoutRef<typeof ContextMenu.Item>): ReactNode {
   return (
     <ContextMenu.Item
-      className={`flex h-9 min-w-[120px] cursor-default select-none items-center gap-2 rounded-lg px-3 text-sm font-medium text-default-700 outline-none data-[highlighted]:bg-default-100 data-[disabled]:opacity-50 ${className}`}
+      className={`flex h-9 min-w-[120px] cursor-default select-none items-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground/90 outline-none data-[highlighted]:bg-default-100 data-[disabled]:opacity-50 ${className}`}
       {...props}
     />
   )

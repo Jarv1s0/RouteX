@@ -33,7 +33,7 @@ const SecondaryModalFooter: React.FC<SecondaryModalFooterProps> = ({
           radius="lg"
           onPress={onCancel}
           isDisabled={cancelDisabled}
-          className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+          className="h-8 px-4 font-medium text-foreground/80"
         >
           {cancelText}
         </Button>

@@ -244,7 +244,7 @@ export const DnsQueryPanel: React.FC<DnsQueryPanelProps> = ({ onTestRule, onInsp
                     {copiedIndex === i ? (
                       <IoCheckmarkCircle className="text-xs" />
                     ) : (
-                      <IoCopy className="text-xs text-foreground-400" />
+                      <IoCopy className="text-xs text-foreground/60" />
                     )}
                   </Button>
                 </div>

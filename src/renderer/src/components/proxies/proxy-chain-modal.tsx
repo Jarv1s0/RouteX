@@ -185,7 +185,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                   : t('proxyChains.create')
                 : t('proxyChains.manage')}
             </div>
-            <p className="mt-1 text-xs text-default-400 font-normal leading-5">
+            <p className="mt-1 text-xs text-foreground/70 font-normal leading-5">
               {isEditing
                 ? t('proxyChains.editHelp')
                 : t('proxyChains.manageHelp', {
@@ -202,7 +202,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
           {isEditing ? (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <div className="text-xs font-medium text-default-600">{t('proxyChains.name')}</div>
+                <div className="text-xs font-medium text-foreground/80">{t('proxyChains.name')}</div>
                 <Input
                   size="sm"
                   placeholder={t('proxyChains.namePlaceholder')}
@@ -214,7 +214,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
 
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <div className="text-xs font-medium text-default-600">
+                  <div className="text-xs font-medium text-foreground/80">
                     {t('proxyChains.dialer')}
                   </div>
                   <Select
@@ -231,7 +231,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <div className="text-xs font-medium text-default-600">
+                  <div className="text-xs font-medium text-foreground/80">
                     {t('proxyChains.target')}
                   </div>
                   <Select
@@ -249,7 +249,7 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <div className="text-xs font-medium text-default-600">
+                <div className="text-xs font-medium text-foreground/80">
                   {t('proxyChains.targetGroups')}
                 </div>
                 <Select
@@ -280,9 +280,9 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
           ) : (
             <div className="flex flex-col gap-2">
               {chains.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-default-200 bg-content1/40 px-6 py-10 text-center text-default-400">
-                  <MdLinkOff className="mx-auto mb-2 text-3xl opacity-50" />
-                  <p className="text-sm font-medium text-default-600">
+                <div className="rounded-xl border border-dashed border-default-200 bg-content1/40 px-6 py-10 text-center text-foreground/65">
+                  <MdLinkOff className="mx-auto mb-2 text-3xl opacity-60" />
+                  <p className="text-sm font-medium text-foreground/85">
                     {t('proxyChains.emptyTitle')}
                   </p>
                   <p className="mt-1 text-xs">{t('proxyChains.emptyDescription')}</p>
@@ -297,10 +297,10 @@ const ProxyChainModal: React.FC<Props> = ({ onClose }) => {
                       <MdLink className="text-lg" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-foreground-600 group-hover:text-foreground-900 transition-colors break-all">
+                      <div className="text-sm font-medium text-foreground/90 group-hover:text-foreground transition-colors break-all">
                         {chain.name}
                       </div>
-                      <div className="mt-0.5 text-xs text-default-400 group-hover:text-default-500 transition-colors break-all">
+                      <div className="mt-0.5 text-xs text-foreground/70 group-hover:text-foreground/85 transition-colors break-all">
                         {chain.dialerProxy} → {chain.targetProxy}
                         {chain.targetGroups &&
                           chain.targetGroups.length > 0 &&

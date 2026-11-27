@@ -63,7 +63,7 @@ const ConfirmModal: React.FC<Props> = (props) => {
           variant="flat"
           radius="lg"
           onPress={() => onChange(false)}
-          className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+          className="h-8 px-4 font-medium text-foreground/80"
         >
           {cancelText}
         </Button>

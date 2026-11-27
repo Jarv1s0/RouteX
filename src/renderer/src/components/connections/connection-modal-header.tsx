@@ -30,7 +30,7 @@ export const ConnectionModalHeader: React.FC<Props> = ({
         {/* 进程图标 */}
         <div className="w-13 h-13 rounded-[12px] bg-white dark:bg-zinc-900/75 border border-default-300/85 dark:border-white/15 shadow-[0_1px_3px_rgba(15,23,42,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-[0_2px_6px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.08)] flex items-center justify-center shrink-0">
           {useMihomoIcon ? (
-            <MihomoIcon className="w-8 h-8 text-foreground-600 dark:text-foreground-300" />
+            <MihomoIcon className="w-8 h-8 text-foreground/80" />
           ) : processIconUrl ? (
             <img src={processIconUrl} className="w-8 h-8 object-contain" alt="" />
           ) : (
@@ -49,7 +49,7 @@ export const ConnectionModalHeader: React.FC<Props> = ({
             classNames={{
               base: 'before:bg-default-200 after:bg-default-200',
               content:
-                'bg-content1 text-default-500 font-mono text-xs px-2 py-1 shadow-sm border border-default-200'
+                'bg-content1 text-foreground/80 font-mono text-xs px-2 py-1 shadow-sm border border-default-200'
             }}
           >
             <h2 className="text-xl font-bold text-foreground tracking-tight cursor-help w-fit leading-tight">
@@ -65,7 +65,7 @@ export const ConnectionModalHeader: React.FC<Props> = ({
             >
               {connection.metadata.network.toUpperCase()} · {connection.metadata.type}
             </Chip>
-            <span className="inline-flex items-center h-5.5 px-2 rounded-full bg-default-200/65 dark:bg-white/[0.08] text-foreground-600 dark:text-foreground-300 font-mono text-[11px] font-medium tabular-nums">
+            <span className="inline-flex items-center h-5.5 px-2 rounded-full bg-default-200/65 dark:bg-white/[0.08] text-foreground/85 font-mono text-[11px] font-medium tabular-nums">
               {duration}
             </span>
             {onDisconnect && (

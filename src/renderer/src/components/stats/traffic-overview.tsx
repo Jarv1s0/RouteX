@@ -52,11 +52,11 @@ const PeriodSummary: React.FC<PeriodSummaryProps> = ({ label, upload, download }
 
   return (
     <div className="min-w-0 rounded-xl border border-default-200/45 bg-default-100/45 px-3 py-2.5 dark:border-white/[0.06] dark:bg-white/[0.04]">
-      <div className="truncate text-[11px] font-medium text-default-500">{label}</div>
+      <div className="truncate text-[11px] font-medium text-foreground/75">{label}</div>
       <div className="mt-1 truncate text-sm font-bold leading-tight text-foreground tabular-nums">
         {calcTraffic(total)}
       </div>
-      <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] leading-tight text-default-400 tabular-nums">
+      <div className="mt-1.5 flex flex-col gap-0.5 text-[10px] leading-tight text-foreground/70 tabular-nums">
         <span className="truncate">↑ {calcTraffic(upload)}</span>
         <span className="truncate">↓ {calcTraffic(download)}</span>
       </div>
@@ -103,7 +103,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
       {/* Hero: Session Total + Upload / Download */}
       <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
         <div className="flex flex-col">
-          <span className="text-xs font-medium text-default-500">
+          <span className="text-xs font-medium text-foreground/75">
             {t('stats.sessionTotal')}
           </span>
           <div className="mt-1 flex items-baseline gap-1.5">
@@ -115,7 +115,7 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
                 preserveValue
               />
             </span>
-            <span className="text-xs font-semibold text-default-400">
+            <span className="text-xs font-semibold text-foreground/70">
               {sessionTotalFormatted.unit}
             </span>
           </div>
@@ -144,13 +144,13 @@ const TrafficOverview: React.FC<TrafficOverviewProps> = ({
         <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="h-2 w-2 rounded-full bg-blue-500" />
-            <span className="text-default-500">{t('page.profiles.useProxy')}</span>
+            <span className="text-foreground/75">{t('page.profiles.useProxy')}</span>
             <span className="font-semibold text-foreground">{calcTraffic(sessionProxy)}</span>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-default-500">{t('stats.directRoute')}</span>
+            <span className="text-foreground/75">{t('stats.directRoute')}</span>
             <span className="font-semibold text-foreground">{calcTraffic(sessionDirect)}</span>
           </div>
         </div>

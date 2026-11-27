@@ -158,8 +158,8 @@ const GlobalConfirmModals: React.FC = () => {
           description={
             <div>
               <p></p>
-              <p className="text-sm text-gray-500 mt-2">{t('confirm.quitDescription')}</p>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-foreground/80 mt-2">{t('confirm.quitDescription')}</p>
+              <p className="text-sm text-foreground/65 mt-1">
                 {t('confirm.quitShortcut', {
                   shortcut: platform === 'darwin' ? '⌘Q' : 'Ctrl+Q'
                 })}
@@ -181,10 +181,10 @@ const GlobalConfirmModals: React.FC = () => {
           title={t('confirm.importProfileTitle')}
           description={
             <div>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-foreground/80 mb-2">
                 {t('confirm.name')}: {profileInstallData.name || t('confirm.unnamed')}
               </p>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-foreground/80 mb-2">
                 {t('confirm.link')}: {profileInstallData.url}
               </p>
               <p className="text-sm text-orange-500 mt-2">{t('confirm.profileTrustWarning')}</p>
@@ -206,10 +206,10 @@ const GlobalConfirmModals: React.FC = () => {
           title={t('confirm.importOverrideTitle')}
           description={
             <div>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-foreground/80 mb-2">
                 {t('confirm.name')}: {overrideInstallData.name || t('confirm.unnamed')}
               </p>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-foreground/80 mb-2">
                 {t('confirm.link')}: {overrideInstallData.url}
               </p>
               <p className="text-sm text-orange-500 mt-2">{t('confirm.overrideTrustWarning')}</p>

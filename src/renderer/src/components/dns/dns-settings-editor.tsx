@@ -59,7 +59,7 @@ export const DnsSettingsFormFields: React.FC<{ editor: DnsSettingsEditorState }>
         <SettingItem title={t('page.dns.title')} divider>
           <div className="flex items-center gap-2">
             <span
-              className={`text-xs ${values.controlDns ? 'text-primary' : 'text-foreground-500'}`}
+              className={`text-xs ${values.controlDns ? 'text-primary' : 'text-foreground/70'}`}
             >
               {values.controlDns ? t('common.enabled') : t('common.disabled')}
             </span>

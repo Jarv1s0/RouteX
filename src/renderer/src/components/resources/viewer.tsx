@@ -193,7 +193,7 @@ const Viewer: React.FC<Props> = (props) => {
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-4">
                   <Spinner size="lg" />
-                  <p className="text-default-500">{t('resources.loading')}</p>
+                  <p className="text-foreground/75">{t('resources.loading')}</p>
                 </div>
               ) : (
                 <BaseEditor

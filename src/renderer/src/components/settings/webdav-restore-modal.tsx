@@ -37,7 +37,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
         </ModalHeader>
         <ModalBody className="py-2 px-4 gap-1.5">
           {filenames.length === 0 ? (
-            <div className="flex justify-center text-sm text-default-400">{t('settings.webdav.empty')}</div>
+            <div className="flex justify-center text-sm text-foreground/70">{t('settings.webdav.empty')}</div>
           ) : (
             filenames.map((filename) => (
               <div className="flex gap-1.5" key={filename}>

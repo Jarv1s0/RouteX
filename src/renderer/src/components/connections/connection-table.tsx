@@ -94,7 +94,7 @@ function ConnectionTableComponent({
   )
   const handleClose = useCallback((id: string) => close(id), [close])
   if (!columns.length)
-    return <div className="p-4 text-sm text-default-500">{t('connections.table.noColumns')}</div>
+    return <div className="p-4 text-sm text-foreground/75">{t('connections.table.noColumns')}</div>
   return (
     <div className="h-full w-full min-w-0">
       <TableVirtuoso
@@ -156,7 +156,7 @@ function ConnectionTableComponent({
                       type="button"
                       aria-label={pinTitle}
                       title={pinTitle}
-                      className={`shrink-0 rounded p-0.5 focus-visible:ring-2 focus-visible:ring-primary ${pin ? 'text-primary' : 'text-default-400 opacity-0 group-hover:opacity-100 focus:opacity-100'}`}
+                      className={`shrink-0 rounded p-0.5 focus-visible:ring-2 focus-visible:ring-primary ${pin ? 'text-primary' : 'text-foreground/65 hover:text-foreground opacity-0 group-hover:opacity-100 focus:opacity-100'}`}
                       onClick={() =>
                         column.pin(pin === false ? 'start' : pin === 'start' ? 'end' : false)
                       }

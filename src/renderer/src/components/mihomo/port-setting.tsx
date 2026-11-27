@@ -60,14 +60,14 @@ const SubPanel: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
   className = ''
 }) => (
-  <div className={`text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4 ${className}`}>
+  <div className={`text-sm text-foreground/85 bg-content2 rounded-lg p-3 mt-2 mb-4 ${className}`}>
     <div className="ml-2">{children}</div>
   </div>
 )
 
 // 子面板内的列表容器
 const ListPanel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1 mb-0 [&>div]:!mt-0">
+  <div className="text-xs text-foreground/75 bg-content3 rounded-lg p-2 mt-1 mb-0 [&>div]:!mt-0">
     {children}
   </div>
 )

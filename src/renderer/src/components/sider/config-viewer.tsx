@@ -92,7 +92,7 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
               {t('configViewer.sideBySide')}
             </AppSwitch>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-default-500">{t('configViewer.diffSource')}</span>
+              <span className="text-sm text-foreground/75">{t('configViewer.diffSource')}</span>
               <Tabs
                 size="sm"
                 variant="bordered"

@@ -86,7 +86,7 @@ const ProfilesPage: React.FC = () => {
         <Button
           size="sm"
           title={t('page.profiles.settings')}
-          className="h-6 w-6 min-w-0 app-nodrag text-default-500"
+          className="h-6 w-6 min-w-0 app-nodrag text-foreground/75 hover:text-foreground"
           variant="light"
           isIconOnly
           onPress={() => setIsSettingModalOpen(true)}

@@ -160,7 +160,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                   <div className="flex items-center gap-4">
                     {values.autoUpdate && (
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-default-500 whitespace-nowrap">
+                        <span className="text-sm text-foreground/75 whitespace-nowrap">
                           {t('profiles.updateIntervalMinutes')}
                         </span>
                         <Input
@@ -210,7 +210,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                     <div className={overrideRowClassName} key={i.id}>
                       <div className="flex items-center gap-2 overflow-hidden" title={i.name}>
                         <span className="text-sm truncate">{i.name}</span>
-                        <span className="text-[10px] font-medium bg-default-200/50 text-default-600 px-1.5 py-0.5 rounded-md cursor-default shrink-0">
+                        <span className="text-[10px] font-medium bg-default-200/50 text-foreground/80 px-1.5 py-0.5 rounded-md cursor-default shrink-0">
                           {t('profiles.globalSuffix')}
                         </span>
                       </div>

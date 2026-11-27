@@ -28,32 +28,32 @@ const NEUTRAL_CARD =
 const THEME_MAP = {
   green: {
     icon: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400',
-    label: 'text-foreground-500',
+    label: 'text-foreground/75',
     value: 'text-foreground'
   },
   purple: {
     icon: 'bg-purple-500/12 text-purple-600 dark:text-purple-400',
-    label: 'text-foreground-500',
+    label: 'text-foreground/75',
     value: 'text-foreground'
   },
   orange: {
     icon: 'bg-warning/12 text-warning',
-    label: 'text-foreground-500',
+    label: 'text-foreground/75',
     value: 'text-foreground'
   },
   blue: {
     icon: 'bg-blue-500/12 text-blue-600 dark:text-blue-400',
-    label: 'text-foreground-500',
+    label: 'text-foreground/75',
     value: 'text-foreground'
   },
   cyan: {
     icon: 'bg-cyan-500/12 text-cyan-600 dark:text-cyan-400',
-    label: 'text-foreground-500',
+    label: 'text-foreground/75',
     value: 'text-foreground'
   },
   default: {
-    icon: 'bg-default-100 text-default-500',
-    label: 'text-foreground-500',
+    icon: 'bg-default-100 text-foreground/75',
+    label: 'text-foreground/75',
     value: 'text-foreground'
   }
 } as const
@@ -79,10 +79,7 @@ const InlineSummary: React.FC<{
       >
         {label}
       </span>
-      <span
-        className="max-w-[110px] truncate text-xs font-medium text-foreground-600"
-        title={value}
-      >
+      <span className="max-w-[110px] truncate text-xs font-medium text-foreground/90" title={value}>
         {value}
       </span>
     </div>
@@ -110,14 +107,14 @@ const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value, subValue, theme
         {value || 'N/A'}
       </span>
       {subValue && (
-        <span className="text-[11px] text-default-400 truncate mt-1 block" title={subValue}>
+        <span className="text-[11px] text-foreground/65 truncate mt-1 block" title={subValue}>
           {subValue}
         </span>
       )}
       {value && (
         <div
           onClick={handleCopy}
-          className="absolute top-3 right-3 p-1.5 rounded-md text-default-400 hover:text-primary hover:bg-default-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+          className="absolute top-3 right-3 p-1.5 rounded-md text-foreground/60 hover:text-primary hover:bg-default-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
           title="Copy"
         >
           <IoCopy className="text-xs" />
@@ -153,7 +150,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
                 <span className="font-semibold text-[13px] text-foreground">
                   {calcTraffic(connection.download)}
                 </span>
-                <span className="text-[11px] text-default-400">
+                <span className="text-[11px] text-foreground/70">
                   {calcTraffic(connection.downloadSpeed || 0)}/s
                 </span>
               </div>
@@ -165,7 +162,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
                 <span className="font-semibold text-[13px] text-foreground">
                   {calcTraffic(connection.upload)}
                 </span>
-                <span className="text-[11px] text-default-400">
+                <span className="text-[11px] text-foreground/70">
                   {calcTraffic(connection.uploadSpeed || 0)}/s
                 </span>
               </div>
@@ -190,7 +187,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
             <div className="p-1.5 rounded-lg bg-blue-500/12 text-blue-600 dark:text-blue-400">
               <FaNetworkWired className="text-xs" />
             </div>
-            <span className="text-[11px] font-semibold text-foreground-500 tracking-wide">
+            <span className="text-[11px] font-semibold text-foreground/75 tracking-wide">
               {t('connections.detail.destination')}
             </span>
           </div>
@@ -204,12 +201,12 @@ export const ConnectionMetadata: React.FC<Props> = ({
             connection.metadata.destinationIPASN) && (
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {connection.metadata.destinationGeoIP?.length ? (
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-default-200/70 bg-default-100/90 text-default-700 dark:border-white/10 dark:bg-white/[0.08] dark:text-default-300">
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-default-200/70 bg-default-100/90 text-foreground/85 dark:border-white/10 dark:bg-white/[0.08]">
                   {connection.metadata.destinationGeoIP.join(' ')}
                 </span>
               ) : null}
               {connection.metadata.destinationIPASN && (
-                <span className="text-[11px] text-default-400">
+                <span className="text-[11px] text-foreground/70">
                   {connection.metadata.destinationIPASN}
                 </span>
               )}
@@ -217,7 +214,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
           )}
           <div
             onClick={() => navigator.clipboard.writeText(destination)}
-            className="absolute top-3 right-3 p-1.5 rounded-md text-default-400 hover:text-primary hover:bg-default-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-20"
+            className="absolute top-3 right-3 p-1.5 rounded-md text-foreground/60 hover:text-primary hover:bg-default-100 opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-20"
             title="Copy"
           >
             <IoCopy className="text-xs" />
@@ -263,10 +260,10 @@ export const ConnectionMetadata: React.FC<Props> = ({
       {/* 入站详情 — divider 横条布局 */}
       <div className={`rounded-[12px] border overflow-hidden ${NEUTRAL_CARD}`}>
         <div className="flex items-center gap-2 px-3.5 py-2 bg-default-100/70 dark:bg-white/[0.04] border-b border-default-200/75 dark:border-white/10">
-          <div className="p-1 rounded-md bg-default-200/70 dark:bg-white/10 text-foreground-500">
+          <div className="p-1 rounded-md bg-default-200/70 dark:bg-white/10 text-foreground/75">
             <IoServer className="text-xs" />
           </div>
-          <span className="text-[11px] font-semibold text-foreground-500 tracking-wide">
+          <span className="text-[11px] font-semibold text-foreground/75 tracking-wide">
             {t('connections.detail.inbound')}
           </span>
         </div>
@@ -296,7 +293,7 @@ export const ConnectionMetadata: React.FC<Props> = ({
                 key={label}
                 className="flex items-center justify-between px-3.5 py-1.5 hover:bg-default-100/60 dark:hover:bg-white/[0.03] transition-colors"
               >
-                <span className="text-[11px] text-foreground-500 font-medium w-24 shrink-0">
+                <span className="text-[11px] text-foreground/75 font-medium w-24 shrink-0">
                   {label}
                 </span>
                 <span

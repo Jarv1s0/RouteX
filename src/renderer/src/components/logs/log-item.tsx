@@ -96,7 +96,7 @@ const LogItem: React.FC<Props> = (props) => {
           title={t('page.logs.filterByKeyword', { keyword: parsed.quickFilterToken })}
           aria-label={t('page.logs.filterByKeyword', { keyword: parsed.quickFilterToken })}
           onClick={handleQuickFilter}
-          className="p-1 rounded-md text-default-400 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+          className="p-1 rounded-md text-foreground/60 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
         >
           <IoFunnelOutline className="text-xs" />
         </button>
@@ -109,7 +109,7 @@ const LogItem: React.FC<Props> = (props) => {
         className={`p-1 rounded-md transition-colors cursor-pointer ${
           copied
             ? 'text-success bg-success/10'
-            : 'text-default-400 hover:text-primary hover:bg-primary/10'
+            : 'text-foreground/60 hover:text-primary hover:bg-primary/10'
         }`}
       >
         {copied ? <IoCheckmark className="text-xs" /> : <IoCopyOutline className="text-xs" />}
@@ -142,7 +142,7 @@ const LogItem: React.FC<Props> = (props) => {
                 </span>
                 <span
                   title={time}
-                  className="text-default-400 text-[10px] font-mono tracking-tight tabular-nums"
+                  className="text-foreground/65 text-[10px] font-mono tracking-tight tabular-nums"
                 >
                   {displayTime}
                 </span>
@@ -154,7 +154,7 @@ const LogItem: React.FC<Props> = (props) => {
                   </span>
                 )}
               </div>
-              <div className="flex-1 min-w-0 select-text text-xs font-mono text-default-700 dark:text-default-300 break-all line-clamp-2 leading-5">
+              <div className="flex-1 min-w-0 select-text text-xs font-mono text-foreground/90 break-all line-clamp-2 leading-5">
                 {renderLogContent(parsed.rest, searchQuery, isRegexSearch)}
               </div>
               {actionButtons}
@@ -178,14 +178,14 @@ const LogItem: React.FC<Props> = (props) => {
                 )}
                 <span
                   title={time}
-                  className="text-default-400 text-[10px] font-mono tracking-tight tabular-nums"
+                  className="text-foreground/65 text-[10px] font-mono tracking-tight tabular-nums"
                 >
                   {time}
                 </span>
               </div>
               {actionButtons}
             </div>
-            <div className="select-text text-sm font-mono text-default-700 dark:text-default-300 break-all line-clamp-2 leading-relaxed">
+            <div className="select-text text-sm font-mono text-foreground/90 break-all line-clamp-2 leading-relaxed">
               {renderLogContent(parsed.rest, searchQuery, isRegexSearch)}
             </div>
           </CardBody>

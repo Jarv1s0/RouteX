@@ -53,17 +53,17 @@ class ErrorBoundary extends Component<Props, State> {
               <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
                 {translate('errorBoundary.title')}
               </h2>
-              <p className="text-default-500 text-base leading-relaxed max-w-[90%] mx-auto">
+              <p className="text-foreground/75 text-base leading-relaxed max-w-[90%] mx-auto">
                 {translate('errorBoundary.description')}
               </p>
             </div>
 
             <div className="w-full bg-default-50/50 border border-default-100 p-5 rounded-2xl overflow-hidden text-left relative group hover:bg-default-100/50 transition-colors">
-              <div className="flex items-center gap-2 mb-2 opacity-50 text-xs font-semibold uppercase tracking-wider">
+              <div className="flex items-center gap-2 mb-2 text-foreground/65 text-xs font-semibold uppercase tracking-wider">
                 <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
                 Error Details
               </div>
-              <code className="block text-xs font-mono text-default-600 break-words line-clamp-4 select-text font-medium leading-relaxed">
+              <code className="block text-xs font-mono text-foreground/85 break-words line-clamp-4 select-text font-medium leading-relaxed">
                 {this.state.error?.message}
               </code>
             </div>
@@ -71,7 +71,7 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="flex gap-4 w-full pt-2">
               <button
                 type="button"
-                className="min-h-12 flex-1 rounded-2xl border border-default-200 px-4 text-sm font-medium text-default-700 transition-colors hover:bg-default-100"
+                className="min-h-12 flex-1 rounded-2xl border border-default-200 px-4 text-sm font-medium text-foreground/90 transition-colors hover:bg-default-100"
                 onClick={this.handleCopyError}
               >
                 {translate('errorBoundary.copy')}

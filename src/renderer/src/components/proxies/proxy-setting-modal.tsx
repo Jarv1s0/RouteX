@@ -431,7 +431,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                         <button
                           type="button"
                           aria-label={t('proxies.resetToDefault')}
-                          className="rounded-full p-0.5 text-default-400 transition-colors hover:bg-default-200/70 hover:text-foreground"
+                          className="rounded-full p-0.5 text-foreground/60 transition-colors hover:bg-default-200/70 hover:text-foreground"
                           onClick={() => {
                             setUrl('')
                             commitUrl('')
@@ -458,7 +458,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                     aria-label={t('proxies.concurrencyDecrease')}
                     isDisabled={effectiveConcurrency <= MIN_DELAY_TEST_CONCURRENCY}
                     onPress={() => stepConcurrency(-1)}
-                    className="h-8 w-8 min-w-8 bg-default-100/90 text-default-600 hover:bg-default-200/80 dark:bg-white/[0.08] dark:text-default-300 dark:hover:bg-white/[0.14]"
+                    className="h-8 w-8 min-w-8 bg-default-100/90 text-foreground/80 hover:bg-default-200/80 hover:text-foreground dark:bg-white/[0.08] dark:hover:bg-white/[0.14]"
                   >
                     <MdRemove className="text-base" />
                   </Button>
@@ -491,7 +491,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                     aria-label={t('proxies.concurrencyIncrease')}
                     isDisabled={effectiveConcurrency >= MAX_DELAY_TEST_CONCURRENCY}
                     onPress={() => stepConcurrency(1)}
-                    className="h-8 w-8 min-w-8 bg-default-100/90 text-default-600 hover:bg-default-200/80 dark:bg-white/[0.08] dark:text-default-300 dark:hover:bg-white/[0.14]"
+                    className="h-8 w-8 min-w-8 bg-default-100/90 text-foreground/80 hover:bg-default-200/80 hover:text-foreground dark:bg-white/[0.08] dark:hover:bg-white/[0.14]"
                   >
                     <MdAdd className="text-base" />
                   </Button>
@@ -512,7 +512,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                   max={MAX_DELAY_TEST_TIMEOUT}
                   value={timeoutInput}
                   placeholder={DEFAULT_DELAY_TEST_TIMEOUT.toString()}
-                  endContent={<span className="select-none text-xs text-default-400">ms</span>}
+                  endContent={<span className="select-none text-xs text-foreground/60">ms</span>}
                   onValueChange={setTimeoutInput}
                   onBlur={() => commitTimeout()}
                   onKeyDown={(e) => {
@@ -526,7 +526,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
               <ModalSettingRow title={t('proxies.delayThresholds')}>
                 <div className="flex flex-wrap items-center gap-2.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-foreground-500">
+                    <span className="text-xs font-medium text-foreground/75">
                       {t('proxies.delayExcellent')}
                     </span>
                     <Input
@@ -541,7 +541,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                       startContent={
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
                       }
-                      endContent={<span className="select-none text-xs text-default-400">ms</span>}
+                      endContent={
+                        <span className="select-none text-xs text-foreground/60">ms</span>
+                      }
                       onValueChange={setGoodThreshold}
                       onBlur={() => commitThresholds('good')}
                       onKeyDown={(e) => {
@@ -552,7 +554,7 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                     />
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-foreground-500">
+                    <span className="text-xs font-medium text-foreground/75">
                       {t('proxies.delayGood')}
                     </span>
                     <Input
@@ -567,7 +569,9 @@ const ProxySettingModal: React.FC<Props> = (props) => {
                       startContent={
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400" />
                       }
-                      endContent={<span className="select-none text-xs text-default-400">ms</span>}
+                      endContent={
+                        <span className="select-none text-xs text-foreground/60">ms</span>
+                      }
                       onValueChange={setFairThreshold}
                       onBlur={() => commitThresholds('fair')}
                       onKeyDown={(e) => {
@@ -668,13 +672,13 @@ const GroupSortModal: React.FC<GroupSortModalProps> = ({
         <ModalHeader className={SECONDARY_MODAL_HEADER_CLASSNAME}>
           <div className="min-w-0">
             <div className="truncate">{title}</div>
-            <div className="mt-0.5 text-xs font-normal text-foreground-500">{description}</div>
+            <div className="mt-0.5 text-xs font-normal text-foreground/75">{description}</div>
           </div>
           <SecondaryModalCloseButton onPress={onClose} />
         </ModalHeader>
         <ModalBody className="px-6 pt-1 pb-6">
           {sortedGroups.length === 0 ? (
-            <div className="rounded-2xl border border-default-200/60 bg-default-100/40 px-4 py-8 text-center text-sm text-foreground-400 dark:border-white/10 dark:bg-white/[0.03]">
+            <div className="rounded-2xl border border-default-200/60 bg-default-100/40 px-4 py-8 text-center text-sm text-foreground/70 dark:border-white/10 dark:bg-white/[0.03]">
               {t('proxies.noGroupsToSort')}
             </div>
           ) : (
@@ -731,12 +735,12 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({ name, nodeCount, 
       {...listeners}
       className="flex items-center gap-2.5 rounded-xl border border-default-200/50 bg-default-100/60 px-3 py-2 cursor-grab transition-colors hover:bg-default-200/60 active:cursor-grabbing dark:border-white/10 dark:bg-white/[0.05] dark:hover:bg-white/[0.09]"
     >
-      <MdDragIndicator className="shrink-0 text-base text-foreground-400" />
-      <span className="w-5 shrink-0 text-center text-xs font-medium text-foreground-400">
+      <MdDragIndicator className="shrink-0 text-base text-foreground/55" />
+      <span className="w-5 shrink-0 text-center text-xs font-medium text-foreground/70">
         {index + 1}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm font-medium">{name}</span>
-      <span className="shrink-0 text-xs text-foreground-400">
+      <span className="shrink-0 text-xs text-foreground/70">
         {t('proxies.groupNodeCount', { count: nodeCount })}
       </span>
     </div>

@@ -136,7 +136,7 @@ const AdvancedSetting: React.FC = () => {
         />
       </SettingItem>
       {!disableKeepAlive && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+        <div className="text-sm text-foreground/85 bg-content2 rounded-lg p-3 mt-2 mb-4">
           <div className="ml-4 text-sm">
             <SettingItem title={t('mihomo.keepAliveInterval')}>
               <div className="flex">
@@ -220,7 +220,7 @@ const AdvancedSetting: React.FC = () => {
         />
       </SettingItem>
       {networkDetection && (
-        <div className="text-sm text-foreground-600 bg-content2 rounded-lg p-3 mt-2 mb-4">
+        <div className="text-sm text-foreground/85 bg-content2 rounded-lg p-3 mt-2 mb-4">
           <div className="ml-4 text-sm">
             <SettingItem title={t('mihomo.networkDetectionInterval')}>
               <div className="flex">
@@ -273,7 +273,7 @@ const AdvancedSetting: React.FC = () => {
                 </Button>
               )}
             </SettingItem>
-            <div className="text-xs text-foreground-500 bg-content3 rounded-lg p-2 mt-1">
+            <div className="text-xs text-foreground/75 bg-content3 rounded-lg p-2 mt-1">
               <div className="ml-6">
                 <EditableList
                   items={bypass}

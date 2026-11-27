@@ -148,11 +148,11 @@ const GroupDetailSummary: React.FC<GroupDetailSummaryProps> = ({
         >
           {group.name}
         </span>
-        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-default-400">
+        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-foreground/65">
           {group.type}
         </span>
       </div>
-      <div className="mt-0.5 flex items-center gap-2 min-w-0 text-xs text-default-500">
+      <div className="mt-0.5 flex items-center gap-2 min-w-0 text-xs text-foreground/75">
         <span className="flex items-center gap-1.5 shrink-0 font-mono tabular-nums">
           <span className={`w-1.5 h-1.5 rounded-full ${statusDotClass}`} />
           {liveCount}
@@ -161,8 +161,8 @@ const GroupDetailSummary: React.FC<GroupDetailSummaryProps> = ({
         </span>
         {group.now && (
           <>
-            <span className="text-default-300 dark:text-white/15">·</span>
-            <span className="flag-emoji min-w-0 truncate text-foreground/80" title={group.now}>
+            <span className="text-foreground/40">·</span>
+            <span className="flag-emoji min-w-0 truncate text-foreground/85" title={group.now}>
               {addFlag(group.now)}
             </span>
           </>
@@ -413,7 +413,7 @@ const Proxies: React.FC = () => {
             size="sm"
             isIconOnly
             variant="light"
-            className="h-7 w-7 min-w-7 rounded-lg app-nodrag text-default-500 hover:text-foreground"
+            className="h-7 w-7 min-w-7 rounded-lg app-nodrag text-foreground/75 hover:text-foreground"
             title={t('page.proxies.settings')}
             aria-label={t('page.proxies.settings')}
             onPress={() => setIsSettingModalOpen(true)}
@@ -440,7 +440,7 @@ const Proxies: React.FC = () => {
         </div>
       ) : renderGroups.length === 0 ? (
         <EmptyState
-          icon={<MdLink className="!text-[40px] text-default-400" />}
+          icon={<MdLink className="!text-[40px] text-foreground/50" />}
           title={t('page.proxies.emptyTitle')}
           description={t('page.proxies.emptyDescription')}
         />
@@ -464,7 +464,7 @@ const Proxies: React.FC = () => {
                   aria-label={t('page.proxies.searchNodes')}
                   isClearable
                   onValueChange={setSearchQuery}
-                  startContent={<IoSearchOutline className="text-default-400 text-sm shrink-0" />}
+                  startContent={<IoSearchOutline className="text-foreground/60 text-sm shrink-0" />}
                   className="w-[150px] sm:w-[190px]"
                   classNames={CARD_STYLES.GLASS_INPUT}
                 />
@@ -492,7 +492,7 @@ const Proxies: React.FC = () => {
           <div className="flex-1 min-h-0">
             {proxyChunks.length === 0 ? (
               <EmptyState
-                icon={<IoSearchOutline className="!text-[36px] text-default-400" />}
+                icon={<IoSearchOutline className="!text-[36px] text-foreground/50" />}
                 title={t('page.proxies.noMatchingNodes')}
                 description={t('page.proxies.noMatchingNodesDescription')}
               />
@@ -576,7 +576,7 @@ const Proxies: React.FC = () => {
                       className={
                         showDrawerSearch || searchQuery
                           ? 'h-8 w-8 min-w-8 rounded-full bg-primary/10 hover:bg-primary/20 text-primary shadow-sm'
-                          : 'h-8 w-8 min-w-8 rounded-full bg-default-100/70 text-default-500 shadow-sm transition-all duration-150 hover:bg-default-200/70 hover:text-foreground'
+                          : 'h-8 w-8 min-w-8 rounded-full bg-default-100/70 text-foreground/75 shadow-sm transition-all duration-150 hover:bg-default-200/70 hover:text-foreground'
                       }
                       onPress={() => {
                         setShowDrawerSearch((prev) => {
@@ -623,7 +623,7 @@ const Proxies: React.FC = () => {
                       aria-label={t('page.proxies.searchNodes')}
                       isClearable
                       onValueChange={setSearchQuery}
-                      startContent={<IoSearchOutline className="text-default-400 text-sm shrink-0" />}
+                      startContent={<IoSearchOutline className="text-foreground/60 text-sm shrink-0" />}
                       classNames={DRAWER_SEARCH_INPUT_CLASSNAMES}
                     />
                   </div>
@@ -633,7 +633,7 @@ const Proxies: React.FC = () => {
                   {activeGroup ? (
                     proxyChunks.length === 0 ? (
                       <EmptyState
-                        icon={<IoSearchOutline className="!text-[36px] text-default-400" />}
+                        icon={<IoSearchOutline className="!text-[36px] text-foreground/50" />}
                         title={t('page.proxies.noMatchingNodes')}
                         description={t('page.proxies.noMatchingNodesDescription')}
                       />

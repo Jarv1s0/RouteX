@@ -57,7 +57,7 @@ const editorFontFamily =
 const editorContainerClassName = 'h-full w-full overflow-hidden'
 const mergeViewWrapperClassName = 'flex h-full min-h-0 w-full flex-col overflow-hidden'
 const mergeHeaderClassName =
-  'grid shrink-0 grid-cols-2 border-b border-default-200/70 bg-content1 text-xs font-medium text-default-600'
+  'grid shrink-0 grid-cols-2 border-b border-default-200/70 bg-content1 text-xs font-medium text-foreground/80'
 const mergeHeaderItemClassName = 'px-4 py-2'
 const mergeContainerClassName = 'min-h-0 flex-1 w-full overflow-auto'
 const getSelectionBackground = (isLight: boolean): string =>

@@ -80,7 +80,7 @@ const SidebarNavCard: React.FC<Props> = ({
           className={`text-[16px] transition-all duration-150 ${
             match
               ? 'text-primary'
-              : 'text-default-500 dark:text-default-400 group-hover:text-primary group-hover:scale-110'
+              : 'text-foreground/75 group-hover:text-primary group-hover:scale-110'
           }`}
         />
       </span>
@@ -88,7 +88,7 @@ const SidebarNavCard: React.FC<Props> = ({
         className={`text-sm font-medium transition-all duration-150 motion-reduce:transition-none ${
           match
             ? 'text-foreground'
-            : 'text-foreground/90 dark:text-foreground/80 group-hover:text-foreground group-hover:translate-x-0.5'
+            : 'text-foreground/90 group-hover:text-foreground group-hover:translate-x-0.5'
         }`}
       >
         {label}

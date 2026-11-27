@@ -327,7 +327,7 @@ export const OverrideTabContent: React.FC<{ toolbarContainer?: HTMLDivElement | 
               size="sm"
               isIconOnly
               variant="light"
-              className={`text-default-600 dark:text-default-300 hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
+              className={`text-foreground/80 hover:text-foreground hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
               isLoading={overrideUpdating}
               title={t('page.profiles.updateAllOverrides')}
               onPress={() => void handleUpdateAllOverrides()}

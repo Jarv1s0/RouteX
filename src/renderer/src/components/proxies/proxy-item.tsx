@@ -130,23 +130,21 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                     />
                   )}
                   <span
-                    className="flag-emoji min-w-0 flex-1 truncate font-semibold tracking-wide text-[12.5px] text-foreground/90"
+                    className="flag-emoji min-w-0 flex-1 truncate font-semibold tracking-wide text-[12.5px] text-foreground"
                     title={proxy.name}
                   >
                     {proxy.name}
                   </span>
                 </div>
-                <div className="mt-0.5 flex min-h-5 items-center gap-1.5 leading-5 opacity-90">
-                  <span className="inline-flex h-[18px] items-center rounded bg-default-100/80 dark:bg-white/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-500/80 dark:text-default-400">
+                <div className="mt-0.5 flex min-h-5 items-center gap-1.5 leading-5">
+                  <span className="inline-flex h-[18px] items-center rounded bg-default-100/80 dark:bg-white/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-foreground/75">
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
                   </span>
                   {subGroupInfo && (
                     <>
-                      <span className="text-default-300 dark:text-default-600/50 text-[10px]">
-                        |
-                      </span>
+                      <span className="text-foreground/40 text-[10px]">|</span>
                       <span
-                        className="flag-emoji truncate text-[11px] font-medium tracking-wide leading-5 text-default-500"
+                        className="flag-emoji truncate text-[11px] font-medium tracking-wide leading-5 text-foreground/75"
                         title={subGroupInfo.now}
                       >
                         {subGroupInfo.now}
@@ -188,7 +186,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                       className={getDelayColorClass(
                         displayDelay,
                         delayThresholds,
-                        'text-default-500'
+                        'text-foreground/75'
                       )}
                     >
                       {delayText(displayDelay)}
@@ -211,14 +209,14 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                   />
                 )}
                 <span
-                  className="flag-emoji min-w-0 flex-1 truncate font-semibold tracking-wide text-[13px] text-foreground/90"
+                  className="flag-emoji min-w-0 flex-1 truncate font-semibold tracking-wide text-[13px] text-foreground"
                   title={proxy.name}
                 >
                   {proxy.name === 'COMPATIBLE' ? 'DIRECT' : proxy.name}
                 </span>
                 {proxyDisplayLayout === 'single' && (
                   <span
-                    className="ml-2 inline-flex h-[18px] items-center rounded bg-default-100/80 dark:bg-white/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-default-500/80 dark:text-default-400"
+                    className="ml-2 inline-flex h-[18px] items-center rounded bg-default-100/80 dark:bg-white/5 px-1.5 text-[9px] font-bold uppercase tracking-wider text-foreground/75"
                     title={proxy.type}
                   >
                     {proxy.type === 'Compatible' ? 'Direct' : proxy.type}
@@ -226,11 +224,9 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                 )}
                 {subGroupInfo && (
                   <>
-                    <span className="text-default-300 dark:text-default-600/50 text-[10px] ml-2">
-                      |
-                    </span>
+                    <span className="text-foreground/40 text-[10px] ml-2">|</span>
                     <span
-                      className="ml-1.5 text-[11.5px] font-medium tracking-wide text-default-500 flag-emoji truncate"
+                      className="ml-1.5 text-[11.5px] font-medium tracking-wide text-foreground/75 flag-emoji truncate"
                       title={subGroupInfo.now}
                     >
                       {subGroupInfo.now}
@@ -274,7 +270,7 @@ const ProxyItemComponent: React.FC<Props> = (props) => {
                         className={getDelayColorClass(
                           displayDelay,
                           delayThresholds,
-                          'text-default-500'
+                          'text-foreground/75'
                         )}
                       >
                         {delayText(displayDelay)}

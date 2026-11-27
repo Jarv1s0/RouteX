@@ -433,7 +433,7 @@ const TrafficChart: React.FC = () => {
             {historyTab === 'realtime' ? (
               <RealtimeSpeedBadges />
             ) : (
-              <div className="flex items-center gap-3 text-xs font-medium text-default-500">
+              <div className="flex items-center gap-3 text-xs font-medium text-foreground/75">
                 <span className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full" style={{ backgroundColor: uploadColor }} />
                   {t('stats.upload')}

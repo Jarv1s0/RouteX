@@ -33,6 +33,15 @@ html {
   height: 100%;
 }
 
+/* 浅色模式下提高 HeroUI 前景辅色对比度，避免占位符和描述文字发灰 */
+:root,
+.light,
+html:not(.dark) {
+  --heroui-foreground-400: 240 5% 44%;
+  --heroui-foreground-500: 240 5% 34%;
+  --heroui-foreground-600: 240 6% 24%;
+}
+
 body,
 #root {
   width: 100%;
@@ -267,6 +276,10 @@ textarea:focus-visible {
 .dark {
   /* 提高文字对比度 */
   --heroui-foreground: 210 20% 98%;
+  /* 提升深色模式辅色对比度（HeroUI 默认 400 为 46% 偏暗灰，500 为 65%） */
+  --heroui-foreground-400: 220 8% 66%;
+  --heroui-foreground-500: 220 10% 76%;
+  --heroui-foreground-600: 215 12% 85%;
   /* 全局背景增加极轻微的冷色调环境光反射，避免死黑 */
   --heroui-background: 230 15% 8%;
   /* 卡片背景跟随环境光色调 */
@@ -290,11 +303,6 @@ textarea:focus-visible {
   --app-danger-border: rgba(214, 154, 148, 0.36);
   --app-danger-ring: rgba(214, 154, 148, 0.42);
   --stats-download-gradient: linear-gradient(90deg, #6f62b8 0%, #9b8bd8 100%);
-}
-
-/* 深色模式下的空状态文字 */
-.dark .text-foreground-400 {
-  color: hsl(0 0% 60%);
 }
 
 .dark

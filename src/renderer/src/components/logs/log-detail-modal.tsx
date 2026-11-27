@@ -101,12 +101,12 @@ const LogDetailModal: React.FC<Props> = (props) => {
 
         <ModalBody className="px-2 pt-0.5 pb-2">
           <div className="rounded-[12px] border border-default-200/85 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-white/12 dark:bg-zinc-900/60 overflow-hidden">
-            <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-default-200/70 dark:border-white/10 bg-default-100/70 dark:bg-white/[0.04] text-[11px] text-default-500">
+            <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-default-200/70 dark:border-white/10 bg-default-100/70 dark:bg-white/[0.04] text-[11px] text-foreground/75">
               <div className="flex items-center gap-1.5 font-mono tabular-nums select-text">
-                <IoTimeOutline className="text-xs text-default-400" />
+                <IoTimeOutline className="text-xs text-foreground/60" />
                 <span>{log.time || '-'}</span>
                 {log.shortTime && (
-                  <span className="text-[10px] text-default-400">({log.shortTime})</span>
+                  <span className="text-[10px] text-foreground/65">({log.shortTime})</span>
                 )}
               </div>
               {parsed.quickFilterToken && parsed.quickFilterToken !== parsed.tag && (

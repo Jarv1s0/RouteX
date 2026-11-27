@@ -200,7 +200,7 @@ const getThemeClasses = (name: string, defaultColor: string): ThemeClasses => {
 
   return createThemeClasses(
     defaultColor,
-    'text-default-800 dark:text-default-100',
+    'text-foreground',
     'border-default-500/50',
     'shadow-sm',
     'bg-default-500',
@@ -250,7 +250,7 @@ export const SourceNode = memo(function SourceNode({ data }: NodeProps) {
 
         <div className="flex-1 w-full flex flex-col justify-center items-center text-center px-4">
           <div
-            className="font-semibold tracking-wide text-[16px] truncate text-default-900 dark:text-default-100 w-full max-w-[200px]"
+            className="font-semibold tracking-wide text-[16px] truncate text-foreground w-full max-w-[200px]"
             title={detail || name}
           >
             {name}

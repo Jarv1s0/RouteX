@@ -504,7 +504,7 @@ const RulesPage: React.FC = () => {
               size="sm"
               value={filter}
               placeholder={t('common.filter')}
-              startContent={<IoSearchOutline className="text-default-400 text-base flex-shrink-0" />}
+              startContent={<IoSearchOutline className="text-foreground/60 text-base flex-shrink-0" />}
               isClearable
               onValueChange={setFilter}
               className="flex-1"
@@ -554,7 +554,7 @@ const RulesPage: React.FC = () => {
               onConfirm={() => confirmDeleteQuickRule(pendingDeleteQuickRule)}
               description={
                 <div className="flex flex-col gap-3">
-                  <p className="text-sm text-foreground-600">
+                  <p className="text-sm text-foreground/85">
                     {t('rules.deleteConfirmDescription')}
                   </p>
                   <code className="rounded-2xl border border-danger/20 bg-danger/10 px-3 py-2 font-mono text-sm text-danger">
@@ -599,7 +599,7 @@ const RulesPage: React.FC = () => {
                 })}
               </div>
             ) : (
-              <div className="mx-2 rounded-lg border border-dashed border-default-200/70 bg-background/50 px-4 py-8 text-center text-sm text-foreground-400 dark:border-white/10">
+              <div className="mx-2 rounded-lg border border-dashed border-default-200/70 bg-background/50 px-4 py-8 text-center text-sm text-foreground/70 dark:border-white/10">
                 {deferredFilter ? t('rules.noMatchedLocal') : t('rules.emptyLocal')}
               </div>
             )}

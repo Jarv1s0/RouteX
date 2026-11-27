@@ -195,13 +195,11 @@ const ConnCard: React.FC<Props> = (props) => {
               <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
                 <LuPlug
                   className={`text-[16px] transition-all duration-150 group-hover:scale-110 group-hover:text-primary ${
-                    match ? 'text-primary' : 'text-foreground/70 dark:text-foreground/60'
+                    match ? 'text-primary' : 'text-foreground/80'
                   }`}
                 />
               </span>
-              <h3 className="text-sm font-semibold text-foreground dark:text-foreground/90">
-                {t('sidebar.connections')}
-              </h3>
+              <h3 className="text-sm font-semibold text-foreground">{t('sidebar.connections')}</h3>
             </div>
           </div>
 

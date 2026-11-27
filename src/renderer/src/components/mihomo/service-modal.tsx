@@ -235,7 +235,7 @@ const ServiceModal: React.FC<Props> = (props) => {
 
             <Divider />
 
-            <div className="text-xs text-default-500 space-y-2">
+            <div className="text-xs text-foreground/75 space-y-2">
               <div className="flex items-start gap-2">
                 <span>{t('mihomo.service.hint1')}</span>
               </div>
@@ -258,7 +258,7 @@ const ServiceModal: React.FC<Props> = (props) => {
             radius="lg"
             onPress={() => onChange(false)}
             isDisabled={loading}
-            className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+            className="h-8 px-4 font-medium text-foreground/80"
           >
             {t('common.close')}
           </Button>

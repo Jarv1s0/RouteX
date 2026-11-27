@@ -32,8 +32,8 @@ const LOG_TYPE_STYLES: Record<
 
 const DEFAULT_LOG_TYPE_STYLE = {
   marker: 'bg-default',
-  listBadge: 'border-default/30 text-default-500 bg-default/10',
-  detailBadge: 'bg-default/10 text-default-500 border-default/20'
+  listBadge: 'border-default/30 text-foreground/75 bg-default/10',
+  detailBadge: 'bg-default/10 text-foreground/75 border-default/20'
 }
 
 function getLogTypeStyle(type: string) {
@@ -61,7 +61,7 @@ const LOG_TAG_STYLES: Record<string, string> = {
 export function getLogTagBadgeClass(tag: string): string {
   return (
     LOG_TAG_STYLES[tag.toUpperCase()] ??
-    'border-default-300/40 text-default-600 bg-default-100/60 dark:text-default-300'
+    'border-default-300/40 text-foreground/80 bg-default-100/60 dark:bg-white/[0.08]'
   )
 }
 

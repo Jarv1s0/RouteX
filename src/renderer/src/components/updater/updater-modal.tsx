@@ -81,7 +81,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
               <div className="truncate text-xl font-semibold">
                 {t('updater.versionReady', { version })}
               </div>
-              <div className="text-xs font-normal text-default-500">
+              <div className="text-xs font-normal text-foreground/75">
                 {t('updater.releaseNotes')}
               </div>
             </div>
@@ -108,7 +108,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
           <div className="markdown-body flex-1 max-h-[520px] overflow-y-auto px-5 py-4 text-sm leading-6 select-text">
             <Suspense
               fallback={
-                <div className="text-sm text-default-500">{t('updater.loadingReleaseNotes')}</div>
+                <div className="text-sm text-foreground/75">{t('updater.loadingReleaseNotes')}</div>
               }
             >
               <ReleaseNotesMarkdown>{releaseNotes}</ReleaseNotesMarkdown>
@@ -121,7 +121,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
           {updateStatus?.downloading ? (
             <div className="w-full space-y-2 px-1">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-default-600">{t('updater.downloadProgress')}</span>
+                <span className="text-foreground/85">{t('updater.downloadProgress')}</span>
                 <span className="font-medium">{updateStatus.progress}%</span>
               </div>
               <Progress
@@ -139,7 +139,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
                   variant="flat"
                   radius="lg"
                   onPress={handleCancel}
-                  className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+                  className="h-8 px-4 font-medium text-foreground/80"
                 >
                   {t('common.cancel')}
                 </Button>
@@ -153,7 +153,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
                 radius="lg"
                 onPress={handleCancel}
                 startContent={<FiX />}
-                className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+                className="h-8 px-4 font-medium text-foreground/80"
               >
                 {t('common.cancel')}
               </Button>

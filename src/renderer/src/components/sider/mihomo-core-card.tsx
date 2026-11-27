@@ -158,12 +158,12 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
           <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <LuCpu
               className={`text-[16px] transition-all duration-150 group-hover:scale-110 ${
-                match ? 'text-primary' : 'text-default-700 dark:text-default-300 group-hover:text-primary'
+                match ? 'text-primary' : 'text-foreground/85 group-hover:text-primary'
               }`}
             />
           </span>
           <h3
-            className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground dark:text-foreground/90 group-hover:text-foreground`}
+            className={`${compact ? 'text-[13px]' : 'text-sm'} font-semibold transition-colors text-foreground group-hover:text-foreground`}
           >
             {t('sidebar.core')}
           </h3>
@@ -198,7 +198,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
         </div>
       </div>
       <div
-        className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/70 dark:text-foreground/65 px-0.5`}
+        className={`flex justify-between items-center ${compact ? 'text-[10px]' : 'text-[11px]'} text-foreground/75 px-0.5`}
       >
         <div className="flex items-center">
           {version?.version ?? '-'}

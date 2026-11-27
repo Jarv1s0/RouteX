@@ -12,7 +12,7 @@ export const getDisabledSettingTitle = (
     return title
   }
 
-  return <span className="text-default-300">{title}</span>
+  return <span className="text-foreground/40">{title}</span>
 }
 
 interface CollapsibleSettingListProps {
@@ -49,7 +49,7 @@ const CollapsibleSettingList: React.FC<CollapsibleSettingListProps> = ({
       >
         <div
           className={`flex items-center gap-2 text-xs ${
-            showError ? 'text-danger' : isDisabled ? 'text-default-300' : 'text-default-500'
+            showError ? 'text-danger' : isDisabled ? 'text-foreground/40' : 'text-foreground/75'
           }`}
         >
           <span>{countLabel}</span>
@@ -62,7 +62,7 @@ const CollapsibleSettingList: React.FC<CollapsibleSettingListProps> = ({
       </SettingItem>
       {expanded && (
         <div
-          className={`mt-1 rounded-lg bg-content2 p-2 text-xs text-foreground-500 ${
+          className={`mt-1 rounded-lg bg-content2 p-2 text-xs text-foreground/80 ${
             isDisabled ? 'opacity-70' : ''
           }`}
         >

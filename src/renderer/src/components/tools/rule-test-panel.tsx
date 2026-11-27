@@ -116,7 +116,7 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({ externalQuery }) =
             <IoShield className="text-warning text-base" />
           </div>
           <span className="font-medium text-sm shrink-0">{t('tools.ruleTest')}</span>
-          <span className="text-foreground-400 text-xs truncate">{t('tools.ruleTestHelp')}</span>
+          <span className="text-foreground/70 text-xs truncate">{t('tools.ruleTestHelp')}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({ externalQuery }) =
           <div className="p-3 rounded-xl bg-default-100/50 border border-default-200/50 space-y-2 animate-fade-in-up">
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
-                <span className="text-foreground-400 text-xs">{t('tools.matchedRule')}</span>
+                <span className="text-foreground/70 text-xs">{t('tools.matchedRule')}</span>
                 <Button
                   size="sm"
                   isIconOnly
@@ -175,7 +175,7 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({ externalQuery }) =
                   {copiedField === 'rule' ? (
                     <IoCheckmarkCircle className="text-xs" />
                   ) : (
-                    <IoCopy className="text-xs text-foreground-400" />
+                    <IoCopy className="text-xs text-foreground/60" />
                   )}
                 </Button>
               </div>
@@ -184,7 +184,7 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({ externalQuery }) =
               </div>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-foreground-400 text-xs">{t('tools.outboundProxy')}</span>
+              <span className="text-foreground/70 text-xs">{t('tools.outboundProxy')}</span>
               <div className="flex items-center gap-1.5">
                 <Chip size="sm" variant="flat" color="success" className="h-6">
                   {ruleResult.proxy}
@@ -201,7 +201,7 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({ externalQuery }) =
                   {copiedField === 'proxy' ? (
                     <IoCheckmarkCircle className="text-xs" />
                   ) : (
-                    <IoCopy className="text-xs text-foreground-400" />
+                    <IoCopy className="text-xs text-foreground/60" />
                   )}
                 </Button>
               </div>

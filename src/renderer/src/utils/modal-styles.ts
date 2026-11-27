@@ -14,10 +14,10 @@ const MODAL_SURFACE_BASE_CLASSNAME =
   'mx-0 sm:mx-0 my-4 sm:my-8 max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-4rem)] rounded-[22px] bg-background/90 dark:bg-default-100/88 backdrop-blur-xl border border-default-300/75 dark:border-white/15 shadow-[0_24px_56px_-12px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.75)] dark:shadow-[0_28px_64px_-12px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.1)]'
 
 export const SECONDARY_MODAL_CLOSE_BUTTON_CLASSNAME =
-  'top-3.5 right-4 h-7 w-7 min-w-7 rounded-full bg-transparent text-default-400 transition-all duration-150 hover:bg-danger/12 hover:text-danger active:scale-95 active:bg-danger/18 dark:text-default-500'
+  'top-3.5 right-4 h-7 w-7 min-w-7 rounded-full bg-transparent text-foreground/60 transition-all duration-150 hover:bg-danger/12 hover:text-danger active:scale-95 active:bg-danger/18'
 
 export const SECONDARY_MODAL_ICON_CLOSE_BUTTON_CLASSNAME =
-  'app-nodrag h-7 w-7 min-w-7 rounded-full bg-transparent text-default-400 transition-all duration-150 hover:bg-danger/12 hover:text-danger active:scale-95 active:bg-danger/18 dark:text-default-500'
+  'app-nodrag h-7 w-7 min-w-7 rounded-full bg-transparent text-foreground/60 transition-all duration-150 hover:bg-danger/12 hover:text-danger active:scale-95 active:bg-danger/18'
 
 export const SECONDARY_MODAL_HEADER_CLASSNAME =
   'flex items-center justify-between gap-3 app-drag px-6 pt-5 pb-3'

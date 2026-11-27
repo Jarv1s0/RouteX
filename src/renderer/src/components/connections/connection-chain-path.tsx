@@ -93,7 +93,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               <span
                 className={clsx(
                   'text-[10px] font-semibold px-1.5 py-0.5 rounded',
-                  tagClassName || 'text-default-500 bg-default-100'
+                  tagClassName || 'text-foreground/80 bg-default-100'
                 )}
               >
                 {tagLabel}
@@ -105,7 +105,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
               </span>
             )}
             {!isGroup && !tagLabel && type === 'proxy' && (
-              <span className="text-[10px] font-semibold text-default-600 bg-default-200/70 dark:text-default-300 dark:bg-white/[0.08] px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-semibold text-foreground/80 bg-default-200/70 dark:bg-white/[0.08] px-1.5 py-0.5 rounded">
                 {t('connections.detail.node')}
               </span>
             )}
@@ -131,7 +131,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
             </div>
           )}
           {time && (
-            <span className="w-[64px] shrink-0 justify-self-end text-left text-[11px] font-mono tabular-nums text-default-400 whitespace-nowrap">
+            <span className="w-[64px] shrink-0 justify-self-end text-left text-[11px] font-mono tabular-nums text-foreground/65 whitespace-nowrap">
               {time}
             </span>
           )}
@@ -143,7 +143,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
           <span
             className={clsx(
               'text-[13px] font-medium truncate',
-              isGroup ? 'text-foreground font-semibold' : 'text-foreground-700'
+              isGroup ? 'text-foreground font-semibold' : 'text-foreground/90'
             )}
             title={title}
           >
@@ -153,7 +153,7 @@ const TimelineNode: React.FC<TimelineNodeProps> = ({
 
         {/* 次级信息（命中值 / 当前节点 / 端口） */}
         {subtitle && (
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-default-500 min-w-0">
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-foreground/75 min-w-0">
             <IoArrowForward className="text-[10px] shrink-0 text-primary/70" />
             <span className="font-mono truncate text-primary/90 font-medium" title={subtitle}>
               {subtitle}

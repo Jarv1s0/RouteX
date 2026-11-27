@@ -307,7 +307,7 @@ export const ConnectivityTestPanel: React.FC = () => {
             e.stopPropagation()
             handleRemoveCustomTarget(target.id)
           }}
-          className="absolute right-1.5 top-1.5 z-10 rounded-full p-0.5 text-foreground-400 hover:bg-danger/15 hover:text-danger transition-colors"
+          className="absolute right-1.5 top-1.5 z-10 rounded-full p-0.5 text-foreground/60 hover:bg-danger/15 hover:text-danger transition-colors"
           title={t('common.delete')}
         >
           <IoClose className="text-xs" />
@@ -331,7 +331,7 @@ export const ConnectivityTestPanel: React.FC = () => {
         {target.status === 'testing' ? (
           <div className="text-primary text-xs animate-pulse">{t('tools.testing')}</div>
         ) : target.status === 'queued' ? (
-          <div className="text-foreground-400 text-xs">{t('tools.queued')}</div>
+          <div className="text-foreground/70 text-xs">{t('tools.queued')}</div>
         ) : target.status === 'success' || target.status === 'unlocked' ? (
           <div
             className={`inline-flex items-center justify-center gap-1 text-xs whitespace-nowrap animate-fade-in ${
@@ -429,7 +429,7 @@ export const ConnectivityTestPanel: React.FC = () => {
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between px-0.5">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground-500">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground/75">
               <IoGlobe className="text-primary" />
               <span>{t('tools.connectivitySection')}</span>
             </div>
@@ -444,7 +444,7 @@ export const ConnectivityTestPanel: React.FC = () => {
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between px-0.5">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground-500">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground/75">
               <IoPlayCircle className="text-secondary" />
               <span>{t('tools.streamingSection')}</span>
             </div>

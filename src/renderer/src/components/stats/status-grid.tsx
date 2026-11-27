@@ -30,7 +30,7 @@ const getLatencyValueClass = (
   const value = latency ?? -1
   const colorClass =
     value < 0
-      ? 'text-default-400'
+      ? 'text-foreground/60'
       : value === 0
         ? 'text-rose-500'
         : value < thresholds.good
@@ -180,7 +180,7 @@ const StatusGrid: React.FC = () => {
                 <div className={`p-1 rounded-md ${stat.iconClass}`}>
                   <stat.icon className="text-xs" />
                 </div>
-                <span className="text-xs font-medium text-foreground-500">{stat.label}</span>
+                <span className="text-xs font-medium text-foreground/75">{stat.label}</span>
               </div>
               <span className={`text-lg font-bold leading-tight ${stat.valueClass} truncate max-w-full`}>
                 {stat.value}

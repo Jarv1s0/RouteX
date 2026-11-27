@@ -31,12 +31,12 @@ const IpInfoMetaItem: React.FC<{
   mono?: boolean
 }> = ({ icon, label, value, mono = false }) => (
   <div className="min-w-0">
-    <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium text-foreground-400">
+    <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium text-foreground/70">
       {icon}
       <span>{label}</span>
     </div>
     <div
-      className={`${mono ? 'font-mono ' : ''}truncate text-[13px] font-semibold text-foreground-800`}
+      className={`${mono ? 'font-mono ' : ''}truncate text-[13px] font-semibold text-foreground`}
       title={value}
     >
       {value}
@@ -285,7 +285,7 @@ ASN: ${ipInfo.as}`
                   <button
                     type="button"
                     onClick={() => void handleResetToCurrentIp()}
-                    className="text-foreground-400 hover:text-foreground-600 transition-colors"
+                    className="text-foreground/60 hover:text-foreground transition-colors"
                     title={t('tools.resetToCurrentIp')}
                   >
                     <IoClose className="text-sm" />
@@ -351,12 +351,12 @@ ASN: ${ipInfo.as}`
           <div className="grid gap-3 rounded-xl bg-default-50/50 p-2.5 md:grid-cols-[minmax(180px,0.55fr)_minmax(0,1.45fr)] md:items-center">
             <div className="relative min-w-0 pr-9">
               <div className="min-w-0">
-                <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium text-foreground-400">
+                <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium text-foreground/70">
                   <IoGlobe className="text-primary" />
                   <span>{ipInfo.query ? t('tools.ipInfo') : t('tools.publicIp')}</span>
                 </div>
                 <div
-                  className="max-w-full truncate font-mono text-xl font-bold leading-tight text-foreground-900 select-all"
+                  className="max-w-full truncate font-mono text-xl font-bold leading-tight text-foreground select-all"
                   title={isIpVisible ? ipInfo.ip : t('tools.ipHidden')}
                 >
                   {isIpVisible ? ipInfo.ip : '•••.•••.•••.•••'}
@@ -376,7 +376,7 @@ ASN: ${ipInfo.as}`
                 {ipOnlyCopied ? (
                   <IoCheckmarkCircle className="text-xs" />
                 ) : (
-                  <IoCopy className="text-xs text-foreground-400" />
+                  <IoCopy className="text-xs text-foreground/60" />
                 )}
               </Button>
             </div>

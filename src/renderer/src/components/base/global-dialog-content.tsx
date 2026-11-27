@@ -108,7 +108,7 @@ const GlobalDialogContent: React.FC<GlobalDialogContentProps> = ({ isOpen, detai
             </ModalHeader>
             <ModalBody className="py-6">
               <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-2 bg-default-100/50 dark:bg-default-50/20 rounded-xl border border-white/5">
-                <Code className="whitespace-pre-wrap break-all bg-transparent shadow-none text-default-600">
+                <Code className="whitespace-pre-wrap break-all bg-transparent shadow-none text-foreground/85">
                   {details.content}
                 </Code>
               </div>
@@ -117,7 +117,7 @@ const GlobalDialogContent: React.FC<GlobalDialogContentProps> = ({ isOpen, detai
               <Button
                 variant="light"
                 onPress={handleCopy}
-                className="font-medium text-default-500"
+                className="font-medium text-foreground/75"
                 startContent={!isCopied && <MdContentCopy size={18} />}
               >
                 {isCopied ? t('common.copied') : t('common.copy')}

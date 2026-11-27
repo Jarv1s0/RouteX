@@ -181,7 +181,7 @@ const PermissionModal: React.FC<Props> = (props) => {
 
                 <Divider />
 
-                <div className="text-xs text-default-500 space-y-2">
+                <div className="text-xs text-foreground/75 space-y-2">
                   <div className="flex items-start gap-2">
                     <span className="mt-0.5">•</span>
                     <span>{t('mihomo.permission.taskHint1')}</span>
@@ -292,7 +292,7 @@ const PermissionModal: React.FC<Props> = (props) => {
                   </Card>
                 </div>
 
-                <div className="text-xs text-default-500 space-y-2">
+                <div className="text-xs text-foreground/75 space-y-2">
                   <div className="flex items-start gap-2">
                     <span>{t('mihomo.permission.coreHint1')}</span>
                   </div>
@@ -311,7 +311,7 @@ const PermissionModal: React.FC<Props> = (props) => {
             radius="lg"
             onPress={() => onChange(false)}
             isDisabled={Object.values(loading).some((v) => v)}
-            className="h-8 px-4 font-medium text-default-600 dark:text-default-300"
+            className="h-8 px-4 font-medium text-foreground/80"
           >
             {t('common.close')}
           </Button>

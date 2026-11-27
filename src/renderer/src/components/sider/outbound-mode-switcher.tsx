@@ -147,7 +147,7 @@ const OutboundModeSwitcher: React.FC<Props> = (props) => {
               'relative flex-1 flex items-center justify-center gap-1.5 py-1.5 text-sm border transition-[background-color,border-color,box-shadow,color,transform] duration-150 rounded-xl z-10 box-border',
               isActive
                 ? 'bg-primary/10 dark:bg-primary/15 text-primary border-transparent font-semibold'
-                : 'border-transparent text-default-500 dark:text-default-400 hover:text-foreground hover:bg-white/50 dark:hover:bg-white/[0.08] font-medium'
+                : 'border-transparent text-foreground/75 hover:text-foreground hover:bg-white/50 dark:hover:bg-white/[0.08] font-medium'
             )}
           >
             <span className="flex items-center gap-1.5">

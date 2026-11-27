@@ -20,7 +20,7 @@ const Connections: React.FC = () => {
             isIconOnly
             variant="light"
             onPress={() => setIsSettingModalOpen(true)}
-            className="h-6 w-6 min-w-0 app-nodrag text-default-500"
+            className="h-6 w-6 min-w-0 app-nodrag text-foreground/75 hover:text-foreground"
           >
             <MdTune className="text-base" />
           </Button>

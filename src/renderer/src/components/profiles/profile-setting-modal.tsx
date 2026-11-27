@@ -226,7 +226,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
                     variant="light"
                     radius="full"
                     aria-label={t('profiles.diffWorkDirHelp')}
-                    className="h-6 w-6 min-w-6 text-default-400 hover:text-primary"
+                    className="h-6 w-6 min-w-6 text-foreground/65 hover:text-primary"
                   >
                     <IoHelpCircleOutline className="text-base" />
                   </Button>
@@ -267,7 +267,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
                       <button
                         type="button"
                         aria-label={t('proxies.resetToDefault')}
-                        className="rounded-full p-0.5 text-default-400 transition-colors hover:bg-default-200/70 hover:text-foreground"
+                        className="rounded-full p-0.5 text-foreground/60 transition-colors hover:bg-default-200/70 hover:text-foreground"
                         onClick={() => {
                           setUa('')
                           commitUa('')
@@ -291,7 +291,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
                     variant="light"
                     radius="full"
                     aria-label={t('profiles.copyGistUrl')}
-                    className="h-6 w-6 min-w-6 text-default-400 hover:text-primary"
+                    className="h-6 w-6 min-w-6 text-foreground/65 hover:text-primary"
                     onPress={() => {
                       void handleCopyGistUrl()
                     }}
@@ -328,7 +328,7 @@ const ProfileSettingModal: React.FC<Props> = (props) => {
                     type="button"
                     aria-label={tokenToggleLabel}
                     title={tokenToggleLabel}
-                    className="rounded-full p-0.5 text-default-400 transition-colors hover:bg-default-200/70 hover:text-foreground"
+                    className="rounded-full p-0.5 text-foreground/60 transition-colors hover:bg-default-200/70 hover:text-foreground"
                     onClick={() => setShowToken((prev) => !prev)}
                   >
                     {showToken ? (

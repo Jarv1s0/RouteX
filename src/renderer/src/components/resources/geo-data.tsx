@@ -94,7 +94,7 @@ const GeoData: React.FC = () => {
               <CardBody className="w-full py-2.5 px-4">
                 <div className="flex items-center gap-3">
                   <div className="w-[96px] flex-shrink-0">
-                    <span className="inline-flex max-w-full items-center truncate rounded-full border border-default-200/80 bg-default-100/70 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-default-600 dark:border-white/10 dark:bg-white/[0.06] dark:text-default-400">
+                    <span className="inline-flex max-w-full items-center truncate rounded-full border border-default-200/80 bg-default-100/70 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-foreground/80 dark:border-white/10 dark:bg-white/[0.06]">
                       {titleStr}
                     </span>
                   </div>
@@ -125,7 +125,7 @@ const GeoData: React.FC = () => {
                         isIconOnly
                         size="sm"
                         variant="light"
-                        className="w-8 h-8 min-w-8 text-default-400 hover:text-primary"
+                        className="w-8 h-8 min-w-8 text-foreground/65 hover:text-primary"
                         isLoading={isBusy}
                         aria-label={t('resources.downloadGeoDataItem', { name: titleStr })}
                         title={t('resources.downloadGeoDataItem', { name: titleStr })}

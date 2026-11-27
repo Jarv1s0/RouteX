@@ -27,14 +27,14 @@ const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdat
         <CardBody className="w-full py-1.5 px-3 min-h-[48px] flex justify-center">
           <div className="flex items-center gap-2">
             {/* 序号 */}
-            <span className="text-foreground-400 text-sm w-5 flex-shrink-0">{index + 1}</span>
+            <span className="text-foreground/65 text-sm w-5 flex-shrink-0">{index + 1}</span>
             {/* 名称 */}
             <span className="text-ellipsis whitespace-nowrap overflow-hidden">{provider.name}</span>
             {/* 代理数量 */}
             <Chip size="sm">{provider.proxies?.length || 0}</Chip>
             {/* 流量信息 */}
             {provider.subscriptionInfo && (
-              <span className="text-foreground-400 text-sm flex-shrink-0">
+              <span className="text-foreground/75 text-sm flex-shrink-0">
                 {calcTraffic(provider.subscriptionInfo.Upload + provider.subscriptionInfo.Download)}{' '}
                 / {calcTraffic(provider.subscriptionInfo.Total)}
               </span>
@@ -42,11 +42,11 @@ const ProxyProviderItem: React.FC<Props> = ({ provider, index, updating, onUpdat
             {/* 右侧信息 */}
             <div className="ml-auto flex items-center gap-2 flex-shrink-0">
               {provider.subscriptionInfo?.Expire && (
-                <span className="text-foreground-400 text-sm">
+                <span className="text-foreground/75 text-sm">
                   {dayjs.unix(provider.subscriptionInfo.Expire).format('YYYY-MM-DD')}
                 </span>
               )}
-              <span className="text-foreground-400 text-sm">
+              <span className="text-foreground/70 text-sm">
                 {dayjs(provider.updatedAt).fromNow()}
               </span>
               <Button

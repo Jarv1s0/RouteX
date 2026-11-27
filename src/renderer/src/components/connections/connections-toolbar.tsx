@@ -175,7 +175,7 @@ export default function ConnectionsToolbar({
           size="sm"
           isIconOnly
           variant="light"
-          className={`text-default-600 dark:text-default-300 hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
+          className={`text-foreground/80 hover:text-foreground hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
           onPress={() => void onDirectionToggle()}
         >
           {connectionDirection === 'asc' ? (
@@ -191,7 +191,7 @@ export default function ConnectionsToolbar({
               size="sm"
               isIconOnly
               variant="light"
-              className={`text-default-600 dark:text-default-300 hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
+              className={`text-foreground/80 hover:text-foreground hover:bg-default-200/50 dark:hover:bg-white/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
             >
               {VIEW_MODE_ICONS[viewMode]}
             </Button>
@@ -250,7 +250,7 @@ export default function ConnectionsToolbar({
               className={
                 showHidden
                   ? CARD_STYLES.GLASS_TOOLBAR_BUTTON
-                  : `text-default-500 hover:text-primary hover:bg-primary/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`
+                  : `text-foreground/75 hover:text-primary hover:bg-primary/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`
               }
               title={
                 showHidden
@@ -265,7 +265,7 @@ export default function ConnectionsToolbar({
               size="sm"
               isIconOnly
               variant="light"
-              className={`text-default-500 hover:text-warning hover:bg-warning/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
+              className={`text-foreground/75 hover:text-warning hover:bg-warning/10 ${CARD_STYLES.GLASS_TOOLBAR_BUTTON}`}
               title={t('connections.clearHidden')}
               onPress={onClearAllHidden}
             >

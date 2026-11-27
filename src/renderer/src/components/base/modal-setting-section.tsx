@@ -22,7 +22,7 @@ export const MODAL_SECTION_TABS_CLASSNAMES = {
     'bg-default-200/65 dark:bg-white/[0.07] border border-default-200/80 dark:border-white/12 p-0.5 overflow-visible rounded-full',
   cursor: 'w-full bg-white dark:bg-default-200 shadow-sm rounded-full',
   tabContent:
-    'font-medium text-default-600 dark:text-default-400 group-data-[selected=true]:text-primary group-data-[selected=true]:font-semibold transition-colors',
+    'font-medium text-foreground/75 group-data-[selected=true]:text-primary group-data-[selected=true]:font-semibold transition-colors',
   tab: 'h-7 px-3'
 }
 
@@ -42,9 +42,7 @@ export const ModalSettingSection: React.FC<{
 }> = ({ title, children }) => (
   <section className="flex flex-col gap-1">
     {title && (
-      <h3 className="px-1.5 text-xs font-semibold tracking-wide text-default-600 dark:text-default-400">
-        {title}
-      </h3>
+      <h3 className="px-1.5 text-xs font-semibold tracking-wide text-foreground/80">{title}</h3>
     )}
     <div className="rounded-[12px] border border-default-200/85 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04)] divide-y divide-default-200/70 dark:border-white/12 dark:bg-zinc-900/60 dark:shadow-[0_2px_8px_rgba(0,0,0,0.28)] dark:divide-white/10">
       {children}
@@ -63,7 +61,7 @@ export const ModalSettingRow: React.FC<{
       <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
         <span className="text-sm font-medium leading-snug text-foreground">{title}</span>
         {titleActions}
-        {hint && <span className="text-xs leading-snug text-foreground-400">{hint}</span>}
+        {hint && <span className="text-xs leading-snug text-foreground/65">{hint}</span>}
       </div>
       <div className="flex shrink-0 items-center sm:justify-end">{children}</div>
     </div>
