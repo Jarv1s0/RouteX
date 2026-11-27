@@ -11,6 +11,7 @@ import {
 } from '@renderer/utils/validate'
 import { primaryInputClassNames } from '../settings/advanced-settings'
 import { useI18n } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 import { getDisabledSettingTitle } from '@renderer/components/base/collapsible-setting-list'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -132,9 +133,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
       <SettingItem title={getDisabledSettingTitle(t('dns.fakeIpFilterMode'), isDisabled)} divider>
         <Tabs
           size="sm"
-          color="primary"
-          variant="solid"
-          radius="lg"
+          classNames={CARD_STYLES.COMPACT_TABS}
           selectedKey={fakeIpFilterMode}
           isDisabled={isDisabled}
           onSelectionChange={(key) => onFakeIpFilterModeChange(key as FilterMode)}
@@ -337,9 +336,7 @@ const AdvancedDnsSetting: React.FC<AdvancedDnsSettingProps> = ({
         <Tooltip content={t('common.default')} placement="left" isDisabled={cacheAlgorithm !== ''}>
           <Tabs
             size="sm"
-            color="primary"
-            variant="solid"
-            radius="lg"
+            classNames={CARD_STYLES.COMPACT_TABS}
             selectedKey={cacheAlgorithm || 'default'}
             isDisabled={isDisabled}
             onSelectionChange={(key) => {

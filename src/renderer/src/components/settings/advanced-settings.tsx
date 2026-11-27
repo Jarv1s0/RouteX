@@ -17,7 +17,7 @@ import { useI18n } from '@renderer/i18n'
 
 // 通用输入框样式，用于二级菜单中的输入框
 export const secondaryInputClassNames = {
-  input: 'bg-transparent text-default-900',
+  input: 'bg-transparent text-foreground',
   inputWrapper:
     'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
 }
@@ -25,14 +25,14 @@ export const secondaryInputClassNames = {
 // 数字输入框样式，隐藏上下箭头
 export const numberInputClassNames = {
   input:
-    'bg-transparent text-default-900 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]',
+    'bg-transparent text-foreground [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]',
   inputWrapper:
     'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
 }
 
 // 一级页面输入框样式
 export const primaryInputClassNames = {
-  input: 'bg-transparent text-default-900',
+  input: 'bg-transparent text-foreground',
   inputWrapper:
     'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
 }
@@ -40,21 +40,22 @@ export const primaryInputClassNames = {
 // 一级页面数字输入框样式
 export const primaryNumberInputClassNames = {
   input:
-    'bg-transparent text-default-900 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]',
+    'bg-transparent text-foreground [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]',
   inputWrapper:
     'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
 }
 
 // 卡片内输入框样式（用于工具页面等卡片内的输入框）
 export const cardInputClassNames = {
-  input: 'bg-transparent text-default-900',
+  input: 'bg-transparent text-foreground',
   inputWrapper:
     'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 focus-within:bg-default-100/50 focus-within:ring-2 focus-within:ring-primary'
 }
 
 // Select 下拉框样式
 export const selectClassNames = {
-  trigger: 'border border-default-200 bg-default-100 data-[hover=true]:bg-default-200'
+  trigger: 'border border-default-200 bg-default-100 data-[hover=true]:bg-default-200',
+  value: 'text-foreground/55 group-data-[has-value=true]:text-foreground'
 }
 
 import AppearanceConfig from './appearance-config'

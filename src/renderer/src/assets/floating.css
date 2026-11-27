@@ -9,6 +9,16 @@ body,
   overflow: hidden;
 }
 
+body,
+#root {
+  color: hsl(var(--heroui-foreground, 240 10% 12%));
+}
+
+.dark body,
+.dark #root {
+  color: hsl(var(--heroui-foreground, 210 20% 98%));
+}
+
 .floating-root {
   width: 100vw;
   height: 100vh;
@@ -96,8 +106,13 @@ body,
   overflow: hidden;
   white-space: nowrap;
   text-align: end;
+  color: hsl(var(--heroui-foreground, 240 10% 12%));
   font-size: 12px;
   font-weight: 700;
+}
+
+.dark .floating-text {
+  color: hsl(var(--heroui-foreground, 210 20% 98%));
 }
 
 html {

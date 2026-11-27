@@ -176,9 +176,7 @@ const GeoData: React.FC = () => {
         <SettingItem title={t('resources.geoMode')} divider>
           <Tabs
             size="sm"
-            color="primary"
-            variant="solid"
-            radius="lg"
+            classNames={CARD_STYLES.COMPACT_TABS}
             selectedKey={geoMode ? 'dat' : 'db'}
             onSelectionChange={(key) => {
               patchControledMihomoConfig({ 'geodata-mode': key === 'dat' }).catch((error) =>

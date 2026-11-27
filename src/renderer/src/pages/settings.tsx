@@ -14,7 +14,6 @@ const Settings: React.FC = () => {
       <div className="p-2 h-full">
         <Tabs
           aria-label="Settings Options"
-          color="primary"
           variant="solid"
           radius="lg"
           classNames={{

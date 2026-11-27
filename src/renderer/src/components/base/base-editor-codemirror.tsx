@@ -127,7 +127,7 @@ const createTheme = (isLight: boolean): Extension =>
       '.cm-gutters': {
         backgroundColor: 'transparent',
         borderRight: '1px solid hsl(var(--heroui-default-200) / 0.6)',
-        color: 'hsl(var(--heroui-default-500))'
+        color: 'hsl(var(--heroui-foreground) / 0.55)'
       },
       '.cm-activeLine, .cm-activeLineGutter': {
         backgroundColor: isLight
@@ -158,11 +158,10 @@ const createTheme = (isLight: boolean): Extension =>
       '.cm-foldMarker': {
         alignItems: 'center',
         borderRadius: '4px',
-        color: 'hsl(var(--heroui-default-500))',
+        color: 'hsl(var(--heroui-foreground) / 0.65)',
         display: 'inline-flex',
         height: '16px',
         justifyContent: 'center',
-        opacity: '0.72',
         transition: 'background-color 140ms ease, color 140ms ease, opacity 140ms ease',
         width: '16px'
       },

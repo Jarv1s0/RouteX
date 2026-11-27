@@ -135,7 +135,7 @@ const getThemeClasses = (name: string, defaultColor: string): ThemeClasses => {
   if (upper.includes('APPLE'))
     return createThemeClasses(
       '#64748b',
-      'text-slate-600 dark:text-slate-400',
+      'text-slate-700 dark:text-slate-200',
       'border-slate-500/50',
       'shadow-[0_4px_16px_rgba(100,116,139,0.15)]',
       'bg-slate-500',

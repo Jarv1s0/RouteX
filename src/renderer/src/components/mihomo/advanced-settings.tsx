@@ -12,6 +12,7 @@ import { IoIosHelpCircle } from 'react-icons/io'
 import { numberInputClassNames, secondaryInputClassNames } from '../settings/advanced-settings'
 import EditableList from '../base/base-list-editor'
 import { useI18n } from '@renderer/i18n'
+import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const AdvancedSetting: React.FC = () => {
@@ -57,9 +58,7 @@ const AdvancedSetting: React.FC = () => {
       <SettingItem title={t('mihomo.findProcess')} divider>
         <Tabs
           size="sm"
-          color="primary"
-          variant="solid"
-          radius="lg"
+          classNames={CARD_STYLES.COMPACT_TABS}
           selectedKey={findProcessMode}
           onSelectionChange={(key) => {
             onChangeNeedRestart({ 'find-process-mode': key as FindProcessMode })

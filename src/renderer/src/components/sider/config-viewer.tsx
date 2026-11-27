@@ -7,6 +7,7 @@ import { getProfileConfig, getRawProfileStr } from '@renderer/utils/profile-ipc'
 import useSWR from 'swr'
 import { useMainPaneModalContentStyle } from '@renderer/hooks/use-main-pane-modal-style'
 import { MAIN_PANE_MODAL_CLASSNAMES } from '@renderer/utils/modal-styles'
+import { MODAL_SECTION_TABS_CLASSNAMES } from '@renderer/components/base/modal-setting-section'
 import { useI18n } from '@renderer/i18n'
 
 import AppSwitch from '@renderer/components/base/app-switch'
@@ -95,7 +96,7 @@ const ConfigViewer: React.FC<Props> = ({ onClose }) => {
               <span className="text-sm text-foreground/75">{t('configViewer.diffSource')}</span>
               <Tabs
                 size="sm"
-                variant="bordered"
+                classNames={MODAL_SECTION_TABS_CLASSNAMES}
                 selectedKey={diffSource}
                 isDisabled={!isDiff}
                 onSelectionChange={(key) => setDiffSource(key as DiffSource)}

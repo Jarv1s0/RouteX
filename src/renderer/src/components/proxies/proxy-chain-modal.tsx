@@ -20,7 +20,7 @@ import { CARD_STYLES } from '@renderer/utils/card-styles'
 
 import AppSwitch from '@renderer/components/base/app-switch'
 const polishedInputClassNames = {
-  input: 'bg-transparent text-default-900 text-xs',
+  input: 'bg-transparent text-foreground text-xs',
   inputWrapper:
     'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50 min-h-12'
 }

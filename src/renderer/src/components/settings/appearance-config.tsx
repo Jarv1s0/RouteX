@@ -229,9 +229,7 @@ const AppearanceConfig: React.FC = () => {
         <SettingItem title={t('settings.appearance.background')} divider>
           <Tabs
             size="sm"
-            color="primary"
-            variant="solid"
-            radius="lg"
+            classNames={CARD_STYLES.COMPACT_TABS}
             selectedKey={appTheme}
             onSelectionChange={(key) => {
               setTheme(key.toString())

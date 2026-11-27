@@ -205,7 +205,7 @@ const SidebarNameplate: React.FC<Props> = ({ latest }) => {
                 onBlur={handleInputBlur}
                 placeholder={t('sidebar.nameplate.signaturePlaceholder')}
                 aria-label={t('sidebar.nameplate.signaturePlaceholder')}
-                className="select-text h-5 min-w-0 flex-1 rounded-md border border-primary/40 bg-white/80 px-1.5 text-[12px] leading-5 text-foreground outline-none placeholder:text-foreground/55 focus:border-primary dark:bg-black/35"
+                className="select-text h-5 min-w-0 flex-1 rounded-md border border-primary/40 bg-white/80 px-1.5 text-[12px] leading-5 text-foreground outline-none focus:border-primary dark:bg-black/35"
               />
               {signature ? (
                 <button

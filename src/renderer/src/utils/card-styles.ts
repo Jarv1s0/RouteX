@@ -44,20 +44,20 @@ export const CARD_STYLES = {
   // Input style: Matches the glass toolbar aesthetic
   GLASS_INPUT: {
     inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} rounded-2xl !h-8 !min-h-8 transition-colors duration-300`,
-    input: 'text-sm',
+    input: 'text-sm text-foreground',
     innerWrapper: 'bg-transparent'
   },
 
   // Form input & select styles: Unified rounded-full controls for modal/settings forms
   FORM_INPUT: {
     inputWrapper: `${GLASS_CONTROL_BASE} ${GLASS_INPUT_STATE} !bg-white/60 dark:!bg-white/5 !rounded-full !h-9 !min-h-9 transition-colors duration-300`,
-    input: 'text-sm',
+    input: 'text-sm text-foreground',
     innerWrapper: 'bg-transparent'
   },
 
   FORM_SELECT: {
     trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} !bg-white/65 dark:!bg-white/[0.06] !rounded-full !h-9 !min-h-9 transition-all duration-200`,
-    value: 'text-sm font-medium',
+    value: 'text-sm font-medium text-foreground/55 group-data-[has-value=true]:text-foreground',
     selectorIcon: 'text-foreground/60',
     listbox: 'p-1',
     popoverContent: GLASS_POPOVER_CONTENT
@@ -70,6 +70,14 @@ export const CARD_STYLES = {
     tabContent:
       'font-medium text-foreground/75 group-data-[selected=true]:text-primary transition-colors',
     tab: 'h-8 px-3'
+  },
+
+  COMPACT_TABS: {
+    tabList: `${GLASS_CONTROL_BASE} p-0 overflow-visible rounded-full`,
+    cursor: 'w-full bg-background dark:bg-default-100 shadow-md rounded-full',
+    tabContent:
+      'font-medium text-foreground/75 group-data-[selected=true]:text-primary transition-colors',
+    tab: 'h-7 px-3'
   },
 
   // Small item cards (like tools connectivity check)
@@ -122,7 +130,7 @@ export const CARD_STYLES = {
 
   GLASS_SELECT: {
     trigger: `${GLASS_CONTROL_BASE} ${GLASS_SELECT_STATE} bg-white/60 dark:bg-white/[0.06] rounded-full h-8 min-h-8 transition-all duration-200`,
-    value: 'text-sm font-medium',
+    value: 'text-sm font-medium text-foreground/55 group-data-[has-value=true]:text-foreground',
     selectorIcon: 'text-foreground/60',
     listbox: 'p-1',
     popoverContent: GLASS_POPOVER_CONTENT

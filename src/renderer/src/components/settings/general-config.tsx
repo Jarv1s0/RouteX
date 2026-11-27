@@ -16,6 +16,7 @@ import {
   ModalBody
 } from '@heroui/react'
 import SecondaryModalFooter from '@renderer/components/base/secondary-modal-footer'
+import { MODAL_SECTION_TABS_CLASSNAMES } from '@renderer/components/base/modal-setting-section'
 import useSWR from 'swr'
 import {
   checkAutoRun,
@@ -234,9 +235,7 @@ const GeneralConfig: React.FC = () => {
                     </span>
                     <Tabs
                       size="sm"
-                      color="primary"
-                      variant="solid"
-                      radius="lg"
+                      classNames={MODAL_SECTION_TABS_CLASSNAMES}
                       selectedKey={autoLightweightMode}
                       onSelectionChange={(v) => {
                         void patchAppConfig({ autoLightweightMode: v as 'core' | 'tray' }).catch(
@@ -261,7 +260,7 @@ const GeneralConfig: React.FC = () => {
                       size="sm"
                       className="w-full sm:w-[120px]"
                       classNames={{
-                        input: 'bg-transparent',
+                        input: 'bg-transparent text-foreground',
                         inputWrapper:
                           'border border-default-200 bg-default-100/50 shadow-sm rounded-2xl hover:bg-default-200/50'
                       }}

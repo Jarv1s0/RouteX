@@ -83,8 +83,8 @@ function formatHourLabel(hour: string): string {
 
 function getChartColors(isDark: boolean) {
   return {
-    axisLabelColor: '#94a3b8',
-    splitLineColor: 'rgba(148, 163, 184, 0.16)',
+    axisLabelColor: isDark ? '#cbd5e1' : '#475569',
+    splitLineColor: isDark ? 'rgba(148, 163, 184, 0.16)' : 'rgba(100, 116, 139, 0.16)',
     uploadColor: '#06b6d4',
     downloadColor: isDark ? '#9b8bd8' : '#a855f7',
     downloadAreaStart: isDark ? 'rgba(155,139,216,0.22)' : 'rgba(168,85,247,0.40)',
@@ -162,11 +162,11 @@ function createTooltipFormatter(speed: boolean): (params: unknown) => string {
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;">
               <div style="display:flex;align-items:center;gap:8px;min-width:0;">
                 <span style="width:8px;height:8px;border-radius:9999px;background:${entry.color};display:inline-block;flex:none;"></span>
-                <span style="color:#64748b;font-size:12px;white-space:nowrap;">${entry.seriesName}</span>
+                <span class="tooltip-series-name">${entry.seriesName}</span>
               </div>
               <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:6px;min-width:0;flex:none;">
                 <span style="color:${entry.color};font-weight:700;font-size:13px;line-height:1;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;">${amount}</span>
-                <span style="color:#94a3b8;font-weight:600;font-size:11px;line-height:1;white-space:nowrap;">${unit}</span>
+                <span class="tooltip-unit">${unit}</span>
               </div>
             </div>
           `
@@ -178,7 +178,7 @@ function createTooltipFormatter(speed: boolean): (params: unknown) => string {
     return `
         <style>
           .traffic-glass-tooltip-${uid} {
-            background: rgba(255, 255, 255, 0.72);
+            background: rgba(255, 255, 255, 0.84);
             backdrop-filter: blur(12px) saturate(150%);
             border: 1px solid rgba(255, 255, 255, 0.75);
             padding: 10px 12px;
@@ -187,19 +187,37 @@ function createTooltipFormatter(speed: boolean): (params: unknown) => string {
             min-width: 156px;
           }
           .dark .traffic-glass-tooltip-${uid} {
-            background: rgba(15, 23, 42, 0.72);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(15, 23, 42, 0.84);
+            border: 1px solid rgba(255, 255, 255, 0.14);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
           }
           .traffic-glass-tooltip-${uid} .tooltip-title {
             font-size: 12px;
             font-weight: 700;
             line-height: 1.1;
-            color: #475569;
+            color: #0f172a;
             margin-bottom: ${rows ? '8px' : '0'};
           }
           .dark .traffic-glass-tooltip-${uid} .tooltip-title {
+            color: #f8fafc;
+          }
+          .traffic-glass-tooltip-${uid} .tooltip-series-name {
+            color: #334155;
+            font-size: 12px;
+            white-space: nowrap;
+          }
+          .dark .traffic-glass-tooltip-${uid} .tooltip-series-name {
             color: #cbd5e1;
+          }
+          .traffic-glass-tooltip-${uid} .tooltip-unit {
+            color: #475569;
+            font-weight: 600;
+            font-size: 11px;
+            line-height: 1;
+            white-space: nowrap;
+          }
+          .dark .traffic-glass-tooltip-${uid} .tooltip-unit {
+            color: #94a3b8;
           }
         </style>
         <div class="traffic-glass-tooltip-${uid}">
